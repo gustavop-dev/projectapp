@@ -119,10 +119,10 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
 
     // Client block pre-filled.
     const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
-    const clientName = clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
+    const clientName = clientSection.getByLabel('Razón social / Nombre', { exact: true });
     await expect(clientName).toHaveValue('Beta Corp SAS');
 
-    const clientCedula = modal.locator('label').filter({ hasText: 'NIT / C.C.' }).locator('input');
+    const clientCedula = modal.getByLabel('NIT / C.C.', { exact: true });
     await expect(clientCedula).toHaveValue('800.555.111-2');
   });
 
@@ -146,7 +146,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
     await expect(modal.locator('h2', { hasText: 'Acuerdo de Confidencialidad' })).toBeVisible();
 
     const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
-    const clientName = clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
+    const clientName = clientSection.getByLabel('Razón social / Nombre', { exact: true });
     await clientName.fill('Beta Corp SAS (Actualizado)');
 
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();

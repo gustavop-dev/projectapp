@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
-    size="xl"
+    kind="form-wide"
     initial-focus="[data-testid='folder-change-client-picker']"
     @update:model-value="$emit('close')"
   >

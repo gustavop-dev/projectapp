@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue && !!folder"
-    size="md"
+    kind="confirm"
     @update:model-value="(v) => !v && close()"
   >
     <div v-if="folder" class="px-6 pt-6 pb-2">

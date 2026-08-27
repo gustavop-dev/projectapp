@@ -140,7 +140,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" kind="form" size="lg" title-id="recurring-payment-form-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="form-wide" title-id="recurring-payment-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="recurring-payment-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
@@ -231,11 +231,12 @@ function onSubmit() {
         />
       </BaseFormField>
 
-      <BaseFormRow :cols="2" :gap="4">
-        <BaseFormField
-          label="Día de cobro"
-          :hint="isMonthlyFrequency ? '' : 'Sólo referencial: el próximo cobro sale de la fecha de arriba.'"
-        >
+      <BaseFormRow
+        :cols="2"
+        :gap="4"
+        :help="isMonthlyFrequency ? '' : 'El próximo cobro se calcula desde la fecha de referencia.'"
+      >
+        <BaseFormField label="Día de cobro">
           <BaseInput v-model="form.billing_day" type="number" step="1" min="1" max="31" />
         </BaseFormField>
         <BaseFormField label="Tipo de costo">

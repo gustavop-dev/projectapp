@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseFormRow from '~/components/base/BaseFormRow.vue';
+import BaseFormRowAction from '~/components/base/BaseFormRowAction.vue';
 
 /**
  * These assert the layout contract through the classes the components emit,
@@ -86,7 +87,7 @@ describe('BaseFormRow', () => {
     });
   });
 
-  it('gives each field a label, a control and a hint band', () => {
+  it('gives each field a label, a control and an error band', () => {
     const wrapper = mountRow();
 
     fieldsOf(wrapper).forEach((field) => {
@@ -105,17 +106,24 @@ describe('BaseFormRow', () => {
     expect(unlabelled.find('input').exists()).toBe(true);
   });
 
-  it('keeps both fields on the same bands when only one carries a hint', () => {
-    const wrapper = mountRow({}, [
-      { label: SHORT, hint: 'Para cuentas de cobro' },
-      { label: LONG },
-    ]);
+  it('renders one help block below the complete group', () => {
+    const wrapper = mountRow(
+      { help: 'Para cuentas de cobro', helpTestid: 'row-help' },
+      [{ label: SHORT }, { label: LONG }],
+    );
 
-    // The hint band is as tall as the tallest cell, so the row below stays square.
-    fieldsOf(wrapper).forEach((field) => {
-      expect(field.classes()).toContain('panel-portrait:row-span-3');
-    });
-    expect(wrapper.text()).toContain('Para cuentas de cobro');
+    expect(wrapper.get('[data-testid="row-help"]').text()).toBe('Para cuentas de cobro');
+    expect(wrapper.findAll('[data-testid="row-help"]')).toHaveLength(1);
+  });
+
+  it('does not reserve a per-column hint inside aligned rows', () => {
+    const wrapper = mountRow(
+      { help: 'Ayuda del grupo' },
+      [{ label: SHORT, hint: 'Ayuda antigua de la columna' }, { label: LONG }],
+    );
+
+    expect(wrapper.text()).toContain('Ayuda del grupo');
+    expect(wrapper.text()).not.toContain('Ayuda antigua de la columna');
   });
 
   it('stacks in one column below the breakpoint without reserving bands', () => {
@@ -180,6 +188,26 @@ describe('BaseFormRow', () => {
     expect(joined.classes()).toContain('panel-portrait:row-span-3');
     expect(opted.classes().join(' ')).not.toContain('row-span');
   });
+
+  it('uses a flexible field track beside a compact action track', () => {
+    const wrapper = mount({
+      components: { BaseFormField, BaseFormRow, BaseFormRowAction },
+      template: `
+        <BaseFormRow layout="field-action" help="Ayuda compartida">
+          <BaseFormField label="Proyecto"><input data-testid="project" /></BaseFormField>
+          <BaseFormRowAction><button data-testid="no-project">Sin proyecto</button></BaseFormRowAction>
+        </BaseFormRow>
+      `,
+    });
+
+    expect(wrapper.findComponent(BaseFormRow).classes())
+      .toContain('panel-portrait:grid-cols-[minmax(0,1fr)_auto]');
+    expect(wrapper.findComponent(BaseFormRowAction).classes())
+      .toContain('panel-portrait:row-span-3');
+    expect(wrapper.get('[data-testid="no-project"]').element.parentElement.classList)
+      .toContain('self-stretch');
+    expect(wrapper.get('[data-testid="no-project"]').text()).toBe('Sin proyecto');
+  });
 });
 
 describe('BaseFormField outside a row', () => {
@@ -198,5 +226,23 @@ describe('BaseFormField outside a row', () => {
     expect(wrapper.find('label').text()).toContain(SHORT);
     expect(wrapper.find('[data-testid="solo"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Para cuentas de cobro');
+  });
+
+  it('keeps a short label atomic by default', () => {
+    const wrapper = mount(BaseFormField, {
+      props: { label: LONG },
+      slots: { default: '<input />' },
+    });
+
+    expect(wrapper.get('label').classes()).toContain('whitespace-nowrap');
+  });
+
+  it('allows a sentence-like label to wrap explicitly', () => {
+    const wrapper = mount(BaseFormField, {
+      props: { label: LONG, labelPolicy: 'wrap' },
+      slots: { default: '<input />' },
+    });
+
+    expect(wrapper.get('label').classes()).toContain('whitespace-normal');
   });
 });

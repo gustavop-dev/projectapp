@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4" data-enter>
       <div>
-        <h1 class="text-2xl font-light text-text-default">Documentos</h1>
+        <h1 class="text-2xl font-light text-text-default">Gestor Documental</h1>
         <p class="text-sm text-text-subtle mt-1">Crea, organiza y comparte documentos con tu marca.</p>
       </div>
       <BaseButton as="NuxtLink" :to="createLink" variant="primary" class="shadow-sm">

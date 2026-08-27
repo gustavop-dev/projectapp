@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
-    :size="size"
+    kind="detail"
     title-id="stats-modal-title"
     @close="emit('close')"
   >

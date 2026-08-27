@@ -50,7 +50,7 @@
     </BaseButton>
   </div>
 
-  <BaseModal v-model="showAddSectionModal" size="md">
+  <BaseModal v-model="showAddSectionModal" kind="form">
     <div class="p-5">
       <h3 class="text-sm font-semibold text-text-default mb-1">Agregar sección</h3>
       <p class="text-xs text-text-subtle mb-4">

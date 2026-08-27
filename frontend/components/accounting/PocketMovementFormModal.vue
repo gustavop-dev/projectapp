@@ -104,7 +104,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" kind="form" size="lg" title-id="pocket-movement-form-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="form-wide" title-id="pocket-movement-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="pocket-movement-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
@@ -113,7 +113,12 @@ function onSubmit() {
         <BaseInput v-model="form.concept" required />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow
+        :cols="2"
+        :gap="4"
+        at="sm"
+        :help="directionLocked ? 'La dirección se fija al crear el movimiento vinculado.' : ''"
+      >
         <BaseFormField label="Fecha" required>
           <BaseInput v-model="form.movement_date" type="date" required />
         </BaseFormField>
@@ -125,11 +130,8 @@ function onSubmit() {
             disabled-reason="La dirección se fija al crear el movimiento vinculado."
             full-width
           />
-          <p v-if="directionLocked" class="text-xs text-text-subtle mt-1">
-            La dirección se fija al crear el movimiento vinculado.
-          </p>
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField v-if="showLedger" :label="ledgerLabel" required>
         <BaseSegmented

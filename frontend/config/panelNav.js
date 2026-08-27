@@ -78,9 +78,9 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
     },
     {
       id: 'documents',
-      label: 'Documentos',
+      label: 'Gestor Documental',
       items: [
-        { label: 'Documentos PDF', href: lp('/panel/documents'), icon: 'file' },
+        { label: 'Gestor Documental', href: lp('/panel/documents'), icon: 'file' },
       ],
     },
     {

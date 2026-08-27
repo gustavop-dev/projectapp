@@ -893,8 +893,7 @@ function downloadPdf() {
 <template>
   <BaseModal
     :model-value="open"
-    :kind="step === 'preview' ? 'workspace' : 'detail'"
-    :size="step === 'preview' ? 'full' : '2xl'"
+    :kind="step === 'preview' ? 'workspace' : 'wizard'"
     :full-height="step === 'preview'"
     title-id="collection-form-title"
     @close="close"
@@ -1218,8 +1217,8 @@ function downloadPdf() {
         </div>
       </BaseFormField>
 
-      <BaseFormRow :cols="2" :gap="4">
-        <BaseFormField label="Consecutivo" hint="Sugerido; editable">
+      <BaseFormRow :cols="2" :gap="4" help="El consecutivo sugerido se puede editar.">
+        <BaseFormField label="Consecutivo">
           <BaseInput
             v-model="form.public_number"
             data-testid="collection-form-number"
@@ -1303,15 +1302,15 @@ function downloadPdf() {
       <!-- Editable customer snapshot -->
       <div class="rounded-xl border border-border-default p-4 space-y-3">
         <p class="text-sm font-medium text-text-default">Datos del cliente en el documento</p>
-        <BaseFormRow :cols="2" :gap="3">
+        <BaseFormRow
+          :cols="2"
+          :gap="3"
+          help="El correo se completa desde el cliente; cambiarlo aquí sólo afecta esta cuenta."
+        >
           <BaseFormField label="Nombre / Razón social">
             <BaseInput v-model="form.customer.name" data-testid="collection-form-customer-name" />
           </BaseFormField>
-          <BaseFormField
-            label="Correo destinatario de esta cuenta"
-            hint="Se completa con el correo del cliente; si lo cambias aquí, sólo afecta esta cuenta."
-            required
-          >
+          <BaseFormField label="Correo destinatario de esta cuenta" required>
             <BaseInput
               v-model="form.customer.email"
               type="email"
@@ -1321,6 +1320,8 @@ function downloadPdf() {
               disabled-reason="Guarda el correo del cliente en el aviso superior para habilitar este campo."
             />
           </BaseFormField>
+        </BaseFormRow>
+        <BaseFormRow :cols="2" :gap="3">
           <BaseFormField label="Tipo de identificación">
             <BaseSegmented
               v-model="form.customer.identification_type"
@@ -1334,6 +1335,8 @@ function downloadPdf() {
               data-testid="collection-form-customer-identification"
             />
           </BaseFormField>
+        </BaseFormRow>
+        <BaseFormRow :cols="2" :gap="3">
           <BaseFormField label="Contacto">
             <BaseInput v-model="form.customer.contact_name" />
           </BaseFormField>

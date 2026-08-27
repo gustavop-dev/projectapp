@@ -185,13 +185,13 @@ describe('panel/clients index page', () => {
   });
 
   it('labels each status with its own match count', async () => {
-    mockStore.statusCounts = { all: 12, active: 9, orphans: 3, inactive: 0 };
+    mockStore.statusCounts = { all: 12000, active: 9999, orphans: 9999, inactive: 0 };
     const wrapper = mountPage();
     await flushPromises();
 
     const options = wrapper.findComponent({ name: 'BaseSegmented' }).props('options');
     expect(options.map((o) => o.label)).toEqual([
-      'Todos (12)', 'Activos (9)', 'Huérfanos (3)', 'Inactivos (0)',
+      'Todos (12000)', 'Activos (9999)', 'Huérfanos (9999)', 'Inactivos (0)',
     ]);
   });
 

@@ -19,6 +19,13 @@ const props = defineProps({
    *  render the same copy visibly through BaseControlGate. */
   disabledReason: { type: String, default: '' },
   iconOnly: { type: Boolean, default: false },    // square padding for icon buttons
+  /** Buttons are short UI controls by default. Sentence-like CTAs can opt in
+   * to wrapping without allowing an icon to detach from its text. */
+  textPolicy: {
+    type: String,
+    default: 'atomic',
+    validator: oneOf(['atomic', 'wrap']),
+  },
   as: { type: String, default: 'button' },        // button | a | NuxtLink
   to: { type: [String, Object], default: null },
 })
@@ -73,7 +80,8 @@ const classes = computed(() => [
   'base-button',
   props.iconOnly && 'base-button--icon',
   props.variant === 'link' && 'base-button--link',
-  'inline-flex items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:opacity-60 disabled:cursor-not-allowed',
+  'inline-flex min-w-0 max-w-full flex-nowrap items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60',
+  props.textPolicy === 'atomic' ? 'whitespace-nowrap' : 'whitespace-normal',
   variants[props.variant] || variants.primary,
   sizeClasses.value,
 ])
@@ -98,7 +106,7 @@ if (process.env.NODE_ENV !== 'production') {
   >
     <svg
       v-if="loading"
-      class="animate-spin h-4 w-4"
+      class="h-4 w-4 shrink-0 animate-spin"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -116,7 +124,7 @@ if (process.env.NODE_ENV !== 'production') {
   >
     <svg
       v-if="loading"
-      class="animate-spin h-4 w-4"
+      class="h-4 w-4 shrink-0 animate-spin"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -136,7 +144,7 @@ if (process.env.NODE_ENV !== 'production') {
   >
     <svg
       v-if="loading"
-      class="animate-spin h-4 w-4"
+      class="h-4 w-4 shrink-0 animate-spin"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

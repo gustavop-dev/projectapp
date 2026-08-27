@@ -425,7 +425,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" kind="form" size="lg" title-id="income-form-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="form-wide" title-id="income-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="income-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
@@ -527,7 +527,12 @@ function onSubmit() {
 
       <!-- How often first, then the window it produces: the periodicity sits
            beside Tipo because it is chosen before the dates it proposes. -->
-      <BaseFormRow :cols="2" :gap="4">
+      <BaseFormRow
+        :cols="2"
+        :gap="4"
+        :help="isHosting ? cadenceHint : periodDateHint"
+        :help-testid="isHosting ? undefined : 'income-form-period-hint'"
+      >
         <BaseFormField label="Tipo" required>
           <BaseSegmented v-model="form.kind" :options="kindOptions" full-width />
         </BaseFormField>
@@ -540,11 +545,9 @@ function onSubmit() {
           required
           input-testid="income-form-period"
           toggle-testid="income-form-exact-date"
-          :hint="periodDateHint"
-          hint-testid="income-form-period-hint"
           @update:model-value="periodDateTouched = true"
         />
-        <BaseFormField v-else label="Periodicidad" required :hint="cadenceHint">
+        <BaseFormField v-else label="Periodicidad" required>
           <BaseSelect
             v-model="form.period_cadence"
             :options="cadenceOptions"
@@ -558,7 +561,13 @@ function onSubmit() {
       <!-- The window a hosting income covers, read left to right. The end
            proposes itself from start + cadence and stays editable; writing it
            by hand is what turns the periodicity into `Personalizada`. -->
-      <BaseFormRow v-if="isHosting" :cols="2" :gap="4">
+      <BaseFormRow
+        v-if="isHosting"
+        :cols="2"
+        :gap="4"
+        :help="periodStartHint"
+        help-testid="income-form-period-hint"
+      >
         <PeriodDateField
           v-model="form.period_start"
           v-model:exact="exactDate"
@@ -567,8 +576,6 @@ function onSubmit() {
           required
           input-testid="income-form-period-start"
           toggle-testid="income-form-exact-date"
-          :hint="periodStartHint"
-          hint-testid="income-form-period-hint"
         />
         <BaseFormField label="Fin del período" required :error="periodEndError">
           <BaseInput

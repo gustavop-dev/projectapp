@@ -164,11 +164,9 @@ test.describe('design system styleguide visual regression', () => {
 });
 
 /**
- * Geometry, not pixels. The styleguide carries the only `BaseFormRow` fixture
- * narrow enough to force the labels to wrap on demand, which is what lets us
- * check the two cases a real form cannot produce side by side: one label
- * wrapping, and both wrapping. A pixel snapshot would catch the regression too,
- * but it could not say *why* it changed.
+ * Geometry, not pixels. The fixtures exercise the three guarantees independently:
+ * short labels stay atomic, explicitly long labels share a fallback band, and a
+ * companion action aligns with the control instead of the complete field block.
  */
 test.describe('styleguide form rows', () => {
   test.setTimeout(60_000);
@@ -182,7 +180,7 @@ test.describe('styleguide form rows', () => {
     await seedTheme(page, 'light');
   });
 
-  test('keeps the controls level whether one label wraps or both do', {
+  test('keeps shared form bands level across labels, help and companion actions', {
     tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the styleguide is a static
@@ -192,31 +190,78 @@ test.describe('styleguide form rows', () => {
     await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('styleguide-form-rows')).toBeVisible();
 
-    const oneRow = page.getByTestId('sg-row-one-wrapped');
-    const bothRow = page.getByTestId('sg-row-both-wrapped');
+    const atomicRow = page.getByTestId('sg-row-atomic');
+    const fallbackRow = page.getByTestId('sg-row-wrapped-fallback');
 
-    // Row 1 — one label on a single line, the other wrapped, and only the first
-    // field carrying a hint. The short label sets the single-line reference.
-    const short = await oneRow.getByText('C.C. / NIT (opcional)', { exact: true }).boundingBox();
-    const wrapped = await oneRow
-      .getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
-    expect(wrapped.height).toBeGreaterThan(short.height);
+    const nitLabel = atomicRow.getByText('C.C. / NIT (opcional)', { exact: true });
+    const billingCodeLabel = atomicRow.getByText('Código de facturación (opcional)', { exact: true });
+    await expect(nitLabel).toHaveCSS('white-space', 'nowrap');
+    await expect(billingCodeLabel).toHaveCSS('white-space', 'nowrap');
 
     const oneA = await page.getByTestId('sg-row-one-a').boundingBox();
     const oneB = await page.getByTestId('sg-row-one-b').boundingBox();
     expect(Math.abs(oneA.y - oneB.y)).toBeLessThanOrEqual(1);
 
-    // Row 2 — both labels wrapped: the band is as tall as the taller of the two
-    // and neither control drifts.
-    const bothA = await bothRow.getByText('Nombre en la cuenta de cobro', { exact: true }).boundingBox();
-    const bothB = await bothRow
-      .getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
-    expect(bothA.height).toBeGreaterThan(short.height);
-    expect(bothB.height).toBeGreaterThan(short.height);
+    const help = await page.getByTestId('sg-row-help').boundingBox();
+    expect(help.y).toBeGreaterThan(oneA.y + oneA.height);
+    expect(help.x).toBeLessThanOrEqual(oneA.x + 1);
+    expect(help.x + help.width).toBeGreaterThanOrEqual(oneB.x + oneB.width - 1);
+
+    const accountNameLabel = fallbackRow.getByText(
+      'Nombre completo que aparecerá en la cuenta de cobro',
+      { exact: true },
+    );
+    const accountRecipientLabel = fallbackRow.getByText(
+      'Correo destinatario que recibirá la cuenta de cobro',
+      { exact: true },
+    );
+    const fallbackA = await accountNameLabel.boundingBox();
+    const fallbackB = await accountRecipientLabel.boundingBox();
+    expect(fallbackA.height).toBeGreaterThan(20);
+    expect(fallbackB.height).toBeGreaterThan(20);
 
     const rowA = await page.getByTestId('sg-row-both-a').boundingBox();
     const rowB = await page.getByTestId('sg-row-both-b').boundingBox();
     expect(Math.abs(rowA.y - rowB.y)).toBeLessThanOrEqual(1);
+
+    const actionInput = await page.getByTestId('sg-row-action-input').boundingBox();
+    const actionButton = await page.getByTestId('sg-row-action-button').boundingBox();
+    const inputCenter = actionInput.y + (actionInput.height / 2);
+    const buttonCenter = actionButton.y + (actionButton.height / 2);
+    expect(Math.abs(inputCenter - buttonCenter)).toBeLessThanOrEqual(1);
+  });
+
+  test('keeps four-digit counts and status chips atomic', {
+    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — this asserts component geometry)
+    // quality: allow-deep-link (the styleguide is the executable contract)
+    await page.goto(STYLEGUIDE_URL, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
+
+    const segmentedCounts = page.getByTestId('sg-segmented-counts');
+    const allTab = segmentedCounts.getByRole('tab', { name: 'Todos (9999)', exact: true });
+    const expectedTab = segmentedCounts.getByRole('tab', { name: 'Esperados (9999)', exact: true });
+    const liquidTab = segmentedCounts.getByRole('tab', { name: 'Líquidos (9999)', exact: true });
+    await expect(allTab).toHaveText('Todos (9999)');
+    await expect(expectedTab).toHaveText('Esperados (9999)');
+    await expect(liquidTab).toHaveText('Líquidos (9999)');
+    await expect(allTab).toHaveCSS('white-space', 'nowrap');
+    await expect(expectedTab).toHaveCSS('white-space', 'nowrap');
+    await expect(liquidTab).toHaveCSS('white-space', 'nowrap');
+    const allBox = await allTab.boundingBox();
+    const expectedBox = await expectedTab.boundingBox();
+    const liquidBox = await liquidTab.boundingBox();
+    expect(Math.round(allBox.height)).toBe(Math.round(expectedBox.height));
+    expect(Math.round(expectedBox.height)).toBe(Math.round(liquidBox.height));
+
+    const stateBadge = page.getByTestId('sg-atomic-state-badge');
+    await expect(stateBadge).toHaveCSS('white-space', 'nowrap');
+    const badgeMetrics = await stateBadge.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(badgeMetrics.scrollHeight).toBeLessThanOrEqual(badgeMetrics.clientHeight + 1);
   });
 });
 

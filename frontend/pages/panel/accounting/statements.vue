@@ -114,7 +114,7 @@
     />
 
     <!-- Transaction create/edit modal -->
-    <BaseModal v-model="txModalOpen" kind="form" size="md" padding="md">
+    <BaseModal v-model="txModalOpen" kind="form" padding="md">
       <h3 class="text-base font-medium text-text-default mb-4">
         {{ txForm.id ? 'Editar transacción' : 'Agregar transacción' }}
       </h3>

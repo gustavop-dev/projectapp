@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="visible"
-    size="xl"
+    kind="form-wide"
     @update:model-value="(v) => !v && handleClose()"
     @close="handleClose"
   >

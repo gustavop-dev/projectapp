@@ -31,22 +31,20 @@ describe('BaseSegmented', () => {
     expect(wrapper.emitted('update:modelValue')[0]).toEqual(['json'])
   })
 
-  it('lets multi-word labels wrap by default', () => {
+  it('keeps multi-word labels atomic by default', () => {
     const wrapper = mount(BaseSegmented, {
-      props: { modelValue: 'COL', options: [{ value: 'COL', label: 'Colombia (COP)' }] },
+      props: { modelValue: 'orphans', options: [{ value: 'orphans', label: 'Huérfanos (9999)' }] },
     })
-    expect(wrapper.findAll('button')[0].classes()).not.toContain('whitespace-nowrap')
+    expect(wrapper.findAll('button')[0].classes()).toContain('whitespace-nowrap')
+    expect(wrapper.findAll('button')[0].classes()).toContain('self-stretch')
     expect(wrapper.find('[role="tablist"]').classes()).not.toContain('overflow-x-auto')
   })
 
-  it('keeps labels on a single line when nowrap is set, wrapping instead of breaking', () => {
+  it('reflows the group between options when its width runs out', () => {
     const wrapper = mount(BaseSegmented, {
-      props: { modelValue: 'COL', options: [{ value: 'COL', label: 'Colombia (COP)' }], nowrap: true },
+      props: { modelValue: 'COL', options: [{ value: 'COL', label: 'Colombia (COP)' }] },
     })
     expect(wrapper.findAll('button')[0].classes()).toContain('whitespace-nowrap')
-    // El control crece en alto en vez de scrollear: un scroll horizontal sin
-    // indicador esconde las opciones del final detrás de un corte que se lee
-    // como el final de la lista, y ninguna opción puede quedar inalcanzable.
     expect(wrapper.find('[role="tablist"]').classes()).toEqual(
       expect.arrayContaining(['max-w-full', 'flex-wrap']),
     )

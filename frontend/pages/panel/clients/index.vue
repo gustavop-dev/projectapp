@@ -970,7 +970,7 @@
     <!-- Edit client modal -->
     <BaseModal
       :model-value="Boolean(editingClient)"
-      size="md"
+      kind="form"
       title-id="clients-edit-title"
       @close="closeEditModal"
     >

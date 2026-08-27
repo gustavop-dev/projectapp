@@ -229,8 +229,13 @@ function onSubmit() {
       </div>
 
       <!-- The initial state is optional; later changes go through the impact preview. -->
-      <BaseFormRow v-if="!isEdit" :cols="2" :gap="4">
-        <BaseFormField label="Estado inicial (opcional)" hint="Si no eliges uno, empieza En desarrollo.">
+      <BaseFormRow
+        v-if="!isEdit"
+        :cols="2"
+        :gap="4"
+        help="Si no eliges un estado, empieza En desarrollo."
+      >
+        <BaseFormField label="Estado inicial (opcional)">
           <BaseSelect
             v-model="form.state_id"
             :options="stateOptions"

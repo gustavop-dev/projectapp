@@ -14,7 +14,7 @@ const ClientAutocompleteStub = {
 
 const ProjectSelectStub = {
   name: 'ProjectSelect',
-  props: ['modelValue', 'clientProfileId', 'allowNoClient', 'allowCreate', 'testid'],
+  props: ['modelValue', 'clientProfileId', 'allowNoClient', 'allowCreate', 'showHint', 'testid'],
   emits: ['update:modelValue', 'select'],
   template: '<input :data-testid="testid" />',
 };
@@ -70,5 +70,24 @@ describe('DocumentsAssociationFilters', () => {
 
     await wrapper.setProps({ client: 'none' });
     expect(wrapper.findComponent({ name: 'ProjectSelect' }).props('clientProfileId')).toBeNull();
+  });
+
+  it('renders project help once below its complete group', () => {
+    const wrapper = mountFilters();
+
+    expect(wrapper.get('[data-testid="documents-filter-project-help"]').text())
+      .toBe('Opcional. Filtra por un proyecto o elige «Sin proyecto».');
+    expect(wrapper.findComponent({ name: 'ProjectSelect' }).props('showHint')).toBe(false);
+  });
+
+  it.each([
+    ['documents-filter-client-none'],
+    ['documents-filter-project-none'],
+  ])('renders %s as an atomic button', (testId) => {
+    // Fails if either unassociated action lets its short interface label wrap.
+    const wrapper = mountFilters();
+
+    expect(wrapper.get(`[data-testid="${testId}"]`).classes())
+      .toContain('whitespace-nowrap');
   });
 });

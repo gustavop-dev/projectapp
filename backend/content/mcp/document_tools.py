@@ -826,7 +826,7 @@ DOCUMENT_TOOLS = [
     {
         'name': 'list_folders',
         'description': (
-            'Lista todas las carpetas del gestor de documentos con su ruta '
+            'Lista todas las carpetas del Gestor Documental con su ruta '
             'jerárquica y cuántos documentos contiene cada una. Úsala para '
             'saber dónde colocar o buscar documentos.'
         ),

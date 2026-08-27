@@ -224,7 +224,7 @@
     </div>
 
     <!-- One-time token modal -->
-    <BaseModal v-model="tokenModal.open" size="lg" padding="md" :close-on-backdrop="false">
+    <BaseModal v-model="tokenModal.open" kind="form" padding="md" :close-on-backdrop="false">
       <div data-testid="mcp-token-modal">
         <h3 class="text-lg font-bold text-text-default mb-2">URL del conector</h3>
         <p class="text-sm text-text-muted mb-4">
