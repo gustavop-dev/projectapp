@@ -70,6 +70,22 @@ describe('BaseTooltip', () => {
     expect(wrapper.find('[role="tooltip"]').exists()).toBe(false)
   })
 
+  it('does not open when tooltip behavior is disabled', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: { disabled: true },
+      slots: {
+        trigger: '<button type="button">Acción</button>',
+        default: 'Motivo del bloqueo',
+      },
+    })
+
+    await wrapper.get('button').trigger('pointerenter', { pointerType: 'mouse' })
+    await wrapper.get('button').trigger('click')
+
+    expect(wrapper.get('button').text()).toBe('Acción')
+    expect(wrapper.text()).not.toContain('Motivo del bloqueo')
+  })
+
   it.each([
     ['top', 'bottom-full'],
     ['bottom', 'top-full'],

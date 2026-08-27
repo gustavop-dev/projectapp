@@ -221,8 +221,14 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   cell/card. The collapsed state uses one line with ellipsis and exposes the same
   measured **Ver completo/Contraer** path for names with spaces or systematic
   underscore/date naming; the expanded state may break anywhere. Folder comes
-  first in a separate metadata row below the title, followed by compact-only
-  client/project/state distinctions. Rows without a folder keep natural height.
+  first in a separate metadata row below the title. Rows without a folder keep
+  natural height.
+- **List priority**: desktop columns use the fixed order Title, States,
+  Created/Date/Archived, Client, Project and Actions. Actions remains last and
+  only Title width is user-persisted. Landscape retains Title, States, Date and
+  Actions as columns and groups Client/Project under Title. Compact cards keep
+  Title/States primary and order secondary metadata as Date, Client, Project.
+  Project stays low priority until PA-55 backfills historical associations.
 - **Private notes**: creation and editing keep the email subject, complete email body,
   WhatsApp message, and an ordered collection of custom title/content notes in one
   optional modal. Every non-empty value has an individual 📋 copy action with ✅
@@ -476,6 +482,13 @@ The canonical counts, commands and exceptions are maintained in
 
 ## 5. Non-Functional Requirements
 
+- **Explain disabled controls**: A disabled panel control must state why it is
+  unavailable. If the operator can resolve the block, every missing prerequisite
+  is shown as adjacent text and remains available on hover, keyboard focus and
+  touch; lifecycle, permission and positional limits still expose a specific
+  reason. A transient operation uses its active status label. The collection
+  account flow additionally warns about clients without email in the selector
+  and permits an explicit inline repair without losing the draft.
 - **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
 - **Text containment**: Every panel table, card and metadata row must contain
   arbitrary user/API strings, including values with no spaces, at every canonical

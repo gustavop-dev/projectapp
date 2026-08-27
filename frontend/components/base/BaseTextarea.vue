@@ -9,6 +9,7 @@ defineProps({
   error: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
 })
 defineEmits(['update:modelValue'])
 </script>
@@ -19,6 +20,7 @@ defineEmits(['update:modelValue'])
     :rows="rows"
     :placeholder="placeholder"
     :disabled="disabled"
+    :title="disabled && disabledReason ? disabledReason : undefined"
     :class="['resize-y', INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md, error ? INPUT_FIELD_ERROR : '']"
     @input="$emit('update:modelValue', $event.target.value)"
   />

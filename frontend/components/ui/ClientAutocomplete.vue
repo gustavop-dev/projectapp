@@ -90,13 +90,13 @@
                 <span
                   v-if="client.is_email_placeholder"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
-                  :title="'Este cliente todavía no tiene un email real — sus automatizaciones de correo están pausadas hasta que lo agregues.'"
+                  title="Este cliente todavía no tiene correo. Las acciones que envían mensajes pedirán agregarlo antes de continuar."
                 >
-                  📧 placeholder
+                  📧 Sin correo
                 </span>
               </div>
               <p class="text-xs text-text-muted truncate mt-0.5">
-                {{ client.is_email_placeholder ? 'Email pendiente' : client.email }}
+                {{ client.is_email_placeholder ? 'Correo pendiente · habrá que agregarlo para enviar' : client.email }}
                 <span v-if="client.company" class="text-text-subtle">· {{ client.company }}</span>
               </p>
             </div>

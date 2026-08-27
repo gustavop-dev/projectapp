@@ -1042,6 +1042,25 @@ seeded/derived/catalog/exempt inventory with Django's concrete app registry in a
 test. A new model then forces its author to decide ownership and fake-data
 behavior in the same delivery instead of leaving the gap for a later cleanup.
 
+## 42. A disabled control is an explanation surface
+
+Disabling protects an invalid transition but removes the control from normal
+keyboard interaction, so the button itself cannot be the only carrier of its
+reason. Put a focusable/touchable proxy around it, connect the explanation with
+`aria-describedby`, and repeat resolvable prerequisites as visible copy. When
+several conditions fail, derive one array and render all of it; a `canSubmit`
+boolean or first-error chain hides the real contract and makes the operator
+discover blockers one at a time.
+
+Separate three classes. Busy state is temporary and belongs in `loading` plus
+an active verb. Lifecycle, permission and first/last-position boundaries need a
+specific tooltip/status explanation but are not form errors. Missing input or
+configuration is actionable and needs adjacent copy with a nearby resolution
+path. For canonical data required late in a workflow, such as a client's email
+before issuing a collection account, repair the source record explicitly inside
+the modal and preserve the draft; a local override alone would leave the next
+workflow broken in the same way.
+
 ## 43. Group summaries need one semantic calculator and layout-aware reuse
 
 Grouped financial tables combine independent questions: which rows belong
@@ -1099,3 +1118,17 @@ Finally, native browser dialogs are an architectural escape hatch, not a UI
 shortcut. Contextual modals can identify the target, explain consequences,
 retain input after an error and expose recovery. A repository-level static gate
 is what turns that preference into a durable panel invariant.
+
+## 45. Column order and responsive priority are separate contracts
+
+Moving a high-value field earlier on desktop does not make it survive a
+breakpoint. Keep order, width and `keep/group/hide` decisions in one executable
+column policy, then make the specialized markup consume that same sequence. A
+separate visibility list can otherwise preserve the old priority after the
+headers have been rearranged.
+
+Grouping low-value context is different from hiding it. Documents keeps state
+as a real landscape column while moving client/project beneath the primary
+title cell; compact cards preserve the same facts in secondary metadata. Fixed
+business order also avoids a second persistence contract competing with the
+existing user preference for title width.

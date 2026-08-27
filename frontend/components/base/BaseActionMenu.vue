@@ -6,6 +6,7 @@ defineProps({
   items: { type: Array, required: true },
   label: { type: String, default: 'Acciones' },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
   testid: { type: String, default: '' },
   placement: { type: String, default: 'bottom' },
   align: { type: String, default: 'right' },
@@ -26,6 +27,7 @@ defineProps({
         :variant="variant"
         size="sm"
         :disabled="disabled"
+        :disabled-reason="disabledReason"
         :data-testid="testid || undefined"
         aria-haspopup="menu"
       >

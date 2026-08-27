@@ -200,10 +200,26 @@
                   <option value="en">Publish in English</option>
                   <option value="es">Publicar en Español</option>
                 </select>
-                <BaseButton variant="ghost" size="md" :disabled="isPublishingLinkedIn || !(linkedinLang === 'es' ? form.linkedin_summary_es : form.linkedin_summary_en)" @click="publishToLinkedIn">
+                <BaseControlGate
+                  :reasons="!selectedLinkedInSummary ? ['Escribe el resumen de LinkedIn en el idioma elegido.'] : []"
+                  label="Publicar en LinkedIn no disponible"
+                  align="end"
+                >
+                  <template #default="{ describedBy }">
+                    <BaseButton
+                      variant="ghost"
+                      size="md"
+                      :loading="isPublishingLinkedIn"
+                      :disabled="!selectedLinkedInSummary"
+                      disabled-reason="Escribe el resumen de LinkedIn en el idioma elegido."
+                      :aria-describedby="describedBy"
+                      @click="publishToLinkedIn"
+                    >
               <BaseActionIcon action="publish" />
-                  {{ isPublishingLinkedIn ? 'Publicando...' : 'Publicar en LinkedIn' }}
-                </BaseButton>
+                      {{ isPublishingLinkedIn ? 'Publicando...' : 'Publicar en LinkedIn' }}
+                    </BaseButton>
+                  </template>
+                </BaseControlGate>
               </div>
               <p v-if="post?.linkedin_published_at" class="text-xs text-text-subtle">
                 Última publicación: {{ new Date(post.linkedin_published_at).toLocaleString() }}
@@ -549,6 +565,9 @@ const {
 const linkedinStatus = ref({ connected: false });
 // English default: LinkedIn content targets the US market.
 const linkedinLang = ref('en');
+const selectedLinkedInSummary = computed(() => (
+  linkedinLang.value === 'es' ? form.linkedin_summary_es : form.linkedin_summary_en
+));
 const linkedinMsg = ref('');
 const linkedinError = ref('');
 const isPublishingLinkedIn = ref(false);

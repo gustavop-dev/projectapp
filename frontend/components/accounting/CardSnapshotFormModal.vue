@@ -126,6 +126,7 @@ function onSubmit() {
         <BaseCurrencyInput v-model="form.available_amount" required />
         <p
           v-if="debtPreview"
+          id="card-snapshot-debt-preview"
           class="text-xs mt-1"
           :class="availableExceedsLimit ? 'text-danger-strong' : 'text-text-subtle'"
           data-testid="card-snapshot-debt-preview"
@@ -147,7 +148,10 @@ function onSubmit() {
         <BaseButton
           type="submit"
           variant="primary"
-          :disabled="saving || availableExceedsLimit"
+          :loading="saving"
+          :disabled="availableExceedsLimit"
+          disabled-reason="El disponible no puede superar el cupo de la tarjeta."
+          :aria-describedby="availableExceedsLimit ? 'card-snapshot-debt-preview' : undefined"
           data-testid="card-snapshot-form-submit"
         >
           {{ saving ? 'Guardando...' : 'Guardar' }}

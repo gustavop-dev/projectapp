@@ -28,20 +28,27 @@ const isDirectDecommission = computed(() => (
   isDecommission.value
   && props.project?.current_state?.operational_effect !== 'suspended'
 ));
-const pendingResolutionComplete = computed(() => (
-  !isDecommission.value
-  || (preview.value?.pending_incomes || []).every(
-    (income) => ['keep_receivable', 'write_off'].includes(
-      resolutions.value[income.id],
-    ),
-  )
-));
-const canApply = computed(() => Boolean(
-  preview.value
-  && !preview.value.blockers?.length
-  && pendingResolutionComplete.value
-  && (!isDirectDecommission.value || note.value.trim()),
-));
+const previewBlockReasons = computed(() => [
+  !selectedStateId.value ? 'Elige el nuevo estado del proyecto.' : '',
+].filter(Boolean));
+const applyBlockReasons = computed(() => {
+  const reasons = [];
+  if (!selectedStateId.value) reasons.push('Elige el nuevo estado del proyecto.');
+  if (!preview.value) reasons.push('Revisa las consecuencias antes de confirmar el cambio.');
+  reasons.push(...(preview.value?.blockers || []).map((blocker) => blocker.message));
+  if (isDecommission.value) {
+    (preview.value?.pending_incomes || []).forEach((income) => {
+      if (!['keep_receivable', 'write_off'].includes(resolutions.value[income.id])) {
+        reasons.push(`Decide qué hacer con el ingreso "${income.concept}".`);
+      }
+    });
+  }
+  if (isDirectDecommission.value && !note.value.trim()) {
+    reasons.push('Escribe una nota porque la baja omite el paso previo por Suspendido.');
+  }
+  return reasons;
+});
+const canApply = computed(() => applyBlockReasons.value.length === 0);
 
 const impactMessages = computed(() => {
   if (!preview.value) return [];
@@ -187,15 +194,26 @@ async function applyState() {
         class="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm"
       />
 
-      <BaseButton
-        variant="secondary"
-        class="w-full"
-        data-testid="project-state-preview"
-        :disabled="!selectedStateId || stateStore.isUpdating"
-        @click="reviewImpact"
+      <BaseControlGate
+        :reasons="previewBlockReasons"
+        label="Revisar consecuencias no disponible"
+        align="stretch"
       >
-        {{ stateStore.isUpdating && !preview ? 'Calculando…' : 'Revisar consecuencias' }}
-      </BaseButton>
+        <template #default="{ describedBy }">
+          <BaseButton
+            variant="secondary"
+            class="w-full"
+            data-testid="project-state-preview"
+            :loading="stateStore.isUpdating"
+            :disabled="Boolean(previewBlockReasons.length)"
+            :disabled-reason="previewBlockReasons.join(' ')"
+            :aria-describedby="describedBy"
+            @click="reviewImpact"
+          >
+            {{ stateStore.isUpdating && !preview ? 'Calculando…' : 'Revisar consecuencias' }}
+          </BaseButton>
+        </template>
+      </BaseControlGate>
 
       <section v-if="preview" class="space-y-4 rounded-xl border border-border-default bg-surface-raised p-4" data-testid="project-state-impact">
         <h3 class="font-semibold text-text-default">Consecuencias antes de confirmar</h3>
@@ -247,14 +265,25 @@ async function applyState() {
 
       <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
         <BaseButton variant="secondary" @click="emit('close')">Cancelar</BaseButton>
-        <BaseButton
-          variant="primary"
-          data-testid="project-state-apply"
-          :disabled="!canApply || stateStore.isUpdating"
-          @click="applyState"
+        <BaseControlGate
+          :reasons="applyBlockReasons"
+          label="Confirmar cambio no disponible"
+          align="end"
         >
-          {{ stateStore.isUpdating && preview ? 'Aplicando…' : 'Confirmar cambio' }}
-        </BaseButton>
+          <template #default="{ describedBy }">
+            <BaseButton
+              variant="primary"
+              data-testid="project-state-apply"
+              :loading="stateStore.isUpdating"
+              :disabled="Boolean(applyBlockReasons.length)"
+              :disabled-reason="applyBlockReasons.join(' ')"
+              :aria-describedby="describedBy"
+              @click="applyState"
+            >
+              {{ stateStore.isUpdating && preview ? 'Aplicando…' : 'Confirmar cambio' }}
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </div>
     </div>
   </BaseModal>

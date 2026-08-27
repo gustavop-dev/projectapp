@@ -351,6 +351,17 @@ flowchart TD
 
 Panel operational actions resolve through a semantic action catalog. Consumers keep handlers, routes, permissions and loading state locally; the catalog owns only the canonical Heroicons 24 Outline glyph and default Spanish label. `BaseActionIcon`, `BaseActionButton` and catalog-backed menus apply that metadata so icon changes remain one-place changes, while the panel action guard blocks local SVG/emoji drift and inaccessible icon-only controls in CI.
 
+Control availability is also a design-system contract. `BaseButton`,
+`BaseActionButton`, `BaseActionMenu`, `BaseSegmented` and
+`BaseSegmentedMulti` accept a specific disabled reason. When the operator can
+remove the block, `BaseControlGate` owns the focusable proxy around the native
+disabled control, deduplicates and exposes every reason through adjacent live
+copy plus hover/focus/touch help, and connects it with `aria-describedby`.
+Busy-only states use `loading`; lifecycle, permission and ordering boundaries
+use the same reason contract without pretending they are form errors. The
+strict `check-disabled-controls.mjs` scan protects all panel routes and reachable
+module components in CI.
+
 Responsive behavior is part of the design-system contract rather than a page-level exception. The canonical device profiles live in frontend configuration and cover 412, 835, 1195, 1440 and 2560 px widths. Shared navigation stays compact through portrait tablet, modal geometry is centralized in `BaseModal`, repeated tables declare business-priority columns, and the admin content column stops growing on large monitors.
 
 Semantic theme tokens live in `frontend/assets/styles/theme.css` and are exposed
@@ -386,7 +397,10 @@ exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
 owns measured one/two-line clipping and the touch disclosure, so consumers do
 not duplicate tooltip or line-clamp heuristics. The Documents table is the
 first specialized adopter and the folder-panel handle now uses the same input
-primitive.
+primitive. Its local column contract owns order, width and per-profile behavior
+together: Title → States → Date → Client → Project → Actions. Landscape keeps
+the first three plus Actions as tracks and groups Client/Project under Title;
+desktop restores every track without moving Actions from the final position.
 Intrinsic text sizing is owned by the same layer. `tableLayout.js` resolves a
 semantic `wrap`/`truncate`/`atomic` policy per column;
 `BaseResponsiveTable` applies it to retained and grouped values, while

@@ -191,7 +191,7 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
           <BaseButton variant="link">Link</BaseButton>
           <BaseButton variant="accent">Accent</BaseButton>
           <BaseButton variant="primary" loading>Loading</BaseButton>
-          <BaseButton variant="primary" disabled>Disabled</BaseButton>
+          <BaseButton variant="primary" disabled disabled-reason="Ejemplo visual de un botón no disponible.">Disabled</BaseButton>
         </div>
         <div class="flex flex-wrap items-center gap-3 mt-4">
           <BaseButton size="sm">Small</BaseButton>
@@ -304,7 +304,7 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
               <span class="text-sm text-text-default">Toggle B (sm) — {{ toggleB ? 'on' : 'off' }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <BaseToggle :model-value="false" disabled aria-label="Disabled" />
+              <BaseToggle :model-value="false" disabled disabled-reason="Ejemplo visual de un interruptor no disponible." aria-label="Disabled" />
               <span class="text-sm text-text-muted">Toggle disabled</span>
             </div>
           </div>
@@ -415,7 +415,7 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
           :tabs="[
             { id: 'a', label: 'General' },
             { id: 'b', label: 'Pendientes', badge: 4 },
-            { id: 'c', label: 'Archivado', disabled: true },
+            { id: 'c', label: 'Archivado', disabled: true, disabledReason: 'Ejemplo de una sección no disponible.' },
           ]"
         />
         <p class="text-xs text-text-muted mb-3">Variant: pill</p>

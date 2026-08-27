@@ -121,7 +121,9 @@ test.describe('Admin Proposal Scorecard', () => {
     const modal = page.getByLabel('Scorecard pre-envío');
     await expect(modal).toBeVisible();
     await expect(modal.getByText('3/10')).toBeVisible();
-    await expect(modal.getByText('Inversión total > $0')).toBeVisible();
+    // The blocker is intentionally repeated in the checklist and beside the
+    // disabled action so it remains discoverable without hover.
+    await expect(modal.getByText('Inversión total > $0', { exact: true }).first()).toBeVisible();
     await expect(modal.getByText('bloqueante').first()).toBeVisible();
     // can_send: false must disable the modal's confirm button.
     await expect(modal.getByRole('button', { name: 'Enviar al Cliente' })).toBeDisabled();

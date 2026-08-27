@@ -23,7 +23,7 @@
       leave-to-class="transform scale-95 opacity-0"
     >
       <div
-        v-if="showTooltip"
+        v-if="showTooltip && !disabled"
         :id="tooltipId"
         role="tooltip"
         :class="[
@@ -82,6 +82,7 @@ const props = defineProps({
   text: { type: String, default: '' },
   triggerClass: { type: String, default: 'cursor-help' },
   toggleOnClick: { type: Boolean, default: true },
+  disabled: { type: Boolean, default: false },
 })
 
 const showTooltip = ref(false)
@@ -90,21 +91,24 @@ const touchActive = ref(false)
 const tooltipId = useId()
 
 const handlePointerEnter = (e) => {
+  if (props.disabled) return
   if (e.pointerType !== 'touch') showTooltip.value = true
 }
 
 const handlePointerLeave = (e) => {
+  if (props.disabled) return
   if (e.pointerType !== 'touch') showTooltip.value = false
 }
 
 const handleClick = (event) => {
-  if (!props.toggleOnClick) return
+  if (props.disabled || !props.toggleOnClick) return
   event.stopPropagation()
   touchActive.value = true
   showTooltip.value = !showTooltip.value
 }
 
 const handleFocusOut = (event) => {
+  if (props.disabled) return
   if (!rootEl.value?.contains(event.relatedTarget)) showTooltip.value = false
 }
 

@@ -69,6 +69,9 @@
                     ? `Reenviar solo a ${entry.recipient}`
                     : entry.retry_blocked_reason"
                   :disabled="!entry.is_retryable || retryingId === entry.id"
+                  :disabled-reason="!entry.is_retryable
+                    ? (entry.retry_blocked_reason || 'Este envío no admite reintento.')
+                    : 'El reintento ya está en curso. Espera a que termine.'"
                   :data-testid="`email-log-retry-${entry.id}`"
                   @click.stop="emit('retry', entry)"
                 />

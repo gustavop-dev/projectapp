@@ -43,4 +43,17 @@ describe('BaseTextarea', () => {
     expect(cls).toContain('text-xs')
     expect(cls).toContain('py-1.5')
   })
+
+  it('exposes its disabled reason on the native textarea', () => {
+    const wrapper = mount(BaseTextarea, {
+      props: {
+        modelValue: '',
+        disabled: true,
+        disabledReason: 'El documento emitido es de solo lectura.',
+      },
+    })
+
+    expect(wrapper.get('textarea').attributes('title'))
+      .toBe('El documento emitido es de solo lectura.')
+  })
 })

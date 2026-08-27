@@ -222,6 +222,10 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - `BaseModal` already uses `100dvh` below `panel-portrait` and preserves its semantic size above that boundary. Long workflows keep a scrollable body and sticky footer actions; consumers do not introduce a second fullscreen prop.
 - Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
+- The specialized Documents table declares its fixed business order and
+  `keep/group` policy in the same column array consumed by width resolution.
+  Landscape keeps Title/States/Date/Actions and groups Client/Project; compact
+  cards apply the same priority without persisting a user-specific column order.
 
 ### Panel-owned dialogs and observation deletion
 
@@ -456,6 +460,13 @@ confirmed by the operator or another integration.
 ### Frontend Patterns
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
+- **Disabled-control contract** — pass `disabledReason` for semantic locks and
+  `loading` for transient work. If the operator can satisfy prerequisites, wrap
+  the control in `BaseControlGate` with the complete reasons array so the same
+  explanation is visible, keyboard/touch reachable and linked by
+  `aria-describedby`. `frontend/scripts/check-disabled-controls.mjs --strict`
+  scans panel pages and reachable shared components in CI; do not suppress it
+  unless equivalent adjacent copy owns the explanation.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.

@@ -72,6 +72,7 @@
             v-model="formState[row.stage_key].start_date"
             type="date"
             :disabled="!!row.completed_at"
+            :title="row.completed_at ? 'La fecha no se puede cambiar porque esta etapa ya está completada.' : undefined"
             :data-testid="`stage-start-${row.stage_key}`"
             class="w-full px-3 py-2 border border-border-default dark:bg-primary-strong dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 disabled:bg-surface-raised disabled:text-text-subtle dark:disabled:text-green-light/40"
           />
@@ -88,6 +89,7 @@
             v-model="formState[row.stage_key].end_date"
             type="date"
             :disabled="!!row.completed_at"
+            :title="row.completed_at ? 'La fecha no se puede cambiar porque esta etapa ya está completada.' : undefined"
             :data-testid="`stage-end-${row.stage_key}`"
             class="w-full px-3 py-2 border border-border-default dark:bg-primary-strong dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 disabled:bg-surface-raised disabled:text-text-subtle dark:disabled:text-green-light/40"
           />
@@ -103,7 +105,7 @@
       </p>
 
       <div class="flex items-center gap-3">
-        <BaseButton variant="primary" size="sm" :disabled="isSaving[row.stage_key] || !!row.completed_at" :data-testid="`stage-save-${row.stage_key}`" @click="handleSave(row.stage_key)">
+        <BaseButton variant="primary" size="sm" :disabled="isSaving[row.stage_key] || !!row.completed_at" :disabled-reason="row.completed_at ? 'La etapa ya está completada y no admite cambios.' : 'Se están guardando los cambios de esta etapa.'" :data-testid="`stage-save-${row.stage_key}`" @click="handleSave(row.stage_key)">
           {{ isSaving[row.stage_key] ? 'Guardando…' : 'Guardar fechas' }}
         </BaseButton>
         <BaseButton variant="secondary" size="sm" v-if="!row.completed_at" :disabled="isCompleting[row.stage_key]" :data-testid="`stage-complete-${row.stage_key}`" @click="handleComplete(row.stage_key)">

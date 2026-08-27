@@ -684,6 +684,7 @@ function onSubmit() {
       <div class="flex flex-col items-end gap-1 pt-2">
         <!-- Always rendered: a live region created on demand never announces. -->
         <p
+          id="income-liquidate-submit-reason"
           aria-live="polite"
           class="text-xs text-danger-strong text-right min-h-4"
           data-testid="income-liquidate-submit-reason"
@@ -697,7 +698,10 @@ function onSubmit() {
           <BaseButton
             type="submit"
             variant="primary"
-            :disabled="saving || !canSubmit"
+            :loading="saving"
+            :disabled="!canSubmit"
+            :disabled-reason="submitBlockReason"
+            aria-describedby="income-liquidate-submit-reason"
             data-testid="income-liquidate-submit"
           >
             {{ saving ? 'Guardando...' : 'Liquidar' }}

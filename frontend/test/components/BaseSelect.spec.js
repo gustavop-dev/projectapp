@@ -89,4 +89,18 @@ describe('BaseSelect', () => {
     expect(cls).toContain('text-xs')
     expect(cls).toContain('py-1.5')
   })
+
+  it('exposes its disabled reason on the native select', () => {
+    const wrapper = mount(BaseSelect, {
+      props: {
+        modelValue: '',
+        options: [],
+        disabled: true,
+        disabledReason: 'Completa primero los datos generales.',
+      },
+    })
+
+    expect(wrapper.get('select').attributes('title'))
+      .toBe('Completa primero los datos generales.')
+  })
 })

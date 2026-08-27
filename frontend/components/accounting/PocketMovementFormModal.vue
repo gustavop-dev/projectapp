@@ -122,6 +122,7 @@ function onSubmit() {
             v-model="form.direction"
             :options="directionOptions"
             :disabled="directionLocked"
+            disabled-reason="La dirección se fija al crear el movimiento vinculado."
             full-width
           />
           <p v-if="directionLocked" class="text-xs text-text-subtle mt-1">
@@ -135,6 +136,7 @@ function onSubmit() {
           v-model="form.ledger"
           :options="ledgerOptions"
           :disabled="form.direction === 'in'"
+          disabled-reason="Los ingresos al bolsillo siempre son de la empresa."
           full-width
           data-testid="pocket-movement-ledger"
         />

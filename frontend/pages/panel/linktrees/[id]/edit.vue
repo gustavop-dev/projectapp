@@ -236,6 +236,7 @@
                 size="sm"
                 label="Subir botón"
                 :disabled="index === 0"
+                disabled-reason="Este botón ya está en la primera posición."
                 @click="moveButton(index, -1)"
               />
               <BaseActionButton
@@ -244,6 +245,7 @@
                 size="sm"
                 label="Bajar botón"
                 :disabled="index === form.buttons.length - 1"
+                disabled-reason="Este botón ya está en la última posición."
                 @click="moveButton(index, 1)"
               />
               <BaseToggle
