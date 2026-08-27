@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="visible"
-    :size="contractSource === 'custom' && showPreview ? '5xl' : 'lg'"
+    :kind="contractSource === 'custom' && showPreview ? 'wizard' : 'form-wide'"
     @update:model-value="(v) => !v && $emit('cancel')"
   >
     <div>
@@ -31,89 +31,118 @@
               <!-- Contractor (seller) section -->
               <fieldset>
                 <legend class="text-sm font-semibold text-text-brand mb-3">EL CONTRATISTA (tu empresa)</legend>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Nombre completo *</label>
+                <div class="space-y-4">
+                  <BaseFormRow :cols="2" :gap="4" at="sm">
+                    <BaseFormField
+                      label="Nombre completo"
+                      required
+                      size="sm"
+                      :error="formErrors.contractor_full_name"
+                    >
                     <BaseInput v-model="form.contractor_full_name" type="text" size="sm" />
-                    <p v-if="formErrors.contractor_full_name" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_full_name }}</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">NIT</label>
+                    </BaseFormField>
+                    <BaseFormField label="NIT" size="sm">
                     <BaseInput v-model="form.contractor_nit" type="text" size="sm" />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Cédula</label>
+                    </BaseFormField>
+                  </BaseFormRow>
+                  <BaseFormRow :cols="2" :gap="4" at="sm">
+                    <BaseFormField label="Cédula" size="sm">
                     <BaseInput v-model="form.contractor_cedula" type="text" size="sm" />
-                  </div>
-                  <div class="sm:col-span-2 -mt-2">
-                    <p class="text-xs text-text-muted">Indica al menos uno. El NIT tiene prioridad en el contrato.</p>
-                    <p v-if="formErrors.contractor_identity" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_identity }}</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Email de notificacion *</label>
+                    </BaseFormField>
+                    <BaseFormField
+                      label="Email de notificación"
+                      required
+                      size="sm"
+                      :error="formErrors.contractor_email"
+                    >
                     <BaseInput v-model="form.contractor_email" type="email" size="sm" />
-                    <p v-if="formErrors.contractor_email" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_email }}</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Ciudad del contrato *</label>
+                    </BaseFormField>
+                    <template #help>
+                      <span>Indica NIT o cédula. El NIT tiene prioridad en el contrato.</span>
+                      <span
+                        v-if="formErrors.contractor_identity"
+                        class="mt-1 block text-danger-strong"
+                        role="alert"
+                      >
+                        {{ formErrors.contractor_identity }}
+                      </span>
+                    </template>
+                  </BaseFormRow>
+                  <BaseFormField
+                    label="Ciudad del contrato"
+                    required
+                    size="sm"
+                    :error="formErrors.contract_city"
+                  >
                     <BaseInput v-model="form.contract_city" type="text" size="sm" />
-                    <p v-if="formErrors.contract_city" class="text-xs text-danger-strong mt-1">{{ formErrors.contract_city }}</p>
-                  </div>
+                  </BaseFormField>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Banco *</label>
+                <BaseFormRow :cols="3" :gap="4" at="sm" class="mt-4">
+                  <BaseFormField label="Banco" required size="sm" :error="formErrors.bank_name">
                     <BaseInput v-model="form.bank_name" type="text" size="sm" />
-                    <p v-if="formErrors.bank_name" class="text-xs text-danger-strong mt-1">{{ formErrors.bank_name }}</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Tipo de cuenta</label>
+                  </BaseFormField>
+                  <BaseFormField label="Tipo de cuenta" size="sm">
                     <BaseSelect
                       v-model="form.bank_account_type"
                       size="sm"
                       :options="[{ value: 'Ahorros', label: 'Ahorros' }, { value: 'Corriente', label: 'Corriente' }]"
                     />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Numero de cuenta *</label>
+                  </BaseFormField>
+                  <BaseFormField
+                    label="Número de cuenta"
+                    required
+                    size="sm"
+                    :error="formErrors.bank_account_number"
+                  >
                     <BaseInput v-model="form.bank_account_number" type="text" size="sm" />
-                    <p v-if="formErrors.bank_account_number" class="text-xs text-danger-strong mt-1">{{ formErrors.bank_account_number }}</p>
-                  </div>
-                </div>
+                  </BaseFormField>
+                </BaseFormRow>
               </fieldset>
 
               <!-- Client (contratante) section -->
               <fieldset>
                 <legend class="text-sm font-semibold text-text-brand mb-3">EL CONTRATANTE (cliente)</legend>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Nombre completo *</label>
+                <div class="space-y-4">
+                  <BaseFormRow :cols="2" :gap="4" at="sm">
+                    <BaseFormField
+                      label="Nombre completo"
+                      required
+                      size="sm"
+                      :error="formErrors.client_full_name"
+                    >
                     <BaseInput v-model="form.client_full_name" type="text" size="sm" />
-                    <p v-if="formErrors.client_full_name" class="text-xs text-danger-strong mt-1">{{ formErrors.client_full_name }}</p>
-                  </div>
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Cédula/NIT *</label>
+                    </BaseFormField>
+                    <BaseFormField
+                      label="Cédula / NIT"
+                      required
+                      size="sm"
+                      :error="formErrors.client_cedula"
+                    >
                     <BaseInput v-model="form.client_cedula" type="text" size="sm" placeholder="Ej: 1.234.567.890" />
-                    <p v-if="formErrors.client_cedula" class="text-xs text-danger-strong mt-1">{{ formErrors.client_cedula }}</p>
-                  </div>
-                  <div class="sm:col-span-2">
-                    <label class="block text-xs text-text-muted mb-1">Email de notificacion *</label>
+                    </BaseFormField>
+                  </BaseFormRow>
+                  <BaseFormField
+                    label="Email de notificación"
+                    required
+                    size="sm"
+                    :error="formErrors.client_email"
+                  >
                     <BaseInput v-model="form.client_email" type="email" size="sm" />
-                    <p v-if="formErrors.client_email" class="text-xs text-danger-strong mt-1">{{ formErrors.client_email }}</p>
-                  </div>
+                  </BaseFormField>
                 </div>
               </fieldset>
 
               <!-- Contract date -->
               <fieldset>
                 <legend class="text-sm font-semibold text-text-brand mb-3">Datos del contrato</legend>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Fecha del contrato *</label>
+                <BaseFormField
+                  label="Fecha del contrato"
+                  required
+                  size="sm"
+                  :error="formErrors.contract_date"
+                >
                     <BaseInput v-model="form.contract_date" type="date" size="sm" />
-                    <p v-if="formErrors.contract_date" class="text-xs text-danger-strong mt-1">{{ formErrors.contract_date }}</p>
-                  </div>
-                </div>
+                </BaseFormField>
               </fieldset>
             </template>
 
@@ -174,13 +203,14 @@
               <!-- Contract date (also for custom) -->
               <fieldset>
                 <legend class="text-sm font-semibold text-text-brand mb-3">Datos del contrato</legend>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs text-text-muted mb-1">Fecha del contrato *</label>
+                <BaseFormField
+                  label="Fecha del contrato"
+                  required
+                  size="sm"
+                  :error="formErrors.contract_date"
+                >
                     <BaseInput v-model="form.contract_date" type="date" size="sm" />
-                    <p v-if="formErrors.contract_date" class="text-xs text-danger-strong mt-1">{{ formErrors.contract_date }}</p>
-                  </div>
-                </div>
+                </BaseFormField>
               </fieldset>
             </template>
 

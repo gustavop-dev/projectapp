@@ -253,6 +253,10 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
           <BaseBadge variant="danger">Danger</BaseBadge>
           <BaseBadge variant="info">Info</BaseBadge>
           <BaseBadge variant="success" size="sm">Small</BaseBadge>
+          <BaseBadge variant="danger" size="sm" data-testid="sg-atomic-state-badge">
+            <span aria-hidden="true">⚠</span>
+            <span>Solucionar bug</span>
+          </BaseBadge>
         </div>
       </BaseCard>
     </section>
@@ -261,8 +265,12 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
     <section class="space-y-4">
       <h2 class="text-lg font-semibold text-text-default">4. Form controls</h2>
       <BaseCard padding="md">
-        <BaseFormRow :cols="2" :gap="4">
-          <BaseFormField label="Texto" hint="Hint de ayuda" for="sg-text">
+        <BaseFormRow
+          :cols="2"
+          :gap="4"
+          help="Texto: hint de ayuda. Textarea: soporta múltiples líneas."
+        >
+          <BaseFormField label="Texto" for="sg-text">
             <BaseInput id="sg-text" v-model="sampleText" placeholder="Escribe algo…" />
           </BaseFormField>
           <BaseFormField label="Número" required for="sg-num">
@@ -286,7 +294,7 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
               ]"
             />
           </BaseFormField>
-          <BaseFormField label="Textarea" hint="Soporta múltiples líneas" class="panel-portrait:col-span-2">
+          <BaseFormField label="Textarea" class="panel-portrait:col-span-2">
             <BaseTextarea v-model="sampleTextarea" :rows="3" />
           </BaseFormField>
           <!-- Not fields: they claim the three bands so they line up beside them. -->
@@ -311,22 +319,24 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
         </BaseFormRow>
       </BaseCard>
 
-      <!-- BaseFormRow: the alignment the plain grid does not give you. Narrow on
-           purpose (a modal column is about this wide) so the long labels wrap
-           here the way they do in the real form. -->
+      <!-- BaseFormRow: short UI labels stay atomic; its shared bands remain the
+           safety net for explicitly long, sentence-like labels. -->
       <BaseCard padding="md">
         <h3 class="text-sm font-semibold text-text-default">BaseFormRow — bandas compartidas</h3>
         <p class="text-xs text-text-muted mt-1 mb-4">
-          La fila reparte tres bandas — etiqueta, campo y ayuda — entre sus campos, así los
-          campos arrancan a la misma altura aunque una etiqueta ocupe dos líneas y la otra una.
-          Sin la fila, cada columna se apila por su cuenta y queda torcida.
+          La fila comparte etiqueta, campo y error. La ayuda sale debajo del grupo completo;
+          una acción compañera ocupa la banda del campo y nunca se centra contra todo el bloque.
         </p>
 
-        <div class="max-w-xs space-y-5" data-testid="styleguide-form-rows">
+        <div class="max-w-2xl space-y-5" data-testid="styleguide-form-rows">
           <div class="space-y-2">
-            <p class="text-xs text-text-muted">Sólo una etiqueta se parte, y una sola lleva ayuda</p>
-            <BaseFormRow data-testid="sg-row-one-wrapped">
-              <BaseFormField label="C.C. / NIT (opcional)" hint="Para cuentas de cobro">
+            <p class="text-xs text-text-muted">Etiquetas reales en una sola línea y ayuda del grupo</p>
+            <BaseFormRow
+              help="Estos datos se usan al emitir cuentas de cobro."
+              help-testid="sg-row-help"
+              data-testid="sg-row-atomic"
+            >
+              <BaseFormField label="C.C. / NIT (opcional)">
                 <BaseInput v-model="sampleRowA" data-testid="sg-row-one-a" />
               </BaseFormField>
               <BaseFormField label="Código de facturación (opcional)">
@@ -335,15 +345,39 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
             </BaseFormRow>
           </div>
 
-          <div class="space-y-2">
-            <p class="text-xs text-text-muted">Las dos etiquetas se parten</p>
-            <BaseFormRow data-testid="sg-row-both-wrapped">
-              <BaseFormField label="Nombre en la cuenta de cobro">
+          <div class="max-w-xs space-y-2">
+            <p class="text-xs text-text-muted">Fallback: etiquetas de frase explícitamente envolventes</p>
+            <BaseFormRow data-testid="sg-row-wrapped-fallback">
+              <BaseFormField
+                label="Nombre completo que aparecerá en la cuenta de cobro"
+                label-policy="wrap"
+              >
                 <BaseInput v-model="sampleRowC" data-testid="sg-row-both-a" />
               </BaseFormField>
-              <BaseFormField label="Código de facturación (opcional)">
+              <BaseFormField
+                label="Correo destinatario que recibirá la cuenta de cobro"
+                label-policy="wrap"
+              >
                 <BaseInput v-model="sampleRowD" data-testid="sg-row-both-b" />
               </BaseFormField>
+            </BaseFormRow>
+          </div>
+
+          <div class="max-w-lg space-y-2">
+            <p class="text-xs text-text-muted">Acción compañera alineada con el campo</p>
+            <BaseFormRow
+              layout="field-action"
+              help="Filtra por un proyecto o incluye los documentos sin proyecto."
+              data-testid="sg-row-action"
+            >
+              <BaseFormField label="Proyecto">
+                <BaseInput v-model="sampleRowA" data-testid="sg-row-action-input" />
+              </BaseFormField>
+              <BaseFormRowAction>
+                <BaseButton variant="secondary" data-testid="sg-row-action-button">
+                  Sin proyecto
+                </BaseButton>
+              </BaseFormRowAction>
             </BaseFormRow>
           </div>
         </div>
@@ -393,13 +427,14 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
       <BaseCard padding="md">
         <BaseSegmented
           v-model="segmented"
-          class="max-w-sm"
+          class="max-w-xs"
           full-width
           :options="[
-            { value: 'editor', label: 'Editor' },
-            { value: 'json', label: 'JSON' },
-            { value: 'preview', label: 'Preview' },
+            { value: 'editor', label: 'Todos (9999)', testId: 'sg-segmented-all' },
+            { value: 'json', label: 'Esperados (9999)', testId: 'sg-segmented-expected' },
+            { value: 'preview', label: 'Líquidos (9999)', testId: 'sg-segmented-liquid' },
           ]"
+          data-testid="sg-segmented-counts"
         />
         <p class="text-xs text-text-muted mt-3">Selección actual: <code>{{ segmented }}</code></p>
       </BaseCard>

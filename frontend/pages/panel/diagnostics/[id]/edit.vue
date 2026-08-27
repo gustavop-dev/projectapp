@@ -29,7 +29,7 @@
     />
 
     <!-- Pre-send scorecard -->
-    <BaseModal v-model="scorecardOpen" size="md">
+    <BaseModal v-model="scorecardOpen" kind="confirm">
       <div class="p-6" data-testid="diagnostic-scorecard-modal">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-text-default">
@@ -310,7 +310,11 @@
               />
             </BaseFormField>
 
-            <BaseFormRow :cols="2" :gap="4">
+            <BaseFormRow
+              :cols="2"
+              :gap="4"
+              help="El pago final se calcula como 100 menos el pago inicial."
+            >
               <BaseFormField label="Inversión total">
                 <BaseInput
                   v-model.number="form.investment_amount"
@@ -335,7 +339,7 @@
                   <span class="text-sm text-text-muted">%</span>
                 </div>
               </BaseFormField>
-              <BaseFormField label="% pago final" hint="Calculado automáticamente como 100 − % pago inicial.">
+              <BaseFormField label="% pago final">
                 <div class="flex items-center gap-2">
                   <BaseInput
                     v-model.number="form.payment_final_pct"

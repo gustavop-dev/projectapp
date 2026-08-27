@@ -356,8 +356,7 @@ function onSubmit() {
 <template>
   <BaseModal
     :model-value="open"
-    kind="form"
-    size="lg"
+    kind="form-wide"
     title-id="income-liquidate-title"
     @close="emit('close')"
   >
@@ -458,7 +457,7 @@ function onSubmit() {
           />
         </BaseFormField>
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <BaseFormRow :cols="2" :gap="3" at="sm">
           <BaseFormField label="Inicio del período">
             <BaseInput
               v-model="form.period_start"
@@ -475,7 +474,7 @@ function onSubmit() {
               @update:model-value="onPeriodEndEdited"
             />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
 
         <div v-if="cycleOptions.length">
           <p class="mb-1.5 text-xs text-text-subtle">Duración del período:</p>

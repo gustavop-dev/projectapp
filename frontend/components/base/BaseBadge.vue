@@ -5,6 +5,13 @@ import { oneOf } from './propValidators'
 const props = defineProps({
   variant: { type: String, default: 'neutral', validator: oneOf(['neutral', 'success', 'warning', 'danger', 'info', 'accent', 'primary']) },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
+  /** Statuses and chips are atomic UI text. Only arbitrary prose/data should
+   * opt into wrapping explicitly. */
+  textPolicy: {
+    type: String,
+    default: 'atomic',
+    validator: oneOf(['atomic', 'wrap']),
+  },
 })
 
 const variants = {
@@ -25,7 +32,10 @@ const sizes = {
 }
 
 const classes = computed(() => [
-  'inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 whitespace-normal font-medium rounded-full [overflow-wrap:anywhere]',
+  'inline-flex min-w-0 max-w-full items-center gap-1 rounded-full font-medium',
+  props.textPolicy === 'atomic'
+    ? 'flex-nowrap whitespace-nowrap'
+    : 'flex-wrap whitespace-normal [overflow-wrap:anywhere]',
   variants[props.variant] || variants.neutral,
   sizes[props.size] || sizes.md,
 ])

@@ -356,7 +356,7 @@
     </ConfirmModal>
 
     <!-- Internal notes, read-only: written in the create form, never sent. -->
-    <BaseModal v-model="notesOpen" kind="detail" size="lg" @close="notesRow = null">
+    <BaseModal v-model="notesOpen" kind="detail" @close="notesRow = null">
       <div class="p-6 space-y-3">
         <h3 class="text-lg font-bold text-text-default">
           Notas internas · {{ notesRow?.public_number || `#${notesRow?.id}` }}

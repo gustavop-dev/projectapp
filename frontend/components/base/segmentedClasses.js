@@ -9,7 +9,8 @@
  * semantically.
  */
 
-export const SEGMENTED_WRAPPER = 'inline-flex gap-1 bg-surface-raised rounded-xl p-1'
+export const SEGMENTED_WRAPPER =
+  'inline-flex max-w-full flex-wrap items-stretch gap-1 rounded-xl bg-surface-raised p-1'
 
 export const SEGMENTED_SIZE = {
   sm: 'px-2.5 py-1 text-xs',
@@ -17,7 +18,7 @@ export const SEGMENTED_SIZE = {
 }
 
 export const SEGMENTED_ITEM_BASE =
-  'flex-1 rounded-lg transition-all outline-none focus:ring-2 focus:ring-focus-ring/40'
+  'inline-flex min-h-8 flex-1 items-center justify-center self-stretch whitespace-nowrap rounded-lg outline-none transition-all focus:ring-2 focus:ring-focus-ring/40'
 
 export const SEGMENTED_ITEM_ON = 'bg-surface shadow-sm font-medium text-text-default'
 

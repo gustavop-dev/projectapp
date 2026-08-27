@@ -359,7 +359,7 @@
               <span>Respuesta al mensaje #{{ messageForm.reply_to }}</span>
               <BaseButton variant="ghost" size="sm" @click="messageForm.reply_to = null">Quitar</BaseButton>
             </div>
-            <div class="grid gap-3 sm:grid-cols-3">
+            <BaseFormRow :cols="3" :gap="3" at="sm">
               <BaseFormField label="Dirección">
                 <BaseSelect
                   v-model="messageForm.direction"
@@ -381,7 +381,7 @@
               <BaseFormField label="Fecha y hora">
                 <BaseInput v-model="messageForm.occurred_at" type="datetime-local" />
               </BaseFormField>
-            </div>
+            </BaseFormRow>
             <BaseFormField v-if="messageForm.channel === 'email'" label="Asunto" class="mt-3">
               <BaseInput
                 v-model="messageForm.subject"

@@ -371,7 +371,7 @@
     <!-- Clients without a project -->
     <BaseModal
       :model-value="orphansOpen"
-      size="md"
+      kind="detail"
       title-id="projects-orphans-title"
       @close="orphansOpen = false"
     >

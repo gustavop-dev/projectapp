@@ -145,7 +145,7 @@ test.describe('Documentos — matriz responsiva', () => {
     }, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await mockDocuments(page);
-      await enterModule(page, 'Documentos PDF', 'Documentos');
+      await enterModule(page, 'Gestor Documental', 'Gestor Documental');
 
       if (viewport.compact) {
         await expect(page.getByTestId('folder-drawer-trigger')).toBeVisible();

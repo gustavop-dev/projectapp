@@ -1,11 +1,13 @@
 /**
  * Shared-band form rows.
  *
- * A `BaseFormRow` declares three bands — label / control / hint — and every
+ * A `BaseFormRow` declares three bands — label / control / error — and every
  * `BaseFormField` inside it becomes a subgrid that inherits them. Each band is
  * then as tall as the tallest cell in the row, so the controls all start at the
  * same height. Without this every field stacks on its own and a label that
  * wraps to two lines pushes down only its own control, leaving the row crooked.
+ * Explanatory help belongs to the row and spans every column underneath the
+ * group; it is deliberately not a fourth per-field band.
  *
  * The class strings are spelled out per breakpoint instead of being built by
  * interpolation: the JIT scans these files as plain text, so a `${at}:grid-cols-2`
@@ -50,6 +52,14 @@ export const ROW_COLS_LG = {
   4: 'lg:grid-cols-4',
   5: 'lg:grid-cols-5',
   6: 'lg:grid-cols-6',
+}
+
+/** A field followed by a compact companion action (picker + “Sin proyecto”). */
+export const ROW_FIELD_ACTION = {
+  sm: 'sm:grid-cols-[minmax(0,1fr)_auto]',
+  md: 'md:grid-cols-[minmax(0,1fr)_auto]',
+  portrait: 'panel-portrait:grid-cols-[minmax(0,1fr)_auto]',
+  landscape: 'panel-landscape:grid-cols-[minmax(0,1fr)_auto]',
 }
 
 /**

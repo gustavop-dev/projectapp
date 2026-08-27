@@ -160,20 +160,21 @@ prefer the bare class without `/N`.
 | `BaseCurrencyInput` | `modelValue` (Number/null), `decimals` (0 = COP; 2 allows a decimal comma), `size`, `error`, `placeholder`, `disabled` — money input that live-formats es-CO thousands (`1234567` → `1.234.567`) and emits the numeric value |
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
-| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `disabledReason`, `iconOnly`, `as` — see [Button variants](#button-variants) |
+| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `textPolicy` (`atomic` default / `wrap`), `loading`, `disabled`, `disabledReason`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseActionIcon` | `action` — renders the canonical 16 px Heroicons 24 Outline glyph from `config/panelActions.js`; consumers cannot replace it |
 | `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `disabledReason`, `as`, `to` — canonical icon-only action with hover/focus tooltip and accessible name |
 | `BaseControlGate` | `reasons`, `label`, `visible`, `reserveSpace`, `align`, `position` — complete visible + hover/focus/touch explanation around a native disabled control |
-| `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`; contains and wraps unbroken labels by default |
+| `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`, `textPolicy` (`atomic` default / `wrap`); status icon + label never separate |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
-| `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
+| `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`form-wide`/`wizard`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
 | `BaseFloatingListbox` | `open`, `anchor`, `owner`, `id`, `as`, `maxHeight`, `offset`, `viewportPadding` — portal de listbox que iguala el ancho del control, se voltea al lado con espacio y evita que un modal lo recorte |
 | `BaseModalActions` | Responsive footer: full-width stacked actions below 640 px, right-aligned row above it |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `disabledReason`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
 | `BaseCheckbox`  | `modelValue`, `value`, `disabled`, `disabledReason` — label via default slot |
 | `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size`, `standalone` — wrap any control in the default slot |
-| `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`portrait` by default; also `sm`/`md`/`landscape`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
-| `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId?, disabled?, disabledReason? }` or strings), `size` (`sm`/`md`), `fullWidth`, `disabledReason` — segmented control / pill tabs |
+| `BaseFormRow`   | `cols` (`1`–`4`), `lg`, `gap`, `at`, `as`, `help`, `layout` (`equal`/`field-action`) — shared label/control/error bands plus group help; see [Form rows](#form-rows) |
+| `BaseFormRowAction` | Companion action that occupies a `BaseFormRow` control band; use with `layout="field-action"` |
+| `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId?, disabled?, disabledReason? }` or strings), `size` (`sm`/`md`), `fullWidth`, `disabledReason` — atomic options; constrained groups reflow only between buttons |
 | `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled?, disabledReason? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1024 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
 | `BaseFilterTabs` | Saved-filter strip: same selector/strip breakpoint, wrapping, drag with touch delay, keyboard/menu reorder. `ProposalFilterTabs` remains as a compatibility alias |
 | `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — hides from `panel-landscape` (1024 px), paired with `hidden panel-landscape:flex` |
@@ -355,6 +356,15 @@ Pick modal width by purpose, not a one-off pixel value. Put actions in
 `BaseModalActions`; compact screens become fullscreen and stack the buttons in
 document order.
 
+| Kind | Maximum from 640 px | Purpose |
+|---|---:|---|
+| `confirm` | 28rem | Brief confirmation |
+| `form` | 42rem | Simple / one-column form |
+| `form-wide` | 64rem | Normal two-column form |
+| `wizard` | 80rem | Multi-step assistant |
+| `detail` | 64rem | Read-only detail |
+| `workspace` | `min(90vw, 100rem)` | Preview or working surface |
+
 ```vue
 <BaseModal v-model="open" kind="form">
   <div class="p-4 panel-portrait:p-6">…</div>
@@ -383,18 +393,33 @@ Two fields side by side go in a `BaseFormRow`, never in a hand-written
 <BaseFormRow :cols="2" :gap="3">
   <BaseFormField label="NIT (opcional)">…</BaseFormField>
   <BaseFormField label="Código de facturación (opcional)">…</BaseFormField>
+  <template #help>Estos datos aparecen en la cuenta de cobro.</template>
 </BaseFormRow>
 ```
 
 In a plain grid each column stacks on its own, so the taller label decides where
 *its* control starts and the row comes out crooked — reliably, as soon as one
 label wraps and the other does not. The row instead owns three shared bands
-(label / control / hint) that every field inherits through a subgrid, so each
-band is as tall as the tallest cell and the controls line up. It also keeps the
-next row square when only one of the two fields carries a hint.
+(label / control / error) that every field inherits through a subgrid, so each
+band is as tall as the tallest cell and the controls line up. Explanatory help
+is one block below the complete group; it never reserves an empty cell in the
+other columns.
 
-Widening the container is not a fix: it only postpones the problem until the
-next long label, a different language, or a narrower screen.
+The semantic modal width prevents short labels from wrapping; the bands are the
+safety net for genuinely long labels and validation errors. Short field labels
+are atomic by default. A sentence-like label must opt into
+`label-policy="wrap"` explicitly.
+
+An action beside a field uses the control band too:
+
+```vue
+<BaseFormRow layout="field-action" help="Filtra por proyecto o incluye los que no tienen uno.">
+  <BaseFormField label="Proyecto">…</BaseFormField>
+  <BaseFormRowAction>
+    <BaseButton variant="secondary">Sin proyecto</BaseButton>
+  </BaseFormRowAction>
+</BaseFormRow>
+```
 
 Notes:
 
@@ -404,8 +429,10 @@ Notes:
 - The fields must be **direct** children. A child that is not a field and should
   sit alongside them needs the bands too: `class="panel-portrait:row-span-3"` (plus
   `panel-portrait:col-span-2` to span the full width).
-- A `BaseFormField` nested inside another component still renders correctly, it
-  just does not align; pass `standalone` on it to say so explicitly.
+- A `BaseFormField` nested in a component may still align when that component's
+  root is the field and remains a direct DOM child. Otherwise pass `standalone`.
+- Hints inside aligned fields are intentionally not rendered: move that copy to
+  the row's `help` prop or `#help` slot.
 
 Live demo: `/panel/styleguide`, section 4.
 

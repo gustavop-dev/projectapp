@@ -35,7 +35,8 @@ const props = defineProps({
   },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   fullWidth: { type: Boolean, default: false },
-  nowrap: { type: Boolean, default: false },
+  /** Compatibility prop; option labels are atomic by contract. */
+  nowrap: { type: Boolean, default: true },
   disabled: { type: Boolean, default: false },
   disabledReason: { type: String, default: '' },
   /** Accessible name of the group; the panel also renders a visible label. */
@@ -94,7 +95,7 @@ function toggle(opt) {
 
 <template>
   <div
-    :class="[SEGMENTED_WRAPPER, { 'w-full': fullWidth }, nowrap ? 'max-w-full flex-wrap' : '']"
+    :class="[SEGMENTED_WRAPPER, { 'w-full': fullWidth }]"
     role="group"
     :aria-label="label || undefined"
   >
@@ -110,7 +111,6 @@ function toggle(opt) {
       :class="[
         SEGMENTED_ITEM_BASE,
         sizeClass,
-        nowrap ? 'whitespace-nowrap' : '',
         isOn(opt) ? SEGMENTED_ITEM_ON : SEGMENTED_ITEM_OFF,
         disabled || opt.disabled ? SEGMENTED_ITEM_DISABLED : '',
       ]"

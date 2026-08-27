@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    size="full"
+    kind="workspace"
     full-height
     @update:model-value="emit('update:modelValue', $event)"
   >

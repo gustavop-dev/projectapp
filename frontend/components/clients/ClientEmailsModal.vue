@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
-    size="4xl"
+    kind="detail"
     full-height
     :close-on-esc="!previewOpen"
     :close-on-backdrop="!previewOpen"

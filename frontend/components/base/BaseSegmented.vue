@@ -20,12 +20,9 @@ const props = defineProps({
   },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   fullWidth: { type: Boolean, default: false },
-  // Options whose labels must stay on one line (e.g. "Colombia (COP)"). Cuando
-  // el control no cabe, crece en alto envolviendo en varias líneas. Antes
-  // scrolleaba en horizontal sin ningún indicador, y ahí las opciones del final
-  // quedaban escondidas detrás de un corte que se leía como el final de la
-  // lista: ninguna opción puede quedar inalcanzable.
-  nowrap: { type: Boolean, default: false },
+  /** Compatibility prop. Every short segmented label is now atomic; when the
+   * complete group does not fit it reflows between options, never inside one. */
+  nowrap: { type: Boolean, default: true },
   disabled: { type: Boolean, default: false },
   disabledReason: { type: String, default: '' },
 })
@@ -39,7 +36,7 @@ const sizeClass = computed(() => SEGMENTED_SIZE[props.size] || SEGMENTED_SIZE.md
 
 <template>
   <div
-    :class="[SEGMENTED_WRAPPER, { 'w-full': fullWidth }, nowrap ? 'max-w-full flex-wrap' : '']"
+    :class="[SEGMENTED_WRAPPER, { 'w-full': fullWidth }]"
     role="tablist"
   >
     <button
@@ -55,7 +52,6 @@ const sizeClass = computed(() => SEGMENTED_SIZE[props.size] || SEGMENTED_SIZE.md
       :class="[
         SEGMENTED_ITEM_BASE,
         sizeClass,
-        nowrap ? 'whitespace-nowrap' : '',
         modelValue === opt.value ? SEGMENTED_ITEM_ON : SEGMENTED_ITEM_OFF,
         disabled || opt.disabled ? SEGMENTED_ITEM_DISABLED : '',
       ]"
