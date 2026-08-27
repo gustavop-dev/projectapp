@@ -520,7 +520,35 @@ flowchart TD
     PlatformDashboard -->|middleware: platform-auth| JWTCheck["JWT validation"]
 ```
 
-### 6.1.1 Client Chart Loading
+### 6.1.1 View Map operational Explorer
+
+`/panel/views` now has three views over two deliberately separate catalogs:
+
+```mermaid
+flowchart LR
+    Pages["frontend/pages inventory"] --> Audit["viewCatalog audit"]
+    Routes["viewCatalog: 104 route records"] --> Audit
+    Routes --> List["Lista: complete reference"]
+    Routes --> Map["Mapa: module drill-down"]
+    Routes --> Capabilities["viewCapabilityCatalog"]
+    Capabilities --> Explorer["Explorador: commercial constellation"]
+    Explorer --> Domains["All product domains"]
+    Domains --> Platform["Platform: 8 operational capabilities"]
+    Platform --> Benefits["Actions, value and functional relations"]
+    Benefits -. secondary disclosure .-> Routes
+```
+
+`viewCatalog.js` remains the canonical technical inventory. A CI scanner derives
+routes from real page files and rejects missing, stale, duplicated or invalid
+records. `viewCapabilityCatalog.js` is a curated operational projection: its
+validator requires every Platform view to belong to exactly one capability and
+requires relationship endpoints to exist. The orbital component renders semantic
+buttons over a lightweight SVG line layer, so navigation and focus do not depend
+on a canvas or third-party graph engine. Mode, selected node and relation
+visibility are URL state; only the default mode is persisted by
+`ViewMapSettings`.
+
+### 6.1.2 Client Chart Loading
 
 ```mermaid
 flowchart LR

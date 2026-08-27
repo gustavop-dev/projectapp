@@ -1971,15 +1971,18 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P4
 - **Routes:** `/panel/views`
-- **Description:** Admin opens the panel route inventory page, searches grouped browser views by name/URL/file, and copies route references for QA or support communication. A second interactive "Mapa" mode shows module cards with stats and drills down into curated sub-modules, with deep-linking via `?viewMode=map&module=<id>`. Seeded filter tabs (Admin, Público, Cliente, Dashboards, Configuración) narrow the catalog by audience/view type, and a "Configuración" section persists the default view mode and default filters in the `ViewMapSettings` backend singleton; `?viewMode=` overrides the configured default (the last-used mode is no longer persisted in localStorage).
+- **Description:** Admin explores the complete route inventory in Lista, drills through modules in Mapa, or presents ProjectApp as a commercial capability constellation in Explorador. The operational mode starts with all product domains, opens Platform into eight capabilities and keeps route/file references as secondary disclosure. Seeded filters and Configuración retain the technical workflow; `ViewMapSettings` persists any of the three default modes and an explicit URL always wins.
 - **Steps:**
   1. Admin opens `/panel/views` from the Reference section in the panel sidebar; the configured default view mode and default filters apply when no `?viewMode=`/`?viewTab=` deep-link is present.
   2. Grouped route catalog renders with section totals, seeded filter tabs and a proposal reference guide.
   3. Admin selects a seeded filter tab (e.g. Dashboards) or searches for a route, view name, or file path to narrow the catalog.
   4. Admin clicks the copy button on a view row and sees copied feedback.
-  5. Admin toggles to "Mapa" mode: module cards render with view counts, sub-module counts and a viewType distribution bar.
-  6. Admin clicks a module card, drills into its sub-modules (badges, open-view links, copy reference), and returns via the breadcrumb; the URL reflects the state for deep-linking.
-  7. Admin switches to the "Configuración" section, changes the default view mode (immediate save + toast) or the default filters (debounced autosave + toast).
+  5. Admin toggles to "Mapa" mode: module cards render with operational labels, view counts, sub-module counts and a viewType distribution bar.
+  6. Admin clicks a module card, drills into its sub-modules and returns via the breadcrumb; the URL reflects the state for deep-linking.
+  7. Admin toggles to "Explorador", opens Plataforma and navigates its capability orbit by pointer, keyboard, search or a shared `?viewMode=explorer&node=<id>` URL.
+  8. Admin can pause the slow rotation, zoom, hide functional relations or rely on the operating-system reduced-motion preference; technical references remain available in a closed disclosure.
+  9. Admin switches to "Configuración", saves any default mode and receives success or failure feedback from the settings request.
+- **Outcome matrix:** display ✅ Lista/Mapa/Explorador navigation; success ✅ default-mode persistence; failure ✅ rejected settings save; error n/a because the page exposes bounded controls rather than user-authored values, so invalid modes cannot be submitted through the UI.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-view-map.spec.js`
 - **Known gaps:** default-filters autosave from the Configuración section and default-filters application on open are unit-covered only; saved-tab CRUD (create/rename/delete) is unasserted on this view (shared `ProposalFilterTabs` component, exercised in proposals specs).

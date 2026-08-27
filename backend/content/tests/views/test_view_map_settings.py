@@ -27,6 +27,15 @@ class TestViewMapSettings:
         assert response.status_code == 200
         assert ViewMapSettings.load().default_view_mode == 'map'
 
+    def test_patch_accepts_explorer_view_mode(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-view-map-settings'),
+            {'default_view_mode': 'explorer'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert ViewMapSettings.load().default_view_mode == 'explorer'
+
     def test_patch_rejects_invalid_view_mode(self, admin_client):
         response = admin_client.patch(
             reverse('update-view-map-settings'),

@@ -160,6 +160,9 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
+      - name: Validate view catalog and operational taxonomy
+        run: npm run check:view-catalog
+
       - name: Run Jest tests with coverage
         run: |
           NODE_OPTIONS='--no-deprecation' npx jest --config jest.config.cjs --coverage --ci --forceExit --json --outputFile=jest-results.json || true

@@ -40,6 +40,15 @@ describe('useViewMapMode', () => {
     expect(selectedModuleId.value).toBe('admin-panel');
   });
 
+  it('initializes Explorer from URL state', () => {
+    mockRoute.query = { viewMode: 'explorer', node: 'platform-work-tracking' };
+
+    const { viewMode, selectedExplorerNodeId } = useViewMapMode();
+
+    expect(viewMode.value).toBe('explorer');
+    expect(selectedExplorerNodeId.value).toBe('platform-work-tracking');
+  });
+
   it('removes the legacy persisted-mode key and no longer reads it', () => {
     window.localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify('map'));
 
@@ -109,6 +118,30 @@ describe('useViewMapMode', () => {
     clearModule();
     await nextTick();
     expect(mockReplace).toHaveBeenCalledWith({ query: { viewMode: 'map' } });
+  });
+
+  it('selectExplorerNode adds the node query', async () => {
+    mockRoute.query = { viewMode: 'explorer' };
+    const { selectExplorerNode } = useViewMapMode();
+
+    selectExplorerNode('client-platform');
+    await nextTick();
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { viewMode: 'explorer', node: 'client-platform' },
+    });
+  });
+
+  it('hides operational relations through the query', async () => {
+    mockRoute.query = { viewMode: 'explorer' };
+    const { showRelations } = useViewMapMode();
+
+    showRelations.value = false;
+    await nextTick();
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { viewMode: 'explorer', relations: '0' },
+    });
   });
 
   it('switching back to list clears the selected module and query params', async () => {
