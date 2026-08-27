@@ -6,8 +6,8 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "From a project row, an admin changes the real lifecycle state only through a two-step preview/apply dialog. The preview explains billing, reminder, hosting and debt consequences before confirmation. Suspension is reversible and preserves caused debt while stopping new automatic billing; completion means a clean close; decommission is definitive, requires an explicit keep/write-off decision for every caused receivable, and a direct jump that did not pass through Suspended requires a note. A stale financial preview fails closed and remains open. The same row exposes the immutable dated episode history, including actor and note, and a failed-hosting signal only suggests suspension — it never applies it automatically.",
-  "expectedSpecs": 4,
+  "description": "From a project row, an admin changes the real lifecycle state only through a two-step preview/apply dialog. Selecting a state exposes its editable meaning and immutable system consequence help before the preview. En evolución records that a delivered product remains operating while its next version is developed, sharing the operating effect with Activo. Suspension is reversible and preserves caused debt while stopping new automatic billing; completion means a clean close; decommission is definitive, requires an explicit keep/write-off decision for every caused receivable, and a direct jump that did not pass through Suspended requires a note. A stale financial preview fails closed and remains open. The same row exposes the immutable dated episode history, including actor and note, and a failed-hosting signal only suggests suspension — it never applies it automatically.",
+  "expectedSpecs": 5,
   "outcomes": [
     "display",
     "success",

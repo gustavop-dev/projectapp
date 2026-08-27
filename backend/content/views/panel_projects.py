@@ -260,8 +260,11 @@ def list_panel_projects(request):
                 {
                     'state_id': state.pk,
                     'name': state.name,
+                    'description': state.description,
                     'color': state.color,
+                    'system_key': state.system_key,
                     'operational_effect': state.operational_effect,
+                    'operational_effect_help': state.operational_effect_help,
                     'count': state_counts.get(state.pk, 0),
                 }
                 for state in catalog

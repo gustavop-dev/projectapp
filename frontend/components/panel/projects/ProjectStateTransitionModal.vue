@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useProjectStateStore } from '~/stores/project_states';
 import { stateBadgeVariant } from '~/utils/documentState';
+import ProjectStateHelpBadge from './ProjectStateHelpBadge.vue';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -176,9 +177,16 @@ async function applyState() {
         </select>
       </BaseFormField>
 
-      <div v-if="selectedState" class="flex items-center gap-2 rounded-lg bg-surface-raised px-3 py-2 text-sm">
-        <BaseBadge :variant="stateBadgeVariant(selectedState)">{{ selectedState.name }}</BaseBadge>
-        <span class="text-text-muted">{{ selectedState.description || 'Estado administrable del ciclo del proyecto.' }}</span>
+      <div v-if="selectedState" class="rounded-lg bg-surface-raised px-3 py-3 text-sm" data-testid="project-state-selected-help">
+        <div class="flex items-center gap-2">
+          <BaseBadge :variant="stateBadgeVariant(selectedState)">{{ selectedState.name }}</BaseBadge>
+          <ProjectStateHelpBadge
+            :state="selectedState"
+            position="bottom"
+            test-id="project-transition-state-help"
+          />
+        </div>
+        <p class="mt-2 text-text-muted">{{ selectedState.description }}</p>
       </div>
 
       <label class="flex items-center gap-2 text-xs text-text-muted">

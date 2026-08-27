@@ -15,6 +15,19 @@ de consolidación. Cobertura focal: unitarias del primitive/layout/consumidores 
 32 escenarios Playwright focales y de regresión verdes, incluido un gesto táctil
 real iniciado sobre el kebab.
 
+**2026-08-27 — Ayuda contextual y séptimo significado en el ciclo de Proyectos:**
+el catálogo compartido conserva una sola selección por proyecto y suma **En
+evolución** para distinguir el producto entregado que sigue operando mientras se
+desarrolla su siguiente versión; comparte deliberadamente el efecto `operating`
+con Activo. Cada estado de proyecto exige ahora una descripción administrable y
+expone además una explicación del sistema derivada del efecto operativo, que no
+puede alterarse al renombrar. Un badge accesible por hover, foco y toque muestra
+ambas capas en conteos, filtro seleccionado, tabla, tarjetas compactas, catálogo y
+modal de transición. La migración `content.0218_project_state_help` preserva
+descripciones existentes, completa las faltantes e inserta En evolución después de
+Activo; fake data y contratos MCP reconocen el nuevo campo y los siete significados.
+El portal del cliente permanece fuera de alcance.
+
 **2026-08-27 — Selector de clientes útil desde que abre:** la asignación masiva
 en Contable enfoca el selector y muestra inmediatamente la primera página del
 catálogo, ordenada alfabéticamente; escribir filtra esa lista en vez de ser el
@@ -153,10 +166,11 @@ viewports canónicos. Verificación: slices Jest de primitives y consumidores,
 Playwright 11/11, build Nuxt, contrato responsivo 103/13/5, flow-map fresco y
 auditoría sin junk-only ni missing.
 
-**2026-08-26 — Ciclo real y administrable para Proyectos:** el catálogo y los
+**2026-08-27 — Ciclo real y administrable para Proyectos:** el catálogo y los
 episodios de PA-88 ahora están explícitamente acotados por dominio y sirven también
-a `Project`, sin duplicar infraestructura. Se sembraron En desarrollo, Activo,
-Pausado, Suspendido, Completado y Dado de baja; el nombre/color se puede adaptar,
+a `Project`, sin duplicar infraestructura. Se sembraron En desarrollo, Activo, En
+evolución, Pausado, Suspendido, Completado y Dado de baja; el nombre, la
+descripción y el color se pueden adaptar,
 pero `operational_effect` conserva las consecuencias aun después de un renombre.
 Cada cambio exige preview y token contra datos financieros actuales, se aplica en
 transacción y deja fecha, actor y nota. Suspender preserva deuda causada y silencia

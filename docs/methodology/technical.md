@@ -301,7 +301,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   must not be reused for internal workflow decisions.
 - `DocumentStateGroup.selection_mode` expresses the only-one cycle versus additive
   signals. `DocumentState.system_key` is stable integration identity; the user-facing
-  name and color remain editable. Seed states may not be moved into a group whose
+  name, description and color remain editable. Seed states may not be moved into a group whose
   mode contradicts their integration role.
 - Open `DocumentStateEpisode` rows are the materialized current state. Every open,
   close, removal, exclusive transition, merge and effective-date correction writes a
@@ -336,10 +336,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Nuxt uses the Options-API `project_states.js` store and the same
   `StateCatalogManager` / `StateHistoryModal` primitives as Documents. The project
   transition modal is specific because it must collect financial decisions.
+  `ProjectStateHelpBadge` pairs the editable `description` with the derived,
+  read-only `operational_effect_help` in counts, filters, rows, cards, catalog and
+  transition context, with pointer, keyboard and touch access.
 - Migrations `accounts.0055_project_lifecycle_state` and
-  `content.0213/0214_project_lifecycle_states` add the relations, seed all six
-  meanings and map known legacy statuses. Legacy `archived` remains unclassified
-  and review-required; deploy applies migrations, never a session worktree.
+  `content.0213/0214_project_lifecycle_states` add the relations and map known
+  legacy statuses. `content.0218_project_state_help` adds state descriptions,
+  backfills existing project states and seeds **En evolución** after **Activo** as
+  a second `operating` meaning. Legacy `archived` remains unclassified and
+  review-required; deploy applies migrations, never a session worktree.
 
 ### Communications are a separate domain with shared infrastructure
 

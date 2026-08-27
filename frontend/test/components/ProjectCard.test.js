@@ -11,6 +11,8 @@ const PROJECT = {
     name: 'Activo',
     color: 'emerald',
     operational_effect: 'operating',
+    description: 'Está entregado y operando.',
+    operational_effect_help: 'Mantiene habilitados los cobros y los avisos.',
   },
   created_at: '2026-08-01T10:00:00Z',
   client_name: 'Ana Torres',
@@ -62,6 +64,13 @@ describe('ProjectCard', () => {
     expect(title.classes()).toContain('[overflow-wrap:anywhere]');
     expect(title.element.compareDocumentPosition(status.element) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy();
+  });
+
+  it('offers contextual help beside the project status', () => {
+    const wrapper = mountCard();
+
+    expect(wrapper.get('[data-testid="project-card-state-help-12"]')
+      .attributes('aria-label')).toBe('Ayuda sobre el estado Activo');
   });
 
   it('opens the action menu for its project', async () => {
