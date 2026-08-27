@@ -287,15 +287,22 @@
         <BaseButton variant="ghost" size="lg" @click="showSendChecklist = false">
           Cancelar
         </BaseButton>
-        <BaseButton
-          variant="primary"
-          size="lg"
-          class="!bg-info-strong hover:!bg-info-strong/90"
-          :disabled="!allChecksPassing || scorecardLoading"
-          @click="confirmSend"
-        >
-          Enviar al Cliente
-        </BaseButton>
+        <BaseControlGate :reasons="sendBlockReasons" label="Enviar no disponible" align="end">
+          <template #default="{ describedBy }">
+            <BaseButton
+              variant="primary"
+              size="lg"
+              class="!bg-info-strong hover:!bg-info-strong/90"
+              :loading="scorecardLoading"
+              :disabled="Boolean(sendBlockReasons.length)"
+              :disabled-reason="sendBlockReasons.join(' ')"
+              :aria-describedby="describedBy"
+              @click="confirmSend"
+            >
+              Enviar al Cliente
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </div>
     </BaseModal>
 
@@ -1290,6 +1297,10 @@ const allChecksPassing = computed(() => {
   }
   return sendChecklist.value.filter(c => c.blocker).every(c => c.pass);
 });
+
+const sendBlockReasons = computed(() => sendChecklist.value
+  .filter(item => item.blocker && !item.pass)
+  .map(item => item.label));
 
 async function handleSend() {
   showSendChecklist.value = true;

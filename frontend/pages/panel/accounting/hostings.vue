@@ -299,6 +299,9 @@
               ? `Enviar cuenta de cobro a ${row.billing_email}`
               : 'Vincula un cliente con correo o escribe un email de facturación'"
             :disabled="!row.billing_email || billingId === row.id"
+            :disabled-reason="!row.billing_email
+              ? 'Vincula un cliente con correo o escribe un email de facturación.'
+              : 'Ya se está enviando la cuenta de cobro. Espera a que termine.'"
             :data-testid="`hosting-send-billing-${row.id}`"
             @click.stop="askSendBilling(row)"
           />

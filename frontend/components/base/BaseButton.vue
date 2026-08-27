@@ -15,6 +15,9 @@ const props = defineProps({
   type: { type: String, default: 'button' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
+  /** Why a non-loading action is unavailable. Resolvable forms should also
+   *  render the same copy visibly through BaseControlGate. */
+  disabledReason: { type: String, default: '' },
   iconOnly: { type: Boolean, default: false },    // square padding for icon buttons
   as: { type: String, default: 'button' },        // button | a | NuxtLink
   to: { type: [String, Object], default: null },
@@ -23,6 +26,11 @@ const props = defineProps({
 defineEmits(['click'])
 
 const attrs = useAttrs()
+const disabledTitle = computed(() => (
+  props.disabled && !props.loading
+    ? (props.disabledReason || attrs.title || 'Operación en curso. Espera un momento.')
+    : (attrs.title || '')
+))
 
 const variants = {
   primary: 'bg-primary text-on-primary hover:bg-primary-strong border border-transparent',
@@ -122,6 +130,7 @@ if (process.env.NODE_ENV !== 'production') {
     v-else
     :type="type"
     :disabled="disabled || loading"
+    :title="disabledTitle || undefined"
     :class="classes"
     @click="$emit('click', $event)"
   >

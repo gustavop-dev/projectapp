@@ -176,6 +176,7 @@
             <BaseToggle
               v-model="hostingExpiryReminderEnabled"
               :disabled="!paymentCalendarEnabled"
+              disabled-reason="Activa primero el calendario de cobros y pagos."
               aria-label="Avisos de vencimiento de hostings activos"
               data-testid="settings-hosting-expiry-toggle"
             />
@@ -193,6 +194,7 @@
             v-model="overdueReminderFrequency"
             :options="OVERDUE_FREQUENCY_OPTIONS"
             :disabled="!paymentCalendarEnabled"
+            disabled-reason="Activa primero el calendario de cobros y pagos."
             size="sm"
             data-testid="settings-overdue-frequency"
           />

@@ -27,6 +27,7 @@
           :model-value="gustavoAmount"
           placeholder="0"
           :disabled="autoSplit"
+          disabled-reason="Desactiva el reparto automático para editar este valor."
           data-testid="partner-split-gustavo"
           @update:model-value="emit('update:gustavoAmount', $event)"
         />
@@ -37,11 +38,16 @@
           :model-value="carlosAmount"
           placeholder="0"
           :disabled="autoSplit"
+          disabled-reason="Desactiva el reparto automático para editar este valor."
           data-testid="partner-split-carlos"
           @update:model-value="emit('update:carlosAmount', $event)"
         />
       </div>
     </div>
+
+    <p v-if="autoSplit" class="text-xs text-text-subtle">
+      Desactiva el reparto automático para editar los valores de cada socio.
+    </p>
 
     <p
       v-if="sumExceedsTotal"

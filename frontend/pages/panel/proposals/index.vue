@@ -126,14 +126,20 @@
           <BaseFormField label="Mensaje" size="sm" class="flex-1">
             <BaseInput v-model="newAlert.message" type="text" size="sm" placeholder="Ej: Llamar al cliente para seguimiento..." />
           </BaseFormField>
-          <BaseButton
-            variant="primary"
-            size="md"
-            :disabled="!newAlert.proposal || !newAlert.message"
-            @click="handleCreateAlert"
-          >
-            Crear
-          </BaseButton>
+          <BaseControlGate :reasons="newAlertBlockReasons" label="Crear recordatorio no disponible" align="end">
+            <template #default="{ describedBy }">
+              <BaseButton
+                variant="primary"
+                size="md"
+                :disabled="Boolean(newAlertBlockReasons.length)"
+                :disabled-reason="newAlertBlockReasons.join(' ')"
+                :aria-describedby="describedBy"
+                @click="handleCreateAlert"
+              >
+                Crear
+              </BaseButton>
+            </template>
+          </BaseControlGate>
         </div>
         <p v-if="alertError" class="text-xs text-danger-strong">{{ alertError }}</p>
       </div>
@@ -480,7 +486,25 @@
           </div>
           <BaseModalActions>
             <BaseButton variant="secondary" size="md" @click="quickLogProposal = null">Cancelar</BaseButton>
-            <BaseButton variant="primary" size="md" :disabled="!quickLogMessage.trim() || isQuickLogging" @click="confirmQuickLog">{{ isQuickLogging ? 'Guardando...' : 'Registrar' }}</BaseButton>
+            <BaseControlGate
+              :reasons="!quickLogMessage.trim() ? ['Escribe la descripción de la actividad.'] : []"
+              label="Registrar actividad no disponible"
+              align="end"
+            >
+              <template #default="{ describedBy }">
+                <BaseButton
+                  variant="primary"
+                  size="md"
+                  :loading="isQuickLogging"
+                  :disabled="!quickLogMessage.trim()"
+                  disabled-reason="Escribe la descripción de la actividad."
+                  :aria-describedby="describedBy"
+                  @click="confirmQuickLog"
+                >
+                  {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
+                </BaseButton>
+              </template>
+            </BaseControlGate>
           </BaseModalActions>
         </template>
       </BaseModal>
@@ -580,6 +604,10 @@ const newAlert = reactive({
   message: '',
   alert_date: '',
 });
+const newAlertBlockReasons = computed(() => [
+  !newAlert.proposal ? 'Elige la propuesta del recordatorio.' : '',
+  !newAlert.message.trim() ? 'Escribe el mensaje del recordatorio.' : '',
+].filter(Boolean));
 const sortKey = ref('created_at');
 const sortDir = ref('desc');
 const currentPage = ref(1);
@@ -661,10 +689,10 @@ function handleBulkAction(action) {
 }
 
 const bulkActionItems = computed(() => [
-  { label: 'Re-enviar', disabled: isBulkActing.value, onClick: () => handleBulkAction('resend') },
-  { label: 'Expirar', disabled: isBulkActing.value, onClick: () => handleBulkAction('expire') },
+  { label: 'Re-enviar', disabled: isBulkActing.value, description: isBulkActing.value ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulkAction('resend') },
+  { label: 'Expirar', disabled: isBulkActing.value, description: isBulkActing.value ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulkAction('expire') },
   { divider: true },
-  { label: 'Eliminar', danger: true, disabled: isBulkActing.value, onClick: () => handleBulkAction('delete') },
+  { label: 'Eliminar', danger: true, disabled: isBulkActing.value, description: isBulkActing.value ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulkAction('delete') },
 ]);
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];

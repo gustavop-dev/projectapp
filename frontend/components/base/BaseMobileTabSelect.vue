@@ -30,6 +30,7 @@
         :key="String(option.value)"
         :value="option.value"
         :disabled="option.disabled === true"
+        :title="option.disabled === true ? option.disabledReason : undefined"
         class="bg-surface text-text-default"
       >
         {{ option.label }}

@@ -122,15 +122,26 @@ function onDragEnd() {
           aria-label="Nombre de la nueva categoría"
           data-testid="recurring-category-new-name"
         />
-        <BaseButton
-          type="submit"
-          variant="secondary"
-          :disabled="saving || !newName.trim()"
-          data-testid="recurring-category-create"
+        <BaseControlGate
+          :reasons="!newName.trim() ? ['Escribe el nombre de la categoría para agregarla.'] : []"
+          label="Agregar no disponible"
+          align="end"
         >
-          <BaseActionIcon action="create" />
-          <span>Agregar</span>
-        </BaseButton>
+          <template #default="{ describedBy }">
+            <BaseButton
+              type="submit"
+              variant="secondary"
+              :loading="saving"
+              :disabled="!newName.trim()"
+              disabled-reason="Escribe el nombre de la categoría para agregarla."
+              :aria-describedby="describedBy"
+              data-testid="recurring-category-create"
+            >
+              <BaseActionIcon action="create" />
+              <span>Agregar</span>
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </form>
 
       <div class="flex items-center justify-end pt-2">

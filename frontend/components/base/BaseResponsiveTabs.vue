@@ -21,7 +21,14 @@ const normalized = computed(() =>
 )
 
 const selectOptions = computed(() =>
-  normalized.value.map((t) => ({ value: t.id, label: t.label, disabled: t.disabled })),
+  normalized.value.map((t) => ({
+    value: t.id,
+    label: t.disabled && t.disabledReason
+      ? `${t.label} — ${t.disabledReason}`
+      : t.label,
+    disabled: t.disabled,
+    disabledReason: t.disabledReason,
+  })),
 )
 
 function select(id, disabled) {
@@ -71,6 +78,8 @@ function tabClass(tab) {
         role="tab"
         :aria-selected="modelValue === t.id"
         :disabled="t.disabled"
+        :title="t.disabled ? t.disabledReason : undefined"
+        :aria-description="t.disabled ? t.disabledReason : undefined"
         :class="[
           'transition-colors whitespace-nowrap outline-none focus:ring-2 focus:ring-focus-ring/30 disabled:opacity-50 disabled:cursor-not-allowed',
           fullWidth ? 'flex-1' : '',

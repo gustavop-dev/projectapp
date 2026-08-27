@@ -61,6 +61,7 @@
       -->
       <div class="flex shrink-0 items-center justify-between gap-3 px-6 pb-6 pt-2">
         <p
+          :id="`${testidPrefix}-bulk-hint`"
           class="flex items-center gap-1.5 text-xs text-text-muted min-w-0"
           :data-testid="`${testidPrefix}-bulk-hint`"
           :title="statusLine.text"
@@ -81,7 +82,10 @@
           <BaseButton
             variant="primary"
             size="sm"
-            :disabled="Boolean(blockedReason) || busy"
+            :loading="busy"
+            :disabled="Boolean(blockedReason)"
+            :disabled-reason="blockedReason"
+            :aria-describedby="`${testidPrefix}-bulk-hint`"
             :data-testid="isClient
               ? `${testidPrefix}-bulk-assign`
               : `${testidPrefix}-bulk-assign-project`"

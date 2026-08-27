@@ -29,9 +29,24 @@
         <BaseButton variant="ghost" size="sm" @click="$emit('close')">
           Cancelar
         </BaseButton>
-        <BaseButton variant="primary" size="sm" :disabled="!selectedKeys.length" @click="confirm">
-          Adjuntar ({{ selectedKeys.length }})
-        </BaseButton>
+        <BaseControlGate
+          :reasons="!selectedKeys.length ? ['Selecciona al menos un documento para adjuntar.'] : []"
+          label="Adjuntar no disponible"
+          align="end"
+        >
+          <template #default="{ describedBy }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="!selectedKeys.length"
+              disabled-reason="Selecciona al menos un documento para adjuntar."
+              :aria-describedby="describedBy"
+              @click="confirm"
+            >
+              Adjuntar ({{ selectedKeys.length }})
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </footer>
     </div>
   </div>

@@ -186,6 +186,17 @@ function computeMeta(rows) {
 
 const META = computeMeta(makeRows());
 
+const CLIENT_WITHOUT_EMAIL = {
+  id: 6,
+  name: 'Bruno Díaz',
+  email: 'client-6@placeholder.projectapp.local',
+  phone: '',
+  company: 'Brújula SAS',
+  nit: '900555444',
+  cedula: '',
+  is_email_placeholder: true,
+};
+
 const CLIENT_SEARCH_RESULT = [{
   id: 5,
   name: 'Ana Pérez',
@@ -195,7 +206,7 @@ const CLIENT_SEARCH_RESULT = [{
   nit: '901234567',
   cedula: '',
   is_email_placeholder: false,
-}];
+}, CLIENT_WITHOUT_EMAIL];
 
 const ELIGIBLE_INCOME = {
   id: 8,
@@ -332,6 +343,19 @@ function buildHandler({
         body: JSON.stringify(CLIENT_SEARCH_RESULT),
       };
     }
+    if (apiPath === 'proposals/client-profiles/6/update/' && method === 'PATCH') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...CLIENT_WITHOUT_EMAIL,
+          email: body.email,
+          is_email_placeholder: false,
+        }),
+      };
+    }
     if (apiPath === 'proposals/client-profiles/7/' && method === 'GET') {
       return {
         status: 200,
@@ -422,7 +446,8 @@ function buildHandler({
       };
     }
     if (apiPath === 'accounting/collection-accounts/preview/' && method === 'POST') {
-      calls.push({ apiPath, method, body: route.request().postDataJSON() });
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
       return {
         status: 200,
         contentType: 'application/json',
@@ -432,7 +457,7 @@ function buildHandler({
           public_number: 'PA-ACME-001',
           total: '1490000.00',
           due_date: '2026-08-13',
-          customer_email: 'ana@acme.co',
+          customer_email: body.customer.email,
           pdf_url: PREVIEW_PDF_URL,
         }),
       };
@@ -997,6 +1022,73 @@ test.describe('Admin Accounting Collections', () => {
     expect(createCall.body.billing_concept).toBe('Desarrollo módulo de reportes');
     expect(createCall.body.items[0].description).toContain('- Reporte por asesor');
     expect(createCall.body.notes).toBe('Cobrar antes del 15');
+  });
+
+  test('a client without email exposes every preview blocker', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-client').fill('Brújula');
+
+    const clientOption = page.getByTestId('client-autocomplete-option-6');
+    await expect(clientOption).toContainText('Sin correo');
+    await clientOption.click();
+
+    await expect(page.getByTestId('collection-form-client-email-warning'))
+      .toContainText('Este cliente no tiene correo');
+    const reasons = page.getByTestId('collection-form-preview-gate-reasons');
+    await expect(reasons).toContainText('Selecciona un ingreso vinculado.');
+    await expect(reasons).toContainText('Ingresa un valor mayor a cero.');
+    await expect(reasons).toContainText('Escribe el concepto del servicio.');
+    await expect(reasons).toContainText('Agrega y guarda un correo real');
+
+    await page.getByTestId('collection-form-client-email-repair').fill('correo inválido');
+    await page.getByTestId('collection-form-client-email-save').click();
+    await expect(page.getByTestId('collection-form-client-email-error'))
+      .toContainText('Escribe un correo válido');
+  });
+
+  test('saving a missing client email preserves the collection draft', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-client').fill('Brújula');
+    await page.getByTestId('client-autocomplete-option-6').click();
+    await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-scope-all').click();
+    await page.getByTestId('collection-form-income-option-8').click();
+    await page.getByTestId('collection-form-description').fill('Detalle ya diligenciado');
+    await page.getByTestId('collection-form-notes').fill('Conservar esta nota');
+
+    await page.getByTestId('collection-form-client-email-repair').fill('billing@brujula.co');
+    await page.getByTestId('collection-form-client-email-save').click();
+
+    await expect(page.getByText('Correo guardado en el cliente')).toBeVisible();
+    await expect(page.getByTestId('collection-form-client-email-warning')).toHaveCount(0);
+    await expect(page.getByTestId('collection-form-customer-email'))
+      .toHaveValue('billing@brujula.co');
+    await expect(page.getByTestId('collection-form-description'))
+      .toHaveValue('Detalle ya diligenciado');
+    await expect(page.getByTestId('collection-form-notes')).toHaveValue('Conservar esta nota');
+    await expect(page.getByTestId('collection-form-preview')).toBeEnabled();
+
+    await page.getByTestId('collection-form-preview').click();
+
+    const emailUpdate = calls.find(
+      call => call.apiPath === 'proposals/client-profiles/6/update/',
+    );
+    expect(emailUpdate.body).toEqual({ email: 'billing@brujula.co' });
+    const previewCall = calls.find(
+      call => call.apiPath === 'accounting/collection-accounts/preview/',
+    );
+    expect(previewCall.body.customer.email).toBe('billing@brujula.co');
   });
 
   test('a cuenta raised from a project-linked income lands showing that project', {

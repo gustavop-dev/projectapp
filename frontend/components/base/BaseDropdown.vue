@@ -79,6 +79,7 @@ function itemLabel(item) {
               :rel="item.href ? 'noopener noreferrer' : undefined"
               :type="item.to || item.href ? undefined : 'button'"
               :disabled="disabled"
+              :title="disabled ? (item.disabledReason || item.description) : undefined"
               :data-testid="item.testid || undefined"
               :class="[
                 'base-dropdown-item flex min-h-11 w-full items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
@@ -91,8 +92,8 @@ function itemLabel(item) {
               <component v-else-if="item.icon" :is="item.icon" class="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span class="flex-1 min-w-0">
                 <span class="block">{{ itemLabel(item) }}</span>
-                <span v-if="item.description" class="block text-xs text-text-muted mt-0.5">
-                  {{ item.description }}
+                <span v-if="item.description || (disabled && item.disabledReason)" class="block text-xs text-text-muted mt-0.5">
+                  {{ item.description || item.disabledReason }}
                 </span>
               </span>
             </component>

@@ -84,6 +84,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-panel-action-icons.mjs
 
+      - name: Verify disabled controls explain themselves
+        working-directory: frontend
+        run: node scripts/check-disabled-controls.mjs --strict
+
       - name: Strict gate on full public scope
         working-directory: frontend
         run: node scripts/check-design-tokens.mjs --scope=public --strict
