@@ -1077,7 +1077,24 @@ semantics. Row slots could also be shared, but the classic table's absolute
 stretched link could not: layout-dependent affordances must be enabled by the
 owning view mode. A real pointer-driven E2E is what exposed that boundary.
 
-## 44. Removing a record requires explicit product semantics
+## 44. A route inventory and a commercial product map answer different questions
+
+The exhaustive view catalog exists to make every route and source reference
+findable. A client or operator, however, starts with what the product enables,
+not with file paths or framework boundaries. Keep a curated capability taxonomy
+as a projection over the canonical inventory: commercial labels, operational
+value and functional relationships may evolve independently, while validators
+prove that every referenced route exists and every in-scope Platform route is
+classified exactly once.
+
+Visual exploration should preserve ordinary web semantics. Position real buttons
+around an orbit, draw connectors in a non-interactive SVG layer and keep the
+selected node in the URL. This provides motion and spatial discovery without
+making keyboard access, deep links, reduced-motion preferences or testing depend
+on a canvas-only graph library. Technical references can remain available behind
+an explicit disclosure after the user understands the capability.
+
+## 45. Removing a record requires explicit product semantics
 
 “Disappear from the active list” is not one operation. A discarded observation
 is evidence that a real issue was considered and not addressed, so it keeps the

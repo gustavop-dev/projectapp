@@ -195,6 +195,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Never rename or re-parent a migration that has already reached a shared branch or an environment. The merge node preserves both histories and gives later migrations one canonical leaf.
 - A pre-deploy check must confirm `MigrationLoader.detect_conflicts()` is empty so a duplicate leaf is caught before the production migration phase.
 
+### View inventory and operational taxonomy are separate contracts
+
+- `frontend/config/viewCatalog.js` is the exhaustive technical inventory. `npm run check:view-catalog` derives Nuxt routes from `frontend/pages/` and rejects orphan pages, stale entries, duplicate URLs/files, route mismatches and invalid metadata in CI.
+- `frontend/config/viewCapabilityCatalog.js` is a curated commercial projection over that inventory. Its validator guarantees unique nodes, valid references and exact one-capability coverage for all Platform views without turning source-code dependencies into product relationships.
+- The Explorer uses positioned semantic buttons plus SVG connectors instead of a graph dependency. `useOrbitalExplorer` owns rotation, pointer drag, keyboard adjustments, zoom and reduced-motion behavior; `useViewMapMode` owns shareable `viewMode`, `node` and `relations` query state.
+- `ViewMapSettings.default_view_mode` accepts `list`, `map` or `explorer`. The backend persists only the preferred entry mode; the active route remains the authority for shared links.
+
 ### Client chart loading and bundle budget
 
 - ApexCharts is not a global Nuxt plugin. `components/ApexChart.client.vue` imports only the chart types and features used by the application and is consumed through Nuxt's lazy `LazyApexChart` component.

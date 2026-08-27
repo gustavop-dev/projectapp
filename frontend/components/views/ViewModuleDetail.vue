@@ -6,6 +6,7 @@ import {
   groupSectionViews,
   isOpenableViewUrl,
 } from '~/config/viewCatalog'
+import { findCapabilityNode } from '~/config/viewCapabilityCatalog'
 import { viewTypeLabelMap, viewAudienceLabelMap } from '~/constants/viewMapFilterOptions'
 import {
   viewTypeBadgeVariantMap,
@@ -25,6 +26,7 @@ const iconPath = computed(
 )
 
 const groups = computed(() => groupSectionViews(props.section))
+const operationalNode = computed(() => findCapabilityNode(props.section.id))
 
 const copiedKey = ref(null)
 let copyTimer = null
@@ -52,7 +54,7 @@ function copyReference(view) {
         Módulos
       </button>
       <span class="text-text-subtle">/</span>
-      <span class="font-medium text-text-default">{{ section.label }}</span>
+      <span class="font-medium text-text-default">{{ operationalNode?.label || section.label }}</span>
     </nav>
 
     <header class="mb-6 flex items-start gap-4 rounded-xl border border-border-muted bg-surface p-5 shadow-sm">
@@ -62,8 +64,12 @@ function copyReference(view) {
         </svg>
       </span>
       <div>
-        <h2 class="text-lg font-light text-text-default">{{ section.label }}</h2>
-        <p class="mt-1 text-sm text-text-muted">{{ section.description }}</p>
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-text-subtle">Módulo</p>
+        <h2 class="mt-1 text-lg font-light text-text-default">{{ operationalNode?.label || section.label }}</h2>
+        <p class="mt-1 text-sm text-text-muted">{{ operationalNode?.summary || section.description }}</p>
+        <p v-if="operationalNode?.value" class="mt-2 max-w-3xl text-sm leading-6 text-text-default">
+          {{ operationalNode.value }}
+        </p>
         <p class="mt-2 text-xs text-text-subtle">
           {{ section.views.length }} vistas · {{ groups.length }} {{ groups.length === 1 ? 'sub-módulo' : 'sub-módulos' }}
         </p>

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { groupSectionViews } from '~/config/viewCatalog'
+import { findCapabilityNode } from '~/config/viewCapabilityCatalog'
 import { viewTypeLabelMap, viewAudienceLabelMap } from '~/constants/viewMapFilterOptions'
 import {
   viewTypeBarClassMap,
@@ -19,6 +20,7 @@ const iconPath = computed(
 )
 
 const groups = computed(() => groupSectionViews(props.section))
+const operationalNode = computed(() => findCapabilityNode(props.section.id))
 
 const typeSegments = computed(() => {
   const counts = new Map()
@@ -51,8 +53,9 @@ const audiences = computed(() => {
         </svg>
       </span>
       <div class="min-w-0 flex-1">
-        <h3 class="text-sm font-medium text-text-default">{{ section.label }}</h3>
-        <p class="mt-1 text-xs leading-5 text-text-muted line-clamp-2">{{ section.description }}</p>
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-text-subtle">Módulo</p>
+        <h3 class="mt-0.5 text-sm font-medium text-text-default">{{ operationalNode?.label || section.label }}</h3>
+        <p class="mt-1 text-xs leading-5 text-text-muted line-clamp-2">{{ operationalNode?.summary || section.description }}</p>
       </div>
       <BaseActionIcon action="forward" class="text-text-subtle opacity-0 transition-opacity group-hover:opacity-100" />
     </div>
@@ -80,6 +83,9 @@ const audiences = computed(() => {
 
     <p class="mt-auto pt-3 text-[11px] text-text-subtle">
       {{ audiences.join(' · ') }}
+    </p>
+    <p v-if="operationalNode?.value" class="mt-2 border-t border-border-muted pt-2 text-left text-[11px] leading-4 text-text-muted line-clamp-2">
+      {{ operationalNode.value }}
     </p>
   </BaseButton>
 </template>

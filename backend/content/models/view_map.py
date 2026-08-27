@@ -7,13 +7,14 @@ class ViewMapSettings(models.Model):
 
     Usage:
         settings = ViewMapSettings.load()
-        settings.default_view_mode  # → 'list' | 'map'
+        settings.default_view_mode  # → 'list' | 'map' | 'explorer'
         settings.default_filters    # → {'categories': [...], 'audiences': [...], 'viewTypes': [...]}
     """
 
     class ViewMode(models.TextChoices):
         LIST = 'list', 'Lista'
         MAP = 'map', 'Mapa'
+        EXPLORER = 'explorer', 'Explorador'
 
     default_view_mode = models.CharField(
         max_length=10, choices=ViewMode.choices, default=ViewMode.LIST,

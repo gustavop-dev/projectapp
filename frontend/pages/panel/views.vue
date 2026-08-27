@@ -3,27 +3,31 @@
     <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-green-light dark:text-green-light/80">
-          Reference
+          Ecosistema
         </p>
         <h1 class="text-2xl font-light text-text-default">Mapa de vistas</h1>
-        <p class="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
+        <p v-if="viewMode === 'explorer' && activeSection === 'catalog'" class="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
+          Explora las capacidades de ProjectApp desde su valor comercial y operativo. Entra a Plataforma para recorrer la experiencia completa.
+        </p>
+        <p v-else class="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
           Inventario de vistas de la aplicacion, agrupadas por contexto. Las URLs dinamicas usan parametros como <code class="font-mono text-xs text-text-brand">:id</code>, <code class="font-mono text-xs text-text-brand">:uuid</code> o <code class="font-mono text-xs text-text-brand">:slug</code>.
         </p>
       </div>
 
-      <div class="flex items-end gap-3">
+      <div class="flex w-full flex-wrap items-end gap-3 sm:w-auto sm:justify-end">
         <BaseSegmented v-model="activeSection" size="sm" :options="sectionOptions" />
         <template v-if="activeSection === 'catalog'">
           <BaseSegmented
             v-model="viewMode"
             size="sm"
             :options="viewModeOptions"
+            nowrap
           />
           <div class="rounded-xl border border-border-muted bg-surface px-4 py-3 text-sm shadow-sm">
             <span class="block text-xs text-text-subtle">Total</span>
             <div class="flex items-baseline gap-1">
-              <strong class="text-2xl font-light text-text-brand">{{ filteredViewCount }}</strong>
-              <span v-if="isFiltering" class="text-sm text-text-subtle">/ {{ totalViews }}</span>
+              <strong class="text-2xl font-light text-text-brand">{{ viewMode === 'explorer' ? totalViews : filteredViewCount }}</strong>
+              <span v-if="viewMode !== 'explorer' && isFiltering" class="text-sm text-text-subtle">/ {{ totalViews }}</span>
               <span class="ml-1 text-text-muted">vistas</span>
             </div>
           </div>
@@ -64,6 +68,16 @@
 
     <!-- ══════════════ Catálogo ══════════════ -->
     <template v-else>
+    <ViewOperationalExplorer
+      v-if="viewMode === 'explorer'"
+      :selected-node-id="selectedExplorerNodeId"
+      :show-relations="showRelations"
+      @select="selectExplorerNode"
+      @update:show-relations="showRelations = $event"
+      @open-map="openSectionInMap"
+    />
+
+    <template v-else>
     <!-- Filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -90,16 +104,13 @@
           placeholder="Buscar vista por nombre, URL, referencia o archivo..."
           class="w-full rounded-xl border border-input-border bg-input-bg py-2.5 pl-10 pr-4 text-sm text-input-text outline-none transition-colors placeholder:text-text-subtle focus:border-focus-ring focus:ring-1 focus:ring-focus-ring/30"
         />
-        <button
+        <BaseActionButton
           v-if="search"
-          type="button"
-          class="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-text-subtle transition-colors hover:text-text-default"
-          aria-label="Limpiar búsqueda"
-          title="Limpiar búsqueda"
+          action="clear"
+          label="Limpiar búsqueda"
+          class="absolute right-0 top-1/2 -translate-y-1/2"
           @click="search = ''"
-        >
-          <BaseActionIcon action="clear" />
-        </button>
+        />
       </div>
       <FilterToggleButton
         :open="isFilterPanelOpen"
@@ -225,6 +236,7 @@
       </button>
     </div>
     </template>
+    </template>
   </div>
 </template>
 
@@ -244,6 +256,7 @@ import ViewMapFilterPanel from '~/components/views/ViewMapFilterPanel.vue'
 import ViewMapLegend from '~/components/views/ViewMapLegend.vue'
 import ViewModuleDetail from '~/components/views/ViewModuleDetail.vue'
 import ViewModuleGrid from '~/components/views/ViewModuleGrid.vue'
+import ViewOperationalExplorer from '~/components/views/ViewOperationalExplorer.vue'
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue'
 import FilterToggleButton from '~/components/ui/FilterToggleButton.vue'
 import BaseSegmented from '~/components/base/BaseSegmented.vue'
@@ -274,7 +287,16 @@ const {
   reorderTabs,
 } = useViewMapFilters()
 
-const { viewMode, selectedModuleId, applyDefaultMode, selectModule, clearModule } = useViewMapMode()
+const {
+  viewMode,
+  selectedModuleId,
+  selectedExplorerNodeId,
+  showRelations,
+  applyDefaultMode,
+  selectModule,
+  clearModule,
+  selectExplorerNode,
+} = useViewMapMode()
 
 const viewMapStore = useViewMapStore()
 const notify = usePanelNotify()
@@ -287,6 +309,7 @@ const sectionOptions = [
 const viewModeOptions = [
   { value: 'list', label: 'Lista', testId: 'view-mode-list' },
   { value: 'map', label: 'Mapa', testId: 'view-mode-map' },
+  { value: 'explorer', label: 'Explorador', testId: 'view-mode-explorer' },
 ]
 
 const activeSection = ref('catalog')
@@ -388,5 +411,11 @@ function copyReference(section, view) {
 function clearAll() {
   resetFilters()
   search.value = ''
+}
+
+async function openSectionInMap(sectionId) {
+  viewMode.value = 'map'
+  await nextTick()
+  selectModule(sectionId)
 }
 </script>

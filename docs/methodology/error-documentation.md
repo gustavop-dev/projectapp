@@ -45,6 +45,22 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-030] The Explorer preference migration initially left parallel leaves
+
+- **Date**: 2026-08-27
+- **Context**: Adding `explorer` to `ViewMapSettings.default_view_mode` required a
+  schema-state migration after two independent `0215` merge migrations already
+  existed on the integration base.
+- **Root Cause**: Depending on only one `0215` node made the new migration a third
+  terminal branch instead of converging the complete graph.
+- **Resolution**: Migration `0216_viewmapsettings_explorer` depends on both current
+  `0215` leaves before altering the field choices. No data migration is required.
+- **Verification**: The focused settings API suite passes and
+  `makemigrations --check --dry-run` reports no model drift or graph conflict.
+- **Lesson**: A new state-only migration must depend on every current leaf when a
+  repository already contains parallel merge nodes; sharing a number does not
+  imply a shared descendant.
+
 ### [ERR-028] Unbroken document titles escaped their cell and covered Cliente
 - **Date**: 2026-08-26
 - **Context**: `/panel/documents` rendered real underscore/date names such as

@@ -2,7 +2,8 @@
  * E2E tests for the admin view-map reference page.
  *
  * Covers: page render, search filtering, reset behavior, copy reference feedback,
- * seeded filter tabs, configured default view mode, and the Configuración tab.
+ * seeded filter tabs, configured default view mode, the operational Explorer,
+ * and the Configuración tab.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -38,6 +39,7 @@ function viewMapSettings(overrides = {}) {
 
 test.describe('Admin View Map', () => {
   test.describe.configure({ mode: 'serial' });
+  test.setTimeout(60_000);
 
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -124,6 +126,82 @@ test.describe('Admin View Map', () => {
     await expect(page.getByText('Plataforma de clientes').first()).toBeVisible();
   });
 
+  test('explorer mode opens the platform capability constellation', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    // quality: allow-deep-link (the behavior under test starts at the view-map mode selector; panel navigation is covered separately)
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('view-mode-explorer').click();
+
+    await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('view-explorer-node-client-platform')).toBeVisible();
+
+    await page.getByTestId('view-explorer-stage').hover();
+    await page.getByTestId('view-explorer-node-client-platform').click();
+
+    await expect(page).toHaveURL(/viewMode=explorer/);
+    await expect(page).toHaveURL(/node=client-platform/);
+    await expect(page.locator('[data-testid^="view-explorer-node-platform-"]')).toHaveCount(8);
+    await expect(page.getByTestId('view-explorer-relation')).toHaveCount(9);
+    await expect(page.getByTestId('view-explorer-detail')).toContainText('Valor operativo');
+  });
+
+  test('explorer keeps orbit nodes inside its stage', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    // quality: allow-deep-link (responsive geometry is local to the Explorer canvas; panel navigation is covered separately)
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('view-mode-explorer').click();
+    await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
+
+    const orbitNodes = page.locator('[data-testid^="view-explorer-node-"]');
+    await expect(orbitNodes).toHaveCount(7);
+
+    const clippedNodeCount = await orbitNodes.evaluateAll((nodes) => {
+      const stage = document.querySelector('[data-testid="view-explorer-stage"]').getBoundingClientRect();
+      return nodes.filter((node) => {
+        const box = node.getBoundingClientRect();
+        return box.left < stage.left
+          || box.right > stage.right
+          || box.top < stage.top
+          || box.bottom > stage.bottom;
+      }).length;
+    });
+
+    expect(clippedNodeCount).toBe(0);
+  });
+
+  test('direct explorer link opens a feature detail', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    // quality: allow-deep-link (this test verifies the shareable Explorer node URL contract)
+    await page.goto('/panel/views?viewMode=explorer&node=platform-document-portal', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const detail = page.getByTestId('view-explorer-detail');
+    await expect(detail.getByRole('heading', { name: 'Revisar y aprobar documentos' })).toBeVisible({ timeout: 30_000 });
+    await expect(detail).toContainText('aprobación verificable');
+
+    await detail.getByText('Referencia técnica secundaria').click();
+    await expect(detail.getByText('/platform/documents', { exact: true })).toBeVisible();
+  });
+
   test('copy reference button shows copied feedback', {
     tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
@@ -181,6 +259,25 @@ test.describe('Admin View Map', () => {
     await expect(page).toHaveURL(/viewMode=map/);
   });
 
+  test('configured explorer default opens the operational view', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'view-map/admin/settings/') {
+        return viewMapSettings({ default_view_mode: 'explorer' });
+      }
+      return null;
+    });
+
+    // quality: allow-no-interaction (the server-configured entry mode is applied during page hydration)
+    // quality: allow-deep-link (loading the route is the behavior under test for the configured default)
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
+    await expect(page).toHaveURL(/viewMode=explorer/);
+  });
+
   test('?viewMode=list wins over the configured map default', {
     tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
@@ -221,5 +318,28 @@ test.describe('Admin View Map', () => {
 
     await expect(page.getByText('Vista por defecto guardada.')).toBeVisible({ timeout: 5000 });
     expect(patchBody).toEqual({ default_view_mode: 'map' });
+  });
+
+  test('settings save failure shows an error toast', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'view-map/admin/settings/') return viewMapSettings();
+      if (apiPath === 'view-map/admin/settings/update/' && method === 'PATCH') {
+        return {
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'temporary failure' }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('view-map-section-config').click();
+    await page.getByTestId('view-map-default-mode').getByTestId('view-mode-explorer').click();
+
+    await expect(page.getByText('No se pudo guardar la vista por defecto.')).toBeVisible({ timeout: 5000 });
   });
 });
