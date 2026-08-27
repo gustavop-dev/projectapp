@@ -158,6 +158,18 @@ describe('BaseFloatingListbox', () => {
     expect(panel.style.maxHeight).toBe('320px');
   });
 
+  // Falla si una lista larga deja de avisar que necesita su siguiente página.
+  it('requests more rows near its scroll end', async () => {
+    const { panel, wrapper } = await mountList();
+    Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: 600 });
+    Object.defineProperty(panel, 'clientHeight', { configurable: true, value: 320 });
+    Object.defineProperty(panel, 'scrollTop', { configurable: true, value: 240 });
+
+    panel.dispatchEvent(new Event('scroll'));
+
+    expect(wrapper.emitted('reach-end')).toEqual([[]]);
+  });
+
   // Falla si una lista cerca del borde inferior deja de abrirse por encima del campo.
   it('opens above the anchor when that side has more usable space', async () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });

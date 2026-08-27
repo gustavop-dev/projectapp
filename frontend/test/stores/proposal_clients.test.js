@@ -234,7 +234,7 @@ describe('useProposalClientsStore', () => {
       get_request.mockResolvedValueOnce({ data: [] });
       await store.searchClients('john');
       expect(get_request).toHaveBeenCalledWith(
-        'proposals/client-profiles/search/?q=john',
+        'proposals/client-profiles/search/?q=john&limit=20&offset=0',
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
@@ -251,9 +251,33 @@ describe('useProposalClientsStore', () => {
       get_request.mockResolvedValueOnce({ data: [] });
       await store.searchClients();
       expect(get_request).toHaveBeenCalledWith(
-        'proposals/client-profiles/search/?q=',
+        'proposals/client-profiles/search/?q=&limit=20&offset=0',
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
+    });
+
+    it('appends the next page without duplicating clients', async () => {
+      store.searchResults = [buildClient({ id: 1 })];
+      get_request.mockResolvedValueOnce({
+        data: [buildClient({ id: 1 }), buildClient({ id: 2 })],
+        headers: { 'x-total-count': '3' },
+      });
+
+      const result = await store.searchClients('', { offset: 1, limit: 2 });
+
+      expect(store.searchResults.map((client) => client.id)).toEqual([1, 2]);
+      expect(result).toMatchObject({ total: 3, hasMore: false, nextOffset: 3 });
+    });
+
+    it('reports another page from the response total', async () => {
+      get_request.mockResolvedValueOnce({
+        data: [buildClient({ id: 1 }), buildClient({ id: 2 })],
+        headers: { get: jest.fn(() => '5') },
+      });
+
+      const result = await store.searchClients('', { offset: 0, limit: 2 });
+
+      expect(result).toMatchObject({ total: 5, hasMore: true, nextOffset: 2 });
     });
 
     it('stores an empty array when search returns a non-array payload', async () => {

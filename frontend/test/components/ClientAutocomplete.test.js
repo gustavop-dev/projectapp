@@ -56,7 +56,7 @@ describe('ClientAutocomplete', () => {
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('san');
     await flushPromises();
 
-    expect(mockStore.searchClients).toHaveBeenCalledWith('san');
+    expect(mockStore.searchClients).toHaveBeenCalledWith('san', { offset: 0, limit: 20 });
     expect(wrapper.get('[data-testid="client-autocomplete-option-301"]').text()).toContain('Sandra Gomez');
   });
 
@@ -211,14 +211,32 @@ describe('ClientAutocomplete', () => {
     expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Cliente Nuevo');
   });
 
-  it('searches on focus only when there is no committed selection', async () => {
+  it('loads the initial client list on focus', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({
+      success: true,
+      data: [
+        { id: 901, name: 'Amanda', email: 'amanda@example.com', phone: '', company: 'Alfa', is_email_placeholder: false },
+      ],
+    });
+    const wrapper = mountAutocomplete();
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').trigger('focus');
+    await flushPromises();
+
+    expect(mockStore.searchClients).toHaveBeenCalledWith('', { offset: 0, limit: 20 });
+    expect(wrapper.get('[data-testid="client-autocomplete-option-901"]').text()).toContain('Amanda');
+  });
+
+  it('offers client creation when the initial catalog is empty', async () => {
     mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
     const wrapper = mountAutocomplete();
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').trigger('focus');
     await flushPromises();
 
-    expect(mockStore.searchClients).toHaveBeenCalledWith('');
+    expect(wrapper.text()).toContain('No hay clientes registrados.');
+    expect(wrapper.get('[data-testid="client-autocomplete-create-new"]').text())
+      .toContain('Crear un cliente');
   });
 
   it('ignores cancelled search results without opening options', async () => {
@@ -229,10 +247,10 @@ describe('ClientAutocomplete', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="option"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain('Escribe al menos 1 caracter para buscar');
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false);
   });
 
-  it('shows no options when the search response is unsuccessful', async () => {
+  it('shows a retry action when the search response is unsuccessful', async () => {
     mockStore.searchClients.mockResolvedValueOnce({ success: false });
     const wrapper = mountAutocomplete();
 
@@ -240,7 +258,42 @@ describe('ClientAutocomplete', () => {
     await flushPromises();
 
     expect(wrapper.find('[role="option"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain('No se encontraron clientes con "fallo".');
+    expect(wrapper.get('[data-testid="client-autocomplete-error"]').text())
+      .toContain('No se pudo cargar la lista de clientes.');
+    expect(wrapper.find('[data-testid="client-autocomplete-retry"]').exists()).toBe(true);
+  });
+
+  it('loads the next result page near the list end', async () => {
+    mockStore.searchClients
+      .mockResolvedValueOnce({
+        success: true,
+        data: [
+          { id: 910, name: 'Amanda', email: 'amanda@example.com', phone: '', company: 'Alfa', is_email_placeholder: false },
+        ],
+        hasMore: true,
+        nextOffset: 1,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: [
+          { id: 911, name: 'Beatriz', email: 'beatriz@example.com', phone: '', company: 'Beta', is_email_placeholder: false },
+        ],
+        hasMore: false,
+        nextOffset: 2,
+      });
+    const wrapper = mountAutocomplete();
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').trigger('focus');
+    await flushPromises();
+    const listbox = wrapper.get('[role="listbox"]');
+    Object.defineProperty(listbox.element, 'scrollHeight', { configurable: true, value: 400 });
+    Object.defineProperty(listbox.element, 'clientHeight', { configurable: true, value: 320 });
+    Object.defineProperty(listbox.element, 'scrollTop', { configurable: true, value: 80 });
+    await listbox.trigger('scroll');
+    await flushPromises();
+
+    expect(mockStore.searchClients).toHaveBeenNthCalledWith(2, '', { offset: 1, limit: 20 });
+    expect(wrapper.find('[data-testid="client-autocomplete-option-911"]').exists()).toBe(true);
   });
 
   it('falls back to an empty result list when a successful search omits data', async () => {
@@ -278,10 +331,12 @@ describe('ClientAutocomplete', () => {
   });
 
   it('opens the dropdown when ArrowDown is pressed while it is closed', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
     const wrapper = mountAutocomplete();
     const input = wrapper.get('[data-testid="client-autocomplete-input"]');
 
     await input.trigger('keydown.down');
+    await flushPromises();
 
     expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
   });
