@@ -18,6 +18,8 @@ const PROJECT = {
     id: 2,
     name: 'Activo',
     operational_effect: 'operating',
+    description: 'Está entregado y operando.',
+    operational_effect_help: 'Mantiene habilitados los cobros y los avisos.',
   },
 };
 
@@ -27,6 +29,18 @@ const STATES = [
     name: 'Activo',
     color: 'emerald',
     operational_effect: 'operating',
+    description: 'Está entregado y operando.',
+    operational_effect_help: 'Mantiene habilitados los cobros y los avisos.',
+    is_active: true,
+    merged_into: null,
+  },
+  {
+    id: 3,
+    name: 'En evolución',
+    color: 'blue',
+    operational_effect: 'operating',
+    description: 'Está en producción mientras se desarrolla una ampliación.',
+    operational_effect_help: 'Mantiene habilitados los cobros y los avisos.',
     is_active: true,
     merged_into: null,
   },
@@ -35,6 +49,8 @@ const STATES = [
     name: 'Suspendido',
     color: 'orange',
     operational_effect: 'suspended',
+    description: 'El servicio puede reactivarse.',
+    operational_effect_help: 'Detiene nuevos cobros y avisos.',
     is_active: true,
     merged_into: null,
   },
@@ -43,6 +59,8 @@ const STATES = [
     name: 'Dado de baja',
     color: 'gray',
     operational_effect: 'decommissioned',
+    description: 'Terminó de forma definitiva.',
+    operational_effect_help: 'Cancela el servicio y los cobros futuros.',
     is_active: true,
     merged_into: null,
   },
@@ -116,6 +134,18 @@ describe('ProjectStateTransitionModal', () => {
     );
     expect(wrapper.get('[data-testid="project-state-impact"]').text())
       .toContain('La deuda ya causada se conserva');
+  });
+
+  it('explains the evolving state before impact review', async () => {
+    const { wrapper } = mountModal();
+    await wrapper.setProps({ open: true });
+
+    await wrapper.get('[data-testid="project-state-target"]').setValue('3');
+
+    expect(wrapper.get('[data-testid="project-state-selected-help"]').text())
+      .toContain('Está en producción mientras se desarrolla una ampliación.');
+    expect(wrapper.get('[data-testid="project-transition-state-help"]')
+      .attributes('aria-label')).toBe('Ayuda sobre el estado En evolución');
   });
 
   it('requires a debt decision before decommissioning', async () => {

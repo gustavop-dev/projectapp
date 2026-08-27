@@ -91,7 +91,8 @@ MCP_MODEL_CONTRACTS = {
         _contract(
             'content.DocumentState',
             read_only=(
-                'id name color group system_key catalog operational_effect'
+                'id name description color group system_key catalog '
+                'operational_effect'
             ),
             excluded=_excluded(
                 'El catálogo de estados se administra en el panel; MCP aplica estados activos.',

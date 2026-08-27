@@ -40,6 +40,21 @@ describe('BaseTooltip', () => {
     expect(wrapper.text()).not.toContain('Tip body')
   })
 
+  it('keeps the body open when hover and focus precede the first click', async () => {
+    const wrapper = mount(BaseTooltip, {
+      slots: {
+        trigger: '<button data-testid="trg">?</button>',
+        default: 'Tip body',
+      },
+    })
+    const triggerBox = wrapper.find('div.cursor-help')
+    await triggerBox.trigger('pointerenter', { pointerType: 'mouse' })
+    await wrapper.get('[data-testid="trg"]').trigger('focusin')
+    await wrapper.get('[data-testid="trg"]').trigger('click')
+
+    expect(wrapper.text()).toContain('Tip body')
+  })
+
   it('shows on keyboard focus and exposes tooltip semantics', async () => {
     const wrapper = mount(BaseTooltip, {
       props: { text: 'Accessible tip' },

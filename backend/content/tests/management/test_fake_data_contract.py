@@ -229,9 +229,9 @@ def test_client_project_seed_covers_the_real_lifecycle():
     )
 
     assert set(Project.objects.values_list(
-        'current_state__operational_effect', flat=True,
+        'current_state__system_key', flat=True,
     )) == {
-        'development', 'operating', 'paused', 'suspended',
+        'development', 'active', 'evolving', 'paused', 'suspended',
         'completed', 'decommissioned',
     }
     assert not Project.objects.filter(current_state__isnull=True).exists()

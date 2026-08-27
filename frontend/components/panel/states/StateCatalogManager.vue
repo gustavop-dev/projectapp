@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive } from 'vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { DOCUMENT_STATE_COLORS, stateBadgeVariant } from '~/utils/documentState';
+import ProjectStateHelpBadge from '~/components/panel/projects/ProjectStateHelpBadge.vue';
 
 const props = defineProps({
   stateStore: { type: Object, required: true },
@@ -20,6 +21,7 @@ const notify = usePanelNotify();
 const localePath = useLocalePath();
 const newState = reactive({
   name: '',
+  description: '',
   color: 'gray',
   group: '',
   operational_effect: props.operationalEffects[0]?.value || '',
@@ -43,6 +45,9 @@ const groups = computed(() => props.stateStore.groups.map((group) => ({
 const hasOperationalEffects = computed(() => props.operationalEffects.length > 0);
 const createStateBlockReasons = computed(() => [
   !newState.name.trim() ? 'Escribe el nombre del estado.' : '',
+  hasOperationalEffects.value && !newState.description.trim()
+    ? 'Explica qué significa el estado.'
+    : '',
   !newState.group ? 'Elige el grupo del estado.' : '',
 ].filter(Boolean));
 const createGroupBlockReasons = computed(() => [
@@ -86,6 +91,7 @@ async function createState(confirmSimilar = false) {
     return;
   }
   newState.name = '';
+  newState.description = '';
   notify.success({ title: 'Estado creado' });
 }
 
@@ -93,6 +99,7 @@ function editDraft(state) {
   if (!editing[state.id]) {
     editing[state.id] = {
       name: state.name,
+      description: state.description || '',
       color: state.color,
       group: state.group,
       order: state.order,
@@ -137,6 +144,16 @@ async function saveState(state) {
   } else {
     notify.error({ title: 'No se pudo actualizar', detail: result.message });
   }
+}
+
+function saveStateBlockReasons(state) {
+  const draft = editDraft(state);
+  return [
+    !draft.name.trim() ? 'Escribe el nombre del estado.' : '',
+    hasOperationalEffects.value && !draft.description.trim()
+      ? 'Explica qué significa el estado.'
+      : '',
+  ].filter(Boolean);
 }
 
 async function retire(state) {
@@ -231,6 +248,14 @@ function activeCount(state) {
             <option v-for="color in DOCUMENT_STATE_COLORS" :key="color.value" :value="color.value">{{ color.label }}</option>
           </select>
         </div>
+        <BaseTextarea
+          v-if="hasOperationalEffects"
+          v-model="newState.description"
+          :rows="2"
+          maxlength="300"
+          placeholder="Qué significa este estado para quien lo elige"
+          data-testid="catalog-new-state-description"
+        />
         <p v-if="hasOperationalEffects" class="text-xs text-text-subtle">
           El nombre se puede cambiar; el efecto define cobros, avisos y cierre.
         </p>
@@ -304,23 +329,57 @@ function activeCount(state) {
         <article v-for="state in group.states" :key="state.id" class="space-y-3 p-4 sm:p-5" :class="!state.is_active ? 'opacity-60' : ''" :data-testid="`catalog-state-${state.id}`">
           <div class="flex flex-wrap items-center gap-2">
             <BaseBadge :variant="stateBadgeVariant(state)">{{ state.name }}</BaseBadge>
+            <ProjectStateHelpBadge
+              v-if="hasOperationalEffects"
+              :state="state"
+              position="bottom"
+              :test-id="`catalog-state-help-${state.id}`"
+            />
             <BaseBadge v-if="state.system_key" variant="info" size="sm">Semilla</BaseBadge>
             <BaseBadge v-if="!state.is_active" variant="neutral" size="sm">Retirado</BaseBadge>
             <span class="text-xs text-text-muted">{{ activeCount(state) }} {{ activeCountLabel }} activos · {{ state.historical_episode_count }} episodios</span>
           </div>
-          <div v-if="state.is_active" class="grid gap-2" :class="hasOperationalEffects ? 'lg:grid-cols-[minmax(0,1fr)_8rem_11rem_6rem_auto]' : 'lg:grid-cols-[minmax(0,1fr)_8rem_10rem_6rem_auto]'">
-            <BaseInput v-model="editDraft(state).name" aria-label="Nombre del estado" />
-            <select v-model="editDraft(state).color" aria-label="Color del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
-              <option v-for="color in DOCUMENT_STATE_COLORS" :key="color.value" :value="color.value">{{ color.label }}</option>
-            </select>
-            <select v-if="hasOperationalEffects" v-model="editDraft(state).operational_effect" aria-label="Efecto operativo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm" disabled title="El efecto operativo es inmutable">
-              <option v-for="effect in operationalEffects" :key="effect.value" :value="effect.value">{{ effect.label }}</option>
-            </select>
-            <select v-else v-model="editDraft(state).group" aria-label="Grupo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
-              <option v-for="item in stateStore.groups" :key="item.id" :value="item.id">{{ item.name }}</option>
-            </select>
-            <BaseInput v-model.number="editDraft(state).order" type="number" min="0" aria-label="Orden" />
-            <BaseButton variant="secondary" size="sm" :data-testid="`catalog-save-state-${state.id}`" @click="saveState(state)">Guardar</BaseButton>
+          <div v-if="state.is_active" class="space-y-2">
+            <div class="grid gap-2" :class="hasOperationalEffects ? 'lg:grid-cols-[minmax(0,1fr)_8rem_11rem_6rem_auto]' : 'lg:grid-cols-[minmax(0,1fr)_8rem_10rem_6rem_auto]'">
+              <BaseInput v-model="editDraft(state).name" aria-label="Nombre del estado" />
+              <select v-model="editDraft(state).color" aria-label="Color del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
+                <option v-for="color in DOCUMENT_STATE_COLORS" :key="color.value" :value="color.value">{{ color.label }}</option>
+              </select>
+              <select v-if="hasOperationalEffects" v-model="editDraft(state).operational_effect" aria-label="Efecto operativo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm" disabled title="El efecto operativo es inmutable">
+                <option v-for="effect in operationalEffects" :key="effect.value" :value="effect.value">{{ effect.label }}</option>
+              </select>
+              <select v-else v-model="editDraft(state).group" aria-label="Grupo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
+                <option v-for="item in stateStore.groups" :key="item.id" :value="item.id">{{ item.name }}</option>
+              </select>
+              <BaseInput v-model.number="editDraft(state).order" type="number" min="0" aria-label="Orden" />
+              <BaseControlGate
+                :reasons="saveStateBlockReasons(state)"
+                label="Guardar estado no disponible"
+                align="end"
+              >
+                <template #default="{ describedBy }">
+                  <BaseButton
+                    variant="secondary"
+                    size="sm"
+                    :data-testid="`catalog-save-state-${state.id}`"
+                    :disabled="Boolean(saveStateBlockReasons(state).length)"
+                    :disabled-reason="saveStateBlockReasons(state).join(' ')"
+                    :aria-describedby="describedBy"
+                    @click="saveState(state)"
+                  >
+                    Guardar
+                  </BaseButton>
+                </template>
+              </BaseControlGate>
+            </div>
+            <BaseTextarea
+              v-if="hasOperationalEffects"
+              v-model="editDraft(state).description"
+              :rows="2"
+              maxlength="300"
+              :aria-label="`Descripción de ${state.name}`"
+              :data-testid="`catalog-state-description-${state.id}`"
+            />
           </div>
           <div v-if="state.is_active" class="flex flex-wrap items-center gap-2">
             <select v-model="mergeTargets[state.id]" :aria-label="`Destino para fusionar ${state.name}`" class="rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-xs">
