@@ -394,22 +394,18 @@
           <BaseActionIcon action="more" />
               </BaseButton>
 
-              <button
+              <BaseButton
                 v-if="nextAction"
                 type="button"
+                :variant="nextAction.variant"
+                size="md"
                 :disabled="isSavingGeneral || scorecardLoading"
                 :data-testid="'diagnostic-next-action-' + nextAction.key"
-                :class="[
-                  'inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-xl font-medium text-sm shadow-sm ml-auto',
-                  'motion-safe:transition-colors motion-safe:duration-fast',
-                  'focus:outline-none focus:ring-2 focus:ring-focus-ring/40',
-                  'disabled:opacity-60 disabled:cursor-not-allowed',
-                  nextAction.colorClass,
-                ]"
+                class="ml-auto shadow-sm"
                 @click="handleNextAction"
               >
                 {{ nextAction.label }}
-              </button>
+              </BaseButton>
             </div>
           </div>
         </form>

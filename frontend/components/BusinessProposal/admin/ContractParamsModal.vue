@@ -160,15 +160,15 @@
                       Cargar .md
                       <input type="file" accept=".md,.markdown,.txt" class="hidden" @change="handleFileUpload" />
                     </label>
-                    <button type="button"
-                      :class="['inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors',
-                        showPreview
-                          ? 'bg-success-soft text-success-strong hover:opacity-90'
-                          : 'bg-surface-raised text-text-muted hover:bg-border-muted']"
+                    <BaseButton
+                      type="button"
+                      size="sm"
+                      :variant="showPreview ? 'accent' : 'secondary'"
+                      :aria-pressed="showPreview"
                       @click="showPreview = !showPreview"
                     >
                       {{ showPreview ? 'Ocultar preview' : 'Vista previa' }}
-                    </button>
+                    </BaseButton>
                   </div>
                 </div>
                 <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''">

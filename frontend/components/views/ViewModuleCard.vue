@@ -47,7 +47,7 @@ const audiences = computed(() => {
   <BaseButton
     variant="secondary"
     size="md"
-    text-policy="wrap"
+    textPolicy="wrap"
     class="group h-full w-full flex-col items-stretch text-left"
     :data-testid="`view-module-card-${section.id}`"
     @click="emit('select', section.id)"
