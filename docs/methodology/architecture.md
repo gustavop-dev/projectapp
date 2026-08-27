@@ -397,7 +397,10 @@ exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
 owns measured one/two-line clipping and the touch disclosure, so consumers do
 not duplicate tooltip or line-clamp heuristics. The Documents table is the
 first specialized adopter and the folder-panel handle now uses the same input
-primitive.
+primitive. Its local column contract owns order, width and per-profile behavior
+together: Title → States → Date → Client → Project → Actions. Landscape keeps
+the first three plus Actions as tracks and groups Client/Project under Title;
+desktop restores every track without moving Actions from the final position.
 Intrinsic text sizing is owned by the same layer. `tableLayout.js` resolves a
 semantic `wrap`/`truncate`/`atomic` policy per column;
 `BaseResponsiveTable` applies it to retained and grouped values, while

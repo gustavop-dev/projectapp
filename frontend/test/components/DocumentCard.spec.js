@@ -24,6 +24,7 @@ const baseDocument = {
   id: 7,
   title: 'Contrato de Servicios',
   client_name: 'ACME Corp',
+  project_name: 'Proyecto Atlas',
   created_at: '2026-03-01T10:00:00Z',
   content_excerpt: '# Contrato\n\nAlcance con **términos**.',
   active_states: [
@@ -109,6 +110,22 @@ describe('DocumentCard', () => {
     expect(wrapper.text()).not.toContain('Urgente')
     expect(wrapper.text()).toContain('+1')
     expect(wrapper.find('[title="1 estados más"]').exists()).toBe(true)
+  })
+
+  it('places workflow states before secondary metadata', async () => {
+    const wrapper = await mountCard()
+    const priority = wrapper.get('[data-testid="document-card-priority-row-7"]')
+    const metadata = wrapper.get('[data-testid="document-card-secondary-meta-7"]')
+
+    expect(priority.element.nextElementSibling).toBe(metadata.element)
+  })
+
+  it('orders secondary metadata by business priority', async () => {
+    const wrapper = await mountCard()
+    const text = wrapper.get('[data-testid="document-card-secondary-meta-7"]').text()
+
+    expect(text.indexOf('2026')).toBeLessThan(text.indexOf('ACME Corp'))
+    expect(text.indexOf('ACME Corp')).toBeLessThan(text.indexOf('Proyecto Atlas'))
   })
 
   it('emits open on card click and action on the kebab', async () => {
