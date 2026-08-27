@@ -1,6 +1,14 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import BulkAssignModal from '../../../components/accounting/BulkAssignModal.vue';
 
+const mockCreateClient = jest.fn();
+
+jest.mock('../../../stores/proposal_clients', () => ({
+  useProposalClientsStore: () => ({
+    createClient: (...args) => mockCreateClient(...args),
+  }),
+}));
+
 /**
  * The picker, the live plan and the gated confirm — everything that used to
  * sit inline in the bulk bar before the actions menu moved it here. A mass
@@ -10,9 +18,17 @@ import BulkAssignModal from '../../../components/accounting/BulkAssignModal.vue'
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
-  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint'],
-  emits: ['update:modelValue', 'select'],
-  template: '<div data-testid="client-autocomplete-stub" />',
+  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint', 'initialLabel'],
+  emits: ['update:modelValue', 'select', 'create-new'],
+  template: `
+    <div data-testid="client-autocomplete-stub">
+      <button
+        type="button"
+        data-testid="client-autocomplete-create-trigger"
+        @click="$emit('create-new', 'Nueva Cliente')"
+      >Crear</button>
+    </div>
+  `,
 };
 
 const ProjectCatalogSelectStub = {
@@ -57,7 +73,7 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['modelValue', 'size', 'titleId'],
+          props: ['modelValue', 'size', 'titleId', 'initialFocus'],
           emits: ['update:modelValue', 'close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
@@ -93,6 +109,10 @@ async function pickProject(wrapper, project = PROJECT) {
 const hint = (w) => w.find('[data-testid="hostings-bulk-hint"]').text();
 const confirmButton = (w) => w.find('[data-testid="hostings-bulk-assign"]');
 const confirmProject = (w) => w.find('[data-testid="hostings-bulk-assign-project"]');
+
+beforeEach(() => {
+  mockCreateClient.mockReset();
+});
 
 describe('BulkAssignModal — nothing is confirmable without a reason on screen', () => {
   it('keeps Asignar disabled with the reason visible until a client is picked', () => {
@@ -187,6 +207,45 @@ describe('BulkAssignModal — the scope is visible before it runs', () => {
 
     expect(wrapper.emitted('close')).toHaveLength(1);
     expect(wrapper.emitted('submit') ?? []).toHaveLength(0);
+  });
+});
+
+describe('BulkAssignModal — client creation from an empty search', () => {
+  it('selects the client created inside the modal', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      success: true,
+      data: { id: 88, name: 'Nueva Cliente' },
+    });
+    const wrapper = mountModal();
+
+    await wrapper.get('[data-testid="client-autocomplete-create-trigger"]').trigger('click');
+    await wrapper.get('[data-testid="hostings-bulk-inline-client-save"]').trigger('click');
+    await flushPromises();
+
+    expect(mockCreateClient).toHaveBeenCalledWith({
+      name: 'Nueva Cliente',
+      email: '',
+      phone: '',
+      company: '',
+      nit: '',
+      billing_code: '',
+    });
+    expect(hint(wrapper)).toBe('Cliente enlazado: Nueva Cliente (#88)');
+  });
+
+  it('shows the creation error inside the modal', async () => {
+    mockCreateClient.mockResolvedValueOnce({
+      success: false,
+      errors: { email: ['Ese correo ya existe.'] },
+    });
+    const wrapper = mountModal();
+
+    await wrapper.get('[data-testid="client-autocomplete-create-trigger"]').trigger('click');
+    await wrapper.get('[data-testid="hostings-bulk-inline-client-save"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="hostings-bulk-inline-client-error"]').text())
+      .toContain('Ese correo ya existe.');
   });
 });
 
