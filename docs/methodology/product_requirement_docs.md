@@ -554,6 +554,11 @@ The canonical counts, commands and exceptions are maintained in
     exposes at least five complete options and only a long result list scrolls;
     the modal remains still and grows with its review content up to its viewport
     limit. On narrow screens the modal follows the shared full-screen contract.
+    An uncommitted client picker loads a stable alphabetical catalog on focus;
+    the primary picker is focused when the modal opens, typing filters what is
+    already visible, and later pages load progressively inside the list. Each row
+    distinguishes name, company and email and flags missing email. Empty filters
+    and empty catalogs offer client creation; read failures offer retry.
     A bulk action must show the affected count and record identities before its
     confirmation without requiring the operator to scroll the modal.
 24. **Observation removal semantics**: discard retains the row and optional

@@ -508,3 +508,26 @@ contracts, not conventions repeated in individual commands.
 - **Lesson**: Una decisión destructiva necesita identidad, consecuencia y salida
   segura en el mismo contexto visual; el browser dialog no puede expresar ese
   contrato ni ofrecer recuperación.
+
+### [ERR-031] El modal corregido abría con un catálogo de clientes vacío
+
+- **Date**: 2026-08-27
+- **Context**: La capa flotante de ERR-027 eliminó el recorte, pero al abrir la
+  asignación masiva quedaba todo ese espacio sin contenido hasta que el operador
+  adivinaba y escribía una búsqueda.
+- **Root Cause**: `ClientAutocomplete` sólo consultaba el endpoint después de
+  foco o teclado, y `BulkAssignModal` enfocaba el panel genérico. Además, el
+  endpoint recortaba a 20 por fecha de actualización, sin orden estable ni
+  contrato para pedir páginas posteriores.
+- **Resolution**: Enfocar el picker principal al abrir; consultar `q=''` en ese
+  foco; ordenar alfabéticamente con desempate por id; añadir `limit`/`offset` y
+  `X-Total-Count`; cargar páginas al final del scroll del listbox; y presentar
+  retry, vacío y creación inline sin abandonar el modal.
+- **Files Affected**: endpoint/serializer/store de clientes,
+  `ClientAutocomplete`, `BaseFloatingListbox`, `BulkAssignModal` y el cambio de
+  cliente de carpetas.
+- **Verification**: ocho pruebas del endpoint, pruebas focales del store,
+  listbox, autocomplete y modal, más el flujo Playwright de asignación masiva y
+  el registro E2E regenerado.
+- **Lesson**: Resolver el clipping y resolver la disponibilidad inicial son dos
+  contratos distintos; un overlay visible sin datos sigue siendo un estado vacío.

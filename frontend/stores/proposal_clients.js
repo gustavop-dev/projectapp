@@ -116,14 +116,18 @@ export const useProposalClientsStore = defineStore('proposalClients', {
     // -----------------------------------------------------------------
 
     /**
-     * Lightweight search for the autocomplete component. Cancels any
-     * in-flight request via AbortController so rapid keystrokes don't
-     * race each other in the UI.
+     * Lightweight, progressively pageable search for client pickers. Cancels
+     * any in-flight request via AbortController so rapid keystrokes don't race
+     * each other in the UI. The API keeps returning an array and publishes the
+     * total in `X-Total-Count`.
      *
      * @param {string} query - free-form search text (any field).
-     * @returns {Promise<{success:boolean,data?:Array,errors?:Object}>}
+     * @param {Object} [paging]
+     * @param {number} [paging.offset=0]
+     * @param {number} [paging.limit=20]
+     * @returns {Promise<{success:boolean,data?:Array,total?:number,hasMore?:boolean,nextOffset?:number,errors?:Object}>}
      */
-    async searchClients(query) {
+    async searchClients(query, { offset = 0, limit = 20 } = {}) {
       // Cancel any in-flight request from a previous keystroke.
       if (this._searchAbortController) {
         this._searchAbortController.abort();
@@ -134,16 +138,49 @@ export const useProposalClientsStore = defineStore('proposalClients', {
       this.isSearching = true;
       this.error = null;
       try {
-        const url = `proposals/client-profiles/search/?q=${encodeURIComponent(
-          query || '',
-        )}`;
+        const params = new URLSearchParams({
+          q: query || '',
+          limit: String(limit),
+          offset: String(offset),
+        });
+        const url = `proposals/client-profiles/search/?${params.toString()}`;
         const response = await get_request(url, { signal: controller.signal });
-        this.searchResults = Array.isArray(response.data) ? response.data : [];
-        if (this._searchAbortController === controller) {
-          this._searchAbortController = null;
-          this.isSearching = false;
+        // A response can still resolve after its AbortController was superseded
+        // (not every adapter rejects immediately). It must not replace the
+        // latest query or append rows into another filter.
+        if (this._searchAbortController !== controller) {
+          return { success: false, cancelled: true };
         }
-        return { success: true, data: this.searchResults };
+
+        const page = Array.isArray(response.data) ? response.data : [];
+        const previous = offset > 0 ? this.searchResults : [];
+        const ids = new Set(previous.map((client) => client.id));
+        this.searchResults = [
+          ...previous,
+          ...page.filter((client) => !ids.has(client.id)),
+        ];
+
+        const rawTotal = response.headers?.['x-total-count']
+          ?? response.headers?.get?.('x-total-count');
+        const parsedTotal = Number(rawTotal);
+        const total = rawTotal !== undefined && rawTotal !== null && rawTotal !== ''
+          && Number.isFinite(parsedTotal)
+          ? parsedTotal
+          : null;
+        const nextOffset = offset + page.length;
+        const hasMore = total == null
+          ? page.length === limit
+          : nextOffset < total;
+
+        this._searchAbortController = null;
+        this.isSearching = false;
+        return {
+          success: true,
+          data: page,
+          total,
+          hasMore,
+          nextOffset,
+        };
       } catch (error) {
         const data = error?.response?.data;
         // Cancellation is not a real error — keep results untouched.

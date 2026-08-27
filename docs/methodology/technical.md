@@ -408,6 +408,20 @@ confirmed by the operator or another integration.
 - `DEFAULT_INCOME_KIND = 'expected'` is reapplied when the modal opens and whenever its selected client changes. There is intentionally no local-storage/session memory.
 - The kind predicate reads `IncomeRecord.kind`, never `payment_status`, so expected rows with partial settlements remain visible. The contextual empty action changes kind to `all` first and preserves client scope; it widens scope only if that client has no eligible rows.
 
+### Client picker catalog and progressive paging
+
+- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit` and `offset`.
+  It caps each page at 20, sorts case-insensitively by the same display-name
+  fallback the serializer renders, and uses the profile id as a stable tie-break.
+- The response body remains the legacy array. The filtered total is exposed as
+  `X-Total-Count`, allowing existing consumers to remain compatible while
+  `proposal_clients.searchClients()` derives `hasMore` and `nextOffset`.
+- `ClientAutocomplete` loads `q=''` immediately on focus when no client is
+  committed. Text input is debounced and generation-guarded; scroll-end paging
+  appends de-duplicated rows. Initial and subsequent-page failures have separate
+  retry states, and an empty initial catalog offers the same `create-new` event
+  as an unmatched filter.
+
 ### Content Storage: Structured JSON
 - Proposal sections, portfolio works, and blog posts store content as JSON fields
 - Each proposal section's `content_json` matches the props schema of its Vue component

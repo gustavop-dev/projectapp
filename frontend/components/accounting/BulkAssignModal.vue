@@ -4,6 +4,7 @@
     kind="form"
     size="lg"
     title-id="bulk-assign-title"
+    :initial-focus="initialFocusSelector"
     @close="emit('close')"
   >
     <div
@@ -31,7 +32,9 @@
           :test-id="`${testidPrefix}-bulk-client`"
           placeholder="Buscar el cliente a asignar..."
           :show-linked-hint="false"
+          :initial-label="clientLabel"
           @select="onClientSelect"
+          @create-new="onCreateNewClient"
         />
         <ProjectCatalogSelect
           v-else
@@ -40,6 +43,43 @@
           placeholder="Buscar el proyecto a asignar..."
           @select="onProjectSelect"
         />
+
+        <div
+          v-if="isClient && inlineClientOpen"
+          class="space-y-3 rounded-xl border border-border-default bg-surface-raised p-4"
+          :data-testid="`${testidPrefix}-bulk-inline-client`"
+        >
+          <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
+          <ClientFormFields
+            v-model="inlineClient"
+            :testid-prefix="`${testidPrefix}-bulk-inline-client`"
+            dense
+          />
+          <BaseAlert
+            v-if="clientCreateError"
+            variant="danger"
+            :data-testid="`${testidPrefix}-bulk-inline-client-error`"
+          >
+            {{ clientCreateError }}
+          </BaseAlert>
+          <div class="flex justify-end gap-2">
+            <BaseButton type="button" variant="secondary" size="sm" @click="cancelInlineClient">
+              Cancelar
+            </BaseButton>
+            <BaseButton
+              type="button"
+              variant="primary"
+              size="sm"
+              :loading="creatingClient"
+              :disabled="creatingClient || !inlineClient.name.trim()"
+              disabled-reason="Escribe el nombre del cliente."
+              :data-testid="`${testidPrefix}-bulk-inline-client-save`"
+              @click="createInlineClient"
+            >
+              {{ creatingClient ? 'Creando...' : 'Crear cliente' }}
+            </BaseButton>
+          </div>
+        </div>
 
         <ClientBulkAssignSummary
           v-if="isClient && hasTarget"
@@ -105,10 +145,14 @@ import { InformationCircleIcon, LinkIcon } from '@heroicons/vue/24/outline';
 
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
 import ProjectBulkAssignSummary from '~/components/accounting/ProjectBulkAssignSummary.vue';
+import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectCatalogSelect from '~/components/accounting/ProjectCatalogSelect.vue';
+import BaseAlert from '~/components/base/BaseAlert.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
+import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import { buildAssignmentPlan } from '~/utils/clientAssignment';
 import { buildProjectAssignmentPlan } from '~/utils/projectAssignment';
 
@@ -144,12 +188,20 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit']);
 
+const clientsStore = useProposalClientsStore();
 const isClient = computed(() => props.target === 'client');
+const initialFocusSelector = computed(() => (
+  `[data-testid="${props.testidPrefix}-bulk-${isClient.value ? 'client' : 'project'}"]`
+));
 
 const clientId = ref(null);
 const clientLabel = ref('');
 const projectId = ref(null);
 const selectedProjectRow = ref(null);
+const inlineClientOpen = ref(false);
+const inlineClient = ref(emptyClientForm());
+const creatingClient = ref(false);
+const clientCreateError = ref('');
 
 /**
  * Selection frozen at open time. The page clears the selection right after a
@@ -224,10 +276,50 @@ const statusLine = computed(() => {
 
 function onClientSelect(client) {
   clientLabel.value = client?.name || '';
+  if (client) {
+    inlineClientOpen.value = false;
+    clientCreateError.value = '';
+  }
 }
 
 function onProjectSelect(project) {
   selectedProjectRow.value = project || null;
+}
+
+function onCreateNewClient(typedName) {
+  clientCreateError.value = '';
+  inlineClient.value = { ...emptyClientForm(), name: typedName || '' };
+  inlineClientOpen.value = true;
+}
+
+function cancelInlineClient() {
+  inlineClientOpen.value = false;
+  inlineClient.value = emptyClientForm();
+  clientCreateError.value = '';
+}
+
+function firstClientCreateError(errors) {
+  if (!errors || typeof errors !== 'object') return '';
+  const direct = errors.message || errors.error || errors.detail;
+  if (direct) return Array.isArray(direct) ? direct[0] : direct;
+  const fieldError = Object.values(errors).flat().find(Boolean);
+  return Array.isArray(fieldError) ? fieldError[0] : fieldError || '';
+}
+
+async function createInlineClient() {
+  if (creatingClient.value || !inlineClient.value.name.trim()) return;
+  creatingClient.value = true;
+  clientCreateError.value = '';
+  const result = await clientsStore.createClient(clientFormPayload(inlineClient.value));
+  creatingClient.value = false;
+  if (!result.success || !result.data?.id) {
+    clientCreateError.value = firstClientCreateError(result.errors)
+      || 'No se pudo crear el cliente. Revisa los datos e inténtalo de nuevo.';
+    return;
+  }
+  clientId.value = result.data.id;
+  onClientSelect(result.data);
+  inlineClient.value = emptyClientForm();
 }
 
 // Typing in the picker drops the committed id without re-emitting `select`,
@@ -247,6 +339,10 @@ watch(() => props.open, (open) => {
   clientLabel.value = '';
   projectId.value = null;
   selectedProjectRow.value = null;
+  inlineClientOpen.value = false;
+  inlineClient.value = emptyClientForm();
+  creatingClient.value = false;
+  clientCreateError.value = '';
   rowsSnapshot.value = [...props.rows];
   idsSnapshot.value = [...props.selectedIds];
 }, { immediate: true });

@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-27 — Selector de clientes útil desde que abre:** la asignación masiva
+en Contable enfoca el selector y muestra inmediatamente la primera página del
+catálogo, ordenada alfabéticamente; escribir filtra esa lista en vez de ser el
+único modo de obtener resultados. El endpoint conserva su array compatible,
+añade `limit`/`offset` y publica el total en `X-Total-Count`; el listbox carga
+páginas posteriores dentro de su propio scroll. Nombre, empresa, correo y la
+falta de correo siguen visibles por fila. Vacío, fallo inicial y fallo de página
+tienen salidas explícitas, incluida creación inline desde el modal. El alcance
+de la edición masiva permanece visible y el modal no adquiere una segunda barra.
+El mismo contrato corrige los consumidores compartidos y el cambio de cliente de
+carpetas abre enfocado. Cobertura focal backend/unit, mapa E2E y escenario real
+del modal actualizados.
+
 **2026-08-27 — Integridad MySQL de `DocumentState`, refresh operativo y GC:**
 `system_key` deja de depender de un `UniqueConstraint` condicional que MySQL
 ignoraba. La unicidad simple `(catalog, system_key)` conserva múltiples `NULL`,
