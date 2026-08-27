@@ -258,7 +258,8 @@
       "flows": [
         "admin-document-states-manage",
         "admin-document-state-workflow",
-        "admin-document-state-filters"
+        "admin-document-state-filters",
+        "admin-document-observation-delete"
       ]
     }
   ]

@@ -331,12 +331,11 @@ test.describe('Admin Document State Workflow', () => {
       return baseRoutes(apiPath, document);
     });
     await openEditor(page);
-    page.on('dialog', async (dialog) => {
-      if (dialog.type() === 'prompt') await dialog.accept('Se corrigió el cálculo.');
-      else await dialog.accept();
-    });
 
     await page.getByTestId('document-state-close-101').click();
+    await expect(page.getByRole('dialog')).toContainText('Cerrar estado');
+    await page.getByTestId('document-state-finish-note').fill('Se corrigió el cálculo.');
+    await page.getByTestId('document-state-finish-confirm').click();
 
     await expect(page.getByTestId('document-state-error')).toContainText('No se pudo registrar el cierre');
     await expect(page.getByTestId('document-state-needs-fix').first()).toBeVisible();

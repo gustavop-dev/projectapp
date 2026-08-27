@@ -28,6 +28,7 @@
               class="flex-shrink-0 ml-2"
             aria-label="Cerrar"
             title="Cerrar"
+              :disabled="isSending || isTransitioning"
               @click="close"
             >
             <BaseActionIcon action="close" />
@@ -35,7 +36,7 @@
           </div>
 
           <!-- Tab switcher -->
-          <div class="flex gap-4 border-b border-border-muted px-6 flex-shrink-0">
+          <div v-if="!postSendData" class="flex gap-4 border-b border-border-muted px-6 flex-shrink-0">
             <button
               type="button"
               class="pb-3 pt-2 text-sm transition-colors border-b-2"
@@ -61,8 +62,23 @@
           <!-- Body -->
           <div class="flex-1 overflow-y-auto px-6 py-5">
 
+            <div v-if="postSendData" class="space-y-4" data-testid="document-email-post-send">
+              <BaseAlert variant="success" title="Correo enviado">
+                El mensaje se envió a {{ postSendRecipient }} con {{ postSendData.document_ids?.length || 0 }} documento(s) adjunto(s).
+              </BaseAlert>
+              <div class="rounded-xl border border-border-default bg-surface-raised p-4">
+                <h4 class="text-sm font-semibold text-text-default">Actualizar el ciclo de los documentos</h4>
+                <p class="mt-1 text-sm text-text-muted">
+                  Puedes marcar ahora los documentos elegibles como Enviado. Elegir “Ahora no” no cambia sus estados y el correo seguirá enviado.
+                </p>
+              </div>
+              <BaseAlert v-if="errorMsg" variant="danger" title="El correo salió, pero el estado no cambió">
+                {{ errorMsg }} Puedes reintentar sin volver a enviar el correo.
+              </BaseAlert>
+            </div>
+
             <!-- ── EDIT ── -->
-            <div v-if="activeTab === 'edit'" class="space-y-4">
+            <div v-else-if="activeTab === 'edit'" class="space-y-4">
               <!-- Recipient -->
               <div>
                 <label class="block text-xs text-text-muted mb-1">Para</label>
@@ -274,7 +290,7 @@
           </div>
 
           <!-- Error / status -->
-          <div v-if="errorMsg || successMsg" class="px-6 pb-2 flex-shrink-0">
+          <div v-if="!postSendData && (errorMsg || successMsg)" class="px-6 pb-2 flex-shrink-0">
             <p
               v-if="errorMsg"
               class="text-xs px-3 py-2 rounded-lg"
@@ -291,17 +307,22 @@
 
           <!-- Footer buttons -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end gap-2 flex-shrink-0">
-            <BaseButton variant="ghost" @click="close">
-              Cancelar
-            </BaseButton>
-            <BaseButton
-              variant="primary"
-              :disabled="!canSend"
-              :loading="isSending"
-              @click="send"
-            >
-              Enviar
-            </BaseButton>
+            <template v-if="postSendData">
+              <BaseButton variant="ghost" :disabled="isTransitioning" data-testid="document-email-skip-sent-state" @click="completePostSend">
+                Ahora no
+              </BaseButton>
+              <BaseButton variant="primary" :loading="isTransitioning" data-testid="document-email-confirm-sent-state" @click="markDocumentsAsSent">
+                Marcar como Enviado
+              </BaseButton>
+            </template>
+            <template v-else>
+              <BaseButton variant="ghost" :disabled="isSending" @click="close">
+                Cancelar
+              </BaseButton>
+              <BaseButton variant="primary" :disabled="!canSend" :loading="isSending" @click="send">
+                Enviar
+              </BaseButton>
+            </template>
           </div>
 
         </div>
@@ -335,6 +356,9 @@ const isSending = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
 const rateLimited = ref(false);
+const isTransitioning = ref(false);
+const postSendData = ref(null);
+const postSendRecipient = ref('');
 
 let nextSectionId = 2;
 
@@ -361,6 +385,9 @@ watch(
     errorMsg.value = '';
     successMsg.value = '';
     rateLimited.value = false;
+    isTransitioning.value = false;
+    postSendData.value = null;
+    postSendRecipient.value = '';
     const result = await documentStore.getEmailDefaults();
     if (result.success && result.data) {
       greeting.value = result.data.greeting || '';
@@ -374,6 +401,7 @@ watch(
 );
 
 function close() {
+  if (isSending.value || isTransitioning.value) return;
   emit('update:modelValue', false);
 }
 
@@ -421,33 +449,52 @@ async function send() {
   isSending.value = false;
   if (result.success) {
     successMsg.value = `Correo enviado a ${payload.recipient_email}.`;
-    if (result.data?.offer_sent_transition && window.confirm(
-      'El correo ya salió. ¿Marcar los documentos adjuntos como Enviado?',
-    )) {
-      await stateStore.fetchCatalog();
-      const sentState = stateStore.stateByKey('sent');
-      const eligibleIds = (result.data.document_ids || []).filter((id) => {
-        const candidate = id === props.document?.id
-          ? props.document
-          : documentStore.documents.find((item) => item.id === id);
-        return candidate?.document_type_code !== 'collection_account';
-      });
-      if (sentState) {
-        const transitions = await Promise.all(
-          eligibleIds.map((id) => stateStore.openEpisode(id, sentState.id, null, 'email')),
-        );
-        if (transitions.some((transition) => !transition.success)) {
-          successMsg.value += ' Algunos estados no pudieron actualizarse.';
-        } else if (eligibleIds.length) {
-          successMsg.value += ' Estado Enviado registrado.';
-        }
-      }
-    }
     emit('sent', result.data);
+    if (result.data?.offer_sent_transition) {
+      postSendData.value = result.data;
+      postSendRecipient.value = payload.recipient_email;
+      return;
+    }
     setTimeout(close, 1200);
   } else {
     rateLimited.value = result.code === 'rate_limited';
     errorMsg.value = result.errors?.error || 'No se pudo enviar el correo.';
   }
+}
+
+function completePostSend() {
+  if (isTransitioning.value) return;
+  close();
+}
+
+async function markDocumentsAsSent() {
+  if (!postSendData.value || isTransitioning.value) return;
+  isTransitioning.value = true;
+  errorMsg.value = '';
+  await stateStore.fetchCatalog();
+  const sentState = stateStore.stateByKey('sent');
+  const eligibleIds = (postSendData.value.document_ids || []).filter((id) => {
+    const candidate = id === props.document?.id
+      ? props.document
+      : documentStore.documents.find((item) => item.id === id);
+    return candidate?.document_type_code !== 'collection_account';
+  });
+  if (!sentState) {
+    errorMsg.value = 'No está disponible el estado Enviado.';
+    isTransitioning.value = false;
+    return;
+  }
+  const transitions = await Promise.all(
+    eligibleIds.map((id) => stateStore.openEpisode(id, sentState.id, null, 'email')),
+  );
+  isTransitioning.value = false;
+  if (transitions.some((transition) => !transition.success)) {
+    errorMsg.value = 'Algunos documentos no pudieron marcarse como Enviado.';
+    return;
+  }
+  successMsg.value = eligibleIds.length
+    ? 'Correo enviado y estado Enviado registrado.'
+    : 'Correo enviado; no había documentos elegibles para cambiar de estado.';
+  close();
 }
 </script>

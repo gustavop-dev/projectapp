@@ -49,7 +49,9 @@ from content.services.document_type_utils import get_markdown_document_type
 from content.services.document_note_service import (
     DocumentNoteError,
     create_note,
+    delete_notes,
     finish_note,
+    restore_note,
     sync_legacy_notes,
 )
 from content.services.document_state_service import (
@@ -229,7 +231,9 @@ def _doc_summary(doc):
 
 def _doc_detail(doc):
     normalized_notes = list(
-        doc.document_notes.select_related('episode').order_by('order', 'id')
+        doc.document_notes.filter(deleted_at__isnull=True)
+        .select_related('episode')
+        .order_by('order', 'id')
     )
     return {
         **_doc_summary(doc),
@@ -667,6 +671,12 @@ def close_document_state(arguments):
 
 
 def _note_payload(note):
+    deleted_by_name = None
+    if note.deleted_by_id:
+        deleted_by_name = (
+            note.deleted_by.get_full_name().strip()
+            or note.deleted_by.get_username()
+        )
     return {
         'id': note.id,
         'document_id': note.document_id,
@@ -678,6 +688,10 @@ def _note_payload(note):
         'resolved_at': (
             note.resolved_at.isoformat() if note.resolved_at else None
         ),
+        'deleted_at': (
+            note.deleted_at.isoformat() if note.deleted_at else None
+        ),
+        'deleted_by_name': deleted_by_name,
     }
 
 
@@ -708,7 +722,10 @@ def add_document_note(arguments):
 def finish_document_note(arguments):
     doc = _get_markdown_doc_or_error(arguments.get('document_id'))
     try:
-        note = doc.document_notes.get(pk=int(arguments.get('note_id')))
+        note = doc.document_notes.get(
+            pk=int(arguments.get('note_id')),
+            deleted_at__isnull=True,
+        )
     except (DocumentNote.DoesNotExist, TypeError, ValueError):
         raise ToolError('No existe esa observación para el documento.')
     outcome = arguments.get('outcome', DocumentNote.Status.RESOLVED)
@@ -719,10 +736,6 @@ def finish_document_note(arguments):
     if not isinstance(close_linked_state, bool) or not isinstance(move_cycle, bool):
         raise ToolError(
             'close_linked_state y move_cycle_to_bug_attended deben ser booleanos.'
-        )
-    if move_cycle and not close_linked_state:
-        raise ToolError(
-            'move_cycle_to_bug_attended requiere close_linked_state=true.'
         )
     resolution_note = arguments.get('resolution_note', '')
     if not isinstance(resolution_note, str) or len(resolution_note.strip()) > 500:
@@ -738,6 +751,49 @@ def finish_document_note(arguments):
             close_linked_state=close_linked_state,
             move_cycle_to_bug_attended=move_cycle,
         )
+    except (DocumentNoteError, DocumentStateError) as exc:
+        raise ToolError(str(exc)) from exc
+    return {'note': _note_payload(note), **transitions}
+
+
+def delete_document_notes(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    note_ids = arguments.get('note_ids')
+    if (
+        not isinstance(note_ids, list)
+        or not note_ids
+        or len(note_ids) > 100
+        or any(isinstance(note_id, bool) or not isinstance(note_id, int)
+               for note_id in note_ids)
+    ):
+        raise ToolError('note_ids debe ser una lista de 1 a 100 enteros.')
+    try:
+        return delete_notes(doc, note_ids=note_ids, actor=mcp_actor())
+    except (DocumentNoteError, DocumentStateError) as exc:
+        raise ToolError(str(exc)) from exc
+
+
+def list_deleted_document_notes(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    notes = (
+        doc.document_notes.filter(deleted_at__isnull=False)
+        .select_related('deleted_by')
+        .order_by('-deleted_at', '-id')
+    )
+    return {'notes': [_note_payload(note) for note in notes]}
+
+
+def restore_document_note(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    note_id = arguments.get('note_id')
+    if isinstance(note_id, bool):
+        raise ToolError('note_id debe ser un entero.')
+    try:
+        note = doc.document_notes.select_related('deleted_by').get(pk=int(note_id))
+    except (DocumentNote.DoesNotExist, TypeError, ValueError):
+        raise ToolError('No existe esa observación para el documento.')
+    try:
+        note, transitions = restore_note(note, actor=mcp_actor())
     except (DocumentNoteError, DocumentStateError) as exc:
         raise ToolError(str(exc)) from exc
     return {'note': _note_payload(note), **transitions}
@@ -1026,8 +1082,8 @@ DOCUMENT_TOOLS = [
     {
         'name': 'finish_document_note',
         'description': (
-            'Resuelve o descarta una observación. Puede cerrar/quitar la señal '
-            'enlazada y, al resolver, mover el ciclo a Bug atendido.'
+            'Resuelve o descarta una observación y reconcilia automáticamente '
+            'su señal enlazada; al resolver puede abrir Bug atendido.'
         ),
         'input_schema': {
             'type': 'object',
@@ -1049,5 +1105,56 @@ DOCUMENT_TOOLS = [
             'required': ['document_id', 'note_id'],
         },
         'handler': finish_document_note,
+    },
+    {
+        'name': 'delete_document_notes',
+        'description': (
+            'Envía una o varias observaciones del mismo documento a la papelera '
+            'en una operación atómica y conserva sólo la auditoría del acto.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'note_ids': {
+                    'type': 'array',
+                    'items': {'type': 'integer'},
+                    'minItems': 1,
+                    'maxItems': 100,
+                    'uniqueItems': True,
+                },
+            },
+            'required': ['document_id', 'note_ids'],
+        },
+        'handler': delete_document_notes,
+    },
+    {
+        'name': 'list_deleted_document_notes',
+        'description': (
+            'Lista la papelera recuperable de observaciones de un documento, '
+            'incluyendo quién y cuándo ejecutó cada eliminación.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {**_DOCUMENT_ID_PROP},
+            'required': ['document_id'],
+        },
+        'handler': list_deleted_document_notes,
+    },
+    {
+        'name': 'restore_document_note',
+        'description': (
+            'Restaura una observación desde la papelera y recompone la señal '
+            'pendiente originada por observaciones cuando corresponde.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'note_id': {'type': 'integer'},
+            },
+            'required': ['document_id', 'note_id'],
+        },
+        'handler': restore_document_note,
     },
 ]
