@@ -46,6 +46,16 @@ falten. Verificación: 29 Jest focales, dos escenarios Playwright reales, build
 Nuxt, flow-map fresco y el flow P1 `admin-accounting-collection-create` cubierto
 en display/failure/error/success. Inventario: `docs/audits/disabled-controls-2026-08-26.md`.
 
+**2026-08-26 — Prioridad de columnas del listado de Documentos:** la tabla usa
+un contrato fijo y ejecutable Título → Estados → Creado/Fecha/Archivado →
+Cliente → Proyecto → Acciones. Estados queda visible como segunda columna desde
+tableta horizontal; Cliente/Proyecto se agrupan bajo Título hasta escritorio y
+las tarjetas conservan Título/Estados como prioridad, con metadata Fecha →
+Cliente → Proyecto. Acciones permanece al final. El orden no se personaliza y
+la preferencia existente sólo recuerda el ancho de Título. La contención de
+PA-90 y los estados de PA-88 se preservan; Proyecto se reevaluará tras el
+backfill de PA-55. Sin cambios de API, backend o esquema.
+
 **2026-08-26 — Cuentas de cobro agrupadas por cliente o proyecto:** el tab
 contable alterna entre la tabla clásica y una agrupación de un solo nivel con el
 mismo patrón de Ingresos. Los grupos se ordenan por saldo pendiente descendente,

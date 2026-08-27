@@ -36,6 +36,16 @@ const authCheck = jsonOk({
   user: { username: 'admin', is_staff: true, is_superuser: true },
 });
 
+const NEEDS_FIX_STATE = {
+  id: 11,
+  name: 'Solucionar bug',
+  color: 'red',
+  system_key: 'needs_fix',
+  group_mode: 'additive',
+  group_order: 1,
+  order: 0,
+};
+
 async function enterModule(page, linkName, heading) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
   if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
@@ -85,6 +95,12 @@ const DOCUMENT = {
   project_name: 'Proyecto Atlas',
   content_excerpt: 'Resumen operativo del documento.',
   tag_details: [{ id: 1, name: 'Entrega', color: 'green' }],
+  active_states: [{
+    id: 81,
+    duration_seconds: 172800,
+    opened_at: '2026-08-18T10:00:00Z',
+    state: NEEDS_FIX_STATE,
+  }],
   created_at: '2026-08-20T10:00:00Z',
 };
 
@@ -134,8 +150,16 @@ test.describe('Documentos — matriz responsiva', () => {
       if (viewport.compact) {
         await expect(page.getByTestId('folder-drawer-trigger')).toBeVisible();
         await expect(page.getByTestId('folder-panel')).toHaveCount(0);
-        await expect(page.getByTestId('document-card-501'))
-          .toContainText('Informe responsivo de agosto');
+        const card = page.getByTestId('document-card-501');
+        await expect(card).toContainText('Informe responsivo de agosto');
+        await expect(page.getByTestId('document-card-priority-row-501'))
+          .toContainText('Solucionar bug');
+        const secondaryMeta = await page.getByTestId('document-card-secondary-meta-501')
+          .textContent();
+        expect(secondaryMeta.indexOf('2026'))
+          .toBeLessThan(secondaryMeta.indexOf('Cliente Atlas Internacional'));
+        expect(secondaryMeta.indexOf('Cliente Atlas Internacional'))
+          .toBeLessThan(secondaryMeta.indexOf('Proyecto Atlas'));
 
         await page.getByTestId('folder-drawer-trigger').click();
         const drawer = page.getByTestId('folder-drawer');
@@ -151,9 +175,26 @@ test.describe('Documentos — matriz responsiva', () => {
         await expect(page.getByTestId('document-row-501'))
           .toContainText('Informe responsivo de agosto');
 
+        const headers = await page.getByRole('table').locator('thead th').allTextContents();
+        expect(headers.map((label) => label.replace(/\s+/g, ' ').trim())).toEqual([
+          'Título', 'Estados', 'Creado', 'Cliente', 'Proyecto', 'Acciones',
+        ]);
+
+        await expect(page.getByRole('columnheader', { name: 'Estados' })).toBeVisible();
+        await expect(page.getByTestId('doc-states-cell-501')).toContainText('Solucionar bug');
         const clientHeader = page.getByRole('columnheader', { name: 'Cliente' });
-        if (viewport.width < PANEL_BREAKPOINTS.desktop) await expect(clientHeader).toBeHidden();
-        else await expect(clientHeader).toBeVisible();
+        const projectHeader = page.getByRole('columnheader', { name: 'Proyecto' });
+        if (viewport.width < PANEL_BREAKPOINTS.desktop) {
+          await expect(clientHeader).toBeHidden();
+          await expect(projectHeader).toBeHidden();
+          await expect(page.getByTestId('document-title-meta-501'))
+            .toContainText('Cliente Atlas Internacional');
+          await expect(page.getByTestId('document-title-meta-501'))
+            .toContainText('Proyecto Atlas');
+        } else {
+          await expect(clientHeader).toBeVisible();
+          await expect(projectHeader).toBeVisible();
+        }
       }
 
       await expectNoViewportOverflow(page);

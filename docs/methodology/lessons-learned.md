@@ -1101,3 +1101,17 @@ Finally, native browser dialogs are an architectural escape hatch, not a UI
 shortcut. Contextual modals can identify the target, explain consequences,
 retain input after an error and expose recovery. A repository-level static gate
 is what turns that preference into a durable panel invariant.
+
+## 45. Column order and responsive priority are separate contracts
+
+Moving a high-value field earlier on desktop does not make it survive a
+breakpoint. Keep order, width and `keep/group/hide` decisions in one executable
+column policy, then make the specialized markup consume that same sequence. A
+separate visibility list can otherwise preserve the old priority after the
+headers have been rearranged.
+
+Grouping low-value context is different from hiding it. Documents keeps state
+as a real landscape column while moving client/project beneath the primary
+title cell; compact cards preserve the same facts in secondary metadata. Fixed
+business order also avoids a second persistence contract competing with the
+existing user preference for title width.
