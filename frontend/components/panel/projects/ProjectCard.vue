@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue'
+import ProjectStateHelpBadge from '~/components/panel/projects/ProjectStateHelpBadge.vue'
 import { stateBadgeVariant } from '~/utils/documentState'
 import { formatDate } from '~/utils/formatDate'
 
@@ -38,14 +39,21 @@ const unlinkedTotal = computed(() => (
           {{ project.client_company }}
         </p>
       </div>
-      <BaseBadge
-        :variant="statusTone"
-        size="sm"
-        class="mt-3"
-        :data-testid="`project-card-status-${project.id}`"
-      >
-        {{ project.status_label }}
-      </BaseBadge>
+      <div class="mt-3 flex items-center gap-1.5">
+        <BaseBadge
+          :variant="statusTone"
+          size="sm"
+          :data-testid="`project-card-status-${project.id}`"
+        >
+          {{ project.status_label }}
+        </BaseBadge>
+        <ProjectStateHelpBadge
+          v-if="project.current_state"
+          :state="project.current_state"
+          position="bottom"
+          :test-id="`project-card-state-help-${project.id}`"
+        />
+      </div>
     </div>
 
     <dl class="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-surface-muted p-3 text-center">

@@ -33,8 +33,7 @@ const json = (body) => ({ status: 200, contentType: 'application/json', body: JS
 
 async function openDeleteConfirm(page) {
   await expect(page.getByText('Delete Client')).toBeVisible({ timeout: 15000 });
-  // quality: allow-fragile-selector (row actions button has no testid — last SVG button in the table)
-  await page.locator('table button').filter({ has: page.locator('svg') }).last().click();
+  await page.getByTestId('proposal-actions-1').click();
   const actionsOverlay = page.locator('div.fixed.inset-0').filter({
     has: page.getByRole('heading', { level: 3, name: proposal.title }),
   });

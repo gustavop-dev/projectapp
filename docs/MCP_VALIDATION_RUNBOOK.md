@@ -1,6 +1,6 @@
 # Guion de validación y mantenimiento de MCP
 
-Última revisión integral: 2026-08-26.
+Última revisión integral: 2026-08-27.
 
 Este documento es el procedimiento repetible para validar los conectores MCP de
 ProjectApp. Cubre el transporte compartido, las cinco herramientas de
@@ -19,6 +19,9 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   impide una acción en la interfaz también la impide por conversación.
 - Ninguna descripción puede prometer un dato que el handler descarte o una
   acción que el servidor no realiza.
+- `DocumentState.description` es una lectura clasificada del contrato MCP. Para
+  estados de proyecto, la descripción administrable no sustituye el
+  `operational_effect` ni la ayuda de consecuencias derivada por el sistema.
 - `mark_message_sent` registra un hecho externo. No envía correo ni WhatsApp.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 

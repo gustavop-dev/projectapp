@@ -28,6 +28,8 @@ const PROJECT_ROWS = [
       name: 'Activo',
       system_key: 'active',
       operational_effect: 'operating',
+      description: 'Está entregado y operando.',
+      operational_effect_help: 'Mantiene habilitados los cobros y los avisos.',
       color: 'emerald',
     },
     state_review_required: false,
@@ -48,6 +50,8 @@ const PROJECT_ROWS = [
       name: 'Dado de baja',
       system_key: 'decommissioned',
       operational_effect: 'decommissioned',
+      description: 'Terminó de forma definitiva.',
+      operational_effect_help: 'Cancela el servicio y los cobros futuros.',
       color: 'gray',
     },
     state_review_required: false,
@@ -60,12 +64,13 @@ const PROJECT_ROWS = [
 ];
 
 const PROJECT_STATES = [
-  { id: 1, name: 'En desarrollo', system_key: 'development', operational_effect: 'development', color: 'blue', group: 1, order: 0, is_active: true, merged_into: null },
-  { id: 2, name: 'Activo', system_key: 'active', operational_effect: 'operating', color: 'emerald', group: 1, order: 1, is_active: true, merged_into: null },
-  { id: 3, name: 'Pausado', system_key: 'paused', operational_effect: 'paused', color: 'yellow', group: 1, order: 2, is_active: true, merged_into: null },
-  { id: 4, name: 'Suspendido', system_key: 'suspended', operational_effect: 'suspended', color: 'orange', group: 1, order: 3, is_active: true, merged_into: null },
-  { id: 5, name: 'Completado', system_key: 'completed', operational_effect: 'completed', color: 'purple', group: 1, order: 4, is_active: true, merged_into: null },
-  { id: 6, name: 'Dado de baja', system_key: 'decommissioned', operational_effect: 'decommissioned', color: 'gray', group: 1, order: 5, is_active: true, merged_into: null },
+  { id: 1, name: 'En desarrollo', description: 'Se está construyendo.', system_key: 'development', operational_effect: 'development', operational_effect_help: 'Permite los cobros de construcción.', color: 'blue', group: 1, order: 0, is_active: true, merged_into: null },
+  { id: 2, name: 'Activo', description: 'Está entregado y operando.', system_key: 'active', operational_effect: 'operating', operational_effect_help: 'Mantiene habilitados los cobros y los avisos.', color: 'emerald', group: 1, order: 1, is_active: true, merged_into: null },
+  { id: 7, name: 'En evolución', description: 'Está en producción mientras se desarrolla una ampliación.', system_key: 'evolving', operational_effect: 'operating', operational_effect_help: 'Mantiene habilitados los cobros y los avisos.', color: 'blue', group: 1, order: 2, is_active: true, merged_into: null },
+  { id: 3, name: 'Pausado', description: 'El trabajo está detenido temporalmente.', system_key: 'paused', operational_effect: 'paused', operational_effect_help: 'No suspende automáticamente los cobros.', color: 'yellow', group: 1, order: 3, is_active: true, merged_into: null },
+  { id: 4, name: 'Suspendido', description: 'El servicio puede reactivarse.', system_key: 'suspended', operational_effect: 'suspended', operational_effect_help: 'Detiene nuevos cobros y avisos.', color: 'orange', group: 1, order: 4, is_active: true, merged_into: null },
+  { id: 5, name: 'Completado', description: 'Terminó correctamente.', system_key: 'completed', operational_effect: 'completed', operational_effect_help: 'Exige un cierre financiero limpio.', color: 'purple', group: 1, order: 5, is_active: true, merged_into: null },
+  { id: 6, name: 'Dado de baja', description: 'Terminó de forma definitiva.', system_key: 'decommissioned', operational_effect: 'decommissioned', operational_effect_help: 'Cancela el servicio y los cobros futuros.', color: 'gray', group: 1, order: 6, is_active: true, merged_into: null },
 ];
 
 const META = {
@@ -73,8 +78,11 @@ const META = {
   by_state: PROJECT_STATES.map((state) => ({
     state_id: state.id,
     name: state.name,
+    description: state.description,
     color: state.color,
+    system_key: state.system_key,
     operational_effect: state.operational_effect,
+    operational_effect_help: state.operational_effect_help,
     count: [2, 6].includes(state.id) ? 1 : 0,
   })),
   review_required: 0,
@@ -300,6 +308,19 @@ test.describe('Admin Panel Projects', () => {
     await page.getByTestId('projects-search-input').fill('nadie');
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
     await expect(page.getByText('Sin resultados con esos filtros')).toBeVisible();
+  });
+
+  test('state help explains the meaning and the operational consequence', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoProjects(page);
+
+    await page.getByTestId('project-table-state-help-1').click();
+
+    const help = page.getByTestId('project-table-state-help-1-content');
+    await expect(help).toContainText('Está entregado y operando.');
+    await expect(help).toContainText('Mantiene habilitados los cobros y los avisos.');
   });
 
   test('the state control filters projects by the administrable catalog', {

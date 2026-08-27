@@ -231,8 +231,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
 - The specialized Documents table declares its fixed business order and
   `keep/group` policy in the same column array consumed by width resolution.
-  Landscape keeps Title/States/Date/Actions and groups Client/Project; compact
+  Landscape keeps Actions/Title/States/Date and groups Client/Project; compact
   cards apply the same priority without persisting a user-specific column order.
+- A table with one three-dot row menu opts into
+  `rowActionsLayout="menu-start"`. The shared table/grid primitives then render
+  Checkbox → Actions → Data, reserve an immutable 3.5 rem track outside the
+  proportional data split, expose an accessible but visually empty header and
+  stop click/auxclick propagation from the action cell. The default
+  `inline-end` mode is only for legacy loose-icon action rows; do not migrate
+  those implicitly while adopting the kebab contract.
 
 ### Panel-owned dialogs and observation deletion
 
@@ -301,7 +308,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   must not be reused for internal workflow decisions.
 - `DocumentStateGroup.selection_mode` expresses the only-one cycle versus additive
   signals. `DocumentState.system_key` is stable integration identity; the user-facing
-  name and color remain editable. Seed states may not be moved into a group whose
+  name, description and color remain editable. Seed states may not be moved into a group whose
   mode contradicts their integration role.
 - Open `DocumentStateEpisode` rows are the materialized current state. Every open,
   close, removal, exclusive transition, merge and effective-date correction writes a
@@ -336,10 +343,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Nuxt uses the Options-API `project_states.js` store and the same
   `StateCatalogManager` / `StateHistoryModal` primitives as Documents. The project
   transition modal is specific because it must collect financial decisions.
+  `ProjectStateHelpBadge` pairs the editable `description` with the derived,
+  read-only `operational_effect_help` in counts, filters, rows, cards, catalog and
+  transition context, with pointer, keyboard and touch access.
 - Migrations `accounts.0055_project_lifecycle_state` and
-  `content.0213/0214_project_lifecycle_states` add the relations, seed all six
-  meanings and map known legacy statuses. Legacy `archived` remains unclassified
-  and review-required; deploy applies migrations, never a session worktree.
+  `content.0213/0214_project_lifecycle_states` add the relations and map known
+  legacy statuses. `content.0218_project_state_help` adds state descriptions,
+  backfills existing project states and seeds **En evolución** after **Activo** as
+  a second `operating` meaning. Legacy `archived` remains unclassified and
+  review-required; deploy applies migrations, never a session worktree.
 
 ### Communications are a separate domain with shared infrastructure
 
@@ -491,6 +503,12 @@ confirmed by the operator or another integration.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
+- **Leading kebab control track** — tables with a single three-dot menu use
+  `rowActionsLayout="menu-start"`: selection remains first when present, then a
+  fixed 56 px actions track with an empty visual header, then identity/content.
+  The control cell stops row-navigation clicks but leaves touch/pointer movement
+  unhandled so the table wrapper can still pan horizontally. Loose icon rows are
+  a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
   `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
   consumer classes may style typography but must not override its display/clamp

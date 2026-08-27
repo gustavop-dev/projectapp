@@ -83,6 +83,37 @@ class DocumentState(models.Model):
         COMPLETED = 'completed', 'Cierre correcto'
         DECOMMISSIONED = 'decommissioned', 'Baja definitiva'
 
+    OPERATIONAL_EFFECT_HELP = {
+        OperationalEffect.NONE: (
+            'Este estado no cambia por sí solo los cobros, los avisos ni el '
+            'cierre del proyecto.'
+        ),
+        OperationalEffect.DEVELOPMENT: (
+            'Permite los cobros y avisos que correspondan mientras el proyecto '
+            'se construye; todavía no representa una entrega operativa.'
+        ),
+        OperationalEffect.OPERATING: (
+            'Mantiene habilitados la operación, los cobros y los avisos del '
+            'proyecto.'
+        ),
+        OperationalEffect.PAUSED: (
+            'Pausa el trabajo, pero no suspende automáticamente los cobros ni '
+            'los avisos del servicio.'
+        ),
+        OperationalEffect.SUSPENDED: (
+            'Detiene nuevos cobros y avisos, conserva la deuda ya causada y '
+            'permite reactivar el proyecto.'
+        ),
+        OperationalEffect.COMPLETED: (
+            'Exige un cierre financiero limpio, desactiva los hostings y '
+            'detiene los cobros futuros.'
+        ),
+        OperationalEffect.DECOMMISSIONED: (
+            'Es definitivo: cancela el servicio y los cobros futuros y exige '
+            'decidir qué hacer con cada saldo pendiente.'
+        ),
+    }
+
     catalog = models.CharField(
         max_length=16,
         choices=DocumentStateGroup.Catalog.choices,
@@ -90,6 +121,7 @@ class DocumentState(models.Model):
         db_index=True,
     )
     name = models.CharField(max_length=60)
+    description = models.CharField(max_length=300, blank=True, default='')
     normalized_name = models.CharField(max_length=80, editable=False)
     slug = models.SlugField(max_length=80, blank=True)
     color = models.CharField(
@@ -166,8 +198,19 @@ class DocumentState(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def operational_effect_help(self):
+        """Return the immutable business consequences behind an editable state."""
+        if self.catalog != DocumentStateGroup.Catalog.PROJECTS:
+            return ''
+        return self.OPERATIONAL_EFFECT_HELP.get(
+            self.operational_effect,
+            self.OPERATIONAL_EFFECT_HELP[self.OperationalEffect.NONE],
+        )
+
     def save(self, *args, **kwargs):
         self.name = ' '.join(self.name.strip().split())
+        self.description = ' '.join(self.description.strip().split())
         self.normalized_name = normalize_document_state_name(self.name)
         if self.group_id:
             self.catalog = self.group.catalog

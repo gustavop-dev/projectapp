@@ -142,6 +142,83 @@ describe('BaseResponsiveTable', () => {
     expect(wrapper.find('[aria-label="Eliminar"]').exists()).toBe(false)
   })
 
+  it('orders the leading control tracks', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      showActions: true,
+      showDefaultActions: false,
+      rowActionsLayout: 'menu-start',
+    })
+
+    const headers = wrapper.get('thead tr').findAll('th')
+    expect(headers[0].find('input[type="checkbox"]').exists()).toBe(true)
+    expect(headers[1].attributes('data-testid')).toBe('accounting-actions-header')
+    expect(headers[2].text()).toBe('Proyecto')
+
+    const cells = wrapper.get('[data-testid="accounting-row-1"]').findAll('td')
+    expect(cells[0].find('input[type="checkbox"]').exists()).toBe(true)
+    expect(cells[1].attributes('data-testid')).toBe('accounting-actions-cell-1')
+    expect(cells[2].text()).toContain('Proyecto Aurora')
+  })
+
+  it('renders the fixed blank menu header', () => {
+    const wrapper = mountTable({
+      showActions: true,
+      showDefaultActions: false,
+      rowActionsLayout: 'menu-start',
+    })
+    const header = wrapper.get('[data-testid="accounting-actions-header"]')
+
+    expect(header.attributes('aria-label')).toBe('Acciones')
+    expect(header.text()).toBe('')
+    expect(header.element.style.width).toBe('3.5rem')
+  })
+
+  it('pins leading control tracks in the fixed table layout', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      showActions: true,
+      showDefaultActions: false,
+      rowActionsLayout: 'menu-start',
+    })
+    const controlTracks = wrapper.findAll('colgroup col')
+
+    expect(wrapper.get('table').element.style.tableLayout).toBe('fixed')
+    expect(controlTracks).toHaveLength(columns.length + 2)
+    expect(controlTracks[0].element.style.width).toBe('2.5rem')
+    expect(controlTracks[1].element.style.width).toBe('3.5rem')
+  })
+
+  it('keeps custom menu activation out of interactive row navigation', async () => {
+    const wrapper = mount(BaseResponsiveTable, {
+      props: {
+        columns,
+        rows,
+        interactiveRows: true,
+        showDefaultActions: false,
+        rowActionsLayout: 'menu-start',
+      },
+      slots: {
+        'row-actions': '<button data-testid="custom-row-menu">Abrir</button>',
+      },
+    })
+
+    await wrapper.get('[data-testid="custom-row-menu"]').trigger('click')
+    await wrapper.get('[data-testid="accounting-actions-cell-1"]')
+      .trigger('auxclick', { button: 1 })
+
+    expect(wrapper.emitted('row-click')).toBeUndefined()
+    expect(wrapper.emitted('row-auxclick')).toBeUndefined()
+  })
+
+  it('preserves the labeled trailing action column by default', () => {
+    const wrapper = mountTable({ showActions: true, showDefaultActions: false })
+    const headers = wrapper.get('thead tr').findAll('th')
+
+    expect(headers[0].text()).toBe('Proyecto')
+    expect(headers.at(-1).text()).toBe('Acciones')
+  })
+
   it('uses the selected background and consumer row classes together', () => {
     const wrapper = mountTable({
       selectable: true,

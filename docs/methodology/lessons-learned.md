@@ -32,7 +32,14 @@ This file captures important patterns, preferences, and project intelligence tha
 
 - A user-managed status name cannot safely drive billing, reminders or closure.
 - `DocumentState` is shared across domains through `catalog`; project behavior keys
-  off `operational_effect`, while names/colors remain editable.
+  off `operational_effect`, while names/descriptions/colors remain editable.
+- Help for an administrable business label needs two layers: user-owned copy says
+  what the team means by the state, while system-owned copy derived from
+  `operational_effect` states what the application will do. Never let editable help
+  redefine billing, reminders or closure behavior.
+- Two catalog states may intentionally share one operational effect. **Activo** and
+  **En evolución** remain distinct reporting meanings but both preserve operation
+  and billing, avoiding a combinatorial multi-state model for this bounded case.
 - Financially consequential transitions use preview + token + atomic revalidation.
   This prevents a confirmation made against stale income/payment data from applying.
 - Ambiguous migrated rows fail closed for money and stay explicitly reviewable; a
@@ -1162,3 +1169,19 @@ such as `(catalog, system_key)`. Reserve `NullIf(field, '')` for domains that
 deliberately persist blank strings. Any migration that activates a previously
 ignored production invariant must query for duplicates before DDL and stop with
 the conflicting business keys instead of failing halfway through deployment.
+
+## 48. A kebab belongs to a fixed control track, not the data-column split
+
+The fact that a table “has actions” is not enough to choose its layout. A single
+three-dot menu and a row of independent action icons have different space and
+interaction contracts, so the table primitive needs a semantic mode rather
+than a blanket reorder. `menu-start` reserves 3.5 rem outside the proportional
+data weights; `inline-end` keeps legacy loose-icon rows unchanged until their
+actions are deliberately consolidated.
+
+Control order is stable: selection first when present, then actions, then the
+identifier/content. The header stays visually empty but retains `aria-label`;
+the action cell stops click and auxiliary-click propagation so a navigable row
+does not open. It must not cancel pointer/touch movement: a trusted touch-pan E2E
+starting on the kebab protects horizontal scrolling while proving that the menu
+does not open accidentally.

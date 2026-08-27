@@ -8,7 +8,6 @@
 
 import { mount } from '@vue/test-utils';
 import DocumentsTable from '../../components/panel/documents/DocumentsTable.vue';
-import BaseButton from '../../components/base/BaseButton.vue';
 import BaseRowLink from '../../components/base/BaseRowLink.vue';
 
 const BaseTooltipStub = {
@@ -90,7 +89,6 @@ function mountTable(props = {}) {
       // BaseRowLink va registrado a mano: en Jest no hay auto-import de Nuxt.
       components: {
         BaseBadge: BaseBadgeStub,
-        BaseButton,
         BaseTooltip: BaseTooltipStub,
         BaseRowLink,
       },
@@ -107,8 +105,10 @@ describe('DocumentsTable — archived mode', () => {
       .map((header) => header.text().replace(/\s+/g, ' ').trim());
 
     expect(labels).toEqual([
-      'Título', 'Estados', 'Creado', 'Cliente', 'Proyecto', 'Acciones',
+      '', 'Título', 'Estados', 'Creado', 'Cliente', 'Proyecto',
     ]);
+    expect(wrapper.get('[data-testid="documents-column-actions"]').attributes('aria-label'))
+      .toBe('Acciones');
   });
 
   it('orders document cells by document-list business priority', () => {
@@ -116,12 +116,12 @@ describe('DocumentsTable — archived mode', () => {
 
     const cells = wrapper.get('[data-testid="document-row-1"]').findAll('td');
 
-    expect(cells[0].text()).toContain('Contrato de Servicios');
-    expect(cells[1].text()).toContain('Enviado');
-    expect(cells[2].text()).toContain('2026');
-    expect(cells[3].text()).toBe('—');
+    expect(cells[0].find('[aria-label="Acciones de Contrato de Servicios"]').exists()).toBe(true);
+    expect(cells[1].text()).toContain('Contrato de Servicios');
+    expect(cells[2].text()).toContain('Enviado');
+    expect(cells[3].text()).toContain('2026');
     expect(cells[4].text()).toBe('—');
-    expect(cells[5].find('[aria-label="Acciones de Contrato de Servicios"]').exists()).toBe(true);
+    expect(cells[5].text()).toBe('—');
   });
 
   it('labels the date column Creado in the active scope', () => {
@@ -306,6 +306,17 @@ describe('DocumentsTable — fila navegable', () => {
     expect(wrapper.emitted('open')[0][1].button).toBe(1);
   });
 
+  it('opens actions without forwarding the row navigation', async () => {
+    const wrapper = mountTable({ editToFor });
+
+    await wrapper.get('[aria-label="Acciones de Contrato de Servicios"]').trigger('click');
+    await wrapper.get('[data-testid="doc-actions-cell-1"]')
+      .trigger('auxclick', { button: 1 });
+
+    expect(wrapper.emitted('action')).toEqual([[activeDoc]]);
+    expect(wrapper.emitted('open')).toBeUndefined();
+  });
+
   it('lets the title link navigate on its own instead of opening twice', async () => {
     const wrapper = mountTable({ editToFor });
 
@@ -421,7 +432,7 @@ describe('DocumentsTable — title column', () => {
     const wrapper = mountTable({ editToFor });
 
     expect(wrapper.get('[data-testid="documents-column-actions"]').element.style.width)
-      .toBe('80px');
+      .toBe('56px');
   });
 
   it('persists a keyboard title resize', async () => {

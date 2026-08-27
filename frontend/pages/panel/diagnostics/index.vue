@@ -164,6 +164,7 @@
         selectable
         interactive-rows
         :show-default-actions="false"
+        row-actions-layout="menu-start"
         caption="Diagnósticos técnicos por cliente"
         test-id-prefix="diagnostic"
         @sort="toggleSort"
@@ -229,6 +230,7 @@
           <BaseActionButton
             action="more"
             :label="`Acciones de ${diagnostic.title}`"
+            :data-testid="`diagnostic-actions-${diagnostic.id}`"
             class="-m-1.5"
             @click.stop="actionsModalDiagnostic = diagnostic"
           />

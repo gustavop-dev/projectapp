@@ -311,6 +311,7 @@
         selectable
         interactive-rows
         :show-default-actions="false"
+        row-actions-layout="menu-start"
         caption="Propuestas comerciales por cliente"
         test-id-prefix="proposal"
         @sort="toggleSort"

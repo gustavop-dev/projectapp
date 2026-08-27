@@ -177,7 +177,7 @@ test.describe('Documentos — matriz responsiva', () => {
 
         const headers = await page.getByRole('table').locator('thead th').allTextContents();
         expect(headers.map((label) => label.replace(/\s+/g, ' ').trim())).toEqual([
-          'Título', 'Estados', 'Creado', 'Cliente', 'Proyecto', 'Acciones',
+          '', 'Título', 'Estados', 'Creado', 'Cliente', 'Proyecto',
         ]);
 
         await expect(page.getByRole('columnheader', { name: 'Estados' })).toBeVisible();

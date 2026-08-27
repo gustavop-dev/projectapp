@@ -398,9 +398,16 @@ owns measured one/two-line clipping and the touch disclosure, so consumers do
 not duplicate tooltip or line-clamp heuristics. The Documents table is the
 first specialized adopter and the folder-panel handle now uses the same input
 primitive. Its local column contract owns order, width and per-profile behavior
-together: Title → States → Date → Client → Project → Actions. Landscape keeps
-the first three plus Actions as tracks and groups Client/Project under Title;
-desktop restores every track without moving Actions from the final position.
+together: Actions → Title → States → Date → Client → Project. Landscape keeps
+Actions plus the first three data tracks and groups Client/Project under Title;
+desktop restores every data track without moving Actions from the leading
+position. Three-dot row menus use the same explicit contract in
+`BaseResponsiveTable` and `IncomeGroupedTable`: `rowActionsLayout="menu-start"`
+places a fixed 3.5 rem control track after selection and before data, removes it
+from proportional width allocation, and keeps the visual header empty while
+retaining the accessible name. The default `inline-end` layout deliberately
+preserves legacy loose-icon rows until those actions are consolidated into a
+single menu.
 Intrinsic text sizing is owned by the same layer. `tableLayout.js` resolves a
 semantic `wrap`/`truncate`/`atomic` policy per column;
 `BaseResponsiveTable` applies it to retained and grouped values, while
@@ -961,6 +968,7 @@ flowchart LR
     Financial["Open incomes, payments, hosting"] --> Preview
     Preview --> Token["Impact + SHA-256 token"]
     Token --> Decision{"Operator confirms"}
+    Decision -->|Evolve| Continue["Keep operating/billing; record the new lifecycle meaning"]
     Decision -->|Suspend| Stop["Stop new billing/reminders; keep caused debt"]
     Decision -->|Complete| Clean["Require clean financial close"]
     Decision -->|Decommission| Final["Cancel future service + resolve each debt"]
@@ -973,6 +981,11 @@ flowchart LR
 `project_state_service` is the only lifecycle writer. It locks the project and
 financial rows, recalculates the impact token and applies consequences atomically.
 The editable label never drives behavior: `DocumentState.operational_effect` does.
+`DocumentState.description` is editable explanatory copy, while
+`operational_effect_help` is derived from that immutable effect so a rename cannot
+misrepresent billing or closure consequences. `ProjectStateHelpBadge` renders both
+layers throughout the internal Projects panel. **Activo** and **En evolución** are
+distinct catalog meanings that deliberately share the `operating` effect.
 The legacy `Project.status` remains a compatibility mirror, while new panel and
 platform writes cannot mutate it directly. Hosting failure produces a manual
 suggestion only; no timer automatically moves Suspendido to Dado de baja.
