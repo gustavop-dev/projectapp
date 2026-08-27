@@ -460,3 +460,27 @@ contracts, not conventions repeated in individual commands.
 - **Lesson**: Una configuración administrable sin fila activa equivale a una
   regla deshabilitada; el rollout debe distinguir claramente código desplegado,
   migración aplicada y dato operativo activado.
+
+### [ERR-030] Los cuadros nativos borraban el contexto de decisiones del panel
+
+- **Date**: 2026-08-26
+- **Context**: Descartar observaciones pedía el motivo con `prompt`; cerrar o
+  quitar estados, fusionar/retirar el catálogo, eliminar borradores de
+  comunicaciones y confirmar Enviado usaban `confirm`. El navegador bloqueaba
+  la página y no podía mostrar el registro afectado ni la consecuencia.
+- **Root Cause**: Los primeros consumidores resolvieron cada decisión localmente
+  con `window.confirm`/`window.prompt`, sin una política transversal ni un gate
+  que impidiera nuevas apariciones. En observaciones, además, no existía una
+  operación separada para limpiar pruebas o duplicados.
+- **Resolution**: Migrar cada flujo alcanzable bajo `/panel` a `BaseModal`,
+  `ConfirmModal` o pasos inline; añadir eliminación lógica recuperable de
+  observaciones, confirmación con contenido completo, papelera, restauración,
+  auditoría sin snapshot y borrado masivo atómico. Retirar el modal huérfano de
+  tags y añadir `check-panel-native-dialogs.mjs` al CI.
+- **Files Affected**: componentes/páginas de Documentos y Comunicaciones,
+  `document_note_service`, APIs/MCP de Documentos, modelos/migración y workflow CI.
+- **Verification**: barrido versionado de 14 llamadas alcanzables, guard estático,
+  pruebas focales backend/unit/E2E, build Nuxt, contratos MCP y flow-map fresco.
+- **Lesson**: Una decisión destructiva necesita identidad, consecuencia y salida
+  segura en el mismo contexto visual; el browser dialog no puede expresar ese
+  contrato ni ofrecer recuperación.

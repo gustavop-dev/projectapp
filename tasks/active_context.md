@@ -27,6 +27,23 @@ gateway, 9 casos de API global, 10 E2E y el build Nuxt están verdes; el flow-ma
 queda fresco con cero junk-only, unvalidated o missing. Después de desplegar y
 migrar aún debe agregarse Carlos desde Configuración con las ocho familias.
 
+**2026-08-26 — Eliminación recuperable de observaciones y cero diálogos nativos
+en el panel:** **Descartar** conserva la observación y su motivo opcional;
+**Eliminar** limpia cualquier observación pendiente, resuelta o descartada que
+nunca debió existir. La eliminación es lógica (`deleted_at/deleted_by`), admite
+selección masiva atómica dentro de un documento, sale de listas/conteos y queda
+en Papelera. `DocumentNoteEvent` registra actor/fecha sin duplicar contenido. Al
+quitar la última pendiente, sólo se cierra el episodio `origin=note`; restaurar
+reabre/reutiliza un estado compatible y un conflicto revierte la operación. REST,
+panel y las 17 herramientas del MCP Documentos comparten el servicio. El modal
+muestra el contenido completo y advierte que correos/mensajes externos no se
+borran; incluso en una cuenta emitida los mensajes siguen bloqueados, pero la
+limpieza y recuperación de observaciones permanecen disponibles. El barrido de
+`/panel` migró 14 `confirm/prompt` alcanzables a modales o
+pasos inline, retiró un consumidor huérfano y añadió un guard estático de CI.
+Migración `content.0216`; fake data representativa preparada pero no ejecutada
+porque este checkout apunta a producción; cobertura focal y flow E2E registrados.
+
 **2026-08-26 — Cuentas de cobro agrupadas por cliente o proyecto:** el tab
 contable alterna entre la tabla clásica y una agrupación de un solo nivel con el
 mismo patrón de Ingresos. Los grupos se ordenan por saldo pendiente descendente,

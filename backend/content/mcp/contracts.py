@@ -113,10 +113,20 @@ MCP_MODEL_CONTRACTS = {
             'content.DocumentNote',
             read_only='id order created_at updated_at',
             read_write=(
-                'document episode title content status resolution_note resolved_at'
+                'document episode title content status resolution_note resolved_at '
+                'deleted_at'
             ),
             excluded=_excluded(
-                _AUDIT_INTERNAL, 'created_by resolved_by created_at_known',
+                _AUDIT_INTERNAL,
+                'created_by resolved_by deleted_by created_at_known',
+            ),
+        ),
+        _contract(
+            'content.DocumentNoteEvent',
+            excluded=_excluded(
+                'Bitácora append-only administrada por el servidor; el MCP '
+                'observa el resultado de cada acción, no edita eventos.',
+                'id document note event_type actor recorded_at details',
             ),
         ),
     ),

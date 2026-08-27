@@ -200,10 +200,20 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - State filters are OR within the dimension, support absence (for example “without
   Cerrado”), and include the recurring presets Algo por solucionar, Enviados sin
   cerrar, Cerrados and Por clasificar.
-- Adding an observation may open Solucionar bug. Resolving/discarding the final
-  linked observation may complete/remove the signal and optionally move the cycle
-  to Bug atendido. Sending a standalone document email may open Enviado after
-  explicit confirmation.
+- Adding an observation may open Solucionar bug. Resolving or discarding the
+  final pending observation closes/removes a linked signal created by notes;
+  manually opened states are never closed by note reconciliation. Sending a
+  standalone document email may open Enviado after explicit confirmation.
+- **Discarding is evidence; deletion is cleanup**: discarding preserves the
+  observation and its optional reason because it existed and was intentionally
+  not addressed. Deletion is available for pending, resolved and discarded
+  observations that never should have existed. It removes them from active
+  lists/counts but keeps a recoverable trash row.
+- Every deletion confirmation shows the complete selected content and warns that
+  copies already sent by email or message remain external to ProjectApp. Bulk
+  deletion is one atomic operation within one document. Restoring a pending note
+  reopens or reuses its compatible note-origin state; conflicts roll back the
+  restoration. Audit activity records actor and time without copying content.
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list and state-catalog management
@@ -531,3 +541,10 @@ The canonical counts, commands and exceptions are maintained in
     limit. On narrow screens the modal follows the shared full-screen contract.
     A bulk action must show the affected count and record identities before its
     confirmation without requiring the operator to scroll the modal.
+24. **Observation removal semantics**: discard retains the row and optional
+    reason; soft delete removes it from active reads and counts while preserving
+    recoverability. Deleting the last pending note reconciles only a linked
+    note-origin episode, and the entire bulk selection succeeds or fails together.
+25. **No browser-native dialogs in panel flows**: `/panel` confirmations, data
+    requests and errors use application-owned modals or inline alerts. Native
+    `alert`, `confirm` and `prompt` are prohibited and guarded in CI.

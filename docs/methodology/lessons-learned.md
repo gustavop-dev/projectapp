@@ -1042,7 +1042,7 @@ seeded/derived/catalog/exempt inventory with Django's concrete app registry in a
 test. A new model then forces its author to decide ownership and fake-data
 behavior in the same delivery instead of leaving the gap for a later cleanup.
 
-## 42. Group summaries need one semantic calculator and layout-aware reuse
+## 43. Group summaries need one semantic calculator and layout-aware reuse
 
 Grouped financial tables combine independent questions: which rows belong
 together, how money changes by lifecycle state, which status counts overlap and
@@ -1058,7 +1058,7 @@ semantics. Row slots could also be shared, but the classic table's absolute
 stretched link could not: layout-dependent affordances must be enabled by the
 owning view mode. A real pointer-driven E2E is what exposed that boundary.
 
-## 43. A route inventory and a commercial product map answer different questions
+## 44. A route inventory and a commercial product map answer different questions
 
 The exhaustive view catalog exists to make every route and source reference
 findable. A client or operator, however, starts with what the product enables,
@@ -1074,3 +1074,28 @@ selected node in the URL. This provides motion and spatial discovery without
 making keyboard access, deep links, reduced-motion preferences or testing depend
 on a canvas-only graph library. Technical references can remain available behind
 an explicit disclosure after the user understands the capability.
+
+## 45. Removing a record requires explicit product semantics
+
+“Disappear from the active list” is not one operation. A discarded observation
+is evidence that a real issue was considered and not addressed, so it keeps the
+row and optional reason. A test, typo or duplicate should be deleted because it
+adds no historical value, but recoverability still matters. Name both actions,
+explain them at the decision point and make their persisted traces different.
+
+Soft deletion only works when inactivity is a system-wide predicate. Default
+querysets, nested serializers, counts, history and MCP reads must all exclude the
+tombstone; trash is an explicit scope. Audit records should retain actor and time
+without creating a second content snapshot that defeats the cleanup semantics.
+
+Derived workflow state must reconcile in the same locked transaction. Removing
+the last pending note may close a state created by notes, never a manual/shared
+state. Restoration is the inverse business operation: validate compatibility and
+reopen/reuse the state before clearing the tombstone, rolling everything back if
+that cannot succeed. Bulk cleanup is one selection and one transaction, not a
+loop of partially successful requests.
+
+Finally, native browser dialogs are an architectural escape hatch, not a UI
+shortcut. Contextual modals can identify the target, explain consequences,
+retain input after an error and expose recovery. A repository-level static gate
+is what turns that preference into a durable panel invariant.

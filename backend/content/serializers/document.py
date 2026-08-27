@@ -242,9 +242,7 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
     )
     archived_cause = serializers.SerializerMethodField()
     active_states = serializers.SerializerMethodField()
-    notes = DocumentNoteSerializer(
-        source='document_notes', many=True, read_only=True,
-    )
+    notes = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -266,6 +264,14 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
 
     def get_archived_cause(self, obj):
         return _archived_cause(obj)
+
+    def get_notes(self, obj):
+        notes = getattr(obj, '_active_document_notes', None)
+        if notes is None:
+            notes = obj.document_notes.filter(
+                deleted_at__isnull=True,
+            ).select_related('created_by', 'resolved_by', 'deleted_by')
+        return DocumentNoteSerializer(notes, many=True).data
 
     def get_active_states(self, obj):
         return DocumentListSerializer().get_active_states(obj)

@@ -54,7 +54,7 @@ WorkflowState = DocumentState
 WorkflowStateEpisode = DocumentStateEpisode
 WorkflowStateEpisodeEvent = DocumentStateEpisodeEvent
 WorkflowStateGroup = DocumentStateGroup
-from .document_note import DocumentNote
+from .document_note import DocumentNote, DocumentNoteEvent
 from .issuer_profile import IssuerProfile
 from .document_number_sequence import (
     ClientDocumentNumberSequence,

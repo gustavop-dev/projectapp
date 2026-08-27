@@ -905,8 +905,39 @@ local episode event stream is the canonical audit for state changes; generic his
 does not duplicate those movements. Catalog renames preserve stable integration keys,
 and merging retires the source while keeping historical meaning and merge events.
 `document_note_service` owns note linkage and only closes needs-fix after the final
-open linked observation is resolved or discarded. Client visibility is orthogonal and
-never derived from an episode.
+undeleted open linked observation is resolved, discarded or deleted. Client visibility
+is orthogonal and never derived from an episode.
+
+### Observation Decision → Recoverable Trash → State Reconciliation
+
+```mermaid
+flowchart LR
+    Active["Active observation"] --> Choice{"Operator intent"}
+    Choice -->|"real but not addressed"| Discard["Discard + optional reason"]
+    Choice -->|"never should exist"| Confirm["Contextual confirmation"]
+    Confirm --> Atomic["delete_notes() atomic lock"]
+    Atomic --> Trash["deleted_at + deleted_by"]
+    Atomic --> Audit["DELETED event: actor/time only"]
+    Atomic --> Pending{"Last undeleted open note?"}
+    Pending -->|"yes, origin=note"| RemoveState["Close episode as removed"]
+    Pending -->|"manual/shared"| PreserveState["Preserve active state"]
+    Trash --> Restore["restore_note()"]
+    Restore --> Compatible{"State compatible?"}
+    Compatible -->|yes| Reopen["Reopen/reuse episode + RESTORED event"]
+    Compatible -->|no| Rollback["Rollback; remain in trash"]
+```
+
+`DocumentNote.deleted_at/deleted_by` is the recoverable record; default document,
+history and episode serializers exclude it. `DocumentNoteEvent` is append-only and
+deliberately omits content snapshots. REST and the Documents MCP converge on the
+same locked service, including one-document bulk validation and automatic state
+coherence. The note manager renders active, trash and activity panes inside the
+existing `BaseModal`; destructive confirmation is an internal state of that dialog,
+so no nested browser prompt or one-click list deletion exists.
+
+Panel dialog policy is enforced separately from individual consumers: confirmations
+and text capture use `BaseModal`/`ConfirmModal`, errors remain inline/actionable, and
+`check-panel-native-dialogs.mjs` scans every reachable panel page/component in CI.
 
 ### Project State Preview → Consequences → Episode
 

@@ -40,7 +40,12 @@ from content.services import collection_account_service as ca_service
 from content.services import collection_account_create_service as ca_create_service
 from content.services.document_content import build_content_json
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
-from content.services.document_note_service import create_note, finish_note
+from content.services.document_note_service import (
+    create_note,
+    delete_notes,
+    finish_note,
+    restore_note,
+)
 from content.services.document_state_service import (
     correct_opened_at,
     open_state,
@@ -390,6 +395,21 @@ class Command(BaseCommand):
                     opened_at=now - timedelta(days=12 if cycle_key == 'sent' else 5),
                 )
 
+        if scenario == 0:
+            create_note(
+                document,
+                title='Prueba temporal 1',
+                content='Observación de prueba pendiente de limpiar.',
+                actor=actor,
+            )
+            create_note(
+                document,
+                title='Prueba temporal 2',
+                content='Duplicado de prueba para validar la limpieza masiva.',
+                actor=actor,
+            )
+            return
+
         if scenario not in (3, 4):
             return
         note = create_note(
@@ -410,6 +430,29 @@ class Command(BaseCommand):
                 resolution_note='Dato corregido y verificado.',
                 close_linked_state=True,
                 move_cycle_to_bug_attended=True,
+            )
+            restored = create_note(
+                document,
+                title='Texto recuperado',
+                content='Ejemplo de una observación restaurada desde la papelera.',
+                actor=actor,
+            )
+            delete_notes(document, note_ids=[restored.id], actor=actor)
+            restore_note(restored, actor=actor)
+        else:
+            test_notes = [
+                create_note(
+                    document,
+                    title=f'Prueba eliminada {number}',
+                    content='Ruido de prueba conservado sólo en la papelera recuperable.',
+                    actor=actor,
+                )
+                for number in (1, 2)
+            ]
+            delete_notes(
+                document,
+                note_ids=[item.id for item in test_notes],
+                actor=actor,
             )
 
     def _archive_demo_state(self, leaves, md_type, admin):
