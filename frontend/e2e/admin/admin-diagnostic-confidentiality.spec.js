@@ -134,27 +134,27 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
 
     // Consultor section pre-fills Project App SAS.
     const contractorSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Consultor' }) });
-    const contractorName = contractorSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
+    const contractorName = contractorSection.getByLabel('Razón social / Nombre', { exact: true });
     await expect(contractorName).toHaveValue('Project App SAS');
 
-    const contractCity = modal.locator('label').filter({ hasText: 'Ciudad' }).locator('input');
+    const contractCity = modal.getByLabel('Ciudad', { exact: true });
     await expect(contractCity).toHaveValue('Medellín');
 
-    const penalClause = modal.locator('label').filter({ hasText: 'Cláusula penal' }).locator('input');
+    const penalClause = modal.getByLabel('Cláusula penal (valor)', { exact: true });
     await expect(penalClause).toHaveValue(
       'CINCUENTA SALARIOS MÍNIMOS MENSUALES LEGALES VIGENTES (50 SMMLV)',
     );
 
     // Fill client block.
     const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
-    await clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input')
+    await clientSection.getByLabel('Razón social / Nombre', { exact: true })
       .fill('Acme Corp SAS');
-    await modal.locator('label').filter({ hasText: 'NIT / C.C.' }).locator('input')
+    await modal.getByLabel('NIT / C.C.', { exact: true })
       .fill('900.123.456-7');
 
     // The consultant must be identified by one of its two documents; the
     // defaults do not carry either, so the save is gated until one is filled.
-    await contractorSection.locator('label').filter({ hasText: /^NIT$/ }).locator('input')
+    await contractorSection.getByLabel('NIT', { exact: true })
       .fill('1021513348-7');
 
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();
@@ -219,7 +219,7 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
     // the server error is what we end up asserting on.
     await modalRoot(page).locator('section')
       .filter({ has: page.locator('h3', { hasText: 'Consultor' }) })
-      .locator('label').filter({ hasText: /^NIT$/ }).locator('input')
+      .getByLabel('NIT', { exact: true })
       .fill('1021513348-7');
 
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();

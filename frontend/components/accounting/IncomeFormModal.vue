@@ -531,7 +531,7 @@ function onSubmit() {
         :cols="2"
         :gap="4"
         :help="isHosting ? cadenceHint : periodDateHint"
-        help-testid="income-form-period-hint"
+        :help-testid="isHosting ? undefined : 'income-form-period-hint'"
       >
         <BaseFormField label="Tipo" required>
           <BaseSegmented v-model="form.kind" :options="kindOptions" full-width />
@@ -566,7 +566,7 @@ function onSubmit() {
         :cols="2"
         :gap="4"
         :help="periodStartHint"
-        help-testid="income-form-period-start-hint"
+        help-testid="income-form-period-hint"
       >
         <PeriodDateField
           v-model="form.period_start"

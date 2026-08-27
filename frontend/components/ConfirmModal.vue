@@ -1,7 +1,8 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    kind="confirm"
+    :size="size"
+    :kind="size === 'md' ? 'confirm' : ''"
     :close-on-backdrop="!hideCancel && !loading"
     :close-on-esc="!hideCancel && !loading"
     @update:model-value="(v) => !v && handleCancel()"

@@ -15,17 +15,36 @@
                 Cliente
               </h3>
               <BaseFormRow :cols="2" :gap="3" at="sm">
-                <BaseFormField label="Razón social / Nombre" size="sm">
-                  <BaseInput v-model="form.client_full_name" type="text" size="sm" />
+                <BaseFormField
+                  label="Razón social / Nombre"
+                  for="confidentiality-client-name"
+                  size="sm"
+                >
+                  <BaseInput
+                    id="confidentiality-client-name"
+                    v-model="form.client_full_name"
+                    type="text"
+                    size="sm"
+                  />
                 </BaseFormField>
-                <BaseFormField label="NIT / C.C." size="sm">
-                  <BaseInput v-model="form.client_cedula" type="text" size="sm" />
+                <BaseFormField label="NIT / C.C." for="confidentiality-client-id" size="sm">
+                  <BaseInput id="confidentiality-client-id" v-model="form.client_cedula" type="text" size="sm" />
                 </BaseFormField>
-                <BaseFormField label="Representante legal" size="sm" class="sm:col-span-2">
-                  <BaseInput v-model="form.client_legal_representative" type="text" size="sm" />
+                <BaseFormField
+                  label="Representante legal"
+                  for="confidentiality-client-representative"
+                  size="sm"
+                  class="sm:col-span-2"
+                >
+                  <BaseInput
+                    id="confidentiality-client-representative"
+                    v-model="form.client_legal_representative"
+                    type="text"
+                    size="sm"
+                  />
                 </BaseFormField>
-                <BaseFormField label="Correo electrónico" size="sm" class="sm:col-span-2">
-                  <BaseInput v-model="form.client_email" type="email" size="sm" />
+                <BaseFormField label="Correo electrónico" for="confidentiality-client-email" size="sm" class="sm:col-span-2">
+                  <BaseInput id="confidentiality-client-email" v-model="form.client_email" type="email" size="sm" />
                 </BaseFormField>
               </BaseFormRow>
             </section>
@@ -35,17 +54,26 @@
                 Consultor (Project App)
               </h3>
               <BaseFormRow :cols="2" :gap="3" at="sm">
-                <BaseFormField label="Razón social / Nombre" size="sm">
-                  <BaseInput v-model="form.contractor_full_name" type="text" size="sm" />
+                <BaseFormField
+                  label="Razón social / Nombre"
+                  for="confidentiality-contractor-name"
+                  size="sm"
+                >
+                  <BaseInput
+                    id="confidentiality-contractor-name"
+                    v-model="form.contractor_full_name"
+                    type="text"
+                    size="sm"
+                  />
                 </BaseFormField>
-                <BaseFormField label="NIT" size="sm">
-                  <BaseInput v-model="form.contractor_nit" type="text" size="sm" />
+                <BaseFormField label="NIT" for="confidentiality-contractor-nit" size="sm">
+                  <BaseInput id="confidentiality-contractor-nit" v-model="form.contractor_nit" type="text" size="sm" />
                 </BaseFormField>
-                <BaseFormField label="Cédula" size="sm">
-                  <BaseInput v-model="form.contractor_cedula" type="text" size="sm" />
+                <BaseFormField label="Cédula" for="confidentiality-contractor-id" size="sm">
+                  <BaseInput id="confidentiality-contractor-id" v-model="form.contractor_cedula" type="text" size="sm" />
                 </BaseFormField>
-                <BaseFormField label="Correo electrónico" size="sm">
-                  <BaseInput v-model="form.contractor_email" type="email" size="sm" />
+                <BaseFormField label="Correo electrónico" for="confidentiality-contractor-email" size="sm">
+                  <BaseInput id="confidentiality-contractor-email" v-model="form.contractor_email" type="email" size="sm" />
                 </BaseFormField>
                 <template #help>
                   <span>Indica NIT o cédula. El NIT tiene prioridad en el acuerdo.</span>
@@ -59,22 +87,31 @@
                 Datos del acuerdo
               </h3>
               <div class="space-y-3">
-                <BaseFormField label="Ciudad" size="sm">
-                  <BaseInput v-model="form.contract_city" type="text" size="sm" />
+                <BaseFormField label="Ciudad" for="confidentiality-city" size="sm">
+                  <BaseInput id="confidentiality-city" v-model="form.contract_city" type="text" size="sm" />
                 </BaseFormField>
                 <BaseFormRow :cols="3" :gap="3" at="sm">
-                  <BaseFormField label="Día" size="sm">
-                    <BaseInput v-model="form.contract_day" type="text" placeholder="Ej: 16" size="sm" />
+                  <BaseFormField label="Día" for="confidentiality-day" size="sm">
+                    <BaseInput id="confidentiality-day" v-model="form.contract_day" type="text" placeholder="Ej: 16" size="sm" />
                   </BaseFormField>
-                  <BaseFormField label="Mes" size="sm">
-                    <BaseInput v-model="form.contract_month" type="text" placeholder="Ej: abril" size="sm" />
+                  <BaseFormField label="Mes" for="confidentiality-month" size="sm">
+                    <BaseInput id="confidentiality-month" v-model="form.contract_month" type="text" placeholder="Ej: abril" size="sm" />
                   </BaseFormField>
-                  <BaseFormField label="Año" size="sm">
-                    <BaseInput v-model="form.contract_year" type="text" placeholder="Ej: 2026" size="sm" />
+                  <BaseFormField label="Año" for="confidentiality-year" size="sm">
+                    <BaseInput id="confidentiality-year" v-model="form.contract_year" type="text" placeholder="Ej: 2026" size="sm" />
                   </BaseFormField>
                 </BaseFormRow>
-                <BaseFormField label="Cláusula penal (valor)" size="sm">
-                  <BaseInput v-model="form.penal_clause_value" type="text" size="sm" />
+                <BaseFormField
+                  label="Cláusula penal (valor)"
+                  for="confidentiality-penal-clause"
+                  size="sm"
+                >
+                  <BaseInput
+                    id="confidentiality-penal-clause"
+                    v-model="form.penal_clause_value"
+                    type="text"
+                    size="sm"
+                  />
                 </BaseFormField>
               </div>
             </section>

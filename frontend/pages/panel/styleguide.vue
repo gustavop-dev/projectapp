@@ -138,7 +138,7 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
 
 <template>
   <div class="space-y-10" data-testid="styleguide-page">
-    <header class="flex items-start justify-between gap-4">
+    <header class="flex flex-col items-start gap-4 panel-portrait:flex-row panel-portrait:justify-between">
       <div>
         <h1 class="text-panel-title font-light text-text-default">Design System — Styleguide</h1>
         <p class="text-sm text-text-muted mt-1">
