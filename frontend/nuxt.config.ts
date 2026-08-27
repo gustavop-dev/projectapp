@@ -160,7 +160,9 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en-us',
     strategy: 'prefix',
-    detectBrowserLanguage: false,
+    detectBrowserLanguage: {
+      redirectOn: 'all',
+    },
     // SEO
     baseUrl: 'https://projectapp.co',
   },
