@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :model-value="visible" size="lg" @update:model-value="(open) => { if (!open) $emit('close') }">
+  <BaseModal :model-value="visible" kind="form" @update:model-value="(open) => { if (!open) $emit('close') }">
     <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10 flex items-start justify-between">
       <div>
         <h2 class="text-lg font-semibold text-text-default">Acciones del diagnóstico</h2>

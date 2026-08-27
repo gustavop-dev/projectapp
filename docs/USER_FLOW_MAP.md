@@ -5608,7 +5608,7 @@ Two transitions that were previously bundled into other flows now have their own
   6. En **Pegar Markdown**, escribe o pega contenido y revisa el preview vivo; en **Cargar Archivo**, selecciona un `.md` y revisa el contenido cargado.
   7. Admin pulsa **Crear Documento**.
   8. `POST /api/documents/create-from-markdown/` recibe markdown, asociaciones, presentación, los tres mensajes privados y `client_custom_notes` (lista vacía si se omitió).
-  9. Al guardar, admin navega al gestor de documentos.
+  9. Al guardar, admin navega al Gestor Documental.
 - **Branches:**
   - [Display — notas] Cancelar cierra el modal sin aplicar el borrador; cada asunto, mensaje, título y contenido se puede copiar por separado con `📋`.
   - [Display — persistencia] El modal y la notificación posterior nombran el documento pendiente; aplicar al borrador no llama al servidor.
@@ -7090,7 +7090,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Routes:** `/panel/documents`
 - **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, el navegador recibe el nombre completo como ayuda y aparece **Ver completo** para expandirlo con corte seguro incluso cuando no contiene espacios. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija del encabezado **Título** ajusta el ancho entre 240 y 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
 - **Steps:**
-  1. Admin abre **Documentos PDF** y consulta el listado.
+  1. Admin abre **Gestor Documental** y consulta el listado.
   2. Un título recortado —con espacios o con guiones bajos— muestra la ayuda y **Ver completo**; uno que cabe no agrega información repetida.
   3. Pulsa **Ver completo** en la tabla o tarjeta y el título se despliega sin abrir el documento.
   4. Comprueba que la carpeta aparece debajo del título y que títulos, carpeta y metadatos permanecen dentro de la fila o tarjeta.

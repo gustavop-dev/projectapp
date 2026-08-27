@@ -44,7 +44,14 @@ const audiences = computed(() => {
 </script>
 
 <template>
-  <BaseButton variant="secondary" size="md" :data-testid="`view-module-card-${section.id}`" @click="emit('select', section.id)">
+  <BaseButton
+    variant="secondary"
+    size="md"
+    textPolicy="wrap"
+    class="group h-full w-full flex-col items-stretch text-left"
+    :data-testid="`view-module-card-${section.id}`"
+    @click="emit('select', section.id)"
+  >
     <div class="flex items-start gap-3">
       <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-soft text-text-brand">
         <!-- panel-action-icons: allow-content-glyph — identifies the module selected by this card. -->

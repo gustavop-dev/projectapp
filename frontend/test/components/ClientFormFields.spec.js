@@ -72,6 +72,21 @@ describe('ClientFormFields', () => {
     ).toBe('12');
   });
 
+  it('keeps the billing labels atomic', () => {
+    const wrapper = mountFields();
+    const labels = wrapper.findAll('label');
+
+    const billingLabels = labels.filter((label) => [
+      'C.C. / NIT (opcional)',
+      'Código de facturación (opcional)',
+    ].includes(label.text().trim()));
+
+    expect(billingLabels).toHaveLength(2);
+    billingLabels.forEach((label) => {
+      expect(label.classes()).toContain('whitespace-nowrap');
+    });
+  });
+
   it('drives each testid from the prefix so surfaces keep distinct hooks', () => {
     const wrapper = mount(ClientFormFields, {
       props: {

@@ -130,7 +130,7 @@ para que la elección sea decision-complete:
 | label | description |
 |---|---|
 | `No, sólo correo + WhatsApp` | Lo más común: avisar un envío o coordinar algo no necesita documento. |
-| `Sí, reporte de cambios` | Genera además el documento con la plantilla del fleet, lo guarda en `docs/reports/` y lo publica en el Gestor de Documentos (pide confirmación antes de crear o actualizar). |
+| `Sí, reporte de cambios` | Genera además el documento con la plantilla del fleet, lo guarda en `docs/reports/` y lo publica en el Gestor Documental (pide confirmación antes de crear o actualizar). |
 
 **El tratamiento (usted/tú) NO se pregunta.** Default `usted` — cliente de agencia
 en Colombia: nunca es incorrecto. Queda escrito en `profile.yml` con un comentario
@@ -168,7 +168,7 @@ haga con `$git-commit`.
 - **MCP opcional, todo read-only:**
   - `Gmail search_threads` / `get_thread` → nombre real del contacto y asunto del
     hilo previo (para que el correo enganche con la conversación existente).
-  - `Gestor de Documentos list_documents` / `read_document` → nombre exacto del
+  - `Gestor Documental list_documents` / `read_document` → nombre exacto del
     documento que se le envió.
   - **Guardrail:** si el conector no está en la sesión, **SALTAR**, dejar una línea
     de constancia y seguir. **Nunca fallar por esto.**
@@ -187,7 +187,7 @@ no la tiene, **no entra**.
 **Se delega en $client-report — no se reimplementa nada de esto.** Aplicá su
 procedimiento tal cual: su Phase 3 (crear el reporte con la plantilla del fleet en
 `docs/reports/<Tema_En_Snake_Case>_DDMMYYYY.md`), su Phase 3B (preparar la nota
-privada) y su Phase 4 (publicar reporte + nota en el Gestor de Documentos), usando
+privada) y su Phase 4 (publicar reporte + nota en el Gestor Documental), usando
 como insumos los que ya reuniste en la Phase 3 de acá.
 
 De `client-report` se hereda **todo** lo del reporte y del Gestor, incluida la
@@ -331,7 +331,7 @@ sirve en todos lados. `sync-shared-skills.sh` **no toca `config/`**.
 10. **La fecha SIEMPRE de `date`.** Nunca asumida.
 11. **Guardrail MCP:** conector ausente → SALTAR, una línea de constancia, seguir.
     Si el reporte se pidió y el Gestor no está, se escribe igual el `.md` local y se
-    avisa `Gestor de Documentos: n/a en esta sesión`.
+    avisa `Gestor Documental: n/a en esta sesión`.
 12. **Nunca crear carpeta ni documento en el Gestor sin confirmación explícita.** Esta
     skill tiene los tools de escritura del Gestor en `allowed-tools`, pero las reglas
     de qué se crea y dónde son de $client-report — no las reinterpretes acá.

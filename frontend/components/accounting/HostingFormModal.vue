@@ -190,7 +190,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" kind="form" size="lg" title-id="hosting-form-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="form-wide" title-id="hosting-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="hosting-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
@@ -291,11 +291,12 @@ function onSubmit() {
         </BaseFormField>
       </BaseFormRow>
 
-      <BaseFormRow :cols="2" :gap="4">
-        <BaseFormField
-          label="Email del cliente"
-          hint="Opcional: si lo dejas vacío se usa el correo del cliente"
-        >
+      <BaseFormRow
+        :cols="2"
+        :gap="4"
+        help="Si el email queda vacío, se usa el correo del cliente."
+      >
+        <BaseFormField label="Email del cliente">
           <BaseInput
             v-model="form.client_email"
             type="email"

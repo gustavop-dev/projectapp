@@ -22,7 +22,7 @@ const props = defineProps({
   kind: {
     type: String,
     default: '',
-    validator: oneOf(['', 'confirm', 'form', 'detail', 'workspace']),
+    validator: oneOf(['', 'confirm', 'form', 'form-wide', 'wizard', 'detail', 'workspace']),
   },
   closeOnBackdrop: { type: Boolean, default: true },
   closeOnEsc: { type: Boolean, default: true },
@@ -57,6 +57,8 @@ const sizes = {
 const kinds = {
   confirm: 'max-w-none panel-portrait:max-w-md',       // 28rem
   form: 'max-w-none panel-portrait:max-w-2xl',         // 42rem
+  'form-wide': 'max-w-none panel-portrait:max-w-5xl',  // 64rem
+  wizard: 'max-w-none panel-portrait:max-w-7xl',       // 80rem
   detail: 'max-w-none panel-portrait:max-w-5xl',       // 64rem
   workspace: 'max-w-none panel-portrait:max-w-[min(90vw,100rem)]',
 }

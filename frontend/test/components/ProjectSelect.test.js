@@ -51,7 +51,7 @@ function mountSelect(props = {}) {
         Teleport: true,
         BaseFormField: {
           props: ['label', 'hint'],
-          template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
+          template: '<div :data-hint="hint"><label v-if="label">{{ label }}</label><slot /></div>',
         },
         BaseInput: {
           props: ['modelValue', 'placeholder'],
@@ -93,6 +93,13 @@ describe('ProjectSelect', () => {
     expect(input(wrapper).attributes('disabled')).toBeDefined();
     expect(input(wrapper).attributes('placeholder')).toBe('Elige un cliente primero');
     expect(get_request).not.toHaveBeenCalled();
+  });
+
+  it('lets grouped filter rows move its hint below the complete group', async () => {
+    const wrapper = mountSelect({ showHint: false });
+    await flushPromises();
+
+    expect(wrapper.attributes('data-hint')).toBe('');
   });
 
   it('filters the fetched list locally while typing', async () => {

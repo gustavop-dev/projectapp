@@ -6,7 +6,9 @@
  * by hand. The row owns three shared bands (label / control / hint) and each
  * `BaseFormField` inside inherits them, so the controls start at the same height
  * even when one label wraps to two lines and the other does not — and the line
- * below stays square when only one field carries a hint.
+ * below stays square when only one field carries an error. Explanatory help is
+ * rendered once below the whole group instead of reserving a blank hint cell in
+ * every column.
  *
  * Below the breakpoint the fields stack in a single column: no bands, so no
  * reserved space is left over, and the DOM order is the reading order.
@@ -21,7 +23,14 @@
  * `class="panel-portrait:col-span-2 panel-portrait:row-span-3"`.
  */
 import { computed, provide } from 'vue'
-import { FORM_ROW_ALIGN, ROW_BANDS, ROW_COLS, ROW_COLS_LG, ROW_GAP } from './formRowClasses'
+import {
+  FORM_ROW_ALIGN,
+  ROW_BANDS,
+  ROW_COLS,
+  ROW_COLS_LG,
+  ROW_FIELD_ACTION,
+  ROW_GAP,
+} from './formRowClasses'
 import { oneOf } from './propValidators'
 
 const props = defineProps({
@@ -40,17 +49,31 @@ const props = defineProps({
   },
   /** The row is sometimes the `<form>` itself rather than a wrapper around it. */
   as: { type: String, default: 'div', validator: oneOf(['div', 'form']) },
+  /** Equal columns by default; `field-action` keeps a compact companion button
+   * aligned with the control instead of centring it against label + help. */
+  layout: {
+    type: String,
+    default: 'equal',
+    validator: oneOf(['equal', 'field-action']),
+  },
+  /** Short explanation for the complete group, rendered below every column. */
+  help: { type: String, default: '' },
+  helpTestid: { type: String, default: '' },
 })
 
 // A single column has nothing to align: the fields already stack, and asking
 // them for a subgrid would make both claim the same three bands.
-const alignAt = computed(() => (props.cols > 1 || props.lg > 1 ? props.at : null))
+const alignAt = computed(() => (
+  props.layout === 'field-action' || props.cols > 1 || props.lg > 1 ? props.at : null
+))
 provide(FORM_ROW_ALIGN, alignAt)
 
 const rowClass = computed(() => [
   ROW_GAP[props.gap] || ROW_GAP[3],
-  ROW_COLS[props.at][props.cols] || '',
-  ROW_COLS_LG[props.lg] || '',
+  props.layout === 'field-action'
+    ? ROW_FIELD_ACTION[props.at]
+    : (ROW_COLS[props.at][props.cols] || ''),
+  props.layout === 'equal' ? (ROW_COLS_LG[props.lg] || '') : '',
   alignAt.value ? ROW_BANDS[props.at] : '',
 ])
 </script>
@@ -58,5 +81,12 @@ const rowClass = computed(() => [
 <template>
   <component :is="as" class="grid grid-cols-1" :class="rowClass">
     <slot />
+    <p
+      v-if="help || $slots.help"
+      class="col-span-full -mt-2 text-xs text-text-muted"
+      :data-testid="helpTestid || undefined"
+    >
+      <slot name="help">{{ help }}</slot>
+    </p>
   </component>
 </template>

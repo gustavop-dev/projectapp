@@ -164,4 +164,23 @@ describe('BaseButton', () => {
     const cls = wrapper.find('button').attributes('class') || ''
     expect(cls).toContain('focus:ring-focus-ring/40')
   })
+
+  it('keeps icon and short text atomic by default', () => {
+    const wrapper = mount(BaseButton, {
+      slots: { default: '<svg data-testid="icon" /> Guardar cambios' },
+    })
+
+    expect(wrapper.get('button').classes()).toEqual(
+      expect.arrayContaining(['flex-nowrap', 'whitespace-nowrap']),
+    )
+  })
+
+  it('allows a sentence-like action to wrap explicitly', () => {
+    const wrapper = mount(BaseButton, {
+      props: { textPolicy: 'wrap' },
+      slots: { default: 'Continuar aunque falten datos opcionales' },
+    })
+
+    expect(wrapper.get('button').classes()).toContain('whitespace-normal')
+  })
 })

@@ -1,6 +1,10 @@
 <script setup>
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
+import BaseButton from '~/components/base/BaseButton.vue';
+import BaseFormField from '~/components/base/BaseFormField.vue';
+import BaseFormRow from '~/components/base/BaseFormRow.vue';
+import BaseFormRowAction from '~/components/base/BaseFormRowAction.vue';
 
 /**
  * Filtros de asociación del listado de documentos.
@@ -38,54 +42,59 @@ function toggleProjectNone() {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-end gap-3">
-    <div class="flex-1 min-w-[14rem]">
-      <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
-      <ClientAutocomplete
-        :key="client === 'none' ? 'client-none' : 'client-picker'"
-        :model-value="typeof client === 'number' ? client : null"
-        :initial-label="clientLabel"
-        :show-linked-hint="false"
-        placeholder="Filtrar por cliente..."
-        test-id="documents-filter-client"
-        @select="onClientSelect"
-      />
-    </div>
-    <!-- design-tokens: allow-raw-button -->
-    <button
-      type="button"
-      class="px-3 py-2.5 rounded-xl text-sm border transition-colors flex-shrink-0"
-      :class="client === 'none'
-        ? 'bg-primary-soft text-text-brand border-focus-ring/40 font-medium'
-        : 'bg-surface-raised text-text-muted border-border-default hover:text-text-default'"
-      data-testid="documents-filter-client-none"
-      :aria-pressed="client === 'none'"
-      @click="toggleClientNone"
+  <div class="grid grid-cols-1 gap-4 panel-landscape:grid-cols-2">
+    <BaseFormRow layout="field-action">
+      <BaseFormField label="Cliente">
+        <ClientAutocomplete
+          :key="client === 'none' ? 'client-none' : 'client-picker'"
+          :model-value="typeof client === 'number' ? client : null"
+          :initial-label="clientLabel"
+          :show-linked-hint="false"
+          placeholder="Filtrar por cliente..."
+          test-id="documents-filter-client"
+          @select="onClientSelect"
+        />
+      </BaseFormField>
+      <BaseFormRowAction>
+        <BaseButton
+          type="button"
+          :variant="client === 'none' ? 'primary' : 'secondary'"
+          class="w-full panel-portrait:w-auto"
+          data-testid="documents-filter-client-none"
+          :aria-pressed="client === 'none'"
+          @click="toggleClientNone"
+        >
+          Sin cliente
+        </BaseButton>
+      </BaseFormRowAction>
+    </BaseFormRow>
+
+    <BaseFormRow
+      layout="field-action"
+      help="Opcional. Filtra por un proyecto o elige «Sin proyecto»."
+      help-testid="documents-filter-project-help"
     >
-      Sin cliente
-    </button>
-    <div class="flex-1 min-w-[14rem]">
       <ProjectSelect
         :model-value="typeof project === 'number' ? project : null"
         :client-profile-id="typeof client === 'number' ? client : null"
         :allow-no-client="true"
         :allow-create="false"
+        :show-hint="false"
         testid="documents-filter-project"
         @update:model-value="onProjectPicked"
       />
-    </div>
-    <!-- design-tokens: allow-raw-button -->
-    <button
-      type="button"
-      class="px-3 py-2.5 rounded-xl text-sm border transition-colors flex-shrink-0"
-      :class="project === 'none'
-        ? 'bg-primary-soft text-text-brand border-focus-ring/40 font-medium'
-        : 'bg-surface-raised text-text-muted border-border-default hover:text-text-default'"
-      data-testid="documents-filter-project-none"
-      :aria-pressed="project === 'none'"
-      @click="toggleProjectNone"
-    >
-      Sin proyecto
-    </button>
+      <BaseFormRowAction>
+        <BaseButton
+          type="button"
+          :variant="project === 'none' ? 'primary' : 'secondary'"
+          class="w-full panel-portrait:w-auto"
+          data-testid="documents-filter-project-none"
+          :aria-pressed="project === 'none'"
+          @click="toggleProjectNone"
+        >
+          Sin proyecto
+        </BaseButton>
+      </BaseFormRowAction>
+    </BaseFormRow>
   </div>
 </template>

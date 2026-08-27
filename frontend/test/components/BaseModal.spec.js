@@ -12,6 +12,10 @@ function mountModal(props = {}, slots = { default: '<p>contenido</p>' }) {
   })
 }
 
+function getModalPanel() {
+  return document.body.querySelector('[data-modal-kind]')
+}
+
 describe('BaseModal', () => {
   afterEach(() => {
     document.body.innerHTML = ''
@@ -42,7 +46,7 @@ describe('BaseModal', () => {
     ['full', 'panel-portrait:max-w-[min(90vw,1600px)]'],
   ])('maps size=%s to %s', (size, expected) => {
     const wrapper = mountModal({ size })
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(panel.className).toContain('max-w-none')
     expect(panel.className).toContain(expected)
     wrapper.unmount()
@@ -50,7 +54,7 @@ describe('BaseModal', () => {
 
   it('lets the panel grow and scroll as a whole by default', () => {
     const wrapper = mountModal()
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(panel.className).toContain('h-dvh')
     expect(panel.className).toContain('panel-portrait:max-h-[90vh]')
     expect(panel.className).toContain('overflow-y-auto')
@@ -62,7 +66,7 @@ describe('BaseModal', () => {
     // The slot owns the scroll in this mode (fixed header/footer + panes that
     // scroll on their own); a scrollbar on the panel would nest inside theirs.
     const wrapper = mountModal({ fullHeight: true })
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(panel.className).toContain('h-dvh')
     expect(panel.className).toContain('panel-portrait:h-[90vh]')
     expect(panel.className).toContain('overflow-hidden')
@@ -73,18 +77,33 @@ describe('BaseModal', () => {
 
   it('uses the surface token for the modal panel background', () => {
     const wrapper = mountModal()
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(panel.className).toContain('bg-surface')
     wrapper.unmount()
   })
 
   it('uses the semantic modal kind as the width source of truth', () => {
     const wrapper = mountModal({ kind: 'form', size: 'sm' })
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(panel.className).toContain('max-w-none')
     expect(panel.className).toContain('panel-portrait:max-w-2xl')
     expect(panel.className).not.toContain('panel-portrait:max-w-sm')
     expect(panel.getAttribute('data-modal-kind')).toBe('form')
+    wrapper.unmount()
+  })
+
+  it.each([
+    ['confirm', 'panel-portrait:max-w-md'],
+    ['form', 'panel-portrait:max-w-2xl'],
+    ['form-wide', 'panel-portrait:max-w-5xl'],
+    ['wizard', 'panel-portrait:max-w-7xl'],
+    ['detail', 'panel-portrait:max-w-5xl'],
+    ['workspace', 'panel-portrait:max-w-[min(90vw,100rem)]'],
+  ])('maps semantic kind=%s to %s', (kind, expected) => {
+    const wrapper = mountModal({ kind })
+    const panel = getModalPanel()
+    expect(panel.className).toContain(expected)
+    expect(panel.getAttribute('data-modal-kind')).toBe(kind)
     wrapper.unmount()
   })
 
@@ -109,7 +128,7 @@ describe('BaseModal', () => {
 
   it('applies padding=md to the panel when requested', () => {
     const wrapper = mountModal({ padding: 'md' })
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(panel.className).toContain('p-6')
     wrapper.unmount()
   })
@@ -140,7 +159,7 @@ describe('BaseModal', () => {
     const wrapper = mountModal()
     await wrapper.vm.$nextTick()
     await wrapper.vm.$nextTick()
-    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    const panel = getModalPanel()
     expect(document.activeElement).toBe(panel)
     wrapper.unmount()
   })

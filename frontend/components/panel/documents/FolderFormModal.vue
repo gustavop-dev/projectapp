@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    size="lg"
+    kind="form"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="p-6 space-y-5" data-testid="folder-form-modal">

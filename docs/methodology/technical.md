@@ -220,6 +220,9 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - The operational compact boundary is `useIsMobile(PANEL_BREAKPOINTS.landscape - 1)`: the 412 px and 835 px reference viewports use drawers/cards; the 1195 px landscape reference uses the two-zone/table branch. Tailwind remains responsible for inner density and card columns, not for duplicating whole interactive trees.
 - `BaseDrawer` owns modal semantics, focus containment, Escape/backdrop close and body-scroll lock. Use it for a transient folder/filter/action zone; do not rebuild those mechanics inside a page.
 - `BaseModal` already uses `100dvh` below `panel-portrait` and preserves its semantic size above that boundary. Long workflows keep a scrollable body and sticky footer actions; consumers do not introduce a second fullscreen prop.
+- Semantic modal ceilings are `confirm` 28 rem, `form` 42 rem, `form-wide` 64 rem, `wizard` 80 rem, `detail` 64 rem and `workspace` `min(90vw, 100rem)`. Consumers select intent and do not pair `kind` with a legacy `size` override.
+- Short labels, chips, buttons and segmented options default to `white-space: nowrap`; a sentence-like exception must opt into `labelPolicy="wrap"` or `textPolicy="wrap"`. A segmented group may reflow between options, never inside one option.
+- Multi-column forms use `BaseFormRow` bands. Put explanatory copy in the row-level `help`/`#help` surface, and use `BaseFormRowAction` for a button beside a field so its vertical reference is the control band.
 - Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
 - The specialized Documents table declares its fixed business order and

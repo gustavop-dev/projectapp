@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    size="lg"
+    kind="form"
     initial-focus="#document-client-note-subject"
     @update:model-value="updateOpenState"
   >

@@ -14,7 +14,7 @@
   6. En **Pegar Markdown**, escribe o pega contenido y revisa el preview vivo; en **Cargar Archivo**, selecciona un `.md` y revisa el contenido cargado.
   7. Admin pulsa **Crear Documento**.
   8. `POST /api/documents/create-from-markdown/` recibe markdown, asociaciones, presentación, los tres mensajes privados y `client_custom_notes` (lista vacía si se omitió).
-  9. Al guardar, admin navega al gestor de documentos.
+  9. Al guardar, admin navega al Gestor Documental.
 - **Branches:**
   - [Display — notas] Cancelar cierra el modal sin aplicar el borrador; cada asunto, mensaje, título y contenido se puede copiar por separado con `📋`.
   - [Display — persistencia] El modal y la notificación posterior nombran el documento pendiente; aplicar al borrador no llama al servidor.
