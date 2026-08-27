@@ -33,6 +33,13 @@
             >
           </th>
           <th
+            v-if="hasMenuStart"
+            :style="actionsHeaderStyle"
+            :class="actionsHeaderClass"
+            :data-testid="`${testIdPrefix}-actions-header`"
+            aria-label="Acciones"
+          />
+          <th
             v-for="col in resolved"
             :key="col.key"
             :style="columnHeaderStyle(col)"
@@ -83,7 +90,7 @@
             />
           </th>
           <th
-            v-if="showActions"
+            v-if="showActions && !hasMenuStart"
             :style="actionsHeaderStyle"
             :class="[DENSITY.headerCell, 'text-center']"
           >Acciones</th>
@@ -98,6 +105,7 @@
             :data-testid="`${testIdPrefix}-skeleton-row`"
           >
             <td v-if="selectable" :class="DENSITY.cell" />
+            <td v-if="hasMenuStart" :style="actionsHeaderStyle" :class="actionsCellClass" />
             <td
               v-for="(col, colIndex) in resolved"
               :key="col.key"
@@ -108,7 +116,7 @@
                 :class="skeletonWidthClass(n, colIndex)"
               />
             </td>
-            <td v-if="showActions" :class="DENSITY.cell" />
+            <td v-if="showActions && !hasMenuStart" :class="DENSITY.cell" />
           </tr>
         </template>
         <tr v-else-if="rows.length === 0">
@@ -139,6 +147,33 @@
               :checked="selectedSet.has(row[rowKey])"
               @change="toggleRow(row[rowKey], $event.target.checked)"
             >
+          </td>
+          <td
+            v-if="hasMenuStart"
+            :style="actionsHeaderStyle"
+            :class="actionsCellClass"
+            :data-testid="`${testIdPrefix}-actions-cell-${row[rowKey]}`"
+            @click.stop
+            @auxclick.stop
+          >
+            <slot name="row-actions" :row="row" />
+            <BaseActionButton
+              v-if="showDefaultActions"
+              action="edit"
+              label="Editar"
+              :data-testid="`${testIdPrefix}-edit-${row[rowKey]}`"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+              @click.stop="emit('edit', row)"
+            />
+            <BaseActionButton
+              v-if="showDefaultActions"
+              action="delete"
+              label="Eliminar"
+              variant="danger-ghost"
+              size="sm"
+              :data-testid="`${testIdPrefix}-delete-${row[rowKey]}`"
+              @click.stop="emit('delete', row)"
+            />
           </td>
           <td
             v-for="col in resolved"
@@ -266,7 +301,7 @@
             </div>
           </td>
           <td
-            v-if="showActions"
+            v-if="showActions && !hasMenuStart"
             :class="[DENSITY.cell, 'text-center whitespace-nowrap']"
             @click.stop
             @auxclick.stop
@@ -307,6 +342,8 @@ import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
 import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
+  ROW_ACTION_LAYOUTS,
+  ROW_ACTION_MENU_TRACK,
   TABLE_DENSITY,
   actionsWidthFor,
   minWidthFor,
@@ -331,6 +368,15 @@ const props = defineProps({
   testIdPrefix: { type: String, default: 'accounting' },
   showActions: { type: Boolean, default: true },
   showDefaultActions: { type: Boolean, default: true },
+  /**
+   * `menu-start` is the compact kebab contract: selection, actions, data.
+   * `inline-end` preserves the wider legacy column used by loose icon rows.
+   */
+  rowActionsLayout: {
+    type: String,
+    default: ROW_ACTION_LAYOUTS.INLINE_END,
+    validator: (value) => Object.values(ROW_ACTION_LAYOUTS).includes(value),
+  },
   /** Search text to highlight inside default text cells. */
   highlightQuery: { type: String, default: '' },
   /** Active sort state (controlled by the page via @sort). */
@@ -369,7 +415,14 @@ const DENSITY = TABLE_DENSITY;
  * proportion to that — no single column absorbs it, which is what used to open
  * one wide gap next to the name.
  */
-const resolved = computed(() => resolveColumns(props.columns, { hasActions: props.showActions }));
+const hasMenuStart = computed(() => (
+  props.showActions && props.rowActionsLayout === ROW_ACTION_LAYOUTS.MENU_START
+));
+
+const resolved = computed(() => resolveColumns(props.columns, {
+  hasActions: props.showActions,
+  rowActionsLayout: props.rowActionsLayout,
+}));
 
 const tableContainerRef = ref(null);
 const { profile: viewportProfile } = usePanelViewportProfile();
@@ -379,7 +432,7 @@ const hasColumnResize = computed(() =>
 );
 
 const resizeColumns = computed(() => {
-  const configured = resolved.value.map((column) => ({
+  const dataColumns = resolved.value.map((column) => ({
     ...column,
     columnWidth: column.columnWidth || {
       min: column.minRem * 16,
@@ -388,29 +441,39 @@ const resizeColumns = computed(() => {
       fixed: true,
     },
   }));
+  const leadingControls = [];
   if (props.selectable) {
-    configured.unshift({
+    leadingControls.push({
       key: '__select',
       columnWidth: { min: 40, default: 40, max: 40, fixed: true },
     });
   }
-  if (props.showActions) {
-    configured.push({
+  if (hasMenuStart.value) {
+    leadingControls.push({
+      key: '__actions',
+      columnWidth: { min: 56, default: 56, max: 56, fixed: true },
+    });
+  }
+  const trailingControls = [];
+  if (props.showActions && !hasMenuStart.value) {
+    trailingControls.push({
       key: '__actions',
       columnWidth: { min: 80, default: 80, max: 80, fixed: true },
     });
   }
-  return configured;
+  return [...leadingControls, ...dataColumns, ...trailingControls];
 });
 
 const resizeVisibleKeys = computed(() => {
-  const keys = resolved.value
+  const dataKeys = resolved.value
     .filter((column) => ['desktop', 'wide'].includes(viewportProfile.value)
       || policyFor(column, viewportProfile.value) === 'keep')
     .map((column) => column.key);
-  if (props.selectable) keys.unshift('__select');
-  if (props.showActions) keys.push('__actions');
-  return keys;
+  const leadingKeys = [];
+  if (props.selectable) leadingKeys.push('__select');
+  if (hasMenuStart.value) leadingKeys.push('__actions');
+  const trailingKeys = props.showActions && !hasMenuStart.value ? ['__actions'] : [];
+  return [...leadingKeys, ...dataKeys, ...trailingKeys];
 });
 
 const resize = useResizableTableColumns({
@@ -425,7 +488,10 @@ const resize = useResizableTableColumns({
 const actionsWidth = computed(() => actionsWidthFor(resolved.value));
 
 const tableMinWidth = computed(
-  () => minWidthFor(resolved.value, { hasActions: props.showActions }),
+  () => minWidthFor(resolved.value, {
+    hasActions: props.showActions,
+    rowActionsLayout: props.rowActionsLayout,
+  }),
 );
 
 const hasResponsivePolicy = computed(() =>
@@ -444,8 +510,24 @@ function columnHeaderStyle(column) {
 }
 
 const actionsHeaderStyle = computed(() => (
-  hasColumnResize.value ? resize.columnStyle('__actions') : { width: actionsWidth.value }
+  hasColumnResize.value
+    ? resize.columnStyle('__actions')
+    : hasMenuStart.value
+      ? {
+        width: ROW_ACTION_MENU_TRACK,
+        minWidth: ROW_ACTION_MENU_TRACK,
+        maxWidth: ROW_ACTION_MENU_TRACK,
+      }
+      : { width: actionsWidth.value }
 ));
+
+const actionsHeaderClass = computed(() => [
+  'w-14 min-w-14 max-w-14 px-1.5 py-2 text-center',
+]);
+
+const actionsCellClass = computed(() => [
+  'w-14 min-w-14 max-w-14 px-1.5 py-1.5 text-center whitespace-nowrap',
+]);
 
 const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
 const POLICY_CLASSES = {

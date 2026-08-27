@@ -61,6 +61,36 @@ test.describe('Admin Document List', () => {
     await expect(page.getByRole('link', { name: /Nuevo Documento/i })).toBeVisible();
   });
 
+  test('renders actions as the leading unlabeled column', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display', '@responsive:documents'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display contract: DOM order, blank label and computed fixed width are the observable outcome)
+    // quality: allow-deep-link (the canonical list-entry flow is covered elsewhere; this test isolates the table layout contract)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      return null;
+    });
+    await page.goto('/panel/documents');
+
+    const actionsHeader = page.getByTestId('documents-column-actions');
+    await expect(actionsHeader).toBeVisible({ timeout: 15000 });
+    const leadingHeaders = await actionsHeader.evaluate((header) => (
+      Array.from(header.parentElement.children).slice(0, 2).map((cell) => ({
+        testId: cell.getAttribute('data-testid'),
+        label: cell.getAttribute('aria-label'),
+        text: cell.textContent.trim(),
+      }))
+    ));
+    expect(leadingHeaders).toEqual([
+      { testId: 'documents-column-actions', label: 'Acciones', text: '' },
+      { testId: null, label: null, text: 'Título' },
+    ]);
+    await expect(actionsHeader).toHaveCSS('width', '56px');
+  });
+
   test('shows empty state when no documents exist', {
     tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display', '@responsive:documents'],
   }, async ({ page }) => {
@@ -103,10 +133,13 @@ test.describe('Admin Document List', () => {
     await page.goto('/panel/documents');
 
     const row = page.getByRole('row', { name: /Contrato de Servicios/i });
-    await expect(row.getByRole('button', { name: /^Acciones de / })).toHaveCount(1);
+    const actionsButton = row.getByRole('button', { name: /^Acciones de / });
+    await expect(actionsButton).toBeVisible({ timeout: 15000 });
 
-    await row.getByRole('button', { name: /^Acciones de / }).click();
+    const listUrl = page.url();
+    await actionsButton.click();
 
+    await expect(page).toHaveURL(listUrl);
     await expect(page.getByRole('button', { name: /Editar contenido/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Renombrar/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Eliminar/i })).toBeVisible();

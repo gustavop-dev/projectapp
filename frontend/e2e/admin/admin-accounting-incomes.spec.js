@@ -348,6 +348,31 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByText('Kore - Inicio 40%')).toBeVisible();
   });
 
+  test('renders the classic leading menu control track', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display', '@responsive:accounting'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display contract: control order, blank heading and fixed width are the observable outcome)
+    // quality: allow-deep-link (the accounting subnav path is covered elsewhere; this test isolates table layout)
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls: [] }));
+    await gotoIncomes(page);
+
+    const actionsHeader = page.getByTestId('accounting-actions-header');
+    const leadingHeaders = await actionsHeader.evaluate((header) => (
+      Array.from(header.parentElement.children).slice(0, 3).map((cell) => ({
+        testId: cell.getAttribute('data-testid'),
+        label: cell.getAttribute('aria-label'),
+        text: cell.textContent.trim(),
+        hasCheckbox: Boolean(cell.querySelector('input[type="checkbox"]')),
+      }))
+    ));
+    expect(leadingHeaders).toEqual([
+      { testId: null, label: null, text: '', hasCheckbox: true },
+      { testId: 'accounting-actions-header', label: 'Acciones', text: '', hasCheckbox: false },
+      { testId: null, label: null, text: 'Concepto', hasCheckbox: false },
+    ]);
+    await expect(actionsHeader).toHaveCSS('width', '56px');
+  });
+
   test('creates an income with automatic 50/50 split', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -1690,6 +1715,17 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     // The unassigned bucket closes the list, flagged as completion work.
     await expect(page.getByTestId('income-group-none')).toContainText('por completar');
     await expect(page.getByTestId('income-grouped-billed-total')).toContainText('1.660.000');
+    const leadingHeaders = await page.getByTestId('accounting-actions-header')
+      .evaluate((header) => Array.from(header.parentElement.children).slice(0, 3).map((cell) => ({
+        testId: cell.getAttribute('data-testid'),
+        text: cell.textContent.trim(),
+        hasCheckbox: Boolean(cell.querySelector('input[type="checkbox"]')),
+      })));
+    expect(leadingHeaders).toEqual([
+      { testId: null, text: '', hasCheckbox: true },
+      { testId: 'accounting-actions-header', text: '', hasCheckbox: false },
+      { testId: null, text: 'Concepto', hasCheckbox: false },
+    ]);
     // The rows keep their actions inside the group.
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await page.getByTestId('income-actions-1').click();

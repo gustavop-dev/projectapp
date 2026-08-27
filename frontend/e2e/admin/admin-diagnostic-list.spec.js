@@ -75,6 +75,47 @@ test.describe('Admin Diagnostic List', () => {
     await expect(page.getByTestId('diagnostic-open-2')).toBeVisible();
   });
 
+  test('renders the leading menu control track', {
+    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display', '@responsive:commercial'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display contract: control order, blank heading and fixed width are the observable outcome)
+    // quality: allow-deep-link (the list navigation path is covered by the owning flow; this test isolates table layout)
+    await setupMock(page);
+    await page.goto('/panel/diagnostics/');
+
+    const actionsHeader = page.getByTestId('diagnostic-actions-header');
+    await expect(actionsHeader).toBeVisible({ timeout: 15000 });
+    const leadingHeaders = await actionsHeader.evaluate((header) => (
+      Array.from(header.parentElement.children).slice(0, 3).map((cell) => ({
+        testId: cell.getAttribute('data-testid'),
+        label: cell.getAttribute('aria-label'),
+        text: cell.textContent.trim(),
+        hasCheckbox: Boolean(cell.querySelector('input[type="checkbox"]')),
+      }))
+    ));
+    expect(leadingHeaders).toEqual([
+      { testId: null, label: null, text: '', hasCheckbox: true },
+      { testId: 'diagnostic-actions-header', label: 'Acciones', text: '', hasCheckbox: false },
+      { testId: null, label: null, text: 'Cliente', hasCheckbox: false },
+    ]);
+    await expect(actionsHeader).toHaveCSS('width', '56px');
+  });
+
+  test('opens row actions without navigating', {
+    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await page.goto('/panel/diagnostics/');
+
+    const actionsButton = page.getByRole('button', { name: 'Acciones de Diagnóstico Acme Corp' });
+    await expect(actionsButton).toBeVisible({ timeout: 15000 });
+    const listUrl = page.url();
+    await actionsButton.click();
+
+    await expect(page).toHaveURL(listUrl);
+    await expect(page.getByRole('heading', { name: 'Diagnóstico Acme Corp' })).toBeVisible();
+  });
+
   test('shows empty state message when no diagnostics exist', {
     tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display', '@responsive:commercial'],
   }, async ({ page }) => {

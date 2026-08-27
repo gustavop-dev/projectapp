@@ -7,10 +7,10 @@
  * out in proportion to that, and the density is one standard instead of
  * per-component guesswork.
  *
- * Consumed by AccountingTable.vue (a real <table>) and RecurringGroupedTable.vue
- * (an ARIA grid of divs), which is why every size carries BOTH a grid track and
- * a table width — the two layout engines need different units for the same
- * intent.
+ * Consumed by BaseResponsiveTable/AccountingTable (real <table> elements) and
+ * the grouped accounting tables (ARIA grids of divs), which is why every size
+ * carries BOTH a grid track and a table width — the two layout engines need
+ * different units for the same intent.
  *
  * NOTE: the Tailwind classes below only survive the JIT purge because
  * tailwind.config.js scans ./utils/**. Keep them as plain literals; a class
@@ -116,6 +116,19 @@ export const HANDLE_PAD = 'pl-4 pr-1 py-1.5';
 export const SELECT_TRACK = '2.5rem';
 export const SELECT_PAD = 'pl-4 pr-1 py-1.5';
 
+/**
+ * A kebab is a control track, not a data column. 3.5rem leaves the canonical
+ * 44px coarse-pointer target plus 6px of breathing room on either side, while
+ * staying completely outside the proportional data-column split.
+ */
+export const ROW_ACTION_MENU_TRACK = '3.5rem';
+export const ROW_ACTION_MENU_WIDTH_REM = 3.5;
+
+export const ROW_ACTION_LAYOUTS = Object.freeze({
+  INLINE_END: 'inline-end',
+  MENU_START: 'menu-start',
+});
+
 export const SIZE_NAMES = Object.keys(SIZES);
 
 /**
@@ -203,10 +216,15 @@ function padClassFor(col, prevCol, nextCol, base) {
  * `width` is that share as a percentage of the total weight, the actions column
  * included, so the percentages a table hands out add up to 100.
  */
-export function resolveColumns(columns = [], { hasActions = true } = {}) {
+export function resolveColumns(
+  columns = [],
+  { hasActions = true, rowActionsLayout = ROW_ACTION_LAYOUTS.INLINE_END } = {},
+) {
   const sizes = columns.map(inferSize);
   const totalWeight = sizes.reduce((total, size) => total + SIZES[size].weight, 0)
-    + (hasActions ? SIZES.icons.weight : 0);
+    + (hasActions && rowActionsLayout === ROW_ACTION_LAYOUTS.INLINE_END
+      ? SIZES.icons.weight
+      : 0);
 
   return columns.map((col, index) => {
     const size = sizes[index];
@@ -242,16 +260,24 @@ export function resolveColumns(columns = [], { hasActions = true } = {}) {
  */
 export function trackListFor(
   resolved,
-  { breakpoint = 'lg', hasHandle = false, hasSelect = false, hasActions = true } = {},
+  {
+    breakpoint = 'lg',
+    hasHandle = false,
+    hasSelect = false,
+    hasActions = true,
+    rowActionsLayout = ROW_ACTION_LAYOUTS.INLINE_END,
+  } = {},
 ) {
   const tracks = resolved
     .filter((col) => isVisibleAt(col, breakpoint))
     .map((col) => col.track);
+  const hasMenuStart = hasActions && rowActionsLayout === ROW_ACTION_LAYOUTS.MENU_START;
   return [
     ...(hasSelect ? [SELECT_TRACK] : []),
+    ...(hasMenuStart ? [ROW_ACTION_MENU_TRACK] : []),
     ...(hasHandle ? [HANDLE_TRACK] : []),
     ...tracks,
-    ...(hasActions ? [SIZES.icons.track] : []),
+    ...(hasActions && !hasMenuStart ? [SIZES.icons.track] : []),
   ].join(' ');
 }
 
@@ -274,14 +300,24 @@ export function actionsWidthFor(resolved) {
  */
 export function minWidthFor(
   resolved,
-  { breakpoint = 'lg', hasHandle = false, hasSelect = false, hasActions = true } = {},
+  {
+    breakpoint = 'lg',
+    hasHandle = false,
+    hasSelect = false,
+    hasActions = true,
+    rowActionsLayout = ROW_ACTION_LAYOUTS.INLINE_END,
+  } = {},
 ) {
   const columnsRem = resolved
     .filter((col) => isVisibleAt(col, breakpoint))
     .reduce((total, col) => total + col.minRem, 0);
   const extras = (hasHandle ? 1.75 : 0)
     + (hasSelect ? 2.5 : 0)
-    + (hasActions ? SIZES.icons.rem : 0);
+    + (hasActions
+      ? (rowActionsLayout === ROW_ACTION_LAYOUTS.MENU_START
+        ? ROW_ACTION_MENU_WIDTH_REM
+        : SIZES.icons.rem)
+      : 0);
   // No padding term: cell padding lives inside each track, so the floors above
   // already include it. Adding it again inflated the table past its container
   // and forced a horizontal scroll that clipped the last column.
