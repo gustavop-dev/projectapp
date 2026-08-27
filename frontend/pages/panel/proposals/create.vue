@@ -227,6 +227,7 @@
             <BaseToggle
               v-model="form.show_contract_terms"
               :disabled="form.language !== 'es'"
+              disabled-reason="El contrato y las condiciones solo están disponibles para propuestas en español."
               aria-label="Mostrar contrato y condiciones"
               data-testid="create-contract-terms-toggle"
             />
@@ -447,6 +448,7 @@
                 type="button"
                 class="text-xs text-primary hover:underline disabled:opacity-50"
                 :disabled="form.email_features.length >= MAX_EMAIL_FEATURES"
+                :title="form.email_features.length >= MAX_EMAIL_FEATURES ? `Ya alcanzaste el máximo de ${MAX_EMAIL_FEATURES} ítems.` : undefined"
                 data-testid="create-add-feature"
                 @click="addEmailFeature"
               >
@@ -594,6 +596,7 @@
           <BaseToggle
             v-model="jsonForm.show_contract_terms"
             :disabled="jsonForm.language !== 'es'"
+            disabled-reason="El contrato y las condiciones solo están disponibles para propuestas en español."
             aria-label="Mostrar contrato y condiciones"
             data-testid="json-contract-terms-toggle"
           />

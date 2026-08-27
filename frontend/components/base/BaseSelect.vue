@@ -9,6 +9,7 @@ defineProps({
   error: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
 })
 defineEmits(['update:modelValue'])
 
@@ -22,6 +23,7 @@ const normalize = (opt) =>
   <select
     :value="modelValue"
     :disabled="disabled"
+    :title="disabled && disabledReason ? disabledReason : undefined"
     :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md, error ? INPUT_FIELD_ERROR : '']"
     @change="$emit('update:modelValue', $event.target.value)"
   >

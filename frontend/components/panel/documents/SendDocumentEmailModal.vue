@@ -308,7 +308,13 @@
           <!-- Footer buttons -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end gap-2 flex-shrink-0">
             <template v-if="postSendData">
-              <BaseButton variant="ghost" :disabled="isTransitioning" data-testid="document-email-skip-sent-state" @click="completePostSend">
+              <BaseButton
+                variant="ghost"
+                :disabled="isTransitioning"
+                disabled-reason="Actualizando el estado de los documentos. Espera un momento."
+                data-testid="document-email-skip-sent-state"
+                @click="completePostSend"
+              >
                 Ahora no
               </BaseButton>
               <BaseButton variant="primary" :loading="isTransitioning" data-testid="document-email-confirm-sent-state" @click="markDocumentsAsSent">

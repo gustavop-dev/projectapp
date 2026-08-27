@@ -37,6 +37,7 @@ const props = defineProps({
   fullWidth: { type: Boolean, default: false },
   nowrap: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
   /** Accessible name of the group; the panel also renders a visible label. */
   label: { type: String, default: null },
   /** The option token that means "no cut" — clicking it clears the dimension. */
@@ -104,6 +105,8 @@ function toggle(opt) {
       :data-testid="testIdFor(opt)"
       :aria-pressed="isOn(opt)"
       :disabled="disabled || opt.disabled"
+      :title="(disabled && disabledReason) || opt.disabledReason || undefined"
+      :aria-description="(disabled && disabledReason) || opt.disabledReason || undefined"
       :class="[
         SEGMENTED_ITEM_BASE,
         sizeClass,

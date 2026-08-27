@@ -58,6 +58,19 @@ describe('BaseActionButton', () => {
     expect(wrapper.emitted('click')).toBeUndefined()
   })
 
+  it('keeps a disabled reason reachable from keyboard and touch', async () => {
+    const wrapper = factory({
+      disabled: true,
+      disabledReason: 'Ya estás en la primera página.',
+    })
+    const proxy = wrapper.get('[data-disabled-action-proxy]')
+
+    expect(proxy.attributes('tabindex')).toBe('0')
+    expect(proxy.attributes('aria-label')).toContain('Ya estás en la primera página.')
+    await proxy.trigger('click')
+    expect(wrapper.get('[role="tooltip"]').text()).toContain('Ya estás en la primera página.')
+  })
+
   it('shows the existing spinner instead of a second action glyph while loading', () => {
     const wrapper = factory({ loading: true })
     expect(wrapper.find('svg.base-action-icon').exists()).toBe(false)

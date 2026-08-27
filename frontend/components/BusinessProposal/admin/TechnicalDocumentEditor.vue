@@ -54,7 +54,7 @@
             </option>
           </select>
         </label>
-        <BaseButton variant="primary" size="sm" :disabled="!stubModuleId" @click="insertGenericStub">
+        <BaseButton variant="primary" size="sm" :disabled="!stubModuleId" disabled-reason="Selecciona un módulo antes de insertar su bloque." @click="insertGenericStub">
           Insertar módulo genérico
         </BaseButton>
       </div>

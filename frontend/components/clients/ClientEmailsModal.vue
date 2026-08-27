@@ -51,6 +51,7 @@
               variant="secondary"
               size="sm"
               :disabled="page <= 1"
+              disabled-reason="Ya estás en la primera página."
               data-testid="client-emails-prev"
               @click="goToPage(page - 1)"
             >
@@ -61,6 +62,7 @@
               variant="secondary"
               size="sm"
               :disabled="page >= numPages"
+              disabled-reason="Ya estás en la última página."
               data-testid="client-emails-next"
               @click="goToPage(page + 1)"
             >

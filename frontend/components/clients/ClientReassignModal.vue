@@ -22,6 +22,13 @@ const canConfirm = computed(() => Boolean(
   targetClientId.value != null && targetClient.value && !isSameClient.value && !props.busy,
 ))
 
+const confirmBlockReason = computed(() => {
+  if (props.busy) return ''
+  if (targetClientId.value == null || !targetClient.value) return 'Elige el cliente de destino.'
+  if (isSameClient.value) return 'Elige un cliente distinto al actual.'
+  return ''
+})
+
 watch(() => props.modelValue, (isOpen) => {
   if (!isOpen) return
   targetClientId.value = null
@@ -76,15 +83,26 @@ const confirm = () => {
 
     <div class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-border-muted bg-surface px-6 pb-6 pt-4">
       <BaseButton variant="secondary" size="md" @click="close">Cancelar</BaseButton>
-      <BaseButton
-        variant="primary"
-        size="md"
-        :disabled="!canConfirm"
-        data-testid="client-reassign-confirm"
-        @click="confirm"
+      <BaseControlGate
+        :reasons="confirmBlockReason ? [confirmBlockReason] : []"
+        label="Mover no disponible"
+        align="end"
       >
-        {{ busy ? 'Moviendo...' : 'Mover a otro cliente' }}
-      </BaseButton>
+        <template #default="{ describedBy }">
+          <BaseButton
+            variant="primary"
+            size="md"
+            :loading="busy"
+            :disabled="Boolean(confirmBlockReason)"
+            :disabled-reason="confirmBlockReason"
+            :aria-describedby="describedBy"
+            data-testid="client-reassign-confirm"
+            @click="confirm"
+          >
+            {{ busy ? 'Moviendo...' : 'Mover a otro cliente' }}
+          </BaseButton>
+        </template>
+      </BaseControlGate>
     </div>
   </BaseModal>
 </template>

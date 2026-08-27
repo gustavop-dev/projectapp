@@ -98,7 +98,7 @@ describe('ClientAutocomplete', () => {
     expect(wrapper.emitted('create-new')).toEqual([['Nombre Nuevo']]);
   });
 
-  it('renders the placeholder badge for clients without a real email', async () => {
+  it('warns before selection when a client has no real email', async () => {
     mockStore.searchClients.mockResolvedValueOnce({
       success: true,
       data: [
@@ -112,8 +112,9 @@ describe('ClientAutocomplete', () => {
     await flushPromises();
     await nextTick();
 
-    expect(wrapper.text()).toContain('placeholder');
-    expect(wrapper.text()).toContain('Email pendiente');
+    expect(wrapper.text()).toContain('Sin correo');
+    expect(wrapper.text()).toContain('Correo pendiente');
+    expect(wrapper.text()).toContain('habrá que agregarlo para enviar');
   });
 
   it('selects the highlighted option when enter is pressed', async () => {

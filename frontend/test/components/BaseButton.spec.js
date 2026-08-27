@@ -120,6 +120,19 @@ describe('BaseButton', () => {
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
   })
 
+  it('puts the semantic disabled reason on the native button', () => {
+    const wrapper = mount(BaseButton, {
+      props: {
+        disabled: true,
+        disabledReason: 'Selecciona un cliente antes de continuar.',
+      },
+      slots: { default: 'Continuar' },
+    })
+
+    expect(wrapper.get('button').attributes('title'))
+      .toBe('Selecciona un cliente antes de continuar.')
+  })
+
   it('renders a spinner and disables the button when loading is true', () => {
     const wrapper = mount(BaseButton, { props: { loading: true }, slots: { default: 'Guardando' } })
     expect(wrapper.find('svg').exists()).toBe(true)

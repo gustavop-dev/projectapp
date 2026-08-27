@@ -14,6 +14,7 @@
         action="previous"
         class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border-default bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         :disabled="currentPage <= 1"
+        disabled-reason="Ya estás en la primera página."
         :label="prevLabel"
         @click="$emit('prev')"
       />
@@ -44,6 +45,7 @@
         action="next"
         class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border-default bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         :disabled="currentPage >= totalPages"
+        disabled-reason="Ya estás en la última página."
         :label="nextLabel"
         @click="$emit('next')"
       />

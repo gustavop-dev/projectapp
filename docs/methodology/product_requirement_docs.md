@@ -475,6 +475,13 @@ The canonical counts, commands and exceptions are maintained in
 
 ## 5. Non-Functional Requirements
 
+- **Explain disabled controls**: A disabled panel control must state why it is
+  unavailable. If the operator can resolve the block, every missing prerequisite
+  is shown as adjacent text and remains available on hover, keyboard focus and
+  touch; lifecycle, permission and positional limits still expose a specific
+  reason. A transient operation uses its active status label. The collection
+  account flow additionally warns about clients without email in the selector
+  and permits an explicit inline repair without losing the draft.
 - **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
 - **Text containment**: Every panel table, card and metadata row must contain
   arbitrary user/API strings, including values with no spaces, at every canonical

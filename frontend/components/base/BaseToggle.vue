@@ -6,6 +6,7 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
   ariaLabel: { type: String, default: '' },
   // Color shown when modelValue is true. Defaults to brand primary.
   // Use a semantic class like 'bg-warning-strong' to convey state instead of action.
@@ -36,6 +37,7 @@ function toggle() {
     :aria-checked="modelValue"
     :aria-label="ariaLabel"
     :disabled="disabled"
+    :title="disabled && disabledReason ? disabledReason : undefined"
     class="relative inline-flex flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:opacity-60 disabled:cursor-not-allowed"
     :class="[s.track, modelValue ? onClass : offClass]"
     @click="toggle"

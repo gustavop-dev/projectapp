@@ -152,15 +152,26 @@
       >
         Cancelar
       </BaseButton>
-      <BaseButton
-        variant="primary"
-        size="sm"
-        :disabled="!canConfirm"
-        data-testid="project-change-client-confirm"
-        @click="confirmChange"
+      <BaseControlGate
+        :reasons="confirmBlockReasons"
+        label="Cambiar cliente no disponible"
+        align="end"
       >
-        {{ store.isUpdating ? 'Aplicando...' : 'Cambiar cliente del proyecto' }}
-      </BaseButton>
+        <template #default="{ describedBy }">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :loading="store.isUpdating || isLoadingPreview"
+            :disabled="Boolean(confirmBlockReasons.length)"
+            :disabled-reason="confirmBlockReasons.join(' ')"
+            :aria-describedby="describedBy"
+            data-testid="project-change-client-confirm"
+            @click="confirmChange"
+          >
+            {{ store.isUpdating ? 'Aplicando...' : 'Cambiar cliente del proyecto' }}
+          </BaseButton>
+        </template>
+      </BaseControlGate>
     </div>
   </BaseModal>
 </template>
@@ -215,6 +226,14 @@ const movable = computed(() => {
 const canConfirm = computed(() => Boolean(
   preview.value && mode.value && !store.isUpdating && !isLoadingPreview.value,
 ));
+
+const confirmBlockReasons = computed(() => [
+  clientId.value == null ? 'Elige el cliente de destino.' : '',
+  clientId.value != null && !preview.value && !isLoadingPreview.value
+    ? (errorMessage.value || 'Vuelve a cargar el impacto del cambio.')
+    : '',
+  preview.value && !mode.value ? 'Elige qué hacer con los registros vinculados.' : '',
+].filter(Boolean));
 
 watch(() => props.open, (open) => {
   if (!open) return;

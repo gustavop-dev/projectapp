@@ -21,6 +21,7 @@
           variant="secondary"
           size="sm"
           :disabled="!markdown"
+          disabled-reason="Actualiza la propuesta para generar el checklist antes de copiarlo."
           @click="handleCopy"
         >
           <BaseActionIcon action="copy" />
@@ -30,6 +31,7 @@
           variant="secondary"
           size="sm"
           :disabled="!markdown"
+          disabled-reason="Actualiza la propuesta para generar el checklist antes de descargarlo."
           @click="handleDownload"
         >
           <BaseActionIcon action="download" />

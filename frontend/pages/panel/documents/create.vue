@@ -17,9 +17,22 @@
         <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
-        <BaseButton variant="primary" size="md" type="submit" form="doc-create-form" :disabled="!canSubmit" :title="canSubmit ? '' : 'Falta título o contenido'">
-          {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
-        </BaseButton>
+        <BaseControlGate :reasons="createBlockReasons" label="Crear documento no disponible" align="end">
+          <template #default="{ describedBy }">
+            <BaseButton
+              variant="primary"
+              size="md"
+              type="submit"
+              form="doc-create-form"
+              :loading="documentStore.isUpdating"
+              :disabled="Boolean(createBlockReasons.length)"
+              :disabled-reason="createBlockReasons.join(' ')"
+              :aria-describedby="describedBy"
+            >
+              {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </div>
     </div>
 
@@ -320,9 +333,22 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-4 panel-landscape:hidden">
-          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="!canSubmit">
-            {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
-          </BaseButton>
+          <BaseControlGate :reasons="createBlockReasons" label="Crear documento no disponible" align="start">
+            <template #default="{ describedBy }">
+              <BaseButton
+                variant="primary"
+                size="md"
+                type="submit"
+                class="sm:px-6"
+                :loading="documentStore.isUpdating"
+                :disabled="Boolean(createBlockReasons.length)"
+                :disabled-reason="createBlockReasons.join(' ')"
+                :aria-describedby="describedBy"
+              >
+                {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
+              </BaseButton>
+            </template>
+          </BaseControlGate>
           <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
             Cancelar
           </NuxtLink>
@@ -475,6 +501,11 @@ onMounted(async () => {
 const canSubmit = computed(
   () => !documentStore.isUpdating && form.title.trim() && form.content_markdown.trim(),
 );
+
+const createBlockReasons = computed(() => [
+  !form.title.trim() ? 'Escribe el título del documento.' : '',
+  !form.content_markdown.trim() ? 'Pega, escribe o carga el contenido Markdown.' : '',
+].filter(Boolean));
 
 const hasNotes = computed(() => [
   form.client_email_subject,

@@ -172,7 +172,9 @@
             <BaseButton
               variant="primary"
               size="sm"
-              :disabled="slugSaving || slugDraft === (store.current?.slug || '')"
+              :loading="slugSaving"
+              :disabled="slugDraft === (store.current?.slug || '')"
+              disabled-reason="Cambia la URL personalizada antes de guardarla."
               @click="saveSlug"
             >
               {{ slugSaving ? 'Guardando…' : (slugSaved ? 'Guardado' : 'Guardar') }}
@@ -335,7 +337,15 @@
               </BaseFormField>
               <BaseFormField label="% pago final" hint="Calculado automáticamente como 100 − % pago inicial.">
                 <div class="flex items-center gap-2">
-                  <BaseInput v-model.number="form.payment_final_pct" type="number" min="0" max="100" step="1" disabled />
+                  <BaseInput
+                    v-model.number="form.payment_final_pct"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    disabled
+                    title="Se calcula automáticamente como 100 menos el porcentaje del pago inicial."
+                  />
                   <span class="text-sm text-text-muted">%</span>
                 </div>
               </BaseFormField>

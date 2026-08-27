@@ -82,6 +82,17 @@ describe('BaseCurrencyInput', () => {
     expect(wrapper.find('input').element.value).toBe('');
   });
 
+  it('exposes its disabled reason on the native input', () => {
+    const wrapper = mountInput({
+      modelValue: 1000,
+      disabled: true,
+      disabledReason: 'Desactiva el reparto automático para editar.',
+    });
+
+    expect(wrapper.get('input').attributes('title'))
+      .toBe('Desactiva el reparto automático para editar.');
+  });
+
   describe('suggestion', () => {
     it('shows the suggestion as placeholder while empty', () => {
       const wrapper = mountInput({ suggestion: 250000 });

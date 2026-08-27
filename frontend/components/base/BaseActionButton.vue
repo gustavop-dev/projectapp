@@ -18,6 +18,7 @@ const props = defineProps({
   type: { type: String, default: 'button' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
   as: { type: String, default: 'button' },
   to: { type: [String, Object], default: null },
 })
@@ -28,7 +29,11 @@ const definition = computed(() => getPanelAction(props.action))
 const accessibleLabel = computed(() => (
   props.statusLabel || attrs['aria-label'] || props.label || definition.value.label
 ))
-const tooltipLabel = computed(() => props.tooltip || accessibleLabel.value)
+const tooltipLabel = computed(() => (
+  (props.disabled && (
+    props.disabledReason || `${accessibleLabel.value}: operación en curso. Espera un momento.`
+  )) || props.tooltip || accessibleLabel.value
+))
 </script>
 
 <template>
@@ -38,29 +43,39 @@ const tooltipLabel = computed(() => props.tooltip || accessibleLabel.value)
     width="max-w-xs"
     min-width="min-w-0"
     trigger-class=""
-    :toggle-on-click="false"
+    :toggle-on-click="disabled"
   >
     <template #trigger="{ tooltipId }">
-      <BaseButton
-        v-bind="attrs"
-        :variant="variant"
-        :size="size"
-        :type="type"
-        :loading="loading"
-        :disabled="disabled"
-        :as="as"
-        :to="to"
-        icon-only
-        :aria-label="accessibleLabel"
-        :aria-describedby="tooltipId"
-        :title="tooltipLabel"
-        :data-panel-action="action"
-        @click="emit('click', $event)"
+      <span
+        class="inline-flex"
+        :tabindex="disabled ? 0 : undefined"
+        :aria-label="disabled ? `${accessibleLabel}: ${tooltipLabel}` : undefined"
+        :aria-describedby="disabled ? tooltipId : undefined"
+        :data-disabled-action-proxy="disabled ? '' : undefined"
       >
-        <BaseActionIcon v-if="!loading" :action="action" />
-      </BaseButton>
-      <span v-if="statusLabel" class="sr-only" role="status" aria-live="polite">
-        {{ statusLabel }}
+        <BaseButton
+          v-bind="attrs"
+          :variant="variant"
+          :size="size"
+          :type="type"
+          :loading="loading"
+          :disabled="disabled"
+          :disabled-reason="disabledReason"
+          :as="as"
+          :to="to"
+          icon-only
+          :class="disabled ? 'pointer-events-none' : undefined"
+          :aria-label="accessibleLabel"
+          :aria-describedby="tooltipId"
+          :title="tooltipLabel"
+          :data-panel-action="action"
+          @click="emit('click', $event)"
+        >
+          <BaseActionIcon v-if="!loading" :action="action" />
+        </BaseButton>
+        <span v-if="statusLabel" class="sr-only" role="status" aria-live="polite">
+          {{ statusLabel }}
+        </span>
       </span>
     </template>
   </BaseTooltip>

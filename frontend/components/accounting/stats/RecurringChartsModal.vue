@@ -60,6 +60,7 @@
             variant="secondary"
             size="sm"
             :disabled="!activeChartId"
+            disabled-reason="Espera a que el gráfico activo termine de renderizarse."
             data-testid="recurring-charts-download"
             @click="downloadActiveChart"
           >

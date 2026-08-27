@@ -203,6 +203,7 @@ function linkedinActionItems(post) {
         action: 'publish',
         label: publishingId.value === post.id ? 'Publicando…' : 'Publicar ahora',
         disabled: publishingId.value === post.id,
+        description: publishingId.value === post.id ? 'La publicación ya está en curso.' : '',
         onClick: () => askPublish(post),
       },
     );

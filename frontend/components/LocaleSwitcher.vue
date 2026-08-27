@@ -35,6 +35,7 @@
         :class="{ 'active': isActiveLocale(locale.code) }"
         @click="handleLocaleChange(locale.code)"
         :disabled="isActiveLocale(locale.code)"
+        :title="isActiveLocale(locale.code) ? 'Este idioma ya está activo.' : undefined"
       >
         <span class="locale-flag">{{ locale.flag }}</span>
         <span class="locale-name">{{ locale.name }}</span>
