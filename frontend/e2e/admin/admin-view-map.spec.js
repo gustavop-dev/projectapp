@@ -126,7 +126,7 @@ test.describe('Admin View Map', () => {
     await expect(page.getByText('Plataforma de clientes').first()).toBeVisible();
   });
 
-  test('explorer mode opens the platform capability constellation', {
+  test('explorer exposes Platform capabilities from its product space', {
     tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -134,14 +134,22 @@ test.describe('Admin View Map', () => {
       return null;
     });
 
-    // quality: allow-deep-link (the behavior under test starts at the view-map mode selector; panel navigation is covered separately)
-    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page
+      .getByRole('navigation', { name: 'Navegación del panel' })
+      .getByRole('link', { name: 'Mapa de vistas', exact: true })
+      .click();
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 }))
+      .toBeVisible({ timeout: 30_000 });
     await page.getByTestId('view-mode-explorer').click();
 
     await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid^="view-explorer-node-"]')).toHaveCount(3);
+    await expect(page.getByTestId('view-explorer-node-panel-internal')).toBeVisible();
     await expect(page.getByTestId('view-explorer-node-client-platform')).toBeVisible();
+    await expect(page.getByTestId('view-explorer-node-public-experiences')).toBeVisible();
 
-    await page.getByTestId('view-explorer-stage').hover();
+    await page.getByTestId('view-explorer-motion-toggle').click();
     await page.getByTestId('view-explorer-node-client-platform').click();
 
     await expect(page).toHaveURL(/viewMode=explorer/);
@@ -149,6 +157,64 @@ test.describe('Admin View Map', () => {
     await expect(page.locator('[data-testid^="view-explorer-node-platform-"]')).toHaveCount(8);
     await expect(page.getByTestId('view-explorer-relation')).toHaveCount(9);
     await expect(page.getByTestId('view-explorer-detail')).toContainText('Valor operativo');
+  });
+
+  test('guided Panel tour advances and exits without losing context', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    // quality: allow-deep-link (the behavior under test starts at the Explorer mode selector; panel navigation is covered separately)
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('view-mode-explorer').click();
+    await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId('view-explorer-motion-toggle').click();
+    await page.getByTestId('view-explorer-node-panel-internal').click();
+    await expect(page.locator('[data-testid^="view-explorer-node-panel-"]')).toHaveCount(8);
+
+    await page.getByTestId('view-explorer-node-panel-content').hover();
+    await expect(page.getByTestId('view-explorer-detail')).toContainText('Vista previa');
+    await expect(page.getByTestId('view-explorer-detail')).toContainText('Contenido');
+
+    await page.getByTestId('view-explorer-detail').hover();
+    await page.getByTestId('view-explorer-start-tour').click();
+    await expect(page).toHaveURL(/tour=panel-internal/);
+    await expect(page).toHaveURL(/node=panel-overview-work/);
+    await expect(page.getByTestId('view-explorer-tour-controls')).toContainText('Paso 1 de 8');
+
+    await page.getByTestId('view-explorer-tour-next').click();
+    await expect(page).toHaveURL(/node=panel-commercial/);
+    await expect(page.getByTestId('view-explorer-tour-controls')).toContainText('Paso 2 de 8');
+
+    await page.getByTestId('view-explorer-tour-stop').click();
+    await expect(page).not.toHaveURL(/tour=/);
+    await expect(page).toHaveURL(/node=panel-commercial/);
+    await expect(page.getByTestId('view-explorer-tour-controls')).toHaveCount(0);
+  });
+
+  test('explorer presents public content and commercial experiences', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    // quality: allow-deep-link (the behavior under test starts at the Explorer mode selector; panel navigation is covered separately)
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('view-mode-explorer').click();
+    await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId('view-explorer-motion-toggle').click();
+    await page.getByTestId('view-explorer-node-public-experiences').click();
+
+    await expect(page.locator('[data-testid^="view-explorer-node-public-"]')).toHaveCount(4);
+    await expect(page.getByTestId('view-explorer-center')).toContainText('Experiencias públicas');
+    await expect(page.getByTestId('view-explorer-node-public-content-proof')).toBeVisible();
   });
 
   test('explorer keeps orbit nodes inside its stage', {
@@ -165,7 +231,7 @@ test.describe('Admin View Map', () => {
     await expect(page.getByTestId('view-operational-explorer')).toBeVisible({ timeout: 30_000 });
 
     const orbitNodes = page.locator('[data-testid^="view-explorer-node-"]');
-    await expect(orbitNodes).toHaveCount(7);
+    await expect(orbitNodes).toHaveCount(3);
 
     const clippedNodeCount = await orbitNodes.evaluateAll((nodes) => {
       const stage = document.querySelector('[data-testid="view-explorer-stage"]').getBoundingClientRect();

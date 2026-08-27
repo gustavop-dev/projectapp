@@ -7,7 +7,7 @@
         </p>
         <h1 class="text-2xl font-light text-text-default">Mapa de vistas</h1>
         <p v-if="viewMode === 'explorer' && activeSection === 'catalog'" class="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
-          Explora las capacidades de ProjectApp desde su valor comercial y operativo. Entra a Plataforma para recorrer la experiencia completa.
+          Recorre el Panel interno, la Plataforma de clientes y las experiencias públicas. Señala un módulo para descubrir su contexto o inicia un recorrido guiado.
         </p>
         <p v-else class="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
           Inventario de vistas de la aplicacion, agrupadas por contexto. Las URLs dinamicas usan parametros como <code class="font-mono text-xs text-text-brand">:id</code>, <code class="font-mono text-xs text-text-brand">:uuid</code> o <code class="font-mono text-xs text-text-brand">:slug</code>.
@@ -71,10 +71,12 @@
     <ViewOperationalExplorer
       v-if="viewMode === 'explorer'"
       :selected-node-id="selectedExplorerNodeId"
+      :selected-tour-id="selectedExplorerTourId"
       :show-relations="showRelations"
       @select="selectExplorerNode"
+      @start-tour="startExplorerTour"
+      @stop-tour="stopExplorerTour"
       @update:show-relations="showRelations = $event"
-      @open-map="openSectionInMap"
     />
 
     <template v-else>
@@ -291,11 +293,14 @@ const {
   viewMode,
   selectedModuleId,
   selectedExplorerNodeId,
+  selectedExplorerTourId,
   showRelations,
   applyDefaultMode,
   selectModule,
   clearModule,
   selectExplorerNode,
+  startExplorerTour,
+  stopExplorerTour,
 } = useViewMapMode()
 
 const viewMapStore = useViewMapStore()
@@ -413,9 +418,4 @@ function clearAll() {
   search.value = ''
 }
 
-async function openSectionInMap(sectionId) {
-  viewMode.value = 'map'
-  await nextTick()
-  selectModule(sectionId)
-}
 </script>

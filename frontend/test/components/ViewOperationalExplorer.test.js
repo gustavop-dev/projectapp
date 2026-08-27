@@ -14,11 +14,13 @@ const BaseActionButtonStub = {
 }
 
 const BaseBadgeStub = { template: '<span><slot /></span>' }
+const SidebarIconStub = { props: ['name'], template: '<span :data-icon="name" />' }
 
 function mountExplorer(props = {}) {
   return mount(ViewOperationalExplorer, {
     props: {
       selectedNodeId: null,
+      selectedTourId: null,
       showRelations: true,
       ...props,
     },
@@ -28,6 +30,7 @@ function mountExplorer(props = {}) {
         BaseActionButton: BaseActionButtonStub,
         BaseBadge: BaseBadgeStub,
         BaseActionIcon: true,
+        SidebarIcon: SidebarIconStub,
       },
     },
   })
@@ -35,6 +38,7 @@ function mountExplorer(props = {}) {
 
 describe('ViewOperationalExplorer', () => {
   beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1195 })
     window.requestAnimationFrame = jest.fn(() => 1)
     window.cancelAnimationFrame = jest.fn()
     window.matchMedia = jest.fn(() => ({
@@ -48,21 +52,30 @@ describe('ViewOperationalExplorer', () => {
     jest.restoreAllMocks()
   })
 
-  it('renders every high-level business domain', () => {
+  it('renders the three product spaces', () => {
     const wrapper = mountExplorer()
 
-    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(7)
-    expect(wrapper.text()).toContain('Presencia digital')
+    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(3)
+    expect(wrapper.text()).toContain('Panel interno')
     expect(wrapper.text()).toContain('Plataforma de clientes')
+    expect(wrapper.text()).toContain('Experiencias públicas')
     expect(wrapper.text()).toContain('104 vistas relacionadas')
   })
 
-  it('selects a domain from the orbit', async () => {
+  it('selects a space from the orbit', async () => {
     const wrapper = mountExplorer()
 
-    await wrapper.get('[data-testid="view-explorer-node-client-platform"]').trigger('click')
+    await wrapper.get('[data-testid="view-explorer-node-panel-internal"]').trigger('click')
 
-    expect(wrapper.emitted('select')).toEqual([['client-platform']])
+    expect(wrapper.emitted('select')).toEqual([['panel-internal']])
+  })
+
+  it('renders the Panel module ring', () => {
+    const wrapper = mountExplorer({ selectedNodeId: 'panel-internal' })
+
+    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(8)
+    expect(wrapper.text()).toContain('Panorama y tareas')
+    expect(wrapper.text()).toContain('Control financiero')
   })
 
   it('renders the Platform capability ring', () => {
@@ -70,6 +83,27 @@ describe('ViewOperationalExplorer', () => {
 
     expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(8)
     expect(wrapper.text()).toContain('Seguimiento del trabajo')
+  })
+
+  it('renders public content and commercial experiences', () => {
+    const wrapper = mountExplorer({ selectedNodeId: 'public-experiences' })
+
+    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(4)
+    expect(wrapper.text()).toContain('Contenido y prueba social')
+    expect(wrapper.text()).toContain('Propuesta comercial')
+  })
+
+  it('previews module context on hover without selecting it', async () => {
+    const wrapper = mountExplorer({ selectedNodeId: 'panel-internal' })
+    const contentNode = wrapper.get('[data-testid="view-explorer-node-panel-content"]')
+
+    await contentNode.trigger('mouseenter')
+    expect(wrapper.get('[data-testid="view-explorer-detail"]').text()).toContain('Vista previa')
+    expect(wrapper.get('[data-testid="view-explorer-detail"]').text()).toContain('Contenido')
+    expect(wrapper.emitted('select')).toBeUndefined()
+
+    await contentNode.trigger('mouseleave')
+    expect(wrapper.get('[data-testid="view-explorer-detail"]').text()).toContain('Panel interno')
   })
 
   it('draws the curated Platform relationships', () => {
@@ -86,7 +120,7 @@ describe('ViewOperationalExplorer', () => {
     expect(wrapper.emitted('update:showRelations')).toEqual([[false]])
   })
 
-  it('finds a capability by its commercial benefit', async () => {
+  it('finds a capability by its operational benefit', async () => {
     const wrapper = mountExplorer()
 
     await wrapper.get('#view-explorer-search').setValue('aprobación trazable')
@@ -107,16 +141,42 @@ describe('ViewOperationalExplorer', () => {
   it('shows the technical reference below a feature', () => {
     const wrapper = mountExplorer({ selectedNodeId: 'platform-document-portal' })
 
-    expect(wrapper.get('[data-testid="view-explorer-detail"]').text()).toContain('Qué permite hacer')
+    expect(wrapper.get('[data-testid="view-explorer-detail"]').text())
+      .toContain('Referencia técnica secundaria')
     expect(wrapper.get('[data-testid="view-explorer-detail"]').text()).toContain('/platform/documents')
   })
 
-  it('opens a shallow domain in Map mode', async () => {
-    const wrapper = mountExplorer({ selectedNodeId: 'public-site' })
+  it('starts a guided tour from a product space', async () => {
+    const wrapper = mountExplorer({ selectedNodeId: 'panel-internal' })
 
-    await wrapper.get('[data-testid="view-explorer-detail"] button').trigger('click')
+    await wrapper.get('[data-testid="view-explorer-start-tour"]').trigger('click')
 
-    expect(wrapper.emitted('open-map')).toEqual([['public-site']])
+    expect(wrapper.emitted('start-tour')).toEqual([['panel-internal']])
+  })
+
+  it('advances and exits an active guided tour', async () => {
+    const wrapper = mountExplorer({
+      selectedNodeId: 'panel-overview-work',
+      selectedTourId: 'panel-internal',
+    })
+
+    expect(wrapper.get('[data-testid="view-explorer-tour-controls"]').text()).toContain('Paso 1 de 8')
+    await wrapper.get('[data-testid="view-explorer-tour-next"]').trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['panel-commercial']])
+
+    await wrapper.get('[data-testid="view-explorer-tour-stop"]').trigger('click')
+    expect(wrapper.emitted('stop-tour')).toHaveLength(1)
+  })
+
+  it('uses cards instead of the orbit in compact layouts', async () => {
+    window.innerWidth = 412
+
+    const wrapper = mountExplorer({ selectedNodeId: 'public-experiences' })
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="view-explorer-center"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(4)
+    expect(wrapper.text()).toContain('Selecciona una tarjeta para continuar')
   })
 
   it('explains when reduced motion disables automatic rotation', async () => {
