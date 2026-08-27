@@ -24,6 +24,7 @@
         role="combobox"
         :aria-expanded="isOpen"
         :aria-controls="isOpen ? listboxId : undefined"
+        :aria-busy="isSearching || isLoadingMore"
         aria-autocomplete="list"
         aria-haspopup="listbox"
       />
@@ -56,62 +57,99 @@
       :anchor="inputRef"
       :owner="wrapperRef"
       @close="closeDropdown"
+      @reach-end="loadMore"
     >
       <!-- Loading -->
       <div
         v-if="isSearching"
         class="px-4 py-3 text-sm text-text-subtle text-center"
       >
-        Buscando...
+        {{ inputText.trim() ? 'Buscando...' : 'Cargando clientes...' }}
+      </div>
+
+      <!-- Request failed before there was anything useful to show. -->
+      <div
+        v-else-if="searchError"
+        class="space-y-2 px-4 py-3 text-sm text-text-muted"
+        data-testid="client-autocomplete-error"
+      >
+        <p>No se pudo cargar la lista de clientes.</p>
+        <button
+          type="button"
+          class="text-xs font-medium text-text-brand hover:underline"
+          data-testid="client-autocomplete-retry"
+          @click="retrySearch"
+        >
+          Reintentar
+        </button>
       </div>
 
       <!-- Results -->
-      <ul v-else-if="results.length > 0" class="divide-y divide-border-muted">
-        <li
-          v-for="(client, idx) in results"
-          :key="client.id"
-          :data-testid="`client-autocomplete-option-${client.id}`"
-          :class="[
-            'px-4 py-2.5 cursor-pointer transition-colors',
-            highlightIndex === idx ? 'bg-primary-soft' : 'hover:bg-surface-raised',
-          ]"
-          role="option"
-          :aria-selected="highlightIndex === idx"
-          @click="selectClient(client)"
-          @mouseenter="highlightIndex = idx"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <p class="font-medium text-text-default text-sm truncate">
-                  {{ client.name }}
-                  <span class="text-text-subtle font-normal tabular-nums">(#{{ client.id }})</span>
+      <template v-else-if="results.length > 0">
+        <ul class="divide-y divide-border-muted">
+          <li
+            v-for="(client, idx) in results"
+            :key="client.id"
+            :data-testid="`client-autocomplete-option-${client.id}`"
+            :class="[
+              'px-4 py-2.5 cursor-pointer transition-colors',
+              highlightIndex === idx ? 'bg-primary-soft' : 'hover:bg-surface-raised',
+            ]"
+            role="option"
+            :aria-selected="highlightIndex === idx"
+            @click="selectClient(client)"
+            @mouseenter="highlightIndex = idx"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="font-medium text-text-default text-sm truncate">
+                    {{ client.name }}
+                    <span class="text-text-subtle font-normal tabular-nums">(#{{ client.id }})</span>
+                  </p>
+                  <span
+                    v-if="clientHasNoEmail(client)"
+                    class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
+                    title="Este cliente todavía no tiene correo. Las acciones que envían mensajes pedirán agregarlo antes de continuar."
+                  >
+                    📧 Sin correo
+                  </span>
+                </div>
+                <p class="text-xs text-text-muted truncate mt-0.5">
+                  <span v-if="client.company">{{ client.company }} · </span>
+                  {{ clientHasNoEmail(client) ? 'Correo pendiente · habrá que agregarlo para enviar' : client.email }}
                 </p>
-                <span
-                  v-if="client.is_email_placeholder"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
-                  title="Este cliente todavía no tiene correo. Las acciones que envían mensajes pedirán agregarlo antes de continuar."
-                >
-                  📧 Sin correo
-                </span>
               </div>
-              <p class="text-xs text-text-muted truncate mt-0.5">
-                {{ client.is_email_placeholder ? 'Correo pendiente · habrá que agregarlo para enviar' : client.email }}
-                <span v-if="client.company" class="text-text-subtle">· {{ client.company }}</span>
+              <p
+                v-if="client.phone"
+                class="text-xs text-text-subtle flex-shrink-0 tabular-nums"
+              >
+                {{ client.phone }}
               </p>
             </div>
-            <p
-              v-if="client.phone"
-              class="text-xs text-text-subtle flex-shrink-0 tabular-nums"
-            >
-              {{ client.phone }}
-            </p>
-          </div>
-        </li>
-      </ul>
+          </li>
+        </ul>
+        <div
+          v-if="isLoadingMore"
+          class="border-t border-border-muted px-4 py-2 text-center text-xs text-text-subtle"
+          data-testid="client-autocomplete-loading-more"
+        >
+          Cargando más clientes...
+        </div>
+        <div
+          v-else-if="loadMoreError"
+          class="flex items-center justify-between gap-3 border-t border-border-muted px-4 py-2 text-xs text-text-muted"
+          data-testid="client-autocomplete-load-more-error"
+        >
+          <span>No se pudo cargar la siguiente página.</span>
+          <button type="button" class="font-medium text-text-brand hover:underline" @click="loadMore">
+            Reintentar
+          </button>
+        </div>
+      </template>
 
       <!-- No results — offer to create -->
-      <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-text-muted">
+      <div v-else-if="hasSearched && inputText.trim()" class="px-4 py-3 text-sm text-text-muted">
         <p class="mb-2">No se encontraron clientes con "{{ inputText }}".</p>
         <button
           type="button"
@@ -124,9 +162,23 @@
         </button>
       </div>
 
-      <!-- Empty state (just opened, no input yet) -->
+      <!-- Empty catalog: blank query is a real list request, never an instruction
+           to guess what to type. -->
+      <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-text-muted">
+        <p class="mb-2">No hay clientes registrados.</p>
+        <button
+          type="button"
+          class="w-full text-left px-3 py-2 rounded-lg bg-primary-soft text-text-brand hover:opacity-90 transition-colors font-medium text-xs flex items-center gap-2"
+          data-testid="client-autocomplete-create-new"
+          @click="emitCreateNew"
+        >
+          <BaseActionIcon action="create" />
+          <span>Crear un cliente</span>
+        </button>
+      </div>
+
       <div v-else class="px-4 py-3 text-sm text-text-subtle text-center">
-        Escribe al menos 1 caracter para buscar
+        Cargando clientes...
       </div>
     </BaseFloatingListbox>
   </div>
@@ -172,6 +224,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'select', 'create-new']);
 
 const clientsStore = useProposalClientsStore();
+const PAGE_SIZE = 20;
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
@@ -186,29 +239,86 @@ const hasSearched = ref(false);
 const results = ref([]);
 const highlightIndex = ref(-1);
 const isSearching = ref(false);
+const isLoadingMore = ref(false);
+const hasMore = ref(false);
+const nextOffset = ref(0);
+const searchError = ref('');
+const loadMoreError = ref('');
+let searchGeneration = 0;
 
 // -------------------------------------------------------------------
 // Search (debounced 200ms)
 // -------------------------------------------------------------------
 
-const runSearch = async (query) => {
-  isSearching.value = true;
+const runSearch = async (query, { append = false } = {}) => {
+  if (append && (!hasMore.value || isSearching.value || isLoadingMore.value)) return;
+
+  const generation = append ? searchGeneration : ++searchGeneration;
+  const offset = append ? nextOffset.value : 0;
+  if (append) {
+    isLoadingMore.value = true;
+    loadMoreError.value = '';
+  } else {
+    isSearching.value = true;
+    searchError.value = '';
+    loadMoreError.value = '';
+    hasSearched.value = false;
+    hasMore.value = false;
+    nextOffset.value = 0;
+  }
+
   try {
-    const result = await clientsStore.searchClients(query);
-    if (result.cancelled) return;
-    results.value = result.success ? result.data || [] : [];
+    const result = await clientsStore.searchClients(query, {
+      offset,
+      limit: PAGE_SIZE,
+    });
+    if (generation !== searchGeneration) return;
+    if (result?.cancelled) {
+      // Superseded searches are normally rejected after the next generation
+      // starts. If an adapter cancels the current request on its own, close the
+      // empty layer instead of leaving a permanent "Cargando" state behind.
+      if (!append) isOpen.value = false;
+      return;
+    }
+    if (!result?.success) {
+      if (append) loadMoreError.value = 'load_failed';
+      else searchError.value = 'load_failed';
+      return;
+    }
+
+    const page = Array.isArray(result.data) ? result.data : [];
+    if (append) {
+      const knownIds = new Set(results.value.map((client) => client.id));
+      results.value = [
+        ...results.value,
+        ...page.filter((client) => !knownIds.has(client.id)),
+      ];
+    } else {
+      results.value = page;
+    }
+    nextOffset.value = result.nextOffset ?? offset + page.length;
+    hasMore.value = Boolean(result.hasMore);
     hasSearched.value = true;
-    highlightIndex.value = results.value.length > 0 ? 0 : -1;
+    if (!append) highlightIndex.value = results.value.length > 0 ? 0 : -1;
   } finally {
-    isSearching.value = false;
+    if (generation === searchGeneration) {
+      if (append) isLoadingMore.value = false;
+      else isSearching.value = false;
+    }
   }
 };
 
 const debouncedSearch = useDebounceFn(runSearch, 200);
 
 const onInput = () => {
+  // Invalidate the request that belongs to the previous text immediately;
+  // otherwise it could resolve during the 200 ms debounce window and flash a
+  // result set for a query the input no longer contains.
+  searchGeneration += 1;
   isOpen.value = true;
   hasSearched.value = false;
+  searchError.value = '';
+  isSearching.value = true;
   // Escribir es buscar, no desvincular. Soltar el id acá dejaba el formulario
   // sucio por un caracter y, al guardar, desvinculaba al cliente de verdad.
   // Para desvincular está la X (`clearSelection`).
@@ -220,9 +330,17 @@ const onFocus = () => {
   // Skip the auto-search when the parent already committed a selection
   // (editing an existing proposal) — otherwise we'd waste a request.
   if (!hasSearched.value && props.modelValue === null) {
-    debouncedSearch(inputText.value.trim());
+    runSearch(inputText.value.trim());
   }
 };
+
+const retrySearch = () => runSearch(inputText.value.trim());
+
+const loadMore = () => runSearch(inputText.value.trim(), { append: true });
+
+const clientHasNoEmail = (client) => (
+  Boolean(client?.is_email_placeholder) || !String(client?.email || '').trim()
+);
 
 // -------------------------------------------------------------------
 // Selection
@@ -237,12 +355,19 @@ const selectClient = (client) => {
 };
 
 const clearSelection = () => {
+  searchGeneration += 1;
   emit('update:modelValue', null);
   emit('select', null);
   inputText.value = '';
   committedLabel.value = '';
   results.value = [];
   hasSearched.value = false;
+  hasMore.value = false;
+  nextOffset.value = 0;
+  searchError.value = '';
+  loadMoreError.value = '';
+  isSearching.value = false;
+  isLoadingMore.value = false;
   highlightIndex.value = -1;
   inputRef.value?.focus();
 };
@@ -268,6 +393,9 @@ const closeDropdown = (opts) => {
 const onArrowDown = () => {
   if (!isOpen.value) {
     isOpen.value = true;
+    if (!hasSearched.value && props.modelValue === null) {
+      runSearch(inputText.value.trim());
+    }
     return;
   }
   if (results.value.length === 0) return;

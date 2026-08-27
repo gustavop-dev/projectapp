@@ -240,6 +240,7 @@ function buildHandler({
       return {
         status: 200,
         contentType: 'application/json',
+        headers: { 'X-Total-Count': String(CLIENT_SEARCH_RESULT.length) },
         body: JSON.stringify(CLIENT_SEARCH_RESULT),
       };
     }
@@ -1408,9 +1409,10 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
 
     const modal = page.getByTestId('incomes-bulk-assign-modal');
     await expect(modal).toContainText('4 ingresos seleccionados');
-    await page.getByTestId('incomes-bulk-client').fill('Ana');
+    await expect(page.getByTestId('incomes-bulk-client')).toBeFocused();
 
     const listbox = page.getByRole('listbox');
+    await expect(listbox).toBeVisible();
     const fifthOption = page.getByTestId('client-autocomplete-option-9');
     await expect(fifthOption).toBeVisible();
     const listBounds = await listbox.boundingBox();

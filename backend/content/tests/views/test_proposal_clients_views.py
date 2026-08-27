@@ -511,6 +511,44 @@ class TestSearchProposalClients:
         assert response.status_code == 200
         assert len(response.data) == 2
 
+    def test_empty_query_orders_clients_by_display_name(
+        self, admin_client, make_client_profile,
+    ):
+        zulu = make_client_profile(first_name='Zoé', last_name='Zulu')
+        alpha = make_client_profile(first_name='Amanda', last_name='Alba')
+
+        response = admin_client.get(reverse('search-proposal-clients'), {'q': ''})
+
+        assert [row['id'] for row in response.data] == [alpha.pk, zulu.pk]
+
+    def test_search_returns_the_requested_result_page(
+        self, admin_client, make_client_profile,
+    ):
+        make_client_profile(first_name='Amanda', last_name='Alba')
+        second = make_client_profile(first_name='Beatriz', last_name='Bravo')
+        third = make_client_profile(first_name='Carolina', last_name='Cano')
+
+        response = admin_client.get(
+            reverse('search-proposal-clients'),
+            {'q': '', 'limit': 2, 'offset': 1},
+        )
+
+        assert [row['id'] for row in response.data] == [second.pk, third.pk]
+
+    def test_search_exposes_the_filtered_total(
+        self, admin_client, make_client_profile,
+    ):
+        make_client_profile(first_name='Amanda', last_name='Alba')
+        make_client_profile(first_name='Beatriz', last_name='Bravo')
+        make_client_profile(first_name='Carolina', last_name='Cano')
+
+        response = admin_client.get(
+            reverse('search-proposal-clients'),
+            {'q': 'a', 'limit': 1},
+        )
+
+        assert response.headers['X-Total-Count'] == '3'
+
     @pytest.mark.parametrize(
         ('query', 'first_name', 'last_name', 'company_name'),
         [

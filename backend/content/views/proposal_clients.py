@@ -9,7 +9,7 @@ proposal admin views in ``content`` because they share the same auth context
 Endpoints
 ---------
 - ``GET    /api/proposals/client-profiles/``               list (search, orphans, limit)
-- ``GET    /api/proposals/client-profiles/search/?q=``     autocomplete (max 20)
+- ``GET    /api/proposals/client-profiles/search/?q=``     paged autocomplete
 - ``GET    /api/proposals/client-profiles/status-counts/`` per-status counts
 - ``GET    /api/proposals/client-profiles/<id>/``          detail with nested proposals
 - ``POST   /api/proposals/client-profiles/create/``        standalone create
@@ -20,10 +20,10 @@ Endpoints
 import logging
 
 from django.db.models import (
-    Count, DateTimeField, Exists, IntegerField, Max, OuterRef, Q, Subquery,
-    Sum, Value,
+    CharField, Count, DateTimeField, Exists, IntegerField, Max, OuterRef, Q,
+    Subquery, Sum, Value,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Concat, Lower, NullIf, Trim
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -55,6 +55,18 @@ from content.serializers.proposal_clients import (
 from content.serializers.diagnostic import DiagnosticListSerializer
 
 logger = logging.getLogger(__name__)
+
+CLIENT_SEARCH_PAGE_SIZE = 20
+
+
+def _bounded_non_negative_int(raw_value, *, default, maximum=None):
+    """Parse a query integer without letting malformed paging break search."""
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return default
+    value = max(0, value)
+    return min(value, maximum) if maximum is not None else value
 
 
 def _base_queryset():
@@ -499,8 +511,22 @@ def proposal_client_status_counts(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def search_proposal_clients(request):
-    """Lightweight autocomplete used by the proposal form. Max 20 results."""
+    """Lightweight, progressively pageable autocomplete for client pickers.
+
+    The payload intentionally stays an array for backwards compatibility. The
+    complete filtered count travels in ``X-Total-Count`` so the frontend can
+    request the next slice without guessing whether another page exists.
+    """
     query = (request.query_params.get('q') or '').strip()
+    limit = _bounded_non_negative_int(
+        request.query_params.get('limit'),
+        default=CLIENT_SEARCH_PAGE_SIZE,
+        maximum=CLIENT_SEARCH_PAGE_SIZE,
+    ) or CLIENT_SEARCH_PAGE_SIZE
+    offset = _bounded_non_negative_int(
+        request.query_params.get('offset'),
+        default=0,
+    )
     qs = UserProfile.objects.clients()
     if query:
         qs = qs.filter(
@@ -509,8 +535,25 @@ def search_proposal_clients(request):
             | Q(user__last_name__icontains=query)
             | Q(company_name__icontains=query)
         )
-    qs = qs.order_by('-updated_at')[:20]
-    return Response(ProposalClientSearchSerializer(qs, many=True).data)
+    qs = qs.annotate(
+        _display_name_sort=Lower(Coalesce(
+            NullIf(
+                Trim(Concat(
+                    'user__first_name', Value(' '), 'user__last_name',
+                )),
+                Value(''),
+            ),
+            NullIf(Trim('company_name'), Value('')),
+            NullIf(Trim('user__email'), Value('')),
+            Value('Cliente'),
+            output_field=CharField(),
+        )),
+    ).order_by('_display_name_sort', 'pk')
+    total = qs.count()
+    rows = qs[offset:offset + limit]
+    response = Response(ProposalClientSearchSerializer(rows, many=True).data)
+    response['X-Total-Count'] = str(total)
+    return response
 
 
 # ---------------------------------------------------------------------------

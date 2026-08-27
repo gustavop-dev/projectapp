@@ -1133,7 +1133,23 @@ title cell; compact cards preserve the same facts in secondary metadata. Fixed
 business order also avoids a second persistence contract competing with the
 existing user preference for title width.
 
-## 46. A kebab belongs to a fixed control track, not the data-column split
+## 46. Solving overlay geometry does not make an empty picker useful
+
+A teleported listbox can be perfectly positioned and still leave the workflow
+blank if its data contract only runs after typing. Treat opening readiness as a
+separate invariant: when an uncommitted searchable entity field gains focus,
+load a deterministic first page and make typing a filter over that catalog.
+Primary-decision modals should focus that field explicitly; general forms may
+retain their normal first-field order and still gain the catalog on demand.
+
+Progressive loading needs an end-to-end cursor contract, even for offset paging:
+stable backend order plus a unique tie-breaker, bounded pages, an explicit total,
+generation guards around debounced queries, and de-duplication on append. Keep
+the scroll signal in the shared listbox but keep `hasMore` and retry state in the
+data-owning picker. This preserves one scrollbar without coupling a generic
+overlay primitive to a particular API.
+
+## 47. A kebab belongs to a fixed control track, not the data-column split
 
 The fact that a table “has actions” is not enough to choose its layout. A single
 three-dot menu and a row of independent action icons have different space and
