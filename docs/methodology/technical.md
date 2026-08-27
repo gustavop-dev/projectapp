@@ -410,6 +410,16 @@ confirmed by the operator or another integration.
 - Migration `content.0208_recalculate_recurring_cop_equivalent` repairs every existing COP and USD row from its current inputs. Panel, MCP, fake-data and import writers do not accept `cop_equivalent` as an independent input.
 - Frontend calculations are previews only. The panel refetch after save remains authoritative and rebuilds both the category sums and the general monthly COP total from the server response.
 
+### Recurring lifecycle contract
+
+- Migration `content.0219_recurring_lifecycle` adds indexed `is_archived`, `archived_at`, `reminders_muted` and `reminders_muted_until` fields. `reminders_effectively_muted` is serialized from stored preference plus today's Bogotá date; an expired dated mute is cleared by the payment-calendar collector.
+- `content/services/accounting_recurring_service.py` is the single lifecycle writer. It builds a duplicate form draft, toggles active state, archives/restores, changes reminder mute and applies at most 500 selected ids under `transaction.atomic()` + `select_for_update()`. Missing/conflicting ids are validated before the first write, so a bulk action never partially succeeds.
+- REST endpoints live under `/api/accounting/recurring/`: `:id/duplicate-draft/`, `:id/state/`, `:id/archive/`, `:id/restore/`, `:id/reminders/mute/` and `bulk-action/`. The list/export contract accepts `archive_scope=current|archived|all`; current is the default. Hard delete returns 409 until the record is archived.
+- Accounting MCP exposes the same six operations (`get_recurring_duplicate_draft`, `set_recurring_active`, `archive_recurring`, `restore_recurring`, `mute_recurring`, `bulk_action_recurring`) through the shared serializers/service. Lifecycle fields are read-only in the generic MCP model contract so callers cannot bypass those invariants.
+- The panel uses a PA-102 `menu-start` track in grouped and classic tables, plus `RecurringActionsModal`, `RecurringMuteModal` and `RecurringBulkActionBar`. Every successful lifecycle mutation refetches server metadata; local projections never guess the new total. `countsTowardRecurringBudget()` mirrors the backend gate (`is_active && !is_archived`) for group totals, weights and charts.
+- Duplicate is deliberately two-step: GET returns inherited editable inputs and a recalculated `cycle_anchor_date`, then the existing create endpoint writes only after the operator reviews the ordinary form. Reminder cadence, notes, archive state and audit history are never copied.
+- This contract manages definitions only. It does not create `ExpenseRecord` or `PocketMovement` rows and has no charge-history relation; adding those requires a separate idempotent period-charge service and ledger transaction design.
+
 ### Collection-account linked-income selector
 
 - `CollectionAccountFormModal.vue` keeps the eligible expected/liquid response in memory and derives scope and kind counts client-side; no API parameter or schema field is needed for its starting view.

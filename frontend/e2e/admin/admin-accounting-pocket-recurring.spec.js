@@ -69,6 +69,12 @@ function recurringRow(overrides) {
     monthly_price: '200.00',
     monthly_cop_cost: '800000.00',
     is_active: true,
+    is_archived: false,
+    archived_at: null,
+    cycle_anchor_date: '2026-01-08',
+    reminders_muted: false,
+    reminders_muted_until: null,
+    reminders_effectively_muted: false,
     notes: '',
     created_at: '2026-01-01T10:00:00Z',
     updated_at: '2026-01-01T10:00:00Z',
@@ -186,7 +192,12 @@ const OUTLIER_ROWS = [
   }),
 ];
 
-function buildHandler({ calls, reorderStatus = 200, rows = RECURRING_ROWS }) {
+function buildHandler({
+  calls,
+  reorderStatus = 200,
+  duplicateStatus = 200,
+  rows = RECURRING_ROWS,
+}) {
   let currentRows = rows.map((row) => ({ ...row }));
   return async ({ route, apiPath, method }) => {
     if (apiPath.startsWith('accounting/recurring-categories/') && apiPath.endsWith('/delete/')) {
@@ -239,19 +250,123 @@ function buildHandler({ calls, reorderStatus = 200, rows = RECURRING_ROWS }) {
       };
     }
     if (apiPath === 'accounting/recurring/' && method === 'GET') {
-      const monthlyTotal = currentRows
-        .filter((row) => row.is_active)
+      const scope = new URL(route.request().url()).searchParams.get('archive_scope') || 'current';
+      const scopedRows = currentRows.filter((row) => (
+        scope === 'archived' ? row.is_archived : !row.is_archived
+      ));
+      const monthlyTotal = scopedRows
+        .filter((row) => row.is_active && !row.is_archived)
         .reduce((total, row) => total + Number(row.monthly_cop_cost || 0), 0);
       return {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          results: currentRows,
+          results: scopedRows,
           meta: {
             monthly_cop_total: monthlyTotal.toFixed(2),
             usd_exchange_rate: '4000.00',
           },
         }),
+      };
+    }
+    const duplicateMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/duplicate-draft\/$/);
+    if (duplicateMatch && method === 'GET') {
+      const id = Number(duplicateMatch[1]);
+      const original = currentRows.find((row) => row.id === id);
+      calls.push({ apiPath, method });
+      return {
+        status: duplicateStatus,
+        contentType: 'application/json',
+        body: duplicateStatus === 200 ? JSON.stringify({
+          name: original.name,
+          price: original.price,
+          currency: original.currency,
+          payment_method: original.payment_method,
+          frequency: original.frequency,
+          custom_months: original.custom_months || null,
+          billing_day: original.billing_day,
+          cycle_anchor_date: '2026-09-08',
+          cost_type: original.cost_type,
+          category: original.category,
+          is_active: true,
+          notes: '',
+          schedule_requires_anchor: false,
+          schedule_notice: 'La fecha de referencia se recalculó con la próxima ocurrencia del original.',
+        }) : JSON.stringify({ error: 'No se pudo calcular la próxima fecha.' }),
+      };
+    }
+    const stateMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/state\/$/);
+    if (stateMatch && method === 'POST') {
+      const id = Number(stateMatch[1]);
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      const updated = {
+        ...currentRows.find((row) => row.id === id),
+        is_active: body.is_active,
+      };
+      currentRows = currentRows.map((row) => row.id === id ? updated : row);
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
+    }
+    const archiveMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/archive\/$/);
+    if (archiveMatch && method === 'POST') {
+      const id = Number(archiveMatch[1]);
+      calls.push({ apiPath, method });
+      const updated = {
+        ...currentRows.find((row) => row.id === id),
+        is_active: false,
+        is_archived: true,
+        archived_at: '2026-08-27T12:00:00Z',
+      };
+      currentRows = currentRows.map((row) => row.id === id ? updated : row);
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
+    }
+    const restoreMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/restore\/$/);
+    if (restoreMatch && method === 'POST') {
+      const id = Number(restoreMatch[1]);
+      calls.push({ apiPath, method });
+      const updated = {
+        ...currentRows.find((row) => row.id === id),
+        is_active: false,
+        is_archived: false,
+        archived_at: null,
+      };
+      currentRows = currentRows.map((row) => row.id === id ? updated : row);
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
+    }
+    const muteMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/reminders\/mute\/$/);
+    if (muteMatch && method === 'POST') {
+      const id = Number(muteMatch[1]);
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      const updated = {
+        ...currentRows.find((row) => row.id === id),
+        reminders_muted: body.muted,
+        reminders_muted_until: body.muted ? (body.until || null) : null,
+        reminders_effectively_muted: body.muted,
+      };
+      currentRows = currentRows.map((row) => row.id === id ? updated : row);
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
+    }
+    if (apiPath === 'accounting/recurring/bulk-action/' && method === 'POST') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      const ids = new Set(body.recurring_ids);
+      const results = [];
+      currentRows = currentRows.map((row) => {
+        if (!ids.has(row.id)) return row;
+        const updated = {
+          ...row,
+          is_active: body.action === 'activate',
+          is_archived: body.action === 'archive' ? true : row.is_archived,
+          archived_at: body.action === 'archive' ? '2026-08-27T12:00:00Z' : row.archived_at,
+        };
+        results.push(updated);
+        return updated;
+      });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ updated: results.length, results }),
       };
     }
     const updateMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/update\/$/);
@@ -322,6 +437,12 @@ async function openSubview(page, key) {
   const entry = key === 'recurring' ? 'pocket' : 'recurring';
   await page.goto(`/panel/accounting/${entry}`, { waitUntil: 'domcontentloaded' });
   await page.getByTestId(`accounting-subnav-${key}`).click();
+}
+
+async function chooseRecurringAction(page, id, action) {
+  await page.getByTestId(`recurring-actions-${id}`).click();
+  await expect(page.getByTestId('recurring-actions-modal')).toBeVisible();
+  await page.getByTestId(`recurring-action-${action}-${id}`).click();
 }
 
 test.describe('Admin Accounting Pocket & Recurring', () => {
@@ -778,6 +899,183 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await expect(preview).toContainText('Tasa vigente: $4.000 COP/USD');
   });
 
+  test.describe('recurring row actions', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    test('the leading three-dots menu owns every current-row action', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      // quality: allow-deep-link (accounting subnav navigation is covered by
+      // admin-accounting-filters; this test targets the consolidated row menu)
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible({ timeout: 25_000 });
+
+      await page.getByTestId('recurring-actions-1').click();
+
+      const modal = page.getByTestId('recurring-actions-modal');
+      await expect(modal).toContainText('Editar');
+      await expect(modal).toContainText('Duplicar');
+      await expect(modal).toContainText('Desactivar');
+      await expect(modal).toContainText('Silenciar avisos');
+      await expect(modal).toContainText('Archivar');
+      await expect(page.getByTestId('accounting-edit-1')).toHaveCount(0);
+      await expect(page.getByTestId('accounting-delete-1')).toHaveCount(0);
+    });
+
+    test('duplicate opens a recalculated draft and creates only after review', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible({ timeout: 25_000 });
+
+      await chooseRecurringAction(page, 1, 'duplicate');
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('heading', { name: 'Duplicar pago recurrente' })).toBeVisible();
+      const nameInput = dialog.locator('form input[type="text"]').first();
+      await expect(nameInput).toHaveValue('Claude Code 20x');
+      await expect(page.getByTestId('recurring-payment-form-cycle-anchor-date'))
+        .toHaveValue('2026-09-08');
+      await expect(page.getByTestId('recurring-duplicate-schedule-notice'))
+        .toContainText('se recalculó');
+
+      await nameInput.fill('Claude Code equipo B');
+      await page.getByTestId('recurring-payment-form-submit').click();
+
+      await expect(page.getByText('Pago recurrente duplicado')).toBeVisible();
+      expect(calls.some((call) => (
+        call.method === 'GET' && call.apiPath.endsWith('/duplicate-draft/')
+      ))).toBe(true);
+      const createCall = calls.find((call) => call.apiPath === 'accounting/recurring/create/');
+      expect(createCall.body.name).toBe('Claude Code equipo B');
+      expect(createCall.body.cycle_anchor_date).toBe('2026-09-08');
+    });
+
+    test('a failed duplicate draft leaves the row untouched and explains the failure', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:failure'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls, duplicateStatus: 503 }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible({ timeout: 25_000 });
+
+      await chooseRecurringAction(page, 1, 'duplicate');
+
+      await expect(page.getByText('No se pudo preparar el duplicado')).toBeVisible();
+      await expect(page.getByText('No se pudo calcular la próxima fecha.')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Duplicar pago recurrente' }))
+        .toHaveCount(0);
+      expect(calls.filter((call) => call.method === 'POST')).toEqual([]);
+    });
+
+    test('deactivate removes the row from totals without opening the form', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible({ timeout: 25_000 });
+
+      await chooseRecurringAction(page, 1, 'deactivate');
+
+      await expect(page.getByText('Pago recurrente desactivado')).toBeVisible();
+      await expect(page.getByTestId('accounting-row-1')).toContainText('Inactivo');
+      await expect(page.getByTestId('recurring-monthly-cop-total'))
+        .toContainText('$112.900 COP');
+      const stateCall = calls.find((call) => call.apiPath.endsWith('/state/'));
+      expect(stateCall.body).toEqual({ is_active: false });
+    });
+
+    test('archive moves a payment into the preserved archived scope', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible({ timeout: 25_000 });
+
+      await chooseRecurringAction(page, 1, 'archive');
+      await page.getByTestId('confirm-modal-confirm').click();
+
+      await expect(page.getByText('Pago recurrente archivado')).toBeVisible();
+      await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+      await page.getByRole('tab', { name: 'Archivados', exact: true }).click();
+      await expect(page.getByTestId('accounting-row-1')).toContainText('Archivado');
+      expect(calls.some((call) => call.apiPath.endsWith('/archive/'))).toBe(true);
+    });
+
+    test('restore returns an archived payment as inactive', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      const rows = [recurringRow({
+        ...RECURRING_ROWS[0],
+        is_active: false,
+        is_archived: true,
+        archived_at: '2026-08-01T10:00:00Z',
+      })];
+      await mockApi(page, buildHandler({ calls, rows }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('tab', { name: 'Archivados', exact: true }))
+        .toBeVisible({ timeout: 25_000 });
+      await page.getByRole('tab', { name: 'Archivados', exact: true }).click();
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible();
+
+      await chooseRecurringAction(page, 1, 'restore');
+
+      await expect(page.getByText('Pago recurrente restaurado como inactivo')).toBeVisible();
+      await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+      await page.getByRole('tab', { name: 'Vigentes', exact: true }).click();
+      await expect(page.getByTestId('accounting-row-1')).toContainText('Inactivo');
+      expect(calls.some((call) => call.apiPath.endsWith('/restore/'))).toBe(true);
+    });
+
+    test('mute can silence reminders indefinitely from the row', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('recurring-actions-1')).toBeVisible({ timeout: 25_000 });
+
+      await chooseRecurringAction(page, 1, 'mute');
+      await page.getByRole('tab', { name: 'Indefinidamente', exact: true }).click();
+      await page.getByTestId('recurring-mute-submit').click();
+
+      await expect(page.getByText('Avisos silenciados')).toBeVisible();
+      await page.getByTestId('recurring-actions-1').click();
+      await expect(page.getByTestId('recurring-action-unmute-1')).toBeVisible();
+      const muteCall = calls.find((call) => call.apiPath.endsWith('/reminders/mute/'));
+      expect(muteCall.body).toEqual({ muted: true, until: null });
+    });
+
+    test('bulk selection deactivates several visible payments atomically', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('accounting-select-1')).toBeVisible({ timeout: 25_000 });
+
+      await page.getByTestId('accounting-select-1').check();
+      await page.getByTestId('accounting-select-2').check();
+      await expect(page.getByTestId('recurring-bulk-bar')).toContainText('2 seleccionados');
+      await page.getByTestId('recurring-bulk-actions').click();
+      await page.getByText('Desactivar seleccionados', { exact: true }).click();
+      await page.getByTestId('confirm-modal-confirm').click();
+
+      await expect(page.getByText('Pagos recurrentes desactivados')).toBeVisible();
+      await expect(page.getByTestId('recurring-monthly-cop-total'))
+        .toContainText('$32.900 COP');
+      await expect(page.getByTestId('recurring-bulk-bar')).toHaveCount(0);
+      const bulkCall = calls.find((call) => call.apiPath === 'accounting/recurring/bulk-action/');
+      expect(bulkCall.body).toEqual({ recurring_ids: [1, 2], action: 'deactivate' });
+    });
+  });
+
   test.describe('derived recurring values', () => {
     // Three cold navigations compiling the same Nuxt route in parallel can
     // starve one another before the first row mounts. The behaviors remain
@@ -793,7 +1091,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
       await expect(page.getByTestId('accounting-row-2')).toBeVisible({ timeout: 25_000 });
 
-      await page.getByTestId('accounting-edit-2').click();
+      await chooseRecurringAction(page, 2, 'edit');
       await page.getByTestId('recurring-payment-form-price').fill('200');
       await expect(page.getByTestId('recurring-payment-cop-preview'))
         .toContainText('$800.000 COP');
@@ -813,7 +1111,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
       await expect(page.getByTestId('accounting-row-2')).toBeVisible({ timeout: 25_000 });
 
-      await page.getByTestId('accounting-edit-2').click();
+      await chooseRecurringAction(page, 2, 'edit');
       await page.getByRole('dialog').getByRole('tab', { name: 'COP', exact: true }).click();
       await expect(page.getByTestId('recurring-payment-cop-preview')).toContainText('$20 COP');
       await page.getByTestId('recurring-payment-form-submit').click();
@@ -830,7 +1128,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
       await expect(page.getByTestId('accounting-row-2')).toBeVisible({ timeout: 25_000 });
 
-      await page.getByTestId('accounting-edit-2').click();
+      await chooseRecurringAction(page, 2, 'edit');
       await page.getByTestId('recurring-payment-form-frequency').selectOption('annual');
       await expect(page.getByTestId('recurring-payment-cop-preview')).toContainText('$6.667 COP');
       await page.getByTestId('recurring-payment-form-submit').click();

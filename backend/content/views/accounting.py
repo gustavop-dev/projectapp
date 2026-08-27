@@ -72,7 +72,10 @@ from content.serializers.accounting import (
     PocketMovementCreateUpdateSerializer,
     PocketMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
+    RecurringBulkActionSerializer,
+    RecurringReminderMuteSerializer,
     RecurringPaymentSerializer,
+    RecurringStateSerializer,
 )
 from content.serializers.accounting_statement import (
     CreditCardStatementSerializer,
@@ -86,6 +89,7 @@ from content.services import (
     accounting_income_duplicate_service,
     accounting_income_detail_service,
     accounting_income_mute_service,
+    accounting_recurring_service,
     accounting_service,
     accounting_settlement_service,
 )
@@ -254,7 +258,7 @@ def _pocket_meta(queryset, params):
 
 
 def _recurring_meta(queryset, params):
-    active = queryset.filter(is_active=True)
+    active = queryset.filter(is_active=True, is_archived=False)
     total = accounting_service.recurring_monthly_cost(active)
     rate = AccountingSettings.load().usd_exchange_rate or 0
     monthly_usd = (
@@ -528,6 +532,7 @@ _ENTITIES = {
             'frequency', 'cost_type', 'currency', 'payment_method', 'category',
         ),
         'bool_filters': ('is_active',),
+        'archive_scope': True,
         'select_related': ('category',),
         'meta': _recurring_meta,
     },
@@ -618,6 +623,17 @@ def base_queryset(config):
 
 
 def _apply_filters(queryset, params, config):
+    if config.get('archive_scope'):
+        archive_scope = (params.get('archive_scope') or 'current').strip()
+        if archive_scope == 'current':
+            queryset = queryset.filter(is_archived=False)
+        elif archive_scope == 'archived':
+            queryset = queryset.filter(is_archived=True)
+        elif archive_scope != 'all':
+            raise ValueError(
+                "El parámetro 'archive_scope' debe ser current, archived o all."
+            )
+
     date_field = config['date_field']
     if date_field:
         if params.get('year'):
@@ -1517,15 +1533,118 @@ def retrieve_recurring_payment(request, record_id):
     return _retrieve_record(request, 'recurring', record_id)
 
 
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def duplicate_recurring_payment_draft(request, record_id):
+    payment = get_object_or_404(RecurringPayment, pk=record_id)
+    return Response(
+        accounting_recurring_service.build_duplicate_draft(payment),
+    )
+
+
 @api_view(['PATCH'])
 @permission_classes([IsSuperUser])
 def update_recurring_payment(request, record_id):
     return _update_record(request, 'recurring', record_id)
 
 
+def _recurring_lifecycle_error(exc):
+    errors = None
+    if getattr(exc, 'record_ids', None):
+        errors = {getattr(exc, 'field', 'conflicting_ids'): exc.record_ids}
+    return error_response(
+        str(exc),
+        code=getattr(exc, 'code', None),
+        hint=getattr(exc, 'hint', None),
+        errors=errors,
+        status=status.HTTP_409_CONFLICT,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def set_recurring_payment_state(request, record_id):
+    payment = get_object_or_404(RecurringPayment, pk=record_id)
+    serializer = RecurringStateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        payment = accounting_recurring_service.set_active(
+            payment,
+            active=serializer.validated_data['is_active'],
+            user=request.user,
+        )
+    except accounting_recurring_service.RecurringLifecycleError as exc:
+        return _recurring_lifecycle_error(exc)
+    return Response(RecurringPaymentSerializer(payment).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def archive_recurring_payment(request, record_id):
+    payment = get_object_or_404(RecurringPayment, pk=record_id)
+    payment = accounting_recurring_service.archive(payment, user=request.user)
+    return Response(RecurringPaymentSerializer(payment).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def restore_recurring_payment(request, record_id):
+    payment = get_object_or_404(RecurringPayment, pk=record_id)
+    payment = accounting_recurring_service.restore(payment, user=request.user)
+    return Response(RecurringPaymentSerializer(payment).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def mute_recurring_payment_reminders(request, record_id):
+    payment = get_object_or_404(RecurringPayment, pk=record_id)
+    serializer = RecurringReminderMuteSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        payment = accounting_recurring_service.set_reminder_mute(
+            payment,
+            muted=serializer.validated_data['muted'],
+            until=serializer.validated_data.get('until'),
+            user=request.user,
+        )
+    except accounting_recurring_service.RecurringLifecycleError as exc:
+        return _recurring_lifecycle_error(exc)
+    return Response(RecurringPaymentSerializer(payment).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_recurring_payment_action(request):
+    serializer = RecurringBulkActionSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        updated = accounting_recurring_service.bulk_apply(
+            serializer.validated_data['recurring_ids'],
+            action=serializer.validated_data['action'],
+            user=request.user,
+        )
+    except accounting_recurring_service.RecurringLifecycleError as exc:
+        return _recurring_lifecycle_error(exc)
+    return Response({
+        'updated': len(updated),
+        'results': RecurringPaymentSerializer(updated, many=True).data,
+    })
+
+
 @api_view(['DELETE'])
 @permission_classes([IsSuperUser])
 def delete_recurring_payment(request, record_id):
+    payment = get_object_or_404(RecurringPayment, pk=record_id)
+    if not payment.is_archived:
+        return error_response(
+            'Un pago recurrente vigente no se puede eliminar definitivamente.',
+            code='recurring_archive_required',
+            hint='Archívalo primero para conservar una recuperación segura.',
+            status=status.HTTP_409_CONFLICT,
+        )
     return _delete_record(request, 'recurring', record_id)
 
 

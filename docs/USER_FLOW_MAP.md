@@ -5956,7 +5956,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-pocket` | admin | P2 | display,success,error | 6 |
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
 | `admin-accounting-project-coherence` | admin | P1 | success | 1 |
-| `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 16 |
+| `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 27 |
 | `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
@@ -6442,7 +6442,23 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/recurring`
-- **Description:** Recurring operational costs normalized to a single denominator — their monthly cost — so charges with different periodicities are comparable. Two read-only columns do the normalization: "Precio mensual" (price ÷ months of its frequency, in the record's own currency) and "Equiv. COP mensual" (the server-derived COP charge, likewise prorated); a biennial VPS at $789.600 reads as $32.900/month, a quarterly $300.000 plan as $100.000. The current USD rate configured in Accounting Settings is the only USD→COP source: the create/edit modal shows a live, non-editable equivalent and monthly preview, saving a different price/currency/frequency refreshes the row plus category/general totals, and saving a new rate resynchronizes every USD recurring. The frequency catalog covers every common cycle in ascending order — mensual, bimestral, trimestral, cuatrimestral, semestral, anual, cada 2 años, cada 3 años — plus **Personalizada**, which reveals a "Cada cuántos meses" field and divides by that number; a custom cycle that matches a catalog entry (3 months → Trimestral) is collapsed onto it on save, and its label reads "Cada 5 meses" rather than a generic "Personalizada". The default **grouped** view lists payments under an editable category catalog (create/rename/delete/reorder from the "Gestionar categorías" modal; deleting a category in use is blocked with a 409), each group showing its monthly COP subtotal, plus a grand total in the footer. Rows reorder by drag and drop — within a group or across groups — and the order persists per category; dragging is disabled while a search or filter is active, since reordering a partial list would persist an arrangement the user never saw. The **classic** view keeps the sortable, paginated table and adds a Categoría column. The monthly COP/USD KPI cards and the category/frequency/payment-method breakdown all consume the same refreshed monthly projections.
+- **Description:** Recurring operational costs remain normalized to a monthly denominator, but management now happens from each row. **Vigentes** and **Archivados** are separate scopes. In the current scope an inactive payment remains visible for administration but contributes $0 to the monthly COP/USD KPIs, group subtotals, participation percentages and charts; archived rows also stay out of those budget surfaces and out of upcoming-charge notices. The page states that rule next to the scope switch. Both grouped and classic views place the row's leading three-dots action before drag/data columns: edit; duplicate; activate/deactivate; mute/reactivate reminders; and archive. Duplicate first GETs a non-persisted draft and opens the ordinary create form with name, price, currency, frequency, method, category and billing day inherited; reminder cadence, notes and archive state are cleared, and the reference date is recalculated from the next occurrence rather than copied. Archive deactivates without deleting and moves the row to Archivados; restore returns it as inactive; permanent deletion appears only there and requires typing `ELIMINAR`. Checkboxes enable atomic bulk activate, deactivate and archive; duplicate stays one-at-a-time. The editable category catalog, drag ordering, custom frequencies, currency conversion, classic view and category chart drill-down remain intact. Charts always use the active budget base and no longer offer an inactive-row toggle. Registering the real expense/pocket movement and a charge-history browser are explicitly deferred to the separate feature that makes a recurring definition an accounting origin.
+
+#### Interaction matrix
+
+| Interaction | Outcome | Start → action → observable end state |
+|---|---|---|
+| Inspect current budget | display | Open Recurrentes through the accounting subnav → current rows render → inactive rows show `Inactivo`, 0% participation and do not inflate KPIs/subtotals. |
+| Open row actions | display | Click the leading three-dots button → one menu names the row and exposes every action valid for its lifecycle state. |
+| Duplicate | success | Choose Duplicar → review the recalculated prefill → save → a new row is created and the original remains unchanged. |
+| Duplicate draft unavailable | failure | Choose Duplicar → draft GET fails → an actionable error appears and no form or record is created. |
+| Activate/deactivate | success | Choose the state action → server writes/audits it → row badge, totals, percentages and charts refresh from the active-only base. |
+| Mute reminders | success | Choose Silenciar avisos → select a future date or indefinite mode → the row becomes non-notifiable; reopening the menu offers Reactivar avisos. |
+| Invalid mute date | error | Choose a date that is empty or not after today → inline validation blocks submission; the API enforces the same rule. |
+| Archive and restore | success | Archive + confirm → row leaves Vigentes and appears in Archivados; Restore → it returns to Vigentes as inactive. |
+| Permanent delete | error/success | A current row has no delete action; an archived row requires typing `ELIMINAR` before the irreversible request can run. |
+| Bulk lifecycle | success | Select visible rows → choose activate/deactivate/archive → review the named selection → one atomic request updates all rows and clears selection. |
+| Stale bulk selection | failure | One selected id disappeared or conflicts → the server rejects the whole transaction and the UI reconciles the stale ids without a partial write. |
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-pocket-recurring.spec.js`
 

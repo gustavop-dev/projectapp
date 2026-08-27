@@ -1,5 +1,10 @@
 import { largestRemainder, percentOf } from '~/utils/percent';
-import { UNCATEGORIZED_KEY, UNCATEGORIZED_LABEL, sumMonthlyCop } from '~/utils/recurring';
+import {
+  UNCATEGORIZED_KEY,
+  UNCATEGORIZED_LABEL,
+  countsTowardRecurringBudget,
+  sumMonthlyCop,
+} from '~/utils/recurring';
 
 /**
  * Aggregations behind the recurring-payments charts modal.
@@ -38,8 +43,8 @@ export const SPLIT_ORDERS = {
  * cancelled subscription sits at $0 and contributes nothing to a
  * distribution, but it still claims a legend entry and a color slot.
  */
-export function visibleRows(rows = [], { includeInactive = false } = {}) {
-  return includeInactive ? [...rows] : rows.filter((row) => row.is_active);
+export function visibleRows(rows = []) {
+  return rows.filter(countsTowardRecurringBudget);
 }
 
 /** Monthly COP cost of a single row, coerced. */

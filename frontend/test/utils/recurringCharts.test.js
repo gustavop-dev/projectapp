@@ -44,9 +44,9 @@ describe('visibleRows', () => {
     expect(visibleRows(rows).map((row) => row.id)).toEqual([1]);
   });
 
-  it('keeps them when the operator asks for them', () => {
-    const rows = [payment({ id: 1 }), payment({ id: 2, is_active: false })];
-    expect(visibleRows(rows, { includeInactive: true })).toHaveLength(2);
+  it('drops archived payments from every chart', () => {
+    const rows = [payment({ id: 1 }), payment({ id: 2, is_archived: true })];
+    expect(visibleRows(rows).map((row) => row.id)).toEqual([1]);
   });
 });
 

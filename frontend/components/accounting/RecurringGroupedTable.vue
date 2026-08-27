@@ -20,6 +20,24 @@
         role="row"
         class="accounting-grid-row items-end bg-surface-raised text-xs text-text-muted uppercase tracking-wider leading-tight"
       >
+        <span v-if="selectable" role="columnheader" :class="SELECT_PAD">
+          <input
+            type="checkbox"
+            class="align-middle accent-primary"
+            aria-label="Seleccionar todos los pagos recurrentes filtrados"
+            data-testid="accounting-select-all"
+            :checked="allSummary.all"
+            :indeterminate.prop="allSummary.some && !allSummary.all"
+            @change="toggleAll($event.target.checked)"
+          >
+        </span>
+        <span
+          v-if="hasMenuStart"
+          role="columnheader"
+          class="w-14 min-w-14 max-w-14 px-1.5 py-2 text-center"
+          data-testid="accounting-actions-header"
+          aria-label="Acciones"
+        />
         <!-- Must stay in flow to occupy the handle track; sr-only (absolute) on
              the grid item itself shifts every label one track left. -->
         <span v-if="dragEnabled" role="columnheader" :class="HANDLE_PAD"><span class="sr-only">Orden</span></span>
@@ -48,7 +66,11 @@
           </button>
           <template v-else>{{ col.label }}</template>
         </span>
-        <span role="columnheader" :class="[DENSITY.headerCell, 'text-center']">Acciones</span>
+        <span
+          v-if="showActions && !hasMenuStart"
+          role="columnheader"
+          :class="[DENSITY.headerCell, 'text-center']"
+        >Acciones</span>
       </div>
 
       <!-- Skeleton -->
@@ -75,22 +97,42 @@
           >
             <!-- min-w-0 down the chain is what lets a long category name
                  ellipsize instead of pushing the figures out of the row. -->
-            <button
-              type="button"
-              role="columnheader"
-              class="inline-flex items-center gap-2 min-w-0 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-              :aria-expanded="!isCollapsed(group.id)"
-              :aria-controls="`recurring-group-body-${group.id}`"
-              :data-testid="`recurring-group-toggle-${group.id}`"
-              @click="emit('toggle-group', group.id)"
-            >
-              <BaseActionIcon
-                :action="isCollapsed(group.id) ? 'expand' : 'collapse'"
-                class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
-              />
-              <span class="min-w-0 max-w-full truncate" :title="group.name">{{ group.name }}</span>
-              <span class="text-xs text-text-subtle font-normal">({{ group.rows.length }})</span>
-            </button>
+            <div class="flex items-center gap-2 min-w-0">
+              <input
+                v-if="selectable"
+                type="checkbox"
+                class="align-middle accent-primary flex-shrink-0"
+                :aria-label="`Seleccionar los ${group.rows.length} pagos de ${group.name}`"
+                :data-testid="`recurring-group-select-${group.id}`"
+                :checked="groupSummary(group.id).all"
+                :indeterminate.prop="groupSummary(group.id).some && !groupSummary(group.id).all"
+                @change="toggleGroupSelection(group, $event.target.checked)"
+              >
+              <button
+                type="button"
+                role="columnheader"
+                class="inline-flex items-center gap-2 min-w-0 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+                :aria-expanded="!isCollapsed(group.id)"
+                :aria-controls="`recurring-group-body-${group.id}`"
+                :data-testid="`recurring-group-toggle-${group.id}`"
+                @click="emit('toggle-group', group.id)"
+              >
+                <BaseActionIcon
+                  :action="isCollapsed(group.id) ? 'expand' : 'collapse'"
+                  class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
+                />
+                <span class="min-w-0 max-w-full truncate" :title="group.name">{{ group.name }}</span>
+                <span class="text-xs text-text-subtle font-normal">({{ group.rows.length }})</span>
+              </button>
+              <span
+                v-if="selectable && isCollapsed(group.id) && groupSummary(group.id).count > 0"
+                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-primary-soft text-text-brand whitespace-nowrap"
+                :data-testid="`recurring-group-selected-${group.id}`"
+              >
+                {{ groupSummary(group.id).count }}
+                seleccionado{{ groupSummary(group.id).count === 1 ? '' : 's' }}
+              </span>
+            </div>
             <div class="text-xs leading-tight whitespace-nowrap">
               <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
                 Mensual
@@ -137,6 +179,44 @@
                 class="accounting-grid-row items-center min-h-9 bg-surface hover:bg-surface-raised transition-colors text-sm"
                 :class="row.id === highlightId ? 'accounting-row-flash' : ''"
               >
+                <span v-if="selectable" role="cell" :class="SELECT_PAD">
+                  <input
+                    type="checkbox"
+                    class="align-middle accent-primary"
+                    :aria-label="`Seleccionar fila ${row.id}`"
+                    :data-testid="`accounting-select-${row.id}`"
+                    :checked="selectedSet.has(row.id)"
+                    @change="toggleRow(row.id, $event.target.checked)"
+                  >
+                </span>
+                <span
+                  v-if="hasMenuStart"
+                  role="cell"
+                  class="w-14 min-w-14 max-w-14 px-1.5 py-1.5 text-center whitespace-nowrap"
+                  :data-testid="`accounting-actions-cell-${row.id}`"
+                  @click.stop
+                  @auxclick.stop
+                >
+                  <slot name="row-actions" :row="row" />
+                  <template v-if="showDefaultActions">
+                    <BaseActionButton
+                      action="edit"
+                      variant="ghost"
+                      size="sm"
+                      label="Editar pago recurrente"
+                      :data-testid="`accounting-edit-${row.id}`"
+                      @click.stop="emit('edit', row)"
+                    />
+                    <BaseActionButton
+                      action="delete"
+                      variant="danger-ghost"
+                      size="sm"
+                      label="Eliminar pago recurrente"
+                      :data-testid="`accounting-delete-${row.id}`"
+                      @click.stop="emit('delete', row)"
+                    />
+                  </template>
+                </span>
                 <span v-if="dragEnabled" role="cell" :class="HANDLE_PAD">
                   <span
                     class="recurring-drag-handle cursor-grab select-none text-text-subtle"
@@ -224,23 +304,30 @@
                     </dl>
                   </div>
                 </span>
-                <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
-                  <BaseActionButton
-                    action="edit"
-                    variant="ghost"
-                    size="sm"
-                    label="Editar pago recurrente"
-                    :data-testid="`accounting-edit-${row.id}`"
-                    @click.stop="emit('edit', row)"
-                  />
-                  <BaseActionButton
-                    action="delete"
-                    variant="danger-ghost"
-                    size="sm"
-                    label="Eliminar pago recurrente"
-                    :data-testid="`accounting-delete-${row.id}`"
-                    @click.stop="emit('delete', row)"
-                  />
+                <span
+                  v-if="showActions && !hasMenuStart"
+                  role="cell"
+                  :class="[DENSITY.cell, 'text-center whitespace-nowrap']"
+                >
+                  <slot name="row-actions" :row="row" />
+                  <template v-if="showDefaultActions">
+                    <BaseActionButton
+                      action="edit"
+                      variant="ghost"
+                      size="sm"
+                      label="Editar pago recurrente"
+                      :data-testid="`accounting-edit-${row.id}`"
+                      @click.stop="emit('edit', row)"
+                    />
+                    <BaseActionButton
+                      action="delete"
+                      variant="danger-ghost"
+                      size="sm"
+                      label="Eliminar pago recurrente"
+                      :data-testid="`accounting-delete-${row.id}`"
+                      @click.stop="emit('delete', row)"
+                    />
+                  </template>
                 </span>
               </div>
             </template>
@@ -278,8 +365,11 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
 import { formatMonthlyCop, UNCATEGORIZED_KEY } from '~/utils/recurring';
+import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
   HANDLE_PAD,
+  ROW_ACTION_LAYOUTS,
+  SELECT_PAD,
   TABLE_DENSITY,
   minWidthFor,
   resolveColumns,
@@ -308,9 +398,20 @@ const props = defineProps({
   sortColumnKey: { type: String, default: '' },
   /** Current weight-sort state, controlled by the page: '' | 'asc' | 'desc'. */
   weightSort: { type: String, default: '' },
+  showActions: { type: Boolean, default: true },
+  showDefaultActions: { type: Boolean, default: true },
+  rowActionsLayout: {
+    type: String,
+    default: ROW_ACTION_LAYOUTS.INLINE_END,
+    validator: (value) => Object.values(ROW_ACTION_LAYOUTS).includes(value),
+  },
+  selectable: { type: Boolean, default: false },
+  selected: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['edit', 'delete', 'reorder', 'toggle-group', 'toggle-weight-sort']);
+const emit = defineEmits([
+  'edit', 'delete', 'reorder', 'toggle-group', 'toggle-weight-sort', 'update:selected',
+]);
 
 function headerAriaSort(col) {
   if (col.key !== props.sortColumnKey) return undefined;
@@ -335,9 +436,15 @@ watch(
 );
 
 const DENSITY = TABLE_DENSITY;
+const hasMenuStart = computed(() => (
+  props.showActions && props.rowActionsLayout === ROW_ACTION_LAYOUTS.MENU_START
+));
 
 /** Widths by content, slack shared in proportion — see utils/tableLayout. */
-const resolved = computed(() => resolveColumns(props.columns));
+const resolved = computed(() => resolveColumns(props.columns, {
+  hasActions: props.showActions,
+  rowActionsLayout: props.rowActionsLayout,
+}));
 
 const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
 const POLICY_CLASSES = {
@@ -385,7 +492,13 @@ function visibleColumns(profile) {
  * rendering the same markup.
  */
 const gridVars = computed(() => {
-  const opts = { hasHandle: props.dragEnabled, hasActions: true, breakpoint: 'lg' };
+  const opts = {
+    hasHandle: props.dragEnabled,
+    hasSelect: props.selectable,
+    hasActions: props.showActions,
+    rowActionsLayout: props.rowActionsLayout,
+    breakpoint: 'lg',
+  };
   return {
     '--cols-compact': trackListFor(visibleColumns('compact'), opts),
     '--cols-portrait': trackListFor(visibleColumns('portrait'), opts),
@@ -395,7 +508,13 @@ const gridVars = computed(() => {
 });
 
 const containerVars = computed(() => {
-  const opts = { hasHandle: props.dragEnabled, hasActions: true, breakpoint: 'lg' };
+  const opts = {
+    hasHandle: props.dragEnabled,
+    hasSelect: props.selectable,
+    hasActions: props.showActions,
+    rowActionsLayout: props.rowActionsLayout,
+    breakpoint: 'lg',
+  };
   return {
     '--minw-landscape': minWidthFor(visibleColumns('landscape'), opts),
     '--minw-desktop': minWidthFor(resolved.value, opts),
@@ -419,6 +538,39 @@ const grandTotal = computed(
 
 function isCollapsed(id) {
   return props.collapsedIds.includes(id);
+}
+
+const selectedSet = computed(() => new Set(props.selected));
+const groupSummaries = computed(() => new Map(
+  props.groups.map((group) => [
+    group.id,
+    selectionSummary(group.rows.map((row) => row.id), selectedSet.value),
+  ]),
+));
+const EMPTY_SUMMARY = { count: 0, all: false, some: false };
+const allKeys = computed(() => props.groups.flatMap(
+  (group) => group.rows.map((row) => row.id),
+));
+const allSummary = computed(() => selectionSummary(allKeys.value, selectedSet.value));
+
+function groupSummary(id) {
+  return groupSummaries.value.get(id) || EMPTY_SUMMARY;
+}
+
+function toggleRow(id, checked) {
+  emit('update:selected', toggleKeys(props.selected, [id], checked));
+}
+
+function toggleGroupSelection(group, checked) {
+  emit('update:selected', toggleKeys(
+    props.selected,
+    group.rows.map((row) => row.id),
+    checked,
+  ));
+}
+
+function toggleAll(checked) {
+  emit('update:selected', toggleKeys(props.selected, allKeys.value, checked));
 }
 
 /** `col` is already resolved, so alignment, padding and visibility come precomputed. */

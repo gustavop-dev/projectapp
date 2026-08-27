@@ -120,6 +120,85 @@ describe('useAccountingStore', () => {
       expect(result.data.kind).toBe('expected')
     })
 
+    it('fetchRecurringDuplicateDraft reads a create prefill', async () => {
+      get_request.mockResolvedValue({
+        data: { name: 'Figma equipo', cycle_anchor_date: '2026-10-17' },
+      })
+
+      const result = await store.fetchRecurringDuplicateDraft(12)
+
+      expect(get_request).toHaveBeenCalledWith(
+        'accounting/recurring/12/duplicate-draft/',
+      )
+      expect(create_request).not.toHaveBeenCalled()
+      expect(result.data.cycle_anchor_date).toBe('2026-10-17')
+    })
+
+    it.each([
+      ['state', (current) => current.setRecurringActive(12, false), 'state/', { is_active: false }],
+      ['archive', (current) => current.archiveRecurring(12), 'archive/', {}],
+      ['restore', (current) => current.restoreRecurring(12), 'restore/', {}],
+      [
+        'reminder mute',
+        (current) => current.muteRecurringReminders(12, { muted: true, until: null }),
+        'reminders/mute/',
+        { muted: true, until: null },
+      ],
+    ])('routes the recurring %s action', async (_label, action, suffix, payload) => {
+      store.recurringPayments = [{ id: 12, name: 'Viejo' }, { id: 13 }]
+      create_request.mockResolvedValue({ data: { id: 12, name: 'Actualizado' } })
+
+      const result = await action(store)
+
+      expect(create_request).toHaveBeenCalledWith(
+        `accounting/recurring/12/${suffix}`,
+        payload,
+      )
+      expect(result.success).toBe(true)
+      expect(store.recurringPayments[0].name).toBe('Actualizado')
+      expect(store.recurringPayments[1]).toEqual({ id: 13 })
+    })
+
+    it('replaces every row returned by a recurring bulk action', async () => {
+      store.recurringPayments = [
+        { id: 12, is_active: true },
+        { id: 13, is_active: true },
+        { id: 14, is_active: true },
+      ]
+      create_request.mockResolvedValue({
+        data: {
+          updated: 2,
+          results: [
+            { id: 12, is_active: false },
+            { id: 13, is_active: false },
+          ],
+        },
+      })
+
+      const result = await store.bulkRecurringAction([12, 13], 'deactivate')
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/recurring/bulk-action/',
+        { recurring_ids: [12, 13], action: 'deactivate' },
+      )
+      expect(result.data.updated).toBe(2)
+      expect(store.recurringPayments.map((row) => row.is_active))
+        .toEqual([false, false, true])
+    })
+
+    it('returns missing ids from a stale recurring selection', async () => {
+      create_request.mockRejectedValue(apiError(409, {
+        error: 'Algunos pagos ya no existen.',
+        code: 'records_not_found',
+        missing_ids: [12, '13'],
+      }))
+
+      const result = await store.bulkRecurringAction([12, 13], 'archive')
+
+      expect(result.success).toBe(false)
+      expect(result.missingIds).toEqual([12, 13])
+    })
+
     it('settleIncome posts the settlement to the income endpoint', async () => {
       create_request.mockResolvedValue({
         data: { income: { id: 7 }, liquid: { id: 8 }, expenses: [{ id: 9 }] },
@@ -378,6 +457,11 @@ describe('useAccountingStore', () => {
         {
           is_active: false, frequency: 'monthly', frequency_label: 'Mensual',
           payment_method_label: 'T.C', monthly_cop_cost: '99999.00',
+        },
+        {
+          is_active: true, is_archived: true, frequency: 'monthly',
+          frequency_label: 'Mensual', payment_method_label: 'T.C',
+          monthly_cop_cost: '88888.00',
         },
       ]
       expect(store.recurringTotalsByFrequency).toEqual({ Mensual: 1200000 })

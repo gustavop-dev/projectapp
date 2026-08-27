@@ -100,10 +100,19 @@ class RecurringPayment(AccountingRecordBase):
     # not nag, the next cycle simply re-arms from the anchor.
     reminder_target_date = models.DateField(null=True, blank=True)
     reminder_last_sent_at = models.DateField(null=True, blank=True)
+    # Operator preference, separate from the cadence state above. A dated mute
+    # resumes automatically when the payment calendar next runs; a null date
+    # means "until I reactivate it".
+    reminders_muted = models.BooleanField(default=False)
+    reminders_muted_until = models.DateField(null=True, blank=True)
     cost_type = models.CharField(
         max_length=10, choices=CostType.choices, default=CostType.FIXED,
     )
     is_active = models.BooleanField(default=True, db_index=True)
+    # Cancellation is recoverable and keeps the row available for reference.
+    # Hard delete is reserved for archived records that never belonged here.
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
     category = models.ForeignKey(
         'content.RecurringCategory',
         on_delete=models.PROTECT,

@@ -203,8 +203,12 @@ def _recurring_due_soon(today):
     due = []
     payments = RecurringPayment.objects.filter(
         is_active=True,
+        is_archived=False,
         frequency=RecurringPayment.Frequency.MONTHLY,
         billing_day__isnull=False,
+    ).filter(
+        Q(reminders_muted=False)
+        | Q(reminders_muted_until__isnull=False, reminders_muted_until__lte=today)
     )
     for payment in payments:
         days = _days_until_billing(payment.billing_day, today)
