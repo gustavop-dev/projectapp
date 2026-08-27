@@ -31,6 +31,15 @@ class TestCreateFakeAccounting:
         payment = RecurringPayment.objects.get(name='Claude Code 20x')
         assert payment.cop_equivalent == Decimal('870100.00')
 
+    def test_recurring_fake_rows_cover_lifecycle_states(self):
+        call_command('create_fake_accounting', '--count', '6')
+
+        rows = RecurringPayment.objects.filter(source_ref='fake:accounting')
+        assert rows.filter(is_active=True, is_archived=False).exists()
+        assert rows.filter(is_active=False, is_archived=False).exists()
+        assert rows.filter(is_archived=True, archived_at__isnull=False).exists()
+        assert rows.filter(reminders_muted=True).exists()
+
     def test_creates_tagged_rows_for_every_entity(self):
         call_command('create_fake_accounting', '--count', '6')
         for model in (

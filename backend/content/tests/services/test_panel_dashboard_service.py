@@ -241,6 +241,29 @@ class TestRecurringDue:
         assert item['meta']['next_days'] == 0
         assert all(i['type'] != 'recurring_due' for i in without_finance)
 
+    def test_due_soon_excludes_non_notifiable_payments(self):
+        billing_day = today_bogota().day
+        RecurringPayment.objects.create(
+            name='Vigente', price=Decimal('50000.00'),
+            cop_equivalent=Decimal('50000.00'), frequency='monthly',
+            billing_day=billing_day,
+        )
+        RecurringPayment.objects.create(
+            name='Archivado', price=Decimal('50000.00'),
+            cop_equivalent=Decimal('50000.00'), frequency='monthly',
+            billing_day=billing_day, is_archived=True,
+        )
+        RecurringPayment.objects.create(
+            name='Silenciado', price=Decimal('50000.00'),
+            cop_equivalent=Decimal('50000.00'), frequency='monthly',
+            billing_day=billing_day, reminders_muted=True,
+        )
+
+        attention = build_panel_dashboard(include_finance=True)['attention']
+
+        item = next(i for i in attention if i['type'] == 'recurring_due')
+        assert item['count'] == 1
+
 
 # ── _days_until_billing ──
 

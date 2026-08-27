@@ -220,9 +220,19 @@ def collect_recurring_notices(today):
     """
     from content.models import RecurringPayment
 
+    RecurringPayment.objects.filter(
+        reminders_muted=True,
+        reminders_muted_until__isnull=False,
+        reminders_muted_until__lte=today,
+    ).update(reminders_muted=False, reminders_muted_until=None)
+
     items = []
     rearmed, without_schedule = [], 0
-    for payment in RecurringPayment.objects.filter(is_active=True):
+    for payment in RecurringPayment.objects.filter(
+        is_active=True,
+        is_archived=False,
+        reminders_muted=False,
+    ):
         try:
             target = next_charge_date(payment, today)
             if target is None:

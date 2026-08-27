@@ -1354,6 +1354,40 @@ class RecurringCategorySerializer(serializers.ModelSerializer):
         return name
 
 
+class RecurringStateSerializer(serializers.Serializer):
+    is_active = serializers.BooleanField()
+
+
+class RecurringReminderMuteSerializer(serializers.Serializer):
+    muted = serializers.BooleanField()
+    until = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, data):
+        data = super().validate(data)
+        if data.get('muted') and data.get('until'):
+            if data['until'] <= today_bogota():
+                raise serializers.ValidationError({
+                    'until': 'La fecha de reanudación debe ser posterior a hoy.',
+                })
+        return data
+
+
+class RecurringBulkActionSerializer(serializers.Serializer):
+    recurring_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+        max_length=500,
+    )
+    action = serializers.ChoiceField(
+        choices=('activate', 'deactivate', 'archive'),
+    )
+
+    def validate_recurring_ids(self, value):
+        # A repeated checkbox id must not produce duplicate audit rows or make
+        # the response count disagree with what changed.
+        return list(dict.fromkeys(value))
+
+
 class RecurringPaymentSerializer(serializers.ModelSerializer):
     payment_method_label = serializers.CharField(
         source='get_payment_method_display', read_only=True,
@@ -1379,6 +1413,7 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
     # Preformatted like `period_label` and `frequency_label`: the table renders
     # it as plain text in both view modes, so neither has to format a date.
     next_charge_label = serializers.SerializerMethodField()
+    reminders_effectively_muted = serializers.SerializerMethodField()
 
     class Meta:
         model = RecurringPayment
@@ -1390,7 +1425,10 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
             'cost_type', 'cost_type_label',
             'category', 'category_name', 'order',
             'monthly_price', 'monthly_cop_cost',
-            'is_active', 'notes', 'created_at', 'updated_at',
+            'is_active', 'is_archived', 'archived_at',
+            'reminders_muted', 'reminders_muted_until',
+            'reminders_effectively_muted',
+            'notes', 'created_at', 'updated_at',
         )
         read_only_fields = ('order',)
 
@@ -1413,6 +1451,14 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
         """
         value = self._next_charge(obj)
         return format_bogota_date(value) if value else '—'
+
+    def get_reminders_effectively_muted(self, obj):
+        if not obj.reminders_muted:
+            return False
+        return (
+            obj.reminders_muted_until is None
+            or obj.reminders_muted_until > today_bogota()
+        )
 
 
 class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
@@ -1443,6 +1489,14 @@ class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         data = super().validate(data)
         self._validate_custom_months(data)
+        if (
+            self.instance is not None
+            and self.instance.is_archived
+            and data.get('is_active') is True
+        ):
+            raise serializers.ValidationError({
+                'is_active': 'Restaura el pago recurrente antes de activarlo.',
+            })
         return data
 
     def _validate_custom_months(self, data):

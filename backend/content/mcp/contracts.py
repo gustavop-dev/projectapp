@@ -225,7 +225,8 @@ MCP_MODEL_CONTRACTS = {
             'content.RecurringPayment',
             read_only=(
                 'id created_at updated_at cop_equivalent reminder_target_date '
-                'reminder_last_sent_at'
+                'reminder_last_sent_at reminders_muted reminders_muted_until '
+                'is_archived archived_at'
             ),
             read_write=(
                 'notes name price currency payment_method frequency custom_months '

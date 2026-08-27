@@ -1185,3 +1185,26 @@ the action cell stops click and auxiliary-click propagation so a navigable row
 does not open. It must not cancel pointer/touch movement: a trusted touch-pan E2E
 starting on the kebab protects horizontal scrolling while proving that the menu
 does not open accidentally.
+
+## 48. A recurring definition is not yet a ledger transaction
+
+Recurring rows answer “what do we normally pay?”; expenses and pocket movements
+answer “what did we actually pay?”. Adding pause/archive/duplicate behavior to the
+definition must not silently cross that boundary. Keep lifecycle state in one
+service and make every budget consumer use the same positive predicate — here,
+`is_active && !is_archived` — rather than teaching each KPI, chart, export and
+reminder its own exclusion rule.
+
+Archive and delete also encode different facts. Cancellation preserves a useful
+definition and its audit trail, so archive is reversible and forces inactive;
+delete is only for an archived mistake and needs a stronger confirmation. Restore
+must not reactivate a cancelled service implicitly. Bulk lifecycle writes lock the
+whole selection and validate missing/conflicting ids before the first mutation,
+otherwise a stale browser selection creates an unexplainable partial budget.
+
+Duplication is another boundary test: return a non-persisted form draft, inherit
+only editable definition fields, and recompute schedule state from the next
+occurrence. Copying reminder cadence, archive state or historical links turns a
+convenience action into hidden data creation. When recurring payments eventually
+originate real expenses, design an idempotent period key, pocket transaction and
+charge-history relation explicitly; do not smuggle them into lifecycle endpoints.

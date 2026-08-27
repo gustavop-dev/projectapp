@@ -159,6 +159,10 @@ TRACKED_FIELDS = {
         ('cost_type', 'Tipo de costo'),
         ('category', 'Categoría'),
         ('is_active', 'Activo'),
+        ('is_archived', 'Archivado'),
+        ('archived_at', 'Archivado el'),
+        ('reminders_muted', 'Avisos silenciados'),
+        ('reminders_muted_until', 'Silenciado hasta'),
         ('notes', 'Notas'),
     ],
     EntityType.ADS: [
@@ -878,6 +882,13 @@ def delete_record(entity_type, instance, user):
     rejected instead of cascading, because the movement's amount is the sum
     of its children and must not shrink over a partial delete.
     """
+    if entity_type == EntityType.RECURRING and not instance.is_archived:
+        raise ProposalActionError(
+            'Un pago recurrente vigente no se puede eliminar definitivamente.',
+            code='recurring_archive_required',
+            hint='Archívalo primero para conservar una recuperación segura.',
+        )
+
     deleted_id = instance.pk
     deleted_repr = object_repr(entity_type, instance)
     old_values = snapshot_values(instance, entity_type)
@@ -1507,9 +1518,21 @@ def monthly_breakdown(year):
 
 
 def recurring_monthly_cost(queryset=None):
-    """Sum of active recurring payments prorated to a monthly COP cost."""
+    """Monthly COP cost of active, non-archived recurring payments."""
     if queryset is None:
-        queryset = RecurringPayment.objects.filter(is_active=True)
+        queryset = RecurringPayment.objects.filter(
+            is_active=True, is_archived=False,
+        )
+    else:
+        # Defense in depth for callers handing us an unscoped list/queryset:
+        # the budget invariant belongs to the aggregation, not to one view.
+        if hasattr(queryset, 'filter'):
+            queryset = queryset.filter(is_active=True, is_archived=False)
+        else:
+            queryset = (
+                payment for payment in queryset
+                if payment.is_active and not payment.is_archived
+            )
     return sum(
         (payment.monthly_cop_cost for payment in queryset),
         Decimal('0'),

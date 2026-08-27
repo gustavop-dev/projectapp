@@ -34,7 +34,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
 | `communications` | 5 | Hilos y registro conversacional de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
-| `accounting` | 63 | Libros, hosting, pagos/abonos, bolsillo, tarjetas y extractos |
+| `accounting` | 69 | Libros, hosting, pagos/abonos, recurrentes, bolsillo, tarjetas y extractos |
 | `diagnostics` | 13 | Diagnósticos, metadatos, secciones, estados y envíos |
 | `proposals` | 11 | Propuestas JSON, ciclo, duplicación, envío y enlaces |
 | `linkedin-personal` | 7 | Conexión, borradores, programación y publicación de texto |
@@ -220,7 +220,7 @@ fallar de forma explícita.
 | Documents | resumen/detalle y filtros muestran cliente, proyecto, estados, tags y sólo observaciones activas | crear/editar mantiene asociaciones; eliminar/restaurar observaciones reconcilia estados y papelera en una transacción | proyecto ajeno, archivado, selección de observaciones mezclada o restauración incompatible |
 | Clients | métricas incluyen documentos, ingresos, hostings y comunicaciones | CRUD usa `proposal_client_service` | un hilo impide tratar/eliminar el cliente como huérfano |
 | Tasks | detalle, comentarios y alertas reflejan el modelo actual | CRUD, archivo, orden y duplicación | comentario/alerta de otra tarea |
-| Accounting | detalle incluye pagos, deducciones, cuenta de cobro y período de hosting | `settle_income` y `bulk_settle_incomes` crean pagos parciales/abonos por el servicio del panel | no esperado, repetido, excedido o ID perdido |
+| Accounting | detalle incluye pagos, deducciones, cuenta de cobro, período de hosting y ciclo de vida de recurrentes | `settle_income`/`bulk_settle_incomes` crean pagos; las seis tools de recurrentes preparan duplicado, cambian estado, archivan/restauran, silencian avisos y aplican lote por el mismo servicio del panel | no esperado, repetido, excedido, ID perdido o intento de activar/silenciar un recurrente archivado |
 | Diagnostics | detalle expone slug, expiración y cliente | update permite esos campos y usa el serializer actual | slug duplicado o cliente inválido |
 | Proposals | detalle expone metadata comercial completa | importación y duplicación conservan nacionalidad, tipos custom y modo de contrato | JSON incompleto o transición inválida |
 | LinkedIn | estado de token/post y errores de publicación | borrador, programación, edición, borrado y publicación de texto | token ausente/expirado o post no publicable |

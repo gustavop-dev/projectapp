@@ -98,6 +98,15 @@ export function sumMonthlyCop(rows = []) {
   return rows.reduce((total, row) => total + (Number(row.monthly_cop_cost) || 0), 0);
 }
 
+/** Only payments that belong in the operating monthly budget. */
+export function countsTowardRecurringBudget(row = {}) {
+  return Boolean(row.is_active) && !row.is_archived;
+}
+
+export function sumRecurringBudget(rows = []) {
+  return sumMonthlyCop(rows.filter(countsTowardRecurringBudget));
+}
+
 /**
  * Group rows into display buckets, one per category, in the catalog's own
  * order. Empty categories are skipped; uncategorized rows collect into a
@@ -124,7 +133,7 @@ export function groupByCategory(rows = [], categories = []) {
 
   return groups.map((group) => ({
     ...group,
-    monthlyCopTotal: sumMonthlyCop(group.rows),
+    monthlyCopTotal: sumRecurringBudget(group.rows),
   }));
 }
 
@@ -138,7 +147,11 @@ export function withGroupWeights(groups = [], base = 0) {
   const raw = groups.map((group) =>
     percentOf(
       group.rows.reduce(
-        (total, row) => total + (row.is_active ? Number(row.monthly_cop_cost) || 0 : 0),
+        (total, row) => total + (
+          countsTowardRecurringBudget(row)
+            ? Number(row.monthly_cop_cost) || 0
+            : 0
+        ),
         0,
       ),
       base,

@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-27 — Listo para merge: ciclo de vida y acciones de Recurrentes:**
+`/panel/accounting/recurring` ya usa la columna inicial de PA-102 y un único menú
+por fila para editar, duplicar con borrador, activar/desactivar, silenciar avisos
+y archivar. Vigentes/Archivados son alcances separados; restaurar siempre deja
+inactivo y eliminar definitivamente sólo existe después de archivar. La
+selección múltiple aplica activar/desactivar/archivar en una transacción. El
+predicado activo + no archivado gobierna total, porcentajes, gráficos, dashboard
+y calendario; la interfaz lo explica. REST y seis tools MCP comparten el mismo
+servicio auditado. Fake data cubre vigente, inactivo, silenciado y archivado.
+Verificación: 34 casos backend enfocados, 62 unitarios frontend y 11 Playwright
+en verde; migration/check sin drift, cuatro gates de panel, flow audit y build
+Nuxt aprobados. Registrar cobros, crear gastos/movimientos de bolsillo y navegar
+su historial quedan expresamente para la historia de origen contable posterior.
+
 **2026-08-27 — Controles cortos atómicos, anchos semánticos y Gestor
 Documental:** el barrido previo de 61 modales, 32 consumidores segmentados, 25
 badges y 19 filas de formulario confirmó una causa compartida. `BaseButton`,

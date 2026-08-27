@@ -34,8 +34,26 @@
 
     <AccountingSubnav active="recurring" />
 
+    <div class="mb-4 flex flex-col gap-2 panel-portrait:flex-row panel-portrait:items-center">
+      <BaseSegmented
+        v-model="archiveScope"
+        :options="archiveScopeOptions"
+        size="sm"
+        data-testid="recurring-archive-scope"
+        aria-label="Estado de conservación de los pagos recurrentes"
+      />
+      <p class="text-xs text-text-subtle" data-testid="recurring-budget-scope-note">
+        <template v-if="isArchivedScope">
+          Los archivados se conservan para consulta, pero no cuentan en totales, porcentajes ni avisos.
+        </template>
+        <template v-else>
+          El presupuesto y los porcentajes incluyen solo pagos activos; los inactivos quedan fuera.
+        </template>
+      </p>
+    </div>
+
     <!-- Stat cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+    <div v-if="!isArchivedScope" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
       <AccountingStatCard
         data-testid="recurring-monthly-cop-total"
         label="Costo mensual (COP)"
@@ -115,6 +133,8 @@
         size="sm"
         class="flex-1 panel-portrait:flex-none"
         data-testid="recurring-charts-button"
+        :disabled="isArchivedScope"
+        disabled-reason="Los archivados no forman parte del presupuesto ni de sus gráficos."
         @click="showChartsModal = true"
       >
         <BaseActionIcon action="stats" />
@@ -145,10 +165,8 @@
     <!-- Empty -->
     <BaseEmptyState
       v-else-if="!store.isLoading && filteredRows.length === 0"
-      :title="hasActiveFilters ? 'Sin resultados con esos filtros' : 'No hay pagos recurrentes aún'"
-      :description="hasActiveFilters
-        ? 'Ajusta o limpia los filtros para ver más registros.'
-        : 'Registra la primera suscripción o costo operativo.'"
+      :title="emptyTitle"
+      :description="emptyDescription"
     >
       <template #actions>
         <BaseButton
@@ -159,7 +177,12 @@
         >
           Limpiar filtros
         </BaseButton>
-        <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
+        <BaseButton
+          v-else-if="!isArchivedScope"
+          variant="primary"
+          size="sm"
+          @click="openCreateModal"
+        >
           <BaseActionIcon action="create" />
           <span>Nuevo pago recurrente</span>
         </BaseButton>
@@ -168,14 +191,14 @@
 
     <template v-else>
       <p
-        v-if="isGrouped && groupedWeightSort && !store.isLoading"
+        v-if="!isArchivedScope && isGrouped && groupedWeightSort && !store.isLoading"
         class="text-xs text-text-subtle mb-2"
         data-testid="recurring-weight-sort-hint"
       >
         Orden por peso activo: quítalo para reordenar arrastrando.
       </p>
       <p
-        v-else-if="isGrouped && !canReorder && !store.isLoading"
+        v-else-if="!isArchivedScope && isGrouped && !canReorder && !store.isLoading"
         class="text-xs text-text-subtle mb-2"
         data-testid="recurring-reorder-hint"
       >
@@ -184,6 +207,8 @@
 
       <RecurringGroupedTable
         v-if="isGrouped"
+        v-model:selected="selectedIds"
+        :selectable="!isArchivedScope"
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
         :columns="groupedColumns"
@@ -192,13 +217,20 @@
         :drag-enabled="canReorder"
         :collapsed-ids="collapsedGroupIds"
         :weight-sort="groupedWeightSort"
-        sort-column-key="monthly_cop_cost"
-        @edit="openEditModal"
-        @delete="confirmDelete"
+        :show-default-actions="false"
+        row-actions-layout="menu-start"
+        :sort-column-key="isArchivedScope ? '' : 'monthly_cop_cost'"
         @reorder="handleReorder"
         @toggle-group="toggleGroup"
         @toggle-weight-sort="toggleGroupedWeightSort"
       >
+        <template #row-actions="{ row }">
+          <RecurringRowActionsButton
+            :row="row"
+            :busy="duplicatingId === row.id"
+            @open="openActions"
+          />
+        </template>
         <template #cell-price="{ row }">
           <span class="tabular-nums">{{ formatMoney(Number(row.price), row.currency) }}</span>
         </template>
@@ -231,17 +263,17 @@
         <template #cell-is_active="{ row }">
           <span
             class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.is_active
-              ? 'bg-success-soft text-success-strong'
-              : 'bg-surface-raised text-text-muted'"
+            :class="recurringStateClass(row)"
           >
-            {{ row.is_active ? 'Activo' : 'Inactivo' }}
+            {{ recurringStateLabel(row) }}
           </span>
         </template>
       </RecurringGroupedTable>
 
       <template v-else>
         <AccountingTable
+          v-model:selected="selectedIds"
+          :selectable="!isArchivedScope"
           :loading="store.isLoading"
           :highlight-id="lastMutatedId"
           :columns="columns"
@@ -249,10 +281,17 @@
           :highlight-query="currentFilters.search"
           :sort-key="sortKey"
           :sort-dir="sortDir"
-          @edit="openEditModal"
-          @delete="confirmDelete"
+          :show-default-actions="false"
+          row-actions-layout="menu-start"
           @sort="toggleSort"
         >
+          <template #row-actions="{ row }">
+            <RecurringRowActionsButton
+              :row="row"
+              :busy="duplicatingId === row.id"
+              @open="openActions"
+            />
+          </template>
           <template #cell-price="{ row }">
             <span class="tabular-nums">{{ formatMoney(Number(row.price), row.currency) }}</span>
           </template>
@@ -292,11 +331,9 @@
           <template #cell-is_active="{ row }">
             <span
               class="text-xs px-2.5 py-1 rounded-full font-medium"
-              :class="row.is_active
-                ? 'bg-success-soft text-success-strong'
-                : 'bg-surface-raised text-text-muted'"
+              :class="recurringStateClass(row)"
             >
-              {{ row.is_active ? 'Activo' : 'Inactivo' }}
+              {{ recurringStateLabel(row) }}
             </span>
           </template>
         </AccountingTable>
@@ -316,15 +353,25 @@
       </template>
     </template>
 
+    <RecurringBulkActionBar
+      v-if="!isArchivedScope"
+      v-model:selected="selectedIds"
+      :rows="store.recurringPayments"
+      :filtered-ids="filteredIds"
+      :busy="store.isUpdating"
+      @submit="applyBulkRecurringAction"
+    />
+
     <!-- Create / edit modal -->
     <RecurringPaymentFormModal
       :open="showFormModal"
       :record="editingRecord"
+      :seed="seedRecord"
       :saving="store.isUpdating"
       :categories="store.recurringCategories"
       :usd-exchange-rate="store.metaFor('recurring').usd_exchange_rate"
       @close="closeFormModal"
-      @submit="submitForm"
+      @submit="submitRecurringForm"
     />
 
     <!-- Charts -->
@@ -350,6 +397,27 @@
       @reorder="reorderCategories"
     />
 
+    <RecurringActionsModal
+      :open="actionsOpen"
+      :record="actionsRow"
+      @close="actionsOpen = false"
+      @edit="openEditModal"
+      @duplicate="duplicateRecurring"
+      @toggle-state="toggleRecurringState"
+      @toggle-mute="toggleRecurringMute"
+      @archive="confirmArchiveRecurring"
+      @restore="restoreRecurring"
+      @delete="confirmPermanentDelete"
+    />
+
+    <RecurringMuteModal
+      :open="muteModalOpen"
+      :record="mutingRecord"
+      :saving="store.isUpdating"
+      @close="closeMuteModal"
+      @submit="submitRecurringMute"
+    />
+
     <!-- Confirm delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -367,7 +435,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -379,6 +447,10 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import RecurringPaymentFormModal from '~/components/accounting/RecurringPaymentFormModal.vue';
+import RecurringActionsModal from '~/components/accounting/RecurringActionsModal.vue';
+import RecurringBulkActionBar from '~/components/accounting/RecurringBulkActionBar.vue';
+import RecurringMuteModal from '~/components/accounting/RecurringMuteModal.vue';
+import RecurringRowActionsButton from '~/components/accounting/RecurringRowActionsButton.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
@@ -390,6 +462,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { useRecurringViewMode } from '~/composables/useRecurringViewMode';
+import { useRowSelection } from '~/composables/useRowSelection';
 import {
   useAccountingFilters,
   matchBooleanIncludes,
@@ -412,6 +485,12 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
+const archiveScope = ref('current');
+const archiveScopeOptions = [
+  { value: 'current', label: 'Vigentes' },
+  { value: 'archived', label: 'Archivados' },
+];
+const isArchivedScope = computed(() => archiveScope.value === 'archived');
 
 // -------------------------------------------------------------------
 // Filters
@@ -530,9 +609,10 @@ const EXPORT_MAPPING = {
   search: 'q',
 };
 
-const exportParams = computed(() =>
-  buildExportParams(currentFilters, EXPORT_MAPPING),
-);
+const exportParams = computed(() => ({
+  ...buildExportParams(currentFilters, EXPORT_MAPPING),
+  archive_scope: archiveScope.value,
+}));
 
 // -------------------------------------------------------------------
 // Data + table
@@ -606,14 +686,31 @@ const columns = [
 const groupedColumns = SHARED_COLUMNS.map(({ sortable, ...col }) => col);
 
 const filteredRows = computed(() => applyFilters(store.recurringPayments));
+const filteredIds = computed(() => filteredRows.value.map((row) => row.id));
+const { selectedIds, clearSelection, dropIds } = useRowSelection(
+  () => store.recurringPayments,
+);
+
+const emptyTitle = computed(() => {
+  if (hasActiveFilters.value) return 'Sin resultados con esos filtros';
+  return isArchivedScope.value
+    ? 'No hay pagos recurrentes archivados'
+    : 'No hay pagos recurrentes aún';
+});
+const emptyDescription = computed(() => {
+  if (hasActiveFilters.value) return 'Ajusta o limpia los filtros para ver más registros.';
+  return isArchivedScope.value
+    ? 'Los servicios que archives aparecerán aquí y conservarán su información.'
+    : 'Registra la primera suscripción o costo operativo.';
+});
 
 // Contribution to the weight base: only active rows count, matching the
 // server's monthly_cop_total meta. Inactive rows show 0% and stay out of the
-// base, so the active ones read as a 100% composition. NOTE: the grouped
-// view's footer grand total still sums active AND inactive rows ("total of
-// what is listed"); the percentages deliberately use the active-only base.
+// base, so the active ones read as a 100% composition. The grouped subtotal
+// and footer use that same budget predicate: an inactive or archived service
+// stays visible for management without inflating what is actually being paid.
 function activeMonthlyCop(row) {
-  return row.is_active ? Number(row.monthly_cop_cost) || 0 : 0;
+  return row.is_active && !row.is_archived ? Number(row.monthly_cop_cost) || 0 : 0;
 }
 
 const weightedRows = computed(() => addWeightPct(filteredRows.value, activeMonthlyCop));
@@ -621,6 +718,18 @@ const weightedRows = computed(() => addWeightPct(filteredRows.value, activeMonth
 const activeBase = computed(() =>
   filteredRows.value.reduce((total, row) => total + activeMonthlyCop(row), 0),
 );
+
+function recurringStateLabel(row) {
+  if (row.is_archived) return 'Archivado';
+  return row.is_active ? 'Activo' : 'Inactivo';
+}
+
+function recurringStateClass(row) {
+  if (row.is_archived) return 'bg-surface-raised text-text-muted';
+  return row.is_active
+    ? 'bg-success-soft text-success-strong'
+    : 'bg-warning-soft text-warning-strong';
+}
 
 // -------------------------------------------------------------------
 // View mode, grouping and manual order
@@ -716,7 +825,10 @@ const displayGroups = computed(() => {
  * order they meant as a temporary reading.
  */
 const canReorder = computed(() =>
-  isGrouped.value && !hasActiveFilters.value && !groupedWeightSort.value,
+  !isArchivedScope.value
+  && isGrouped.value
+  && !hasActiveFilters.value
+  && !groupedWeightSort.value,
 );
 
 function toggleGroup(id) {
@@ -738,12 +850,13 @@ async function handleReorder(items) {
 const {
   isModalOpen: showFormModal,
   editingRecord,
+  seedRecord,
   openCreateModal,
   lastMutatedId,
   openEditModal,
+  openSeededModal,
   closeModal: closeFormModal,
   handleSubmit: submitForm,
-  confirmDeleteRecord: confirmDelete,
   confirmState,
   handleConfirmed,
   handleCancelled,
@@ -769,6 +882,7 @@ const {
   filteredRecords: weightedRows,
   labels: {
     created: 'Pago recurrente creado',
+    duplicated: 'Pago recurrente duplicado',
     updated: 'Pago recurrente actualizado',
     deleted: 'Pago recurrente eliminado',
     saveErrorTitle: (editing) =>
@@ -831,6 +945,182 @@ function money(value) {
 }
 
 // -------------------------------------------------------------------
+// Row and bulk lifecycle actions
+// -------------------------------------------------------------------
+
+const actionsOpen = ref(false);
+const actionsRow = ref(null);
+const duplicatingId = ref(null);
+const muteModalOpen = ref(false);
+const mutingRecord = ref(null);
+
+function openActions(row) {
+  actionsRow.value = row;
+  actionsOpen.value = true;
+}
+
+async function duplicateRecurring(row) {
+  if (duplicatingId.value !== null) return;
+  duplicatingId.value = row.id;
+  let result;
+  try {
+    result = await store.fetchRecurringDuplicateDraft(row.id);
+  } finally {
+    duplicatingId.value = null;
+  }
+  if (!result.success) {
+    notify.error({
+      title: 'No se pudo preparar el duplicado',
+      detail: result.message || '',
+    });
+    return;
+  }
+  openSeededModal(result.data);
+}
+
+async function submitRecurringForm(payload) {
+  const isCreating = !editingRecord.value;
+  const result = await submitForm(payload);
+  if (result.success && isCreating && isArchivedScope.value) {
+    archiveScope.value = 'current';
+  }
+}
+
+async function toggleRecurringState(row) {
+  const activating = !row.is_active;
+  await runMutation(
+    () => store.setRecurringActive(row.id, activating),
+    {
+      successTitle: activating
+        ? 'Pago recurrente activado'
+        : 'Pago recurrente desactivado',
+      errorTitle: activating
+        ? 'No se pudo activar el pago recurrente'
+        : 'No se pudo desactivar el pago recurrente',
+      flashId: row.id,
+    },
+  );
+}
+
+function confirmArchiveRecurring(row) {
+  requestConfirm({
+    title: 'Archivar pago recurrente',
+    message: `“${row.name}” se desactivará y pasará a Archivados. `
+      + 'Su configuración y su trazabilidad se conservarán.',
+    variant: 'warning',
+    confirmText: 'Archivar',
+    cancelText: 'Cancelar',
+    onConfirm: () => runMutation(
+      () => store.archiveRecurring(row.id),
+      {
+        successTitle: 'Pago recurrente archivado',
+        errorTitle: 'No se pudo archivar el pago recurrente',
+      },
+    ),
+  });
+}
+
+async function restoreRecurring(row) {
+  await runMutation(
+    () => store.restoreRecurring(row.id),
+    {
+      successTitle: 'Pago recurrente restaurado como inactivo',
+      errorTitle: 'No se pudo restaurar el pago recurrente',
+    },
+  );
+}
+
+function toggleRecurringMute(row) {
+  if (row.reminders_effectively_muted) {
+    runMutation(
+      () => store.muteRecurringReminders(row.id, { muted: false, until: null }),
+      {
+        successTitle: 'Avisos reactivados',
+        errorTitle: 'No se pudieron reactivar los avisos',
+        flashId: row.id,
+      },
+    );
+    return;
+  }
+  mutingRecord.value = row;
+  muteModalOpen.value = true;
+}
+
+function closeMuteModal() {
+  muteModalOpen.value = false;
+  mutingRecord.value = null;
+}
+
+async function submitRecurringMute(payload) {
+  if (!mutingRecord.value) return;
+  const result = await runMutation(
+    () => store.muteRecurringReminders(mutingRecord.value.id, payload),
+    {
+      successTitle: 'Avisos silenciados',
+      errorTitle: 'No se pudieron silenciar los avisos',
+      flashId: mutingRecord.value.id,
+    },
+  );
+  if (result.success) closeMuteModal();
+}
+
+function confirmPermanentDelete(row) {
+  requestConfirm({
+    title: 'Eliminar definitivamente',
+    message: `Esto borrará “${row.name}” de forma permanente. `
+      + 'Usa esta opción solo para registros que nunca debieron existir.',
+    variant: 'danger',
+    confirmText: 'Eliminar definitivamente',
+    cancelText: 'Cancelar',
+    requireTypeText: 'ELIMINAR',
+    onConfirm: () => runMutation(
+      () => store.deleteRecord('recurring', row.id),
+      {
+        successTitle: 'Pago recurrente eliminado definitivamente',
+        errorTitle: 'No se pudo eliminar el pago recurrente',
+      },
+    ),
+  });
+}
+
+const BULK_ACTION_COPY = {
+  activate: {
+    success: 'Pagos recurrentes activados',
+    error: 'No se pudieron activar los pagos recurrentes',
+  },
+  deactivate: {
+    success: 'Pagos recurrentes desactivados',
+    error: 'No se pudieron desactivar los pagos recurrentes',
+  },
+  archive: {
+    success: 'Pagos recurrentes archivados',
+    error: 'No se pudieron archivar los pagos recurrentes',
+  },
+};
+
+async function applyBulkRecurringAction({ ids, action }) {
+  const copy = BULK_ACTION_COPY[action];
+  const result = await runMutation(
+    () => store.bulkRecurringAction(ids, action),
+    {
+      successTitle: copy.success,
+      successDetail: (response) => (
+        `${response.data?.updated ?? 0} registro(s) modificado(s).`
+      ),
+      errorTitle: copy.error,
+    },
+  );
+  if (result.success) {
+    clearSelection();
+    return;
+  }
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
+}
+
+// -------------------------------------------------------------------
 // Category catalog
 // -------------------------------------------------------------------
 
@@ -889,7 +1179,9 @@ async function loadCategories() {
 }
 
 async function loadRecords() {
-  const result = await store.fetchRecords('recurring');
+  const result = await store.fetchRecords('recurring', {
+    archive_scope: archiveScope.value,
+  });
   if (!result.success) {
     notify.error({ title: 'No se pudieron cargar los pagos recurrentes', detail: result.message });
   }
@@ -900,6 +1192,15 @@ async function loadAll() {
   await loadCategories();
   await loadRecords();
 }
+
+watch(archiveScope, async () => {
+  clearSelection();
+  collapsedGroupIds.value = [];
+  groupedWeightSort.value = '';
+  showChartsModal.value = false;
+  goTo(1);
+  await loadRecords();
+});
 
 onMounted(loadAll);
 usePanelRefresh(loadAll);

@@ -96,21 +96,20 @@ describe('RecurringChartsModal', () => {
     expect(legend.text()).toContain('58,8%');
   });
 
-  it('leaves inactive payments out of the distribution until asked for them', async () => {
+  it('excludes rows outside the operating budget', () => {
     const wrapper = mountModal({
       rows: [
         payment({ id: 1, category: 1, monthly_cop_cost: '800000.00' }),
         payment({ id: 2, category: 2, monthly_cop_cost: '200000.00', is_active: false }),
+        payment({ id: 3, category: 2, monthly_cop_cost: '300000.00', is_archived: true }),
       ],
     });
     expect(wrapper.find('[data-testid="recurring-chart-legend"]').text())
       .not.toContain('Anuncios / publicidad');
-
-    await wrapper.find('[role="switch"]').trigger('click');
-
-    const legend = wrapper.find('[data-testid="recurring-chart-legend"]');
-    expect(legend.text()).toContain('Anuncios / publicidad');
-    expect(legend.text()).toContain('20%');
+    expect(wrapper.text()).toContain(
+      'Solo pagos activos; inactivos y archivados no cuentan en el presupuesto.',
+    );
+    expect(wrapper.find('[role="switch"]').exists()).toBe(false);
   });
 
   it('spells out the filters inherited from the table and offers a way out', async () => {

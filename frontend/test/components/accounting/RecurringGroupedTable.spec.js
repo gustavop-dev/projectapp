@@ -42,9 +42,10 @@ const groups = [
   },
 ];
 
-function mountTable(props = {}) {
+function mountTable(props = {}, slots = {}) {
   return mount(RecurringGroupedTable, {
     props: { columns, groups, ...props },
+    slots,
     global: { stubs: { HighlightText: true } },
   });
 }
@@ -312,6 +313,48 @@ describe('RecurringGroupedTable', () => {
     const wrapper = mountTable();
 
     expect(wrapper.find('[data-testid="recurring-grouped-sort-weight"]').exists()).toBe(false);
+  });
+
+  it('places the kebab in a fixed leading track', () => {
+    const wrapper = mountTable(
+      {
+        selectable: true,
+        selected: [],
+        dragEnabled: true,
+        showDefaultActions: false,
+        rowActionsLayout: 'menu-start',
+      },
+      { 'row-actions': '<button data-testid="row-kebab">Acciones</button>' },
+    );
+
+    const tracks = wrapper.find('.accounting-grid-scroll').attributes('style');
+    expect(tracks).toContain('--cols-desktop: 2.5rem 3.5rem 1.75rem');
+    expect(wrapper.find('[data-testid="accounting-actions-cell-18"]')
+      .get('[data-testid="row-kebab"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="accounting-edit-18"]').exists()).toBe(false);
+  });
+
+  it('emits the row checkbox selection', async () => {
+    const wrapper = mountTable({ selectable: true, selected: [] });
+
+    await wrapper.get('[data-testid="accounting-select-18"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([18]);
+  });
+
+  it('emits every payment in the chosen category', async () => {
+    const wrapper = mountTable({ selectable: true, selected: [] });
+
+    await wrapper.get('[data-testid="recurring-group-select-1"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([18, 19]);
+  });
+
+  it('reports selected rows inside a collapsed category', () => {
+    const wrapper = mountTable({ selectable: true, selected: [18], collapsedIds: [1] });
+
+    expect(wrapper.get('[data-testid="recurring-group-selected-1"]').text())
+      .toContain('1 seleccionado');
   });
 
   it('emits edit and delete for a row', async () => {

@@ -47,14 +47,9 @@
             />
           </label>
 
-          <label class="flex items-center gap-2 text-xs text-text-muted ml-auto">
-            <BaseToggle
-              v-model="includeInactive"
-              size="sm"
-              aria-label="Incluir inactivos"
-            />
-            <span>Incluir inactivos</span>
-          </label>
+          <p class="ml-auto text-xs text-text-muted" data-testid="recurring-charts-budget-scope">
+            Solo pagos activos; inactivos y archivados no cuentan en el presupuesto.
+          </p>
 
           <BaseButton
             variant="secondary"
@@ -324,7 +319,6 @@ const COMPOSITION_ROWS = [
 
 const activeTab = ref('category');
 const categoryFilter = ref('');
-const includeInactive = ref(false);
 
 const { palette } = useChartTheme();
 
@@ -345,7 +339,7 @@ function colorFor(key) {
 }
 
 const activeRows = computed(() =>
-  visibleRows(props.rows, { includeInactive: includeInactive.value }),
+  visibleRows(props.rows),
 );
 
 /**

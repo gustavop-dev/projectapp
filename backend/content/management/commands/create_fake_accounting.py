@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from accounts.models import Project, UserProfile
 
@@ -403,26 +404,39 @@ class Command(BaseCommand):
         # The frequency mix is deliberate: it spans a catalog entry per order of
         # magnitude plus a custom cycle, so the monthly-equivalent column and the
         # percentage weights get exercised by the fake dataset.
-        for name, price, currency, category_name, frequency, months in [
+        for (
+            name, price, currency, category_name, frequency, months,
+            is_active, is_archived, reminders_muted,
+        ) in [
             (
                 'Claude Code 20x', '200.00', 'USD',
                 'Suscripciones de IA', frequencies.MONTHLY, None,
+                True, False, False,
             ),
             (
                 'Netflix', '39800.00', 'COP',
                 'Extras / otros', frequencies.MONTHLY, None,
+                False, False, False,
             ),
             (
                 'NameCheap', '10.98', 'USD',
                 'Arquitectura e infraestructura', frequencies.ANNUAL, None,
+                True, False, True,
             ),
             (
                 'Plan Figma equipo', '270000.00', 'COP',
                 'Extras / otros', frequencies.QUARTERLY, None,
+                True, False, False,
             ),
             (
                 'Mantenimiento servidor', '500000.00', 'COP',
                 'Arquitectura e infraestructura', frequencies.CUSTOM, 5,
+                True, False, False,
+            ),
+            (
+                'Herramienta de pruebas cancelada', '85000.00', 'COP',
+                'Extras / otros', frequencies.MONTHLY, None,
+                False, True, False,
             ),
         ]:
             recurring_category = RecurringCategory.objects.filter(
@@ -436,6 +450,10 @@ class Command(BaseCommand):
                 custom_months=months,
                 billing_day=rng.randrange(1, 29),
                 category=recurring_category,
+                is_active=is_active,
+                is_archived=is_archived,
+                archived_at=timezone.now() if is_archived else None,
+                reminders_muted=reminders_muted,
                 source_ref=FAKE_REF,
             )
             created += 1
