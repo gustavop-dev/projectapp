@@ -154,8 +154,7 @@ test.describe('Admin Proposal Inline Status Change', () => {
     await setupMock(page, { onStatusUpdate: (id, body) => updates.push({ id, body }) });
     await gotoProposals(page);
 
-    // quality: allow-fragile-selector (table actions button has no testid, last SVG button in row is the actions trigger)
-    await page.getByRole('row').filter({ hasText: 'Proposal A' }).locator('button:has(svg)').last().click();
+    await page.getByTestId('proposal-actions-1').click();
     const modalRow = page.locator('div.fixed').filter({ hasText: 'Cambiar estado' });
     await expect(modalRow.first()).toBeVisible();
 
@@ -195,4 +194,3 @@ test.describe('Admin Proposal Inline Status Change', () => {
     expect(updates).toEqual([{ status: 'rejected' }]);
   });
 });
-

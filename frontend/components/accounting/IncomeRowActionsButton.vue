@@ -20,7 +20,7 @@ const emit = defineEmits(['open']);
 </script>
 
 <template>
-  <div class="flex items-center justify-end">
+  <div class="flex items-center justify-center">
     <BaseActionButton
       action="more"
       variant="ghost"

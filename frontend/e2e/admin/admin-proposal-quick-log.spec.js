@@ -40,17 +40,7 @@ async function openQuickLogModal(page) {
   await page.goto('/panel/proposals');
   await expect(page.getByText('Log Client')).toBeVisible({ timeout: 10000 });
 
-  // Hide the floating "?" metrics button that overlaps the actions column
-  await page.evaluate(() => {
-    const floatingBtn = document.querySelector('button[title="Manual de métricas"]');
-    if (floatingBtn) floatingBtn.style.display = 'none';
-  });
-
-  // quality: allow-fragile-selector (table row has no testid, first row is the target for actions)
-  const firstRow = page.locator('tbody tr').first();
-  // quality: allow-fragile-selector (table row actions button has no testid, last td + last button is the three-dots trigger)
-  const dotsBtn = firstRow.locator('td').last().locator('button').last();
-  await dotsBtn.click();
+  await page.getByTestId('proposal-actions-1').click();
 
   // Actions modal should open showing the proposal title in the header
   await expect(page.locator('h3').filter({ hasText: 'Quick Log Proposal' })).toBeVisible({ timeout: 5000 });

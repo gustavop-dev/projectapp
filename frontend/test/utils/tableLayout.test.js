@@ -1,5 +1,6 @@
 import {
   HANDLE_TRACK,
+  ROW_ACTION_MENU_TRACK,
   TABLE_DENSITY,
   actionsWidthFor,
   alignClass,
@@ -75,6 +76,16 @@ describe('tableLayout — proportional slack', () => {
     expect(declared).toBeCloseTo((17 / 22.25) * 100, 1);
     expect(parseFloat(actionsWidthFor(resolved))).toBeCloseTo((5.25 / 22.25) * 100, 1);
     expect(declared + parseFloat(actionsWidthFor(resolved))).toBeCloseTo(100, 1);
+  });
+
+  it('keeps menu-start outside the proportional data split', () => {
+    const resolved = resolveColumns([
+      { key: 'concept', size: 'name' },
+      { key: 'total', format: 'money' },
+    ], { hasActions: true, rowActionsLayout: 'menu-start' });
+
+    const declared = resolved.reduce((sum, col) => sum + parseFloat(col.width), 0);
+    expect(declared).toBeCloseTo(100, 1);
   });
 
   it('hands a wider column a bigger share than a narrow one', () => {
@@ -251,6 +262,23 @@ describe('tableLayout — track list and min width', () => {
     expect(trackListFor(resolved, { hasActions: true })).toBe(
       'minmax(max-content, 5fr) minmax(max-content, 7fr) minmax(max-content, 5.25fr)',
     );
+  });
+
+  it('puts a fixed menu-start track after selection and before data', () => {
+    const tracks = trackListFor(resolved, {
+      hasSelect: true,
+      hasActions: true,
+      rowActionsLayout: 'menu-start',
+    });
+
+    expect(tracks).toBe(
+      `2.5rem ${ROW_ACTION_MENU_TRACK} minmax(max-content, 5fr) minmax(max-content, 7fr)`,
+    );
+    expect(minWidthFor(resolved, {
+      hasSelect: true,
+      hasActions: true,
+      rowActionsLayout: 'menu-start',
+    })).toBe('18.00rem');
   });
 
   it('derives a min width in rem that grows with the visible columns', () => {

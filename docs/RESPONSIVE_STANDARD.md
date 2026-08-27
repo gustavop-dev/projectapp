@@ -107,7 +107,7 @@ el mismo problema.
 | Filtros guardados | `ProposalFilterTabs` | Igual contrato que tabs: selector hasta 1023 px; tira visible desde 1024 px, máximo dos filas, sin cortar opciones. |
 | Modal | `BaseModal` | Único overlay canónico: margen exterior de 16 px, máximo 90dvh, body con scroll, encabezado/cierre y footer alcanzables, focus trap y bloqueo de scroll. `fullHeight` queda para workspaces. |
 | Fila de formulario | `BaseFormRow` + `BaseFormField` | Una columna por defecto; dos columnas solo cuando cada control conserva al menos 280 px útiles. En modal estrecho se apila aunque el viewport sea ancho. |
-| Acciones por fila | Kebab de Documentos + `DocumentActionsSheet` | Un solo disparador por fila. Dropdown en ancho; hoja/modal de acciones en compacto o cuando hay muchas acciones. Nunca una hilera de botones que ensanche la tabla. |
+| Acciones por fila | Kebab de Documentos + `DocumentActionsSheet` | Un solo disparador por fila. En tabla ocupa la primera columna de control, sin rótulo visible y con 56 px fijos; si hay selección, el orden es Casilla → Acciones → Contenido. Dropdown en ancho; hoja/modal de acciones en compacto o cuando hay muchas acciones. Nunca una hilera de botones que ensanche la tabla. |
 | Selección masiva | `BulkAssignBar` | Barra sticky compacta, contador, acción principal y un menú “Acciones”; siempre ofrece limpiar/cancelar. |
 | Navegación de calendario | Lista móvil de Blog Calendar | Vista semántica alternativa en compacto/intermedio cuando comprimir la grilla destruye legibilidad. |
 | Workspace multipanel | Editores de Documentos | Apilar hasta que cada panel tenga su mínimo; permitir split solo con al menos 480 px por panel; máximo exterior de 1600 px. |
@@ -122,6 +122,15 @@ implementar, la tabla se clasifica así:
 | Comparativa o transaccional | Propuestas, diagnósticos, movimientos contables | Sigue siendo tabla. Se conserva identidad + estado + valor crítico + acción; columnas secundarias se ocultan por prioridad. Scroll horizontal interno únicamente si ese mínimo aún no cabe. |
 | Exploratoria | Blog, portfolio, documentos, linktrees, QR | Tarjetas apiladas con las mismas acciones y estados. La tabla vuelve desde el ancho en que realmente cabe. |
 | Matriz o detalle anidado | Detalle de clientes, estados de cuenta | Conserva estructura tabular dentro de una región con contexto/sticky cuando comparar es esencial; si no, grupos de definición apilados. Nunca desplaza el `body`. |
+
+Cuando la acción por fila es un menú de tres puntos, ese menú es un control y no
+una columna de datos: se mantiene al inicio en un track fijo de 56 px, fuera del
+reparto proporcional, con encabezado visualmente vacío y nombre accesible
+**Acciones**. La celda detiene `click`/`auxclick` para no activar una fila
+navegable, pero no cancela gestos de movimiento: el wrapper debe conservar el
+paneo lateral iniciado sobre el botón. Las tablas que aún muestran varios
+iconos sueltos no se reordenan por accidente; primero requieren una decisión de
+producto para consolidarlos en un único kebab.
 
 ### 4.2 Tabs, filtros y navegación secundaria
 

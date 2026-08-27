@@ -156,6 +156,47 @@ describe('IncomeGroupedTable', () => {
     ]);
   });
 
+  it('orders the leading grouped-table controls', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      showDefaultActions: false,
+      rowActionsLayout: 'menu-start',
+    }, {
+      slots: {
+        'row-actions': '<button data-testid="income-kebab">Acciones</button>',
+      },
+    });
+
+    const headers = wrapper.get('.accounting-grid-row[role="row"]')
+      .findAll('[role="columnheader"]');
+    expect(headers[0].find('input[type="checkbox"]').exists()).toBe(true);
+    expect(headers[1].attributes('data-testid')).toBe('accounting-actions-header');
+    expect(headers[2].text()).toBe('Concepto');
+
+    const cells = wrapper.get('[data-testid="accounting-row-217"]')
+      .findAll('[role="cell"]');
+    expect(cells[1].attributes('data-testid')).toBe('accounting-actions-cell-217');
+    expect(cells[2].text()).toContain('Vastago - Abono inicial');
+  });
+
+  it('renders one blank grouped-table menu slot', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      showDefaultActions: false,
+      rowActionsLayout: 'menu-start',
+    }, {
+      slots: {
+        'row-actions': '<button data-testid="income-kebab">Acciones</button>',
+      },
+    });
+    const header = wrapper.get('[data-testid="accounting-actions-header"]');
+    const cell = wrapper.get('[data-testid="accounting-actions-cell-217"]');
+
+    expect(header.attributes('aria-label')).toBe('Acciones');
+    expect(header.text()).toBe('');
+    expect(cell.findAll('[data-testid="income-kebab"]')).toHaveLength(1);
+  });
+
   it('groups secondary business columns below the primary concept', () => {
     const wrapper = mountTable({
       columns: [
