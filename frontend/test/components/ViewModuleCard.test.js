@@ -23,8 +23,8 @@ describe('ViewModuleCard', () => {
   it('renders the operational module summary', () => {
     const wrapper = mountCard();
 
-    expect(wrapper.text()).toContain('Operación interna');
-    expect(wrapper.text()).toContain('Herramientas del equipo para ventas');
+    expect(wrapper.text()).toContain('Panel administrativo');
+    expect(wrapper.text()).toContain('Vistas internas del panel.');
     expect(wrapper.text()).toContain('3');
     expect(wrapper.text()).toContain('vistas');
     expect(wrapper.text()).toContain('2 sub-módulos');
