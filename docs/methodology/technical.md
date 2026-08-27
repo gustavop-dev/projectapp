@@ -227,8 +227,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
 - The specialized Documents table declares its fixed business order and
   `keep/group` policy in the same column array consumed by width resolution.
-  Landscape keeps Title/States/Date/Actions and groups Client/Project; compact
+  Landscape keeps Actions/Title/States/Date and groups Client/Project; compact
   cards apply the same priority without persisting a user-specific column order.
+- A table with one three-dot row menu opts into
+  `rowActionsLayout="menu-start"`. The shared table/grid primitives then render
+  Checkbox → Actions → Data, reserve an immutable 3.5 rem track outside the
+  proportional data split, expose an accessible but visually empty header and
+  stop click/auxclick propagation from the action cell. The default
+  `inline-end` mode is only for legacy loose-icon action rows; do not migrate
+  those implicitly while adopting the kebab contract.
 
 ### Panel-owned dialogs and observation deletion
 
@@ -492,6 +499,12 @@ confirmed by the operator or another integration.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
+- **Leading kebab control track** — tables with a single three-dot menu use
+  `rowActionsLayout="menu-start"`: selection remains first when present, then a
+  fixed 56 px actions track with an empty visual header, then identity/content.
+  The control cell stops row-navigation clicks but leaves touch/pointer movement
+  unhandled so the table wrapper can still pan horizontally. Loose icon rows are
+  a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
   `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
   consumer classes may style typography but must not override its display/clamp

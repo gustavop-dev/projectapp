@@ -20,6 +20,19 @@ La columna de título ya satisfacía consulta completa, tacto, ancho persistido 
 restablecimiento, por lo que se conservó como regresión. Inventario:
 `docs/audits/2026-08-27-ui-wrap-modal-widths.md`.
 
+**2026-08-27 — Menú de acciones al inicio de todas las tablas kebab:**
+Documentos, Propuestas, Diagnósticos e Ingresos (tabla clásica y agrupada) usan
+un único orden: Casilla → Acciones → Identidad/Contenido. El encabezado queda
+visualmente vacío con nombre accesible, y el track fijo de 56 px no dona ancho
+ni participa del reparto de datos. Las celdas de control aíslan clic y clic
+auxiliar de la navegación de fila sin bloquear el paneo táctil horizontal. El
+contrato vive en `tableLayout.js`, `BaseResponsiveTable` e
+`IncomeGroupedTable`; `inline-end` conserva explícitamente las filas con varios
+iconos sueltos, incluidas Cuentas de cobro, hasta que exista una decisión previa
+de consolidación. Cobertura focal: unitarias del primitive/layout/consumidores y
+32 escenarios Playwright focales y de regresión verdes, incluido un gesto táctil
+real iniciado sobre el kebab.
+
 **2026-08-27 — Ayuda contextual y séptimo significado en el ciclo de Proyectos:**
 el catálogo compartido conserva una sola selección por proyecto y suma **En
 evolución** para distinguir el producto entregado que sigue operando mientras se
@@ -103,11 +116,12 @@ Nuxt, flow-map fresco y el flow P1 `admin-accounting-collection-create` cubierto
 en display/failure/error/success. Inventario: `docs/audits/disabled-controls-2026-08-26.md`.
 
 **2026-08-26 — Prioridad de columnas del listado de Documentos:** la tabla usa
-un contrato fijo y ejecutable Título → Estados → Creado/Fecha/Archivado →
-Cliente → Proyecto → Acciones. Estados queda visible como segunda columna desde
+un contrato fijo y ejecutable Acciones → Título → Estados →
+Creado/Fecha/Archivado → Cliente → Proyecto. Estados queda visible como segunda
+columna de datos desde
 tableta horizontal; Cliente/Proyecto se agrupan bajo Título hasta escritorio y
 las tarjetas conservan Título/Estados como prioridad, con metadata Fecha →
-Cliente → Proyecto. Acciones permanece al final. El orden no se personaliza y
+Cliente → Proyecto. Acciones permanece al inicio. El orden no se personaliza y
 la preferencia existente sólo recuerda el ancho de Título. La contención de
 PA-90 y los estados de PA-88 se preservan; Proyecto se reevaluará tras el
 backfill de PA-55. Sin cambios de API, backend o esquema.

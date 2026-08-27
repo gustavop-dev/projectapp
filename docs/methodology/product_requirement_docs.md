@@ -229,10 +229,10 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   underscore/date naming; the expanded state may break anywhere. Folder comes
   first in a separate metadata row below the title. Rows without a folder keep
   natural height.
-- **List priority**: desktop columns use the fixed order Title, States,
-  Created/Date/Archived, Client, Project and Actions. Actions remains last and
-  only Title width is user-persisted. Landscape retains Title, States, Date and
-  Actions as columns and groups Client/Project under Title. Compact cards keep
+- **List priority**: desktop columns use the fixed order Actions, Title, States,
+  Created/Date/Archived, Client and Project. Actions remains first and only
+  Title width is user-persisted. Landscape retains Actions, Title, States and
+  Date as columns and groups Client/Project under Title. Compact cards keep
   Title/States primary and order secondary metadata as Date, Client, Project.
   Project stays low priority until PA-55 backfills historical associations.
 - **Private notes**: creation and editing keep the email subject, complete email body,
@@ -385,6 +385,7 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
   `docs/methodology/responsive-standard.md`, respectively.
 - **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
 - **Readable document titles** — document names use two lines with end truncation by default. The complete native hint exists only when the rendered title is actually clipped, and the same condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default), remembered per browser and reset by double click; Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because two lines plus conditional reveal preserve the full value without inventing a second naming rule.
+- **Leading three-dot row actions** — every panel table whose row control is a single three-dot menu places it at the start with no visible heading. Selectable tables use Checkbox → Actions → Identity/Content; the action track is fixed at 56 px, does not join the data-width split, and opening it cannot activate row navigation. The adopted surfaces are Documents, Proposals, Diagnostics and both classic/grouped Incomes tables. Tables that still expose several loose action icons, including Collection Accounts, remain outside this contract until their actions are explicitly consolidated into one menu.
 
 ### 3.13 Internationalization (i18n)
 

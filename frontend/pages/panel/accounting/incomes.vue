@@ -198,12 +198,13 @@
         :groups="clientGroups"
         :highlight-query="currentFilters.search"
         :collapsed-ids="collapsedGroupIds"
-        :show-actions="false"
+        :show-default-actions="false"
+        row-actions-layout="menu-start"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
         @toggle-group="toggleGroup"
       >
-        <template #cell-row_actions="{ row }">
+        <template #row-actions="{ row }">
           <IncomeRowActionsButton
             :row="row"
             :busy="duplicatingId === row.id"
@@ -262,12 +263,13 @@
           :sort-key="sortKey"
           :sort-dir="sortDir"
           :row-tone="incomeRowTone"
-          :show-actions="false"
+          :show-default-actions="false"
+          row-actions-layout="menu-start"
           @edit="openEditModal"
           @delete="confirmDeleteRecord"
           @sort="toggleSort"
         >
-          <template #cell-row_actions="{ row }">
+          <template #row-actions="{ row }">
             <IncomeRowActionsButton
               :row="row"
               :busy="duplicatingId === row.id"
@@ -1109,10 +1111,6 @@ const columns = [
   },
   {
     key: 'total_amount', label: 'Total', format: 'money', sortable: true,
-    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
-  },
-  {
-    key: 'row_actions', label: '', align: 'right', size: 'icons',
     responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
   },
 ];

@@ -61,8 +61,7 @@ test.describe('Admin Proposal Duplicate', () => {
     // Wait for the table to render with proposal data
     await expect(page.getByText('Carlos')).toBeVisible({ timeout: 10000 });
 
-    // quality: allow-fragile-selector (table actions button has no testid, same pattern as actions-modal spec)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-1');
     await actionsBtn.click();
 
     // Actions modal should appear — click "Duplicar propuesta"

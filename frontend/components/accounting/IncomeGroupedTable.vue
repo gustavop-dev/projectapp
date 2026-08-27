@@ -37,6 +37,13 @@
           >
         </span>
         <span
+          v-if="hasMenuStart"
+          role="columnheader"
+          class="w-14 min-w-14 max-w-14 px-1.5 py-2 text-center"
+          data-testid="accounting-actions-header"
+          aria-label="Acciones"
+        />
+        <span
           v-for="col in resolved"
           :key="col.key"
           role="columnheader"
@@ -44,7 +51,7 @@
         >
           {{ col.label }}
         </span>
-        <span v-if="showActions" role="columnheader" :class="[DENSITY.headerCell, 'text-center']">Acciones</span>
+        <span v-if="showActions && !hasMenuStart" role="columnheader" :class="[DENSITY.headerCell, 'text-center']">Acciones</span>
       </div>
 
       <!-- Skeleton -->
@@ -152,6 +159,34 @@
                 >
               </span>
               <span
+                v-if="hasMenuStart"
+                role="cell"
+                class="w-14 min-w-14 max-w-14 px-1.5 py-1.5 text-center whitespace-nowrap"
+                :data-testid="`accounting-actions-cell-${row.id}`"
+                @click.stop
+                @auxclick.stop
+              >
+                <slot name="row-actions" :row="row" />
+                <template v-if="showDefaultActions">
+                  <BaseActionButton
+                    action="edit"
+                    variant="ghost"
+                    size="sm"
+                    label="Editar ingreso"
+                    :data-testid="`accounting-edit-${row.id}`"
+                    @click.stop="emit('edit', row)"
+                  />
+                  <BaseActionButton
+                    action="delete"
+                    variant="danger-ghost"
+                    size="sm"
+                    label="Eliminar ingreso"
+                    :data-testid="`accounting-delete-${row.id}`"
+                    @click.stop="emit('delete', row)"
+                  />
+                </template>
+              </span>
+              <span
                 v-for="col in resolved"
                 :key="col.key"
                 role="cell"
@@ -231,9 +266,9 @@
                   </dl>
                 </div>
               </span>
-              <span v-if="showActions" role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
+              <span v-if="showActions && !hasMenuStart" role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
                 <slot name="row-actions" :row="row" />
-                <template>
+                <template v-if="showDefaultActions">
                   <BaseActionButton
                     action="edit"
                     variant="ghost"
@@ -287,6 +322,7 @@ import { formatPercent } from '~/utils/percent';
 import { sumClientGroups } from '~/utils/incomeClients';
 import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
+  ROW_ACTION_LAYOUTS,
   SELECT_PAD,
   TABLE_DENSITY,
   minWidthFor,
@@ -308,6 +344,12 @@ const props = defineProps({
   collapsedIds: { type: Array, default: () => [] },
   /** Mirrors AccountingTable: false lets the page own every row action. */
   showActions: { type: Boolean, default: true },
+  showDefaultActions: { type: Boolean, default: true },
+  rowActionsLayout: {
+    type: String,
+    default: ROW_ACTION_LAYOUTS.INLINE_END,
+    validator: (value) => Object.values(ROW_ACTION_LAYOUTS).includes(value),
+  },
   /** Opt-in checkbox column, same contract as AccountingTable. */
   selectable: { type: Boolean, default: false },
   /** Selected row ids (v-model:selected). */
@@ -351,9 +393,15 @@ const props = defineProps({
 const emit = defineEmits(['edit', 'delete', 'toggle-group', 'update:selected']);
 
 const DENSITY = TABLE_DENSITY;
+const hasMenuStart = computed(() => (
+  props.showActions && props.rowActionsLayout === ROW_ACTION_LAYOUTS.MENU_START
+));
 
 /** Widths by content, slack shared in proportion — see utils/tableLayout. */
-const resolved = computed(() => resolveColumns(props.columns));
+const resolved = computed(() => resolveColumns(props.columns, {
+  hasActions: props.showActions,
+  rowActionsLayout: props.rowActionsLayout,
+}));
 
 const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
 const POLICY_CLASSES = {
@@ -399,7 +447,12 @@ function visibleColumns(profile) {
  * its own list as a custom property and a media query picks between them.
  */
 const gridVars = computed(() => {
-  const opts = { hasSelect: props.selectable, hasActions: props.showActions, breakpoint: 'lg' };
+  const opts = {
+    hasSelect: props.selectable,
+    hasActions: props.showActions,
+    rowActionsLayout: props.rowActionsLayout,
+    breakpoint: 'lg',
+  };
   return {
     '--cols-compact': trackListFor(visibleColumns('compact'), opts),
     '--cols-portrait': trackListFor(visibleColumns('portrait'), opts),
@@ -409,7 +462,12 @@ const gridVars = computed(() => {
 });
 
 const containerVars = computed(() => {
-  const opts = { hasSelect: props.selectable, hasActions: props.showActions, breakpoint: 'lg' };
+  const opts = {
+    hasSelect: props.selectable,
+    hasActions: props.showActions,
+    rowActionsLayout: props.rowActionsLayout,
+    breakpoint: 'lg',
+  };
   return {
     '--minw-landscape': minWidthFor(visibleColumns('landscape'), opts),
     '--minw-desktop': minWidthFor(resolved.value, opts),

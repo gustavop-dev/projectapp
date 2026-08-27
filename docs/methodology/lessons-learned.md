@@ -1155,3 +1155,19 @@ generation guards around debounced queries, and de-duplication on append. Keep
 the scroll signal in the shared listbox but keep `hasMore` and retry state in the
 data-owning picker. This preserves one scrollbar without coupling a generic
 overlay primitive to a particular API.
+
+## 47. A kebab belongs to a fixed control track, not the data-column split
+
+The fact that a table “has actions” is not enough to choose its layout. A single
+three-dot menu and a row of independent action icons have different space and
+interaction contracts, so the table primitive needs a semantic mode rather
+than a blanket reorder. `menu-start` reserves 3.5 rem outside the proportional
+data weights; `inline-end` keeps legacy loose-icon rows unchanged until their
+actions are deliberately consolidated.
+
+Control order is stable: selection first when present, then actions, then the
+identifier/content. The header stays visually empty but retains `aria-label`;
+the action cell stops click and auxiliary-click propagation so a navigable row
+does not open. It must not cancel pointer/touch movement: a trusted touch-pan E2E
+starting on the kebab protects horizontal scrolling while proving that the menu
+does not open accidentally.

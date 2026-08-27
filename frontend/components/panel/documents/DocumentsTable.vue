@@ -6,7 +6,7 @@ import {
 import { computed, ref } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
 import { isPlainActivation } from '~/utils/rowNavigation'
-import BaseButton from '~/components/base/BaseButton.vue'
+import BaseActionButton from '~/components/base/BaseActionButton.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue'
 import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
@@ -59,6 +59,13 @@ const { profile: viewportProfile } = usePanelViewportProfile()
 // representation follows the same keep/group priority explicitly.
 const widthColumns = [
   {
+    key: 'actions',
+    responsive: {
+      compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
+    },
+    columnWidth: { min: 56, default: 56, max: 56, fixed: true },
+  },
+  {
     key: 'title',
     responsive: {
       primary: true,
@@ -94,13 +101,6 @@ const widthColumns = [
       compact: 'group', portrait: 'group', landscape: 'group', desktop: 'keep', wide: 'keep',
     },
     columnWidth: { min: 112, default: 160, max: 224, shrinkPriority: 1, fillPriority: 1 },
-  },
-  {
-    key: 'actions',
-    responsive: {
-      compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
-    },
-    columnWidth: { min: 80, default: 80, max: 80, fixed: true },
   },
 ]
 
@@ -153,6 +153,12 @@ function onFolderLink(event, sub) {
       <thead>
         <tr class="border-b border-border-muted text-left">
           <th
+            :style="columnStyle('actions')"
+            class="w-14 min-w-14 max-w-14 px-1.5 py-3 text-center"
+            data-testid="documents-column-actions"
+            aria-label="Acciones"
+          />
+          <th
             class="relative px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
             :style="columnStyle('title')"
           >
@@ -184,11 +190,6 @@ function onFolderLink(event, sub) {
           >{{ dateHeader }}</th>
           <th :style="columnStyle('client')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
           <th :style="columnStyle('project')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
-          <th
-            :style="columnStyle('actions')"
-            class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
-            data-testid="documents-column-actions"
-          >Acciones</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
@@ -206,6 +207,25 @@ function onFolderLink(event, sub) {
           @dragleave="emit('folder-dragleave')"
           @drop.prevent="emit('drop-on-folder', sub.id)"
         >
+          <td
+            class="w-14 min-w-14 max-w-14 px-1.5 py-4 text-center"
+            @click.stop
+            @auxclick.stop
+          >
+            <BaseActionButton
+              v-if="sub.is_archived"
+              action="restore"
+              label="Restaurar carpeta"
+              size="sm"
+              :loading="updating"
+              :disabled="updating"
+              data-testid="folder-unarchive"
+              @click="emit('unarchive-folder', sub)"
+            />
+            <svg v-else class="mx-auto w-4 h-4 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </td>
           <td class="min-w-0 overflow-hidden px-6 py-4">
             <div class="flex min-w-0 max-w-full items-center gap-2">
               <svg class="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -229,22 +249,6 @@ function onFolderLink(event, sub) {
           <td class="px-6 py-4 text-sm text-text-subtle" colspan="4">
             {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
           </td>
-          <td class="px-6 py-4" @click.stop>
-            <BaseButton
-              v-if="sub.is_archived"
-              variant="secondary"
-              size="sm"
-              :loading="updating"
-              :disabled="updating"
-              data-testid="folder-unarchive"
-              @click="emit('unarchive-folder', sub)"
-            >
-              Restaurar
-            </BaseButton>
-            <svg v-else class="w-4 h-4 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </td>
         </tr>
         <!-- design-tokens: allow-clickable-row — BaseOverflowText encapsula el BaseRowLink real. -->
         <tr
@@ -262,6 +266,20 @@ function onFolderLink(event, sub) {
           @dragstart="emit('doc-dragstart', $event, doc)"
           @dragend="emit('doc-dragend')"
         >
+          <td
+            class="w-14 min-w-14 max-w-14 px-1.5 py-4 text-center"
+            :data-testid="`doc-actions-cell-${doc.id}`"
+            @click.stop
+            @auxclick.stop
+          >
+            <BaseActionButton
+              action="more"
+              class="rounded-lg text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-default
+                     outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
+              :label="`Acciones de ${doc.title}`"
+              @click="emit('action', doc)"
+            />
+          </td>
           <!-- `relative` es el marco contra el que se estira el enlace del
                título: así toda la celda es el enlace, no sólo las letras. -->
           <td class="relative min-w-0 overflow-hidden px-6 py-4">
@@ -340,15 +358,6 @@ function onFolderLink(event, sub) {
           <td class="hidden min-w-0 overflow-hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-project-cell-${doc.id}`">
             <span v-if="doc.project_name" class="block min-w-0 max-w-full text-text-default [overflow-wrap:anywhere]">{{ doc.project_name }}</span>
             <span v-else class="text-text-subtle">—</span>
-          </td>
-          <td class="px-6 py-4" :data-testid="`doc-actions-cell-${doc.id}`" @click.stop>
-            <BaseActionButton
-              action="more"
-              class="p-2.5 -m-1 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default
-                     outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
-              :label="`Acciones de ${doc.title}`"
-              @click="emit('action', doc)"
-            />
           </td>
         </tr>
       </tbody>

@@ -77,6 +77,10 @@ publica en un `<a href>`.**
 6. **El menú de la fila trae «Abrir en pestaña nueva»** como
    `<a target="_blank" rel="noopener noreferrer">` con el mismo href, no un
    botón que llame a `window.open`. En una pantalla táctil es la única vía.
+7. **Los controles van antes del contenido.** Cuando la acción es un único
+   kebab, la fila usa Checkbox → Acciones → Identidad. La celda del menú detiene
+   `click`/`auxclick` para no activar la fila, pero no cancela el movimiento
+   táctil que permite desplazar horizontalmente la tabla.
 
 Cuando el clic simple no puede ser el del navegador — entrar a una carpeta pasa
 por el store, y en plena búsqueda significa otra cosa — el enlace igual existe
@@ -183,7 +187,7 @@ prefer the bare class without `/N`.
 | `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`, `testid`; emits `clear`/`select-all` |
 | `BaseResizeHandle` | Accessible vertical separator shared by panels and tables: pointer capture, Arrow/Home/End keyboard control and double-click reset |
 | `BaseOverflowText` | `text`, `to`, `lines` (1/2), `stretch`, `expandable`, `testId`, `contentClasses`; measures real clipping, adds the full native hint only on overflow and exposes an in-place touch disclosure |
-| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; `textPolicy` is `wrap`/`truncate`/`atomic`; opt-in resizing uses `columnWidth` on every column plus `columnWidthsKey`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
+| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; `textPolicy` is `wrap`/`truncate`/`atomic`; opt-in resizing uses `columnWidth` on every column plus `columnWidthsKey`; `rowActionsLayout="menu-start"` reserves a fixed leading kebab track (after selection), while `inline-end` preserves loose-icon rows; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
 | `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` and may opt into the same `textPolicy` contract |
 | `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
@@ -317,9 +321,19 @@ the preference. Donors reach their declared minima before the wrapper scrolls.
     },
   ]"
   :rows="rows"
+  row-actions-layout="menu-start"
   column-widths-key="projectapp-table-widths:example"
-/>
+>
+  <template #row-actions="{ row }">
+    <BaseActionButton action="more" :label="`Acciones de ${row.name}`" />
+  </template>
+</BaseResponsiveTable>
 ```
+
+`menu-start` is only for one overflow menu. It renders an accessible, visually
+empty 56 px header/cell after the checkbox and before data, outside the
+proportional width split. A row of independent edit/delete/etc. icons keeps the
+default `inline-end` layout until the product decision consolidates it.
 
 Exploratory CRUD lists use a different primitive because their mobile task is
 scanning entities, not comparing columns. `BaseExploratoryList` renders only

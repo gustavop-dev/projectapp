@@ -71,12 +71,71 @@ test.describe('Admin Proposal Actions Modal', () => {
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
-    // quality: allow-fragile-selector (table actions button has no testid, last SVG button in row is the actions trigger)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const listUrl = page.url();
+    const actionsBtn = page.getByTestId('proposal-actions-1');
     await actionsBtn.click();
 
-    // Modal should open showing action items
+    await expect(page).toHaveURL(listUrl);
     await expect(page.getByText('Editar propuesta')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('renders the leading menu control track', {
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin', '@responsive:commercial'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display contract: control order, blank heading and fixed width are the observable outcome)
+    // quality: allow-deep-link (the list navigation path is covered by its flow; this test isolates table layout)
+    await mockApi(page, buildMockHandler([mockDraftProposal]));
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
+    const actionsHeader = page.getByTestId('proposal-actions-header');
+    const leadingHeaders = await actionsHeader.evaluate((header) => (
+      Array.from(header.parentElement.children).slice(0, 3).map((cell) => ({
+        testId: cell.getAttribute('data-testid'),
+        label: cell.getAttribute('aria-label'),
+        text: cell.textContent.trim(),
+        hasCheckbox: Boolean(cell.querySelector('input[type="checkbox"]')),
+      }))
+    ));
+    expect(leadingHeaders).toEqual([
+      { testId: null, label: null, text: '', hasCheckbox: true },
+      { testId: 'proposal-actions-header', label: 'Acciones', text: '', hasCheckbox: false },
+      { testId: null, label: null, text: 'Cliente', hasCheckbox: false },
+    ]);
+    await expect(actionsHeader).toHaveCSS('width', '56px');
+  });
+
+  test('keeps horizontal pan available from the action control', {
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin', '@responsive:commercial'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (Input.dispatchTouchEvent is the trusted user gesture; the analyzer does not classify CDP calls)
+    // quality: allow-deep-link (the navigation path is covered separately; this test isolates the wrapper's touch behavior)
+    await page.setViewportSize({ width: 1195, height: 835 });
+    await mockApi(page, buildMockHandler([mockDraftProposal]));
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+
+    const actionsBtn = page.getByTestId('proposal-actions-1');
+    await expect(actionsBtn).toBeVisible({ timeout: 15000 });
+    const scroller = page.getByTestId('proposal-actions-cell-1').locator('xpath=ancestor::div[contains(@class,"overflow-x-auto")][1]');
+    await scroller.evaluate((element) => { element.style.width = '18rem'; });
+    await expect.poll(() => scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+
+    const box = await actionsBtn.boundingBox();
+    expect(box).not.toBeNull();
+    const client = await page.context().newCDPSession(page);
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ ...start, radiusX: 2, radiusY: 2, force: 1 }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ ...start, x: start.x - 120, radiusX: 2, radiusY: 2, force: 1 }],
+    });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+    await expect.poll(() => scroller.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await expect(page.getByText('Editar propuesta')).toHaveCount(0);
   });
 
   test('draft proposal shows edit, preview, send, copy, whatsapp, duplicate, toggle, delete actions', {
@@ -87,8 +146,7 @@ test.describe('Admin Proposal Actions Modal', () => {
 
     await page.getByText('Test Client').waitFor({ state: 'visible', timeout: 15000 });
 
-    // quality: allow-fragile-selector (table actions button has no testid)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-1');
     await actionsBtn.waitFor({ state: 'visible', timeout: 5000 });
     await actionsBtn.click();
 
@@ -110,8 +168,7 @@ test.describe('Admin Proposal Actions Modal', () => {
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
-    // quality: allow-fragile-selector (table actions button has no testid)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-2');
     await actionsBtn.click();
 
     // Should show re-send, not send
@@ -127,8 +184,7 @@ test.describe('Admin Proposal Actions Modal', () => {
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
-    // quality: allow-fragile-selector (table actions button has no testid)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-1');
     await actionsBtn.click();
     await expect(page.getByText('Editar propuesta')).toBeVisible({ timeout: 5000 });
 

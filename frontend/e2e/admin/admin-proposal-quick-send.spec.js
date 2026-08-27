@@ -58,14 +58,7 @@ test.describe('Admin Proposal Quick Send', () => {
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
-    // Hide the MetricsManual floating button that intercepts pointer events
-    await page.evaluate(() => {
-      const btn = document.querySelector('button[title="Manual de métricas"]');
-      if (btn) btn.style.display = 'none';
-    });
-
-    // quality: allow-fragile-selector (table actions button has no testid)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-1');
     await actionsBtn.click();
 
     await expect(page.getByText('Enviar al cliente')).toContainText('Enviar al cliente', { timeout: 3000 });
@@ -86,14 +79,7 @@ test.describe('Admin Proposal Quick Send', () => {
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
-    // Hide the MetricsManual floating button that intercepts pointer events
-    await page.evaluate(() => {
-      const btn = document.querySelector('button[title="Manual de métricas"]');
-      if (btn) btn.style.display = 'none';
-    });
-
-    // quality: allow-fragile-selector (table actions button has no testid)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-2');
     await actionsBtn.click();
 
     await expect(page.getByText('Re-enviar email')).toContainText('Re-enviar email', { timeout: 3000 });
@@ -119,14 +105,7 @@ test.describe('Admin Proposal Quick Send', () => {
     await page.goto('/panel/proposals');
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
-    // Hide the MetricsManual floating button that intercepts pointer events
-    await page.evaluate(() => {
-      const btn = document.querySelector('button[title="Manual de métricas"]');
-      if (btn) btn.style.display = 'none';
-    });
-
-    // quality: allow-fragile-selector (table actions button has no testid)
-    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    const actionsBtn = page.getByTestId('proposal-actions-1');
     await actionsBtn.click();
     await page.getByText('Enviar al cliente').click();
 

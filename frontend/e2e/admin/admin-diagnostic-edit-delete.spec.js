@@ -154,7 +154,7 @@ test.describe('Admin Diagnostic — Delete flow', () => {
     await page.goto('/panel/diagnostics');
     await expect(page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`)).toBeVisible({ timeout: 15000 });
 
-    await page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`).locator('td').last().locator('button').click();
+    await page.getByTestId(`diagnostic-actions-${DIAG_ID}`).click();
 
     await expect(page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true })).toBeVisible({ timeout: 5000 });
   });
@@ -183,7 +183,7 @@ test.describe('Admin Diagnostic — Delete flow', () => {
     await expect(page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`)).toBeVisible({ timeout: 15000 });
 
     // Open actions modal
-    await page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`).locator('td').last().locator('button').click();
+    await page.getByTestId(`diagnostic-actions-${DIAG_ID}`).click();
 
     // Click Eliminar
     await page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
