@@ -30,9 +30,9 @@ module.exports = {
         '\\.(css|less|scss|sass|png|jpg|jpeg|webp|ttf|woff|woff2)$': 'jest-transform-stub',
         '^vue3-emoji-picker/css$': 'jest-transform-stub',
     },
-    // VueUse 14 publishes ESM-only JavaScript. Let Babel transpile its runtime
-    // packages while continuing to ignore every other dependency.
-    transformIgnorePatterns: ['/node_modules/(?!@vueuse/(core|shared)/)'],
+    // VueUse 14, Pinia 4, and Pinia's diagnostics helper publish ESM-only
+    // JavaScript. Let Babel transpile them while ignoring every other dependency.
+    transformIgnorePatterns: ['/node_modules/(?!(@vueuse/(core|shared)|pinia|nostics)/)'],
     collectCoverageFrom: [
         'stores/**/*.js',
         'composables/**/*.js',
