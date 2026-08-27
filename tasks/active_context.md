@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-27 — Mapa de vistas convertido en un explorador operativo:**
+`/panel/views` conserva el inventario completo y el mapa modular, y suma un modo
+Explorador orientado al valor del producto. La portada orbital muestra los siete
+dominios de ProjectApp; Plataforma se abre en ocho capacidades, nueve relaciones
+funcionales y beneficios concretos, con las rutas/archivos relegados a una
+referencia técnica secundaria. La navegación admite búsqueda, enlaces profundos,
+arrastre, teclado, zoom, pausa y preferencias de movimiento reducido. El modo
+puede guardarse como predeterminado en `ViewMapSettings`. Un nuevo guard de CI
+compara las 104 páginas reales con `viewCatalog` y valida que las 33 rutas de
+Plataforma pertenezcan exactamente a una capacidad. La verificación focal cubre
+backend, catálogo/taxonomía, composables, componente, flujo E2E y build Nuxt.
+
 **2026-08-26 — Copias BCC universales de correo listas para integración:** la auditoría
 read-only de producción confirmó que `content.0209` está aplicada pero
 `ClientEmailCopyRecipient` no tiene filas; por eso

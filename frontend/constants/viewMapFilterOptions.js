@@ -1,27 +1,41 @@
-import { viewCatalogSections } from '~/config/viewCatalog';
+import {
+  VIEW_AUDIENCES,
+  VIEW_TYPES,
+  viewCatalogSections,
+} from '~/config/viewCatalog';
 
 export const viewCategoryOptions = viewCatalogSections.map((s) => ({
   value: s.id,
   label: s.label,
 }));
 
-export const viewAudienceOptions = [
-  { value: 'public', label: 'Publico (cualquiera)' },
-  { value: 'admin', label: 'Admin / Vendedor' },
-  { value: 'client', label: 'Cliente' },
-];
+const audienceLabels = {
+  public: 'Publico (cualquiera)',
+  admin: 'Admin / Vendedor',
+  client: 'Cliente',
+};
 
-export const viewTypeOptions = [
-  { value: 'list', label: 'Listado' },
-  { value: 'detail', label: 'Detalle' },
-  { value: 'create', label: 'Crear' },
-  { value: 'edit', label: 'Editar' },
-  { value: 'readonly', label: 'Solo lectura' },
-  { value: 'dashboard', label: 'Dashboard' },
-  { value: 'config', label: 'Configuracion' },
-  { value: 'auth', label: 'Autenticacion' },
-  { value: 'redirect', label: 'Redirección' },
-];
+export const viewAudienceOptions = VIEW_AUDIENCES.map((value) => ({
+  value,
+  label: audienceLabels[value],
+}));
+
+const viewTypeLabels = {
+  list: 'Listado',
+  detail: 'Detalle',
+  create: 'Crear',
+  edit: 'Editar',
+  readonly: 'Solo lectura',
+  dashboard: 'Dashboard',
+  config: 'Configuracion',
+  auth: 'Autenticacion',
+  redirect: 'Redirección',
+};
+
+export const viewTypeOptions = VIEW_TYPES.map((value) => ({
+  value,
+  label: viewTypeLabels[value],
+}));
 
 export const viewCategoryLabelMap = Object.fromEntries(
   viewCategoryOptions.map((o) => [o.value, o.label]),

@@ -1,3 +1,17 @@
+export const VIEW_AUDIENCES = Object.freeze(['public', 'admin', 'client'])
+
+export const VIEW_TYPES = Object.freeze([
+  'list',
+  'detail',
+  'create',
+  'edit',
+  'readonly',
+  'dashboard',
+  'config',
+  'auth',
+  'redirect',
+])
+
 export const viewCatalogSections = [
   {
     id: 'public-site',
