@@ -37,12 +37,13 @@ class DocumentStateSummarySerializer(serializers.ModelSerializer):
         source='group.selection_mode', read_only=True,
     )
     group_order = serializers.IntegerField(source='group.order', read_only=True)
+    operational_effect_help = serializers.CharField(read_only=True)
 
     class Meta:
         model = DocumentState
         fields = (
-            'id', 'catalog', 'name', 'slug', 'color', 'system_key',
-            'operational_effect', 'order',
+            'id', 'catalog', 'name', 'description', 'slug', 'color',
+            'system_key', 'operational_effect', 'operational_effect_help', 'order',
             'group_id', 'group_name', 'group_mode', 'group_order',
         )
 
@@ -128,6 +129,18 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
                     'Cada estado de proyecto debe definir su efecto operativo.'
                 ),
             })
+        description = attrs.get(
+            'description',
+            getattr(self.instance, 'description', ''),
+        )
+        if catalog == DocumentStateGroup.Catalog.PROJECTS and not description.strip():
+            raise serializers.ValidationError({
+                'description': (
+                    'Explica qué significa este estado para quien lo elige.'
+                ),
+            })
+        if 'description' in attrs:
+            attrs['description'] = ' '.join(description.strip().split())
         if catalog == DocumentStateGroup.Catalog.DOCUMENTS and effect:
             raise serializers.ValidationError({
                 'operational_effect': (

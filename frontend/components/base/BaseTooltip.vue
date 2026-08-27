@@ -3,7 +3,7 @@
     <div
       @pointerenter="handlePointerEnter"
       @pointerleave="handlePointerLeave"
-      @focusin="showTooltip = true"
+      @focusin="handleFocusIn"
       @focusout="handleFocusOut"
       @click="handleClick"
       @keydown.esc="showTooltip = false"
@@ -92,31 +92,43 @@ const tooltipId = useId()
 
 const handlePointerEnter = (e) => {
   if (props.disabled) return
-  if (e.pointerType !== 'touch') showTooltip.value = true
+  if (e.pointerType !== 'touch' && !touchActive.value) showTooltip.value = true
 }
 
 const handlePointerLeave = (e) => {
   if (props.disabled) return
-  if (e.pointerType !== 'touch') showTooltip.value = false
+  if (e.pointerType !== 'touch' && !touchActive.value) showTooltip.value = false
 }
 
 const handleClick = (event) => {
   if (props.disabled || !props.toggleOnClick) return
   event.stopPropagation()
+  if (touchActive.value && showTooltip.value) {
+    showTooltip.value = false
+    touchActive.value = false
+    return
+  }
   touchActive.value = true
-  showTooltip.value = !showTooltip.value
+  showTooltip.value = true
+}
+
+const handleFocusIn = () => {
+  if (!props.disabled) showTooltip.value = true
 }
 
 const handleFocusOut = (event) => {
   if (props.disabled) return
-  if (!rootEl.value?.contains(event.relatedTarget)) showTooltip.value = false
-}
-
-onClickOutside(rootEl, () => {
-  if (touchActive.value && showTooltip.value) {
+  if (!rootEl.value?.contains(event.relatedTarget)) {
     showTooltip.value = false
     touchActive.value = false
   }
+}
+
+onClickOutside(rootEl, () => {
+  if (showTooltip.value) {
+    showTooltip.value = false
+  }
+  touchActive.value = false
 })
 
 const positionClasses = computed(() => {

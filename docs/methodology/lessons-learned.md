@@ -32,7 +32,14 @@ This file captures important patterns, preferences, and project intelligence tha
 
 - A user-managed status name cannot safely drive billing, reminders or closure.
 - `DocumentState` is shared across domains through `catalog`; project behavior keys
-  off `operational_effect`, while names/colors remain editable.
+  off `operational_effect`, while names/descriptions/colors remain editable.
+- Help for an administrable business label needs two layers: user-owned copy says
+  what the team means by the state, while system-owned copy derived from
+  `operational_effect` states what the application will do. Never let editable help
+  redefine billing, reminders or closure behavior.
+- Two catalog states may intentionally share one operational effect. **Activo** and
+  **En evolución** remain distinct reporting meanings but both preserve operation
+  and billing, avoiding a combinatorial multi-state model for this bounded case.
 - Financially consequential transitions use preview + token + atomic revalidation.
   This prevents a confirmation made against stale income/payment data from applying.
 - Ambiguous migrated rows fail closed for money and stay explicitly reviewable; a

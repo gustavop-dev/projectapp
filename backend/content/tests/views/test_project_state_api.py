@@ -33,18 +33,23 @@ def state(key):
     )
 
 
-def test_project_catalog_exposes_the_six_seed_states(admin_client):
+def test_project_catalog_exposes_the_seven_seed_states(admin_client):
     response = admin_client.get('/api/project-states/')
 
     assert response.status_code == 200
     assert [item['system_key'] for item in response.data] == [
         'development',
         'active',
+        'evolving',
         'paused',
         'suspended',
         'completed',
         'decommissioned',
     ]
+    evolving = response.data[2]
+    assert evolving['description'].startswith('Está en producción')
+    assert evolving['operational_effect'] == 'operating'
+    assert 'cobros' in evolving['operational_effect_help']
 
 
 def test_user_can_create_a_project_state_with_an_operational_effect(
@@ -52,18 +57,37 @@ def test_user_can_create_a_project_state_with_an_operational_effect(
 ):
     response = admin_client.post('/api/project-states/', {
         'name': 'En garantía',
+        'description': 'Opera con acompañamiento posterior a la entrega.',
         'color': 'purple',
         'operational_effect': 'operating',
     }, format='json')
 
     assert response.status_code == 201, response.data
     assert response.data['catalog'] == 'projects'
+    assert response.data['description'] == (
+        'Opera con acompañamiento posterior a la entrega.'
+    )
     assert response.data['operational_effect'] == 'operating'
+
+
+def test_project_state_requires_a_help_description(admin_client):
+    response = admin_client.post('/api/project-states/', {
+        'name': 'En garantía',
+        'description': '   ',
+        'color': 'purple',
+        'operational_effect': 'operating',
+    }, format='json')
+
+    assert response.status_code == 400
+    assert response.data['description'] == [
+        'Explica qué significa este estado para quien lo elige.'
+    ]
 
 
 def test_project_state_operational_effect_is_immutable(admin_client):
     custom = admin_client.post('/api/project-states/', {
         'name': 'En garantía',
+        'description': 'Opera con acompañamiento posterior a la entrega.',
         'color': 'purple',
         'operational_effect': 'operating',
     }, format='json').data
@@ -130,6 +154,37 @@ def test_transition_api_previews_and_records_a_manual_change(
     ]
 
 
+def test_evolving_keeps_operating_effect_with_distinct_history(
+    admin_client, project,
+):
+    target = state('evolving')
+    preview = admin_client.post(
+        f'/api/projects/{project.pk}/state-transitions/preview/',
+        {'state_id': target.pk},
+        format='json',
+    )
+
+    applied = admin_client.post(
+        f'/api/projects/{project.pk}/state-transitions/',
+        {
+            'state_id': target.pk,
+            'impact_token': preview.data['impact_token'],
+            'effective_at': preview.data['effective_at'],
+        },
+        format='json',
+    )
+
+    assert applied.status_code == 200, applied.data
+    assert applied.data['project']['status'] == 'evolving'
+    assert applied.data['project']['current_state']['operational_effect'] == 'operating'
+    project.refresh_from_db()
+    assert project.status == Project.STATUS_ACTIVE
+    history = admin_client.get(
+        f'/api/projects/{project.pk}/state-history/',
+    )
+    assert history.data[0]['state']['system_key'] == 'evolving'
+
+
 def test_direct_decommission_api_requires_a_note(admin_client, project):
     target = state('decommissioned')
     preview = admin_client.post(
@@ -157,11 +212,17 @@ def test_listing_meta_counts_every_catalog_state(admin_client, project):
 
     assert response.status_code == 200
     counts = {
-        item['operational_effect']: item['count']
+        item['system_key']: item['count']
         for item in response.data['meta']['by_state']
     }
     assert counts['development'] == 1
     assert set(counts) == {
-        'development', 'operating', 'paused', 'suspended',
+        'development', 'active', 'evolving', 'paused', 'suspended',
         'completed', 'decommissioned',
     }
+    evolving = next(
+        item for item in response.data['meta']['by_state']
+        if item['system_key'] == 'evolving'
+    )
+    assert evolving['count'] == 0
+    assert evolving['description'].startswith('Está en producción')

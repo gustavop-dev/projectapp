@@ -27,8 +27,27 @@ const GROUPS = [{
   selection_mode: 'exclusive',
   order: 0,
   is_active: true,
-  state_count: 7,
+  state_count: 8,
 }];
+
+const DESCRIPTION_BY_KEY = {
+  development: 'El proyecto se está construyendo.',
+  active: 'Está entregado y operando.',
+  evolving: 'Está en producción mientras se desarrolla una ampliación.',
+  paused: 'El trabajo está detenido temporalmente.',
+  suspended: 'El servicio puede reactivarse.',
+  completed: 'Terminó como debía y quedó cerrado correctamente.',
+  decommissioned: 'Terminó de forma definitiva.',
+};
+
+const HELP_BY_EFFECT = {
+  development: 'Permite los cobros de construcción.',
+  operating: 'Mantiene habilitados los cobros y los avisos.',
+  paused: 'No suspende automáticamente los cobros.',
+  suspended: 'Detiene nuevos cobros y avisos.',
+  completed: 'Exige un cierre financiero limpio.',
+  decommissioned: 'Cancela el servicio y los cobros futuros.',
+};
 
 function projectState(
   id,
@@ -41,10 +60,12 @@ function projectState(
   return {
     id,
     name,
+    description: DESCRIPTION_BY_KEY[systemKey] || 'Estado adaptado por el equipo.',
     slug: name.toLowerCase().replaceAll(' ', '-'),
     color,
     system_key: systemKey,
     operational_effect: operationalEffect,
+    operational_effect_help: HELP_BY_EFFECT[operationalEffect],
     order: id,
     group: 1,
     group_id: 1,
@@ -67,11 +88,15 @@ function initialCatalog() {
       active_project_count: 1,
       historical_episode_count: 3,
     }),
-    projectState(3, 'Pausado', 'paused', 'paused', 'yellow'),
-    projectState(4, 'Suspendido', 'suspended', 'suspended', 'orange'),
-    projectState(5, 'Completado', 'completed', 'completed', 'purple'),
-    projectState(6, 'Dado de baja', 'decommissioned', 'decommissioned', 'gray'),
-    projectState(7, 'En garantía', '', 'operating', 'blue'),
+    projectState(7, 'En evolución', 'evolving', 'operating', 'blue', { order: 2 }),
+    projectState(3, 'Pausado', 'paused', 'paused', 'yellow', { order: 3 }),
+    projectState(4, 'Suspendido', 'suspended', 'suspended', 'orange', { order: 4 }),
+    projectState(5, 'Completado', 'completed', 'completed', 'purple', { order: 5 }),
+    projectState(6, 'Dado de baja', 'decommissioned', 'decommissioned', 'gray', { order: 6 }),
+    projectState(8, 'En garantía', '', 'operating', 'blue', {
+      description: 'Acompañamiento posterior a la entrega.',
+      order: 7,
+    }),
   ];
 }
 
@@ -103,8 +128,11 @@ function listing(catalog, currentState) {
       by_state: catalog.filter((state) => state.is_active).map((state) => ({
         state_id: state.id,
         name: state.name,
+        description: state.description,
         color: state.color,
+        system_key: state.system_key,
         operational_effect: state.operational_effect,
+        operational_effect_help: state.operational_effect_help,
         count: state.id === currentState.id ? 1 : 0,
       })),
       review_required: 0,
@@ -190,7 +218,7 @@ test.describe('Admin project lifecycle states', () => {
     tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const catalog = initialCatalog();
-    const currentState = catalog[3];
+    const currentState = catalog[4];
     await mockApi(page, async ({ apiPath, method }) => (
       baseRoutes(apiPath, method, catalog, currentState)
     ));
@@ -227,7 +255,7 @@ test.describe('Admin project lifecycle states', () => {
       }
       if (apiPath === 'projects/9/state-transitions/' && method === 'POST') {
         calls.push({ kind: 'apply', body: route.request().postDataJSON() });
-        currentState = catalog[3];
+        currentState = catalog[4];
         return json({ project: projectRow(currentState), episode: HISTORY[0] });
       }
       return baseRoutes(apiPath, method, catalog, currentState);
@@ -247,6 +275,43 @@ test.describe('Admin project lifecycle states', () => {
     await expect(page.getByTestId('accounting-row-9')).toContainText('Suspendido');
     expect(calls.map((call) => call.kind)).toEqual(['preview', 'apply']);
     expect(calls[1].body.state_id).toBe(4);
+  });
+
+  test('changes an operating project to the distinct En evolución state', {
+    tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    let currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'projects/9/state-transitions/preview/' && method === 'POST') {
+        return json({
+          target_effect: 'operating',
+          impact_token: 'e'.repeat(64),
+          effective_at: '2026-08-26T10:00:00Z',
+          pending_incomes: [],
+          future_incomes: [],
+          future_payments: [],
+          active_hostings: [],
+          blockers: [],
+        });
+      }
+      if (apiPath === 'projects/9/state-transitions/' && method === 'POST') {
+        currentState = catalog[2];
+        return json({ project: projectRow(currentState), episode: HISTORY[0] });
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openProjects(page);
+    await page.getByTestId('project-change-state-9').click();
+    await page.getByTestId('project-state-target').selectOption('7');
+    await expect(page.getByTestId('project-state-selected-help')).toContainText(
+      'Está en producción mientras se desarrolla una ampliación.',
+    );
+    await page.getByTestId('project-state-preview').click();
+    await page.getByTestId('project-state-apply').click();
+
+    await expect(page.getByTestId('accounting-row-9')).toContainText('En evolución');
   });
 
   test('blocks a direct decommission until debt and note decisions exist', {
@@ -336,7 +401,7 @@ test.describe('Admin project state catalog', () => {
     });
   });
 
-  test('shows the six seeded meanings and their usage counts', {
+  test('shows the seven seeded meanings and their usage counts', {
     tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const catalog = initialCatalog();
@@ -348,6 +413,7 @@ test.describe('Admin project state catalog', () => {
     await openCatalog(page);
 
     await expect(page.getByTestId('catalog-state-1')).toContainText('En desarrollo');
+    await expect(page.getByTestId('catalog-state-7')).toContainText('En evolución');
     await expect(page.getByTestId('catalog-state-4')).toContainText('Suspendido');
     await expect(page.getByTestId('catalog-state-5')).toContainText('Completado');
     await expect(page.getByTestId('catalog-state-6')).toContainText('Dado de baja');
@@ -364,11 +430,12 @@ test.describe('Admin project state catalog', () => {
       if (apiPath === 'project-states/' && method === 'POST') {
         createBody = route.request().postDataJSON();
         const created = projectState(
-          8,
+          9,
           createBody.name,
           '',
           createBody.operational_effect,
           createBody.color,
+          { description: createBody.description },
         );
         catalog.push(created);
         return json(created, 201);
@@ -378,6 +445,9 @@ test.describe('Admin project state catalog', () => {
 
     await openCatalog(page);
     await page.getByTestId('catalog-new-state-name').fill('En estabilización');
+    await page.getByTestId('catalog-new-state-description').fill(
+      'El proyecto opera mientras se estabiliza la entrega.',
+    );
     await page.getByLabel('Efecto operativo del nuevo estado').selectOption('operating');
     await page.getByLabel('Color del nuevo estado').selectOption('purple');
     await page.getByTestId('catalog-create-state').click();
@@ -385,10 +455,11 @@ test.describe('Admin project state catalog', () => {
     await expect.poll(() => createBody).not.toBeNull();
     expect(createBody).toMatchObject({
       name: 'En estabilización',
+      description: 'El proyecto opera mientras se estabiliza la entrega.',
       operational_effect: 'operating',
       color: 'purple',
     });
-    await expect(page.getByTestId('catalog-state-8')).toContainText('En estabilización');
+    await expect(page.getByTestId('catalog-state-9')).toContainText('En estabilización');
   });
 
   test('renames a state without changing its business effect', {
@@ -398,22 +469,28 @@ test.describe('Admin project state catalog', () => {
     const currentState = catalog[1];
     let updateBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
-      if (apiPath === 'project-states/7/' && method === 'PATCH') {
+      if (apiPath === 'project-states/8/' && method === 'PATCH') {
         updateBody = route.request().postDataJSON();
-        Object.assign(catalog.find((state) => state.id === 7), updateBody);
-        return json(catalog.find((state) => state.id === 7));
+        Object.assign(catalog.find((state) => state.id === 8), updateBody);
+        return json(catalog.find((state) => state.id === 8));
       }
       return baseRoutes(apiPath, method, catalog, currentState);
     });
 
     await openCatalog(page);
-    const row = page.getByTestId('catalog-state-7');
+    const row = page.getByTestId('catalog-state-8');
     await row.getByLabel('Nombre del estado').fill('Garantía activa');
-    await page.getByTestId('catalog-save-state-7').click();
+    await page.getByTestId('catalog-state-description-8').fill(
+      'Acompañamiento activo posterior a la entrega.',
+    );
+    await page.getByTestId('catalog-save-state-8').click();
 
     await expect.poll(() => updateBody).not.toBeNull();
     expect(updateBody.operational_effect).toBe('operating');
-    await expect(page.getByTestId('catalog-state-7')).toContainText('Garantía activa');
+    expect(updateBody.description).toBe(
+      'Acompañamiento activo posterior a la entrega.',
+    );
+    await expect(page.getByTestId('catalog-state-8')).toContainText('Garantía activa');
   });
 
   test('retires an unused custom state while keeping it in the catalog history', {
@@ -422,8 +499,8 @@ test.describe('Admin project state catalog', () => {
     const catalog = initialCatalog();
     const currentState = catalog[1];
     await mockApi(page, async ({ apiPath, method }) => {
-      if (apiPath === 'project-states/7/retire/' && method === 'POST') {
-        const retired = catalog.find((state) => state.id === 7);
+      if (apiPath === 'project-states/8/retire/' && method === 'POST') {
+        const retired = catalog.find((state) => state.id === 8);
         retired.is_active = false;
         return json(retired);
       }
@@ -431,12 +508,12 @@ test.describe('Admin project state catalog', () => {
     });
 
     await openCatalog(page);
-    await page.getByTestId('catalog-retire-state-7').click();
+    await page.getByTestId('catalog-retire-state-8').click();
     await expect(page.getByRole('dialog')).toContainText('“En garantía” dejará de aparecer');
     await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(page.getByRole('alert')).toContainText('Estado retirado');
-    await expect(page.getByTestId('catalog-state-7')).toContainText('Retirado');
+    await expect(page.getByTestId('catalog-state-8')).toContainText('Retirado');
   });
 
   test('rejects retiring a state that still has active projects', {
@@ -470,16 +547,16 @@ test.describe('Admin project state catalog', () => {
     const catalog = initialCatalog();
     const currentState = catalog[1];
     await mockApi(page, async ({ apiPath, method }) => {
-      if (apiPath === 'project-states/7/' && method === 'PATCH') {
+      if (apiPath === 'project-states/8/' && method === 'PATCH') {
         return json({ detail: 'El catálogo no está disponible.' }, 503);
       }
       return baseRoutes(apiPath, method, catalog, currentState);
     });
 
     await openCatalog(page);
-    const name = page.getByTestId('catalog-state-7').getByLabel('Nombre del estado');
+    const name = page.getByTestId('catalog-state-8').getByLabel('Nombre del estado');
     await name.fill('Garantía hoy');
-    await page.getByTestId('catalog-save-state-7').click();
+    await page.getByTestId('catalog-save-state-8').click();
 
     await expect(page.getByRole('alert')).toContainText('No se pudo actualizar');
     await expect(name).toHaveValue('Garantía hoy');

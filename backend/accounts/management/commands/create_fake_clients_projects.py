@@ -3,9 +3,10 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from accounts.models import Project, UserProfile
+from content.models import DocumentState
 from content.fake_data import (
     DEFAULT_COUNT,
     add_seed_arguments,
@@ -28,13 +29,14 @@ PROJECT_LABELS = (
     'Portal comercial', 'Aplicación operativa', 'Sitio institucional',
     'Automatización interna', 'Plataforma de clientes', 'Tienda digital',
 )
-PROJECT_LIFECYCLE_STATUSES = (
-    Project.STATUS_DEVELOPMENT,
-    Project.STATUS_ACTIVE,
-    Project.STATUS_PAUSED,
-    Project.STATUS_SUSPENDED,
-    Project.STATUS_COMPLETED,
-    Project.STATUS_DECOMMISSIONED,
+PROJECT_LIFECYCLE_KEYS = (
+    'development',
+    'active',
+    'evolving',
+    'paused',
+    'suspended',
+    'completed',
+    'decommissioned',
 )
 
 
@@ -97,6 +99,25 @@ class Command(BaseCommand):
             existing.append(profile)
 
         profiles = list(UserProfile.objects.clients().order_by('pk')[:target])
+        lifecycle_states = {
+            state.system_key: state
+            for state in DocumentState.objects.filter(
+                catalog='projects',
+                system_key__in=PROJECT_LIFECYCLE_KEYS,
+                is_active=True,
+                merged_into__isnull=True,
+            )
+        }
+        missing_states = set(PROJECT_LIFECYCLE_KEYS) - set(lifecycle_states)
+        if missing_states:
+            raise CommandError(
+                'Faltan estados semilla del ciclo de proyectos: '
+                + ', '.join(sorted(missing_states))
+            )
+        from content.services.project_state_service import (
+            LEGACY_STATUS_BY_EFFECT,
+            initialize_project_state,
+        )
         project_targets = self._project_targets(len(profiles))
         created_projects = 0
         for client_index, (profile, project_target) in enumerate(
@@ -118,22 +139,31 @@ class Command(BaseCommand):
                     days=(-240, -60, -7, 15, 120)[date_bucket],
                 )
                 end_date = start_date + timedelta(days=(30, 90, 180)[project_index % 3])
-                Project.objects.create(
+                lifecycle_key = PROJECT_LIFECYCLE_KEYS[
+                    project_index % len(PROJECT_LIFECYCLE_KEYS)
+                ]
+                lifecycle_state = lifecycle_states[lifecycle_key]
+                project = Project.objects.create(
                     client=profile.user,
                     name=name,
                     description=(
                         'Proyecto de volumen representativo para probar listados, '
                         'filtros, totales y relaciones entre módulos.'
                     ),
-                    status=(
-                        PROJECT_LIFECYCLE_STATUSES[
-                            project_index % len(PROJECT_LIFECYCLE_STATUSES)
-                        ]
-                    ),
+                    current_state=lifecycle_state,
+                    status=LEGACY_STATUS_BY_EFFECT[
+                        lifecycle_state.operational_effect
+                    ],
                     progress=(project_index * 17) % 101,
                     start_date=start_date,
                     estimated_end_date=end_date,
                     production_url=f'https://project-{client_index + 1}-{project_index + 1}.example.test',
+                )
+                initialize_project_state(
+                    project,
+                    lifecycle_state,
+                    actor=admin,
+                    opened_at=context.anchor_now,
                 )
                 created_projects += 1
 

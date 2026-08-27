@@ -33,16 +33,26 @@
 
     <!-- Meta cards -->
     <div class="mb-6 grid grid-cols-2 gap-3 panel-landscape:grid-cols-4">
-      <AccountingStatCard
+      <div
         v-for="state in store.meta.by_state || []"
         :key="state.state_id"
-        :label="state.name"
-        :value="String(state.count ?? 0)"
-        :tone="statTone(state.color)"
-        clickable
-        :data-testid="`panel-projects-stat-state-${state.state_id}`"
-        @click="scope = `state:${state.state_id}`"
-      />
+        class="relative min-w-0"
+      >
+        <AccountingStatCard
+          :label="state.name"
+          :value="String(state.count ?? 0)"
+          :tone="statTone(state.color)"
+          clickable
+          :data-testid="`panel-projects-stat-state-${state.state_id}`"
+          @click="scope = `state:${state.state_id}`"
+        />
+        <ProjectStateHelpBadge
+          :state="{ ...state, id: state.state_id }"
+          position="bottom"
+          class="absolute bottom-2 right-2 z-20"
+          :test-id="`project-stat-state-help-${state.state_id}`"
+        />
+      </div>
       <AccountingStatCard
         label="Clientes sin proyecto"
         :value="String(store.meta.clients_without_projects ?? 0)"
@@ -86,6 +96,12 @@
         aria-label="Estado de los proyectos"
         data-testid="projects-state-filter"
         class="w-full sm:max-w-xs"
+      />
+      <ProjectStateHelpBadge
+        v-if="selectedScopeState"
+        :state="selectedScopeState"
+        position="bottom"
+        test-id="project-filter-state-help"
       />
     </div>
 
@@ -173,6 +189,19 @@
         :sort-dir="sortDir"
         @sort="toggleSort"
       >
+        <template #cell-status_label="{ row }">
+          <span class="inline-flex items-center gap-1.5">
+            <BaseBadge :variant="stateBadgeVariant(row.current_state)">
+              {{ row.status_label }}
+            </BaseBadge>
+            <ProjectStateHelpBadge
+              v-if="row.current_state"
+              :state="row.current_state"
+              position="bottom"
+              :test-id="`project-table-state-help-${row.id}`"
+            />
+          </span>
+        </template>
         <template #cell-client_name="{ row }">
           <span class="inline-flex flex-col items-start">
             <HighlightText :text="row.client_name" :query="searchInput" />
@@ -436,6 +465,7 @@ import ProjectCard from '~/components/panel/projects/ProjectCard.vue';
 import ProjectChangeClientModal from '~/components/panel/projects/ProjectChangeClientModal.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
+import ProjectStateHelpBadge from '~/components/panel/projects/ProjectStateHelpBadge.vue';
 import ProjectStateHistoryModal from '~/components/panel/projects/ProjectStateHistoryModal.vue';
 import ProjectStateTransitionModal from '~/components/panel/projects/ProjectStateTransitionModal.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
@@ -483,6 +513,14 @@ const MOBILE_SORT_OPTIONS = [
 
 const scope = ref('all');
 const searchInput = ref('');
+const selectedScopeState = computed(() => {
+  if (!scope.value.startsWith('state:')) return null;
+  const stateId = Number(scope.value.slice(6));
+  const state = (store.meta.by_state || []).find(
+    (item) => item.state_id === stateId,
+  );
+  return state ? { ...state, id: state.state_id } : null;
+});
 
 const hasActiveFilters = computed(
   () => Boolean(searchInput.value.trim()) || scope.value !== 'all',

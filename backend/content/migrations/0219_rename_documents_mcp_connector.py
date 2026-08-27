@@ -39,7 +39,7 @@ def restore_documents_connector_name(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('content', '0217_merge_disabled_controls_notes_viewmap'),
+        ('content', '0218_project_state_help'),
     ]
 
     operations = [

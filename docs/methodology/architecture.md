@@ -971,6 +971,7 @@ flowchart LR
     Financial["Open incomes, payments, hosting"] --> Preview
     Preview --> Token["Impact + SHA-256 token"]
     Token --> Decision{"Operator confirms"}
+    Decision -->|Evolve| Continue["Keep operating/billing; record the new lifecycle meaning"]
     Decision -->|Suspend| Stop["Stop new billing/reminders; keep caused debt"]
     Decision -->|Complete| Clean["Require clean financial close"]
     Decision -->|Decommission| Final["Cancel future service + resolve each debt"]
@@ -983,6 +984,11 @@ flowchart LR
 `project_state_service` is the only lifecycle writer. It locks the project and
 financial rows, recalculates the impact token and applies consequences atomically.
 The editable label never drives behavior: `DocumentState.operational_effect` does.
+`DocumentState.description` is editable explanatory copy, while
+`operational_effect_help` is derived from that immutable effect so a rename cannot
+misrepresent billing or closure consequences. `ProjectStateHelpBadge` renders both
+layers throughout the internal Projects panel. **Activo** and **En evolución** are
+distinct catalog meanings that deliberately share the `operating` effect.
 The legacy `Project.status` remains a compatibility mirror, while new panel and
 platform writes cannot mutate it directly. Hosting failure produces a manual
 suggestion only; no timer automatically moves Suspendido to Dado de baja.
