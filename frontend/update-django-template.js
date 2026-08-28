@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync, spawn } from 'child_process';
 
+import { assertValidSpaFallbackHtml } from './utils/spaFallback.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -118,6 +120,21 @@ if (!fs.existsSync(sourceDir)) {
   console.error(`Nuxt generate output not found at: ${sourceDir}`);
   process.exit(1);
 }
+
+const fallbackPath = path.join(sourceDir, '200.html');
+if (!fs.existsSync(fallbackPath)) {
+  throw new Error(`Nuxt SPA fallback not found at: ${fallbackPath}`);
+}
+
+const fallbackHtml = fs.readFileSync(fallbackPath, 'utf8');
+try {
+  assertValidSpaFallbackHtml(fallbackHtml);
+} catch (error) {
+  throw new Error(`Invalid Nuxt SPA fallback at ${fallbackPath}: ${error.message}`, {
+    cause: error,
+  });
+}
+console.log(`Validated Nuxt SPA fallback: ${fallbackPath}`);
 
 // 3. Copy output to a staging dir next to the live one, then swap with two
 // renames. Gunicorn serves these files straight from disk on every request,

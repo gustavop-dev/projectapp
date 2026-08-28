@@ -45,6 +45,31 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-034] Nuxt generated a self-referential SPA fallback
+
+- **Date**: 2026-08-28
+- **Context**: Every non-prerendered panel route returned HTTP 200 but the browser
+  never mounted the application. The generated `200.html` contained only a meta
+  refresh to `/en-us/200.html`; Django served that same fallback for the target,
+  creating an infinite redirect loop in the tab.
+- **Root Cause**: After the Nuxt/i18n upgrade, browser-language detection with
+  `redirectOn: 'no prefix'` also transformed Nitro's unprefixed `/200.html`
+  fallback. Existing deployment checks proved only that the file existed and the
+  route returned 200, not that the artifact was a usable Nuxt shell.
+- **Resolution**: Keep browser-language detection disabled because Django owns
+  the bare-root locale decision. `build:django` now validates `200.html` before
+  its atomic swap and rejects empty output, meta refreshes, or documents without
+  the `#__nuxt` mount point.
+- **Files Affected**: `frontend/nuxt.config.ts`,
+  `frontend/update-django-template.js`, `frontend/utils/spaFallback.js`, and its
+  focused Jest regression tests.
+- **Verification**: Four validator cases and the three panel fallback view cases
+  pass. Both `nuxi generate` and the complete `build:django` path emit and accept
+  an 8,235-byte SPA shell; production closure still requires merge and deploy.
+- **Lesson**: A generated fallback is a deployment contract. Validate its
+  behavior before publication instead of treating file existence or HTTP 200 as
+  proof of frontend availability.
+
 ### [ERR-033] MySQL ignored DocumentState system-key uniqueness
 
 - **Date**: 2026-08-27

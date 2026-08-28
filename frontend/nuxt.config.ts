@@ -160,9 +160,11 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en-us',
     strategy: 'prefix',
-    detectBrowserLanguage: {
-      redirectOn: 'no prefix',
-    },
+    // Django owns the locale decision for unprefixed requests using the
+    // preferred_locale cookie and nginx's country header. Enabling the i18n
+    // redirect here also rewrites Nitro's /200.html SPA fallback into a
+    // self-referential locale redirect, breaking every deep SPA route.
+    detectBrowserLanguage: false,
     // SEO
     baseUrl: 'https://projectapp.co',
   },

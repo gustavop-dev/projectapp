@@ -849,14 +849,17 @@ MySQL:
 ```mermaid
 flowchart LR
     NuxtBuild["npm run build:django"]
-    NuxtBuild -->|generates| StaticFrontend["backend/static/frontend/"]
+    NuxtBuild -->|generates| NuxtOutput[".output/public/"]
+    NuxtOutput --> FallbackGate["Validate 200.html<br/>Nuxt mount, no redirect"]
+    FallbackGate -->|valid only| AtomicSwap["Atomic directory swap"]
+    AtomicSwap --> StaticFrontend["backend/static/frontend/"]
     CollectStatic["python manage.py collectstatic --clear"]
     StaticFrontend --> CollectStatic
     CollectStatic -->|copies to| StaticFiles["backend/staticfiles/"]
     Nginx -->|serves| StaticFiles
 ```
 
-Nuxt payload data stays inline because the generated site is mounted below `app.cdnURL=/static/frontend/`; external `_payload.json` URLs are not part of this deployment topology. Clearing `staticfiles/` on every deploy and blog rebuild prevents old content-hashed chunks and file/directory collisions from surviving publication.
+Nuxt payload data stays inline because the generated site is mounted below `app.cdnURL=/static/frontend/`; external `_payload.json` URLs are not part of this deployment topology. Private routes are deliberately not prerendered and therefore depend on the root `200.html` SPA shell. The build refuses to publish a fallback that is empty, redirects, or lacks `#__nuxt`. Django owns the locale redirect for the bare root through the preferred-locale cookie and nginx country header; Nuxt browser-language detection stays disabled so it cannot rewrite the unprefixed fallback. Clearing `staticfiles/` on every deploy and blog rebuild prevents old content-hashed chunks and file/directory collisions from surviving publication.
 
 ---
 

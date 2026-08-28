@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-28 — Hotfix del fallback SPA listo para integrar:** el panel de
+producción seguía respondiendo 200, pero el `200.html` generado tras la
+actualización Nuxt/i18n era sólo un meta refresh hacia `/en-us/200.html`; Django
+volvía a servir el mismo fallback y el navegador quedaba en un bucle. Nuxt ya no
+intenta detectar idioma porque Django decide el locale de `/` con cookie y país.
+El chokepoint `build:django` valida ahora que el fallback tenga contenido, monte
+`#__nuxt` y no redirija antes del swap atómico. Pasan 4 regresiones Jest, 3 casos
+backend, la generación directa y el build completo de publicación. El artefacto
+válido mide 8.235 bytes. Falta merge/deploy y sonda productiva para cerrar el
+incidente; se registra como deuda una healthcheck de ruta SPA que inspeccione
+contenido, no sólo HTTP 200.
+
 **2026-08-28 — Bolsillo legible y operable en celular:** por debajo de 640 px
 la vista abandona la tabla de ocho columnas y muestra una tarjeta completa por
 movimiento. Una acción inicial de 44 px abre el mismo menú editar/eliminar que
