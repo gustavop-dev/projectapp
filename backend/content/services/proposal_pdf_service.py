@@ -1637,6 +1637,15 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     """
     if y is None:
         y = PAGE_H - MARGIN_T
+
+    catalog = ps.get('_value_added_catalog', {}) if ps else {}
+    module_ids = _safe(data, 'module_ids', []) or []
+    # No resolvable module means no section at all — not a header with nothing
+    # under it. Mirrors ValueAddedModules.vue, whose root element is guarded by
+    # `v-if="resolvedCards.length > 0"`.
+    if not any(mid in catalog for mid in module_ids):
+        return y
+
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 12
 
@@ -1645,8 +1654,6 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
         y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 8
 
-    catalog = ps.get('_value_added_catalog', {}) if ps else {}
-    module_ids = _safe(data, 'module_ids', []) or []
     justifications = _safe(data, 'justifications', {}) or {}
     conditions = _safe(data, 'conditions', {}) or {}
     lang = ps.get('_pdf_lang', 'es') if ps else 'es'
