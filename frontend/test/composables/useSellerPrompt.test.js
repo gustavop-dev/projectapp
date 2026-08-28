@@ -296,6 +296,21 @@ describe('useSellerPrompt DEFAULT_PROMPT coherence rules (regression guard)', ()
     expect(DEFAULT_PROMPT).not.toContain('7 grupos base')
   })
 
+  it('defines cross-cutting features as a contextual ninth base group', () => {
+    expect(DEFAULT_PROMPT).toContain('9 grupos base')
+    expect(DEFAULT_PROMPT).toContain('26 grupos (9 base + 17 opcionales)')
+    expect(DEFAULT_PROMPT).toContain('catálogo inicial editable')
+    expect(DEFAULT_PROMPT).toContain('no una lista fija')
+    expect(DEFAULT_PROMPT).toContain('\`cross_cutting_features\` está después de \`features\`')
+    expect(DEFAULT_PROMPT).not.toContain('8 grupos base en su orden original')
+  })
+
+  it('separates specific behaviors from cross-cutting qualities', () => {
+    expect(DEFAULT_PROMPT).toContain('\`features\` contiene comportamientos')
+    expect(DEFAULT_PROMPT).toContain('\`cross_cutting_features\` contiene cualidades')
+    expect(DEFAULT_PROMPT).toContain('No dupliques una capacidad entre ambos grupos')
+  })
+
   it('separates requirement discovery from QA and deployment', () => {
     expect(DEFAULT_PROMPT).toContain('levantamiento de requerimientos')
     expect(DEFAULT_PROMPT).toContain('QA y despliegue NUNCA se fusionan')

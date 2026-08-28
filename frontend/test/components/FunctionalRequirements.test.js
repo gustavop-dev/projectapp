@@ -69,6 +69,7 @@ describe('FunctionalRequirements', () => {
         { id: 'views', title: 'Vistas', description: 'Pantallas', icon: '🖥️', items: [{ name: 'Home' }], is_visible: true },
         { id: 'components', title: 'Componentes', description: 'Reusables', icon: '🧩', items: [{ name: 'Header' }], is_visible: true },
         { id: 'features', title: 'Funcionalidades', description: 'Acciones', icon: '⚙️', items: [{ name: 'Search' }], is_visible: true },
+        { id: 'cross_cutting_features', title: 'Funcionalidades Transversales', description: 'Calidades compartidas', icon: '🔗', items: [{ name: 'Diseño Responsive' }], is_visible: true },
         { id: 'admin_module', title: 'Módulo Administrativo', description: 'Admin', icon: '🛠️', items: [{ name: 'Products' }], is_visible: true },
         { id: 'analytics_dashboard', title: 'Analítica', description: 'Reportes', icon: '📊', items: [{ name: 'Visitas' }], is_visible: true },
         { id: 'kpi_dashboard_module', title: 'KPIs', description: 'Métricas', icon: '📊', items: [{ name: 'KPI' }], is_visible: true },
@@ -86,7 +87,8 @@ describe('FunctionalRequirements', () => {
         global: { stubs: { FunctionalRequirementsModal: true } },
       });
       const titles = wrapper.findAll('.overview-card').map(c => c.text());
-      expect(titles.filter(t => ['Vistas', 'Componentes', 'Funcionalidades'].some(k => t.includes(k)))).toHaveLength(3);
+      expect(titles).toHaveLength(4);
+      expect(wrapper.text()).toContain('Funcionalidades Transversales');
       expect(wrapper.text()).not.toContain('Módulo Administrativo');
       expect(wrapper.text()).not.toContain('Analítica');
       expect(wrapper.text()).not.toContain('KPIs');
@@ -101,7 +103,7 @@ describe('FunctionalRequirements', () => {
         },
         global: { stubs: { FunctionalRequirementsModal: true } },
       });
-      expect(wrapper.findAll('.overview-card')).toHaveLength(7);
+      expect(wrapper.findAll('.overview-card')).toHaveLength(8);
       expect(wrapper.text()).toContain('Módulo Administrativo');
       expect(wrapper.text()).toContain('Manual');
     });
@@ -111,7 +113,7 @@ describe('FunctionalRequirements', () => {
         props: { data: dataWithVamModules },
         global: { stubs: { FunctionalRequirementsModal: true } },
       });
-      expect(wrapper.findAll('.overview-card')).toHaveLength(7);
+      expect(wrapper.findAll('.overview-card')).toHaveLength(8);
     });
   });
 });
