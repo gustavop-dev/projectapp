@@ -1,0 +1,99 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+
+const route = useRoute()
+const { locale, t } = useI18n()
+const catalog = ref(null)
+const isLoading = ref(true)
+const errorState = ref('')
+
+const shareUuid = computed(() => String(route.params.uuid || ''))
+const endpoint = computed(() => `/api/additional-modules/public/shares/${shareUuid.value}/`)
+
+function sessionId() {
+  const key = `additional-modules-share-session:${shareUuid.value}`
+  let value = sessionStorage.getItem(key)
+  if (!value) {
+    value = crypto.randomUUID().replaceAll('-', '')
+    sessionStorage.setItem(key, value)
+  }
+  return value
+}
+
+async function loadCatalog() {
+  isLoading.value = true
+  errorState.value = ''
+  try {
+    catalog.value = await $fetch(endpoint.value)
+  } catch (error) {
+    errorState.value = error?.status === 410 || error?.statusCode === 410
+      ? 'gone'
+      : 'failed'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadCatalog()
+  if (!catalog.value) return
+  $fetch(`${endpoint.value}track/`, {
+    method: 'POST',
+    body: { session_id: sessionId() },
+  }).catch(() => {})
+})
+
+const canonicalPath = computed(() => (
+  catalog.value?.canonical_path
+  || (locale.value.startsWith('en')
+    ? '/en-us/additional-modules'
+    : '/es-co/additional-modules')
+))
+const title = computed(() => (
+  locale.value.startsWith('en')
+    ? 'Selected Additional Modules | Project App.'
+    : 'Selección de módulos adicionales | Project App.'
+))
+const baseUrl = 'https://projectapp.co'
+
+useHead(() => ({
+  title: title.value,
+  meta: [
+    { name: 'description', content: t('additionalModules.subtitle') },
+    { name: 'robots', content: 'noindex,nofollow,noarchive' },
+    { property: 'og:title', content: title.value },
+    { property: 'og:description', content: t('additionalModules.sharedNotice') },
+  ],
+  link: [
+    { rel: 'canonical', href: `${baseUrl}${canonicalPath.value}` },
+  ],
+}))
+
+const pdfUrl = computed(() => (
+  `/api/additional-modules/public/shares/${shareUuid.value}/pdf/`
+))
+</script>
+
+<template>
+  <section class="min-h-screen bg-page">
+    <div v-if="isLoading" class="flex min-h-[70vh] items-center justify-center" role="status">
+      <span class="h-9 w-9 animate-spin rounded-full border-2 border-border-default border-t-primary" />
+    </div>
+    <div v-else-if="errorState" class="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 text-center">
+      <h1 class="text-2xl font-medium text-text-brand">
+        {{ errorState === 'gone' ? t('additionalModules.emptyTitle') : t('additionalModules.loadError') }}
+      </h1>
+      <p class="mt-3 text-text-muted">{{ t('additionalModules.emptyBody') }}</p>
+      <BaseButton v-if="errorState !== 'gone'" class="mt-5" @click="loadCatalog">
+        {{ t('additionalModules.retry') }}
+      </BaseButton>
+    </div>
+    <AdditionalModulesCatalogView
+      v-else
+      :categories="catalog?.categories || []"
+      :total-modules="catalog?.total_modules || 0"
+      :download-url="pdfUrl"
+      is-shared
+    />
+  </section>
+</template>

@@ -1,0 +1,10 @@
+{
+  "id": "public-additional-modules-share",
+  "name": "Public Additional Modules Selection",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P1",
+  "description": "Prospect opens a generated private link, sees only its selected modules without internal tracking data, and gets a clear unavailable state for a revoked link.",
+  "expectedSpecs": 2,
+  "outcomes": ["display", "failure"]
+}

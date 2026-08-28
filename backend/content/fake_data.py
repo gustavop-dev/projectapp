@@ -121,6 +121,7 @@ SEEDED_MODELS = {
     'accounts.ProjectDataModelEntity', 'accounts.Requirement',
     'accounts.SavedFilterTab', 'accounts.UserProfile',
     'content.AdsSpendRecord', 'content.BlogPost', 'content.BusinessProposal',
+    'content.AdditionalModuleShareLink',
     'content.CardBalanceSnapshot', 'content.EmailCopyRecipient',
     'content.CommunicationMessage', 'content.CommunicationThread',
     'content.CompanySettings', 'content.Contact', 'content.CreditCard',
@@ -161,10 +162,12 @@ DERIVED_MODELS = {
     'content.ProposalSection', 'content.ProposalSectionView',
     'content.ProposalShareLink', 'content.ProposalViewEvent',
     'content.TaskAlert', 'content.TaskComment',
+    'content.AdditionalModuleShareView',
 }
 
 CATALOG_MODELS = {
-    'content.AccountingSettings', 'content.ConfidentialityTemplate',
+    'content.AccountingSettings', 'content.AdditionalModule',
+    'content.AdditionalModuleCategory', 'content.ConfidentialityTemplate',
     'content.ContractTemplate', 'content.DiagnosticDefaultConfig',
     'content.DocumentType', 'content.HourPackageSettings',
 }

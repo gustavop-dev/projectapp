@@ -1,0 +1,10 @@
+{
+  "id": "public-additional-modules-catalog",
+  "name": "Public Additional Modules Catalog",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P1",
+  "description": "Visitor follows the public footer link to the indexed bilingual catalog, sees real grouped module data, and can retry a failed live load.",
+  "expectedSpecs": 2,
+  "outcomes": ["display", "failure"]
+}

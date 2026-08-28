@@ -1,5 +1,11 @@
 # Architecture — ProjectApp
 
+> **Estado 2026-08-28 — implementado:** el dominio `AdditionalModule` separa
+> categorías, módulos, enlaces compartidos y aperturas únicas por sesión. El
+> panel usa sesión/CSRF; el índice público y los enlaces seleccionados usan
+> contratos REST de sólo lectura, con tracking first-party y generación PDF en
+> el backend. Esta primera versión no expone el catálogo mediante MCP.
+
 ## 1. System Overview
 
 ```mermaid

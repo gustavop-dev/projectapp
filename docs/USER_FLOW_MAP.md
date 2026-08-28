@@ -5963,6 +5963,11 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
+| `admin-additional-modules-catalog` | admin | P1 | display,failure | 2 |
+| `admin-additional-modules-manage` | admin | P1 | success,error,failure | 4 |
+| `admin-additional-modules-pdf` | admin | P2 | success,failure | 2 |
+| `admin-additional-modules-reorder` | admin | P2 | success,failure | 2 |
+| `admin-additional-modules-share` | admin | P1 | success,error,failure,display | 4 |
 | `admin-admin-management` | admin | P3 | display,success,error | 1 |
 | `admin-auto-archive-zombie` | admin | P3 | — | 0 |
 | `admin-blog-calendar` | admin | P2 | display | 1 |
@@ -6263,6 +6268,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-view-paste-rendering` | proposal | P2 | display | 1 |
 | `proposal-welcome-back` | proposal | P2 | success,display | 1 |
 | `public-about-us` | public | P3 | — | 0 |
+| `public-additional-modules-catalog` | public | P1 | display,failure | 2 |
+| `public-additional-modules-detail` | public | P1 | success | 1 |
+| `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
+| `public-additional-modules-share` | public | P1 | display,failure | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
@@ -7072,6 +7081,56 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
+### FLOW: `admin-additional-modules-catalog`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Navigate from the panel sidebar, read the grouped catalog and retry a failed initial request.
+- **Outcomes:** `display`, `failure`
+- **Evidence:** `frontend/pages/panel/additional-modules/index.vue`, `GET /api/additional-modules/admin/`
+
+### FLOW: `admin-additional-modules-manage`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Create or edit bilingual module content; a successful edit sends a `PATCH` and closes the form, while incomplete content and API failures remain visible inside it.
+- **Outcomes:** `success`, `error`, `failure`
+- **Evidence:** `ModuleFormModal.vue`, module create/update endpoints.
+
+### FLOW: `admin-additional-modules-pdf`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Select catalog modules and download the generated PDF without prices.
+- **Outcomes:** `success`, `failure`
+- **Evidence:** PDF selection modal and `POST /api/additional-modules/admin/pdf/`.
+
+### FLOW: `admin-additional-modules-reorder`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Reorder categories/modules by controls or drag and save the complete optimistic-lock payload.
+- **Outcomes:** `success`, `failure` (stale revision reloads the catalog)
+- **Evidence:** `CatalogOrderModal.vue`, `POST /api/additional-modules/admin/reorder/`.
+
+### FLOW: `admin-additional-modules-share`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Select modules and recipient, generate a fixed-selection link, then inspect openings or revoke it in Seguimiento.
+- **Outcomes:** `success`, `error`, `failure`, `display`
+- **Evidence:** `CatalogSelectionModal.vue`, `ShareHistoryModal.vue`, admin share endpoints.
+
 ### FLOW: `admin-document-list`
 
 - **Module:** admin
@@ -7225,3 +7284,43 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   3. El total mantiene la moneda y el texto `+ IVA` sin duplicarlos.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-payment-plan-closing.spec.js`
+
+### FLOW: `public-additional-modules-catalog`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/additional-modules`
+- **Interaction:** Follow the footer link and read active modules grouped in the live catalog order; retry a failed live request.
+- **Outcomes:** `display`, `failure`
+- **Evidence:** public catalog page/component and `GET /api/additional-modules/public/`.
+
+### FLOW: `public-additional-modules-detail`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/additional-modules`
+- **Interaction:** Open a module card, read what it is, purpose, problems, integrations and requirements, then close back to the opener.
+- **Outcomes:** `success`
+- **Evidence:** `AdditionalModules/CatalogView.vue`.
+
+### FLOW: `public-additional-modules-pdf`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P2
+- **Routes:** canonical catalog and shared selection
+- **Interaction:** Download the full or selected no-price PDF; unavailable shares return 410.
+- **Outcomes:** `success`, `failure`
+- **Evidence:** public PDF endpoints and the shared/catalog download control.
+
+### FLOW: `public-additional-modules-share`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/additional-modules/share/:uuid`
+- **Interaction:** Open a prepared selection, record one first-party browser session and read only selected live modules; revoked/empty selections show an unavailable state.
+- **Outcomes:** `display`, `failure`
+- **Evidence:** share page, public share and tracking endpoints.

@@ -9,7 +9,7 @@ from django.core import mail
 from django.core.cache import cache
 from django.utils import timezone
 
-from content.models import BlogPost
+from content.models import AdditionalModule, AdditionalModuleCategory, BlogPost
 from content.services import frontend_build
 
 
@@ -30,12 +30,24 @@ def published_post(db):
     )
 
 
+@pytest.fixture
+def additional_module_category(db):
+    return AdditionalModuleCategory.objects.create(
+        slug='rebuild-test-category',
+        name_es='Pagos',
+        name_en='Payments',
+        order=999,
+    )
+
+
 def write_marker_now(marker_path):
     marker_path.write_text(json.dumps({'started_at': timezone.now().isoformat()}))
 
 
 class TestRebuildNeeded:
-    def test_false_without_published_posts(self, db, marker_path):
+    def test_false_without_prerendered_content(self, db, marker_path):
+        AdditionalModule.objects.all().delete()
+        AdditionalModuleCategory.objects.all().delete()
         assert frontend_build.rebuild_needed() is False
 
     def test_true_when_never_built(self, published_post, marker_path):
@@ -51,6 +63,15 @@ class TestRebuildNeeded:
         published_post.save()  # bumps updated_at past the marker
         assert frontend_build.rebuild_needed() is True
 
+    def test_true_again_after_catalog_update(
+        self, additional_module_category, marker_path,
+    ):
+        write_marker_now(marker_path)
+        additional_module_category.name_es = 'Pagos digitales'
+        additional_module_category.save()
+
+        assert frontend_build.rebuild_needed() is True
+
     def test_corrupt_marker_counts_as_never_built(self, published_post, marker_path):
         marker_path.write_text('not json{')
         assert frontend_build.rebuild_needed() is True
@@ -64,6 +85,7 @@ class TestRunFrontendRebuild:
 
     def test_skips_when_no_changes(self, db, settings, marker_path):
         settings.FRONTEND_REBUILD_ENABLED = True
+        write_marker_now(marker_path)
         result = frontend_build.run_frontend_rebuild()
         assert result['status'] == 'skipped'
 

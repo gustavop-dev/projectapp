@@ -7,6 +7,12 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Revisión 2026-08-28 — catálogo adicional:** no se abrió un incidente. La
+> implementación cerró los riesgos previstos: la semilla usa migraciones nuevas,
+> el prerender sólo contiene el catálogo canónico, las aperturas se deduplican
+> por enlace/sesión y el contrato público omite datos internos. Además, los
+> errores JSON de PDF se recuperan desde respuestas `Blob` en el frontend.
+
 ---
 
 ## Format
