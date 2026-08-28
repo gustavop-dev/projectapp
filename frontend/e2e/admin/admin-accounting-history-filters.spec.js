@@ -480,7 +480,9 @@ test.describe('Admin Accounting History — filters and diagnosis', () => {
     // "this failure cannot be acted on" without saying why.
     const button = page.getByTestId('email-log-retry-3');
     await expect(button).toBeDisabled();
-    await expect(button).toHaveAttribute('title', /resume varios registros/);
+    const disabledActionProxy = button.locator('xpath=..');
+    await expect(disabledActionProxy).toHaveAttribute('data-disabled-action-proxy', '');
+    await expect(disabledActionProxy).toHaveAttribute('aria-label', /resume varios registros/);
     // A send that worked offers no retry at all.
     await expect(page.getByTestId('email-log-retry-1')).toHaveCount(0);
   });
