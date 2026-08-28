@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-28 — Cuarta tarjeta contextual de requerimientos lista para integrar:**
+`functional_requirements` incorpora `cross_cutting_features` después de
+`features` en los defaults ES/EN. La tarjeta conserva un contenedor obligatorio
+y editable, con siete capacidades iniciales de calidad que el prompt comercial
+debe mantener, reescribir, quitar o ampliar según negocio, etapa, audiencia y
+alcance; el prompt técnico crea su épica exacta y enlaza cada item retenido.
+Diseño Responsive salió de las funcionalidades específicas. La migración `0222`
+actualiza configuraciones por defecto y borradores activos, preserva ids y no
+toca propuestas históricas. El editor impide borrar el grupo completo, no su
+contenido. Backend, unitarios frontend y ambos E2E focales están verdes; el mapa
+está fresco y los flows público/admin siguen cubiertos sin junk-only.
+
 **2026-08-28 — Hotfix del fallback SPA listo para integrar:** el panel de
 producción seguía respondiendo 200, pero el `200.html` generado tras la
 actualización Nuxt/i18n era sólo un meta refresh hacia `/en-us/200.html`; Django

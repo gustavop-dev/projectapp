@@ -18,7 +18,9 @@ cares about, copying their current values from code:
   - value_added_modules.conditions                         (per-module terms with caps)
   - value_added_modules.module_ids                         (display order)
   - features group title/description/items                 (atomic Google auth:
-    registration and sign-in as two separate items)
+    registration and sign-in as two separate items; responsive moved out)
+  - cross_cutting_features group                           (re-injected after
+    features as an editable, contextual quality catalog)
   - functional_requirements groups/additionalModules       (default entries the
     stored snapshot predates are re-injected in code order; stored entries win
     per id, so operator customizations survive)

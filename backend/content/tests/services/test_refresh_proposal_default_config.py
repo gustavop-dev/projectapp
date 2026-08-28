@@ -37,6 +37,11 @@ def _fr_module(sections, module_id):
     return next(m for m in fr['content_json']['additionalModules'] if m['id'] == module_id)
 
 
+def _fr_group_ids(sections):
+    fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+    return [group['id'] for group in fr['content_json']['groups']]
+
+
 def test_reinject_adds_missing_module_in_code_order():
     stored = _sections_without_module('qr_generator_module')
     code = copy.deepcopy(DEFAULT_SECTIONS)
@@ -85,6 +90,21 @@ def test_reinject_noop_when_nothing_is_missing():
 
     assert _fr_module_ids(stored) == reversed_ids
     assert not any('re-injected' in c for c in changes)
+
+
+def test_reinject_adds_cross_cutting_group_after_features():
+    stored = copy.deepcopy(DEFAULT_SECTIONS)
+    fr = next(s for s in stored if s['section_type'] == 'functional_requirements')
+    fr['content_json']['groups'] = [
+        group for group in fr['content_json']['groups']
+        if group['id'] != 'cross_cutting_features'
+    ]
+
+    changes = _patch(stored, copy.deepcopy(DEFAULT_SECTIONS))
+
+    ids = _fr_group_ids(stored)
+    assert ids.index('cross_cutting_features') == ids.index('features') + 1
+    assert any('cross_cutting_features' in change for change in changes)
 
 
 @pytest.mark.django_db
