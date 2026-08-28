@@ -66,11 +66,11 @@ cinco columnas de resultado.
 | # | Sección | Decisión de negocio que debe comprobarse |
 |---:|---|---|
 | 1 | Resumen | La utilidad líquida sigue siendo el indicador principal. En angosto se ven, como máximo, los tres indicadores de decisión; “Ver todos los indicadores” revela el resto. La tabla mensual conserva Mes y Utilidad, y agrupa Esperado, Líquido y Gastos bajo Mes. Tarjetas conserva Tarjeta y Deuda. |
-| 2 | Bolsillo | Concepto y Valor siguen visibles. Cada movimiento muestra inmediatamente **Saldo después**; con filtros muestra **Acumulado filtrado**. La columna independiente de saldo sólo aparece desde Tableta horizontal. El saldo general entra en la primera pantalla del Celular. |
-| 3 | Ingresos | Concepto y Total permanecen. Cliente, tipo de ingreso, cobro, mes, origen y proyecto se agrupan según el perfil. Los siete indicadores muestran tres prioridades y un detalle desplegable en angosto. Alternar Lista/Agrupada no introduce scroll horizontal. |
+| 2 | Bolsillo | En Celular no se renderiza una tabla: cada movimiento es una tarjeta con acción de 44 px al inicio, Concepto, Valor, Fecha, Tipo y **Saldo después**; con filtros muestra **Acumulado filtrado**. Los distintivos conservan palabras enteras, las tarjetas mantienen el ordenamiento y no introducen scroll horizontal ni superposición. Desde Tableta vertical vuelve la tabla priorizada y la columna independiente de saldo aparece desde Tableta horizontal. El saldo general entra en la primera pantalla del Celular. |
+| 3 | Ingresos | Concepto y Total permanecen. Cliente, tipo de ingreso, cobro, mes, origen y proyecto se agrupan según el perfil. Los distintivos de tipo permanecen enteros y la acción única queda al inicio tanto en Lista como en Agrupada. Los siete indicadores muestran tres prioridades y un detalle desplegable en angosto. Alternar Lista/Agrupada no introduce scroll horizontal. |
 | 4 | Gastos | Concepto y Total permanecen. Período, categoría, contabilidad y repartos se agrupan. Los indicadores prioritarios son total anual, mes actual y deducciones; el detalle revela gasto principal y reparto empresa/personal. |
 | 5 | Hostings | Cliente, Valor/mes y Estado permanecen. Dominio y Vigencia vuelven como columnas desde Tableta horizontal; Proyecto, Modalidad, Ciclos y Total pagado se agrupan. En angosto hay una sola acción por fila y su menú ofrece ciclos, cobro, correos, editar y eliminar. |
-| 6 | Cuentas de cobro | Número, Total y Estado permanecen. Cliente y Vence vuelven desde Tableta horizontal; origen, proyecto y emisión se agrupan. En angosto hay una sola acción por fila y ninguna acción del estado actual se pierde. |
+| 6 | Cuentas de cobro | Número, Total y Estado permanecen. Cliente y Vence vuelven desde Tableta horizontal; origen, proyecto y emisión se agrupan. En Lista y Agrupada hay una sola acción de 44 px al inicio; abre el mismo menú completo, permanece dentro de la fila y los distintivos de estado/origen no se parten. |
 | 7 | Recurrentes | Nombre y equivalente COP mensual permanecen. Los demás datos se agrupan. El encabezado de categoría pone el nombre en su propia línea en angosto y conserva subtotal y participación legibles. Lista y vista agrupada mantienen las mismas prioridades. |
 | 8 | Ads | Plataforma y Valor permanecen. Fecha, tarjeta, participación y acumulado se agrupan. El indicador anual, buscador, filtros y CTA caben sin solaparse. |
 | 9 | Tarjetas | Tarjeta y Deuda permanecen. Fecha, disponible, uso y notas se agrupan. Catálogo y formulario apilan sus campos y acciones en orden previsible. |
@@ -100,6 +100,20 @@ Guardar una fila por hallazgo en la ficha o PR:
 | Fecha | Commit | Perfil | Sección/modal | Resultado | Evidencia o defecto |
 |---|---|---|---|---|---|
 | AAAA-MM-DD | SHA | 412 × 915 | Bolsillo | OK/Falla | captura, video o enlace al issue |
+
+### Trazabilidad focalizada PA-103 — defecto de Bolsillo
+
+Esta ejecución focalizada registra el hallazgo que surgió del recorrido móvil
+de PA-103. No sustituye la matriz completa de 60 recorridos ni afirma resultados
+para tabs que no se ejecutaron en esta corrección.
+
+| Fecha | Commit | Perfil | Sección/modal | Resultado | Evidencia o defecto |
+|---|---|---|---|---|---|
+| 2026-08-28 | `fix/28082026-responsive-accounting-pocket` | 412 × 915 | Bolsillo | OK automatizado | Tarjetas sin tabla ni scroll lateral; chips atómicos; acción inicial de 44 px sin superposición; editar, borrar, ordenar y acumulado filtrado cubiertos por Playwright. |
+| 2026-08-28 | `fix/28082026-responsive-accounting-pocket` | 412 × 915 | Ingresos Lista/Agrupada | OK automatizado | La fila compacta cabe sin scroll; el tipo no se parte y el menú inicial abre en ambas vistas. |
+| 2026-08-28 | `fix/28082026-responsive-accounting-pocket` | 412 × 915 | Cuentas de cobro Lista/Agrupada | OK automatizado | La fila compacta cabe sin scroll; estado/origen no se parten y el menú inicial abre en ambas vistas. |
+| 2026-08-28 | `fix/28082026-responsive-accounting-pocket` | 835/1195/1440/2560 | Bolsillo | OK automatizado | La tabla priorizada conserva el saldo corrido y no desborda en los cuatro perfiles superiores. |
+| 2026-08-28 | `fix/28082026-responsive-accounting-pocket` | Auditoría de código | Otros nueve tabs contables | Revisado, ejecución pendiente | Resumen, Gastos, Hostings, Recurrentes, Ads y Tarjetas ya declaran prioridad `compact/portrait/landscape`; Extractos, Historial y Configuración usan layouts especializados. No se confirmó en ellos la tabla rígida de ocho columnas de Bolsillo. Conservan pendiente su recorrido visual dentro de la matriz PA-103 completa. |
 
 Una ejecución se considera completa cuando existen 60 resultados de sección y
 los seis casos de modal en los tres perfiles obligatorios. Si se corrige una

@@ -580,6 +580,13 @@ async function gotoCollections(page, expectedRowId = 1) {
   await expect(page.getByTestId(`accounting-row-${expectedRowId}`)).toBeVisible();
 }
 
+async function chooseCollectionAction(page, rowId, actionId) {
+  await page.getByTestId(`collection-actions-${rowId}`).click();
+  const action = page.getByTestId(`collection-${actionId}-${rowId}`);
+  await expect(action).toBeVisible();
+  await action.click();
+}
+
 test.describe('Admin Accounting Collections', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -599,6 +606,34 @@ test.describe('Admin Accounting Collections', () => {
     ]);
     await expect(page.getByText('Por cobrar: $1.100.004')).toBeVisible();
     await expect(page.getByText('Recaudado: $550.002')).toBeVisible();
+  });
+
+  test('the classic collection table fits the compact viewport', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display', '@responsive:accounting'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (the arrival geometry is the outcome)
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await page.setViewportSize({ width: 412, height: 915 });
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    const row = page.getByTestId('accounting-row-1');
+    const table = row.locator('xpath=ancestor::table');
+    const scroller = table.locator('..');
+    const action = page.getByTestId('collection-actions-1');
+    const status = page.getByTestId('collection-status-1');
+
+    expect(await scroller.evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true);
+    await expect(page.getByTestId('accounting-actions-header')).toBeVisible();
+    await expect(action).toBeVisible();
+    await expect(status).toHaveCSS('white-space', 'nowrap');
+    expect(await action.evaluate((element) => {
+      const button = element.matches('button') ? element : element.querySelector('button');
+      const box = button.getBoundingClientRect();
+      const rowBox = element.closest('[data-testid^="accounting-row-"]').getBoundingClientRect();
+      return box.left >= rowBox.left && box.right <= rowBox.right;
+    })).toBe(true);
   });
 
   test('grouped view shows client amounts and the five status counts', {
@@ -637,6 +672,30 @@ test.describe('Admin Accounting Collections', () => {
       .toContainText('$2.000 COP');
     await expect(page.getByTestId('collection-grouped-cancelled-total'))
       .toContainText('$200 COP');
+  });
+
+  test('the grouped collection menu stays reachable on a compact viewport', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_GROUPING, '@role:admin', '@outcome:display', '@responsive:accounting'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await page.setViewportSize({ width: 412, height: 915 });
+    await mockApi(page, buildHandler({
+      calls: [],
+      rows: makeGroupingRows(),
+      collectionViewMode: 'grouped',
+    }));
+    await gotoCollections(page, 11);
+
+    const row = page.getByTestId('accounting-row-11');
+    const grid = row.locator('xpath=ancestor::div[contains(@class, "accounting-grid-scroll")]');
+    const action = page.getByTestId('collection-actions-11');
+
+    expect(await grid.evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true);
+    await expect(page.getByTestId('accounting-actions-header')).toBeVisible();
+    await expect(action).toBeVisible();
+    await action.click();
+    await expect(page.getByTestId('collection-actions-modal')).toBeVisible();
   });
 
   test('grouped view switches to ordered project groups with historical separation', {
@@ -780,7 +839,7 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls }));
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Marcar pagada').click();
+    await chooseCollectionAction(page, 2, 'mark-paid');
     await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(
@@ -799,7 +858,7 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls }));
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Anular').click();
+    await chooseCollectionAction(page, 2, 'cancel');
     await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(
@@ -814,18 +873,19 @@ test.describe('Admin Accounting Collections', () => {
   test('a cuenta the client already received offers no delete, only anular', {
     tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    // quality: allow-no-interaction (the subject IS the absence of an action — clicking anything would only prove a different row's affordance)
     // quality: allow-deep-link (the tab's own entry navigation is covered by the counters test; this one asserts which affordances the rows carry)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
 
     // Emitida y enviada: borrarla del sistema no la borra de su bandeja.
+    await page.getByTestId('collection-actions-1').click();
     await expect(page.getByTestId('collection-delete-1')).toHaveCount(0);
-    await expect(
-      page.getByTestId('accounting-row-1').getByLabel('Anular'),
-    ).toBeVisible();
+    await expect(page.getByTestId('collection-cancel-1')).toBeVisible();
+    await page.getByTestId('collection-actions-modal').getByRole('button', { name: 'Cerrar' }).click();
     // Pagada: callejón cerrado, ni anular ni eliminar.
+    await page.getByTestId('collection-actions-3').click();
     await expect(page.getByTestId('collection-delete-3')).toHaveCount(0);
+    await expect(page.getByTestId('collection-cancel-3')).toHaveCount(0);
   });
 
   test('an annulled cuenta is deleted after typing ELIMINAR and the counters drop', {
@@ -835,13 +895,13 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls }));
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Anular').click();
+    await chooseCollectionAction(page, 2, 'cancel');
     await page.getByTestId('confirm-modal-confirm').click();
     await expect(
       page.getByTestId('accounting-row-2').getByText('Anulada', { exact: true }),
     ).toBeVisible();
 
-    await page.getByTestId('collection-delete-2').click();
+    await chooseCollectionAction(page, 2, 'delete');
 
     // The confirmation names the document before asking for the word.
     const detail = page.getByTestId('confirm-modal-detail');
@@ -885,13 +945,13 @@ test.describe('Admin Accounting Collections', () => {
     });
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Anular').click();
+    await chooseCollectionAction(page, 2, 'cancel');
     await page.getByTestId('confirm-modal-confirm').click();
     await expect(
       page.getByTestId('accounting-row-2').getByText('Anulada', { exact: true }),
     ).toBeVisible();
 
-    await page.getByTestId('collection-delete-2').click();
+    await chooseCollectionAction(page, 2, 'delete');
     await page.getByTestId('confirm-type-input').fill('ELIMINAR');
     await page.getByTestId('confirm-modal-confirm').click();
 
@@ -907,7 +967,7 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls }));
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-3').getByLabel('Reenviar al cliente').click();
+    await chooseCollectionAction(page, 3, 'resend');
 
     // One click used to email a client outright. It now confirms first, and
     // the message says who is about to receive it.
@@ -942,7 +1002,7 @@ test.describe('Admin Accounting Collections', () => {
     });
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-3').getByLabel('Reenviar al cliente').click();
+    await chooseCollectionAction(page, 3, 'resend');
     await page.getByRole('button', { name: 'Reenviar', exact: true }).click();
 
     await expect(page.getByText('No se pudo reenviar')).toBeVisible();
@@ -1300,9 +1360,9 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
 
-    // Only the row that carries a note offers the action.
-    await expect(page.getByTestId('collection-notes-2')).toHaveCount(0);
-    await page.getByTestId('collection-notes-1').click();
+    // The component test pins that rows without notes omit this entry; the
+    // browser test follows the positive path all the way to the saved copy.
+    await chooseCollectionAction(page, 1, 'notes');
 
     const body = page.getByTestId('collection-notes-body');
     await expect(body).toBeVisible();
@@ -1373,7 +1433,7 @@ test.describe('Admin Accounting Collections', () => {
     });
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Registrar pago (liquidar)').click();
+    await chooseCollectionAction(page, 2, 'mark-paid');
 
     // Never a silent mark-paid: the Liquidar modal takes over.
     await expect(
@@ -1434,7 +1494,7 @@ test.describe('Admin Accounting Collections', () => {
     });
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Registrar pago (liquidar)').click();
+    await chooseCollectionAction(page, 2, 'mark-paid');
     await expect(page.getByTestId('income-liquidate-period-start'))
       .toHaveValue('2026-10-01');
 
@@ -1551,7 +1611,7 @@ test.describe('Admin Accounting Collections', () => {
     await mockWithLinkedIncome(page);
     await gotoCollections(page);
 
-    await page.getByTestId('collection-view-detail-2').click();
+    await chooseCollectionAction(page, 2, 'view-detail');
 
     const modal = page.getByTestId('collection-detail-modal');
     await expect(modal).toBeVisible();
@@ -1575,7 +1635,7 @@ test.describe('Admin Accounting Collections', () => {
     await mockWithLinkedIncome(page);
     await gotoCollections(page);
 
-    await page.getByTestId('collection-view-detail-2').click();
+    await chooseCollectionAction(page, 2, 'view-detail');
     await page.getByRole('tab', { name: 'Documento' }).click();
 
     await expect(page.getByTestId('collection-detail-pdf')).toHaveAttribute(
@@ -1591,7 +1651,7 @@ test.describe('Admin Accounting Collections', () => {
     await mockWithLinkedIncome(page);
     await gotoCollections(page);
 
-    await page.getByTestId('collection-view-detail-2').click();
+    await chooseCollectionAction(page, 2, 'view-detail');
     await page.getByTestId('collection-detail-go-to-income').click();
 
     // El salto entrega los dos params. `focus` sólo destaca la fila una vez y

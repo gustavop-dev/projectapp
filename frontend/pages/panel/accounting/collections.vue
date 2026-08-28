@@ -165,31 +165,33 @@
           </BaseRowLink>
         </template>
         <template #cell-origin="{ row }">
-          <span
-            class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider"
-            :class="originTone(row.origin)"
+          <BaseBadge
+            :variant="originBadgeVariant(row.origin)"
+            size="sm"
+            class="font-semibold uppercase tracking-wider"
           >
             {{ originLabel(row.origin) }}
-          </span>
+          </BaseBadge>
         </template>
         <template #cell-client_display_name="{ row }">
-          <span class="inline-flex items-center gap-1.5">
-            <span class="text-text-default">
+          <span class="inline-flex min-w-0 flex-wrap items-center gap-1.5">
+            <span class="min-w-0 break-words text-text-default">
               {{ row.client_display_name || row.customer_name || '—' }}
             </span>
-            <span
+            <BaseBadge
               v-if="!row.client"
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong"
+              variant="warning"
+              size="sm"
               title="Sin cliente vinculado — el nombre viene del documento emitido"
               :data-testid="`collection-unlinked-${row.id}`"
             >
               sin vincular
-            </span>
+            </BaseBadge>
           </span>
         </template>
         <template #cell-project_name="{ row }">
-          <span v-if="row.project_name" class="inline-flex items-center gap-1 text-text-default">
-            {{ row.project_name }}
+          <span v-if="row.project_name" class="inline-flex min-w-0 flex-wrap items-center gap-1 text-text-default">
+            <span class="min-w-0 break-words">{{ row.project_name }}</span>
             <!-- Only documents whose live FK survives get the jump; older
                  rows keep the frozen snapshot text with no link (by design). -->
             <ProjectSpaceLink
@@ -207,99 +209,24 @@
           >—</span>
         </template>
         <template #cell-commercial_status="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="collectionStatusBadgeClass(row)"
+          <BaseBadge
+            :variant="collectionStatusBadgeVariant(row)"
+            :data-testid="`collection-status-${row.id}`"
           >
             {{ row.is_overdue ? 'Vencida' : row.commercial_status_label }}
-          </span>
+          </BaseBadge>
         </template>
-        <template #cell-row_actions="{ row }">
-          <div v-if="isNarrowActions" class="flex items-center justify-end">
+        <template #row-actions="{ row }">
+          <div class="flex items-center justify-center">
             <BaseActionButton
               action="more"
               variant="ghost"
               size="sm"
-              label="Acciones de la cuenta de cobro"
+              class="h-11 w-11 shrink-0"
+              :label="`Acciones de ${row.public_number || `cuenta ${row.id}`}`"
               :disabled="busyId === row.id"
               :data-testid="`collection-actions-${row.id}`"
-              @click="actionsRow = row"
-            />
-          </div>
-          <div v-else class="flex items-center justify-end gap-1">
-            <BaseActionButton
-              action="view"
-              variant="ghost"
-              size="sm"
-              label="Ver detalle"
-              :data-testid="`collection-view-detail-${row.id}`"
-              @click="openDetail(row)"
-            />
-            <BaseActionButton
-              v-if="row.notes"
-              action="notes"
-              variant="ghost"
-              size="sm"
-              label="Ver notas internas"
-              :data-testid="`collection-notes-${row.id}`"
-              @click="notesRow = row"
-            />
-            <BaseActionButton
-              action="download"
-              variant="ghost"
-              size="sm"
-              label="Descargar PDF"
-              :disabled="busyId === row.id"
-              :data-testid="`collection-download-pdf-${row.id}`"
-              @click="downloadPdf(row)"
-            />
-            <BaseActionButton
-              action="email-history"
-              variant="ghost"
-              size="sm"
-              label="Ver correos de esta cuenta"
-              tooltip="Ver qué correos salieron por esta cuenta de cobro"
-              :data-testid="`collection-emails-${row.id}`"
-              @click="goToCollectionEmails(row)"
-            />
-            <BaseActionButton
-              v-if="row.commercial_status === 'issued' || row.commercial_status === 'paid'"
-              action="resend"
-              variant="ghost"
-              size="sm"
-              label="Reenviar al cliente"
-              :disabled="busyId === row.id"
-              @click="askResend(row)"
-            />
-            <BaseActionButton
-              v-if="row.commercial_status === 'issued'"
-              action="complete"
-              variant="ghost"
-              size="sm"
-              :label="row.income_kind === 'expected' ? 'Registrar pago (liquidar)' : 'Marcar pagada'"
-              :disabled="busyId === row.id"
-              @click="askMarkPaid(row)"
-            />
-            <BaseActionButton
-              v-if="row.commercial_status === 'draft' || row.commercial_status === 'issued'"
-              action="void"
-              label="Anular"
-              variant="danger-ghost"
-              size="sm"
-              :disabled="busyId === row.id"
-              @click="askCancel(row)"
-            />
-            <!-- Sólo lo que nunca salió al cliente, o lo ya anulado: el
-                 backend resuelve la regla y la manda en `can_delete`. -->
-            <BaseActionButton
-              v-if="row.can_delete"
-              action="delete"
-              variant="danger-ghost"
-              size="sm"
-              label="Eliminar cuenta de cobro"
-              :disabled="busyId === row.id"
-              :data-testid="`collection-delete-${row.id}`"
-              @click="askDelete(row)"
+              @click.stop="actionsRow = row"
             />
           </div>
         </template>
@@ -419,6 +346,7 @@ import CollectionAccountDetailModal from '~/components/accounting/CollectionAcco
 import CollectionActionsModal from '~/components/accounting/CollectionActionsModal.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
+import BaseBadge from '~/components/base/BaseBadge.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseSegmentedMulti from '~/components/base/BaseSegmentedMulti.vue';
@@ -435,7 +363,6 @@ import {
 } from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
 import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
-import { useIsMobile } from '~/composables/useIsMobile';
 import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { get_request } from '~/stores/services/request_http';
@@ -447,25 +374,30 @@ import {
   groupCollectionAccounts,
   sumCollectionAccountGroups,
 } from '~/utils/collectionAccounts';
-import { PANEL_BREAKPOINTS } from '~/config/responsive';
-import {
-  collectionStatusBadgeClass,
-  originLabel,
-  originTone,
-} from '~/utils/collectionStatus';
+import { originLabel } from '~/utils/collectionStatus';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
 const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
-const { isMobile: isNarrowActions } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
 const actionsRow = ref(null);
 
 const meta = computed(() => store.collectionAccountsMeta || {});
 
 function money(value) {
   return formatMoney(Number(value ?? 0), 'COP');
+}
+
+function originBadgeVariant(origin) {
+  return { hosting: 'info', income: 'primary' }[origin] || 'neutral';
+}
+
+function collectionStatusBadgeVariant(row) {
+  if (row?.is_overdue) return 'warning';
+  return {
+    draft: 'neutral', issued: 'info', paid: 'success', cancelled: 'danger',
+  }[row?.commercial_status] || 'neutral';
 }
 
 const statusOptions = [
@@ -772,10 +704,6 @@ const columns = [
     key: 'commercial_status', label: 'Estado',
     responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
   },
-  {
-    key: 'row_actions', label: '', align: 'right', size: 'icons',
-    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
-  },
 ];
 
 const { sortKey, sortDir, toggleSort, sortedRecords: sortedRows } = useTableSort(
@@ -809,7 +737,9 @@ const activeTableComponent = computed(
 const activeTableProps = computed(() => {
   const common = {
     loading: store.isLoading,
-    showActions: false,
+    showActions: true,
+    showDefaultActions: false,
+    rowActionsLayout: 'menu-start',
     highlightId: highlightId.value,
     highlightQuery: currentFilters.search,
   };
