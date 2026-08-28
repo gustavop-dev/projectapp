@@ -286,7 +286,7 @@ test.describe('Admin Document Edit', () => {
       return null;
     });
     await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText(generatedProposalSnapshot.title, { exact: true }).first())
+    await expect(page.getByText(mockDocument.title, { exact: true }).first())
       .toBeVisible({ timeout: 30000 });
     await page.getByTestId('document-open-1').click();
 
@@ -325,11 +325,13 @@ test.describe('Admin Document Edit', () => {
       }
       return null;
     });
-    await page.goto('/panel/documents');
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText(issuedCollectionAccount.title, { exact: true }).first())
+      .toBeVisible({ timeout: 30000 });
     await page.getByTestId('document-open-1').click();
 
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveText('Ver notas');
+    await expect(noteButton).toHaveAccessibleName('Ver notas');
     await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
     await expect(page.getByTestId('client-note-subject')).toBeDisabled();
@@ -343,6 +345,8 @@ test.describe('Admin Document Edit', () => {
   test('a generated proposal version is immutable while observations remain editable', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; this test
+    // follows the real list → generated snapshot editor interaction)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([generatedProposalSnapshot]) };

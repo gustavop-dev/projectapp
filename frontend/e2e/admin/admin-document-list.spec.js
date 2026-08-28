@@ -161,6 +161,8 @@ test.describe('Admin Document List', () => {
   test('an issued collection account shows its commercial state and read-only actions', {
     tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the documented list entry;
+    // this test exercises the generated document's real row actions)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };

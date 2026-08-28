@@ -253,6 +253,8 @@ test.describe('Admin Document Folder Hierarchy', () => {
   test('navigates the generated project and issue-month hierarchy', {
     tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; the test
+    // exercises the hierarchy through its real folder-navigation controls)
     await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'document-folders/') return jsonOk(GENERATED_FOLDERS);

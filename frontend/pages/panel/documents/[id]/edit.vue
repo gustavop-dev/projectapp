@@ -274,8 +274,8 @@
                   variant="secondary"
                   size="sm"
                   :icon-only="!readOnlyDocument"
-                  :aria-label="readOnlyDocument ? undefined : notesActionLabel"
-                  :title="readOnlyDocument ? undefined : notesActionLabel"
+                  :aria-label="notesActionLabel"
+                  :title="notesActionLabel"
                   :disabled="lockedCuenta && !hasNotes"
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
@@ -301,6 +301,7 @@
                 v-model="form.client"
                 :initial-label="clientDisplayName"
                 :disabled="readOnlyDocument"
+                :disabled-reason="readOnlyReason"
                 test-id="doc-client-autocomplete"
                 @select="onClientSelect"
                 @create-new="onCreateNewClient"
@@ -410,7 +411,7 @@
               <BaseToggle
                 v-model="form.is_client_visible"
                 :disabled="readOnlyDocument"
-                disabled-reason="Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar su visibilidad."
+                :disabled-reason="readOnlyReason"
               />
             </label>
             <div>
@@ -418,6 +419,7 @@
               <select
                 v-model="form.folder_id"
                 :disabled="readOnlyDocument"
+                :title="readOnlyDocument ? readOnlyReason : undefined"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
@@ -443,6 +445,7 @@
               <select
                 v-model="form.language"
                 :disabled="readOnlyDocument"
+                :title="readOnlyDocument ? readOnlyReason : undefined"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
@@ -457,7 +460,11 @@
                 class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
                 :data-testid="option.testId"
               >
-                <BaseToggle v-model="form[option.key]" :disabled="readOnlyDocument" />
+                <BaseToggle
+                  v-model="form[option.key]"
+                  :disabled="readOnlyDocument"
+                  :disabled-reason="readOnlyReason"
+                />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
               <!-- Traduce las casillas a páginas: sin esto, saber qué trae el
@@ -701,6 +708,15 @@ const loadError = ref(false);
 const lockedCuenta = ref(false);
 const generatedSnapshot = ref(false);
 const readOnlyDocument = computed(() => lockedCuenta.value || generatedSnapshot.value);
+const readOnlyReason = computed(() => {
+  if (generatedSnapshot.value) {
+    return 'Esta versión archivada es de sólo lectura; las observaciones y el historial siguen disponibles.';
+  }
+  if (lockedCuenta.value) {
+    return 'Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar sus datos.';
+  }
+  return '';
+});
 const clientDisplayName = ref('');
 // El nombre libre heredado sigue existiendo (lo lee el PDF); se muestra como
 // referencia mientras el documento no tenga cliente relacional.
@@ -822,9 +838,10 @@ const hasNotes = computed(() => [
   || form.client_custom_notes.length > 0
   || normalizedNotes.value.length > 0);
 
-const notesActionLabel = computed(() => (
-  hasNotes.value ? 'Editar notas' : 'Agregar notas'
-));
+const notesActionLabel = computed(() => {
+  if (readOnlyDocument.value) return 'Ver notas';
+  return hasNotes.value ? 'Editar notas' : 'Agregar notas';
+});
 
 const notesDirty = computed(() => NOTE_FIELDS.some((field) => isFieldDirty(field)));
 

@@ -13,6 +13,7 @@
         :type="isCatalog ? 'search' : 'text'"
         :placeholder="placeholder"
         :disabled="disabled"
+        :title="disabled && disabledReason ? disabledReason : undefined"
         :data-testid="testId"
         autocomplete="off"
         class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
@@ -147,6 +148,7 @@ const props = defineProps({
   /** Browser-local preference key. Empty means A-Z without persistence. */
   sortStorageKey: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'select', 'create-new']);
