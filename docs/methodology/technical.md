@@ -539,9 +539,12 @@ confirmed by the operator or another integration.
   unhandled so the table wrapper can still pan horizontally. Loose icon rows are
   a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
-  `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
-  consumer classes may style typography but must not override its display/clamp
-  state. `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
+  `BaseOverflowText` for one clipped-only floating `BaseTooltip` plus in-place
+  touch disclosure; consumer classes may style typography but must not override
+  its display/clamp state. Floating tooltips teleport to `body`, flip/clamp to
+  the viewport and update on scroll/resize. `BaseActionButton` consumes the same
+  primitive and suppresses `BaseButton.nativeTitle` to avoid duplicate notices.
+  `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only
   bounded money/date/number fields stay nowrap. `BaseResponsiveTable` and
@@ -550,7 +553,9 @@ confirmed by the operator or another integration.
   stable `columnWidthsKey`, then delegate pointer/keyboard/reset behavior to
   `BaseResizeHandle` and allocation/persistence to `useResizableTableColumns`.
   Fixed tracks never donate; ordered flexible tracks reach their minima before
-  internal table scroll.
+  internal table scroll. Documentos keeps its content-backed Título range at
+  240–520 px (320 px default); the 520 px cap covers the current 56-character
+  production boundary with cell padding and safety.
 - **Composables** — 70 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useResizableTableColumns`, `usePanelViewportProfile`, etc.)
 - **Component architecture** — 377 `.vue` components (387 files) under `frontend/components/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages

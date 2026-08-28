@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import BaseTooltip from '../../components/base/BaseTooltip.vue'
 
 describe('BaseTooltip', () => {
@@ -115,5 +116,65 @@ describe('BaseTooltip', () => {
     const body = wrapper.findAll('div').find((d) => /absolute z-10/.test(d.attributes('class') || ''))
     expect(body).toBeDefined()
     expect(body.classes()).toContain(expected)
+  })
+
+  it('places a floating body inside the viewport', async () => {
+    Object.defineProperties(window, {
+      innerWidth: { configurable: true, value: 100 },
+      innerHeight: { configurable: true, value: 80 },
+    })
+    const wrapper = mount(BaseTooltip, {
+      attachTo: document.body,
+      props: {
+        floating: true,
+        position: 'top',
+        text: 'A complete document title',
+        width: 'max-w-none',
+        minWidth: 'min-w-0',
+      },
+      slots: { trigger: '<button data-testid="trg">Action</button>' },
+    })
+    const trigger = wrapper.get('[data-base-tooltip-trigger]')
+    trigger.element.getBoundingClientRect = () => ({
+      top: 2, right: 20, bottom: 22, left: 0, width: 20, height: 20,
+    })
+
+    await trigger.trigger('pointerenter', { pointerType: 'mouse' })
+    await nextTick()
+    const body = document.body.querySelector('[role="tooltip"]')
+    body.getBoundingClientRect = () => ({
+      top: 0, right: 80, bottom: 30, left: 0, width: 80, height: 30,
+    })
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+
+    expect(body.classList).toContain('fixed')
+    expect(body.style.top).toBe('30px')
+    expect(body.style.left).toBe('8px')
+    expect(body.style.visibility).toBe('visible')
+    wrapper.unmount()
+  })
+
+  it('does not create a positioning boundary for a floating trigger', () => {
+    const wrapper = mount(BaseTooltip, {
+      props: { floating: true },
+      slots: { trigger: '<button>Action</button>' },
+    })
+
+    expect(wrapper.classes()).not.toContain('relative')
+  })
+
+  it('removes a teleported body when unmounted', async () => {
+    const wrapper = mount(BaseTooltip, {
+      attachTo: document.body,
+      props: { floating: true, text: 'Temporary tip' },
+    })
+    await wrapper.get('[data-base-tooltip-trigger]')
+      .trigger('pointerenter', { pointerType: 'mouse' })
+    expect(document.body.querySelector('[role="tooltip"]')).not.toBeNull()
+
+    wrapper.unmount()
+
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
   })
 })

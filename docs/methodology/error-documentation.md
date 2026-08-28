@@ -45,6 +45,33 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-035] Document titles and row actions emitted competing browser hints
+
+- **Date**: 2026-08-28
+- **Context**: A clipped document title needed its complete value without
+  opening the editor, while the adjacent action control already combined a
+  custom tooltip with a browser-native `title`. Native hints could be clipped by
+  the table, were not controllable on touch and made actions show two notices.
+- **Root Cause**: `BaseOverflowText` and `BaseActionButton` each delegated part
+  of the contract to the browser instead of sharing one overlay owner;
+  `BaseTooltip` remained absolutely positioned inside overflow containers.
+- **Resolution**: Give `BaseTooltip` an opt-in teleported placement mode that
+  flips and clamps inside the viewport; use it conditionally from measured
+  document titles and unconditionally from catalog actions; suppress the native
+  `BaseButton` title for those shared-tooltip owners. Keep **Ver completo** as
+  the explicit coarse-pointer path and preserve the generic persisted table
+  resize contract at the inventory-backed 520 px maximum.
+- **Files Affected**: `BaseTooltip.vue`, `BaseOverflowText.vue`,
+  `BaseActionButton.vue`, `BaseButton.vue`, `DocumentsTable.vue`, focused
+  unit/E2E coverage and the document-title flow registry.
+- **Verification**: Unit coverage checks clipping, single-tooltip ownership,
+  viewport placement and teardown; Playwright checks clipped/complete titles,
+  the action notice, touch expansion, persisted/reset widths, the current
+  inventory boundary and fixed Estados/Acciones tracks.
+- **Lesson**: A browser `title` is not a fallback for an application tooltip.
+  One primitive must own placement and semantics, and every hover path needs a
+  separate explicit touch path.
+
 ### [ERR-034] Nuxt generated a self-referential SPA fallback
 
 - **Date**: 2026-08-28

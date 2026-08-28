@@ -44,6 +44,7 @@ const tooltipLabel = computed(() => (
     min-width="min-w-0"
     trigger-class=""
     :toggle-on-click="disabled"
+    floating
   >
     <template #trigger="{ tooltipId }">
       <span
@@ -64,10 +65,10 @@ const tooltipLabel = computed(() => (
           :as="as"
           :to="to"
           icon-only
+          :native-title="false"
           :class="disabled ? 'pointer-events-none' : undefined"
           :aria-label="accessibleLabel"
           :aria-describedby="tooltipId"
-          :title="tooltipLabel"
           :data-panel-action="action"
           @click="emit('click', $event)"
         >

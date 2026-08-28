@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
+`BaseOverflowText` mide el recorte real y publica el nombre completo mediante un
+`BaseTooltip` flotante sólo cuando hace falta; el mismo primitive sirve las
+acciones de fila y `BaseButton` ya no agrega un `title` nativo competidor. El
+overlay se teletransporta fuera de la tabla, se voltea/limita al viewport y se
+reubica con scroll o resize. **Ver completo/Contraer** conserva la alternativa
+táctil. El redimensionado sigue siendo capacidad compartida de tabla: Título
+usa 240–520 px, persiste por navegador, vuelve a 320 px con doble clic, recibe
+espacio de Proyecto→Cliente→Fecha y no comprime Estados/Acciones. El límite de
+520 px cubre el inventario productivo consultado (40 nombres, máximo 56
+caracteres, 496 px estimados con padding y margen). Verificación focal: 57
+unitarios, 13 escenarios Playwright sin retries, build Nuxt, guards de acciones
+y controles, flow-map fresco y auditoría global con 272 covered, 37 partial,
+0 junk-only y 0 missing.
+
 **2026-08-28 — Hotfix del fallback SPA listo para integrar:** el panel de
 producción seguía respondiendo 200, pero el `200.html` generado tras la
 actualización Nuxt/i18n era sólo un meta refresh hacia `/en-us/200.html`; Django

@@ -404,8 +404,11 @@ Table sizing is a capability of that same layer: `BaseResizeHandle` owns the
 separator interaction, `useResizableTableColumns` resolves persisted preferred
 tracks against fixed columns and ordered donors, and `BaseResponsiveTable`
 exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
-owns measured one/two-line clipping and the touch disclosure, so consumers do
-not duplicate tooltip or line-clamp heuristics. The Documents table is the
+owns measured one/two-line clipping, one conditional floating `BaseTooltip`
+and the in-place touch disclosure, so consumers do not duplicate tooltip or
+line-clamp heuristics. The same viewport-aware tooltip primitive is teleported
+for `BaseActionButton`; that component disables `BaseButton`'s native title so
+one control never emits two competing notices. The Documents table is the
 first specialized adopter and the folder-panel handle now uses the same input
 primitive. Its local column contract owns order, width and per-profile behavior
 together: Actions → Title → States → Date → Client → Project. Landscape keeps

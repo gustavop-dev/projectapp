@@ -974,9 +974,11 @@ stay with the original client and lose only their optional project scope.
 
 A fixed `title` attribute only repeats short values and still leaves touch users
 without a path. Measure the rendered element after layout, text changes and
-container-width changes; publish the complete native hint and disclosure only
-while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
-The disclosure expands in the same row/card so it cannot require navigation.
+container-width changes; publish one application-owned tooltip only while
+`scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping. That
+tooltip must portal outside overflow containers, flip/clamp within the viewport
+and be the sole notice—never pair it with a native `title`. The disclosure
+expands in the same row/card so it cannot require navigation.
 
 Line clamping is a bundle of display, overflow and WebKit properties, not a
 decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another

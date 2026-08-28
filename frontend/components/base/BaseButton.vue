@@ -18,6 +18,9 @@ const props = defineProps({
   /** Why a non-loading action is unavailable. Resolvable forms should also
    *  render the same copy visibly through BaseControlGate. */
   disabledReason: { type: String, default: '' },
+  title: { type: String, default: '' },
+  /** Shared tooltip owners disable the browser-native duplicate. */
+  nativeTitle: { type: Boolean, default: true },
   iconOnly: { type: Boolean, default: false },    // square padding for icon buttons
   /** Buttons are short UI controls by default. Sentence-like CTAs can opt in
    * to wrapping without allowing an icon to detach from its text. */
@@ -34,9 +37,13 @@ defineEmits(['click'])
 
 const attrs = useAttrs()
 const disabledTitle = computed(() => (
-  props.disabled && !props.loading
-    ? (props.disabledReason || attrs.title || 'Operación en curso. Espera un momento.')
-    : (attrs.title || '')
+  props.nativeTitle
+    ? (
+      props.disabled && !props.loading
+        ? (props.disabledReason || props.title || 'Operación en curso. Espera un momento.')
+        : props.title
+    )
+    : ''
 ))
 
 const variants = {
@@ -101,6 +108,7 @@ if (process.env.NODE_ENV !== 'production') {
   <NuxtLink
     v-if="as === 'NuxtLink'"
     :to="to"
+    :title="nativeTitle ? (title || undefined) : undefined"
     :class="classes"
     @click="$emit('click', $event)"
   >
@@ -119,6 +127,7 @@ if (process.env.NODE_ENV !== 'production') {
   <a
     v-else-if="as === 'a'"
     :href="typeof to === 'string' ? to : undefined"
+    :title="nativeTitle ? (title || undefined) : undefined"
     :class="classes"
     @click="$emit('click', $event)"
   >
