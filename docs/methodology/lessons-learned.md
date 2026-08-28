@@ -1275,7 +1275,7 @@ guarantees. When evolving stored proposal JSON, update live defaults and editabl
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
 
-## 52. Outbound delivery evidence belongs before the SMTP boundary
+## 53. Outbound delivery evidence belongs before the SMTP boundary
 
 Logging a filename or regenerating a document later answers what the system has
 *now*, not what the recipient received. Build the MIME message first, persist the
@@ -1290,3 +1290,25 @@ only the recipient is editable. When old rows lack evidence, use explicit
 `legacy_partial`/`legacy_unknown` states—never substitute the current Document.
 Keep the live Document relation for navigation and deletion protection, while
 the attachment filename, type name, hash and bytes remain historical fields.
+
+## 52. A primary selection catalog is modal content, not a dropdown
+
+Fixing a dropdown's clipping can expose a second problem: reserving enough room
+for a click-triggered overlay leaves the dialog inexplicably empty before the
+click. If choosing among records is the modal's main task, those records are not
+supplementary disclosure. Render them permanently in flow and let the search
+field filter them; keep floating listboxes for secondary choices in forms.
+
+Do not fork the data behavior to get two layouts. One selector should own query
+generation guards, selection, paging, retry and creation while a shared results
+renderer supplies either a floating or in-flow surface. The consumer opts into
+the permanent presentation explicitly, supplies any persistence key and remains
+responsible for the review/action context around it.
+
+Ordering is part of catalog usability. Start with a stable server order and an
+id tie-break, expose the direction in the column header with `aria-sort`, carry
+the same order through filtering and every progressive page, and persist only
+the small user preference locally. Geometry tests must prove at least five full
+rows, one list-owned scrollbar, a stationary modal, visible review content and
+the full-screen compact contract; a screenshot of an open dropdown proves none
+of those boundaries.

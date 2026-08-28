@@ -469,17 +469,23 @@ confirmed by the operator or another integration.
 
 ### Client picker catalog and progressive paging
 
-- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit` and `offset`.
-  It caps each page at 20, sorts case-insensitively by the same display-name
-  fallback the serializer renders, and uses the profile id as a stable tie-break.
+- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit`, `offset`
+  and optional `order=name|-name`. It caps each page at 20, sorts case-
+  insensitively by the same display-name fallback the serializer renders, and
+  uses the profile id as a stable tie-break. Missing/invalid order stays A-Z.
 - The response body remains the legacy array. The filtered total is exposed as
   `X-Total-Count`, allowing existing consumers to remain compatible while
   `proposal_clients.searchClients()` derives `hasMore` and `nextOffset`.
-- `ClientAutocomplete` loads `q=''` immediately on focus when no client is
-  committed. Text input is debounced and generation-guarded; scroll-end paging
-  appends de-duplicated rows. Initial and subsequent-page failures have separate
-  retry states, and an empty initial catalog offers the same `create-new` event
-  as an unmatched filter.
+- `ClientAutocomplete` keeps one request/selection state and two presentations.
+  `floating` is the backward-compatible default and loads `q=''` on focus when
+  uncommitted. `catalog` loads while its `active` prop is true, is always visible
+  in flow and delegates the shared result markup to
+  `ClientAutocompleteResults`. Text input is debounced and generation-guarded;
+  scroll-end paging appends de-duplicated rows. Bulk client assignment supplies
+  `panel.accounting.bulk-client-name-order`, default `asc`, as the browser-local
+  persistence key. Initial and subsequent-page failures have separate retry
+  states, and an empty initial catalog offers the same `create-new` event as an
+  unmatched filter.
 
 ### Content Storage: Structured JSON
 - Proposal sections, portfolio works, and blog posts store content as JSON fields
