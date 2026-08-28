@@ -4,37 +4,37 @@
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| **Backend Framework** | Django | 5.2.17 |
+| **Backend Framework** | Django | 6.1 |
 | **REST API** | Django REST Framework | 3.18.0 |
 | **JWT (platform)** | djangorestframework-simplejwt | >=5.3,<6.0 |
-| **Frontend Framework** | Nuxt 3 | ^3.21.11 |
-| **Vue** | Vue 3 | ^3.5.41 |
-| **State Management** | Pinia (Options API) | ^2.3.1 |
+| **Frontend Framework** | Nuxt 4 | ^4.5.2 |
+| **Vue** | Vue 3 | ^3.5.42 |
+| **State Management** | Pinia (Options API) | ^4.0.3 |
 | **CSS Framework** | TailwindCSS | ^6.14.0 (@nuxtjs/tailwindcss) |
 | **Animations** | GSAP + ScrollTrigger + ScrollToPlugin | ^3.15.0 |
-| **Charts** | ApexCharts + vue3-apexcharts | 5.16.0 + ^1.11.1 |
-| **i18n** | @nuxtjs/i18n | ^9.5.6 |
+| **Charts** | ApexCharts + vue3-apexcharts | ^7.0.0 + ^1.11.1 |
+| **i18n** | @nuxtjs/i18n | ^10.6.0 |
 | **Task Queue** | Huey (RedisHuey) | >=3.3.4 |
 | **Cache/Queue Backend** | Redis | >=8.1.0 |
-| **Database (prod)** | MySQL 8+ | via mysqlclient >=2.2 |
+| **Database (prod)** | MySQL 8.4 | via mysqlclient >=2.2 |
 | **Database (dev)** | SQLite 3 | built-in |
 | **HTTP Client** | Axios | ^1.20.0 |
-| **PDF Generation** | ReportLab + pypdf | `>=4,<5` + `>=6.16.2,<7` |
+| **PDF Generation** | ReportLab + pypdf | `>=5,<6` + `>=6.16.2,<7` |
 | **Image Processing** | Pillow | 12.3.0 |
-| **Email** | Django EmailMultiAlternatives | SMTP (GoDaddy) |
+| **Email** | Django MAILERS + EmailMultiAlternatives | SMTP (GoDaddy) |
 | **WhatsApp** | CallMeBot API | via requests |
-| **Testing (backend)** | pytest + pytest-django + pytest-cov | 9.1.1 + 4.14.0 + 5.0.0 |
-| **Testing (frontend unit)** | Jest + @vue/test-utils | 29.7.0 + ^2.4.11 |
+| **Testing (backend)** | pytest + pytest-django + pytest-cov | 9.1.1 + 4.14.0 + 7.1.0 |
+| **Testing (frontend unit)** | Jest + @vue/test-utils | 29.7.0 + ^2.5.0 |
 | **Testing (E2E)** | Playwright | ^1.62.1 |
 | **Linter** | Ruff | via ruff.toml |
 | **Pre-commit** | pre-commit | .pre-commit-config.yaml |
 | **CI/CD** | GitHub Actions | ci.yml |
-| **Server (prod)** | Gunicorn + Nginx | >=23.0 |
+| **Server (prod)** | Gunicorn + Nginx | `>=26.2,<27` |
 | **Process Manager** | systemd | 3 services |
 | **Backups** | django-dbbackup | >=4.0.0 |
 | **Profiling** | django-silk (optional) | >=5.5.2 |
 | **Config Management** | python-decouple | >=3.8,<3.9 |
-| **Fake Data** | Faker | 28.4.1 |
+| **Fake Data** | Faker | 40.37.0 |
 | **Token Encryption** | cryptography (Fernet) | >=50.0.1,<51 | LinkedIn OAuth token + Project admin credential encryption |
 | **MCP Transport** | JSON-RPC over Streamable HTTP | Per-connector capability URL; DRF throttle key is client IP + registered slug |
 
@@ -185,8 +185,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ### MySQL uniqueness for optional sync keys
 
-- MySQL does not enforce Django conditional unique constraints, so optional sync keys use functional `UniqueConstraint` expressions with `NullIf(F(key), Value(''))`.
-- Empty strings become `NULL` and can repeat; non-empty values remain unique inside their project/user scope.
+- MySQL does not enforce Django conditional unique constraints. Do not add a
+  `condition=... IS NOT NULL` when the field already stores absence as SQL
+  `NULL`: a plain composite `UniqueConstraint` preserves multiple `NULL` rows
+  and enforces every non-null value on MySQL, SQLite and PostgreSQL.
+- `DocumentState.system_key` follows that nullable-column pattern and is unique
+  with `catalog`. Optional sync keys that instead encode absence as an empty
+  string use functional constraints with `NullIf(F(key), Value(''))`.
+- Empty strings converted through `NullIf` can repeat; non-empty values remain
+  unique inside their project/user scope.
 - Schema migrations must check for existing duplicate non-empty keys before replacing an index, so deployment fails before DDL with a useful remediation message.
 
 ### Migration graph convergence

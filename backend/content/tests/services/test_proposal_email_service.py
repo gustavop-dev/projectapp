@@ -66,7 +66,7 @@ class TestSendReminder:
         result = ProposalEmailService.send_reminder(email_proposal)
 
         assert result is True
-        mock_email_instance.send.assert_called_once_with(fail_silently=False)
+        mock_email_instance.send.assert_called_once_with()
         email_proposal.refresh_from_db()
         assert email_proposal.reminder_sent_at is not None
 
@@ -111,7 +111,7 @@ class TestSendUrgencyEmail:
         result = ProposalEmailService.send_urgency_email(email_proposal)
 
         assert result is True
-        mock_email_instance.send.assert_called_once_with(fail_silently=False)
+        mock_email_instance.send.assert_called_once_with()
         email_proposal.refresh_from_db()
         assert email_proposal.urgency_email_sent_at is not None
 
@@ -135,7 +135,7 @@ class TestSendUrgencyEmail:
         result = ProposalEmailService.send_urgency_email(email_proposal)
 
         assert result is True
-        mock_email_instance.send.assert_called_once_with(fail_silently=False)
+        mock_email_instance.send.assert_called_once_with()
         # Verify it uses the no-discount template
         template_calls = [c[0][0] for c in mock_render.call_args_list]
         assert 'emails/proposal_urgency_no_discount.html' in template_calls
@@ -179,7 +179,7 @@ class TestSendResponseNotification:
         result = ProposalEmailService.send_response_notification(email_proposal, 'accepted')
 
         assert result is True
-        mock_email_instance.send.assert_called_once_with(fail_silently=False)
+        mock_email_instance.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
@@ -271,7 +271,7 @@ class TestSendAcceptanceConfirmation:
 
         assert result is True
         mock_instance.attach.assert_called_once()
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
@@ -326,7 +326,7 @@ class TestSendRejectionThankYou:
         result = ProposalEmailService.send_rejection_thank_you(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     def test_returns_false_when_no_client_email(self, no_email_proposal):
         result = ProposalEmailService.send_rejection_thank_you(no_email_proposal)
@@ -353,7 +353,7 @@ class TestSendFirstViewNotification:
         result = ProposalEmailService.send_first_view_notification(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         call_kwargs = mock_email_cls.call_args[1]
         assert '[OPENED]' in call_kwargs['subject']
 
@@ -437,7 +437,7 @@ class TestSendCommentNotification:
         )
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         call_kwargs = mock_email_cls.call_args[1]
         assert '[COMENTARIO]' in call_kwargs['subject']
 
@@ -464,7 +464,7 @@ class TestSendRejectionReengagement:
         result = ProposalEmailService.send_rejection_reengagement(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
@@ -479,7 +479,7 @@ class TestSendRejectionReengagement:
         result = ProposalEmailService.send_rejection_reengagement(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     def test_returns_false_when_no_client_email(self, no_email_proposal):
         result = ProposalEmailService.send_rejection_reengagement(no_email_proposal)
@@ -508,7 +508,7 @@ class TestSendRevisitAlert:
         )
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         email_proposal.refresh_from_db()
         assert email_proposal.revisit_alert_sent_at is not None
 
@@ -523,7 +523,7 @@ class TestSendRevisitAlert:
         result = ProposalEmailService.send_revisit_alert(email_proposal, visit_count=3)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
     def test_returns_false_on_exception(self, mock_render, email_proposal):
@@ -546,7 +546,7 @@ class TestSendAbandonmentFollowup:
         result = ProposalEmailService.send_abandonment_followup(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         email_proposal.refresh_from_db()
         assert email_proposal.abandonment_email_sent_at is not None
 
@@ -577,7 +577,7 @@ class TestSendInvestmentInterestFollowup:
         )
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         email_proposal.refresh_from_db()
         assert email_proposal.investment_interest_email_sent_at is not None
 
@@ -613,7 +613,7 @@ class TestSendShareNotification:
         result = ProposalEmailService.send_share_notification(email_proposal, share)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         call_kwargs = mock_email_cls.call_args[1]
         assert '[SHARED]' in call_kwargs['subject']
 
@@ -643,7 +643,7 @@ class TestSendScheduledFollowup:
         result = ProposalEmailService.send_scheduled_followup(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     def test_returns_false_when_no_client_email(self, no_email_proposal):
         result = ProposalEmailService.send_scheduled_followup(no_email_proposal)
@@ -671,7 +671,7 @@ class TestSendStakeholderDetectedNotification:
         )
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_render.call_count == 2
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
@@ -713,7 +713,7 @@ class TestSendSellerInactivityEscalation:
         result = ProposalEmailService.send_seller_inactivity_escalation(email_proposal, 7)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_render.call_count == 2
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
@@ -737,7 +737,7 @@ class TestSendNegotiationNotification:
         )
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
     def test_returns_false_on_exception(self, mock_render, email_proposal):
@@ -758,7 +758,7 @@ class TestSendNegotiationConfirmation:
         result = ProposalEmailService.send_negotiation_confirmation(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     def test_returns_false_when_no_client_email(self, no_email_proposal):
         """Returns False when proposal has no client_email."""
@@ -784,7 +784,7 @@ class TestSendPostExpirationVisitAlert:
         result = ProposalEmailService.send_post_expiration_visit_alert(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_render.call_count == 2
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
@@ -807,7 +807,7 @@ class TestSendProposalToClient:
 
         assert result['ok'] is True
         assert result['reason'] == 'sent'
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_render.call_count == 2
 
     def test_reports_placeholder_email_when_no_client_email(self, no_email_proposal):
@@ -935,7 +935,7 @@ class TestSendProposalToClientEnrichedContext:
 
         assert result['ok'] is True
         assert result['reason'] == 'sent'
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         mock_instance.attach.assert_not_called()
 
         log = EmailLog.objects.get(template_key='proposal_sent_client')
@@ -1020,7 +1020,7 @@ class TestSendMultiProposalToClient:
 
         assert result['ok'] is True
         assert result['reason'] == 'sent'
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_instance.attach.call_count == 2
 
     @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
@@ -1201,7 +1201,7 @@ class TestSendPostRejectionRevisitAlert:
         result = ProposalEmailService.send_post_rejection_revisit_alert(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_render.call_count == 2
 
     @freeze_time('2026-03-10 12:00:00')
@@ -1218,7 +1218,7 @@ class TestSendPostRejectionRevisitAlert:
         result = ProposalEmailService.send_post_rejection_revisit_alert(email_proposal)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         call_ctx = mock_render.call_args_list[0][0][1]
         assert call_ctx['days_since_rejection'] == 15
 
@@ -1248,7 +1248,7 @@ class TestSendDailyPipelineDigest:
         result = ProposalEmailService.send_daily_pipeline_digest(digest_data)
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_render.call_count == 2
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
@@ -1343,7 +1343,7 @@ class TestSendDocumentsToClient:
         )
 
         assert result is True
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
         assert mock_instance.attach.call_count == 2
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
@@ -1516,7 +1516,7 @@ class TestSendComposedEmail:
 
         assert result is True
         mock_instance.attach_alternative.assert_called_once()
-        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
@@ -1937,7 +1937,13 @@ class TestRenderComposedEmail:
         assert 'background:#001713' in html  # dark contact footer
         assert 'doc.pdf' in html
 
-    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    @override_settings(
+        MAILERS={
+            'default': {
+                'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+            },
+        },
+    )
     def test_send_composed_email_logs_normalized_dict_metadata(self):
         result = ProposalEmailService._send_composed_email(
             'branded_email', None, 'client@example.com', 'Asunto', 'Hola',

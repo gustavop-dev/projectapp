@@ -32,7 +32,11 @@ User = get_user_model()
 
 @pytest.fixture(autouse=True)
 def _recipients(settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
     # Migration 0191 seeds two production inboxes into every test database.
     NotificationRecipient.objects.all().delete()
     NotificationRecipient.objects.create(email='team@projectapp.co')

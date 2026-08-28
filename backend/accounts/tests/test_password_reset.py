@@ -35,6 +35,15 @@ def reset_user(db):
     )
 
 
+@pytest.fixture(autouse=True)
+def locmem_mailer(settings):
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
+
+
 def test_request_token_contains_user_id_and_purpose(reset_user):
     raw = get_password_reset_request_token(reset_user)
     decoded = AccessToken(raw)
@@ -89,8 +98,7 @@ def test_verified_token_expires_after_5_minutes(reset_user):
 # ==========================================================================
 
 
-def test_create_and_send_otp_uses_password_reset_template_for_reset_purpose(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_create_and_send_otp_uses_password_reset_template_for_reset_purpose(reset_user):
     mail.outbox = []
     create_and_send_otp(reset_user, purpose=VerificationCode.PURPOSE_PASSWORD_RESET)
     assert len(mail.outbox) == 1
@@ -101,8 +109,7 @@ def test_create_and_send_otp_uses_password_reset_template_for_reset_purpose(rese
     assert reset_user.email in sent.to
 
 
-def test_create_and_send_otp_default_purpose_still_uses_onboarding_template(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_create_and_send_otp_default_purpose_still_uses_onboarding_template(reset_user):
     mail.outbox = []
     create_and_send_otp(reset_user)  # defaults to PURPOSE_ONBOARDING
     assert len(mail.outbox) == 1
@@ -128,8 +135,7 @@ from accounts.services.password_reset import (  # noqa: E402
 )
 
 
-def test_request_with_existing_email_creates_code_and_sends_email(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_request_with_existing_email_creates_code_and_sends_email(reset_user):
     mail.outbox = []
     token = request_password_reset(reset_user.email)
     assert token  # non-empty string
@@ -139,8 +145,7 @@ def test_request_with_existing_email_creates_code_and_sends_email(reset_user, se
     ).count() == 1
 
 
-def test_request_with_nonexistent_email_returns_decoy_token(settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_request_with_nonexistent_email_returns_decoy_token():
     mail.outbox = []
     token = request_password_reset('ghost@example.com')
     assert token
@@ -149,8 +154,7 @@ def test_request_with_nonexistent_email_returns_decoy_token(settings):
     assert len(mail.outbox) == 0
 
 
-def test_request_cooldown_skips_resend(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_request_cooldown_skips_resend(reset_user):
     mail.outbox = []
     request_password_reset(reset_user.email)
     request_password_reset(reset_user.email)
@@ -160,8 +164,7 @@ def test_request_cooldown_skips_resend(reset_user, settings):
     assert int(AccessToken(second)['user_id']) == reset_user.pk
 
 
-def test_request_cooldown_lapsed_resends(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_request_cooldown_lapsed_resends(reset_user):
     mail.outbox = []
     with freeze_time('2026-05-16 10:00:00'):
         request_password_reset(reset_user.email)
@@ -170,8 +173,7 @@ def test_request_cooldown_lapsed_resends(reset_user, settings):
     assert len(mail.outbox) == 2
 
 
-def test_verify_with_valid_code_returns_verified_token(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_verify_with_valid_code_returns_verified_token(reset_user):
     mail.outbox = []
     request_token = request_password_reset(reset_user.email)
     code = VerificationCode.objects.filter(
@@ -182,8 +184,7 @@ def test_verify_with_valid_code_returns_verified_token(reset_user, settings):
     assert int(AccessToken(verified_token)['user_id']) == reset_user.pk
 
 
-def test_verify_with_wrong_code_decrements_attempts(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_verify_with_wrong_code_decrements_attempts(reset_user):
     mail.outbox = []
     request_token = request_password_reset(reset_user.email)
     with pytest.raises(PasswordResetError) as exc:
@@ -192,8 +193,7 @@ def test_verify_with_wrong_code_decrements_attempts(reset_user, settings):
     assert exc.value.extra.get('attempts_left') == 4
 
 
-def test_verify_with_wrong_code_5_times_returns_too_many_attempts(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_verify_with_wrong_code_5_times_returns_too_many_attempts(reset_user):
     mail.outbox = []
     request_token = request_password_reset(reset_user.email)
     for _ in range(4):
@@ -204,13 +204,12 @@ def test_verify_with_wrong_code_5_times_returns_too_many_attempts(reset_user, se
     assert exc.value.code == 'too_many_attempts'
 
 
-def test_verify_with_expired_code_returns_expiry_error(reset_user, settings):
+def test_verify_with_expired_code_returns_expiry_error(reset_user):
     """At +11min both the OTP (10-min EXPIRY) and the request token (10-min
     lifetime) have expired. The decoder rejects the token first → service
     raises `invalid_or_expired_token`. If lifetimes ever diverge so the
     request token still validates, the code-level checks would surface
     `code_expired` instead — accept both."""
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
     mail.outbox = []
     with freeze_time('2026-05-16 10:00:00'):
         request_token = request_password_reset(reset_user.email)
@@ -228,8 +227,7 @@ def test_verify_with_decoy_token_returns_invalid_code():
     assert exc.value.code == 'invalid_code'
 
 
-def test_confirm_with_valid_token_sets_new_password_and_returns_tokens(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_confirm_with_valid_token_sets_new_password_and_returns_tokens(reset_user):
     mail.outbox = []
     request_token = request_password_reset(reset_user.email)
     real_code = VerificationCode.objects.latest('created_at').code
@@ -240,8 +238,7 @@ def test_confirm_with_valid_token_sets_new_password_and_returns_tokens(reset_use
     assert 'access' in payload and 'refresh' in payload
 
 
-def test_confirm_with_weak_password_returns_validation_errors(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_confirm_with_weak_password_returns_validation_errors(reset_user):
     mail.outbox = []
     request_token = request_password_reset(reset_user.email)
     real_code = VerificationCode.objects.latest('created_at').code
@@ -252,8 +249,7 @@ def test_confirm_with_weak_password_returns_validation_errors(reset_user, settin
     assert exc.value.extra.get('errors')
 
 
-def test_confirm_rejects_request_token_used_as_verified(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_confirm_rejects_request_token_used_as_verified(reset_user):
     request_token = request_password_reset(reset_user.email)
     with pytest.raises(PasswordResetError) as exc:
         confirm_password_reset(request_token, 'NewStrongPass456!')
@@ -261,8 +257,7 @@ def test_confirm_rejects_request_token_used_as_verified(reset_user, settings):
     assert exc.value.http_status == 401
 
 
-def test_confirm_sends_confirmation_email_to_user(reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_confirm_sends_confirmation_email_to_user(reset_user):
     mail.outbox = []
     request_token = request_password_reset(reset_user.email)
     real_code = VerificationCode.objects.latest('created_at').code
@@ -286,8 +281,7 @@ def api_client():
     return APIClient()
 
 
-def test_request_view_returns_token_for_existing_email(api_client, reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_request_view_returns_token_for_existing_email(api_client, reset_user):
     mail.outbox = []
     resp = api_client.post(
         '/api/accounts/password-reset/request/',
@@ -298,8 +292,7 @@ def test_request_view_returns_token_for_existing_email(api_client, reset_user, s
     assert len(mail.outbox) == 1
 
 
-def test_request_view_returns_decoy_token_for_unknown_email(api_client, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_request_view_returns_decoy_token_for_unknown_email(api_client):
     mail.outbox = []
     resp = api_client.post(
         '/api/accounts/password-reset/request/',
@@ -318,8 +311,7 @@ def test_request_view_rejects_malformed_email(api_client):
     assert resp.status_code == 400
 
 
-def test_verify_view_happy_path(api_client, reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_verify_view_happy_path(api_client, reset_user):
     mail.outbox = []
     r1 = api_client.post(
         '/api/accounts/password-reset/request/',
@@ -335,8 +327,7 @@ def test_verify_view_happy_path(api_client, reset_user, settings):
     assert r2.json()['reset_verified_token']
 
 
-def test_verify_view_wrong_code_surfaces_attempts_left(api_client, reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_verify_view_wrong_code_surfaces_attempts_left(api_client, reset_user):
     mail.outbox = []
     r1 = api_client.post(
         '/api/accounts/password-reset/request/',
@@ -353,8 +344,7 @@ def test_verify_view_wrong_code_surfaces_attempts_left(api_client, reset_user, s
     assert body['attempts_left'] == 4
 
 
-def test_confirm_view_completes_flow_and_returns_session(api_client, reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_confirm_view_completes_flow_and_returns_session(api_client, reset_user):
     mail.outbox = []
     r1 = api_client.post(
         '/api/accounts/password-reset/request/',
@@ -378,8 +368,7 @@ def test_confirm_view_completes_flow_and_returns_session(api_client, reset_user,
     assert reset_user.check_password('NewStrongPass456!')
 
 
-def test_confirm_view_weak_password_returns_errors(api_client, reset_user, settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+def test_confirm_view_weak_password_returns_errors(api_client, reset_user):
     mail.outbox = []
     r1 = api_client.post(
         '/api/accounts/password-reset/request/',
