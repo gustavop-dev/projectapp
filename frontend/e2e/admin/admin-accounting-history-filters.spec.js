@@ -466,7 +466,6 @@ test.describe('Admin Accounting History — filters and diagnosis', () => {
   test('a failed digest shows the retry disabled, carrying its reason', {
     tag: [...ADMIN_ACCOUNTING_HISTORY_DIAGNOSIS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    // quality: allow-no-interaction (display — the point is that the button refuses before anyone can press it)
     // quality: allow-deep-link (the send subtab is reached by URL by design)
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -479,8 +478,13 @@ test.describe('Admin Accounting History — filters and diagnosis', () => {
     // Disabled and explained rather than absent: a missing button reads as
     // "this failure cannot be acted on" without saying why.
     const button = page.getByTestId('email-log-retry-3');
+    const proxy = page.locator('[data-disabled-action-proxy]').filter({ has: button });
     await expect(button).toBeDisabled();
-    await expect(button).toHaveAttribute('title', /resume varios registros/);
+    await expect(button).not.toHaveAttribute('title', /.+/);
+    await expect(proxy).toHaveAttribute('aria-label', /resume varios registros/);
+    await proxy.click();
+    await expect(page.getByRole('tooltip')).toHaveCount(1);
+    await expect(page.getByRole('tooltip')).toContainText('resume varios registros');
     // A send that worked offers no retry at all.
     await expect(page.getByTestId('email-log-retry-1')).toHaveCount(0);
   });
