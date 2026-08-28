@@ -159,7 +159,7 @@ function submit() {
 
         <div v-show="languageTab === 'es'" class="space-y-4">
           <BaseFormField :label="t('additionalModules.name')" for="additional-module-name-es" required>
-            <BaseInput id="additional-module-name-es" v-model="form.name_es" />
+            <BaseInput id="additional-module-name-es" v-model="form.name_es" data-testid="additional-module-name-es" />
           </BaseFormField>
           <BaseFormField :label="t('additionalModules.summary')" for="additional-module-summary-es" required>
             <BaseTextarea id="additional-module-summary-es" v-model="form.summary_es" rows="2" />

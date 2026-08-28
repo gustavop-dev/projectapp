@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import AdditionalModulesCatalogView from '../../components/AdditionalModules/CatalogView.vue'
 
 global.useI18n = jest.fn(() => ({
@@ -82,7 +83,7 @@ describe('AdditionalModulesCatalogView', () => {
 
     const closeButton = wrapper.get('[aria-label="additionalModules.close"]')
     await closeButton.trigger('click')
-    await wrapper.vm.$nextTick()
+    await nextTick()
 
     expect(document.activeElement).toBe(card.element)
   })

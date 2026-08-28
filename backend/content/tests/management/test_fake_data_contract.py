@@ -346,6 +346,19 @@ def test_auxiliary_seed_populates_visible_history_without_credentials():
     assert QRCard.objects.count() == 6
     assert McpRequestLog.objects.count() == 12
     assert McpConnector.objects.filter(is_active=True).count() == 0
+
+
+def test_auxiliary_seed_populates_additional_module_share_history():
+    """The auxiliary seed exposes realistic catalog-link tracking history."""
+    run_command(
+        'create_fake_clients_projects', '--count', '12',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+    run_command(
+        'create_fake_auxiliary', '--count', '12',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+
     assert AdditionalModuleShareLink.objects.count() == 5
     assert AdditionalModuleShareView.objects.count() == 4
     assert AdditionalModuleShareLink.objects.filter(view_count=0).count() == 2

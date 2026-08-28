@@ -1,9 +1,10 @@
-import uuid
+from datetime import datetime, timezone as datetime_timezone
+from io import BytesIO
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.utils import timezone
+from pypdf import PdfReader
 from rest_framework.test import APIClient
 
 from content.models import (
@@ -15,6 +16,7 @@ from content.models import (
 
 
 pytestmark = pytest.mark.django_db
+FIXED_REVOKED_AT = datetime(2026, 8, 20, 12, tzinfo=datetime_timezone.utc)
 
 
 def module_data(category, slug='landing-page', order=0):
@@ -208,7 +210,7 @@ def test_revoked_share_returns_gone(catalog, staff_client):
     _commerce, _experience, landing, _pwa = catalog
     share = create_share(staff_client.user, [landing])
     share.is_active = False
-    share.revoked_at = timezone.now()
+    share.revoked_at = FIXED_REVOKED_AT
     share.save(update_fields=['is_active', 'revoked_at'])
 
     response = APIClient().get(
@@ -313,7 +315,8 @@ def test_reorder_rejects_stale_revision(catalog, staff_client):
 
 
 def test_admin_pdf_respects_selected_modules(catalog, staff_client):
-    _commerce, _experience, landing, _pwa = catalog
+    """The generated document contains only the selection and no currency."""
+    _commerce, _experience, landing, pwa = catalog
 
     response = staff_client.post(
         '/api/additional-modules/admin/pdf/',
@@ -323,8 +326,14 @@ def test_admin_pdf_respects_selected_modules(catalog, staff_client):
 
     assert response.status_code == 200
     assert response['Content-Type'] == 'application/pdf'
-    assert response.content.startswith(b'%PDF')
-    assert len(response.content) > 1_000
+
+    text = '\n'.join(
+        page.extract_text() or ''
+        for page in PdfReader(BytesIO(response.content)).pages
+    )
+    assert landing.name_es in text
+    assert pwa.name_es not in text
+    assert all(currency not in text for currency in ('$', 'COP', 'USD'))
 
 
 def test_public_share_pdf_uses_the_fixed_module_selection(catalog, staff_client):
@@ -348,7 +357,8 @@ def test_public_share_pdf_uses_the_fixed_module_selection(catalog, staff_client)
 
 def test_unknown_share_returns_not_found(catalog):
     response = APIClient().get(
-        f'/api/additional-modules/public/shares/{uuid.uuid4()}/',
+        '/api/additional-modules/public/shares/'
+        '00000000-0000-4000-8000-000000000099/',
     )
 
     assert response.status_code == 404

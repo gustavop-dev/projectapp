@@ -85,6 +85,7 @@ async function setupApi(page, scenario = {}) {
     }
     if (apiPath.endsWith('/revoke/') && method === 'POST') return json(200, { ...trackedLink, is_active: false })
     if (apiPath === 'additional-modules/admin/pdf/' && method === 'POST') {
+      scenario.pdfPayload = route.request().postDataJSON()
       if (scenario.pdfFailure) return json(500, { detail: 'No se pudo generar el PDF.' })
       return { status: 200, contentType: 'application/pdf', headers: { 'Content-Disposition': 'attachment; filename="catalogo.pdf"' }, body: '%PDF-1.4 demo' }
     }
@@ -209,7 +210,7 @@ test.describe('Additional modules admin catalog', () => {
     await openCatalog(page)
     await page.getByTestId('additional-admin-module-10').getByRole('button', { name: 'Editar' }).click()
     const form = page.getByTestId('additional-module-form')
-    await form.locator('#additional-module-name-es').fill('Facturación electrónica automatizada')
+    await form.getByTestId('additional-module-name-es').fill('Facturación electrónica automatizada')
     await form.getByTestId('additional-module-save').click()
     await expect(form).not.toBeVisible()
     expect(scenario.updatePayload.name_es).toBe('Facturación electrónica automatizada')
@@ -293,13 +294,17 @@ test.describe('Additional modules admin catalog', () => {
   test('downloads the selected PDF', {
     tag: [...ADMIN_ADDITIONAL_MODULES_PDF, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    await setupApi(page)
+    const scenario = {}
+    await setupApi(page, scenario)
     await openCatalog(page)
     await openSelection(page, 'pdf')
+    await page.getByTestId('additional-select-module-11').click()
     const downloadPromise = page.waitForEvent('download')
     await page.getByTestId('additional-selection-submit').click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe('catalogo-modulos-adicionales.pdf')
+    expect(scenario.pdfPayload.module_ids).toEqual([10, 12])
+    expect(scenario.pdfPayload.language).toBe('es')
   })
 
   test('shows PDF generation failures without closing the selection', {
