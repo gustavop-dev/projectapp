@@ -111,6 +111,7 @@
                 @dragleave="dragOverId = null"
                 @drop.prevent="onFolderDrop(folder.id)"
               >
+                <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
                 <button
                   type="button"
                   class="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm"
@@ -131,11 +132,11 @@
                     class="flex flex-shrink-0 items-center gap-0.5 text-xs text-text-subtle"
                     data-testid="folder-subfolder-count"
                   >
-                    <FolderIcon class="h-3 w-3" aria-hidden="true" />
+                    <BaseActionIcon action="folders" />
                     {{ rowCounts(folder).subs }}
                   </span>
                   <span class="flex flex-shrink-0 items-center gap-0.5 text-xs text-text-subtle" data-testid="folder-document-count">
-                    <DocumentTextIcon class="h-3 w-3" aria-hidden="true" />
+                    <BaseActionIcon action="documents" />
                     {{ rowCounts(folder).docs }}
                   </span>
                 </button>
