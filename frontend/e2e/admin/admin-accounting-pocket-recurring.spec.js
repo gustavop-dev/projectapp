@@ -592,6 +592,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
 
     await expect(modal).toBeVisible();
     await expect(concept).toBeFocused();
+    await expect(concept).toHaveValue('');
     expect(await concept.evaluate((element) => element.validity.valueMissing))
       .toBe(true);
   });
