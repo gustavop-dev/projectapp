@@ -1253,7 +1253,24 @@ non-empty, contains the `#__nuxt` mount, and cannot redirect. Validate those
 properties before the atomic swap, and monitor one real SPA deep route by content;
 file existence and status 200 prove neither hydration nor availability.
 
-## 51. A primary selection catalog is modal content, not a dropdown
+## 51. Cross-cutting commercial scope is a mutable contract, not boilerplate
+
+A fourth card improves the proposal only when it owns a real semantic boundary.
+Screens, components and business-specific actions answer *what this product
+does*; responsive behavior, accessibility, usability, performance, security,
+privacy and browser support describe qualities that can affect several of those
+surfaces. Mixing both categories creates duplication and makes technical
+traceability ambiguous.
+
+Keep the `cross_cutting_features` container and its position stable, but treat
+its items as a context-dependent catalog. Preserve item ids when copy changes,
+require technical links for every retained commercial item, and qualify targets
+instead of inventing certification levels, browser matrices or performance
+guarantees. When evolving stored proposal JSON, update live defaults and editable
+drafts while leaving sent or inactive snapshots intact; commercial documents are
+history, not caches to be silently normalized.
+
+## 52. A primary selection catalog is modal content, not a dropdown
 
 Fixing a dropdown's clipping can expose a second problem: reserving enough room
 for a click-triggered overlay leaves the dialog inexplicably empty before the

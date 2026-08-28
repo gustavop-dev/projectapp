@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Manage requirement groups and items using the structured form interface. The section preview mirrors the public render, including per-item 'Ver requerimientos (N)' links built from the proposal's technical_document.",
+  "description": "Manage requirement groups and items using the structured form interface. The contextual cross-cutting group is present after specific features and cannot be deleted as a whole, while its title, description and items remain editable. The section preview mirrors the public render, including per-item 'Ver requerimientos (N)' links built from the proposal's technical_document.",
   "expectedSpecs": 1,
   "outcomes": [
     "success",

@@ -45,7 +45,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-035] El catálogo inicial dejaba un modal alto y vacío
+### [ERR-036] El catálogo inicial dejaba un modal alto y vacío
 
 - **Date**: 2026-08-28
 - **Context**: La asignación masiva ya cargaba clientes sin escribir y evitaba
@@ -74,6 +74,30 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   vivir en el flujo del modal; un desplegable sólo corresponde a información
   secundaria que el usuario decide invocar.
 
+### [ERR-035] Cross-cutting proposal qualities were mixed into specific features
+
+- **Date**: 2026-08-28
+- **Context**: The public functional-requirements overview had only three core
+  cards. Responsive design lived inside `features`, while other quality concerns
+  had no explicit commercial container and could be repeated as generic
+  boilerplate by proposal-generation prompts.
+- **Root Cause**: The JSON contract modeled screens, components and specific
+  behavior, but did not distinguish qualities that span multiple views and flows.
+  The seller and technical prompts therefore had no stable id or traceability
+  rule for contextual cross-cutting scope.
+- **Resolution**: Added the bilingual `cross_cutting_features` group immediately
+  after `features`, moved responsive design into it, made its starter items
+  explicitly adaptable, protected only the container from deletion, and aligned
+  commercial/technical prompt rules and item links. Migration `content.0222`
+  updates defaults and active drafts while preserving historical snapshots.
+- **Files Affected**: Proposal defaults/service, JSON template and generation
+  prompts, functional-requirements editor, data migration, public/admin flow
+  definitions and focused backend/frontend/E2E tests.
+- **Verification**: Focused backend and frontend unit suites pass; both affected
+  Playwright flows pass and remain fully covered in the flow audit.
+- **Lesson**: A reusable quality catalog needs a stable structural boundary and
+  contextual content rules; otherwise “generic” quickly becomes an unsupported
+  promise copied into every proposal.
 ### [ERR-034] Nuxt generated a self-referential SPA fallback
 
 - **Date**: 2026-08-28
