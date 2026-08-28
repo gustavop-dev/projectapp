@@ -281,7 +281,7 @@ test.describe('Admin View Map', () => {
     await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
 
     const viewCard = page.locator('article').filter({ hasText: '/panel/views' });
-    const copyButton = viewCard.getByTitle('Copiar referencia');
+    const copyButton = viewCard.getByRole('button', { name: 'Copiar referencia' });
     await copyButton.click();
 
     await expect(viewCard.getByRole('button', { name: 'Copiado: referencia' })).toBeVisible({ timeout: 5000 });
