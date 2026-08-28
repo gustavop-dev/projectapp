@@ -95,7 +95,8 @@ describe('EmailLogTable', () => {
     // Disabled and explained, rather than absent: a missing button reads as
     // "this failure cannot be acted on" without saying why.
     expect(button.attributes('disabled')).toBe('');
-    expect(button.attributes('title')).toContain('resume varios registros');
+    expect(wrapper.get('[data-disabled-action-proxy]').attributes('aria-label'))
+      .toContain('resume varios registros');
   });
 
   it('blocks a second click while a retry is in flight', () => {
