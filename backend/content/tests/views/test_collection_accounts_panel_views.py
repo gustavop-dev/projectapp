@@ -26,7 +26,11 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def issuer(settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
     profile = IssuerProfile.objects.order_by('pk').first()
     profile.default_payment_methods = [
         {'payment_method_type': 'bank_transfer', 'bank_name': 'Bancolombia'},

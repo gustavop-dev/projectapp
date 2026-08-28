@@ -16,7 +16,11 @@ BULK_URL = '/api/accounting/hostings/bulk-assign-client/'
 def issuer(settings):
     from content.models import IssuerProfile
 
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
     profile = IssuerProfile.objects.order_by('pk').first()
     profile.default_payment_methods = [
         {'payment_method_type': 'bank_transfer', 'bank_name': 'Bancolombia'},

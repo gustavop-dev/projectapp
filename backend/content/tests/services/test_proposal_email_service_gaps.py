@@ -210,7 +210,7 @@ class TestSendMagicLinkEmail:
 
         assert result is True
         mock_email_cls.assert_called_once()
-        mock_email.send.assert_called_once_with(fail_silently=False)
+        mock_email.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives', side_effect=Exception('smtp error'))
     def test_returns_false_on_send_exception(self, mock_email_cls, proposal):
@@ -260,7 +260,7 @@ class TestSendDocumentsToClient:
         assert result is True
         assert mock_render.call_count == 2
         mock_email_cls.assert_called_once()
-        mock_email.send.assert_called_once_with(fail_silently=False)
+        mock_email.send.assert_called_once_with()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string', return_value='html')
@@ -282,7 +282,7 @@ class TestSendDocumentsToClient:
         assert result is True
         assert mock_render.call_count == 2
         mock_email_cls.assert_called_once()
-        mock_email.send.assert_called_once_with(fail_silently=False)
+        mock_email.send.assert_called_once_with()
 
 
 # ===========================================================================
@@ -307,7 +307,7 @@ class TestSendStandaloneBrandedEmail:
         assert result is True
         assert mock_render.call_count == 2
         mock_email_cls.assert_called_once()
-        mock_email.send.assert_called_once_with(fail_silently=False)
+        mock_email.send.assert_called_once_with()
 
 
 # ===========================================================================
