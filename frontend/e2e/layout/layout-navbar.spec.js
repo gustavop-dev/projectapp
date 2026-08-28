@@ -22,7 +22,7 @@ test.describe('Navbar Navigation', () => {
     tag: [...LAYOUT_NAVBAR_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (landmark-presence smoke; navbar navigation is exercised by the Blog-link test above)
-    await page.goto('/blog');
+    await page.goto('/en-us/blog');
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
     await expect(nav).toBeVisible({ timeout: 15000 });
     await expect(nav.getByRole('link', { name: /Blog/i })).toBeVisible();

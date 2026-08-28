@@ -63,7 +63,7 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the case-study page renders content from the fetched work; the detail's interaction is covered by the back-link test)
     await setupMock(page);
-    await page.goto('/portfolio-works/ecommerce-redesign');
+    await page.goto('/en-us/portfolio-works/ecommerce-redesign');
 
     await expect(page.getByRole('heading', { name: 'E-Commerce Platform Redesign' })).toBeVisible();
     await expect(page.getByText('A complete redesign of the e-commerce experience.')).toBeVisible();
@@ -78,7 +78,7 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     // Fails if the "All projects" back link stops navigating away from the case study.
     await setupMock(page);
-    await page.goto('/portfolio-works/ecommerce-redesign');
+    await page.goto('/en-us/portfolio-works/ecommerce-redesign');
 
     await page.getByText('All projects').click();
 
@@ -90,7 +90,7 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the external "Visit Site" link is asserted by its href)
     await setupMock(page);
-    await page.goto('/portfolio-works/ecommerce-redesign');
+    await page.goto('/en-us/portfolio-works/ecommerce-redesign');
 
     const visitLink = page.getByRole('article').getByRole('link', { name: /Visit Site/ });
     await expect(visitLink).toBeVisible();
@@ -102,7 +102,7 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (deep-link entry — asserts the not-found state renders for an unknown slug)
     await setupMock(page);
-    await page.goto('/portfolio-works/nonexistent-project');
+    await page.goto('/en-us/portfolio-works/nonexistent-project');
 
     await expect(page.getByText('Project not found')).toBeVisible();
     await expect(page.getByRole('link', { name: /Back to portfolio/ })).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — asserts the closing CTA renders with its quote link)
     await setupMock(page);
-    await page.goto('/portfolio-works/ecommerce-redesign');
+    await page.goto('/en-us/portfolio-works/ecommerce-redesign');
 
     await expect(page.getByText('Ready to Build Something Like This?')).toBeVisible();
     await expect(page.getByRole('link', { name: /Get a Quote/ })).toBeVisible();

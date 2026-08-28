@@ -81,7 +81,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/ai-trends-2026');
+    await page.goto('/en-us/blog/ai-trends-2026');
 
     // Wait for the heading to confirm page has hydrated instead of relying on networkidle
     await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
@@ -97,7 +97,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/ai-trends-2026');
+    await page.goto('/en-us/blog/ai-trends-2026');
 
     await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('8 min')).toBeVisible();
@@ -107,7 +107,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/ai-trends-2026');
+    await page.goto('/en-us/blog/ai-trends-2026');
 
     await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Sources consulted')).toBeVisible();
@@ -118,7 +118,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/legacy-html-post');
+    await page.goto('/en-us/blog/legacy-html-post');
 
     await expect(page.getByRole('heading', { name: 'Legacy HTML Post' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('This is HTML content.')).toBeVisible();
@@ -128,7 +128,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:failure', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/nonexistent-post');
+    await page.goto('/en-us/blog/nonexistent-post');
 
     await expect(page.getByText('Article not found')).toBeVisible({ timeout: 15000 });
   });
@@ -137,7 +137,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/ai-trends-2026');
+    await page.goto('/en-us/blog/ai-trends-2026');
 
     // Wait for page content instead of networkidle to save time budget
     await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
@@ -150,7 +150,7 @@ test.describe('Blog Post Detail', () => {
     tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog/ai-trends-2026');
+    await page.goto('/en-us/blog/ai-trends-2026');
 
     await expect(page.getByText('Did This Article Inspire You?')).toBeVisible();
     await expect(page.getByRole('link', { name: /Contact Us/ })).toBeVisible();

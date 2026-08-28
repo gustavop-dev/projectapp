@@ -65,7 +65,8 @@ test.describe('Blog Listing', () => {
     tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog');
+    // quality: allow-deep-link (this test isolates the blog listing display; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/blog');
 
     await expect(page.getByRole('heading', { name: 'Blog', level: 1 })).toBeVisible();
     await expect(page.getByText('AI Trends 2026')).toBeVisible();
@@ -79,7 +80,8 @@ test.describe('Blog Listing', () => {
     tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog');
+    // quality: allow-deep-link (this test isolates category filtering on the blog listing; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/blog');
 
     await page.getByRole('button', { name: 'Design', exact: true }).click();
 
@@ -93,7 +95,8 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     const blogReq = page.waitForResponse((r) => r.url().includes('/api/blog/'));
-    await page.goto('/blog');
+    // quality: allow-deep-link (this test isolates the desktop grid contract; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/blog');
     await blogReq;
 
     const grid = page.locator('.hidden.sm\\:grid');
@@ -110,7 +113,8 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     const blogReq = page.waitForResponse((r) => r.url().includes('/api/blog/'));
-    await page.goto('/blog');
+    // quality: allow-deep-link (this test isolates the mobile carousel contract; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/blog');
     await blogReq;
 
     const grid = page.locator('.hidden.sm\\:grid');
@@ -143,7 +147,8 @@ test.describe('Blog Listing', () => {
       }
       return null;
     });
-    await page.goto('/blog');
+    // quality: allow-deep-link (this test isolates the empty state; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/blog');
 
     await expect(page.getByText('No articles published yet')).toBeVisible();
   });
@@ -152,7 +157,8 @@ test.describe('Blog Listing', () => {
     tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/blog');
+    // quality: allow-deep-link (this test isolates article-card navigation from the blog listing; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/blog');
 
     const desktopGrid = page.locator('.hidden.sm\\:grid');
     await desktopGrid.getByText('Design Systems Guide').click();
