@@ -33,7 +33,7 @@ CALCULATOR_MODULE_IDS = (
 )
 
 EXPECTED_GROUP_ORDER = [
-    'views', 'components', 'features',
+    'views', 'components', 'features', 'cross_cutting_features',
     'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
     'ai_automation_module',
 ]
@@ -110,16 +110,16 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 8 groups and 17 additionalModules."""
+        """Verify ES functional_requirements has 9 groups and 17 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
-        assert len(groups) == 8
+        assert len(groups) == 9
         assert len(additional) == 17
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
-            'views', 'components', 'features',
+            'views', 'components', 'features', 'cross_cutting_features',
             'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
             'ai_automation_module',
         }
@@ -147,16 +147,40 @@ class TestGetDefaultSections:
         components = next(g for g in fr['content_json']['groups'] if g['id'] == 'components')
         assert len(components['items']) == 5
 
-    def test_features_group_has_7_default_items(self):
+    def test_features_group_has_6_default_items(self):
         """Google registration and sign-in are two atomic items, not one composite."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         features = next(g for g in fr['content_json']['groups'] if g['id'] == 'features')
-        assert len(features['items']) == 7
+        assert len(features['items']) == 6
+        assert all(item['name'] != 'Diseño Responsive' for item in features['items'])
         names = [i['name'] for i in features['items']]
         assert 'Registro con Google' in names
         assert 'Inicio de Sesión con Google' in names
         assert 'Registro e Inicio de Sesión con Google' not in names
+
+    def test_cross_cutting_features_has_contextual_default_catalog(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        group = next(
+            g for g in fr['content_json']['groups']
+            if g['id'] == 'cross_cutting_features'
+        )
+
+        assert group['title'] == 'Funcionalidades Transversales'
+        assert 'punto de partida' in group['description']
+        assert len(group['items']) == 7
+        assert group['items'][0]['name'] == 'Diseño Responsive'
+
+    def test_cross_cutting_features_assigns_stable_item_ids(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        group = next(
+            g for g in fr['content_json']['groups']
+            if g['id'] == 'cross_cutting_features'
+        )
+
+        assert all(item['id'].startswith('item-cross_cutting_features-') for item in group['items'])
 
     def test_features_group_items_parity_es_en(self):
         """ES and EN features groups carry the same number of items, split included."""
@@ -166,7 +190,7 @@ class TestGetDefaultSections:
             fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
             features = next(g for g in fr['content_json']['groups'] if g['id'] == 'features')
             by_lang[lang] = [i['name'] for i in features['items']]
-        assert len(by_lang['es']) == len(by_lang['en']) == 7
+        assert len(by_lang['es']) == len(by_lang['en']) == 6
         assert 'Google Registration' in by_lang['en']
         assert 'Google Sign-In' in by_lang['en']
 
@@ -382,17 +406,17 @@ class TestGetDefaultSections:
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_8_groups_and_17_modules(self):
-        """Verify EN functional_requirements has 8 groups and 17 additionalModules."""
+    def test_en_functional_requirements_has_complete_catalog(self):
+        """Verify the complete EN functional-requirements catalog."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
-        assert len(groups) == 8
+        assert len(groups) == 9
         assert len(additional) == 17
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
-            'views', 'components', 'features',
+            'views', 'components', 'features', 'cross_cutting_features',
             'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
             'ai_automation_module',
         }
@@ -420,11 +444,11 @@ class TestGetDefaultSections:
         assert any('CSV' in i['description'] for i in kpi['items'] if i['name'] == 'Exportación de reportes')
 
     def test_all_regular_groups_have_selected_true(self):
-        """Verify all 8 regular groups have selected=True and price_percent=0."""
+        """Verify all 9 regular groups have selected=True and price_percent=0."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         regular_groups = fr['content_json']['groups']
-        assert len(regular_groups) == 8
+        assert len(regular_groups) == 9
         for g in regular_groups:
             assert g['selected'] is True, f"Group {g['id']} should have selected=True"
             assert g['price_percent'] == 0, f"Group {g['id']} should have price_percent=0"

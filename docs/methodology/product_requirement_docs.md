@@ -40,6 +40,13 @@ The proposal system is the most complex and central feature. It allows the admin
 - **Create proposals** with client name, email, investment amount, currency, expiration date, language, project type, and market type
 - **18 section types auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Process & Methodology, Functional Requirements, Timeline, Investment, Proposal Summary, Final Note, Next Steps, Technical Document, Value Added Modules, ROI Projection, and Commercial Conditions (the last few are order-dependent; some — e.g. `roi_projection`, `value_added_modules`, `proposal_summary` — are web-only and intentionally skip the PDF)
 - **Edit section content** — each section stores structured JSON matching a specific Vue component's props schema
+- **Contextual functional-requirement scope** — the core catalog distinguishes
+  four client-facing cards in order: views, components, project-specific
+  features, and `cross_cutting_features`. The fourth card starts from reusable
+  quality concerns (responsive design, accessibility, usability, performance,
+  security, privacy, and browser compatibility), but its title, description and
+  individual items must be adapted to the business, product stage, audience and
+  actual proposal scope rather than copied as fixed boilerplate.
 - **Choose a reading mode** — the public gateway offers executive, detailed, technical, and **Contrato y condiciones**. The legal mode is a separate, generic document surface rather than another proposal section.
 - **Readable proposal presentation** — closing cards use two columns only when each retains a comfortable reading width; payment amounts keep number, currency, and tax suffix together on laptop/desktop screens. Non-empty lead copy below section titles contains one or two short, safe bold fragments for scanability.
 - **Send to client** — triggers email with unique UUID link, schedules automated reminders
@@ -587,3 +594,10 @@ The canonical counts, commands and exceptions are maintained in
 25. **No browser-native dialogs in panel flows**: `/panel` confirmations, data
     requests and errors use application-owned modals or inline alerts. Native
     `alert`, `confirm` and `prompt` are prohibited and guarded in CI.
+26. **Cross-cutting proposal scope is contextual but structurally stable**:
+    `functional_requirements.groups` keeps `cross_cutting_features` immediately
+    after `features` and non-empty. Sellers may keep, rewrite, remove or add its
+    individual items according to the proposal context, without duplicating
+    specific business behavior or promising unsupported compliance targets.
+    Default-config snapshots and active drafts receive the new group; sent,
+    inactive and otherwise historical proposal snapshots remain unchanged.
