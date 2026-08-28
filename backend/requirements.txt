@@ -1,11 +1,11 @@
 asgiref==3.12.1
-Django==5.2.17
+Django==6.1
 django-cors-headers==4.9.0
 django-dbbackup>=4.0.0
 django-silk>=5.5.2
 djangorestframework==3.18.0
 djangorestframework-simplejwt>=5.3,<6.0
-Faker==28.4.1
+Faker==40.37.0
 huey>=3.3.4
 pillow==12.3.0
 python-dateutil
@@ -20,13 +20,13 @@ tzdata==2026.3
 
 # Testing
 pytest==9.1.1
-pytest-cov==5.0.0
+pytest-cov==7.1.0
 pytest-django==4.14.0
 coverage==7.15.4
 freezegun==1.5.5
 
 # PDF generation
-reportlab>=4.0,<5.0
+reportlab>=5.0,<6.0
 pypdf>=6.16.2,<7.0
 num2words>=0.5,<0.6
 
@@ -34,5 +34,5 @@ num2words>=0.5,<0.6
 openpyxl>=3.1,<4.0
 
 # Production server
-gunicorn>=23.0,<24.0
+gunicorn>=26.2,<27.0
 mysqlclient>=2.2,<3.0

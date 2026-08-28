@@ -8,6 +8,10 @@
 
 **Alcance:** actualizaciones directas patch/minor de Python y npm; majors y cambios incompatibles quedan fuera.
 
+**Cierre operativo:** 2026-08-27. El virtualenv productivo recibió los 13
+updates patch/minor/transitivos que aún aparecían desactualizados; no se cambió
+el manifiesto de la aplicación.
+
 ## Resultado ejecutivo
 
 | Control | Estado inicial | Estado candidato |
@@ -17,9 +21,37 @@
 | `npm outdated` | 26 entradas directas | 17, todas diferidas por major, frontera breaking o anomalía de dist-tag |
 | `pip list --outdated` | 28 paquetes | 5, todos upgrades mayores deliberadamente diferidos |
 
-El grafo candidato queda limpio. La remediación de la aplicación está lista para
-merge, pero el hallazgo de `pip` sólo quedará cerrado en producción cuando se
-actualice el ejecutable del virtualenv productivo después del merge.
+El grafo candidato queda limpio. La remediación de `pip` y el refresh operativo
+del virtualenv productivo quedaron aplicados y verificados el 2026-08-27.
+
+## Cierre operativo del virtualenv productivo — 2026-08-27
+
+Los 18 paquetes que aún reportaba `pip list --outdated` se resolvieron en dos
+grupos. Se promovieron exactamente estos 13 updates compatibles, primero en un
+virtualenv candidato y después en producción:
+
+| Paquete | Antes | Después |
+|---|---:|---:|
+| certifi | 2026.5.20 | 2026.7.22 |
+| cffi | 2.0.0 | 2.1.1 |
+| charset-normalizer | 3.4.7 | 3.5.1 |
+| click | 8.4.2 | 8.5.0 |
+| filelock | 3.32.3 | 3.32.4 |
+| idna | 3.18 | 3.19 |
+| linkify-it-py | 2.1.0 | 2.1.1 |
+| msgpack | 1.2.1 | 1.2.2 |
+| packaging | 26.2 | 26.3 |
+| platformdirs | 4.11.2 | 4.11.4 |
+| Pygments | 2.20.0 | 2.21.0 |
+| pypdfium2 | 5.12.1 | 5.13.0 |
+| wheel | 0.47.0 | 0.48.0 |
+
+Los cinco restantes son los majors ya diferidos: Django, Faker, gunicorn,
+pytest-cov y ReportLab. El resultado productivo final es `pip check` limpio,
+`pip-audit` sin vulnerabilidades y sólo esos cinco registros en
+`pip list --outdated`. Gunicorn y Huey reiniciaron correctamente y el sitio
+continuó saludable. El freeze previo quedó respaldado temporalmente en
+`/tmp/projectapp-venv-freeze-before-20260827.txt` para rollback inmediato.
 
 ## Hallazgo de seguridad inicial
 
@@ -131,14 +163,8 @@ actualización. No se ejecutaron migraciones ni se alteraron datos productivos.
 Estos JSON son artefactos locales efímeros; las conclusiones y versiones
 relevantes quedan conservadas en este reporte.
 
-## Acción operativa posterior al merge
+## Acción operativa posterior al merge — completada
 
-Ejecutar en el host productivo, sin modificar el manifiesto de la aplicación:
-
-```bash
-/home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pip install --upgrade pip==26.2.1
-```
-
-Después, confirmar `pip --version` y repetir `pip-audit` sobre ese virtualenv. No
-se ejecuta este paso desde la rama de sesión porque el clon y el entorno de
-producción sólo deben cambiar mediante el flujo de despliegue aprobado.
+`pip 26.2.1` y los 13 updates compatibles están activos en el virtualenv
+productivo. No queda una acción patch/minor pendiente; los cinco majors requieren
+migraciones dedicadas y permanecen fuera de este refresh.

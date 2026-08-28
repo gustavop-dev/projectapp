@@ -209,15 +209,29 @@ AUTO_PROVISION_CLIENT_FROM_PROPOSAL = config(
 )
 
 # ==============================================================================
-# EMAIL — override in settings_dev.py / settings_prod.py
+# EMAIL — override in settings_dev.py
 # ==============================================================================
 
-EMAIL_BACKEND = config('DJANGO_EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtpout.secureserver.net')
-EMAIL_PORT = config('EMAIL_PORT', default=465, cast=int)
-EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+_default_mailer_backend = config(
+    'DJANGO_EMAIL_BACKEND',
+    default='django.core.mail.backends.smtp.EmailBackend',
+)
+_default_mailer_options = {}
+if _default_mailer_backend == 'django.core.mail.backends.smtp.EmailBackend':
+    _default_mailer_options = {
+        'host': config('EMAIL_HOST', default='smtpout.secureserver.net'),
+        'port': config('EMAIL_PORT', default=465, cast=int),
+        'use_ssl': config('EMAIL_USE_SSL', default=True, cast=bool),
+        'username': config('EMAIL_HOST_USER', default=''),
+        'password': config('EMAIL_HOST_PASSWORD', default=''),
+    }
+
+MAILERS = {
+    'default': {
+        'BACKEND': _default_mailer_backend,
+        'OPTIONS': _default_mailer_options,
+    },
+}
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='team@projectapp.co')
 NOTIFICATION_EMAIL = config('NOTIFICATION_EMAIL', default='dev.gustavo.perezp@gmail.com')
 # Hosting payment outcomes (approved / failed) go to the accounting module's

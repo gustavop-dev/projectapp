@@ -13,6 +13,7 @@ import logging
 import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from smtplib import SMTPException
 
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.utils import timezone
@@ -239,7 +240,18 @@ class EmailDeliveryGateway:
         # message while preparing MIME, and attachments must remain identical.
         copy_source = copy.deepcopy(message)
         try:
-            sent_count = message.send(fail_silently=fail_silently)
+            sent_count = message.send()
+        except (OSError, SMTPException) as exc:
+            _persist_gateway_history(
+                trace,
+                copy_source,
+                primary_status='failed',
+                primary_error=str(exc),
+            )
+            _CURRENT_DELIVERY.set(trace)
+            if fail_silently:
+                return 0
+            raise
         except Exception as exc:
             _persist_gateway_history(
                 trace,
@@ -295,7 +307,7 @@ class EmailDeliveryGateway:
             copy_message.cc = []
             copy_message.bcc = [normalized]
             try:
-                copy_sent = copy_message.send(fail_silently=False)
+                copy_sent = copy_message.send()
                 if not copy_sent:
                     attempt.status = 'failed'
                     attempt.error_message = (

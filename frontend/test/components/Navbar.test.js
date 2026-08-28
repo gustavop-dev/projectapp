@@ -120,6 +120,7 @@ describe('Navbar', () => {
   it('toggleLanguage calls navigateTo with the switched locale path', async () => {
     navigateTo.mockClear();
     const wrapper = mountNavbar();
+    await nextTick();
 
     const langBtn = wrapper.findAll('button').find((b) => b.text() === 'ES');
     await langBtn.trigger('click');
@@ -131,6 +132,7 @@ describe('Navbar', () => {
     const innerSpy = jest.fn(() => '/en-us/');
     global.useSwitchLocalePath.mockReturnValueOnce(innerSpy);
     const wrapper = mountNavbar();
+    await nextTick();
 
     const langBtn = wrapper.findAll('button').find((b) => b.text() === 'ES');
     await langBtn.trigger('click');
@@ -269,6 +271,7 @@ describe('Navbar', () => {
   it('desktop language button triggers navigateTo exactly once per click', async () => {
     navigateTo.mockClear();
     const wrapper = mountNavbar();
+    await nextTick();
     const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
     const langBtn = desktopNav.findAll('button').find((b) => b.text() === 'ES');
     await langBtn.trigger('click');

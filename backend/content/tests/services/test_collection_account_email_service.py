@@ -25,7 +25,11 @@ CREATE_URL = '/api/accounting/collection-accounts/create/'
 
 @pytest.fixture(autouse=True)
 def issuer(settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
     profile = IssuerProfile.objects.order_by('pk').first()
     # Emptied on purpose: the bank data now comes from CompanySettings, and a
     # leftover here would mask a regression that stopped reading it.
