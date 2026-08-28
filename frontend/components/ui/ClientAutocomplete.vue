@@ -1,75 +1,63 @@
 <template>
   <div ref="wrapperRef" class="relative">
+    <!-- Input -->
     <div class="relative">
-      <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-text-subtle">
-        <MagnifyingGlassIcon class="h-4 w-4" />
+      <span
+        class="absolute inset-y-0 left-0 flex items-center pl-3 text-text-subtle pointer-events-none"
+      >
+        <MagnifyingGlassIcon class="w-4 h-4" />
       </span>
       <input
         ref="inputRef"
         v-model="inputText"
-        type="text"
-        role="combobox"
+        :type="isCatalog ? 'search' : 'text'"
         :placeholder="placeholder"
         :data-testid="testId"
-        :aria-expanded="isCatalog || isOpen"
-        :aria-controls="isCatalog || isOpen ? listboxId : undefined"
-        :aria-busy="isSearching || isLoadingMore"
-        aria-autocomplete="list"
-        aria-haspopup="listbox"
         autocomplete="off"
-        class="w-full rounded-xl border border-input-border bg-input-bg py-2.5 pl-9 pr-9 text-sm text-input-text outline-none placeholder:text-text-subtle focus:border-focus-ring focus:ring-2 focus:ring-focus-ring/30"
+        class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
         @input="onInput"
         @focus="onFocus"
         @keydown.down.prevent="onArrowDown"
         @keydown.up.prevent="onArrowUp"
         @keydown.enter.prevent="onEnter"
-        @keydown.esc.prevent="onEscape"
+        @keydown.esc="onEscape"
+        :role="isCatalog ? 'searchbox' : 'combobox'"
+        :aria-expanded="isCatalog ? undefined : isOpen"
+        :aria-controls="isCatalog || isOpen ? listboxId : undefined"
+        :aria-busy="isSearching || isLoadingMore"
+        :aria-autocomplete="isCatalog ? undefined : 'list'"
+        :aria-haspopup="isCatalog ? undefined : 'listbox'"
       />
+      <!-- In catalog mode this clears only the filter; selecting a client and
+           filtering the visible catalog are deliberately independent acts. -->
       <button
-        v-if="modelValue || inputText"
+        v-if="isCatalog ? inputText : (modelValue || inputText)"
         type="button"
-        class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle transition-colors hover:text-text-default"
-        :aria-label="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
-        :title="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
-        @click="clearSelection"
+        class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
+        :aria-label="isCatalog
+          ? 'Limpiar búsqueda'
+          : ($t ? $t('clients.autocomplete.clear') : 'Limpiar')"
+        :title="isCatalog
+          ? 'Limpiar búsqueda'
+          : ($t ? $t('clients.autocomplete.clear') : 'Limpiar')"
+        @click="isCatalog ? clearCatalogFilter() : clearSelection()"
       >
         <BaseActionIcon action="clear" />
       </button>
     </div>
 
+    <!-- Linked client hint (id beside the name) -->
     <p
       v-if="modelValue && showLinkedHint"
-      class="mt-1 text-xs text-text-subtle"
+      class="text-xs text-text-subtle mt-1"
       data-testid="client-autocomplete-linked"
     >
       Cliente enlazado: {{ committedLabel }} <span class="tabular-nums">(#{{ modelValue }})</span>
     </p>
 
-    <ClientAutocompleteResults
-      v-if="isCatalog"
-      class="mt-3"
-      :listbox-id="listboxId"
-      presentation="catalog"
-      :results="results"
-      :input-text="inputText"
-      :model-value="modelValue"
-      :highlight-index="highlightIndex"
-      :has-searched="hasSearched"
-      :is-searching="isSearching"
-      :is-loading-more="isLoadingMore"
-      :search-error="searchError"
-      :load-more-error="loadMoreError"
-      :sort-direction="sortDirection"
-      @create-new="emitCreateNew"
-      @highlight="highlightIndex = $event"
-      @load-more="loadMore"
-      @retry="retrySearch"
-      @select="selectClient"
-      @toggle-sort="toggleSort"
-    />
-
+    <!-- Default form presentation: a modal-owned floating listbox. -->
     <BaseFloatingListbox
-      v-else
+      v-if="!isCatalog"
       :id="listboxId"
       :open="isOpen"
       :anchor="inputRef"
@@ -78,15 +66,7 @@
       @reach-end="loadMore"
     >
       <ClientAutocompleteResults
-        :results="results"
-        :input-text="inputText"
-        :model-value="modelValue"
-        :highlight-index="highlightIndex"
-        :has-searched="hasSearched"
-        :is-searching="isSearching"
-        :is-loading-more="isLoadingMore"
-        :search-error="searchError"
-        :load-more-error="loadMoreError"
+        v-bind="resultsProps"
         @create-new="emitCreateNew"
         @highlight="highlightIndex = $event"
         @load-more="loadMore"
@@ -94,18 +74,39 @@
         @select="selectClient"
       />
     </BaseFloatingListbox>
+
+    <!-- Bulk-decision presentation: permanent in-flow catalog. The header is
+         outside the five-row scroller, so the modal never reserves an empty
+         dropdown-sized block and never becomes the catalog's scrollbar. -->
+    <div
+      v-else
+      :id="listboxId"
+      role="grid"
+      aria-label="Clientes disponibles"
+      class="mt-2 overflow-hidden rounded-xl border border-border-default bg-surface"
+      data-testid="client-catalog"
+    >
+      <ClientAutocompleteResults
+        v-bind="resultsProps"
+        @create-new="emitCreateNew"
+        @highlight="highlightIndex = $event"
+        @load-more="loadMore"
+        @retry="retrySearch"
+        @select="selectClient"
+        @toggle-sort="toggleCatalogSort"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, useId, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import {
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline';
 import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import ClientAutocompleteResults from '~/components/ui/ClientAutocompleteResults.vue';
-import { usePersistedRef } from '~/composables/usePersistedRef';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 
 /**
@@ -134,42 +135,49 @@ const props = defineProps({
    * flex y arrastra el input fuera de línea con los botones de al lado.
    */
   showLinkedHint: { type: Boolean, default: true },
-  /** Floating autocomplete by default; catalog keeps the result list in flow. */
+  /** Floating combobox for forms; permanent catalog for bulk decisions. */
   presentation: {
     type: String,
     default: 'floating',
     validator: (value) => ['floating', 'catalog'].includes(value),
   },
+  /** Catalog lifecycle. Opening reloads a clean first page without waiting for focus. */
+  active: { type: Boolean, default: true },
+  /** Browser-local preference key. Empty means A-Z without persistence. */
+  sortStorageKey: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'select', 'create-new']);
 
 const clientsStore = useProposalClientsStore();
 const PAGE_SIZE = 20;
-const CATALOG_SORT_STORAGE_KEY = 'projectapp-client-catalog-sort-direction';
-
 const isCatalog = computed(() => props.presentation === 'catalog');
-const {
-  ref: persistedSortDirection,
-  write: persistSortDirection,
-} = usePersistedRef(CATALOG_SORT_STORAGE_KEY, 'asc', {
-  serialize: String,
-  deserialize: String,
-});
-if (!['asc', 'desc'].includes(persistedSortDirection.value)) {
-  persistedSortDirection.value = 'asc';
+
+function readCatalogSort() {
+  if (!props.sortStorageKey || typeof window === 'undefined') return 'asc';
+  try {
+    return window.localStorage.getItem(props.sortStorageKey) === 'desc' ? 'desc' : 'asc';
+  } catch (_error) {
+    return 'asc';
+  }
 }
-const sortDirection = persistedSortDirection;
+
+function persistCatalogSort(direction) {
+  if (!props.sortStorageKey || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(props.sortStorageKey, direction);
+  } catch (_error) { /* Browser storage is an enhancement, never a blocker. */ }
+}
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
 const listboxId = `${useId()}-listbox`;
-const inputText = ref(isCatalog.value ? '' : (props.initialLabel || ''));
+const inputText = ref(props.initialLabel || '');
 // El nombre del cliente que está REALMENTE enlazado, separado de lo que se
 // teclea encima: es lo que se restaura al cerrar sin elegir y lo que nombra el
 // hint mientras se busca.
 const committedLabel = ref(props.initialLabel || '');
-const isOpen = ref(isCatalog.value);
+const isOpen = ref(false);
 const hasSearched = ref(false);
 const results = ref([]);
 const highlightIndex = ref(-1);
@@ -179,7 +187,22 @@ const hasMore = ref(false);
 const nextOffset = ref(0);
 const searchError = ref('');
 const loadMoreError = ref('');
+const sortDirection = ref(readCatalogSort());
 let searchGeneration = 0;
+
+const resultsProps = computed(() => ({
+  results: results.value,
+  inputText: inputText.value,
+  modelValue: props.modelValue,
+  highlightIndex: highlightIndex.value,
+  hasSearched: hasSearched.value,
+  isSearching: isSearching.value,
+  isLoadingMore: isLoadingMore.value,
+  searchError: searchError.value,
+  loadMoreError: loadMoreError.value,
+  presentation: props.presentation,
+  sortDirection: sortDirection.value,
+}));
 
 // -------------------------------------------------------------------
 // Search (debounced 200ms)
@@ -266,9 +289,10 @@ const onInput = () => {
 
 const onFocus = () => {
   isOpen.value = true;
+  if (isCatalog.value) return;
   // Skip the auto-search when the parent already committed a selection
   // (editing an existing proposal) — otherwise we'd waste a request.
-  if (!hasSearched.value && !isSearching.value && props.modelValue === null) {
+  if (!hasSearched.value && props.modelValue === null) {
     runSearch(inputText.value.trim());
   }
 };
@@ -286,11 +310,19 @@ const selectClient = (client) => {
   emit('select', client);
   committedLabel.value = client.name;
   if (isCatalog.value) {
-    highlightIndex.value = results.value.findIndex((row) => row.id === client.id);
+    highlightIndex.value = results.value.findIndex((result) => result.id === client.id);
     return;
   }
   inputText.value = client.name;
   closeDropdown();
+};
+
+const clearCatalogFilter = () => {
+  searchGeneration += 1;
+  inputText.value = '';
+  highlightIndex.value = -1;
+  runSearch('');
+  inputRef.value?.focus();
 };
 
 const clearSelection = () => {
@@ -309,7 +341,6 @@ const clearSelection = () => {
   isLoadingMore.value = false;
   highlightIndex.value = -1;
   inputRef.value?.focus();
-  if (isCatalog.value) runSearch('');
 };
 
 /**
@@ -325,16 +356,6 @@ const closeDropdown = (opts) => {
   if (restore && props.modelValue !== null && inputText.value !== committedLabel.value) {
     inputText.value = committedLabel.value;
   }
-};
-
-const onEscape = () => {
-  if (!isCatalog.value) {
-    closeDropdown();
-    return;
-  }
-  if (!inputText.value) return;
-  inputText.value = '';
-  runSearch('');
 };
 
 // -------------------------------------------------------------------
@@ -369,6 +390,18 @@ const onEnter = () => {
   }
 };
 
+const onEscape = (event) => {
+  if (isCatalog.value) return;
+  event.preventDefault();
+  closeDropdown();
+};
+
+const toggleCatalogSort = () => {
+  sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  persistCatalogSort(sortDirection.value);
+  runSearch(inputText.value.trim());
+};
+
 // -------------------------------------------------------------------
 // Create new
 // -------------------------------------------------------------------
@@ -381,13 +414,6 @@ const emitCreateNew = () => {
   // en vez de perderse contra el cliente anterior.
   committedLabel.value = typed;
   closeDropdown({ restore: false });
-};
-
-const toggleSort = () => {
-  sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-  persistSortDirection(sortDirection.value);
-  highlightIndex.value = -1;
-  runSearch(inputText.value.trim());
 };
 
 // -------------------------------------------------------------------
@@ -428,23 +454,33 @@ watch(
 );
 
 watch(
-  () => props.modelValue,
-  (newValue, previousValue) => {
-    if (
-      isCatalog.value
-      && newValue != null
-      && previousValue == null
-      && hasSearched.value
-      && results.value.length === 0
-    ) {
-      inputText.value = '';
-      runSearch('');
-    }
+  () => props.active,
+  (active) => {
+    if (!isCatalog.value) return;
+    searchGeneration += 1;
+    isOpen.value = active;
+    if (!active) return;
+    inputText.value = '';
+    highlightIndex.value = -1;
+    runSearch('');
   },
+  { immediate: true },
 );
 
-onMounted(() => {
-  if (isCatalog.value) runSearch('');
-});
+watch(
+  () => props.modelValue,
+  (clientId, previousClientId) => {
+    if (
+      !isCatalog.value
+      || !props.active
+      || clientId == null
+      || clientId === previousClientId
+      || results.value.some((client) => client.id === clientId)
+    ) return;
+    // Inline creation happens in the parent modal. Refetching the current
+    // query places the new row back into the canonical server order.
+    runSearch(inputText.value.trim());
+  },
+);
 
 </script>

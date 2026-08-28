@@ -22,6 +22,8 @@
         </p>
       </div>
 
+      <!-- The client catalog and the named scope stay visible together. The
+           project picker remains the ordinary floating field presentation. -->
       <div class="min-h-0 flex-1 px-6 py-4">
         <div
           v-if="isClient"
@@ -29,10 +31,12 @@
         >
           <ClientAutocomplete
             v-model="clientId"
-            presentation="catalog"
+            :active="open"
             :test-id="`${testidPrefix}-bulk-client`"
             placeholder="Filtrar clientes por nombre, correo o empresa..."
+            presentation="catalog"
             :show-linked-hint="false"
+            sort-storage-key="panel.accounting.bulk-client-name-order"
             :initial-label="clientLabel"
             @select="onClientSelect"
             @create-new="onCreateNewClient"

@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue';
-
 import BaseActionIcon from '~/components/base/BaseActionIcon.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 
@@ -16,7 +15,6 @@ const props = defineProps({
   loadMoreError: { type: String, default: '' },
   presentation: { type: String, default: 'floating' },
   sortDirection: { type: String, default: 'asc' },
-  listboxId: { type: String, default: undefined },
 });
 
 const emit = defineEmits([
@@ -42,11 +40,7 @@ function onCatalogScroll(event) {
 </script>
 
 <template>
-  <div
-    v-if="isCatalog"
-    class="overflow-hidden rounded-xl border border-border-default bg-surface"
-    data-testid="client-catalog"
-  >
+  <template v-if="isCatalog">
     <div
       role="row"
       class="grid h-10 grid-cols-1 items-center border-b border-border-muted bg-surface-muted px-4 text-xs font-semibold uppercase tracking-wide text-text-subtle panel-portrait:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)]"
@@ -55,7 +49,7 @@ function onCatalogScroll(event) {
         role="columnheader"
         :aria-sort="sortDirection === 'desc' ? 'descending' : 'ascending'"
       >
-        <!-- design-tokens: allow-raw-button (sortable column header, not a standalone action) -->
+        <!-- design-tokens: allow-raw-button — sortable grid header, not a form CTA. -->
         <button
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md text-left hover:text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/30"
@@ -77,65 +71,69 @@ function onCatalogScroll(event) {
     </div>
 
     <div
-      :id="listboxId"
-      role="listbox"
-      class="max-h-80 overflow-y-auto overscroll-contain panel-portrait:max-h-72"
+      role="rowgroup"
+      class="max-h-80 overflow-y-auto overscroll-contain"
       data-testid="client-catalog-scroll"
-      :aria-busy="isSearching || isLoadingMore"
       @scroll.passive="onCatalogScroll"
     >
       <div
         v-if="isSearching"
+        role="row"
         class="px-4 py-3 text-center text-sm text-text-subtle"
       >
-        {{ inputText.trim() ? 'Buscando...' : 'Cargando clientes...' }}
+        <div role="gridcell">
+          {{ inputText.trim() ? 'Buscando...' : 'Cargando clientes...' }}
+        </div>
       </div>
 
       <div
         v-else-if="searchError"
+        role="row"
         class="space-y-2 px-4 py-3 text-sm text-text-muted"
         data-testid="client-autocomplete-error"
       >
-        <p>No se pudo cargar la lista de clientes.</p>
-        <button
-          type="button"
-          class="text-xs font-medium text-text-brand hover:underline"
-          data-testid="client-autocomplete-retry"
-          @click="emit('retry')"
-        >
-          Reintentar
-        </button>
+        <div role="gridcell">
+          <p>No se pudo cargar la lista de clientes.</p>
+          <BaseButton
+            variant="link"
+            size="sm"
+            class="mt-2"
+            data-testid="client-autocomplete-retry"
+            @click="emit('retry')"
+          >
+            Reintentar
+          </BaseButton>
+        </div>
       </div>
 
       <template v-else-if="results.length > 0">
-        <!-- design-tokens: allow-raw-button (each option is a selectable list row) -->
-        <button
+        <!-- design-tokens: allow-clickable-row — selectable grid row, not navigation. -->
+        <div
           v-for="(client, idx) in results"
           :key="client.id"
-          type="button"
-          role="option"
+          role="row"
+          tabindex="-1"
           :aria-selected="modelValue === client.id"
           :data-testid="`client-autocomplete-option-${client.id}`"
           :class="[
-            'grid h-16 w-full grid-cols-1 content-center border-b border-border-muted px-4 py-2 text-left text-sm transition-colors panel-portrait:h-14 panel-portrait:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)] panel-portrait:items-center',
+            'grid h-16 cursor-pointer grid-cols-1 content-center border-b border-border-muted px-4 py-2 text-sm transition-colors panel-portrait:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)] panel-portrait:items-center',
             modelValue === client.id || highlightIndex === idx
               ? 'bg-primary-soft'
               : 'hover:bg-surface-raised',
           ]"
           @click="emit('select', client)"
           @mouseenter="emit('highlight', idx)"
-          @focus="emit('highlight', idx)"
         >
-          <span class="min-w-0 font-medium text-text-default">
-            <span class="block truncate" :title="client.name">
+          <div role="gridcell" class="min-w-0 font-medium text-text-default">
+            <p class="truncate" :title="client.name">
               {{ client.name }}
               <span class="font-normal tabular-nums text-text-subtle">(#{{ client.id }})</span>
-            </span>
-          </span>
-          <span class="min-w-0 truncate text-xs text-text-muted" :title="client.company || ''">
+            </p>
+          </div>
+          <div role="gridcell" class="min-w-0 truncate text-xs text-text-muted" :title="client.company || ''">
             <span class="panel-portrait:hidden">Empresa: </span>{{ client.company || '—' }}
-          </span>
-          <span class="min-w-0 truncate text-xs text-text-muted">
+          </div>
+          <div role="gridcell" class="min-w-0 truncate text-xs text-text-muted">
             <span class="panel-portrait:hidden">Correo: </span>
             <span
               v-if="clientHasNoEmail(client)"
@@ -145,57 +143,64 @@ function onCatalogScroll(event) {
               Sin correo
             </span>
             <span v-else class="truncate" :title="client.email">{{ client.email }}</span>
-          </span>
-        </button>
+          </div>
+        </div>
 
         <div
           v-if="isLoadingMore"
+          role="row"
           class="border-t border-border-muted px-4 py-2 text-center text-xs text-text-subtle"
           data-testid="client-autocomplete-loading-more"
         >
-          Cargando más clientes...
+          <div role="gridcell">Cargando más clientes...</div>
         </div>
         <div
           v-else-if="loadMoreError"
+          role="row"
           class="flex items-center justify-between gap-3 border-t border-border-muted px-4 py-2 text-xs text-text-muted"
           data-testid="client-autocomplete-load-more-error"
         >
-          <span>No se pudo cargar la siguiente página.</span>
-          <button
-            type="button"
-            class="font-medium text-text-brand hover:underline"
-            @click="emit('load-more')"
-          >
-            Reintentar
-          </button>
+          <div role="gridcell" class="contents">
+            <span>No se pudo cargar la siguiente página.</span>
+            <BaseButton variant="link" size="sm" @click="emit('load-more')">
+              Reintentar
+            </BaseButton>
+          </div>
         </div>
       </template>
 
-      <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-text-muted">
-        <p class="mb-2">
-          {{ inputText.trim()
-            ? `No se encontraron clientes con "${inputText}".`
-            : 'No hay clientes registrados.' }}
-        </p>
-        <BaseButton
-          variant="secondary"
-          size="sm"
-          class="w-full"
-          data-testid="client-autocomplete-create-new"
-          @click="emit('create-new')"
-        >
-          <BaseActionIcon action="create" />
-          <span>{{ inputText.trim()
-            ? `Crear nuevo cliente "${inputText.trim()}"`
-            : 'Crear un cliente' }}</span>
-        </BaseButton>
+      <div
+        v-else-if="hasSearched"
+        role="row"
+        class="px-4 py-3 text-sm text-text-muted"
+      >
+        <div role="gridcell">
+          <p class="mb-2">
+            {{ inputText.trim()
+              ? `No se encontraron clientes con "${inputText}".`
+              : 'No hay clientes registrados.' }}
+          </p>
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            textPolicy="wrap"
+            class="w-full !justify-start !bg-primary-soft text-left !text-text-brand hover:opacity-90"
+            data-testid="client-autocomplete-create-new"
+            @click="emit('create-new')"
+          >
+            <BaseActionIcon action="create" />
+            <span>{{ inputText.trim()
+              ? `Crear nuevo cliente "${inputText.trim()}"`
+              : 'Crear un cliente' }}</span>
+          </BaseButton>
+        </div>
       </div>
 
-      <div v-else class="px-4 py-3 text-center text-sm text-text-subtle">
-        Cargando clientes...
+      <div v-else role="row" class="px-4 py-3 text-center text-sm text-text-subtle">
+        <div role="gridcell">Cargando clientes...</div>
       </div>
     </div>
-  </div>
+  </template>
 
   <template v-else>
     <div v-if="isSearching" class="px-4 py-3 text-center text-sm text-text-subtle">
@@ -208,14 +213,14 @@ function onCatalogScroll(event) {
       data-testid="client-autocomplete-error"
     >
       <p>No se pudo cargar la lista de clientes.</p>
-      <button
-        type="button"
-        class="text-xs font-medium text-text-brand hover:underline"
+      <BaseButton
+        variant="link"
+        size="sm"
         data-testid="client-autocomplete-retry"
         @click="emit('retry')"
       >
         Reintentar
-      </button>
+      </BaseButton>
     </div>
 
     <template v-else-if="results.length > 0">
@@ -245,7 +250,7 @@ function onCatalogScroll(event) {
                   class="rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning-strong"
                   title="Este cliente todavía no tiene correo. Las acciones que envían mensajes pedirán agregarlo antes de continuar."
                 >
-                  Sin correo
+                  📧 Sin correo
                 </span>
               </div>
               <p class="mt-0.5 truncate text-xs text-text-muted">
@@ -274,9 +279,9 @@ function onCatalogScroll(event) {
         data-testid="client-autocomplete-load-more-error"
       >
         <span>No se pudo cargar la siguiente página.</span>
-        <button type="button" class="font-medium text-text-brand hover:underline" @click="emit('load-more')">
+        <BaseButton variant="link" size="sm" @click="emit('load-more')">
           Reintentar
-        </button>
+        </BaseButton>
       </div>
     </template>
 
@@ -287,9 +292,10 @@ function onCatalogScroll(event) {
           : 'No hay clientes registrados.' }}
       </p>
       <BaseButton
-        variant="secondary"
+        variant="ghost"
         size="sm"
-        class="w-full"
+        textPolicy="wrap"
+        class="w-full !justify-start !bg-primary-soft text-left !text-text-brand hover:opacity-90"
         data-testid="client-autocomplete-create-new"
         @click="emit('create-new')"
       >

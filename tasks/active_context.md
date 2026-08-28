@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
+Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al
+recibir foco. `ClientAutocomplete` conserva un único motor de consulta,
+selección, retry, creación y paginación, pero suma una presentación `catalog` en
+flujo; sólo `BulkAssignModal` la activa para cliente y los selectores de proyecto,
+documentos e ingreso vinculado siguen usando la capa flotante compartida. La
+lista se ve desde la apertura, muestra nombre/empresa/correo, señala correo
+faltante y ofrece creación en vacío. Abre A-Z; el encabezado Nombre alterna
+A-Z/Z-A y guarda la preferencia en el navegador. El endpoint suma
+`order=name|-name` sin cambiar su cuerpo array ni `limit`/`offset`/
+`X-Total-Count`. Cinco filas completas y el alcance de cuatro ingresos caben sin
+scroll del panel; un catálogo largo desplaza sólo su lista y el perfil 412×915
+usa pantalla completa. Pasan los cortes backend/store/componente/modal y tres
+escenarios Playwright; el flow-map quedó regenerado con 0 junk-only y 0 missing.
+
 **2026-08-28 — Cuarta tarjeta contextual de requerimientos lista para integrar:**
 `functional_requirements` incorpora `cross_cutting_features` después de
 `features` en los defaults ES/EN. La tarjeta conserva un contenedor obligatorio
@@ -113,21 +128,18 @@ descripciones existentes, completa las faltantes e inserta En evolución despué
 Activo; fake data y contratos MCP reconocen el nuevo campo y los siete significados.
 El portal del cliente permanece fuera de alcance.
 
-**2026-08-28 — Catálogo permanente en Asignar cliente:** el seguimiento al fix de
-altura confirmó que el popover ya no se recortaba, pero dejaba un vacío grande
-hasta recibir foco. La asignación masiva ahora usa la presentación `catalog` de
-`ClientAutocomplete`: carga al montar y permanece dentro del flujo del modal,
-mientras los selectores ordinarios conservan `BaseFloatingListbox`. Cinco filas
-completas muestran nombre, empresa, correo y **Sin correo**; el filtro actúa sobre
-la lista visible, el scroll progresivo pertenece sólo al catálogo y un resultado
-vacío explica el estado y abre creación inline. Nombre inicia A-Z, alterna Z-A y
-persiste entre aperturas mediante localStorage; el endpoint acepta
-`order=name|-name` con id como desempate. Antes de elegir un destino ya se ven el
-conteo y las identidades seleccionadas. `form-wide` ajusta el escritorio al
-contenido y el contrato `BaseModal` mantiene pantalla completa en compactos.
-Verificación focal: 10 backend, 45 unitarias y cuatro escenarios Playwright; el
-flow P1 está cubierto en display/success/failure/error. PA-93 debe archivarse en
-el tablero externo como duplicado de esta ficha.
+**2026-08-27 — Selector de clientes útil desde que abre:** la asignación masiva
+en Contable enfoca el selector y muestra inmediatamente la primera página del
+catálogo, ordenada alfabéticamente; escribir filtra esa lista en vez de ser el
+único modo de obtener resultados. El endpoint conserva su array compatible,
+añade `limit`/`offset` y publica el total en `X-Total-Count`; el listbox carga
+páginas posteriores dentro de su propio scroll. Nombre, empresa, correo y la
+falta de correo siguen visibles por fila. Vacío, fallo inicial y fallo de página
+tienen salidas explícitas, incluida creación inline desde el modal. El alcance
+de la edición masiva permanece visible y el modal no adquiere una segunda barra.
+El mismo contrato corrige los consumidores compartidos y el cambio de cliente de
+carpetas abre enfocado. Cobertura focal backend/unit, mapa E2E y escenario real
+del modal actualizados.
 
 **2026-08-27 — Integridad MySQL de `DocumentState`, refresh operativo y GC:**
 `system_key` deja de depender de un `UniqueConstraint` condicional que MySQL

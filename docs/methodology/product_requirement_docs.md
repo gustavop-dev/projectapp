@@ -575,20 +575,21 @@ The canonical counts, commands and exceptions are maintained in
     and closure use `DocumentState.operational_effect`, never an editable display
     name. Every transition is previewed, token-bound and recorded as a dated
     episode; legacy unclassified rows fail closed for financial automation.
-24. **Searchable selectors inside modals**: ordinary field selectors use the
-    modal-owned floating layer so a clipped panel never cuts their results. When
-    choosing an entity is the modal's primary task, the selector becomes permanent
-    content instead: the client-assignment modal opens with its catalog already in
-    view and never reserves an empty dropdown gap. On desktop it exposes at least
-    five complete rows and only the catalog scrolls; the modal remains still and
-    follows its content up to the viewport limit. On narrow screens it follows the
-    shared full-screen contract. The catalog starts in stable A-Z order, toggles
-    A-Z/Z-A from the name header and remembers that choice between openings.
-    Typing filters the visible catalog and later pages load progressively. Each
-    row distinguishes name, company and email and flags missing email. Empty
-    filters and empty catalogs offer client creation; read failures offer retry.
-    A bulk action shows the affected count and record identities before its
-    confirmation without requiring the operator to scroll the modal.
+24. **Searchable selectors inside modals**: secondary selectors render their
+    result list in a floating layer owned by the modal, never inside its
+    scrollable panel. A selector that is itself the primary decision uses an
+    explicit permanent in-flow catalog instead: bulk client assignment opens
+    with the rows visible, without click-triggered disclosure or reserved blank
+    height. On desktop it exposes at least five complete clients and only a long
+    catalog scrolls; the modal remains still, grows with its review content and
+    caps at the viewport. On narrow screens it follows the shared full-screen
+    contract. The catalog opens in stable A-Z order, its Nombre header toggles
+    A-Z/Z-A and remembers that browser-local choice between openings; typing
+    filters the visible rows and later pages load progressively. Each row shows
+    name, company and email and flags missing email. Empty filters/catalogs offer
+    client creation; read failures offer retry. A bulk action must show the
+    affected count and record identities before confirmation without requiring
+    the operator to scroll the modal.
 24. **Observation removal semantics**: discard retains the row and optional
     reason; soft delete removes it from active reads and counts while preserving
     recoverability. Deleting the last pending note reconciles only a linked

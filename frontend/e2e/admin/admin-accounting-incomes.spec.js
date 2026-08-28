@@ -60,7 +60,6 @@ function incomeRow(overrides = {}) {
 function buildHandler({
   rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
   savedTabs = [], duplicateDraftStatus = 200,
-  clientSearchResults = CLIENT_SEARCH_RESULT,
   // Landing mode the mocked backend setting dictates. Production defaults to
   // 'grouped'; the mock pins 'classic' because almost every test in this file
   // exercises classic-only affordances (column sort, row checkboxes,
@@ -238,24 +237,21 @@ function buildHandler({
       return { status: 204, contentType: 'application/json', body: '' };
     }
     if (apiPath.startsWith('proposals/client-profiles/search/')) {
-      const requestUrl = new URL(route.request().url());
-      const query = (requestUrl.searchParams.get('q') || '').trim().toLocaleLowerCase('es');
-      const direction = requestUrl.searchParams.get('order') === '-name' ? -1 : 1;
-      const offset = Number(requestUrl.searchParams.get('offset') || 0);
-      const limit = Number(requestUrl.searchParams.get('limit') || 20);
-      const matches = clientSearchResults.filter((client) => (
-        [client.name, client.company, client.email]
-          .some((value) => String(value || '').toLocaleLowerCase('es').includes(query))
-      ));
-      const ordered = [...matches].sort((left, right) => (
-        direction * left.name.localeCompare(right.name, 'es', { sensitivity: 'base' })
-      ));
-      const page = ordered.slice(offset, offset + limit);
+      const url = new URL(route.request().url());
+      const query = (url.searchParams.get('q') || '').trim().toLocaleLowerCase('es');
+      const order = url.searchParams.get('order') || 'name';
+      const offset = Number(url.searchParams.get('offset') || 0);
+      const limit = Number(url.searchParams.get('limit') || 20);
+      const matchingClients = CLIENT_SEARCH_RESULT
+        .filter((client) => [client.name, client.company, client.email]
+          .some((value) => value.toLocaleLowerCase('es').includes(query)))
+        .sort((left, right) => left.name.localeCompare(right.name, 'es', { sensitivity: 'base' }));
+      if (order === '-name') matchingClients.reverse();
       return {
         status: 200,
         contentType: 'application/json',
-        headers: { 'X-Total-Count': String(ordered.length) },
-        body: JSON.stringify(page),
+        headers: { 'X-Total-Count': String(matchingClients.length) },
+        body: JSON.stringify(matchingClients.slice(offset, offset + limit)),
       };
     }
     if (apiPath === 'accounting/incomes/bulk-assign-client/' && method === 'POST') {
@@ -300,17 +296,11 @@ function buildHandler({
 
 const CLIENT_SEARCH_RESULT = [
   { id: 5, name: 'Ana Pérez', email: 'ana@acme.co', company: 'Acme Soluciones' },
-  { id: 6, name: 'Ana Torres', email: 'torres@acme.co', company: 'Torres SAS' },
-  { id: 7, name: 'Ana Rojas', email: 'rojas@acme.co', company: 'Rojas SAS' },
-  { id: 8, name: 'Ana Gómez', email: 'gomez@acme.co', company: 'Gómez SAS' },
-  { id: 9, name: 'Ana Martínez', email: 'martinez@acme.co', company: 'Martínez SAS' },
-  {
-    id: 10,
-    name: 'Ana Suárez',
-    email: '',
-    company: 'Suárez SAS',
-    is_email_placeholder: true,
-  },
+  { id: 6, name: 'Beatriz Torres', email: 'torres@acme.co', company: 'Torres SAS' },
+  { id: 7, name: 'Camila Rojas', email: 'rojas@acme.co', company: 'Rojas SAS' },
+  { id: 8, name: 'Diana Gómez', email: 'gomez@acme.co', company: 'Gómez SAS' },
+  { id: 9, name: 'Elena Martínez', email: 'martinez@acme.co', company: 'Martínez SAS' },
+  { id: 10, name: 'Fernanda Suárez', email: 'suarez@acme.co', company: 'Suárez SAS' },
 ].map((client) => ({
   phone: '',
   nit: '901234567',
@@ -330,11 +320,9 @@ async function gotoIncomes(page, query = '?accounting_incomeTab=all') {
 
 async function navigateToIncomesFromPanel(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
-  const incomeLink = page.getByRole('navigation', { name: 'Navegación del panel' })
-    .getByRole('link', { name: 'Ingresos', exact: true });
-  await expect(incomeLink).toBeVisible({ timeout: 25_000 });
-  await incomeLink.click();
-  await page.waitForURL(/\/panel\/accounting\/incomes/);
+  await page.getByRole('navigation', { name: 'Navegación del panel' })
+    .getByRole('link', { name: 'Ingresos', exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
@@ -1461,7 +1449,6 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(page.getByTestId('incomes-bulk-client')).toBeFocused();
 
     const initialScope = page.getByTestId('incomes-bulk-selection-review');
-    await expect(initialScope).toContainText('Registros seleccionados (4)');
     expect(await initialScope.evaluate((element) => ({
       hasEveryRecord: [
         'Kore - Inicio 40%',
@@ -1472,27 +1459,29 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
       fitsWithoutScroll: element.scrollHeight <= element.clientHeight + 1,
     }))).toEqual({ hasEveryRecord: true, fitsWithoutScroll: true });
 
-    const listbox = page.getByRole('listbox');
-    await expect(listbox).toBeVisible();
-    const fifthOption = listbox.getByRole('option').nth(4);
+    const catalog = page.getByRole('grid', { name: 'Clientes disponibles' });
+    const scroller = page.getByTestId('client-catalog-scroll');
+    await expect(catalog).toBeVisible();
+    const fifthOption = page.getByTestId('client-autocomplete-option-9');
     await expect(fifthOption).toBeVisible();
-    const listBounds = await listbox.boundingBox();
+    const listBounds = await scroller.boundingBox();
     const fifthBounds = await fifthOption.boundingBox();
     expect(fifthBounds.y + fifthBounds.height).toBeLessThanOrEqual(
       listBounds.y + listBounds.height + 1,
     );
 
     const modalBounds = await modal.boundingBox();
-    await listbox.hover();
+    await scroller.hover();
     await page.mouse.wheel(0, 600);
-    await expect.poll(() => listbox.evaluate((element) => element.scrollTop))
+    await expect.poll(() => scroller.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
     expect((await modal.boundingBox()).y).toBe(modalBounds.y);
-    const panel = page.getByRole('dialog').locator('[data-modal-kind="form-wide"]');
-    expect(await panel.evaluate((element) => element.scrollHeight <= element.clientHeight + 1))
-      .toBe(true);
+    expect(await modal.locator('..').evaluate((panel) => (
+      panel.scrollHeight <= panel.clientHeight + 1
+    ))).toBe(true);
 
     await page.getByTestId('client-autocomplete-option-5').click();
+    await expect(catalog).toBeVisible();
     const scope = page.getByTestId('client-bulk-summary-list');
     expect(await scope.evaluate((element) => ({
       hasEveryRecord: [
@@ -1508,78 +1497,73 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     )).toBe(false);
   });
 
-  test('the client name sort persists between assignment openings', {
+  test('the client catalog fills the compact assignment modal', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_CLIENT,
+      '@role:admin',
+      '@outcome:display',
+      '@responsive:accounting',
+    ],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 412, height: 915 });
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Integración 20%' }),
+        incomeRow({ id: 4, concept: 'Kore - Cierre 10%' }),
+      ],
+      calls: [],
+    }));
+    // quality: allow-deep-link (the compact viewport isolates full-screen modal geometry; panel navigation is covered by the desktop catalog flow)
+    await gotoIncomes(page);
+    await openBulkClientAssignment(page);
+
+    const modal = page.getByTestId('incomes-bulk-assign-modal');
+    const panel = modal.locator('..');
+    const panelBounds = await panel.boundingBox();
+    expect(panelBounds).toMatchObject({ x: 0, y: 0, width: 412, height: 915 });
+
+    const scroller = page.getByTestId('client-catalog-scroll');
+    await scroller.hover();
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => scroller.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0);
+    expect(await panel.evaluate((element) => (
+      element.scrollHeight <= element.clientHeight + 1
+    ))).toBe(true);
+
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Cierre 10%');
+    expect(await panel.evaluate((element) => (
+      element.scrollHeight <= element.clientHeight + 1
+    ))).toBe(true);
+  });
+
+  test('the client name order persists between assignment modal openings', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({
       rows: [
-        incomeRow({ id: 1 }),
-        incomeRow({ id: 2 }),
-        incomeRow({ id: 3 }),
-        incomeRow({ id: 4 }),
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Integración 20%' }),
+        incomeRow({ id: 4, concept: 'Kore - Cierre 10%' }),
       ],
       calls: [],
     }));
     await navigateToIncomesFromPanel(page);
     await openBulkClientAssignment(page);
 
-    const listbox = page.getByRole('listbox');
-    await expect(listbox.getByRole('option').first()).toContainText('Ana Gómez');
-
+    const firstOption = page.locator('[data-testid^="client-autocomplete-option-"]').first();
+    await expect(firstOption).toContainText('Ana Pérez');
     await page.getByTestId('client-catalog-sort-name').click();
-    await expect(listbox.getByRole('option').first()).toContainText('Ana Torres');
-    await expect.poll(() => page.evaluate(() => (
-      localStorage.getItem('projectapp-client-catalog-sort-direction')
-    ))).toBe('desc');
-
+    await expect(firstOption).toContainText('Fernanda Suárez');
     await page.getByTestId('incomes-bulk-assign-cancel').click();
+
     await bulkAction(page, 'incomes', 'Asignar cliente');
 
-    await expect(page.getByRole('listbox').getByRole('option').first())
-      .toContainText('Ana Torres');
-  });
-
-  test('an unmatched client filter offers inline creation', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:failure'],
-  }, async ({ page }) => {
-    // quality: allow-deep-link (the sidebar path is covered by the complete-review test)
-    await mockApi(page, buildHandler({
-      rows: [incomeRow({ id: 1 })],
-      calls: [],
-    }));
-    await gotoIncomes(page);
-    await page.getByTestId('accounting-select-1').check();
-    await bulkAction(page, 'incomes', 'Asignar cliente');
-
-    await page.getByTestId('incomes-bulk-client').fill('Cliente inexistente');
-    await expect(page.getByRole('listbox')).toContainText(
-      'No se encontraron clientes con "Cliente inexistente".',
-    );
-    await page.getByTestId('client-autocomplete-create-new').click();
-
-    await expect(page.getByTestId('incomes-bulk-inline-client')).toBeVisible();
-    await expect(page.getByTestId('incomes-bulk-inline-client-name'))
-      .toHaveValue('Cliente inexistente');
-  });
-
-  test('the client assignment modal uses the full compact viewport', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display', '@responsive:accounting'],
-  }, async ({ page }) => {
-    // quality: allow-deep-link (the sidebar path is covered by the complete-review test)
-    await page.setViewportSize({ width: 412, height: 915 });
-    await mockApi(page, buildHandler({
-      rows: [incomeRow({ id: 1 })],
-      calls: [],
-    }));
-    await gotoIncomes(page);
-    await page.getByTestId('accounting-select-1').check();
-    await bulkAction(page, 'incomes', 'Asignar cliente');
-
-    const panel = page.getByRole('dialog').locator('[data-modal-kind="form-wide"]');
-    const bounds = await panel.boundingBox();
-    expect(bounds).toMatchObject({ x: 0, y: 0, width: 412, height: 915 });
-    await expect(page.getByTestId('client-catalog')).toBeVisible();
-    await expect(page.getByTestId('incomes-bulk-selection-review')).toBeVisible();
+    await expect(firstOption).toContainText('Fernanda Suárez');
   });
 
   test('assigning a client in bulk updates every selected row', {

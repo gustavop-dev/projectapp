@@ -451,22 +451,21 @@ confirmed by the operator or another integration.
 
 ### Client picker catalog and progressive paging
 
-- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit`, `offset` and
-  `order=name|-name` (unknown values fall back to `name`).
-  It caps each page at 20, sorts case-insensitively by the same display-name
-  fallback the serializer renders, and uses the profile id as a stable tie-break.
+- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit`, `offset`
+  and optional `order=name|-name`. It caps each page at 20, sorts case-
+  insensitively by the same display-name fallback the serializer renders, and
+  uses the profile id as a stable tie-break. Missing/invalid order stays A-Z.
 - The response body remains the legacy array. The filtered total is exposed as
   `X-Total-Count`, allowing existing consumers to remain compatible while
   `proposal_clients.searchClients()` derives `hasMore` and `nextOffset`.
-- `ClientAutocomplete` keeps two presentations over
-  `ClientAutocompleteResults`: `floating` is the backward-compatible default and
-  loads `q=''` on focus; `catalog` loads on mount and stays visible in normal
-  flow. `BulkAssignModal` alone opts into catalog mode.
-- Catalog mode starts A-Z and stores `asc|desc` under
-  `projectapp-client-catalog-sort-direction`. The name-header toggle refetches the
-  current filter with `name|-name`; reopening reads the same preference.
-- Text input is debounced and generation-guarded; scroll-end paging appends
-  de-duplicated rows. Initial and subsequent-page failures have separate retry
+- `ClientAutocomplete` keeps one request/selection state and two presentations.
+  `floating` is the backward-compatible default and loads `q=''` on focus when
+  uncommitted. `catalog` loads while its `active` prop is true, is always visible
+  in flow and delegates the shared result markup to
+  `ClientAutocompleteResults`. Text input is debounced and generation-guarded;
+  scroll-end paging appends de-duplicated rows. Bulk client assignment supplies
+  `panel.accounting.bulk-client-name-order`, default `asc`, as the browser-local
+  persistence key. Initial and subsequent-page failures have separate retry
   states, and an empty initial catalog offers the same `create-new` event as an
   unmatched filter.
 
@@ -737,12 +736,12 @@ projectapp/
 7. **Bogotá timezone for day-level arithmetic** — Django's `TIME_ZONE='UTC'` means `date.today()` returns UTC date. For day-level logic (e.g., the daily Huey task computing "is the stage overdue today?") always use `today_bogota()` from `content/utils.py`. Bogotá is fixed UTC-5 with no DST so the offset is stable year-round.
 8. **Huey cron schedule is in UTC** — `crontab(hour='13', minute='30')` means 13:30 UTC = 08:30 Bogotá. Document the offset in a comment above any periodic task that's meant to land in the team inbox at a specific local time.
 9. **`PROJECT_ACCESS_CIPHER_KEY` required** — must be set in production `.env`; generate with Fernet before first deploy of quick-access feature
-10. **Modal search results declare their presentation** — ordinary searchable
-    fields inside `BaseModal` render through `BaseFloatingListbox`; consumers
-    must not position an ad-hoc result panel inside a clipped container. A modal
-    whose primary content is choosing among entities uses the shared permanent
-    catalog presentation instead. In either mode the result list, never the
-    modal, owns long-result scrolling.
+10. **Modal search results use the shared floating layer** — searchable listboxes
+    inside `BaseModal` render through `BaseFloatingListbox`; consumers must pass
+    their anchor and owner elements instead of positioning a results panel inside
+    a clipped container. The primitive owns viewport clamping, above/below
+    placement, outside-click and Escape behavior, list scrolling and modal focus
+    containment.
 11. **Panel flows never use browser-native dialogs** — confirmation and text input
     stay inside application-owned modal primitives; errors remain inline or in the
     panel notification system. The static guard is mandatory in CI.

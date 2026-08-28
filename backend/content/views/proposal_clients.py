@@ -520,8 +520,14 @@ def search_proposal_clients(request):
     contract; absent or unknown values preserve the historical A-Z default.
     """
     query = (request.query_params.get('q') or '').strip()
-    requested_order = (request.query_params.get('order') or 'name').strip().lower()
-    name_order = '-_display_name_sort' if requested_order == '-name' else '_display_name_sort'
+    requested_order = (
+        request.query_params.get('order') or 'name'
+    ).strip().lower()
+    name_order = (
+        '-_display_name_sort'
+        if requested_order == '-name'
+        else '_display_name_sort'
+    )
     limit = _bounded_non_negative_int(
         request.query_params.get('limit'),
         default=CLIENT_SEARCH_PAGE_SIZE,

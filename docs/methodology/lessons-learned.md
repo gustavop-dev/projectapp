@@ -1166,16 +1166,6 @@ the scroll signal in the shared listbox but keep `hasMore` and retry state in th
 data-owning picker. This preserves one scrollbar without coupling a generic
 overlay primitive to a particular API.
 
-There is also a product boundary between a searchable **field** and a searchable
-**catalog**. A floating layer is right when the selection is incidental to a
-form; it is wrong when the modal exists mainly to choose one row, because the
-closed layer leaves either blank reserved space or no useful content. Share the
-row renderer and data lifecycle, but make presentation explicit. Permanent
-catalogs load on mount, keep their filter and rows in view after selection, own
-their bounded scroll, expose a stable sortable order and preserve the operator's
-chosen direction. The modal then sizes to real content instead of a hypothetical
-dropdown.
-
 ## 47. Nullable uniqueness is already a portable partial-uniqueness primitive
 
 When absence is stored as SQL `NULL`, a plain unique constraint already permits
@@ -1279,3 +1269,25 @@ instead of inventing certification levels, browser matrices or performance
 guarantees. When evolving stored proposal JSON, update live defaults and editable
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
+
+## 52. A primary selection catalog is modal content, not a dropdown
+
+Fixing a dropdown's clipping can expose a second problem: reserving enough room
+for a click-triggered overlay leaves the dialog inexplicably empty before the
+click. If choosing among records is the modal's main task, those records are not
+supplementary disclosure. Render them permanently in flow and let the search
+field filter them; keep floating listboxes for secondary choices in forms.
+
+Do not fork the data behavior to get two layouts. One selector should own query
+generation guards, selection, paging, retry and creation while a shared results
+renderer supplies either a floating or in-flow surface. The consumer opts into
+the permanent presentation explicitly, supplies any persistence key and remains
+responsible for the review/action context around it.
+
+Ordering is part of catalog usability. Start with a stable server order and an
+id tie-break, expose the direction in the column header with `aria-sort`, carry
+the same order through filtering and every progressive page, and persist only
+the small user preference locally. Geometry tests must prove at least five full
+rows, one list-owned scrollbar, a stationary modal, visible review content and
+the full-screen compact contract; a screenshot of an open dropdown proves none
+of those boundaries.

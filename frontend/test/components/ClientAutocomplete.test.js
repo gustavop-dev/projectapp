@@ -24,8 +24,8 @@ function mountAutocomplete(props = { modelValue: null }) {
         $t: (key) => key,
       },
       stubs: {
-        Teleport: true,
         NuxtLink: { template: '<a><slot /></a>' },
+        Teleport: true,
       },
     },
   });
@@ -40,154 +40,11 @@ function clickOutside() {
 describe('ClientAutocomplete', () => {
   beforeEach(() => {
     mockStore.searchClients.mockReset();
-    localStorage.clear();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
-  });
-
-  describe('catalog presentation', () => {
-    it('loads the alphabetical catalog without waiting for focus', async () => {
-      mockStore.searchClients.mockResolvedValueOnce({
-        success: true,
-        data: [
-          { id: 901, name: 'Amanda', email: 'amanda@example.com', phone: '', company: 'Alfa', is_email_placeholder: false },
-        ],
-      });
-
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-
-      expect(mockStore.searchClients).toHaveBeenCalledWith('', {
-        offset: 0,
-        limit: 20,
-        order: 'name',
-      });
-      expect(wrapper.get('[data-testid="client-catalog"]').isVisible()).toBe(true);
-      expect(wrapper.get('[data-testid="client-autocomplete-option-901"]').text())
-        .toContain('Amanda');
-    });
-
-    it('preserves catalog state after a client is selected', async () => {
-      const client = {
-        id: 902,
-        name: 'Beatriz Bravo',
-        email: 'beatriz@example.com',
-        phone: '',
-        company: 'Beta',
-        is_email_placeholder: false,
-      };
-      mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [client] });
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-
-      const input = wrapper.get('[data-testid="client-autocomplete-input"]');
-      mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [client] });
-      await input.setValue('bea');
-      await flushPromises();
-      await wrapper.get('[data-testid="client-autocomplete-option-902"]').trigger('click');
-
-      expect(wrapper.emitted('update:modelValue')).toEqual([[902]]);
-      expect(input.element.value).toBe('bea');
-      expect(wrapper.get('[data-testid="client-catalog"]').isVisible()).toBe(true);
-    });
-
-    it('persists the descending choice from the name header', async () => {
-      mockStore.searchClients
-        .mockResolvedValueOnce({ success: true, data: [] })
-        .mockResolvedValueOnce({ success: true, data: [] });
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-
-      await wrapper.get('[data-testid="client-catalog-sort-name"]').trigger('click');
-      await flushPromises();
-
-      expect(mockStore.searchClients).toHaveBeenLastCalledWith('', {
-        offset: 0,
-        limit: 20,
-        order: '-name',
-      });
-      expect(localStorage.getItem('projectapp-client-catalog-sort-direction')).toBe('desc');
-    });
-
-    it('restores the saved direction on a later opening', async () => {
-      localStorage.setItem('projectapp-client-catalog-sort-direction', 'desc');
-      mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
-
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-
-      expect(mockStore.searchClients).toHaveBeenLastCalledWith('', {
-        offset: 0,
-        limit: 20,
-        order: '-name',
-      });
-      expect(wrapper.get('[data-testid="client-catalog-sort-name"]').attributes('aria-label'))
-        .toContain('A a Z');
-    });
-
-    it('loads the next catalog page from its own scroll region', async () => {
-      mockStore.searchClients
-        .mockResolvedValueOnce({
-          success: true,
-          data: [
-            { id: 903, name: 'Carolina', email: 'carolina@example.com', phone: '', company: '', is_email_placeholder: false },
-          ],
-          hasMore: true,
-          nextOffset: 1,
-        })
-        .mockResolvedValueOnce({
-          success: true,
-          data: [
-            { id: 904, name: 'Diana', email: '', phone: '', company: 'Delta', is_email_placeholder: true },
-          ],
-          hasMore: false,
-          nextOffset: 2,
-        });
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-      const catalog = wrapper.get('[data-testid="client-catalog-scroll"]');
-      Object.defineProperty(catalog.element, 'scrollHeight', { configurable: true, value: 400 });
-      Object.defineProperty(catalog.element, 'clientHeight', { configurable: true, value: 320 });
-      Object.defineProperty(catalog.element, 'scrollTop', { configurable: true, value: 80 });
-
-      await catalog.trigger('scroll');
-      await flushPromises();
-
-      expect(mockStore.searchClients).toHaveBeenLastCalledWith('', {
-        offset: 1,
-        limit: 20,
-        order: 'name',
-      });
-      expect(wrapper.get('[data-testid="client-autocomplete-option-904"]').exists()).toBe(true);
-    });
-
-    it('marks a catalog client whose email is missing', async () => {
-      mockStore.searchClients.mockResolvedValueOnce({
-        success: true,
-        data: [
-          { id: 905, name: 'Elena', email: '', phone: '', company: 'Épsilon', is_email_placeholder: true },
-        ],
-      });
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-
-      expect(wrapper.get('[data-testid="client-autocomplete-option-905"]').text())
-        .toContain('Sin correo');
-    });
-
-    it('offers client creation inside an empty catalog', async () => {
-      mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
-      const wrapper = mountAutocomplete({ modelValue: null, presentation: 'catalog' });
-      await flushPromises();
-
-      expect(wrapper.text()).toContain('No hay clientes registrados.');
-      await wrapper.get('[data-testid="client-autocomplete-create-new"]').trigger('click');
-
-      expect(wrapper.emitted('create-new')).toEqual([['']]);
-      expect(wrapper.get('[data-testid="client-catalog"]').isVisible()).toBe(true);
-    });
   });
 
   it('searches when the user types and renders matching options', async () => {
@@ -675,6 +532,173 @@ describe('ClientAutocomplete', () => {
     await nextTick();
 
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false);
+  });
+
+  describe('permanent catalog presentation', () => {
+    const catalogClient = {
+      id: 901,
+      name: 'Amanda Alba',
+      company: 'Alfa SAS',
+      email: 'amanda@example.com',
+      phone: '',
+      is_email_placeholder: false,
+    };
+
+    const catalogProps = {
+      modelValue: null,
+      presentation: 'catalog',
+      active: true,
+      sortStorageKey: 'panel.test.client-order',
+    };
+
+    it('loads the client catalog without focus', async () => {
+      mockStore.searchClients.mockResolvedValueOnce({
+        success: true,
+        data: [catalogClient],
+      });
+
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      expect(mockStore.searchClients).toHaveBeenCalledWith('', {
+        offset: 0,
+        limit: 20,
+        order: 'name',
+      });
+      expect(wrapper.get('[role="grid"]').text()).toContain('Amanda Alba');
+      expect(wrapper.get('[role="grid"]').text()).toContain('Alfa SAS');
+      expect(wrapper.get('[role="grid"]').text()).toContain('amanda@example.com');
+    });
+
+    it('keeps the client catalog visible after selection', async () => {
+      mockStore.searchClients.mockResolvedValueOnce({
+        success: true,
+        data: [catalogClient],
+      });
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      await wrapper.get('[data-testid="client-autocomplete-option-901"]').trigger('click');
+
+      expect(wrapper.get('[role="grid"]').isVisible()).toBe(true);
+      expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('');
+      expect(wrapper.emitted('update:modelValue')).toEqual([[901]]);
+    });
+
+    it('flags missing email in catalog rows', async () => {
+      mockStore.searchClients.mockResolvedValueOnce({
+        success: true,
+        data: [{
+          ...catalogClient,
+          email: 'cliente_901@temp.example.com',
+          is_email_placeholder: true,
+        }],
+      });
+
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      expect(wrapper.get('[data-testid="client-autocomplete-option-901"]').text())
+        .toContain('Sin correo');
+    });
+
+    it('persists descending catalog order from the name header', async () => {
+      mockStore.searchClients
+        .mockResolvedValueOnce({ success: true, data: [catalogClient] })
+        .mockResolvedValueOnce({ success: true, data: [catalogClient] });
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      await wrapper.get('[data-testid="client-catalog-sort-name"]').trigger('click');
+      await flushPromises();
+
+      expect(mockStore.searchClients).toHaveBeenLastCalledWith('', {
+        offset: 0,
+        limit: 20,
+        order: '-name',
+      });
+      expect(window.localStorage.getItem('panel.test.client-order')).toBe('desc');
+      expect(wrapper.get('[role="columnheader"]').attributes('aria-sort')).toBe('descending');
+    });
+
+    it('restores the persisted catalog order', async () => {
+      window.localStorage.setItem('panel.test.client-order', 'desc');
+      mockStore.searchClients.mockResolvedValueOnce({
+        success: true,
+        data: [catalogClient],
+      });
+
+      mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      expect(mockStore.searchClients).toHaveBeenCalledWith('', {
+        offset: 0,
+        limit: 20,
+        order: '-name',
+      });
+    });
+
+    it('keeps the catalog order while filtering', async () => {
+      window.localStorage.setItem('panel.test.client-order', 'desc');
+      mockStore.searchClients
+        .mockResolvedValueOnce({ success: true, data: [catalogClient] })
+        .mockResolvedValueOnce({ success: true, data: [catalogClient] });
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('Amanda');
+      await flushPromises();
+
+      expect(mockStore.searchClients).toHaveBeenLastCalledWith('Amanda', {
+        offset: 0,
+        limit: 20,
+        order: '-name',
+      });
+    });
+
+    it('loads the next catalog page in the selected order', async () => {
+      mockStore.searchClients
+        .mockResolvedValueOnce({
+          success: true,
+          data: [catalogClient],
+          hasMore: true,
+          nextOffset: 1,
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          data: [{ ...catalogClient, id: 902, name: 'Beatriz Bravo' }],
+          hasMore: false,
+          nextOffset: 2,
+        });
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+      const scroller = wrapper.get('[data-testid="client-catalog-scroll"]');
+      Object.defineProperty(scroller.element, 'scrollHeight', { configurable: true, value: 400 });
+      Object.defineProperty(scroller.element, 'clientHeight', { configurable: true, value: 320 });
+      Object.defineProperty(scroller.element, 'scrollTop', { configurable: true, value: 80 });
+
+      await scroller.trigger('scroll');
+      await flushPromises();
+
+      expect(mockStore.searchClients).toHaveBeenLastCalledWith('', {
+        offset: 1,
+        limit: 20,
+        order: 'name',
+      });
+      expect(wrapper.find('[data-testid="client-autocomplete-option-902"]').exists()).toBe(true);
+    });
+
+    it('offers creation from an empty client catalog', async () => {
+      mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
+      const wrapper = mountAutocomplete(catalogProps);
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('No hay clientes registrados.');
+      await wrapper.get('[data-testid="client-autocomplete-create-new"]').trigger('click');
+
+      expect(wrapper.emitted('create-new')).toEqual([['']]);
+      expect(wrapper.get('[role="grid"]').isVisible()).toBe(true);
+    });
   });
 
   describe('external label sync', () => {
