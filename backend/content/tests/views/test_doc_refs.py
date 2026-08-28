@@ -7,7 +7,7 @@ Covers:
 """
 import json
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -19,6 +19,7 @@ from content.models import (
     DiagnosticAttachment,
     ProposalDocument,
 )
+from content.tests.email_stubs import stub_email_message
 
 pytestmark = pytest.mark.django_db
 
@@ -88,7 +89,7 @@ def _base_payload(**overrides):
 def _email_service_patches(module):
     return [
         patch(f'{module}.render_to_string', return_value='<html>OK</html>'),
-        patch(f'{module}.EmailMultiAlternatives', return_value=MagicMock()),
+        patch(f'{module}.EmailMultiAlternatives', return_value=stub_email_message()),
     ]
 
 
@@ -147,7 +148,7 @@ class TestResolveProposalDocRefsViaEndpoint:
         self, mock_pdf_svc, mock_render, mock_email_cls, admin_client, proposal
     ):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = stub_email_message()
 
         payload = _base_payload(
             doc_refs=json.dumps([{'source': 'commercial_pdf'}]),
@@ -162,7 +163,7 @@ class TestResolveProposalDocRefsViaEndpoint:
         self, mock_render, mock_email_cls, admin_client, proposal, proposal_with_uploaded_doc
     ):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = stub_email_message()
 
         payload = _base_payload(
             doc_refs=json.dumps([{
@@ -204,7 +205,7 @@ class TestResolveDiagnosticDocRefsViaEndpoint:
         self, mock_render, mock_email_cls, admin_client, diagnostic
     ):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = stub_email_message()
 
         payload = _base_payload(
             doc_refs=json.dumps([{'source': 'template', 'slug': 'diagnostico-aplicacion'}]),
@@ -219,7 +220,7 @@ class TestResolveDiagnosticDocRefsViaEndpoint:
         self, mock_render, mock_email_cls, admin_client, diagnostic, diagnostic_with_attachment
     ):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = stub_email_message()
 
         payload = _base_payload(
             doc_refs=json.dumps([{
@@ -239,7 +240,7 @@ class TestResolveDiagnosticDocRefsViaEndpoint:
         self, mock_nda, mock_render, mock_email_cls, admin_client, diagnostic
     ):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = stub_email_message()
 
         payload = _base_payload(
             doc_refs=json.dumps([{'source': 'nda_final'}]),

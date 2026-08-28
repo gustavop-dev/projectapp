@@ -11,8 +11,9 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+
+from content.services.email_delivery_service import EmailMultiAlternatives
 
 logger = logging.getLogger(__name__)
 

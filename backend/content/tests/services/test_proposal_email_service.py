@@ -4,7 +4,7 @@ Covers: send_reminder, send_urgency_email, send_response_notification —
 happy paths, missing email, template rendering, error handling.
 """
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
@@ -19,13 +19,14 @@ from content.models import (
     ProposalShareLink,
 )
 from content.services.proposal_email_service import ProposalEmailService
+from content.tests.email_stubs import stub_email_message
 
 pytestmark = pytest.mark.django_db
 
 
 def _stub_email():
-    """Return a MagicMock email instance for EmailMultiAlternatives stubs."""
-    return MagicMock()
+    """Return a MIME-capable mock for EmailMultiAlternatives stubs."""
+    return stub_email_message()
 
 
 @pytest.fixture

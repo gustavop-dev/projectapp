@@ -97,7 +97,7 @@ class EmailAttachmentSnapshot(models.Model):
     )
     source_document = models.ForeignKey(
         'Document',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='email_attachment_snapshots',

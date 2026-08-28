@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from content.models import BusinessProposal, EmailLog, ProposalChangeLog
+from content.tests.email_stubs import stub_email_message
 
 pytestmark = pytest.mark.django_db
 
@@ -122,7 +123,7 @@ class TestSendBrandedEmailView:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_successful_send_returns_200(self, mock_render, mock_email_cls, admin_client, proposal):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = mock_render  # MagicMock with .send()
+        mock_email_cls.return_value = stub_email_message()
         response = admin_client.post(_send_url(proposal.id), _valid_payload())
         assert response.status_code == 200
         assert 'dest@example.com' in response.json()['message']
@@ -138,7 +139,7 @@ class TestSendProposalEmailView:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_successful_send_returns_200(self, mock_render, mock_email_cls, admin_client, proposal):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = mock_render
+        mock_email_cls.return_value = stub_email_message()
         response = admin_client.post(
             _send_url(proposal.id, 'proposal-email'), _valid_payload(),
         )
@@ -156,7 +157,7 @@ class TestSendProposalEmailView:
         with patch('content.services.proposal_email_service.EmailMultiAlternatives') as mock_cls, \
              patch('content.services.proposal_email_service.render_to_string') as mock_render:
             mock_render.return_value = '<html>OK</html>'
-            mock_cls.return_value = mock_render
+            mock_cls.return_value = stub_email_message()
             response = admin_client.post(
                 _send_url(proposal.id, 'proposal-email'), _valid_payload(),
             )
