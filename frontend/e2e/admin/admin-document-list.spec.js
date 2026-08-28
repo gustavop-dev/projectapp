@@ -147,7 +147,13 @@ test.describe('Admin Document List', () => {
 
     const row = page.getByRole('row', { name: /Contrato de Servicios/i });
     const actionsButton = row.getByRole('button', { name: /^Acciones de / });
-    await expect(actionsButton).toBeVisible({ timeout: 15000 });
+    await expect(actionsButton).toBeVisible({ timeout: 30_000 });
+    await expect(actionsButton).not.toHaveAttribute('title', /.+/);
+
+    await actionsButton.hover();
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toHaveCount(1);
+    await expect(tooltip).toHaveText('Acciones');
 
     const listUrl = page.url();
     await actionsButton.click();

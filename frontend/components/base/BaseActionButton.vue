@@ -32,7 +32,7 @@ const accessibleLabel = computed(() => (
 const tooltipLabel = computed(() => (
   (props.disabled && (
     props.disabledReason || `${accessibleLabel.value}: operación en curso. Espera un momento.`
-  )) || props.tooltip || accessibleLabel.value
+  )) || props.tooltip || definition.value.label || accessibleLabel.value
 ))
 </script>
 
@@ -40,7 +40,7 @@ const tooltipLabel = computed(() => (
   <BaseTooltip
     :text="tooltipLabel"
     :position="tooltipPosition"
-    width="max-w-xs"
+    width="w-max max-w-xs"
     min-width="min-w-0"
     trigger-class=""
     :toggle-on-click="disabled"
@@ -61,13 +61,13 @@ const tooltipLabel = computed(() => (
           :loading="loading"
           :disabled="disabled"
           :disabled-reason="disabledReason"
+          :native-title="false"
           :as="as"
           :to="to"
           icon-only
           :class="disabled ? 'pointer-events-none' : undefined"
           :aria-label="accessibleLabel"
           :aria-describedby="tooltipId"
-          :title="tooltipLabel"
           :data-panel-action="action"
           @click="emit('click', $event)"
         >

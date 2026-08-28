@@ -6499,11 +6499,11 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/history`
-- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
+- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. That reason remains reachable through a focusable accessible proxy and one application tooltip, without a duplicate native `title`. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
 - **Steps:**
   1. Superuser opens the Envíos subtab and clicks the eye on a row → the delivered message opens in a modal.
   2. On a failed row, the retry icon re-sends to that recipient; the list and its counts reload so the new attempt is visible.
-  3. A failed digest shows the retry disabled with the reason in its tooltip; a send that worked offers no retry at all.
+  3. A failed digest shows the retry disabled; activating its focusable proxy reveals exactly one tooltip with the reason, and the button has no native `title`. A send that worked offers no retry at all.
   4. Expanding a row names the records the email was about and, when applicable, the send it was a retry of.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-history-filters.spec.js`
@@ -7075,15 +7075,27 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
+### FLOW: `admin-document-gallery`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/documents`
+- **Description:** El gestor cambia de Lista a Galería y ve una tarjeta por documento con vista previa Markdown saneada, cliente, fecha, episodios de estado activos y un resumen `+N` cuando hay desborde. El botón de tres puntos abre la misma hoja de acciones de la lista, conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`.
+- **Steps:** entrar a Documentos → elegir Galería → leer una tarjeta real → enfocar o posar el cursor sobre el botón de acciones y ver un solo aviso `Acciones` → abrir la hoja de acciones.
+- **Branches:** las subcarpetas aparecen primero y aceptan arrastre; la preferencia de vista persiste; en móvil la galería es obligatoria y el toque abre la hoja sin depender de hover.
+- **Coverage:** ✅ Display y apertura de acciones cubiertos.
+- **E2E Spec:** `e2e/admin/admin-document-gallery.spec.js`
+
 ### FLOW: `admin-document-list`
 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
 - **Route:** `/panel/documents`
-- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. Los documentos manuales muestran episodios de workflow; las cuentas de cobro muestran en su lugar el estado comercial derivado (**Borrador, Emitida, Enviada, Envío fallido, Pagada o Anulada**). Una cuenta ya emitida sólo ofrece consulta, una descarga de su PDF contable y archivar/restaurar: no ofrece renombrar, mover, duplicar ni eliminar. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
-- **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → acceder a las acciones de la fila/tarjeta → cambiar entre activos, archivados y todos.
-- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; una cuenta emitida conserva el mismo estado comercial y las mismas acciones restringidas en tabla y tarjeta; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; ningún ancho produce scroll horizontal de página.
+- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. Los documentos manuales muestran episodios de workflow; las cuentas de cobro muestran en su lugar el estado comercial derivado (**Borrador, Emitida, Enviada, Envío fallido, Pagada o Anulada**). Una cuenta ya emitida sólo ofrece consulta, una descarga de su PDF contable y archivar/restaurar: no ofrece renombrar, mover, duplicar ni eliminar. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
+- **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → enfocar o posar el cursor sobre las acciones y ver un solo aviso `Acciones` → abrir el menú de la fila/tarjeta → cambiar entre activos, archivados y todos.
+- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; una cuenta emitida conserva el mismo estado comercial y las mismas acciones restringidas en tabla y tarjeta; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 

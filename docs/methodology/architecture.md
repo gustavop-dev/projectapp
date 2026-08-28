@@ -359,6 +359,14 @@ flowchart TD
 
 Panel operational actions resolve through a semantic action catalog. Consumers keep handlers, routes, permissions and loading state locally; the catalog owns only the canonical Heroicons 24 Outline glyph and default Spanish label. `BaseActionIcon`, `BaseActionButton` and catalog-backed menus apply that metadata so icon changes remain one-place changes, while the panel action guard blocks local SVG/emoji drift and inaccessible icon-only controls in CI.
 
+`BaseActionButton` also owns the complete tooltip boundary. Its visible
+hover/focus hint defaults to the short catalog label, while the consumer-provided
+`label` may retain row context as the accessible name. The wrapped `BaseButton`
+disables native `title` forwarding, so browsers cannot render a second tooltip;
+the application tooltip sizes to its short content up to one bounded maximum.
+This shared boundary applies equally to document rows/cards and every other
+panel consumer of the action primitive.
+
 Control availability is also a design-system contract. `BaseButton`,
 `BaseActionButton`, `BaseActionMenu`, `BaseSegmented` and
 `BaseSegmentedMulti` accept a specific disabled reason. When the operator can

@@ -14,7 +14,9 @@ describe('PanelRefreshButton', () => {
     const wrapper = mount(PanelRefreshButton, { props: { loading: true } });
     const btn = wrapper.find('button');
     expect(btn.attributes('disabled')).toBeDefined();
-    expect(btn.attributes('title')).toBe('Actualizando datos: operación en curso. Espera un momento.');
+    expect(btn.attributes('title')).toBeUndefined();
+    expect(wrapper.get('[data-disabled-action-proxy]').attributes('aria-label'))
+      .toContain('Actualizando datos: operación en curso. Espera un momento.');
     expect(wrapper.find('svg').classes()).toContain('animate-spin');
   });
 

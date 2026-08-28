@@ -16,11 +16,11 @@ const factory = (props = {}, attrs = {}) => mount(BaseActionButton, {
 describe('BaseActionButton', () => {
   afterEach(() => { document.body.innerHTML = '' })
 
-  it('uses the catalog label for its accessible name and tooltip', () => {
+  it('uses the catalog label for its accessible name', () => {
     const wrapper = factory()
     const button = wrapper.get('button')
     expect(button.attributes('aria-label')).toBe('Copiar')
-    expect(button.attributes('title')).toBe('Copiar')
+    expect(button.attributes('title')).toBeUndefined()
     expect(button.attributes('data-panel-action')).toBe('copy')
     expect(wrapper.getComponent(BaseActionIcon).props('action')).toBe('copy')
     const icon = wrapper.get('svg.base-action-icon')
@@ -28,10 +28,31 @@ describe('BaseActionButton', () => {
     expect(icon.classes()).toEqual(expect.arrayContaining(['!h-4', '!w-4']))
   })
 
-  it('uses one contextual label for the name and hover help', () => {
-    const wrapper = factory({ label: 'Copiar URL pública' })
-    expect(wrapper.get('button').attributes('aria-label')).toBe('Copiar URL pública')
-    expect(wrapper.get('button').attributes('title')).toBe('Copiar URL pública')
+  it('keeps contextual detail in the accessible name', () => {
+    const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
+    const button = wrapper.get('button')
+
+    expect(button.attributes('aria-label')).toBe('Acciones de Contrato de Servicios')
+    expect(button.attributes('title')).toBeUndefined()
+  })
+
+  it('shows the short catalog label in the application tooltip', async () => {
+    const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
+
+    await wrapper.get('button').trigger('focusin')
+
+    const tooltip = wrapper.get('[role="tooltip"]')
+    expect(tooltip.text()).toContain('Acciones')
+    expect(tooltip.text()).not.toContain('Contrato de Servicios')
+    expect(tooltip.classes()).toEqual(expect.arrayContaining(['w-max', 'max-w-xs']))
+  })
+
+  it('prefers an explicit application tooltip', async () => {
+    const wrapper = factory({ label: 'Copiar URL pública', tooltip: 'Copiar enlace' })
+
+    await wrapper.get('button').trigger('focusin')
+
+    expect(wrapper.get('[role="tooltip"]').text()).toContain('Copiar enlace')
   })
 
   it('forwards button behavior and consumer attributes', async () => {
