@@ -135,7 +135,11 @@ test.describe('Admin Document Gallery', () => {
     await page.goto('/panel/documents');
 
     await page.getByTestId('doc-view-grid').click();
-    await page.getByRole('button', { name: 'Acciones de Contrato de Servicios' }).click();
+    const actionsButton = page.getByRole('button', { name: 'Acciones de Contrato de Servicios' });
+    await expect(actionsButton).not.toHaveAttribute('title', /.+/);
+    await actionsButton.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Acciones');
+    await actionsButton.click();
 
     await expect(page.getByRole('button', { name: /Descargar PDF · Amigable/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Descargar PDF · Profesional/i })).toBeVisible();

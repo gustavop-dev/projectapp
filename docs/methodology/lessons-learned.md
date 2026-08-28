@@ -1275,23 +1275,23 @@ guarantees. When evolving stored proposal JSON, update live defaults and editabl
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
 
-## 53. Outbound delivery evidence belongs before the SMTP boundary
+## 52. A visual tooltip and an accessible name serve different readers
 
-Logging a filename or regenerating a document later answers what the system has
-*now*, not what the recipient received. Build the MIME message first, persist the
-decoded attachment bytes, recognition metadata, body and user-facing links, and
-only then call the external mail backend. A storage failure must stop delivery;
-otherwise the system knowingly creates an unauditable success.
+An icon-only row action may need a contextual accessible name such as **Acciones
+de Contrato de Servicios**, but repeating that string in a hover hint adds no
+value when the document title is already visible. Keep the application tooltip
+short and canonical, keep row context in `aria-label`, and let touch users reach
+the same action through the button itself rather than depending on hover help.
 
-The primary recipient and internal BCC attempts belong to one delivery snapshot,
-while their outcomes remain separate log rows. Resending creates a new delivery
-and lineage but reads subject, body and attachments from the retained snapshot;
-only the recipient is editable. When old rows lack evidence, use explicit
-`legacy_partial`/`legacy_unknown` states—never substitute the current Document.
-Keep the live Document relation for navigation and deletion protection, while
-the attachment filename, type name, hash and bytes remain historical fields.
+Tooltip ownership must be singular at the rendered DOM boundary. Wrapping a
+button in an application tooltip while also forwarding `title` creates two
+competing notices. In Vue, removing an explicit `:title` binding is not enough
+when `$attrs` can still fall through automatically: the owning primitive must
+filter `title` deliberately while preserving `aria-*`, `data-*` and link
+semantics. Test the rendered attribute and the visible `role="tooltip"`
+separately; each protects a different half of the contract.
 
-## 52. A primary selection catalog is modal content, not a dropdown
+## 53. A primary selection catalog is modal content, not a dropdown
 
 Fixing a dropdown's clipping can expose a second problem: reserving enough room
 for a click-triggered overlay leaves the dialog inexplicably empty before the
@@ -1312,3 +1312,19 @@ the small user preference locally. Geometry tests must prove at least five full
 rows, one list-owned scrollbar, a stationary modal, visible review content and
 the full-screen compact contract; a screenshot of an open dropdown proves none
 of those boundaries.
+
+## 54. Outbound delivery evidence belongs before the SMTP boundary
+
+Logging a filename or regenerating a document later answers what the system has
+*now*, not what the recipient received. Build the MIME message first, persist the
+decoded attachment bytes, recognition metadata, body and user-facing links, and
+only then call the external mail backend. A storage failure must stop delivery;
+otherwise the system knowingly creates an unauditable success.
+
+The primary recipient and internal BCC attempts belong to one delivery snapshot,
+while their outcomes remain separate log rows. Resending creates a new delivery
+and lineage but reads subject, body and attachments from the retained snapshot;
+only the recipient is editable. When old rows lack evidence, use explicit
+`legacy_partial`/`legacy_unknown` states—never substitute the current Document.
+Keep the live Document relation for navigation and deletion protection, while
+the attachment filename, type name, hash and bytes remain historical fields.

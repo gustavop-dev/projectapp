@@ -168,6 +168,7 @@ describe('DocumentCard', () => {
     const wrapper = await mountCard()
     const kebab = wrapper.find('button[aria-label="Acciones de Contrato de Servicios"]')
     expect(kebab.attributes('aria-label')).toBe('Acciones de Contrato de Servicios')
+    expect(kebab.attributes('title')).toBeUndefined()
   })
 
   it('emits dragstart/dragend and dims while dragging', async () => {

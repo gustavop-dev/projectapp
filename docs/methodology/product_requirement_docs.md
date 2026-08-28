@@ -513,7 +513,7 @@ The canonical counts, commands and exceptions are maintained in
   reason. A transient operation uses its active status label. The collection
   account flow additionally warns about clients without email in the selector
   and permits an explicit inline repair without losing the draft.
-- **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
+- **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose exactly one short, readable hover/focus hint, an accessible name and a touch target of at least 44×44 px. Row context belongs in the accessible name, not in the visual hint, and an application tooltip must suppress the duplicate native browser `title`; decorative, status and editable-content symbols are not action glyphs.
 - **Text containment**: Every panel table, card and metadata row must contain
   arbitrary user/API strings, including values with no spaces, at every canonical
   viewport. Data-owned prose/identifiers wrap with intrinsic-safe break
