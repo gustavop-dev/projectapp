@@ -120,9 +120,12 @@ def update_proposal(arguments):
     serializer = ProposalFromJSONSerializer(data=data, context={'proposal': proposal})
     if not serializer.is_valid():
         raise ToolError(_serializer_errors_to_message(serializer.errors))
-    proposal, _updated, unmapped_keys = proposal_service.apply_proposal_json_update(
-        proposal, serializer.validated_data,
-    )
+    try:
+        proposal, _updated, unmapped_keys = proposal_service.apply_proposal_json_update(
+            proposal, serializer.validated_data,
+        )
+    except ValueError as exc:  # includes ProposalActionError
+        raise ToolError(str(exc))
     payload = _detail(proposal)
     if unmapped_keys:
         payload['warnings'] = [f'Claves de sección ignoradas: {", ".join(unmapped_keys)}.']
