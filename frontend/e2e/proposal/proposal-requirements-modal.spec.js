@@ -58,6 +58,24 @@ const mockProposal = {
               { icon: '📱', name: 'Navbar', description: 'Barra de navegación responsive' },
             ],
           },
+          {
+            id: 'features',
+            icon: '⚙️',
+            title: 'Funcionalidades Específicas',
+            description: 'Comportamientos propios del negocio.',
+            items: [
+              { icon: '🔎', name: 'Búsqueda', description: 'Búsqueda por criterios del negocio' },
+            ],
+          },
+          {
+            id: 'cross_cutting_features',
+            icon: '🔗',
+            title: 'Funcionalidades Transversales',
+            description: 'Calidades que atraviesan las experiencias del proyecto.',
+            items: [
+              { icon: '📱', name: 'Diseño Responsive', description: 'Experiencia adaptada a los dispositivos priorizados' },
+            ],
+          },
         ],
         additionalModules: [],
       },
@@ -94,11 +112,15 @@ test.describe('Proposal Functional Requirements Modal', () => {
       return null;
     });
 
+    // quality: allow-deep-link (the shared proposal permalink is the guest's
+    // documented entry point; this test then exercises the requirement cards)
     await navigateToRequirements(page);
 
-    // Both group cards should be visible
+    // The four core group cards should be visible
     await expect(page.getByText('Vistas')).toBeVisible();
     await expect(page.getByText('Componentes')).toBeVisible();
+    await expect(page.getByText('Funcionalidades Específicas')).toBeVisible();
+    await expect(page.getByText('Funcionalidades Transversales')).toBeVisible();
 
     // Click the Vistas group card using the "Ver detalle" link inside it
     const vistasCard = page.getByText('Vistas').first();
@@ -127,6 +149,25 @@ test.describe('Proposal Functional Requirements Modal', () => {
     // Modal should show Componentes items
     await expect(page.getByText('Navbar')).toBeVisible({ timeout: 3000 });
     await expect(page.getByText('Barra de navegación responsive')).toBeVisible();
+  });
+
+  test('cross-cutting card opens its contextual items', {
+    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === `proposals/${MOCK_UUID}/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      }
+      return null;
+    });
+
+    // quality: allow-deep-link (the shared proposal permalink is the guest's
+    // documented entry point; this test then exercises the requirement card)
+    await navigateToRequirements(page);
+    await page.getByText('Funcionalidades Transversales').first().click();
+
+    await expect(page.getByText('Diseño Responsive')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Experiencia adaptada a los dispositivos priorizados')).toBeVisible();
   });
 });
 

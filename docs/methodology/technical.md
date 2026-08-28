@@ -475,6 +475,11 @@ confirmed by the operator or another integration.
 - Each proposal section's `content_json` matches the props schema of its Vue component
 - Enables rich, structured content without a full CMS
 - Blog supports dual format: structured JSON (preferred) with HTML fallback
+- `functional_requirements.groups` has nine base entries because five
+  value-added-module catalogs remain stored there for shared data. Its first four
+  client-facing entries are ordered `views`, `components`, `features`,
+  `cross_cutting_features`; the last id is structurally required and protected
+  from whole-group deletion, while its internal content remains editable.
 
 ### Proposal presentation and traceability contracts
 
@@ -484,6 +489,17 @@ confirmed by the operator or another integration.
 - Responsive acceptance is based on usable inner width. `FinalNote` switches to two columns at `xl` and keeps each column above 520 px at a 1366 px viewport; investment payment rows allow the label to wrap but apply `shrink-0 whitespace-nowrap tabular-nums` to the amount so the tax suffix remains attached.
 - `buildProposalItemLinkOptions()` marks each commercial item as required, optional or ignored from its real group visibility/selection. `buildTechnicalItemCoverage()` compares those ids against technical `linked_item_ids`; the technical editor refuses to emit `save` while required gaps remain.
 - Public requirement cards receive `itemRequirementsMap` in detailed and executive modes. A base item is never filtered merely because it has no calculator selection; only uncontracted optional-module requirements are removed.
+- The commercial prompt treats `cross_cutting_features` as a contextual starter
+  catalog, distinguishes it from project-specific behavior and forbids unsupported
+  compliance/performance promises. The technical prompt requires an epic with the
+  exact same id and links every retained commercial item through
+  `linked_item_ids`; an extra technical-only cross-cutting epic may exist only at
+  the end and may not duplicate the commercial card.
+- Data migration `content.0222_cross_cutting_features` updates
+  `ProposalDefaultConfig` and active draft functional-requirement snapshots only.
+  It inserts after `features`, preserves a customized existing group, and moves
+  the legacy responsive item with its stable id. Reverse is intentionally a
+  no-op so contractual history is never reconstructed destructively.
 - Commercial and technical generation prompts preserve scope discipline: requirement lifting, QA and deployment are distinct processes; warranty text comes from contractual context; analytics is never inferred; institutional users/roles/admin are not invented; requirements should normally fit a 1–3 point story and external feeds should model source, ingestion, resource version, health, cache/retention and last-valid-data semantics separately.
 
 ### Contract terms are global proposal metadata, not section JSON

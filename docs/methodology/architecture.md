@@ -739,6 +739,8 @@ flowchart TD
 
     ProposalPage --> ProposalClosing["Synthetic final closing panel"]
 
+    FunctionalRequirements --> CoreRequirementCards["views · components · features · cross_cutting_features"]
+    CoreRequirementCards --> ContextualQuality["Editable quality scope by business, stage and proposal"]
     FunctionalRequirements --> ItemRequirementsMap["item id → linked technical requirements"]
     ItemRequirementsMap --> LinkedRequirementsModal["Ver requerimientos (N)"]
 
@@ -754,6 +756,17 @@ flowchart TD
 `next_steps` is data-only in the public route: it is not rendered as an independent horizontal panel. Its prerequisite steps are merged into `FinalNote`, while commercial calls to action and contact channels are passed to the synthetic `ProposalClosing` panel in detailed, executive and technical modes. This keeps the commitment narrative distinct from the final response/contact surface.
 
 Commercial item traceability is inclusion-aware. Visible base groups always require coverage; calculator modules require it only when selected/default-selected, and hidden groups are ignored. `TechnicalDocumentEditor` blocks saving when an included item has no technical requirement in `linked_item_ids`, but reports unselected optional gaps as non-blocking warnings. The same mapping powers the client-facing “Ver requerimientos (N)” link for base and contracted-module cards.
+
+The functional-requirements JSON starts with four core presentation groups in a
+stable order: `views`, `components`, `features`, and
+`cross_cutting_features`. The latter is a required container but not fixed
+content: proposal generation adapts its quality items to the business, stage,
+audience and actual scope. Every retained item receives a stable id and the
+technical prompt creates the matching epic plus `linked_item_ids`; PDF rendering,
+the proposal module catalog and proposal→project scope synchronization consume
+all groups generically. Migration `content.0222` inserts the group into stored
+defaults and active draft snapshots, moves the legacy responsive item without
+changing its id, and deliberately leaves historical proposals untouched.
 
 ---
 
@@ -871,7 +884,7 @@ The explicit `$proposal-create` / `/proposal-create` workflow can precede the pa
 
 1. Admin creates proposal via `/panel/proposals/create` (or JSON import)
 2. Admin selects an existing client from `<ClientAutocomplete>` (or types a new one). Backend resolves the client via `proposal_client_service.get_or_create_client_for_proposal()` — case-insensitive dedup by `User.email`, never hijacks admin accounts. Empty emails get a placeholder `cliente_<id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save, which automatically pauses every email automation for that proposal until a real address is entered.
-3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF). The frontend seller prompt and backend `_seller_prompt.bold_formatting` share the same 14-field lead-copy emphasis contract; both must remain aligned. `show_contract_terms` remains separate top-level metadata, so enabling the fourth reading mode does not mutate this section snapshot or its prompt/JSON shape.
+3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF). Functional requirements begin with the four core cards `views` → `components` → `features` → `cross_cutting_features`; the fourth container is stable while its quality items are contextual. The frontend seller prompt and backend `_seller_prompt.bold_formatting` share the same 14-field lead-copy emphasis contract; both must remain aligned. `show_contract_terms` remains separate top-level metadata, so enabling the fourth reading mode does not mutate this section snapshot or its prompt/JSON shape.
 4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
 5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
 6. Client opens unique link `/proposal/{uuid}`
