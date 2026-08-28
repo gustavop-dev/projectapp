@@ -25,6 +25,7 @@ const newState = reactive({
   color: 'gray',
   group: '',
   operational_effect: props.operationalEffects[0]?.value || '',
+  show_in_document_manager: false,
 });
 const newGroup = reactive({ name: '', selection_mode: 'additive' });
 const editing = reactive({});
@@ -71,7 +72,10 @@ async function createState(confirmSimilar = false) {
     name,
     confirm_similar: confirmSimilar,
   };
-  if (!hasOperationalEffects.value) delete payload.operational_effect;
+  if (!hasOperationalEffects.value) {
+    delete payload.operational_effect;
+    delete payload.show_in_document_manager;
+  }
   const result = await props.stateStore.createState(payload);
   if (result.needsConfirmation) {
     const names = result.suggestions.map((item) => item.name).join(', ');
@@ -92,6 +96,7 @@ async function createState(confirmSimilar = false) {
   }
   newState.name = '';
   newState.description = '';
+  newState.show_in_document_manager = false;
   notify.success({ title: 'Estado creado' });
 }
 
@@ -104,6 +109,7 @@ function editDraft(state) {
       group: state.group,
       order: state.order,
       operational_effect: state.operational_effect || '',
+      show_in_document_manager: Boolean(state.show_in_document_manager),
       incompatibility_ids: [...(state.incompatibility_ids || [])],
     };
   }
@@ -136,7 +142,10 @@ async function saveGroup(group) {
 
 async function saveState(state) {
   const payload = { ...editDraft(state) };
-  if (!hasOperationalEffects.value) delete payload.operational_effect;
+  if (!hasOperationalEffects.value) {
+    delete payload.operational_effect;
+    delete payload.show_in_document_manager;
+  }
   const result = await props.stateStore.updateState(state.id, payload);
   if (result.success) {
     delete editing[state.id];
@@ -256,6 +265,18 @@ function activeCount(state) {
           placeholder="Qué significa este estado para quien lo elige"
           data-testid="catalog-new-state-description"
         />
+        <label v-if="hasOperationalEffects" class="flex items-start gap-2 text-sm text-text-default">
+          <input
+            v-model="newState.show_in_document_manager"
+            type="checkbox"
+            class="mt-0.5 rounded border-input-border text-text-brand focus:ring-focus-ring/30"
+            data-testid="catalog-new-state-document-visibility"
+          />
+          <span>
+            Mostrar sus proyectos en Documentos
+            <span class="block text-xs text-text-subtle">Los demás siguen accesibles con «Ver todos» y la búsqueda.</span>
+          </span>
+        </label>
         <p v-if="hasOperationalEffects" class="text-xs text-text-subtle">
           El nombre se puede cambiar; el efecto define cobros, avisos y cierre.
         </p>
@@ -380,6 +401,18 @@ function activeCount(state) {
               :aria-label="`Descripción de ${state.name}`"
               :data-testid="`catalog-state-description-${state.id}`"
             />
+            <label v-if="hasOperationalEffects" class="flex items-start gap-2 text-sm text-text-default">
+              <input
+                v-model="editDraft(state).show_in_document_manager"
+                type="checkbox"
+                class="mt-0.5 rounded border-input-border text-text-brand focus:ring-focus-ring/30"
+                :data-testid="`catalog-state-document-visibility-${state.id}`"
+              />
+              <span>
+                Mostrar sus proyectos en Documentos
+                <span class="block text-xs text-text-subtle">Desmarcarlo sólo los oculta de la lista vigente.</span>
+              </span>
+            </label>
           </div>
           <div v-if="state.is_active" class="flex flex-wrap items-center gap-2">
             <select v-model="mergeTargets[state.id]" :aria-label="`Destino para fusionar ${state.name}`" class="rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-xs">

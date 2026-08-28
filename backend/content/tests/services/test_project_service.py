@@ -16,6 +16,7 @@ from content.models import (
     CommunicationThread,
     Document,
     DocumentCollectionAccount,
+    DocumentFolder,
     HostingRecord,
     IncomeRecord,
 )
@@ -144,9 +145,10 @@ class TestPreview:
 
 
 class TestApplyMove:
-    def test_moves_records_refreshes_snapshots_and_audits(
+    def test_move_refreshes_linked_records(
         self, superuser, make_client_profile,
     ):
+        """Falla si mover un proyecto deja registros operativos con el cliente previo."""
         old = make_client_profile()
         new = make_client_profile()
         project = make_project(old)
@@ -157,7 +159,7 @@ class TestApplyMove:
             expected_income=expected, concept='Abono',
         )
 
-        result = project_service.change_client_apply(
+        project_service.change_client_apply(
             project, new, project_service.MODE_MOVE, superuser,
         )
 
@@ -175,9 +177,46 @@ class TestApplyMove:
         assert liquid.client_id == new.pk
         assert liquid.project_id == project.pk
         assert expected.project_id == project.pk
-        assert result['moved'] == {
-            'hostings': 1, 'incomes': 1, 'draft_accounts': 0,
-        }
+
+    def test_move_synchronizes_managed_folder_tree(
+        self, superuser, make_client_profile,
+    ):
+        """Falla si el cambio de cliente deja la raíz o sus hijos con otro dueño."""
+        old = make_client_profile()
+        new = make_client_profile()
+        project = make_project(old)
+        root = project.document_root_folder
+        folder_ids = [root.id, *root.children.values_list('id', flat=True)]
+
+        result = project_service.change_client_apply(
+            project, new, project_service.MODE_MOVE, superuser,
+        )
+
+        assert result['moved']['project_folders'] == len(folder_ids)
+        assert list(
+            DocumentFolder.objects.filter(pk__in=folder_ids)
+            .order_by('id')
+            .values_list('project_id', 'client_user_id')
+        ) == [(project.id, new.user_id)] * len(folder_ids)
+
+    def test_move_audits_changed_records(
+        self, superuser, make_client_profile,
+    ):
+        """Falla si mover registros deja de registrar su auditoría contable."""
+        old = make_client_profile()
+        new = make_client_profile()
+        project = make_project(old)
+        hosting = make_hosting(old, project)
+        expected = make_income(old, project)
+        liquid = make_income(
+            old, project, kind=IncomeRecord.Kind.LIQUID,
+            expected_income=expected, concept='Abono',
+        )
+
+        project_service.change_client_apply(
+            project, new, project_service.MODE_MOVE, superuser,
+        )
+
         assert audit_rows(EntityType.PROJECT, project.pk).count() == 1
         assert audit_rows(EntityType.HOSTING, hosting.pk).count() == 1
         assert audit_rows(EntityType.INCOME, expected.pk).count() == 1
@@ -271,6 +310,8 @@ class TestApplyDetach:
         old = make_client_profile()
         new = make_client_profile()
         project = make_project(old)
+        root = project.document_root_folder
+        folder_ids = [root.id, *root.children.values_list('id', flat=True)]
         hosting = make_hosting(old, project)
         expected = make_income(old, project)
         child = make_income(
@@ -298,6 +339,11 @@ class TestApplyDetach:
         assert result['detached'] == {
             'hostings': 1, 'incomes': 1, 'draft_accounts': 1,
         }
+        assert list(
+            DocumentFolder.objects.filter(pk__in=folder_ids)
+            .order_by('id')
+            .values_list('project_id', 'client_user_id')
+        ) == [(project.id, new.user_id)] * len(folder_ids)
 
 
 class TestDeletionBlockers:

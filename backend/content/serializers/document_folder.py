@@ -50,6 +50,9 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
     archived_document_count = serializers.SerializerMethodField()
     archived_children_count = serializers.SerializerMethodField()
     archived_cause = serializers.SerializerMethodField()
+    folder_kind = serializers.CharField(read_only=True)
+    managed_project_state = serializers.SerializerMethodField()
+    is_project_visible = serializers.SerializerMethodField()
     parent = serializers.PrimaryKeyRelatedField(
         queryset=DocumentFolder.objects.all(),
         required=False,
@@ -84,6 +87,8 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
         fields = (
             'id', 'name', 'slug', 'parent', 'order',
             'client', 'client_display_name', 'project', 'project_name',
+            'managed_project', 'folder_kind', 'managed_project_state',
+            'is_project_visible',
             'document_count', 'children_count',
             'active_document_count', 'active_children_count',
             'archived_document_count', 'archived_children_count',
@@ -95,6 +100,8 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
         # archivar saltándose la cascada del servicio.
         read_only_fields = (
             'slug', 'created_at', 'updated_at', 'is_archived', 'archived_at',
+            'managed_project', 'folder_kind', 'managed_project_state',
+            'is_project_visible',
         )
 
     def get_document_count(self, obj):
@@ -143,6 +150,23 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             return None
         return 'folder' if obj.archived_via_folder_id else 'manual'
 
+    def get_managed_project_state(self, obj):
+        project = getattr(obj, 'managed_project', None)
+        state = getattr(project, 'current_state', None) if project else None
+        if state is None:
+            return None
+        return {
+            'id': state.pk,
+            'name': state.name,
+            'system_key': state.system_key,
+            'color': state.color,
+            'show_in_document_manager': state.show_in_document_manager,
+        }
+
+    def get_is_project_visible(self, obj):
+        state = self.get_managed_project_state(obj)
+        return bool(state and state['show_in_document_manager'])
+
     def to_representation(self, instance):
         """Devuelve `client` como pk de UserProfile (el campo es write_only)."""
         data = super().to_representation(instance)
@@ -151,6 +175,29 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
 
     def validate(self, attrs):
         """Misma regla de asociación que los documentos, sin `client_name`."""
+        if self.instance is not None and self.instance.managed_project_id:
+            protected = {'name', 'parent', 'client', 'project'}
+            if protected.intersection(self.initial_data):
+                raise serializers.ValidationError({
+                    'detail': (
+                        'La raíz del proyecto se administra desde el proyecto, '
+                        'no desde el Gestor Documental.'
+                    ),
+                    'code': 'managed_project_folder',
+                })
+
+        # Crear dentro de una carpeta copia su eje de proyecto/cliente cuando
+        # el caller no eligió otro. Esto vuelve efectiva PA-64 también para MCP
+        # y otros callers que no pasan los defaults precargados del formulario.
+        if self.instance is None:
+            parent = attrs.get('parent')
+            association_sent = {'client', 'project'}.intersection(self.initial_data)
+            if parent is not None and not association_sent:
+                profile = getattr(parent.client_user, 'profile', None)
+                if profile is not None:
+                    attrs['client'] = profile
+                if parent.project_id:
+                    attrs['project'] = parent.project
         return apply_client_project_association(
             attrs, self.instance, snapshot_client_name=False,
         )

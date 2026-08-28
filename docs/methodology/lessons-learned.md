@@ -1269,3 +1269,21 @@ instead of inventing certification levels, browser matrices or performance
 guarantees. When evolving stored proposal JSON, update live defaults and editable
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
+
+## 52. Semantic association and lifecycle ownership need separate fields
+
+A folder may point at a project without being the project's system-owned root.
+Reusing the ordinary `project` relation for both meanings makes every descendant
+look immutable and leaves no reliable way to distinguish a hand-made hierarchy
+from the canonical entry point. Keep semantic inheritance on `project`/`client`
+and represent lifecycle ownership with a separate one-to-one relation whose
+invariants are enforced in the database and every mutation surface.
+
+Historical name matching is evidence, not authorization. A safe reconciliation
+first emits a stable inventory with proposed actions, impacts and conflicts; a
+human decides every pending row; apply revalidates both the plan digest and the
+database fingerprint inside one transaction. This makes ambiguous client/project
+names visible before documents move and prevents an approved proposal from being
+silently applied to a later database state. Preserve an inverse snapshot even when
+the write is atomic: rollback of data classification is an operational procedure,
+not just a transaction primitive.

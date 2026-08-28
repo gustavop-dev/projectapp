@@ -60,7 +60,7 @@ function archivedContentCount(folder) {
         'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
           dragOverFolderId === sub.id,
       }"
-      :draggable="!sub.is_archived"
+      :draggable="!sub.is_archived && sub.folder_kind !== 'project'"
       :data-testid="`folder-card-${sub.id}`"
       @click="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
@@ -82,6 +82,9 @@ function archivedContentCount(folder) {
         :title="sub.name"
         @click="onFolderLink($event, sub)"
       >{{ sub.name }}</BaseRowLink>
+      <BaseBadge v-if="sub.folder_kind === 'project'" variant="info" size="sm">
+        Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
+      </BaseBadge>
       <span class="text-xs text-text-subtle">
         {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
       </span>

@@ -2,8 +2,10 @@
 import json
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+from accounts.models import Project, UserProfile
 from content.models import (
     Document,
     DocumentFolder,
@@ -141,6 +143,46 @@ class TestDocumentsMcpFolders:
         _, token = documents_connector
         response = _call(api_client, token, 'rename_folder', {'name': 'Nuevo'})
         assert response.data['result']['isError'] is True
+
+    def test_create_folder_inherits_managed_project(self, api_client, documents_connector):
+        user = get_user_model().objects.create_user(
+            username='mcp-project@example.com', email='mcp-project@example.com',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='MCP Project', client=user)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'create_folder', {
+            'name': 'QA extra', 'parent_id': project.document_root_folder.id,
+        })
+
+        assert response.data['result']['isError'] is False
+        folder = DocumentFolder.objects.get(name='QA extra')
+        assert folder.project_id == project.id
+        assert folder.client_user_id == user.id
+
+    def test_rename_folder_rejects_managed_project_root(
+        self, api_client, documents_connector,
+    ):
+        """Falla si MCP permite desincronizar el nombre de una raíz automática."""
+        user = get_user_model().objects.create_user(
+            username='mcp-root@example.com', email='mcp-root@example.com',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='MCP Root', client=user)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'rename_folder', {
+            'folder_id': project.document_root_folder.id,
+            'name': 'Bypass',
+        })
+
+        assert response.data['result']['isError'] is True
+        assert response.data['result']['content'][0]['text'] == (
+            'La raíz de un proyecto se renombra desde el módulo Proyectos.'
+        )
+        project.document_root_folder.refresh_from_db()
+        assert project.document_root_folder.name == 'MCP Root'
 
 
 @pytest.mark.django_db

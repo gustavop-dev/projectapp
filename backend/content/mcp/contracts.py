@@ -97,7 +97,17 @@ MCP_MODEL_CONTRACTS = {
             excluded=_excluded(
                 'El catálogo de estados se administra en el panel; MCP aplica estados activos.',
                 'normalized_name slug order is_active merged_into created_by '
-                'updated_by created_at updated_at incompatibilities',
+                'updated_by created_at updated_at incompatibilities '
+                'show_in_document_manager',
+            ),
+        ),
+        _contract(
+            'content.DocumentFolder',
+            read_only='id slug managed_project created_at updated_at',
+            read_write='name parent project client_user order',
+            excluded=_excluded(
+                'El archivado de carpetas es una cascada reservada al panel.',
+                'is_archived archived_at archived_via_folder',
             ),
         ),
         _contract(

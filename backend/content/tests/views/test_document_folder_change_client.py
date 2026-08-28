@@ -5,7 +5,7 @@ modo se elige siempre, y los ids del plan viajan de vuelta como token para que
 lo que corre sea exactamente lo que se mostró.
 """
 import pytest
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
@@ -37,6 +37,11 @@ def folder(kore):
     return DocumentFolder.objects.create(name='Kore', client_user=kore.user)
 
 
+@pytest.fixture
+def managed_project(kore):
+    return Project.objects.create(name='Kore Project', client=kore.user)
+
+
 def preview_url(folder):
     return reverse(
         'preview-document-folder-client-change', kwargs={'folder_id': folder.id},
@@ -50,6 +55,13 @@ def apply_url(folder):
 
 
 class TestPreviewFolderClientChange:
+    def test_managed_project_root_is_rejected(self, admin_client, managed_project):
+        """Falla si el preview permite cambiar el cliente de una raíz automática."""
+        response = admin_client.get(preview_url(managed_project.document_root_folder))
+
+        assert response.status_code == 409
+        assert response.json()['code'] == 'managed_project_folder'
+
     def test_returns_the_impact_without_writing(self, admin_client, folder, kore, ana):
         document = Document.objects.create(
             title='A', folder=folder, client_user=kore.user,
@@ -83,6 +95,15 @@ class TestPreviewFolderClientChange:
 
 
 class TestApplyFolderClientChange:
+    def test_managed_project_root_is_rejected(self, admin_client, managed_project):
+        """Falla si el apply permite cambiar el cliente de una raíz automática."""
+        response = admin_client.post(
+            apply_url(managed_project.document_root_folder), {}, format='json',
+        )
+
+        assert response.status_code == 409
+        assert response.json()['code'] == 'managed_project_folder'
+
     def test_propagate_moves_the_confirmed_plan(
         self, admin_client, folder, kore, ana,
     ):

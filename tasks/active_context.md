@@ -2,6 +2,23 @@
 
 ## Current State
 
+**2026-08-28 — Carpetas automáticas de proyecto listas para integrar:** el gestor
+documental separa Proyectos de Carpetas y asigna a cada proyecto nuevo una raíz
+protegida que sigue su nombre. La visibilidad del primer bloque se configura en
+el catálogo de estados (En desarrollo, Activo y En evolución arrancan visibles),
+con Ver todos para conservar acceso a suspendidos o retirados. La plantilla
+inicial incluye Cuentas de cobro, Propuestas, Entregables y QA; todo descendiente
+hereda proyecto/cliente salvo asociación explícita. REST, MCP, admin y restricciones
+de base impiden alterar el primer nivel automático, mientras borrar el proyecto
+conserva la jerarquía como carpeta manual. La migración histórica **no se aplicó**:
+`reconcile_project_folders --plan` genera JSON + propuesta Markdown y sólo
+`--apply-reviewed` con todas las decisiones, fingerprint y SHA vigentes puede
+convertir, crear o anidar; además escribe un snapshot inverso. Pendiente tras
+deploy: generar el plan sobre producción, revisar el emparejamiento completo con
+el operador y aplicar únicamente el artefacto confirmado. Las slices backend
+afectadas, 47 pruebas unitarias del sidebar y 19 E2E están verdes; también pasan
+Django/schema checks, build Nuxt y el mapa de 343 flows con 0 missing/junk-only.
+
 **2026-08-28 — Cuarta tarjeta contextual de requerimientos lista para integrar:**
 `functional_requirements` incorpora `cross_cutting_features` después de
 `features` en los defaults ES/EN. La tarjeta conserva un contenedor obligatorio
