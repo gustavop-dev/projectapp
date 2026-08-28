@@ -133,6 +133,20 @@ describe('BaseButton', () => {
       .toBe('Selecciona un cliente antes de continuar.')
   })
 
+  it('suppresses the native title for an owning tooltip primitive', () => {
+    const wrapper = mount(BaseButton, {
+      props: {
+        disabled: true,
+        disabledReason: 'Selecciona un cliente antes de continuar.',
+        nativeTitle: false,
+      },
+      attrs: { title: 'Ayuda duplicada' },
+      slots: { default: 'Continuar' },
+    })
+
+    expect(wrapper.get('button').attributes('title')).toBeUndefined()
+  })
+
   it('renders a spinner and disables the button when loading is true', () => {
     const wrapper = mount(BaseButton, { props: { loading: true }, slots: { default: 'Guardando' } })
     expect(wrapper.find('svg').exists()).toBe(true)
