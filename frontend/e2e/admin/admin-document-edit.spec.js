@@ -290,6 +290,8 @@ test.describe('Admin Document Edit', () => {
   test('opens the exact email history row that used this document', {
     tag: [...ADMIN_DOCUMENT_EMAIL_HISTORY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the authenticated module entry;
+    // from there this test follows the real list → editor → email history path)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') {
