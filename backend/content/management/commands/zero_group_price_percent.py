@@ -10,8 +10,16 @@ from django.core.management.base import BaseCommand
 
 from content.models import ProposalSection
 
-STANDARD_GROUP_IDS = {'views', 'components', 'features', 'admin_module',
-                      'analytics_dashboard', 'kpi_dashboard_module', 'manual_module'}
+STANDARD_GROUP_IDS = {
+    'views',
+    'components',
+    'features',
+    'cross_cutting_features',
+    'admin_module',
+    'analytics_dashboard',
+    'kpi_dashboard_module',
+    'manual_module',
+}
 
 
 class Command(BaseCommand):

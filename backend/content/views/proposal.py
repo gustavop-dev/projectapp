@@ -790,6 +790,19 @@ def get_proposal_json_template(request):
             'Every item MUST carry a stable "id" — see '
             'CRITICAL_functionalRequirements_itemIds.'
         ),
+        'CRITICAL_crossCuttingFeatures': (
+            'The required group with id "cross_cutting_features" belongs immediately after '
+            '"features". It is a CONTEXTUAL STARTER CATALOG, not fixed boilerplate: review '
+            'responsive design, accessibility, consistent usability, performance, security, '
+            'data privacy, and browser compatibility against the business, product stage, '
+            'audience, and actual proposal scope. Keep, rewrite, remove, or add individual '
+            'items as justified, but keep the group non-empty and preserve its id. Put '
+            'single-screen or business-specific behaviors in "features"; put qualities that '
+            'apply across multiple views, components, or flows here, with no duplication '
+            'between the two groups. Never promise a compliance level, certification, '
+            'browser/version matrix, security control, or performance target unless the '
+            'proposal context supports it.'
+        ),
         'CRITICAL_functionalRequirements_itemIds': (
             'EVERY item in every functionalRequirements group AND in every additional '
             'module must have a stable "id" with the exact format '
@@ -817,8 +830,8 @@ def get_proposal_json_template(request):
             'a single item name with " y ", " e ", " o ", "/" or "&": '
             '"Registro e Inicio de Sesion" is WRONG — produce TWO items ("Registro de '
             'Usuario" and "Inicio de Sesion"), each with its own id and its own '
-            'description. The rule applies to views, components, features and module '
-            'items alike. Only exception: names denoting a single indivisible '
+            'description. The rule applies to views, components, features, cross-cutting '
+            'features and module items alike. Only exception: names denoting a single indivisible '
             'capability or an idiomatic proper name (e.g. "Terminos y Condiciones" is '
             'one legal page; "Registro con Google" and "Inicio de Sesion con Google" '
             'are still two items even though both use the same Google account). When '

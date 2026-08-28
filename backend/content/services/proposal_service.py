@@ -1085,13 +1085,34 @@ DEFAULT_SECTIONS = [
                         'Le dan vida y dinamismo a la página, permitiendo que funcione de forma práctica y útil.'
                     ),
                     'items': [
-                        {'icon': '🌐', 'name': 'Diseño Responsive', 'description': 'El sitio se adapta perfectamente a celulares, tablets y computadores. Esto es vital en el sector inmobiliario, donde la mayoría de las búsquedas iniciales ocurren desde dispositivos móviles. 📱💻'},
                         {'icon': '🔑', 'name': 'Registro con Google', 'description': 'Alta de cuenta en un solo clic con la cuenta de Google del usuario (OAuth). Captura nombre y correo verificados sin formularios largos — clave para conocer los datos reales de los clientes interesados desde el primer contacto. 🔐📧'},
                         {'icon': '🔓', 'name': 'Inicio de Sesión con Google', 'description': 'Acceso inmediato para usuarios ya registrados con su cuenta de Google, sin contraseñas adicionales que recordar ni recuperar. Menos fricción en cada visita recurrente. ⚡'},
                         {'icon': '🔎', 'name': 'Buscador Avanzado con Filtros Dinámicos', 'description': 'Los usuarios podrán filtrar inmuebles por zonas, rango de precios, metros cuadrados y características específicas. Esta navegación intuitiva ahorra tiempo al cliente y califica mejor el interés. 🔍📍'},
                         {'icon': '💬', 'name': 'WhatsApp Directo por Propiedad', 'description': 'En cada ficha de inmueble habrá un botón de contacto inmediato. Al hacer clic, se recibirá un mensaje predeterminado indicando exactamente por qué propiedad está preguntando el cliente. 📲⚡'},
                         {'icon': '🖼️', 'name': 'Visualización Enriquecida y Galerías', 'description': 'Sistema de visualización de alta calidad con zoom interactivo y carga optimizada para que las imágenes de los inmuebles luzcan impecables sin afectar la velocidad del sitio. 📸✨'},
                         {'icon': '📩', 'name': 'Notificaciones Automáticas', 'description': 'El sistema enviará correos de confirmación automáticos cuando un usuario se registre o envíe una solicitud de información, manteniendo el contacto activo desde el primer segundo. 📩✅'},
+                    ],
+                },
+                {
+                    'id': 'cross_cutting_features',
+                    'icon': '🔗',
+                    'title': 'Funcionalidades Transversales',
+                    'is_visible': True,
+                    'selected': True,
+                    'price_percent': 0,
+                    'description': (
+                        'Capacidades de calidad que atraviesan varias vistas, componentes y flujos. '
+                        'Este catálogo es un punto de partida: debe adaptarse al negocio, la etapa '
+                        'del producto y el alcance real de cada propuesta.'
+                    ),
+                    'items': [
+                        {'icon': '📱', 'name': 'Diseño Responsive', 'description': 'La experiencia se adapta a los tamaños de pantalla y formas de interacción definidos para el proyecto, priorizando los dispositivos relevantes para sus usuarios.'},
+                        {'icon': '♿', 'name': 'Accesibilidad', 'description': 'La interfaz contempla navegación, contraste, etiquetas y estados comprensibles según el público y el nivel de accesibilidad acordado.'},
+                        {'icon': '🧭', 'name': 'Usabilidad Consistente', 'description': 'Los patrones de interacción y retroalimentación se mantienen coherentes entre las vistas y los flujos incluidos en el alcance.'},
+                        {'icon': '⚡', 'name': 'Rendimiento', 'description': 'Las pantallas y los recursos se optimizan para ofrecer tiempos de respuesta adecuados al contenido, tráfico y dispositivos esperados.'},
+                        {'icon': '🛡️', 'name': 'Seguridad', 'description': 'Los accesos, formularios y operaciones sensibles aplican controles proporcionales a los riesgos y roles definidos para el proyecto.'},
+                        {'icon': '🔒', 'name': 'Privacidad de Datos', 'description': 'La captura, el uso y la conservación de datos se limitan a lo necesario y se ajustan a las obligaciones aplicables al negocio.'},
+                        {'icon': '🌐', 'name': 'Compatibilidad entre Navegadores', 'description': 'La experiencia se valida en los navegadores y versiones acordados según la audiencia y las condiciones reales de uso.'},
                     ],
                 },
                 {
@@ -2435,13 +2456,34 @@ DEFAULT_SECTIONS_EN = [
                         'They bring life and dynamism, making the page practical and useful.'
                     ),
                     'items': [
-                        {'icon': '🌐', 'name': 'Responsive Design', 'description': 'The site adapts perfectly to phones, tablets, and computers. This is vital as most initial searches occur from mobile devices. 📱💻'},
                         {'icon': '🔑', 'name': 'Google Registration', 'description': 'One-click account creation with the user\'s Google account (OAuth). Captures a verified name and email without long forms — key for knowing real data of interested customers from the first contact. 🔐📧'},
                         {'icon': '🔓', 'name': 'Google Sign-In', 'description': 'Instant access for returning users with their Google account, with no extra passwords to remember or recover. Less friction on every repeat visit. ⚡'},
                         {'icon': '🔎', 'name': 'Advanced Search with Dynamic Filters', 'description': 'Users can filter properties by zones, price range, square meters, and specific features. Intuitive navigation saves time and better qualifies interest. 🔍📍'},
                         {'icon': '💬', 'name': 'Direct WhatsApp per Property', 'description': 'Each property listing includes an instant contact button. One click sends a predefined message indicating exactly which property the client is inquiring about. 📲⚡'},
                         {'icon': '🖼️', 'name': 'Rich Visualization & Galleries', 'description': 'High-quality visualization system with interactive zoom and optimized loading so property images look impeccable without affecting site speed. 📸✨'},
                         {'icon': '📩', 'name': 'Automatic Notifications', 'description': 'The system sends automatic confirmation emails when a user registers or submits an information request, keeping contact active from the first second. 📩✅'},
+                    ],
+                },
+                {
+                    'id': 'cross_cutting_features',
+                    'icon': '🔗',
+                    'title': 'Cross-cutting Features',
+                    'is_visible': True,
+                    'selected': True,
+                    'price_percent': 0,
+                    'description': (
+                        'Quality capabilities that span multiple views, components, and flows. '
+                        'This catalog is a starting point and must be adapted to the business, '
+                        'product stage, and actual scope of each proposal.'
+                    ),
+                    'items': [
+                        {'icon': '📱', 'name': 'Responsive Design', 'description': 'The experience adapts to the screen sizes and interaction modes defined for the project, prioritizing the devices relevant to its users.'},
+                        {'icon': '♿', 'name': 'Accessibility', 'description': 'The interface considers navigation, contrast, labels, and understandable states according to the audience and agreed accessibility level.'},
+                        {'icon': '🧭', 'name': 'Consistent Usability', 'description': 'Interaction and feedback patterns remain coherent across the views and flows included in scope.'},
+                        {'icon': '⚡', 'name': 'Performance', 'description': 'Screens and resources are optimized for response times appropriate to the expected content, traffic, and devices.'},
+                        {'icon': '🛡️', 'name': 'Security', 'description': 'Access, forms, and sensitive operations apply controls proportional to the risks and roles defined for the project.'},
+                        {'icon': '🔒', 'name': 'Data Privacy', 'description': 'Data collection, use, and retention are limited to what is necessary and aligned with the obligations applicable to the business.'},
+                        {'icon': '🌐', 'name': 'Cross-browser Compatibility', 'description': 'The experience is validated in the browsers and versions agreed according to the audience and real usage conditions.'},
                     ],
                 },
                 {
