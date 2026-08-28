@@ -438,10 +438,15 @@ pages render through `BasePageShell`; `AccountingSubnav` and saved filters use
 the shared compact navigation contract; `AccountingIndicatorGroup` preserves
 business-ranked KPIs; and each `AccountingTable` column carries an explicit
 `keep/group/hide` policy. Grouped-income and grouped-recurring headers own a
-stacked compact representation, while Pocket relocates the running balance
-inside the retained amount cell below 1024 px so the ledger keeps its meaning.
-Long modal flows declare a semantic `kind`, and hosting/collection row actions
-converge on one touch-safe menu when their inline controls no longer fit.
+stacked compact representation. Pocket has one mutually exclusive structural
+branch below 640 px: `PocketMovementCards` renders the same movement fields as
+label/value facts, with concept and signed value first and the running balance
+kept as **Saldo después** or **Acumulado filtrado**. From 640 px the declared
+priority table returns. `PocketMovementRowActionsButton` feeds one
+`PocketMovementActionsModal` from both branches, so edit/delete semantics do not
+fork with layout. Incomes and Collection Accounts use the same leading menu in
+their classic and grouped tables. Long modal flows declare a semantic `kind`,
+and all compact badges use the atomic `BaseBadge` contract.
 
 `BaseDrawer` is the shared transient second zone for compact panel views: it
 teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll

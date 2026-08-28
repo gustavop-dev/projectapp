@@ -526,7 +526,8 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
 
-    await page.getByTestId('accounting-edit-1').click();
+    await page.getByTestId('pocket-actions-1').click();
+    await page.getByTestId('pocket-action-edit-1').click();
 
     const modal = page.getByRole('dialog');
     await expect(
@@ -576,6 +577,23 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await expect(
       modal.getByRole('tab', { name: 'Empresa', exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('new movement rejects an empty required concept', {
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await openSubview(page, 'pocket');
+    await page.getByTestId('pocket-new-button').click();
+
+    const modal = page.getByRole('dialog');
+    const concept = modal.locator('input[required]').first();
+    await page.getByTestId('pocket-movement-form-submit').click();
+
+    await expect(modal).toBeVisible();
+    await expect(concept).toBeFocused();
+    expect(await concept.evaluate((element) => element.validity.valueMissing))
+      .toBe(true);
   });
 
   test('recurring subview shows monthly cost and the breakdown card', {
@@ -1275,7 +1293,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       expect(box.y).toBeLessThanOrEqual(420);
     });
 
-    test('cada movimiento conserva el saldo corrido sin ensanchar la tabla', {
+    test('cada movimiento se representa como una tarjeta completa', {
       tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
     }, async ({ page }) => {
       // quality: allow-no-interaction (verifica la lectura compacta al llegar)
@@ -1283,14 +1301,122 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       await mockApi(page, buildHandler({ calls: [] }));
       await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
 
+      const card = page.getByTestId('pocket-card-1');
       const runningBalance = page.getByTestId('pocket-running-balance-1');
+      await expect(card).toBeVisible({ timeout: 25_000 });
       await expect(runningBalance).toBeVisible({ timeout: 25_000 });
-      await expect(runningBalance).toContainText('Saldo después');
-      await expect(runningBalance).toContainText('$2.123.000');
+      await expect(card).toContainText('Vastago (Fase 1) - Inicio 40%');
+      await expect(card).toContainText('Saldo después');
+      await expect(page.getByTestId('pocket-amount-1')).toHaveText('$2.123.000');
+      await expect(page.getByTestId('pocket-date-1')).toContainText('29 abr 2026');
+      await expect(page.getByTestId('pocket-direction-1')).toHaveText('Ingreso');
+      await expect(runningBalance).toHaveText('$2.123.000');
+      await expect(page.getByRole('table')).toHaveCount(0);
 
       expect(await page.evaluate(() => (
         document.documentElement.scrollWidth <= document.documentElement.clientWidth
       ))).toBe(true);
+      expect(await page.getByTestId('pocket-card-list').evaluate((element) => (
+        element.scrollWidth <= element.clientWidth
+      ))).toBe(true);
+      expect(await card.evaluate((element) => {
+        const action = element.querySelector('[data-testid="pocket-actions-1"]');
+        const concept = element.querySelector('h2');
+        const actionBox = action.getBoundingClientRect();
+        const conceptBox = concept.getBoundingClientRect();
+        const cardBox = element.getBoundingClientRect();
+        return actionBox.width >= 44
+          && actionBox.height >= 44
+          && actionBox.left >= cardBox.left
+          && actionBox.right <= cardBox.right
+          && actionBox.right <= conceptBox.left;
+      })).toBe(true);
+    });
+
+    test('el orden por concepto reordena las tarjetas', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      // quality: allow-fragile-selector (el orden posicional es el resultado observado)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await page.getByTestId('pocket-card-sort-concept').click();
+
+      const cards = page.getByTestId('pocket-card-list').locator('article');
+      await expect(cards).toHaveCount(2);
+      await expect(cards.nth(0))
+        .toHaveAttribute('data-testid', 'pocket-card-2');
+      await expect(cards.nth(1))
+        .toHaveAttribute('data-testid', 'pocket-card-1');
+    });
+
+    test('los distintivos compactos conservan palabras enteras', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (the chip geometry is the outcome)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      const linked = page.getByTestId('pocket-linked-1');
+      const income = page.getByTestId('pocket-direction-1');
+      const expense = page.getByTestId('pocket-direction-2');
+      await expect(linked).toBeVisible({ timeout: 25_000 });
+      await expect(linked).toHaveText('Vinculado');
+      await expect(income).toHaveText('Ingreso');
+      await expect(expense).toHaveText('Egreso');
+      await expect(linked).toHaveCSS('white-space', 'nowrap');
+      await expect(income).toHaveCSS('white-space', 'nowrap');
+      await expect(expense).toHaveCSS('white-space', 'nowrap');
+      expect(await linked.evaluate((element) => element.scrollWidth <= element.clientWidth))
+        .toBe(true);
+    });
+
+    test('la acción inicial abre la edición del movimiento', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await page.getByTestId('pocket-actions-1').click();
+      await expect(page.getByTestId('pocket-actions-modal')).toBeVisible();
+      await page.getByTestId('pocket-action-edit-1').click();
+
+      await expect(
+        page.getByRole('heading', { name: 'Editar Movimiento de bolsillo' }),
+      ).toBeVisible();
+    });
+
+    test('la acción inicial alcanza la confirmación de borrado', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await page.getByTestId('pocket-actions-2').click();
+      await page.getByTestId('pocket-action-delete-2').click();
+
+      await expect(page.getByRole('heading', { name: 'Eliminar movimiento' }))
+        .toBeVisible();
+    });
+
+    test('el acumulado filtrado parte de los movimientos visibles', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-deep-link (la entrada por el subnav se cubre en su escenario dedicado)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await page.getByRole('button', { name: /Filtros/ }).click();
+      await page.getByRole('group', { name: 'Vínculo' })
+        .getByRole('button', { name: 'Sin vincular', exact: true }).click();
+
+      const card = page.getByTestId('pocket-card-2');
+      await expect(card).toBeVisible();
+      await expect(card).toContainText('Acumulado filtrado');
+      await expect(page.getByTestId('pocket-running-balance-2')).toHaveText('$-2.272.000');
+      await expect(page.getByTestId('pocket-balance')).toHaveText('$-149.000');
+      await expect(page.getByTestId('pocket-card-1')).toHaveCount(0);
     });
 
     test('la sección se cambia desde el selector, sin la parrilla de tabs', {

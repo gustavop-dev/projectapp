@@ -1204,3 +1204,20 @@ occurrence. Copying reminder cadence, archive state or historical links turns a
 convenience action into hidden data creation. When recurring payments eventually
 originate real expenses, design an idempotent period key, pocket transaction and
 charge-history relation explicitly; do not smuggle them into lifecycle endpoints.
+
+## 49. A dense ledger needs a structural breakpoint, not narrower columns
+
+Eight financial columns can satisfy an explicit `keep/group` policy and still be
+unusable at 412 px: action, concept, amount and badges compete before grouped
+metadata can help. At that point, use one mobile card per source row and preserve
+every fact as an ordered label/value pair. Keep a single table branch above the
+structural breakpoint so the DOM never contains duplicate actions or accessible
+names.
+
+Presentation must not fork behavior. The same leading 44 px kebab and modal should
+serve cards, classic tables and grouped tables; atomic badges own word integrity.
+Running figures need their own written contract too: **Saldo después** is the normal
+chronological ledger, **Acumulado filtrado** starts with the visible cut, and the
+headline balance remains global. Geometry tests should pin all three properties:
+no document/inner overflow, no action/content intersection and a concrete value
+from the fixture.

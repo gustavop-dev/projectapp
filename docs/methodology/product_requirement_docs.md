@@ -505,6 +505,12 @@ The canonical counts, commands and exceptions are maintained in
   available through a disclosure, tooltip or detail view. Bounded dates, money and
   numeric values may remain atomic.
 - **Responsive acceptance**: Every panel and public view must pass the same five automated reference viewports (phone 412 px, portrait tablet 835 px, landscape tablet 1195 px, laptop 1440 px, large monitor 2560 px), followed by the separately evidenced physical-device pass required for final certification. Shared components own repeated behavior; large-monitor content keeps an explicit readable maximum width.
+- **Pocket ledger on mobile**: Below 640 px, each movement is presented as one
+  complete card rather than an eight-column table. Concept and signed value lead;
+  date, direction, link/allocation state and the running figure remain available
+  as labelled facts. Badges never split words, and the same edit/delete action is
+  a leading 44 px target. The headline balance remains the all-ledger total;
+  filtering changes the per-row figure to the cumulative total of visible rows.
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
 - **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)
 - **SEO**: Server-side rendered public pages, sitemap endpoints, meta tags, Google verification

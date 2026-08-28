@@ -374,6 +374,33 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(actionsHeader).toHaveCSS('width', '56px');
   });
 
+  test('the classic income table fits the compact viewport', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display', '@responsive:accounting'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (the arrival geometry is the outcome)
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await page.setViewportSize({ width: 412, height: 915 });
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls: [] }));
+    await gotoIncomes(page);
+
+    const row = page.getByTestId('accounting-row-1');
+    const table = row.locator('xpath=ancestor::table');
+    const scroller = table.locator('..');
+    const action = page.getByTestId('income-actions-1');
+    const kind = page.getByTestId('income-kind-1').filter({ visible: true });
+
+    expect(await scroller.evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true);
+    await expect(action).toBeVisible();
+    await expect(kind).toHaveCSS('white-space', 'nowrap');
+    expect(await action.evaluate((element) => {
+      const button = element.matches('button') ? element : element.querySelector('button');
+      const box = button.getBoundingClientRect();
+      const rowBox = element.closest('[data-testid^="accounting-row-"]').getBoundingClientRect();
+      return box.left >= rowBox.left && box.right <= rowBox.right;
+    })).toBe(true);
+  });
+
   test('creates an income with automatic 50/50 split', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -1733,6 +1760,31 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await page.getByTestId('income-actions-1').click();
     await expect(page.getByTestId('income-action-liquidate-1')).toBeVisible();
     await page.keyboard.press('Escape');
+  });
+
+  test('the grouped income menu stays reachable on a compact viewport', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display', '@responsive:accounting'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await page.setViewportSize({ width: 412, height: 915 });
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' })],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    const row = page.getByTestId('accounting-row-1');
+    const grid = row.locator('xpath=ancestor::div[contains(@class, "accounting-grid-scroll")]');
+    const action = page.getByTestId('income-actions-1');
+    const kind = page.getByTestId('income-kind-1').filter({ visible: true });
+
+    expect(await grid.evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true);
+    await expect(page.getByTestId('accounting-actions-header')).toBeVisible();
+    await expect(kind).toHaveCSS('white-space', 'nowrap');
+    await action.click();
+    await expect(page.getByTestId('income-actions-modal')).toBeVisible();
   });
 
   test('the in-page toggle is session-only: classic appears, nothing persists', {

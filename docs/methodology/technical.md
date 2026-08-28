@@ -544,6 +544,15 @@ confirmed by the operator or another integration.
   `docs/RESPONSIVE_STANDARD.md`.
 - **Accounting responsive acceptance** — the twelve accounting routes use
   business-declared table/KPI priorities rather than positional hiding. The
+  Pocket route is the structural exception below `PANEL_BREAKPOINTS.portrait`:
+  `useIsMobile` renders exactly one `PocketMovementCards` branch with concept,
+  signed amount and labelled facts, while the shared priority table returns at
+  640 px. Both branches reuse `PocketMovementRowActionsButton` and
+  `PocketMovementActionsModal`; Incomes and Collection Accounts use the same
+  `menu-start` contract in classic and grouped modes. `BaseBadge` owns atomic
+  direction/link/status text. `withRunningBalance` remains filter-first, so cards
+  say **Acumulado filtrado** when filters are active while the headline balance
+  continues to describe the complete ledger. The
   executable representative checks live in
   `frontend/e2e/admin/admin-accounting-pocket-recurring.spec.js`; the complete
   repeatable 60-cell route/viewport matrix and long-modal scenarios are in

@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-28 — Bolsillo legible y operable en celular:** por debajo de 640 px
+la vista abandona la tabla de ocho columnas y muestra una tarjeta completa por
+movimiento. Una acción inicial de 44 px abre el mismo menú editar/eliminar que
+usa la tabla; luego aparecen concepto, valor con signo, vínculo/reparto, fecha,
+tipo y saldo corrido como hechos etiquetados. Los chips usan `BaseBadge` y no
+parten palabras; el ordenamiento compacto sigue disponible. Con filtros, cada
+tarjeta dice **Acumulado filtrado** y suma sólo filas visibles, mientras el saldo
+superior permanece como total global. Desde 640 px vuelve la tabla priorizada.
+Ingresos y Cuentas de cobro consolidaron también su menú inicial y badges
+atómicos en Lista/Agrupada. Evidencia focal PA-103: 13 casos de Bolsillo en
+412/835/1195/1440/2560, cuatro casos compactos de los tabs vecinos, una
+validación de formulario y 13 unitarios en verde; el recorrido completo 12×5
+permanece documentado como pendiente, no como ejecutado.
+
 **2026-08-27 — Listo para merge: ciclo de vida y acciones de Recurrentes:**
 `/panel/accounting/recurring` ya usa la columna inicial de PA-102 y un único menú
 por fila para editar, duplicar con borrador, activar/desactivar, silenciar avisos

@@ -517,3 +517,27 @@ contracts, not conventions repeated in individual commands.
   el registro E2E regenerado.
 - **Lesson**: Resolver el clipping y resolver la disponibilidad inicial son dos
   contratos distintos; un overlay visible sin datos sigue siendo un estado vacío.
+
+### [ERR-032] El libro del bolsillo conservaba ocho columnas en celular
+
+- **Date**: 2026-08-28
+- **Context**: A 412 px, los chips de Vinculado/Ingreso/Egreso se partían dentro
+  de la palabra, Acciones quedaba cortada y el icono de editar se superponía con
+  la fecha. El scroll horizontal no anunciaba la última columna.
+- **Root Cause**: La política de columnas seguía intentando comprimir una tabla
+  demasiado densa; además, el menú de fila permanecía en el extremo final y
+  varios distintivos no consumían el primitive atómico compartido.
+- **Resolution**: Cambiar sólo el perfil `<640 px` a una tarjeta por movimiento,
+  conservar todos los datos como pares etiqueta/valor y reutilizar un menú inicial
+  de 44 px para editar/eliminar. Migrar los distintivos a `BaseBadge` y aplicar el
+  mismo menú inicial en las vistas clásica/agrupada de Ingresos y Cuentas de cobro.
+  El saldo por fila conserva el total corrido normal y cambia a acumulado de los
+  registros visibles al filtrar; el saldo general continúa siendo global.
+- **Files Affected**: página y componentes de Bolsillo, páginas de Ingresos y
+  Cuentas de cobro, pruebas unitarias/E2E y registro de flows contables.
+- **Verification**: 13 unitarios; 13 escenarios de Bolsillo en los cinco anchos;
+  cuatro escenarios compactos clásica/agrupada de los tabs vecinos; validación
+  de formulario; flow-map fresco y flows afectados sin `junk-only`.
+- **Lesson**: Una tabla financiera densa no se vuelve móvil encogiendo tracks.
+  Cuando la identidad, el monto y la acción ya compiten, la estructura debe
+  cambiar a tarjetas sin perder campos ni bifurcar acciones o semántica de saldo.
