@@ -15,6 +15,21 @@ Playwright, design-token gate, flow-map fresh (272 cubiertos, 37 parciales,
 0 junk-only, 0 faltantes) y build Nuxt aprobados. Sin cambios de backend ni
 esquema.
 
+**2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
+Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al
+recibir foco. `ClientAutocomplete` conserva un único motor de consulta,
+selección, retry, creación y paginación, pero suma una presentación `catalog` en
+flujo; sólo `BulkAssignModal` la activa para cliente y los selectores de proyecto,
+documentos e ingreso vinculado siguen usando la capa flotante compartida. La
+lista se ve desde la apertura, muestra nombre/empresa/correo, señala correo
+faltante y ofrece creación en vacío. Abre A-Z; el encabezado Nombre alterna
+A-Z/Z-A y guarda la preferencia en el navegador. El endpoint suma
+`order=name|-name` sin cambiar su cuerpo array ni `limit`/`offset`/
+`X-Total-Count`. Cinco filas completas y el alcance de cuatro ingresos caben sin
+scroll del panel; un catálogo largo desplaza sólo su lista y el perfil 412×915
+usa pantalla completa. Pasan los cortes backend/store/componente/modal y tres
+escenarios Playwright; el flow-map quedó regenerado con 0 junk-only y 0 missing.
+
 **2026-08-28 — Cuarta tarjeta contextual de requerimientos lista para integrar:**
 `functional_requirements` incorpora `cross_cutting_features` después de
 `features` en los defaults ES/EN. La tarjeta conserva un contenedor obligatorio
