@@ -138,6 +138,7 @@ watch(detailOpen, async (isOpen) => {
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <!-- design-tokens: allow-raw-button — selectable catalog card opens inline detail. -->
           <button
             v-for="module in category.modules"
             :id="`module-${module.slug}`"

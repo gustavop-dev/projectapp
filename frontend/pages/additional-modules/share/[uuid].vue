@@ -75,7 +75,7 @@ const pdfUrl = computed(() => (
 </script>
 
 <template>
-  <section class="min-h-screen bg-page">
+  <section class="min-h-screen bg-surface">
     <div v-if="isLoading" class="flex min-h-[70vh] items-center justify-center" role="status">
       <span class="h-9 w-9 animate-spin rounded-full border-2 border-border-default border-t-primary" />
     </div>

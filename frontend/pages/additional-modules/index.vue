@@ -118,7 +118,7 @@ async function retry() {
 </script>
 
 <template>
-  <section class="min-h-screen bg-page">
+  <section class="min-h-screen bg-surface">
     <div v-if="liveError" class="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 text-center">
       <h1 class="text-2xl font-medium text-text-brand">{{ t('additionalModules.loadError') }}</h1>
       <BaseButton class="mt-5" @click="retry">{{ t('additionalModules.retry') }}</BaseButton>

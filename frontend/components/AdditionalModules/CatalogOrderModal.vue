@@ -75,6 +75,7 @@ function save() {
           <template #item="{ element: category, index: categoryIndex }">
             <section class="rounded-xl border border-border-default bg-surface">
               <header class="flex items-center gap-2 border-b border-border-default bg-surface-raised px-3 py-3">
+                <!-- design-tokens: allow-raw-button — drag handle, not a standalone action. -->
                 <button
                   type="button"
                   class="category-drag-handle min-h-11 min-w-11 cursor-grab rounded-lg text-text-muted hover:bg-surface"
@@ -113,6 +114,7 @@ function save() {
               >
                 <template #item="{ element: module, index: moduleIndex }">
                   <div class="flex items-center gap-2 rounded-lg border border-border-default bg-surface px-2 py-2">
+                    <!-- design-tokens: allow-raw-button — drag handle, not a standalone action. -->
                     <button
                       type="button"
                       class="module-drag-handle min-h-11 min-w-11 cursor-grab rounded-lg text-text-muted hover:bg-surface-raised"

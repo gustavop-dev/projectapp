@@ -216,7 +216,7 @@ async function closeDetail() {
 
     <div
       v-else-if="store.error && !store.modules.length"
-      class="rounded-xl border border-danger-default bg-danger-soft p-6 text-center"
+      class="rounded-xl border border-danger-strong/30 bg-danger-soft p-6 text-center"
       role="alert"
     >
       <p class="font-medium text-danger-strong">{{ t('additionalModules.loadError') }}</p>
