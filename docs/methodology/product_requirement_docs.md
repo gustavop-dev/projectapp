@@ -547,7 +547,9 @@ The canonical counts, commands and exceptions are maintained in
     `DocumentStateEpisode` rows. Exclusive cycle states transition each other;
     additive signals may coexist unless the catalog declares an incompatibility.
     Closing means completed work and removing means the state was inapplicable; both
-    remain in history as different outcomes.
+    remain in history as different outcomes. Non-null integration `system_key`
+    values are unique inside each catalog at database level, while custom states
+    may continue to share a `NULL` key.
 21. **Document migration truthfulness**: legacy Published becomes client visibility,
     not an inferred cycle state. Existing draft/published documents receive no
     invented cycle classification; old tag assignments become additive episodes

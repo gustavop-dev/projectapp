@@ -123,28 +123,30 @@ class Command(BaseCommand):
 
     def _check_email_settings(self):
         self._section('2. Email backend / SMTP settings')
-        backend = getattr(settings, 'EMAIL_BACKEND', '')
-        self.stdout.write(f'  EMAIL_BACKEND = {backend}')
+        mailer = settings.MAILERS.get('default', {})
+        backend = mailer.get('BACKEND', '')
+        options = mailer.get('OPTIONS', {})
+        self.stdout.write(f'  MAILERS["default"]["BACKEND"] = {backend}')
         if 'console' in backend or 'locmem' in backend or 'dummy' in backend:
             self._warn('Non-SMTP backend — emails are not actually delivered.')
         else:
             self._ok('SMTP backend configured.')
         self.stdout.write(
-            f'  EMAIL_HOST = {getattr(settings, "EMAIL_HOST", "")}:'
-            f'{getattr(settings, "EMAIL_PORT", "")} '
-            f'(SSL={getattr(settings, "EMAIL_USE_SSL", False)}, '
-            f'TLS={getattr(settings, "EMAIL_USE_TLS", False)})'
+            f'  SMTP = {options.get("host", "")}:'
+            f'{options.get("port", "")} '
+            f'(SSL={options.get("use_ssl", False)}, '
+            f'TLS={options.get("use_tls", False)})'
         )
-        user = getattr(settings, 'EMAIL_HOST_USER', '')
-        pwd = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+        user = options.get('username', '')
+        pwd = options.get('password', '')
         if user:
-            self._ok(f'EMAIL_HOST_USER set ({user}).')
+            self._ok(f'SMTP username set ({user}).')
         else:
-            self._err('EMAIL_HOST_USER is empty.')
+            self._err('SMTP username is empty.')
         if pwd:
-            self._ok('EMAIL_HOST_PASSWORD set.')
+            self._ok('SMTP password set.')
         else:
-            self._err('EMAIL_HOST_PASSWORD is empty.')
+            self._err('SMTP password is empty.')
         self.stdout.write(
             f'  DEFAULT_FROM_EMAIL = {getattr(settings, "DEFAULT_FROM_EMAIL", "")}'
         )

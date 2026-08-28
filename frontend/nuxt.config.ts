@@ -32,6 +32,13 @@ async function blogPrerenderRoutes(): Promise<string[]> {
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
+  // Keep the existing Nuxt 3-era root layout while adopting Nuxt 4. Nuxt 4
+  // otherwise defaults application sources to app/.
+  srcDir: '.',
+  dir: {
+    app: 'app',
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
@@ -111,6 +118,12 @@ export default defineNuxtConfig({
         ...(await blogPrerenderRoutes()),
       ],
     },
+    hooks: {
+      'prerender:generate'(route) {
+        const privateRoute = /^\/(?:(?:en-us|es-co)\/)?(?:panel|platform|proposal|auth)(?:\/|$)/
+        if (privateRoute.test(route.route ?? '')) route.skip = true
+      },
+    },
   },
 
   // Alias @ to project root (like src/ was before)
@@ -146,11 +159,9 @@ export default defineNuxtConfig({
       },
     ],
     defaultLocale: 'en-us',
-    lazy: true,
     strategy: 'prefix',
-    detectBrowserLanguage: false,
-    bundle: {
-      optimizeTranslationDirective: false,
+    detectBrowserLanguage: {
+      redirectOn: 'no prefix',
     },
     // SEO
     baseUrl: 'https://projectapp.co',

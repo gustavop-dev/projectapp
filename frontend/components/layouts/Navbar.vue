@@ -40,6 +40,7 @@
     <!-- Language toggle -->
     <button
       @click="toggleLanguage"
+      :disabled="!isHydrated"
       class="px-4 py-2.5 rounded-full text-sm font-medium text-text-brand/50 hover:text-text-brand hover:bg-surface/40 transition-all uppercase tracking-wider ml-2"
       :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`"
     >
@@ -68,6 +69,7 @@
     <div class="flex items-center gap-2">
       <button
         @click="toggleLanguage"
+        :disabled="!isHydrated"
         class="px-2.5 py-1.5 rounded-full text-xs font-medium text-text-brand/50 uppercase tracking-wider"
         :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`"
       >
@@ -160,7 +162,7 @@
           <div class="flex items-center justify-center gap-6 text-sm text-text-brand/50">
             <a href="https://instagram.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-text-brand transition-colors">Instagram</a>
             <a href="https://facebook.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-text-brand transition-colors">Facebook</a>
-            <button @click="toggleLanguage" class="hover:text-text-brand transition-colors uppercase">{{ isEnglish ? 'ES' : 'EN' }}</button>
+            <button @click="toggleLanguage" :disabled="!isHydrated" class="hover:text-text-brand transition-colors uppercase">{{ isEnglish ? 'ES' : 'EN' }}</button>
             <NuxtLink to="/es-co/platform" class="hover:text-text-brand transition-colors" @click="closeMenu">{{ globalMessages.sign_in || 'Sign In' }}</NuxtLink>
           </div>
         </div>
@@ -181,6 +183,7 @@ import Email from '~/components/layouts/Email.vue';
 const localePath = useLocalePath();
 const { locale } = useI18n();
 const { globalMessages } = useGlobalMessages('navbar');
+const isHydrated = ref(false);
 
 // Derived from i18n locale (SSR-safe, unlike store)
 const isEnglish = computed(() => locale.value.startsWith('en'));
@@ -397,6 +400,8 @@ const closeMenu = () => {
 
 // Inicialización de efectos al montar el componente
 onMounted(() => {
+  isHydrated.value = true;
+
   // Slide lemon pill to active link on initial load
   setTimeout(() => slidePillToActive(false), 100);
 

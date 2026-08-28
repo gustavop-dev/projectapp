@@ -1166,7 +1166,21 @@ the scroll signal in the shared listbox but keep `hasMore` and retry state in th
 data-owning picker. This preserves one scrollbar without coupling a generic
 overlay primitive to a particular API.
 
-## 47. A kebab belongs to a fixed control track, not the data-column split
+## 47. Nullable uniqueness is already a portable partial-uniqueness primitive
+
+When absence is stored as SQL `NULL`, a plain unique constraint already permits
+multiple absent values while rejecting duplicate concrete values. Adding
+`condition=field IS NOT NULL` does not strengthen that invariant; on MySQL it
+causes Django to skip the complete constraint and emit `models.W036`.
+
+Before choosing a functional or partial index, distinguish `NULL` from an empty
+string. Use a plain composite unique constraint for nullable integration keys
+such as `(catalog, system_key)`. Reserve `NullIf(field, '')` for domains that
+deliberately persist blank strings. Any migration that activates a previously
+ignored production invariant must query for duplicates before DDL and stop with
+the conflicting business keys instead of failing halfway through deployment.
+
+## 48. A kebab belongs to a fixed control track, not the data-column split
 
 The fact that a table “has actions” is not enough to choose its layout. A single
 three-dot menu and a row of independent action icons have different space and

@@ -45,7 +45,31 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-031] Explorer idle context resolved to the root node
+### [ERR-033] MySQL ignored DocumentState system-key uniqueness
+
+- **Date**: 2026-08-27
+- **Context**: `manage.py check --database default` emitted `models.W036` for
+  `unique_state_system_key_per_catalog`; production had no physical constraint
+  even though the model declared one.
+- **Root Cause**: The composite unique constraint added a redundant
+  `condition=Q(system_key__isnull=False)`. Django correctly skips conditional
+  unique constraints on MySQL, so the predicate disabled the entire database
+  invariant instead of only excluding `NULL`.
+- **Resolution**: Use a plain unique constraint on `(catalog, system_key)`.
+  Standard SQL/MySQL uniqueness already permits multiple `NULL` values. Migration
+  `content.0218` checks every non-null pair for duplicates before replacing the
+  state constraint, then creates the real MySQL unique key.
+- **Files Affected**: `backend/content/models/document_state.py`, migration
+  `0218_documentstate_mysql_unique_system_key.py`, focused model tests and Memory
+  Bank documentation.
+- **Verification**: Production data had zero duplicate pairs; `sqlmigrate` emits
+  the expected MySQL `ALTER TABLE ... UNIQUE`; `manage.py check --database
+  default` reports zero issues; constraint tests pass 4/4 and MCP contracts 19/19.
+- **Lesson**: If absence is stored as `NULL`, first use the backend-portable
+  nullable unique semantics. A partial unique predicate is both redundant and
+  unsupported on MySQL.
+
+### [ERR-032] Explorer idle context resolved to the root node
 
 - **Date**: 2026-08-27
 - **Context**: Opening any selected Explorer space or feature showed its orbit and breadcrumb correctly, but the new context panel displayed **Ecosistema ProjectApp** until a node received hover or focus. The guided-tour entry and technical disclosure were consequently absent.

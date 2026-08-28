@@ -23,7 +23,11 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def locmem_email_backend(settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
     mail.outbox = []
 
 
@@ -155,13 +159,33 @@ def test_primary_failure_records_primary_without_copy():
                 message, template_key='proposal_sent_client',
             )
 
-    assert smtp_send.call_count == 1
+    smtp_send.assert_called_once_with()
     primary = EmailLog.objects.get(delivery_role=EmailLog.DeliveryRole.PRIMARY)
     assert primary.status == EmailLog.Status.FAILED
     assert primary.error_message == 'primary unavailable'
     assert not EmailLog.objects.filter(
         delivery_role=EmailLog.DeliveryRole.COPY,
     ).exists()
+
+
+def test_primary_smtp_failure_is_suppressed_when_requested():
+    message = build_message()
+
+    with patch(
+        'content.services.email_delivery_service.EmailMessage.send',
+        side_effect=SMTPException('primary unavailable'),
+    ) as smtp_send:
+        result = EmailDeliveryGateway.send(
+            message,
+            template_key='proposal_sent_client',
+            fail_silently=True,
+        )
+
+    smtp_send.assert_called_once_with()
+    primary = EmailLog.objects.get(delivery_role=EmailLog.DeliveryRole.PRIMARY)
+    assert result == 0
+    assert primary.status == EmailLog.Status.FAILED
+    assert primary.error_message == 'primary unavailable'
 
 
 def test_copy_failure_preserves_primary_status():

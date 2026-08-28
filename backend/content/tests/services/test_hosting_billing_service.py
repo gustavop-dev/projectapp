@@ -32,7 +32,11 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def issuer(settings):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
     # Migration 0052 seeds the default issuer; the flow uses the first by pk.
     profile = IssuerProfile.objects.order_by('pk').first()
     if profile is None:
