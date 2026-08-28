@@ -164,11 +164,15 @@ def weekly_slow_queries_report():
     return report
 
 
-@periodic_task(crontab(day='1', hour='5', minute='0'))
+# 05:40 y no 05:00: kore_project comparte host —y la misma instancia de MySQL—
+# desde que ambos se migraron a vps-projectapp-prod, y corre su propio
+# silk_reports_cleanup el día 1 a las 05:00. En esa hora los minutos 0 y 20 ya
+# están tomados por tareas de los otros proyectos del host.
+@periodic_task(crontab(day='1', hour='5', minute='40'))
 def silk_reports_cleanup():
     """
     Monthly cleanup of Silk report files older than 6 months.
-    Runs on the 1st of each month at 5:00 AM.
+    Runs on the 1st of each month at 5:40 AM.
     Only runs when Silk is enabled.
     """
     if not getattr(settings, 'ENABLE_SILK', False):
