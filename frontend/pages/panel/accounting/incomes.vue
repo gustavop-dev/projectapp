@@ -469,6 +469,7 @@
           type="button"
           class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border-muted bg-surface-raised p-3 text-left transition-colors hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="indicator.disabled"
+          :title="indicator.disabled ? indicator.help : undefined"
           :data-testid="`income-indicator-detail-${indicator.key}`"
           @click="activateIncomeIndicator(indicator.key)"
         >

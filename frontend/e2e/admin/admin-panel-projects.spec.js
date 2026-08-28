@@ -455,7 +455,7 @@ test.describe('Admin Panel Projects', () => {
   });
 
   test('non-zero state cards preserve the catalog order', {
-    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoProjects(page);
