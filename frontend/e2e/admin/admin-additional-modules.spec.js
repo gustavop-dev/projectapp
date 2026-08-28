@@ -1,6 +1,7 @@
 import { test, expect } from '../helpers/test.js'
 import { mockApi } from '../helpers/api.js'
 import { setAuthLocalStorage } from '../helpers/auth.js'
+import { PANEL_BREAKPOINTS } from '../../config/responsive.js'
 import {
   ADMIN_ADDITIONAL_MODULES_CATALOG,
   ADMIN_ADDITIONAL_MODULES_MANAGE,
@@ -137,7 +138,12 @@ test.describe('Additional modules admin catalog', () => {
     await setupApi(page)
     // quality: allow-deep-link (the authenticated proposals page is setup; this test exercises the Comercial sidebar navigation to the catalog)
     await page.goto('/es-co/panel/proposals', { waitUntil: 'domcontentloaded' })
-    await page.getByRole('link', { name: 'Módulos adicionales' }).click()
+    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+      await page.getByRole('button', { name: 'Abrir menú' }).click()
+    }
+    const catalogLink = page.getByRole('link', { name: 'Módulos adicionales', exact: true })
+    await expect(catalogLink).toBeVisible()
+    await catalogLink.click()
     await expect(page.getByRole('heading', { name: 'Catálogo de módulos adicionales' })).toBeVisible()
     await expect(page.getByTestId('additional-admin-module-10')).toContainText('Facturación electrónica')
     await expect(page.getByTestId('additional-admin-module-12')).toContainText('Landing page')
