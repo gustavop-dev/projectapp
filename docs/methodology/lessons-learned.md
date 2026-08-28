@@ -1274,7 +1274,22 @@ guarantees. When evolving stored proposal JSON, update live defaults and editabl
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
 
-## 52. A primary selection catalog is modal content, not a dropdown
+## 52. A visual tooltip and an accessible name serve different readers
+
+An icon-only row action may need a contextual accessible name such as **Acciones
+de Contrato de Servicios**, but repeating that string in a hover hint adds no
+value when the document title is already visible. Keep the application tooltip
+short and canonical, keep row context in `aria-label`, and let touch users reach
+the same action through the button itself rather than depending on hover help.
+
+Tooltip ownership must be singular at the rendered DOM boundary. Wrapping a
+button in an application tooltip while also forwarding `title` creates two
+competing notices. In Vue, removing an explicit `:title` binding is not enough
+when `$attrs` can still fall through automatically: the owning primitive must
+filter `title` deliberately while preserving `aria-*`, `data-*` and link
+semantics. Test the rendered attribute and the visible `role="tooltip"`
+separately; each protects a different half of the contract.
+## 53. A primary selection catalog is modal content, not a dropdown
 
 Fixing a dropdown's clipping can expose a second problem: reserving enough room
 for a click-triggered overlay leaves the dialog inexplicably empty before the

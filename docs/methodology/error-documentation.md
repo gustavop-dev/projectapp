@@ -45,7 +45,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-037] La elipsis del título podía quedar sin una vía de revelación
+### [ERR-038] La elipsis del título podía quedar sin una vía de revelación
 
 - **Date**: 2026-08-28
 - **Context**: En `/panel/documents`, algunos nombres largos terminaban en
@@ -72,6 +72,35 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Lesson**: La accesibilidad al valor completo no debe depender de una medición
   temporal; los tests no deben introducir eventos correctivos que el navegador
   real no garantiza.
+
+### [ERR-037] Panel action buttons rendered two competing tooltips
+
+- **Date**: 2026-08-28
+- **Context**: Hovering the three-dot action button in Documents showed the
+  application tooltip and the browser-native tooltip at the same time. The
+  application copy inherited the full accessible label, such as “Acciones de
+  Contrato de Servicios”, and collapsed into an unreadably narrow box.
+- **Root Cause**: `BaseActionButton` wrapped the control in `BaseTooltip` while
+  also forwarding the same text as the button's native `title`. Its visual
+  tooltip fell back to the contextual accessible name and had no intrinsic
+  content width. Vue fallthrough attributes also meant that simply removing a
+  template binding did not reliably suppress `title` at the rendered root.
+- **Resolution**: Make `BaseActionButton` the only tooltip owner. Its visual copy
+  now defaults to the short catalog label, its contextual `label` remains the
+  `aria-label`, and `BaseButton.nativeTitle=false` filters `title` while
+  forwarding every other consumer attribute. The tooltip uses intrinsic width
+  with a bounded maximum.
+- **Files Affected**: `frontend/components/base/BaseActionButton.vue`,
+  `frontend/components/base/BaseButton.vue`, focused component tests and the
+  Documents list/gallery E2E specs.
+- **Verification**: Component coverage proves that no native `title` is emitted,
+  focus exposes one tooltip named **Acciones**, contextual accessible names stay
+  intact and explicit visual copy still wins. The list and gallery Playwright
+  scenarios verify the same contract before opening their action menus; flow-map
+  freshness and the qualifying-flow audit pass.
+- **Lesson**: Visual help and accessible naming are separate contracts. A
+  tooltip-owning primitive must also own native-title suppression, including
+  Vue's automatic attribute fallthrough.
 
 ### [ERR-036] El catálogo inicial dejaba un modal alto y vacío
 

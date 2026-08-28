@@ -15,6 +15,19 @@ Playwright, design-token gate, flow-map fresh (272 cubiertos, 37 parciales,
 0 junk-only, 0 faltantes) y build Nuxt aprobados. Sin cambios de backend ni
 esquema.
 
+**2026-08-28 — Un solo aviso breve para las acciones del panel:**
+`BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
+la etiqueta corta del catálogo (**Acciones**) y el `aria-label` conserva el
+contexto de fila (**Acciones de Contrato de Servicios**). El primitive es el
+único dueño del aviso y pide a `BaseButton` filtrar el `title` nativo, incluidos
+los atributos que Vue reenvía por fallthrough; el resto de `aria-*`, `data-*` y
+semántica de enlace se conserva. La corrección alcanza automáticamente todos los
+botones de acción compartidos del panel y no cambia el clic/tap que abre sus
+menús. Unitarias de los primitives y consumidores de Documentos, más Playwright
+en lista y galería, verifican ausencia de `title`, un solo tooltip legible,
+nombre accesible contextual y apertura del menú. El mapa está fresco y la
+auditoría registra 272 flujos cubiertos, 37 parciales, 0 `junk-only` y 0 faltantes.
+
 **2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
 Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al
 recibir foco. `ClientAutocomplete` conserva un único motor de consulta,

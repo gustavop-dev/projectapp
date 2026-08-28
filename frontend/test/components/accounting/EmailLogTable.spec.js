@@ -88,14 +88,18 @@ describe('EmailLogTable', () => {
     expect(wrapper.find('[data-testid="email-log-retry-2"]').exists()).toBe(true);
   });
 
-  it('shows the digest button disabled, carrying its reason', () => {
+  it('shows the digest button disabled, carrying its reason', async () => {
     const wrapper = mountTable([DIGEST_FAILED]);
     const button = wrapper.get('[data-testid="email-log-retry-3"]');
+    const proxy = wrapper.get('[data-disabled-action-proxy]');
 
     // Disabled and explained, rather than absent: a missing button reads as
     // "this failure cannot be acted on" without saying why.
     expect(button.attributes('disabled')).toBe('');
-    expect(button.attributes('title')).toContain('resume varios registros');
+    expect(button.attributes('title')).toBeUndefined();
+    expect(proxy.attributes('aria-label')).toContain('resume varios registros');
+    await proxy.trigger('click');
+    expect(wrapper.get('[role="tooltip"]').text()).toContain('resume varios registros');
   });
 
   it('blocks a second click while a retry is in flight', () => {
