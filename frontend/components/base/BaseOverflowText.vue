@@ -32,8 +32,11 @@ const clampClass = computed(() => {
     : 'block w-full min-w-0 max-w-full truncate'
 })
 
+// The complete value is always available while the text is collapsed. Waiting
+// for the overflow measurement made the browser hint disappear when a web font
+// finished loading after the first layout pass.
 const tooltip = computed(() => (
-  hasOverflow.value && !expanded.value ? props.text : undefined
+  !expanded.value && props.text ? props.text : undefined
 ))
 
 function element() {
@@ -72,6 +75,14 @@ function onWindowResize() {
   nextTick(measure)
 }
 
+async function measureAfterFontsReady() {
+  if (typeof document === 'undefined' || !document.fonts?.ready) return
+  await document.fonts.ready
+  if (!rootEl.value) return
+  await nextTick()
+  measure()
+}
+
 watch(() => [props.text, props.lines], async () => {
   expanded.value = false
   await nextTick()
@@ -83,6 +94,7 @@ onMounted(async () => {
   await nextTick()
   measure()
   observeText()
+  void measureAfterFontsReady()
   window.addEventListener('resize', onWindowResize)
 })
 
