@@ -43,7 +43,7 @@
           @click="group.is_visible = group.is_visible === false ? true : false">
           <BaseActionIcon :action="group.is_visible !== false ? 'view' : 'hide'" /> {{ group.is_visible !== false ? 'Visible' : 'Oculto' }}
         </button>
-        <BaseButton variant="danger-ghost" size="sm" class="ml-2" v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</BaseButton>
+        <BaseButton variant="danger-ghost" size="sm" class="ml-2" v-if="!protectedGroupIds.has(group.id)" :data-testid="'delete-requirement-group-' + (group.id || gIdx)" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</BaseButton>
       </div>
     </div>
 
@@ -191,6 +191,13 @@ import { FieldInput, FieldTextarea } from './fields.js';
 import EmojiIconField from '~/components/BusinessProposal/admin/EmojiIconField.vue';
 import draggable from 'vuedraggable';
 import { groupToReadableText as _groupToReadableText } from '~/components/BusinessProposal/admin/sectionEditorUtils.js';
+
+const protectedGroupIds = new Set([
+  'views',
+  'components',
+  'features',
+  'cross_cutting_features',
+]);
 
 const props = defineProps({
   form: { type: Object, required: true },
