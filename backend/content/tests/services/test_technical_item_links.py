@@ -99,6 +99,76 @@ class TestBuildItemLinkOptions:
         assert options == []
 
 
+class TestMalformedPayloadIsTolerated:
+    """The payload is author-supplied JSON, so every shape must be survivable.
+
+    A malformed section must yield "nothing to require" rather than an
+    exception: a crash here would surface as a 500 on an import the seller
+    could not diagnose.
+    """
+
+    @pytest.mark.parametrize('sections', [None, 'nope', 42, [], [{'section_type': 'other'}]])
+    def test_options_are_empty_without_usable_functional_requirements(self, sections):
+        assert build_item_link_options(sections) == []
+
+    def test_options_are_empty_when_the_section_content_is_not_a_dict(self):
+        assert build_item_link_options([
+            {'section_type': 'functional_requirements', 'content_json': 'nope'},
+        ]) == []
+
+    def test_junk_groups_and_items_are_skipped_not_raised(self):
+        options = build_item_link_options([{
+            'section_type': 'functional_requirements',
+            'content_json': {
+                'groups': [
+                    'not-a-dict',
+                    {'title': 'Sin id', 'items': [{'id': 'item-x', 'name': 'X'}]},
+                    {'id': 'empty', 'title': 'Sin ítems', 'items': []},
+                    {'id': 'partial', 'title': 'Parcial', 'items': [
+                        'not-a-dict', {'name': 'Sin id'}, {'id': LOGIN, 'name': 'Login'},
+                    ]},
+                ],
+                'additionalModules': ['not-a-dict'],
+            },
+        }])
+
+        assert [g['groupId'] for g in options] == ['partial']
+        assert [i['id'] for i in options[0]['items']] == [LOGIN]
+
+    @pytest.mark.parametrize('tech', [
+        None, 'nope', {}, {'epics': 'nope'}, {'epics': ['not-a-dict']},
+        {'epics': [{'requirements': 'nope'}]},
+        {'epics': [{'requirements': ['not-a-dict']}]},
+    ])
+    def test_junk_technical_documents_trace_nothing(self, tech):
+        report = build_technical_item_coverage(
+            build_item_link_options([_fr_section()]), tech,
+        )
+
+        assert report['coveredRequiredCount'] == 0
+        assert [m['id'] for m in report['missingRequired']] == [LOGIN, PANEL]
+
+    def test_junk_option_groups_and_items_are_skipped(self):
+        report = build_technical_item_coverage(
+            ['not-a-dict', {'items': [{'label': 'sin id'}]}], _tech([LOGIN]),
+        )
+
+        assert report['requiredCount'] == 0
+        assert report['missingRequired'] == []
+
+    def test_camel_case_link_key_is_honoured(self):
+        """Legacy payloads spell it linkedItemIds; both must trace."""
+        tech = {'epics': [{'requirements': [
+            {'title': 'Entrar', 'linkedItemIds': [LOGIN, PANEL]},
+        ]}]}
+
+        report = build_technical_item_coverage(
+            build_item_link_options([_fr_section()]), tech,
+        )
+
+        assert report['missingRequired'] == []
+
+
 class TestUntracedItemReport:
     def test_reports_the_items_no_requirement_links(self):
         options = build_item_link_options([_fr_section()])
@@ -118,7 +188,52 @@ class TestUntracedItemReport:
         assert report['coveredRequiredCount'] == 2
 
 
+class TestOptionalItemsAreReportedNotBlocked:
+    def test_untraced_optional_item_is_listed_apart(self):
+        """An unsold catalog module is guidance, never a blocker."""
+        sections = [_fr_section(additional=[{
+            'id': 'extra', 'title': 'Extra', 'selected': False,
+            'items': [{'id': 'item-extra-uno', 'name': 'Uno'}],
+        }])]
+
+        report = build_technical_item_coverage(
+            build_item_link_options(sections), _tech([LOGIN, PANEL]),
+        )
+
+        assert [m['id'] for m in report['missingOptional']] == ['item-extra-uno']
+        assert report['missingRequired'] == []
+        enforce_technical_item_coverage(sections, _tech([LOGIN, PANEL]))
+
+
 class TestEnforceItemTracing:
+    def test_message_truncates_a_long_list_of_untraced_items(self):
+        """Naming 40 items would bury the message; 8 plus a count reads."""
+        items = [{'id': 'item-views-n%02d' % n, 'name': 'Vista %02d' % n}
+                 for n in range(12)]
+        sections = [_fr_section(groups=[
+            {'id': 'views', 'title': 'Vistas', 'items': items},
+        ])]
+
+        with pytest.raises(ProposalActionError) as exc:
+            enforce_technical_item_coverage(sections, _tech([]))
+
+        assert 'no cubre 12 de 12' in str(exc.value)
+        assert '(+4 más)' in str(exc.value)
+
+    def test_a_document_that_is_not_a_dict_is_not_gated(self):
+        """Sanity: the same items DO block once the document is a real dict."""
+        with pytest.raises(ProposalActionError):
+            enforce_technical_item_coverage([_fr_section()], _tech([]))
+
+        enforce_technical_item_coverage([_fr_section()], 'nope')
+
+    def test_no_functional_items_means_nothing_to_require(self):
+        """Without commercial items there is no contract to enforce."""
+        sections = [_fr_section(groups=[])]
+        assert build_item_link_options(sections) == []
+
+        enforce_technical_item_coverage(sections, _tech([]))
+
     def test_raises_naming_the_untraced_items(self):
         with pytest.raises(ProposalActionError) as exc:
             enforce_technical_item_coverage([_fr_section()], _tech([]))
