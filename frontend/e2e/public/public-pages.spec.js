@@ -34,7 +34,8 @@ test.describe('Portfolio Works', () => {
       return null;
     });
 
-    await page.goto('/portfolio-works');
+    // quality: allow-deep-link (this test isolates portfolio response rendering; navbar navigation is covered by the layout spec)
+    await page.goto('/en-us/portfolio-works');
     await expect(page).toHaveURL(/portfolio-works/);
     await expect(page.getByText('E-Commerce Platform Redesign')).toBeVisible({ timeout: 15000 });
   });

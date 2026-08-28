@@ -2,11 +2,11 @@ import { assertValidSpaFallbackHtml } from '../../utils/spaFallback';
 
 describe('assertValidSpaFallbackHtml', () => {
   it('accepts a Nuxt mount document', () => {
-    expect(() => {
-      assertValidSpaFallbackHtml(
-        '<!DOCTYPE html><html><body><div id="__nuxt"></div></body></html>',
-      );
-    }).not.toThrow();
+    const result = assertValidSpaFallbackHtml(
+      '<!DOCTYPE html><html><body><div id="__nuxt"></div></body></html>',
+    );
+
+    expect(result).toBeUndefined();
   });
 
   it('rejects an empty document', () => {
