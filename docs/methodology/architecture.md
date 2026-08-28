@@ -1072,7 +1072,7 @@ WhatsApp delivery receipt. A later email phase must enter through
 Historical conversations keep their original client: when a project changes
 owner, its threads are detached from the project rather than reassigned.
 
-### Modal-Owned Floating Listboxes
+### Modal-Owned Selector Surfaces
 
 `BaseFloatingListbox` is the shared rendering boundary for searchable selectors
 inside `BaseModal`. The modal provides a dedicated floating root outside its
@@ -1087,15 +1087,26 @@ income selector in `CollectionAccountFormModal` consume that primitive. This
 keeps accounting and Documents modals on one clipping, focus and scroll contract
 instead of repeating per-screen absolute dropdown workarounds.
 
-Geometry and data readiness are separate parts of that contract.
-`ClientAutocomplete` requests the empty query when an uncommitted picker gains
-focus, so a modal whose picker is its primary decision can focus it on open and
-render a real catalog immediately. `search_proposal_clients` orders by the
-display-name fallback (person name → company → email), returns at most 20 rows
-for `limit`/`offset`, and keeps its historical array body while publishing the
-filtered total in `X-Total-Count`. `BaseFloatingListbox` signals its scroll end;
-the client picker appends the next page without duplicates while the modal stays
-fixed. Empty and failed reads remain actionable inside the same layer.
+The same selector can expose two rendering surfaces without duplicating its data
+state. `ClientAutocompleteResults` owns client identity, loading, retry, empty
+and progressive-page states. The default `floating` presentation wraps it in
+`BaseFloatingListbox` for secondary form choices. The explicit `catalog`
+presentation keeps the same results permanently in document flow; only
+`BulkAssignModal` opts into it because client selection is that dialog's main
+decision. The modal therefore reserves no overlay height and the catalog owns
+the sole overflow region while count, affected identities and actions remain
+still. Project assignment and the selectors in Documents/cuenta de cobro retain
+their floating behavior.
+
+Geometry, ordering and data readiness are separate parts of that contract.
+`ClientAutocomplete` requests the empty query when an active catalog opens (or
+when an uncommitted floating picker gains focus). `search_proposal_clients`
+orders by the display-name fallback (person name → company → email), accepts
+`order=name|-name`, returns at most 20 rows for `limit`/`offset`, and keeps its
+historical array body while publishing the filtered total in `X-Total-Count`.
+The catalog defaults to A-Z and persists its A-Z/Z-A choice under a consumer-
+owned browser key. Scroll-end appends the next page without duplicates and keeps
+the requested order. Empty and failed reads remain actionable in either surface.
 
 The linked-income selector owns a stable view-state default rather than a
 server restriction: it fetches the eligible expected/liquid pool, scopes it to

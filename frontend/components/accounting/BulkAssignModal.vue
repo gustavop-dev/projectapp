@@ -8,7 +8,7 @@
     @close="emit('close')"
   >
     <div
-      class="flex h-full min-h-0 flex-col panel-portrait:min-h-[min(36rem,calc(90dvh-2rem))]"
+      class="flex h-full min-h-0 flex-col"
       :data-testid="`${testidPrefix}-bulk-assign-modal`"
     >
       <div class="shrink-0 px-6 pt-6 pb-2">
@@ -23,15 +23,18 @@
         </p>
       </div>
 
-      <!-- El listbox flota fuera del panel: esta zona conserva sitio para el
-           alcance y no compite con el desplegable por el scroll del modal. -->
+      <!-- Cliente is a permanent in-flow catalog; project keeps the shared
+           floating picker. Neither presentation needs pre-reserved height. -->
       <div class="min-h-0 flex-1 px-6 py-4 space-y-4">
         <ClientAutocomplete
           v-if="isClient"
           v-model="clientId"
+          :active="open"
           :test-id="`${testidPrefix}-bulk-client`"
           placeholder="Buscar el cliente a asignar..."
+          presentation="catalog"
           :show-linked-hint="false"
+          sort-storage-key="panel.accounting.bulk-client-name-order"
           :initial-label="clientLabel"
           @select="onClientSelect"
           @create-new="onCreateNewClient"
