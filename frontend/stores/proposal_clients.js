@@ -125,9 +125,10 @@ export const useProposalClientsStore = defineStore('proposalClients', {
      * @param {Object} [paging]
      * @param {number} [paging.offset=0]
      * @param {number} [paging.limit=20]
+     * @param {'name'|'-name'} [paging.order] - optional catalog direction.
      * @returns {Promise<{success:boolean,data?:Array,total?:number,hasMore?:boolean,nextOffset?:number,errors?:Object}>}
      */
-    async searchClients(query, { offset = 0, limit = 20 } = {}) {
+    async searchClients(query, { offset = 0, limit = 20, order = '' } = {}) {
       // Cancel any in-flight request from a previous keystroke.
       if (this._searchAbortController) {
         this._searchAbortController.abort();
@@ -143,6 +144,7 @@ export const useProposalClientsStore = defineStore('proposalClients', {
           limit: String(limit),
           offset: String(offset),
         });
+        if (order) params.set('order', order);
         const url = `proposals/client-profiles/search/?${params.toString()}`;
         const response = await get_request(url, { signal: controller.signal });
         // A response can still resolve after its AbortController was superseded
