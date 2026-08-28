@@ -4587,14 +4587,16 @@ def apply_proposal_json_update(proposal, validated_data):
             if normalized != technical_section.content_json:
                 technical_section.content_json = normalized
                 technical_section.save(update_fields=['content_json'])
-            # Only gate a technical document the caller actually sent, the
-            # same way the admin editor gates the technical-document save. An
-            # update that only touches other sections is not asserting the
-            # detail is complete, so it must not be rejected for it.
-            # Runs after seeding + normalization so the check sees the final
-            # links. Raising here rolls the whole update back
-            # (@transaction.atomic), leaving the proposal untouched.
-            if 'technicalDocument' in sections_data:
+            # Gate only a technical document the caller actually authored —
+            # its own payload must carry epics. An update that omits the
+            # section, or sends an empty one and lets the seeder fill it, is
+            # asserting nothing about the detail, so it must not be rejected
+            # for what the system generated on its behalf. Mirrors the admin
+            # editor, which gates the technical-document save.
+            # Validates the NORMALIZED result so seeded links count, and
+            # raising rolls the whole update back (@transaction.atomic).
+            payload_technical = sections_data.get('technicalDocument')
+            if isinstance(payload_technical, dict) and payload_technical.get('epics'):
                 enforce_technical_item_coverage(section_payloads, normalized)
 
     ProposalChangeLog.objects.create(
