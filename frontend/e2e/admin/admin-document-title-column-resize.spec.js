@@ -242,6 +242,7 @@ test.describe('Admin Document Title Column Resize', () => {
   test('uses the shared tooltip for a row action', {
     tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (la navegación del sidebar pertenece a los flows de layout; este caso aísla el tooltip compartido)
     await page.setViewportSize({ width: 1440, height: 900 });
     await openDocuments(page);
 

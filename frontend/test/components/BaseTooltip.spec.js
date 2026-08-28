@@ -161,6 +161,7 @@ describe('BaseTooltip', () => {
       slots: { trigger: '<button>Action</button>' },
     })
 
+    expect(wrapper.get('[data-base-tooltip-trigger]').text()).toContain('Action')
     expect(wrapper.classes()).not.toContain('relative')
   })
 
@@ -171,7 +172,7 @@ describe('BaseTooltip', () => {
     })
     await wrapper.get('[data-base-tooltip-trigger]')
       .trigger('pointerenter', { pointerType: 'mouse' })
-    expect(document.body.querySelector('[role="tooltip"]')).not.toBeNull()
+    expect(document.body.querySelector('[role="tooltip"]')?.textContent).toContain('Temporary tip')
 
     wrapper.unmount()
 
