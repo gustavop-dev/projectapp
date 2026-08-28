@@ -1504,6 +1504,7 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
       ],
       calls: [],
     }));
+    // quality: allow-deep-link (the compact viewport isolates full-screen modal geometry; panel navigation is covered by the desktop catalog flow)
     await gotoIncomes(page);
     await openBulkClientAssignment(page);
 
@@ -1540,7 +1541,7 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
       ],
       calls: [],
     }));
-    await gotoIncomes(page);
+    await navigateToIncomesFromPanel(page);
     await openBulkClientAssignment(page);
 
     const firstOption = page.locator('[data-testid^="client-autocomplete-option-"]').first();
