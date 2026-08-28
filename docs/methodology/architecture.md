@@ -11,10 +11,10 @@ flowchart TB
     subgraph Production["Production Server (Ubuntu)"]
         Nginx["Nginx (SSL termination)"]
         Gunicorn["Gunicorn (2 workers)"]
-        Django["Django 5 (settings_prod)"]
+        Django["Django 6.1 (settings_prod)"]
         Redis["Redis :6379/5"]
         Huey["Huey Worker"]
-        MySQL["MySQL 8"]
+        MySQL["MySQL 8.4"]
 
         Nginx -->|unix socket| Gunicorn
         Gunicorn --> Django

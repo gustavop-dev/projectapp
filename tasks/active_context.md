@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-08-28 — Actualización secuencial completa de dependencias:** cada cambio
+de librería se aisló en su propio commit y sólo avanzó después de cerrar el CI
+completo del PR. Backend queda al día con Django 6.1, Faker 40.37, Gunicorn 26.2,
+pytest-cov 7.1 y ReportLab 5; Python 3.12 y MySQL 8.4.11 cumplen los mínimos del
+framework. La configuración de correo migró a `MAILERS`, el gateway dejó de usar
+el argumento deprecado `fail_silently` de Django y conserva explícitamente su
+semántica ante fallos SMTP. Frontend queda en Nuxt 4.5.2, Vue 3.5.42, Pinia 4.0.3,
+VueUse 14.4, marked 18, Swiper 14, ApexCharts 7 y Vue Test Utils 2.5, con paquetes
+sin uso y el setup huérfano de jest-dom eliminados. `pip-audit` y `npm audit`
+reportan cero vulnerabilidades. El inventario backend no tiene updates de
+aplicación pendientes; Jest/Babel permanecen en la línea compatible con
+`@vue/vue3-jest` 29 y `vuedraggable` 4 no se baja al nominal latest 2.24.3 porque
+esa es la línea Vue 2. La misma entrega incluye la corrección MySQL de
+`DocumentState.system_key`, que elimina `models.W036`.
+
 **2026-08-27 — Listo para merge: ciclo de vida y acciones de Recurrentes:**
 `/panel/accounting/recurring` ya usa la columna inicial de PA-102 y un único menú
 por fila para editar, duplicar con borrador, activar/desactivar, silenciar avisos
@@ -81,8 +96,9 @@ duplicados antes del DDL. El contrato MCP no cambia y su suite 19/19 permanece
 verde, junto con 4/4 pruebas focales, `sqlmigrate`, check de base y ausencia de
 drift. En paralelo, los 13 updates compatibles que explicaban 18 paquetes
 outdated se probaron en un venv aislado y se promovieron al productivo: audits y
-compatibilidad en cero, cinco majors aún diferidos, Gunicorn/Huey activos. El
-worktree mergeado `vuln-audit` fue retirado conservando su rama y un GC con poda
+compatibilidad en cero, Gunicorn/Huey activos. La ola secuencial del 2026-08-28
+completó después los majors aplicables del manifiesto. El worktree mergeado
+`vuln-audit` fue retirado conservando su rama y un GC con poda
 de dos semanas llevó objetos loose 7.003→0 y packs 34→2; `gc.log` desapareció,
 los objetos dangling recientes se preservaron y la conectividad/fetch quedaron
 limpios. La corrección de esquema permanece en PR hasta integración/despliegue.
@@ -268,19 +284,12 @@ errores ni warnings. El gate global local puntuó 97/100 y quedó pendiente de l
 confirmación de CI únicamente porque este worktree backend-only no tiene
 `frontend/node_modules` para cargar `@babel/parser`.
 
-**2026-08-26 — Refresh patch/minor de dependencias y auditoría de vulnerabilidades:**
-el candidato de release actualiza diez dependencias directas de frontend y once
-de backend sin cruzar majors ni la frontera breaking de `@pinia/nuxt` 0.x. Los
-audits finales de npm y del virtualenv Python aislado reportan cero
-vulnerabilidades; Nuxt compila y prerenderiza 36 rutas, Django check no encuentra
-problemas, la colección completa de pytest termina correctamente y la regresión
-focal pasa 2/2. `@testing-library/jest-dom` se mantuvo y fijó exactamente en 6.9.1
-porque 6.10.0 fue publicada con requisitos y cambios incompatibles para la línea
-6.x. El único cierre operativo posterior al merge es subir `pip` del virtualenv
-productivo de 26.1.2 a 26.2.1 para remediar `PYSEC-2026-3721` /
-`CVE-2026-13346`; `pip` no se agrega a `requirements.txt` porque es tooling del
-entorno, no una dependencia de la aplicación. Detalle y majors diferidos en
-`audit-report.md`.
+**2026-08-26 — Baseline patch/minor de dependencias:** esta primera ola actualizó
+diez dependencias directas de frontend y once de backend sin cruzar majors. Sus
+audits, build Nuxt, Django check, pytest y regresión focal quedaron verdes. El
+virtualenv productivo ya recibió `pip` 26.2.1; la ola secuencial del 2026-08-28
+retiró después jest-dom y completó los majors compatibles, tal como registra la
+entrada vigente al inicio de este documento.
 
 **2026-08-25 — Estados múltiples, administrables y con episodios para Documentos:**
 el módulo dejó de presentar `draft/published` y etiquetas como dos verdades
@@ -952,8 +961,8 @@ ProjectApp is in **production** at projectapp.co. No long-lived active branch: w
 
 ## Development Environment
 
-- **Backend**: Django 5 + DRF, SQLite (dev) / MySQL (prod), Huey immediate mode
-- **Frontend**: Nuxt 3 + Pinia + TailwindCSS, dev server on port 3001 (port 3000 occupied by kore_project Next.js)
+- **Backend**: Django 6.1 + DRF, SQLite (dev) / MySQL 8.4 (prod), Huey immediate mode
+- **Frontend**: Nuxt 4 + Pinia 4 + TailwindCSS, dev server on port 3001 (port 3000 occupied by kore_project Next.js)
 - **Both servers** must run simultaneously for full functionality in development
 - **Redis**: Required in production for Huey task queue
 
