@@ -1252,3 +1252,19 @@ generated artifact before touching the live directory. A usable fallback is
 non-empty, contains the `#__nuxt` mount, and cannot redirect. Validate those
 properties before the atomic swap, and monitor one real SPA deep route by content;
 file existence and status 200 prove neither hydration nor availability.
+
+## 51. A visual tooltip and an accessible name serve different readers
+
+An icon-only row action may need a contextual accessible name such as **Acciones
+de Contrato de Servicios**, but repeating that string in a hover hint adds no
+value when the document title is already visible. Keep the application tooltip
+short and canonical, keep row context in `aria-label`, and let touch users reach
+the same action through the button itself rather than depending on hover help.
+
+Tooltip ownership must be singular at the rendered DOM boundary. Wrapping a
+button in an application tooltip while also forwarding `title` creates two
+competing notices. In Vue, removing an explicit `:title` binding is not enough
+when `$attrs` can still fall through automatically: the owning primitive must
+filter `title` deliberately while preserving `aria-*`, `data-*` and link
+semantics. Test the rendered attribute and the visible `role="tooltip"`
+separately; each protects a different half of the contract.

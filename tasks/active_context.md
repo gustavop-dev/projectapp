@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-28 — Un solo aviso breve para las acciones del panel:**
+`BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
+la etiqueta corta del catálogo (**Acciones**) y el `aria-label` conserva el
+contexto de fila (**Acciones de Contrato de Servicios**). El primitive es el
+único dueño del aviso y pide a `BaseButton` filtrar el `title` nativo, incluidos
+los atributos que Vue reenvía por fallthrough; el resto de `aria-*`, `data-*` y
+semántica de enlace se conserva. La corrección alcanza automáticamente todos los
+botones de acción compartidos del panel y no cambia el clic/tap que abre sus
+menús. Unitarias de los primitives y consumidores de Documentos, más Playwright
+en lista y galería, verifican ausencia de `title`, un solo tooltip legible,
+nombre accesible contextual y apertura del menú. El mapa está fresco y la
+auditoría registra 272 flujos cubiertos, 37 parciales, 0 `junk-only` y 0 faltantes.
+
 **2026-08-28 — Hotfix del fallback SPA listo para integrar:** el panel de
 producción seguía respondiendo 200, pero el `200.html` generado tras la
 actualización Nuxt/i18n era sólo un meta refresh hacia `/en-us/200.html`; Django
