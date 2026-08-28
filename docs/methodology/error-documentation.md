@@ -51,6 +51,35 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-036] El catálogo inicial dejaba un modal alto y vacío
+
+- **Date**: 2026-08-28
+- **Context**: La asignación masiva ya cargaba clientes sin escribir y evitaba
+  el recorte original, pero seguía presentándolos como un desplegable. Al abrir,
+  el modal reservaba la altura necesaria para esa capa y mostraba un vacío hasta
+  que el buscador recibía foco; al desplegarla, la información aparecía en el
+  espacio que ya estaba reservado.
+- **Root Cause**: El selector primario de una decisión masiva se modeló como un
+  autocomplete flotante y el consumidor compensó su geometría con una altura
+  mínima fija. Un overlay activado por foco no puede ser a la vez el contenido
+  permanente que explica la decisión.
+- **Resolution**: Añadir a `ClientAutocomplete` una presentación `catalog`
+  explícita y en flujo, reutilizando el mismo motor de búsqueda, selección,
+  paginación, vacío y errores. `BulkAssignModal` la activa sólo para clientes y
+  elimina la altura reservada. El catálogo abre A-Z, permite alternar A-Z/Z-A,
+  conserva el criterio en `localStorage`, muestra nombre/empresa/correo y deja su
+  propia lista como único scroll; los demás selectores siguen flotando.
+- **Files Affected**: endpoint/store de búsqueda de clientes,
+  `ClientAutocomplete`, `ClientAutocompleteResults`, `BulkAssignModal` y sus
+  pruebas backend/frontend/E2E.
+- **Verification**: casos focales de orden y fallback del endpoint, contrato del
+  store, siete estados del catálogo, modal y tres escenarios Playwright: cinco
+  filas completas con revisión visible, persistencia entre aperturas y pantalla
+  compacta 412×915 sin scroll del panel.
+- **Lesson**: Cuando una lista es el contenido principal de una decisión, debe
+  vivir en el flujo del modal; un desplegable sólo corresponde a información
+  secundaria que el usuario decide invocar.
+
 ### [ERR-035] Cross-cutting proposal qualities were mixed into specific features
 
 - **Date**: 2026-08-28
@@ -75,7 +104,6 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Lesson**: A reusable quality catalog needs a stable structural boundary and
   contextual content rules; otherwise “generic” quickly becomes an unsupported
   promise copied into every proposal.
-
 ### [ERR-034] Nuxt generated a self-referential SPA fallback
 
 - **Date**: 2026-08-28
