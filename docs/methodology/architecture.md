@@ -1051,7 +1051,7 @@ WhatsApp delivery receipt. A later email phase must enter through
 Historical conversations keep their original client: when a project changes
 owner, its threads are detached from the project rather than reassigned.
 
-### Modal-Owned Floating Listboxes
+### Modal Search Results: Floating Layers and Permanent Catalogs
 
 `BaseFloatingListbox` is the shared rendering boundary for searchable selectors
 inside `BaseModal`. The modal provides a dedicated floating root outside its
@@ -1061,20 +1061,30 @@ same modal context registers open floating layers so the panel stays fixed while
 the list owns any result overflow. The dialog-level focus trap includes the
 teleported options, while Escape closes the list before it can close the modal.
 
-`ClientAutocomplete`, `ProjectSelect`, `ProjectCatalogSelect` and the linked-
-income selector in `CollectionAccountFormModal` consume that primitive. This
-keeps accounting and Documents modals on one clipping, focus and scroll contract
-instead of repeating per-screen absolute dropdown workarounds.
+`ProjectSelect`, `ProjectCatalogSelect`, the linked-income selector in
+`CollectionAccountFormModal` and the default presentation of
+`ClientAutocomplete` consume that primitive. This keeps ordinary accounting and
+Documents selectors on one clipping, focus and scroll contract instead of
+repeating per-screen absolute dropdown workarounds.
+
+`ClientAutocompleteResults` is the shared results renderer for a second,
+deliberate presentation: `ClientAutocomplete(presentation="catalog")` stays in
+normal document flow. `BulkAssignModal` uses it because choosing a client is the
+modal's central task, not one field among many. The modal therefore opens with
+real rows instead of an empty height reservation; the catalog owns its bounded
+scroll region while the selected-record review remains visible beside it. The
+floating presentation remains the default for every other consumer.
 
 Geometry and data readiness are separate parts of that contract.
-`ClientAutocomplete` requests the empty query when an uncommitted picker gains
-focus, so a modal whose picker is its primary decision can focus it on open and
-render a real catalog immediately. `search_proposal_clients` orders by the
-display-name fallback (person name → company → email), returns at most 20 rows
-for `limit`/`offset`, and keeps its historical array body while publishing the
-filtered total in `X-Total-Count`. `BaseFloatingListbox` signals its scroll end;
-the client picker appends the next page without duplicates while the modal stays
-fixed. Empty and failed reads remain actionable inside the same layer.
+The floating `ClientAutocomplete` requests the empty query when an uncommitted
+picker gains focus; catalog mode requests it on mount. `search_proposal_clients`
+accepts `order=name|-name`, sorts by the display-name fallback (person name →
+company → email) with profile id as tie-breaker, returns at most 20 rows for
+`limit`/`offset`, and keeps its historical array body while publishing the
+filtered total in `X-Total-Count`. Both presentations append later pages without
+duplicates; the catalog receives scroll-end directly and the floating mode gets
+it from `BaseFloatingListbox`. The catalog persists its A-Z/Z-A choice in local
+storage. Empty and failed reads remain actionable inside the same renderer.
 
 The linked-income selector owns a stable view-state default rather than a
 server restriction: it fetches the eligible expected/liquid pool, scopes it to

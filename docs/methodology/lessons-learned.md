@@ -1166,6 +1166,16 @@ the scroll signal in the shared listbox but keep `hasMore` and retry state in th
 data-owning picker. This preserves one scrollbar without coupling a generic
 overlay primitive to a particular API.
 
+There is also a product boundary between a searchable **field** and a searchable
+**catalog**. A floating layer is right when the selection is incidental to a
+form; it is wrong when the modal exists mainly to choose one row, because the
+closed layer leaves either blank reserved space or no useful content. Share the
+row renderer and data lifecycle, but make presentation explicit. Permanent
+catalogs load on mount, keep their filter and rows in view after selection, own
+their bounded scroll, expose a stable sortable order and preserve the operator's
+chosen direction. The modal then sizes to real content instead of a hypothetical
+dropdown.
+
 ## 47. Nullable uniqueness is already a portable partial-uniqueness primitive
 
 When absence is stored as SQL `NULL`, a plain unique constraint already permits

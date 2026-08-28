@@ -521,6 +521,32 @@ class TestSearchProposalClients:
 
         assert [row['id'] for row in response.data] == [alpha.pk, zulu.pk]
 
+    def test_search_orders_clients_by_display_name_descending(
+        self, admin_client, make_client_profile,
+    ):
+        zulu = make_client_profile(first_name='Zoé', last_name='Zulu')
+        alpha = make_client_profile(first_name='Amanda', last_name='Alba')
+
+        response = admin_client.get(
+            reverse('search-proposal-clients'),
+            {'q': '', 'order': '-name'},
+        )
+
+        assert [row['id'] for row in response.data] == [zulu.pk, alpha.pk]
+
+    def test_search_uses_name_ascending_for_unknown_order(
+        self, admin_client, make_client_profile,
+    ):
+        zulu = make_client_profile(first_name='Zoé', last_name='Zulu')
+        alpha = make_client_profile(first_name='Amanda', last_name='Alba')
+
+        response = admin_client.get(
+            reverse('search-proposal-clients'),
+            {'q': '', 'order': 'recent'},
+        )
+
+        assert [row['id'] for row in response.data] == [alpha.pk, zulu.pk]
+
     def test_search_returns_the_requested_result_page(
         self, admin_client, make_client_profile,
     ):

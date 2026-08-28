@@ -45,6 +45,32 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-035] Client-assignment results were either clipped or replaced by empty reserved space
+
+- **Date**: 2026-08-28
+- **Context**: The accounting bulk **Asignar cliente** modal originally showed
+  barely one search result inside its own scroll. Increasing the modal height
+  removed the clipping but left a large blank area until the focused dropdown
+  opened, while the selected-record review still competed for space.
+- **Root Cause**: A field-style popover was being used as the main content of a
+  chooser modal. Modal geometry and result visibility were coupled: either the
+  panel was too short for the overlay or it reserved height for content that was
+  absent from normal flow.
+- **Resolution**: Split the shared client result renderer from its presentation.
+  Ordinary selectors keep the modal-owned floating layer; bulk assignment uses a
+  permanent catalog that loads on mount, filters in place, owns progressive
+  scrolling, exposes persistent A-Z/Z-A sorting and keeps the selected-record
+  scope visible beside it. The modal uses semantic `form-wide` geometry and the
+  existing full-screen compact contract.
+- **Files Affected**: `ClientAutocomplete.vue`,
+  `ClientAutocompleteResults.vue`, `BulkAssignModal.vue`,
+  `proposal_clients.py`, focused unit/backend/E2E tests and the flow registry.
+- **Verification**: 10 endpoint cases, 45 focused frontend-unit cases and four
+  Playwright browser scenarios pass; a repeat run of the two navigation-backed
+  display cases is green. The P1 flow audit credits all four outcome classes.
+- **Lesson**: Overlay clipping and empty first paint are different failures. If
+  choosing from a catalog is the task itself, render the catalog as content.
+
 ### [ERR-034] Nuxt generated a self-referential SPA fallback
 
 - **Date**: 2026-08-28

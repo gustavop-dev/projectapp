@@ -18,7 +18,7 @@ jest.mock('../../../stores/proposal_clients', () => ({
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
-  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint', 'initialLabel'],
+  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint', 'initialLabel', 'presentation'],
   emits: ['update:modelValue', 'select', 'create-new'],
   template: `
     <div data-testid="client-autocomplete-stub">
@@ -70,10 +70,12 @@ function mountModal(props = {}) {
       stubs: {
         ClientAutocomplete: ClientAutocompleteStub,
         ProjectCatalogSelect: ProjectCatalogSelectStub,
+        NuxtLink: { template: '<a><slot /></a>' },
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['modelValue', 'size', 'titleId', 'initialFocus'],
+          name: 'BaseModal',
+          props: ['modelValue', 'kind', 'titleId', 'initialFocus'],
           emits: ['update:modelValue', 'close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
@@ -151,6 +153,22 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
 });
 
 describe('BulkAssignModal — the scope is visible before it runs', () => {
+  it('uses the permanent catalog in a wide form modal', () => {
+    const wrapper = mountModal();
+
+    expect(wrapper.findComponent(ClientAutocompleteStub).props('presentation')).toBe('catalog');
+    expect(wrapper.findComponent({ name: 'BaseModal' }).props('kind')).toBe('form-wide');
+  });
+
+  it('shows every selected record before a target is chosen', () => {
+    const wrapper = mountModal();
+
+    const review = wrapper.get('[data-testid="hostings-bulk-selection-review"]');
+    expect(review.text()).toContain('Registros seleccionados (2)');
+    expect(review.text()).toContain('kore.com.co');
+    expect(review.text()).toContain('tuhuella.co');
+  });
+
   it('breaks a mixed selection into its two halves instead of one flat count', async () => {
     const wrapper = mountModal({ selectedIds: [1, 2, 3] });
     await pickClient(wrapper);

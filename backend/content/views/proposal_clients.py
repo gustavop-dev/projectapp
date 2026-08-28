@@ -516,8 +516,12 @@ def search_proposal_clients(request):
     The payload intentionally stays an array for backwards compatibility. The
     complete filtered count travels in ``X-Total-Count`` so the frontend can
     request the next slice without guessing whether another page exists.
+    ``order=name|-name`` keeps every page on the same stable alphabetical
+    contract; absent or unknown values preserve the historical A-Z default.
     """
     query = (request.query_params.get('q') or '').strip()
+    requested_order = (request.query_params.get('order') or 'name').strip().lower()
+    name_order = '-_display_name_sort' if requested_order == '-name' else '_display_name_sort'
     limit = _bounded_non_negative_int(
         request.query_params.get('limit'),
         default=CLIENT_SEARCH_PAGE_SIZE,
@@ -548,7 +552,7 @@ def search_proposal_clients(request):
             Value('Cliente'),
             output_field=CharField(),
         )),
-    ).order_by('_display_name_sort', 'pk')
+    ).order_by(name_order, 'pk')
     total = qs.count()
     rows = qs[offset:offset + limit]
     response = Response(ProposalClientSearchSerializer(rows, many=True).data)
