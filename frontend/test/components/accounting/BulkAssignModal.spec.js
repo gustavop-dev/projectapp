@@ -18,7 +18,16 @@ jest.mock('../../../stores/proposal_clients', () => ({
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
-  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint', 'initialLabel'],
+  props: [
+    'active',
+    'initialLabel',
+    'modelValue',
+    'placeholder',
+    'presentation',
+    'showLinkedHint',
+    'sortStorageKey',
+    'testId',
+  ],
   emits: ['update:modelValue', 'select', 'create-new'],
   template: `
     <div data-testid="client-autocomplete-stub">
@@ -115,6 +124,15 @@ beforeEach(() => {
 });
 
 describe('BulkAssignModal — nothing is confirmable without a reason on screen', () => {
+  it('renders client assignment as a permanent ordered catalog', () => {
+    const wrapper = mountModal();
+    const picker = wrapper.findComponent(ClientAutocompleteStub);
+
+    expect(picker.props('presentation')).toBe('catalog');
+    expect(picker.props('active')).toBe(true);
+    expect(picker.props('sortStorageKey')).toBe('panel.accounting.bulk-client-name-order');
+  });
+
   it('keeps Asignar disabled with the reason visible until a client is picked', () => {
     const wrapper = mountModal();
 
