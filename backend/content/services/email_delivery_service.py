@@ -50,6 +50,7 @@ class DeliveryTrace:
     copy_attempts: list[CopyAttempt] = field(default_factory=list)
     copy_error_message: str = ''
     body: object | None = None
+    snapshot: object | None = None
     remaining_log_writes: int = 1
     enrichment_count: int = 0
     gateway_primary_log_ids: list[int] = field(default_factory=list)
@@ -102,19 +103,6 @@ def _active_copy_recipients(family):
     ]
 
 
-def _message_bodies(message):
-    """Return the plain and HTML bodies already rendered on the message."""
-    text_body = str(getattr(message, 'body', '') or '')
-    html_body = ''
-    for alternative in getattr(message, 'alternatives', ()) or ():
-        content = getattr(alternative, 'content', alternative[0])
-        mimetype = getattr(alternative, 'mimetype', alternative[1])
-        if mimetype == 'text/html':
-            html_body = str(content or '')
-            break
-    return text_body, html_body
-
-
 def _audience_for(classification):
     from content.models import EmailLog
 
@@ -133,15 +121,9 @@ def _persist_gateway_history(
     primary_error='',
 ):
     """Persist a complete baseline trace without affecting delivery outcome."""
-    from content.models import EmailBody, EmailLog
+    from content.models import EmailLog
 
     try:
-        text_body, html_body = _message_bodies(message)
-        if text_body or html_body:
-            trace.body = EmailBody.objects.create(
-                text=text_body,
-                html=html_body,
-            )
         delivery_metadata = {
             'outbound_delivery': {
                 'classification': trace.classification,
@@ -162,6 +144,7 @@ def _persist_gateway_history(
                 error_message=(primary_error or '')[:1000],
                 metadata=delivery_metadata,
                 body=trace.body,
+                snapshot=trace.snapshot,
                 audience=audience,
                 delivery_id=trace.delivery_id,
                 delivery_role=EmailLog.DeliveryRole.PRIMARY,
@@ -185,6 +168,7 @@ def _persist_gateway_history(
                 error_message=attempt.error_message,
                 metadata=copy_metadata,
                 body=trace.body,
+                snapshot=trace.snapshot,
                 audience=EmailLog.Audience.INTERNAL,
                 delivery_id=trace.delivery_id,
                 delivery_role=EmailLog.DeliveryRole.COPY,
@@ -211,6 +195,8 @@ class EmailDeliveryGateway:
         classification: str | None = None,
         fail_silently: bool = False,
         primary_log_writes: int = 1,
+        attachment_sources=None,
+        resend_of=None,
     ) -> int:
         family = outbound_email_family(template_key)
         if not family:
@@ -239,6 +225,38 @@ class EmailDeliveryGateway:
         # Clone before the primary call: a backend is free to mutate the
         # message while preparing MIME, and attachments must remain identical.
         copy_source = copy.deepcopy(message)
+        from content.services.email_snapshot_service import (
+            capture_delivery_snapshot,
+        )
+        try:
+            trace.snapshot = capture_delivery_snapshot(
+                copy_source,
+                delivery_id=trace.delivery_id,
+                template_key=template_key,
+                classification=classification,
+                family=family,
+                attachment_sources=attachment_sources,
+                resend_of=resend_of,
+            )
+            trace.body = trace.snapshot.body
+            logger.info(
+                'Captured outbound email snapshot delivery_id=%s '
+                'template=%s attachments=%s attachment_bytes=%s message_bytes=%s',
+                trace.delivery_id,
+                template_key,
+                trace.snapshot.attachment_count,
+                trace.snapshot.attachment_size_bytes,
+                trace.snapshot.message_size_bytes,
+            )
+        except Exception:
+            _CURRENT_DELIVERY.set(None)
+            logger.exception(
+                'Blocked outbound email because snapshot capture failed '
+                'delivery_id=%s template=%s.',
+                trace.delivery_id,
+                template_key,
+            )
+            raise
         try:
             sent_count = message.send()
         except (OSError, SMTPException) as exc:

@@ -1,6 +1,6 @@
 # Inventario universal de correos salientes
 
-**Actualizado:** 2026-08-26
+**Actualizado:** 2026-08-28
 
 **Fuente ejecutable:** `backend/content/services/outbound_email_inventory.py`
 
@@ -86,9 +86,12 @@ construcción.
    por segunda vez.
 5. Una falla al resolver o entregar una copia no bloquea, no cambia y no
    reintenta el correo principal. Queda registrada de forma independiente.
-6. `EmailLog.delivery_id` agrupa la fila principal y sus intentos `copy`; el
-   Historial global muestra destinatario, estado, error y familia.
-7. Por decisión de producto, el cuerpo completo también se conserva para los
+6. `EmailLog.delivery_id` agrupa la fila principal y sus intentos `copy`; todos
+   referencian el mismo snapshot exacto capturado antes del SMTP.
+7. El Historial global muestra destinatario, estado, error, familia, cuerpo,
+   enlaces, peso y adjuntos exactos. Un fallo al guardar esa evidencia bloquea
+   el envío principal.
+8. Por decisión de producto, el cuerpo completo también se conserva para los
    correos de Seguridad y acceso. Cualquier administrador autorizado para el
    panel de Emails puede consultarlo; la interfaz lo advierte expresamente.
 
@@ -117,9 +120,9 @@ y almacenamiento del historial.
 
 La dirección no se fija en código ni se siembra en una migración. El diagnóstico
 de producción encontró la tabla de destinatarios vacía: por eso Carlos no estaba
-recibiendo copias. Después de desplegar esta versión y aplicar la migración
-`content.0213`, un administrador debe agregar `carlos18bp@gmail.com` en
-Configuración con las ocho familias seleccionadas.
+recibiendo copias. Antes de validar esta entrega en producción, un administrador
+debe agregar `carlos18bp@gmail.com` en Configuración con las ocho familias
+seleccionadas y confirmar que la traza BCC del primer correo figura como Enviado.
 
 ## Evidencia de completitud
 

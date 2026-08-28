@@ -160,4 +160,26 @@ describe('communications store', () => {
     expect(result.success).toBe(false);
     expect(result.message).toBe('No se pudieron cargar las comunicaciones del documento.');
   });
+
+  it('loads the retained email usage of a document', async () => {
+    get_request.mockResolvedValueOnce({
+      data: { count: 1, results: [{ email_log_id: 41, subject: 'Contrato' }] },
+    });
+    const store = useDocumentStore();
+
+    const result = await store.fetchDocumentEmailUsage(73);
+
+    expect(get_request).toHaveBeenCalledWith('documents/73/email-usage/');
+    expect(result.data.results[0].email_log_id).toBe(41);
+  });
+
+  it('normalizes a failed retained email lookup', async () => {
+    get_request.mockRejectedValueOnce({ response: { status: 503, data: {} } });
+    const store = useDocumentStore();
+
+    const result = await store.fetchDocumentEmailUsage(73);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe('No se pudo cargar el historial de envíos del documento.');
+  });
 });

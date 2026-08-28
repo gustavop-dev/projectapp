@@ -194,7 +194,15 @@ def send_collection_account_email(
         email.attach(
             email_parts['attachment_name'], pdf_bytes, 'application/pdf',
         )
-        EmailDeliveryGateway.send(email, template_key=TEMPLATE_KEY)
+        EmailDeliveryGateway.send(
+            email,
+            template_key=TEMPLATE_KEY,
+            attachment_sources=[{
+                'document_id': document.pk,
+                'business_kind': 'collection_account',
+                'business_kind_label': 'Cuenta de cobro',
+            }],
+        )
     except Exception as exc:
         logger.warning(
             'Failed to send collection account %s to %s: %s',

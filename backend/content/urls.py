@@ -163,14 +163,15 @@ from content.views.linkedin import (
 )
 from content.views.standalone_email import (
     send_standalone_email, standalone_email_defaults, list_standalone_emails,
-    preview_composed_email, standalone_email_body,
+    preview_composed_email, resend_standalone_email,
+    standalone_email_attachment, standalone_email_body,
 )
 from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
     archive_document, unarchive_document, document_counts,
-    suggest_folder_client,
+    document_email_usage, suggest_folder_client,
 )
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
@@ -498,6 +499,16 @@ urlpatterns = [
         name='standalone-email-body',
     ),
     path(
+        'emails/history/<int:log_id>/attachments/<int:attachment_id>/',
+        standalone_email_attachment,
+        name='standalone-email-attachment',
+    ),
+    path(
+        'emails/history/<int:log_id>/resend/',
+        resend_standalone_email,
+        name='resend-standalone-email',
+    ),
+    path(
         'emails/copy-recipients/', client_email_copy_recipients,
         name='client-email-copy-recipients',
     ),
@@ -564,6 +575,11 @@ urlpatterns = [
     path('documents/<int:document_id>/unarchive/', unarchive_document, name='unarchive-document'),
     path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
     path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
+    path(
+        'documents/<int:document_id>/email-usage/',
+        document_email_usage,
+        name='document-email-usage',
+    ),
     path(
         'documents/<int:document_id>/state-episodes/',
         open_document_state,

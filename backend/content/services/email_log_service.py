@@ -170,6 +170,8 @@ def record_send(
         log.error_message = error_message or ''
         log.metadata = merged_metadata
         log.body = body
+        if trace is not None:
+            log.snapshot = trace.snapshot
         log.origin_action = origin_action or ''
         log.retry_of = retry_of
         log.proposal = proposal
@@ -203,6 +205,7 @@ def record_send(
                 copy_log.metadata = copy_metadata
                 copy_log.subject = subject
                 copy_log.body = body
+                copy_log.snapshot = trace.snapshot
                 copy_log.origin_action = origin_action or ''
                 copy_log.proposal = proposal
                 copy_log.client_id = client_id

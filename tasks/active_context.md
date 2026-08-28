@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-28 — Historial probatorio de correos listo para integrar:** el gateway
+central captura antes del SMTP un snapshot obligatorio con cuerpo, enlaces,
+tamaño total y bytes/hash/tipo/tamaño de cada adjunto. Los logs primarios y BCC
+comparten evidencia; fallar al archivarla bloquea el envío. `/panel/emails`
+distingue captura exacta, adjuntos confirmados en cero y legado parcial/desconocido;
+filtra por presencia/tipo, descarga, reutiliza el visor PDF y reenvía desde el
+archivo cambiando sólo destinatario. Los Documentos muestran los correos donde
+salieron y quedan protegidos de borrado. `carlos18bp@gmail.com` usa la configuración
+existente de `EmailCopyRecipient`: su BCC se intenta sólo después del éxito
+principal. Backend, unitarios, build, 7 E2E focales, freshness y flow audit están
+verdes; fake-data refresh se omitió por el guardrail absoluto de producción.
+
 **2026-08-28 — Cuarta tarjeta contextual de requerimientos lista para integrar:**
 `functional_requirements` incorpora `cross_cutting_features` después de
 `features` en los defaults ES/EN. La tarjeta conserva un contenedor obligatorio

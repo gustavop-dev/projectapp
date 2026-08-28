@@ -7,6 +7,10 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-08-28:** los envíos nuevos archivan evidencia completa antes
+> del SMTP. Los registros previos conservan honestamente su estado parcial o
+> desconocido y nunca ofrecen un archivo regenerado como si fuera el original.
+
 ---
 
 ## Format
@@ -44,6 +48,30 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-036] El historial de correos no conservaba los archivos enviados
+
+- **Date**: 2026-08-28
+- **Context**: El módulo Emails mostraba destinatario, asunto, estado y cuerpo,
+  pero sólo algunas rutas dejaban nombres de adjuntos en metadata. No era posible
+  demostrar qué bytes recibió el cliente, calcular el peso real ni reenviar con
+  la misma evidencia.
+- **Root Cause**: Los logs se escribían después del intento SMTP y no existía un
+  modelo común para cuerpo, adjuntos, enlaces y procedencia documental. Consultar
+  el `Document` o regenerar un PDF devolvía estado actual, no estado histórico.
+- **Resolution**: El gateway captura un snapshot obligatorio antes del SMTP,
+  conserva cada archivo con hash/tipo/tamaño, extrae enlaces y comparte la
+  evidencia entre logs primarios y BCC. El historial diferencia captura exacta,
+  evidencia legada parcial y ausencia desconocida; sólo lo capturado permite
+  descarga, visor o reenvío. Los Documentos quedan enlazados y protegidos.
+- **Files Affected**: modelos/migración de snapshots, gateway y servicios de
+  historial/reenvío, APIs de Emails y Documentos, stores/páginas/modales, fake
+  data, tests y registro E2E.
+- **Verification**: 18 casos del historial backend, contratos del gateway,
+  pruebas unitarias del store/modal/visor, build Nuxt y 7 escenarios Playwright
+  focales pasan; el mapa está fresco y la auditoría reporta 0 flows missing.
+- **Lesson**: La evidencia de una entrega se captura antes de cruzar el límite
+  externo. Una versión actual o regenerada puede ser útil, pero no es historia.
 
 ### [ERR-035] Cross-cutting proposal qualities were mixed into specific features
 

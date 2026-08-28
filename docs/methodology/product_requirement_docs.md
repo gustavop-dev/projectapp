@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Entregado — 2026-08-28:** el historial universal conserva antes del SMTP
+> cuerpo, enlaces y bytes exactos de cada adjunto, con nombre, tipo, tamaño y
+> peso total del envío. Permite filtrar, descargar, previsualizar PDF y reenviar
+> la evidencia sin regenerarla; enlaza Documentos en ambas direcciones y declara
+> de forma explícita la ausencia o la brecha de datos legados. La notificación a
+> `carlos18bp@gmail.com` usa la copia BCC configurable existente y sólo se intenta
+> después de que el envío principal fue aceptado.
+
 ## 1. Overview
 
 **ProjectApp** is the full-stack web application for **Project App** (projectapp.co), a custom software development company based in Colombia. The platform serves as:
@@ -23,6 +31,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
 | One document status cannot describe concurrent work or preserve what already happened | User-managed cycle/signal states whose open and closed episodes form an attributable timeline |
 | The agency had no received copy of customer email | Every client-classified email leaves through one gateway, which sends configurable BCC-only internal copies and links their independent outcomes to the primary history row |
+| Email history could not prove which files or links were delivered | A mandatory pre-SMTP snapshot retains the exact attachment bytes and recognition metadata, body links, total MIME size, Document provenance and resend lineage; legacy gaps stay explicit |
 | Client conversations were drafted in disposable chats and reconstructed from memory | A client/project communications registry preserves ordered incoming and outgoing messages, manual send state, date corrections and references to existing documents |
 | Sparse or incoherent development data hid pagination, filters and edge defects until production | One guarded, deterministic dataset covers every visible module with explicit volume, skewed relationships, temporal buckets and intentional extremes |
 | Company portfolio hard to maintain | Admin CRUD panel for portfolio works with bilingual content |

@@ -7,6 +7,11 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Decisión consolidada — 2026-08-28:** un historial probatorio captura la
+> evidencia antes del envío, nunca desde el documento vivo. El snapshot se
+> comparte entre destinatario principal y copias, y una brecha legada se declara
+> en lugar de llenarse con una suposición.
+
 ---
 
 ## 1. Architecture Patterns
@@ -1269,3 +1274,19 @@ instead of inventing certification levels, browser matrices or performance
 guarantees. When evolving stored proposal JSON, update live defaults and editable
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
+
+## 52. Outbound delivery evidence belongs before the SMTP boundary
+
+Logging a filename or regenerating a document later answers what the system has
+*now*, not what the recipient received. Build the MIME message first, persist the
+decoded attachment bytes, recognition metadata, body and user-facing links, and
+only then call the external mail backend. A storage failure must stop delivery;
+otherwise the system knowingly creates an unauditable success.
+
+The primary recipient and internal BCC attempts belong to one delivery snapshot,
+while their outcomes remain separate log rows. Resending creates a new delivery
+and lineage but reads subject, body and attachments from the retained snapshot;
+only the recipient is editable. When old rows lack evidence, use explicit
+`legacy_partial`/`legacy_unknown` states—never substitute the current Document.
+Keep the live Document relation for navigation and deletion protection, while
+the attachment filename, type name, hash and bytes remain historical fields.

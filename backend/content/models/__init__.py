@@ -37,6 +37,11 @@ from .email_template_config import EmailTemplateConfig
 from .email_body import EmailBody
 from .email_log import EmailLog
 from .email_log_target import EmailLogTarget
+from .email_delivery_snapshot import (
+    EmailAttachmentSnapshot,
+    EmailDeliverySnapshot,
+    EmailLinkSnapshot,
+)
 from .document import Document
 from .document_type import DocumentType
 from .document_folder import DocumentFolder
