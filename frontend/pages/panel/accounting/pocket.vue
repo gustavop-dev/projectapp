@@ -128,9 +128,45 @@
       </template>
     </BaseEmptyState>
 
-    <!-- Table -->
+    <!-- Ledger: true cards on compact widths, priority table above them. -->
     <template v-else>
+      <div
+        v-if="isCompactCards"
+        class="mb-3 flex min-w-0 flex-wrap items-center gap-2"
+        aria-label="Ordenar movimientos"
+        data-testid="pocket-card-sort"
+      >
+        <span class="text-xs font-medium text-text-muted">Ordenar por</span>
+        <BaseButton
+          v-for="option in compactSortOptions"
+          :key="option.key"
+          variant="secondary"
+          size="sm"
+          :aria-pressed="sortKey === option.key"
+          :data-testid="`pocket-card-sort-${option.key}`"
+          @click="toggleSort(option.key)"
+        >
+          <span>{{ option.label }}</span>
+          <BaseActionIcon
+            v-if="sortKey === option.key"
+            :action="sortDir === 'asc' ? 'sort-ascending' : 'sort-descending'"
+            class="h-3.5 w-3.5"
+          />
+        </BaseButton>
+      </div>
+
+      <PocketMovementCards
+        v-if="isCompactCards"
+        :rows="pagedMovements"
+        :loading="store.isLoading"
+        :highlight-id="lastMutatedId"
+        :has-active-filters="hasActiveFilters"
+        @open-actions="openActions"
+        @open-allocations="openAllocations"
+      />
+
       <AccountingTable
+        v-else
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
         :columns="columns"
@@ -138,13 +174,18 @@
         :highlight-query="currentFilters.search"
         :sort-key="sortKey"
         :sort-dir="sortDir"
+        :show-default-actions="false"
+        row-actions-layout="menu-start"
         @edit="handleEdit"
         @delete="handleDelete"
         @sort="toggleSort"
       >
+        <template #row-actions="{ row }">
+          <PocketMovementRowActionsButton :row="row" @open="openActions" />
+        </template>
         <template #cell-concept="{ row }">
-          <span class="inline-flex items-center gap-2">
-            <span>{{ row.concept }}</span>
+          <span class="inline-flex min-w-0 flex-wrap items-center gap-2">
+            <span class="min-w-0 break-words">{{ row.concept }}</span>
             <!-- Un abono cubre varios ingresos: el badge genérico se vuelve
                  la puerta al reparto. El guard de Array degrada al badge de
                  siempre si el serializer aún no manda allocations. -->
@@ -157,24 +198,23 @@
             >
               Abono · {{ row.allocations.length }} ingresos
             </BaseButton>
-            <span
+            <BaseBadge
               v-else-if="row.is_auto_managed"
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-muted font-medium uppercase tracking-wide"
+              size="sm"
               title="Sincronizado con el ingreso o gasto vinculado"
+              :data-testid="`pocket-linked-${row.id}`"
             >
               Vinculado
-            </span>
+            </BaseBadge>
           </span>
         </template>
         <template #cell-direction_label="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.direction === 'in'
-              ? 'bg-success-soft text-success-strong'
-              : 'bg-danger-soft text-danger-strong'"
+          <BaseBadge
+            :variant="row.direction === 'in' ? 'success' : 'danger'"
+            :data-testid="`pocket-direction-${row.id}`"
           >
             {{ row.direction_label }}
-          </span>
+          </BaseBadge>
         </template>
         <template #cell-amount="{ row }">
           <span
@@ -229,6 +269,14 @@
       @close="closeAllocations"
     />
 
+    <PocketMovementActionsModal
+      :open="actionsRow !== null"
+      :record="actionsRow"
+      @close="closeActions"
+      @edit="handleEdit"
+      @delete="handleDelete"
+    />
+
     <!-- Confirm modal for delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -250,7 +298,11 @@ import { computed, onMounted, ref } from 'vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
+import PocketMovementActionsModal from '~/components/accounting/PocketMovementActionsModal.vue';
+import PocketMovementCards from '~/components/accounting/PocketMovementCards.vue';
+import PocketMovementRowActionsButton from '~/components/accounting/PocketMovementRowActionsButton.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
+import BaseBadge from '~/components/base/BaseBadge.vue';
 import PocketMovementAllocationsModal from '~/components/accounting/PocketMovementAllocationsModal.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
@@ -278,7 +330,14 @@ import { withRunningBalance } from '~/utils/pocketRunningBalance';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const { isMobile: isCompactCards } = useIsMobile(PANEL_BREAKPOINTS.portrait - 1);
 const { isMobile: isNarrowTable } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+
+const compactSortOptions = [
+  { key: 'movement_date', label: 'Fecha' },
+  { key: 'concept', label: 'Concepto' },
+  { key: 'amount', label: 'Valor' },
+];
 
 // -------------------------------------------------------------------
 // Filters
@@ -507,6 +566,15 @@ const columns = computed(() => [
 
 const allocationsOpen = ref(false);
 const allocationsMovement = ref(null);
+const actionsRow = ref(null);
+
+function openActions(row) {
+  actionsRow.value = row;
+}
+
+function closeActions() {
+  actionsRow.value = null;
+}
 
 function openAllocations(row) {
   allocationsMovement.value = row;

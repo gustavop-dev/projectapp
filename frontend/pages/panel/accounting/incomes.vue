@@ -223,12 +223,12 @@
           </BaseRowLink>
         </template>
         <template #cell-kind_label="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
+          <BaseBadge
+            :variant="incomeKindBadgeVariant(row.kind)"
+            :data-testid="`income-kind-${row.id}`"
           >
             {{ row.kind_label }}
-          </span>
+          </BaseBadge>
         </template>
         <template #cell-payment_status="{ row }">
           <IncomePaymentStateCell :row="row" />
@@ -290,12 +290,12 @@
             </BaseRowLink>
           </template>
           <template #cell-kind_label="{ row }">
-            <span
-              class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]"
-              :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
+            <BaseBadge
+              :variant="incomeKindBadgeVariant(row.kind)"
+              :data-testid="`income-kind-${row.id}`"
             >
               {{ row.kind_label }}
-            </span>
+            </BaseBadge>
           </template>
           <!-- An empty client cell hides the completion debt; the pill makes
                it actionable, same as the hostings table. Grouped view needs
@@ -306,14 +306,16 @@
               :text="row.client_name"
               :query="currentFilters.search"
             />
-            <span
+            <BaseBadge
               v-else
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-semibold uppercase tracking-wider whitespace-nowrap"
+              variant="warning"
+              size="sm"
+              class="font-semibold uppercase tracking-wider"
               title="Sin cliente vinculado — los totales por cliente no lo cuentan"
               :data-testid="`income-unlinked-${row.id}`"
             >
               sin vincular
-            </span>
+            </BaseBadge>
           </template>
           <!-- Collection state gets its own column: sharing the Tipo cell with
                the kind badge wrapped the pills and doubled the row height. -->
@@ -503,6 +505,7 @@ import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssig
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseBadge from '~/components/base/BaseBadge.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -957,11 +960,9 @@ const totalLost = computed(() =>
     .reduce((sum, r) => sum + (Number(r.total_amount) || 0), 0),
 );
 
-const KIND_BADGE_CLASSES = {
-  liquid: 'bg-success-soft text-success-strong',
-  lost: 'bg-danger-soft text-danger-strong',
-  expected: 'bg-surface-raised text-text-muted',
-};
+function incomeKindBadgeVariant(kind) {
+  return { liquid: 'success', lost: 'danger' }[kind] || 'neutral';
+}
 
 // A soft fill would vanish: `incomeRowTone` already paints the whole row in
 // that same tint. The chip sits on the plain surface with a colored outline so
