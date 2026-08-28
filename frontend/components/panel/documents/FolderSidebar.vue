@@ -78,7 +78,7 @@
 
       <li class="my-1 border-t border-border-muted"></li>
 
-      <li>
+      <li role="presentation">
         <details open data-testid="project-folder-section">
           <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
             <span>Proyectos</span>
@@ -148,7 +148,7 @@
 
       <li class="my-1 border-t border-border-muted"></li>
 
-      <li>
+      <li role="presentation">
         <details open data-testid="manual-folder-section">
           <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
             <span>Carpetas</span>
