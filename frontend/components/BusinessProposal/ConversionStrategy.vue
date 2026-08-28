@@ -17,14 +17,16 @@
 
             <div data-animate="fade-up-stagger" class="grid md:grid-cols-2 gap-6">
               <div
-                v-for="(step, idx) in content.steps?.slice(0, 4)"
+                v-for="(step, idx) in content.steps"
                 :key="idx"
                 class="rounded-3xl border border-esmerald/20 bg-esmerald/5 p-6 md:p-7"
               >
                 <div class="flex items-baseline justify-between gap-6 mb-4">
-                  <h3 class="text-text-brand font-light text-lg md:text-xl leading-snug">
-                    {{ step.title }}
-                  </h3>
+                  <!-- eslint-disable-next-line vue/no-v-html — same linkify path as intro/bullets/result -->
+                  <h3
+                    class="text-text-brand font-light text-lg md:text-xl leading-snug"
+                    v-html="linkify(step.title)"
+                  />
                   <span class="text-text-muted font-light tracking-[0.25em] text-xs">
                     {{ idx + 1 }}
                   </span>

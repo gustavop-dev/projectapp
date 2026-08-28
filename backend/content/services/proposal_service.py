@@ -1806,6 +1806,21 @@ DEFAULT_SECTIONS = [
                     'source': 'static',
                 },
                 {
+                    # Resume la CLÁUSULA VIGÉSIMA SEGUNDA del contrato. La última
+                    # frase no es opcional: el contrato condiciona estos tiempos a
+                    # que el servicio de hosting y soporte esté vigente.
+                    'icon': '🚨',
+                    'title': 'Atención de incidentes',
+                    'description': (
+                        'Incidente crítico: respuesta en 4 horas hábiles y '
+                        'restablecimiento en 1 día hábil. Medio: 1 y 5 días '
+                        'hábiles. Bajo: 3 y 9 días hábiles. Incluye monitoreo '
+                        'permanente, respaldos e informe de cierre. Aplica '
+                        'mientras el servicio de hosting y soporte esté vigente.'
+                    ),
+                    'source': 'static',
+                },
+                {
                     'icon': '📅',
                     'title': 'Vigencia',
                     'description': 'Vigencia de la propuesta a partir de su envío.',
@@ -3131,6 +3146,21 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '🧑‍💻',
                     'title': 'Support',
                     'description': 'Dedicated team for design, development, and post-launch support.',
+                    'source': 'static',
+                },
+                {
+                    # Mirrors CLAUSE 22 of the contract. The closing sentence is
+                    # not optional: the contract ties these times to an active
+                    # hosting and support subscription.
+                    'icon': '🚨',
+                    'title': 'Incident response',
+                    'description': (
+                        'Critical incident: 4 business-hour response, restored '
+                        'within 1 business day. Medium: 1 and 5 business days. '
+                        'Low: 3 and 9 business days. Includes continuous '
+                        'monitoring, backups and a closure report. Applies while '
+                        'the hosting and support service is active.'
+                    ),
                     'source': 'static',
                 },
                 {

@@ -141,12 +141,68 @@ class TestRenderValueAddedModulesMissingCatalogEntry:
             'module_ids': ['missing-id-1', 'missing-id-2'],
         }
         ps = {'_value_added_catalog': {}, 'num': 1, 'client': 'Test'}
+        y_in = PAGE_H - MARGIN_T
 
         result = _render_value_added_modules(
-            pdf_canvas, data, None, ps=ps, y=PAGE_H - MARGIN_T,
+            pdf_canvas, data, None, ps=ps, y=y_in,
         )
 
-        assert isinstance(result, (int, float))
+        # Nothing resolved, so nothing is drawn — not even the header.
+        assert result == y_in
+
+
+# ---------------------------------------------------------------------------
+# _render_value_added_modules — no resolvable module means no section
+# ---------------------------------------------------------------------------
+
+class TestRenderValueAddedModulesEmptyGuard:
+    """Mirrors ValueAddedModules.vue: `v-if="resolvedCards.length > 0"`.
+
+    A proposal that grants no modules (a follow-up phase, say, where they were
+    already granted in the previous one) hides the section on the web. The PDF
+    must not print an orphan header for it.
+    """
+
+    CATALOG_PS = {
+        '_value_added_catalog': {
+            'admin_module': {'title': 'Módulo Administrativo', 'items': []},
+        },
+        '_pdf_lang': 'es',
+        '_currency': 'COP',
+    }
+
+    def test_empty_module_ids_draws_nothing(self, pdf_canvas, proposal):
+        y_in = PAGE_H - MARGIN_T
+        data = {
+            'index': '10',
+            'title': 'Incluido sin costo adicional',
+            'intro': 'Estos módulos no se cobran aparte.',
+            'module_ids': [],
+        }
+
+        result = _render_value_added_modules(
+            pdf_canvas, data, proposal, ps=dict(self.CATALOG_PS), y=y_in,
+        )
+
+        assert result == y_in, 'cursor must not move when nothing is drawn'
+
+    def test_resolvable_module_still_renders(self, pdf_canvas, proposal):
+        """The guard must not swallow a section that does have modules."""
+        y_in = PAGE_H - MARGIN_T
+        data = {
+            'index': '10',
+            'title': 'Incluido sin costo adicional',
+            'module_ids': ['admin_module'],
+            'justifications': {
+                'admin_module': 'Para administrar sin depender de nosotros.',
+            },
+        }
+
+        result = _render_value_added_modules(
+            pdf_canvas, data, proposal, ps=dict(self.CATALOG_PS), y=y_in,
+        )
+
+        assert result < y_in, 'a resolvable module must draw the section'
 
 
 # ---------------------------------------------------------------------------
