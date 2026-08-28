@@ -13,6 +13,7 @@ import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PANEL_PROJECTS } from '../helpers/flow-tags.js';
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js';
+import { viewportUse } from '../helpers/viewports.js';
 
 test.setTimeout(60_000);
 
@@ -293,6 +294,49 @@ test.describe('Admin Panel Projects', () => {
     });
   });
 
+  test.describe('compact indicator header', () => {
+    test.use(viewportUse('compact'));
+
+    test('renders two equal-height summaries before the project cards', {
+      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await gotoProjects(page);
+
+      const summaries = page.getByTestId('projects-indicators-compact').locator('article');
+      await expect(summaries).toHaveCount(2);
+      const heights = await summaries.evaluateAll((cards) => (
+        cards.map((card) => Math.round(card.getBoundingClientRect().height))
+      ));
+      expect(new Set(heights).size).toBe(1);
+
+      const firstProject = await getProjectResult(page, 1).boundingBox();
+      expect(firstProject.y).toBeLessThan(915);
+    });
+
+    test('exposes zero-count lifecycle states from the compact summary', {
+      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await gotoProjects(page);
+
+      await page.getByTestId('panel-projects-stat-states-summary').click();
+      const stateRows = page.locator('[data-testid^="project-state-detail-"]');
+      await expect(stateRows).toHaveCount(7);
+      await expect(page.getByTestId('project-state-detail-4')).toContainText('Suspendido');
+      await expect(page.getByTestId('project-state-detail-4')).toContainText('0');
+      expect(await stateRows.evaluateAll((rows) => (
+        rows.map((row) => row.getAttribute('aria-label'))
+      ))).toEqual(
+        PROJECT_STATES.map((state) => `Filtrar proyectos en estado ${state.name}`),
+      );
+
+      await page.getByTestId('project-state-detail-2').click();
+      await expect(getProjectResult(page, 1)).toContainText('Activo');
+      await expect(getProjectResult(page, 2)).toHaveCount(0);
+    });
+  });
+
   test('search narrows the listing by project or client name', {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
@@ -408,6 +452,36 @@ test.describe('Admin Panel Projects', () => {
     await page.getByTestId('panel-projects-stat-state-2').click();
     await expect(getProjectResult(page, 1)).toContainText('Activo');
     await expect(getProjectResult(page, 2)).toHaveCount(0);
+  });
+
+  test('non-zero state cards preserve the catalog order', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoProjects(page);
+
+    const cards = page.locator('[data-testid^="panel-projects-stat-state-"]');
+    await expect(cards).toHaveCount(2);
+    expect(await cards.locator('[data-testid="indicator-label"]').allTextContents())
+      .toEqual(['Activo', 'Dado de baja']);
+    await expect(page.getByTestId('panel-projects-stat-state-1')).toHaveCount(0);
+  });
+
+  test('the unlinked-record indicator reveals its accounting destinations', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      calls: [],
+      meta: { ...META, records_without_project: 3 },
+    }));
+    await gotoProjects(page);
+
+    await page.getByTestId('panel-projects-stat-unlinked').click();
+    await expect(page.getByTestId('project-pending-records-detail')).toContainText('3');
+    await expect(page.getByTestId('project-unlinked-hostings-link'))
+      .toHaveAttribute('href', /accounting_hostingTab=no-project/);
+    await expect(page.getByTestId('project-unlinked-incomes-link'))
+      .toHaveAttribute('href', /accounting_incomeTab=no-project/);
   });
 
   test('the uncovered-clients panel seeds the create modal', {
