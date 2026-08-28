@@ -73,4 +73,14 @@ describe('FolderManagerTree', () => {
 
     expect(wrapper.find('[data-testid="folder-manager-archive"]').exists()).toBe(true);
   });
+
+  it('hides structural controls for a system-managed folder', () => {
+    const wrapper = mountTree({
+      siblings: [{ ...folder, is_system_managed: true }],
+    });
+
+    expect(wrapper.find('.folder-tree-handle').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="folder-manager-archive"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="folder-manager-delete"]').exists()).toBe(false);
+  });
 });

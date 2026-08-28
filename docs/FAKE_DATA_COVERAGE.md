@@ -81,7 +81,7 @@ Los valores son objetivos mínimos o perfiles deliberados, no repartos uniformes
 | Gastos | 60 | personales/negocio y fechas pasadas, actuales y futuras |
 | Hosting contable | 45 | 0–4 ciclos, vencidos, vigentes y futuros |
 | Documentos | ≥60 | todos con cliente/proyecto; con y sin carpeta; 2 firmables |
-| Cuentas de cobro | 40 | creadas desde `IncomeRecord` por el servicio real; draft/issued/paid/overdue/cancelled |
+| Cuentas de cobro | 40 | creadas desde `IncomeRecord` por el servicio real; draft sin carpeta y issued/paid/overdue/cancelled bajo la jerarquía automática por proyecto, año y mes |
 | Hilos de comunicación | 60 | 12 de 1 mensaje, 36 de 3 y 12 de 12; 264 mensajes |
 | Linktrees / botones | 12 / 48 | activos/inactivos, personal/empresa |
 | Tarjetas QR | 30 | URL/Linktree, activas/inactivas y nombre extremo |

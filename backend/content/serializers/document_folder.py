@@ -78,12 +78,14 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
     project_name = serializers.CharField(
         source='project.name', read_only=True, default=None,
     )
+    is_system_managed = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = DocumentFolder
         fields = (
             'id', 'name', 'slug', 'parent', 'order',
             'client', 'client_display_name', 'project', 'project_name',
+            'is_system_managed',
             'document_count', 'children_count',
             'active_document_count', 'active_children_count',
             'archived_document_count', 'archived_children_count',

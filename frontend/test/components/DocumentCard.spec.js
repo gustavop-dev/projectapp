@@ -112,6 +112,18 @@ describe('DocumentCard', () => {
     expect(wrapper.find('[title="1 estados más"]').exists()).toBe(true)
   })
 
+  it('renders the derived commercial state instead of workflow episodes', async () => {
+    const wrapper = await mountCard({
+      document: {
+        ...baseDocument,
+        display_state: { key: 'sent', label: 'Enviada', variant: 'info' },
+      },
+    })
+
+    expect(wrapper.get('[data-testid="document-card-derived-state-7"]').text()).toBe('Enviada')
+    expect(wrapper.text()).not.toContain('Solucionar bug')
+  })
+
   it('places workflow states before secondary metadata', async () => {
     const wrapper = await mountCard()
     const priority = wrapper.get('[data-testid="document-card-priority-row-7"]')
@@ -164,6 +176,18 @@ describe('DocumentCard', () => {
     expect(wrapper.attributes('draggable')).toBe('true')
   })
 
+  it('does not make issued collection accounts draggable', async () => {
+    const wrapper = await mountCard({
+      document: {
+        ...baseDocument,
+        document_type_code: 'collection_account',
+        commercial_status: 'issued',
+      },
+    })
+
+    expect(wrapper.attributes('draggable')).toBe('false')
+  })
+
   it('exposes an accessible name for the kebab', async () => {
     const wrapper = await mountCard()
     const kebab = wrapper.find('button[aria-label="Acciones de Contrato de Servicios"]')
@@ -178,6 +202,14 @@ describe('DocumentCard', () => {
     await wrapper.trigger('dragend')
     expect(wrapper.emitted('dragstart')).toHaveLength(1)
     expect(wrapper.emitted('dragend')).toHaveLength(1)
+  })
+
+  it('does not make a generated snapshot draggable', async () => {
+    const wrapper = await mountCard({
+      document: { ...baseDocument, is_generated_snapshot: true },
+    })
+
+    expect(wrapper.attributes('draggable')).toBe('false')
   })
 
   it('shows a placeholder when there is no excerpt', async () => {

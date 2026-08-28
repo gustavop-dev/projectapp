@@ -540,6 +540,27 @@ confirmed by the operator or another integration.
   Domain-specific `_log_email` calls enrich that row through the shared delivery
   trace instead of creating a duplicate.
 - **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
+- **Generated-document paths are keyed, not name-matched** —
+  `generated_document_filing_service` builds each level from a stable nullable
+  `DocumentFolder.system_key`, then reconciles parent, name, owner and archive
+  flags inside a transaction. Human-readable project/client names may change;
+  identity and concurrency safety do not depend on them.
+- **One render, one retained proposal version** — proposal send/resend/multi-send
+  calls `proposal_snapshot_service` before SMTP. It locks source proposals,
+  allocates `source_version`, renders all PDFs before writing any Document,
+  stores a SHA-256 plus `generated_file`, and passes those in-memory bytes to
+  `ProposalEmailService`. A generated file, rather than the nullable source FK,
+  is the immutable marker so deleting a proposal cannot make its archive editable.
+- **Generated branches are server-owned** — REST serializers/views, folder
+  endpoints and the Documents MCP reject manual targets or structural mutations
+  with an explicit conflict. The list sorts a selected generated folder by
+  case-insensitive title; collection accounts expose a derived lifecycle/email
+  state instead of workflow episodes.
+- **Backfill deployment order** — apply schema migrations first, preview with
+  `python manage.py backfill_collection_account_filing`, review its paths, then
+  run the same command with `--apply`. It only considers folderless collection
+  accounts, preserves manual classification and skips missing issue dates. Never
+  run either migrations or this data-writing command from a session worktree.
 
 ### Frontend Patterns
 

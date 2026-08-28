@@ -111,6 +111,11 @@ def _resolve_folder(folder_id):
             f'La carpeta "{folder.name}" está archivada y no admite documentos. '
             'Usa list_folders para ver las disponibles.'
         )
+    if folder.is_system_managed:
+        raise ToolError(
+            f'La carpeta "{folder.name}" pertenece al archivado automático '
+            'y no admite cambios manuales.'
+        )
     return folder
 
 
@@ -168,6 +173,7 @@ def _folder_payload(folder):
         'name': folder.name,
         'path': _folder_path(folder),
         'parent_id': folder.parent_id,
+        'is_system_managed': folder.is_system_managed,
         # Count only markdown docs, to match what list_documents exposes.
         'document_count': folder.documents.filter(
             document_type__code=MARKDOWN, is_archived=False,

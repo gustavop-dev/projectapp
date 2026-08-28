@@ -12,6 +12,7 @@
         v-model="inputText"
         :type="isCatalog ? 'search' : 'text'"
         :placeholder="placeholder"
+        :disabled="disabled"
         :data-testid="testId"
         autocomplete="off"
         class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
@@ -31,7 +32,7 @@
       <!-- In catalog mode this clears only the filter; selecting a client and
            filtering the visible catalog are deliberately independent acts. -->
       <button
-        v-if="isCatalog ? inputText : (modelValue || inputText)"
+        v-if="!disabled && (isCatalog ? inputText : (modelValue || inputText))"
         type="button"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
         :aria-label="isCatalog
@@ -145,6 +146,7 @@ const props = defineProps({
   active: { type: Boolean, default: true },
   /** Browser-local preference key. Empty means A-Z without persistence. */
   sortStorageKey: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'select', 'create-new']);

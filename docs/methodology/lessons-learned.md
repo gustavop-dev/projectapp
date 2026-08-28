@@ -1291,3 +1291,19 @@ the small user preference locally. Geometry tests must prove at least five full
 rows, one list-owned scrollbar, a stationary modal, visible review content and
 the full-screen compact contract; a screenshot of an open dropdown proves none
 of those boundaries.
+## 53. A generated document is an artifact, not another editable projection
+
+When a system both generates and sends a PDF, regenerating it later is not an
+archive: templates, source data and fonts may have changed. Render once before
+the outbound boundary, persist those exact bytes with source/version/hash, and
+attach that same byte sequence. Generation failure must stop the send before
+any lifecycle transition; delivery failure may retain the prepared artifact and
+mark the operational problem without rewriting it.
+
+Location is another derived fact. Use stable server-owned folder keys for
+project/client/type/year/month identity, not display-name matching, and create
+the path idempotently inside the business transaction. Protect that structure
+at every mutation surface (REST, MCP and drag/drop), while leaving orthogonal
+administrative observations editable. For legacy data, a dry-run-first backfill
+should touch only records still lacking a destination, preserve manual choices
+and refuse to invent the business date that defines the archive.

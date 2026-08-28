@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 import DocumentClientNoteModal from '../../components/panel/documents/DocumentClientNoteModal.vue';
 import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
+import BaseAlert from '../../components/base/BaseAlert.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
 import BaseBadge from '../../components/base/BaseBadge.vue';
 import BaseInput from '../../components/base/BaseInput.vue';
@@ -22,7 +23,7 @@ function mountModal(props = {}) {
   return mount(DocumentClientNoteModal, {
     props: { modelValue: true, ...props },
     global: {
-      components: { BaseBadge, BaseButton, BaseInput, BaseModal, BaseTextarea, BaseToggle },
+      components: { BaseAlert, BaseBadge, BaseButton, BaseInput, BaseModal, BaseTextarea, BaseToggle },
       stubs: {
         Teleport: true,
         Transition: false,
@@ -126,6 +127,20 @@ describe('DocumentClientNoteModal', () => {
 
     expect(wrapper.find('[data-testid="document-observation-delete-9"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="document-observation-edit-9"]').exists()).toBe(false);
+  });
+
+  it('keeps generated version messages immutable while observations stay editable', () => {
+    const wrapper = mountModal({
+      immutableContent: true,
+      documentId: 8,
+      subject: 'Propuesta enviada',
+      notes: [{ id: 9, title: 'Seguimiento', content: 'Llamar mañana', status: 'open' }],
+    });
+
+    expect(subjectField(wrapper).element.disabled).toBe(true);
+    expect(wrapper.text()).toContain('El PDF y los mensajes guardados con esta versión son inmutables');
+    expect(wrapper.find('[data-testid="client-note-submit"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="document-observation-edit-9"]').exists()).toBe(true);
   });
 
   it('renders custom notes as read only', () => {
