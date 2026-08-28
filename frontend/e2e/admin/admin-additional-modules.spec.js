@@ -156,11 +156,13 @@ test.describe('Additional modules admin catalog', () => {
   test('retries after the catalog request fails', {
     tag: [...ADMIN_ADDITIONAL_MODULES_CATALOG, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
-    const scenario = { catalogUnavailable: true }
-    await setupApi(page, scenario)
+    await setupApi(page, { catalogFailures: 1 })
+    const initialFailure = page.waitForResponse((response) => (
+      response.url().endsWith('/api/additional-modules/admin/') && response.status() === 503
+    ))
     await page.goto('/es-co/panel/additional-modules', { waitUntil: 'domcontentloaded' })
+    await initialFailure
     await expect(page.getByRole('alert')).toContainText('No pudimos cargar el catálogo')
-    scenario.catalogUnavailable = false
     await page.getByRole('button', { name: 'Reintentar' }).click()
     await expect(page.getByTestId('additional-admin-module-10')).toBeVisible()
   })
@@ -207,7 +209,7 @@ test.describe('Additional modules admin catalog', () => {
     await openCatalog(page)
     await page.getByTestId('additional-admin-module-10').getByRole('button', { name: 'Editar' }).click()
     const form = page.getByTestId('additional-module-form')
-    await form.getByLabel('Nombre', { exact: true }).fill('Facturación electrónica automatizada')
+    await form.locator('#additional-module-name-es').fill('Facturación electrónica automatizada')
     await form.getByTestId('additional-module-save').click()
     await expect(form).not.toBeVisible()
     expect(scenario.updatePayload.name_es).toBe('Facturación electrónica automatizada')
