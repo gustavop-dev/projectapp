@@ -512,6 +512,11 @@ The canonical counts, commands and exceptions are maintained in
   a leading 44 px target. The headline balance remains the all-ledger total;
   filtering changes the per-row figure to the cumulative total of visible rows.
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
+- **SPA fallback integrity**: Every non-prerendered panel, platform and proposal
+  deep link must bootstrap from a generated Nuxt shell. The deployment build must
+  reject an empty, redirecting, or mount-less `200.html` before replacing the
+  currently served frontend. Django remains the authority for the locale chosen
+  from the bare root.
 - **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)
 - **SEO**: Server-side rendered public pages, sitemap endpoints, meta tags, Google verification
 - **Analytics**: Google Tag Manager, Google Analytics, Facebook Pixel, Microsoft Clarity, Cal.com booking tracker

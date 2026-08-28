@@ -1235,3 +1235,20 @@ chronological ledger, **Acumulado filtrado** starts with the visible cut, and th
 headline balance remains global. Geometry tests should pin all three properties:
 no document/inner overflow, no action/content intersection and a concrete value
 from the fixture.
+
+## 50. A generated SPA fallback is a deployment contract, not a file check
+
+A static build can complete, produce `200.html`, and return HTTP 200 for every
+private route while the application is completely unavailable. After the Nuxt
+4/i18n 10 upgrade, browser-language detection converted the unprefixed fallback
+into a 101-byte meta refresh to `/en-us/200.html`. Django then used that same
+fallback for the target path, so the browser looped without creating a server
+error or failing the API health check.
+
+Locale ownership must be singular: Django chooses the locale for `/` from the
+manual cookie and nginx country header, while Nuxt keeps prefix routing without
+browser detection. More importantly, the publication chokepoint must inspect the
+generated artifact before touching the live directory. A usable fallback is
+non-empty, contains the `#__nuxt` mount, and cannot redirect. Validate those
+properties before the atomic swap, and monitor one real SPA deep route by content;
+file existence and status 200 prove neither hydration nor availability.

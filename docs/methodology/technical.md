@@ -183,6 +183,20 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ## 4. Key Technical Decisions
 
+### Static SPA fallback integrity and locale ownership
+
+- Django's `serve_nuxt` is the production router for generated pages. Private
+  routes are skipped during prerender and receive `.output/public/200.html` as
+  their client-side entry document.
+- Django `_resolve_locale()` owns the redirect from `/`, using the
+  `preferred_locale` cookie and nginx's `X-Country` header. Nuxt i18n keeps
+  `strategy: 'prefix'` but `detectBrowserLanguage: false`; enabling an
+  unprefixed browser-language redirect can transform `/200.html` into a
+  self-referential meta refresh.
+- `frontend/update-django-template.js` is the publication chokepoint. It validates
+  that `200.html` is non-empty, has no meta refresh, and includes the `#__nuxt`
+  mount before staging or swapping `backend/static/frontend/`.
+
 ### MySQL uniqueness for optional sync keys
 
 - MySQL does not enforce Django conditional unique constraints. Do not add a
