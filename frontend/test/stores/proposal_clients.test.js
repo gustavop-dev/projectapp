@@ -256,6 +256,17 @@ describe('useProposalClientsStore', () => {
       );
     });
 
+    it('passes the requested catalog order', async () => {
+      get_request.mockResolvedValueOnce({ data: [] });
+
+      await store.searchClients('', { order: '-name' });
+
+      expect(get_request).toHaveBeenCalledWith(
+        'proposals/client-profiles/search/?q=&limit=20&offset=0&order=-name',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
     it('appends the next page without duplicating clients', async () => {
       store.searchResults = [buildClient({ id: 1 })];
       get_request.mockResolvedValueOnce({
