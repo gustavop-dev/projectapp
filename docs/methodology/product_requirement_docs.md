@@ -332,9 +332,21 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **State semantics**: outgoing messages are draft or sent; incoming messages are
   received. “Respondido” is derived from a valid opposite-direction reply and
   does not overwrite the stored send fact.
-- **Manual-channel boundary**: phase 1 records what the operator copied/sent via
-  WhatsApp or email; it does not claim that ProjectApp delivered it. Real email
-  delivery through `EmailDeliveryGateway` remains a later phase.
+- **Document-manager navigation**: the module has a resizable side panel that
+  switches between projects and clients, includes aggregate counts and keeps
+  threads without a project reachable through an explicit **Sin proyecto**
+  entry. On compact screens the same navigation moves into the shared drawer.
+- **Canonical cuts**: navigation, searchable multi-value filters and ordering
+  live in the URL. A thread opens in a workspace modal addressed by
+  `thread=<id>`, so closing it or using browser Back restores the exact list.
+  Frequent combinations can be named and restored through the accounting saved
+  filter mechanism.
+- **Manual-channel boundary**: recording what the operator sent or received via
+  WhatsApp or email is the chosen operating model, not a provisional phase. The
+  product never claims that ProjectApp delivered it, and the interface does not
+  promise a future automatic-delivery capability.
+- The explanatory notice describes that current manual workflow, can be closed
+  after it is understood and remains reachable from contextual help.
 - **References, never copies**: messages link existing `Document` rows through a
   protected join. Document detail exposes reverse usage, and a referenced
   document cannot be deleted accidentally.

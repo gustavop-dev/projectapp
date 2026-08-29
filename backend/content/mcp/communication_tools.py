@@ -8,12 +8,10 @@ WhatsApp itself.
 import json
 
 from django.core.paginator import Paginator
-from django.db.models import Q
-from django.utils.dateparse import parse_date, parse_datetime
 
 from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
-from content.models import CommunicationMessage, CommunicationThread
+from content.models import CommunicationMessage
 from content.serializers.communication import (
     CommunicationMarkSentSerializer,
     CommunicationMessageCreateSerializer,
@@ -22,8 +20,7 @@ from content.serializers.communication import (
     CommunicationThreadListSerializer,
     CommunicationThreadWriteSerializer,
 )
-from content.services import communication_service
-from content.views.communication import _message_queryset, _thread_queryset
+from content.services import communication_query_service, communication_service
 
 
 def _serializer_error(errors):
@@ -42,23 +39,13 @@ def _positive_int(value, *, field, default=None, maximum=None):
     return min(parsed, maximum) if maximum is not None else parsed
 
 
-def _date_filter(value, *, field, end=False):
-    if not value:
-        return None
-    parsed_datetime = parse_datetime(value)
-    if parsed_datetime:
-        lookup = 'messages__occurred_at__lte' if end else 'messages__occurred_at__gte'
-        return lookup, parsed_datetime
-    parsed_date = parse_date(value)
-    if parsed_date:
-        lookup = 'messages__occurred_at__date__lte' if end else 'messages__occurred_at__date__gte'
-        return lookup, parsed_date
-    raise ToolError(f'{field} debe ser una fecha ISO válida.')
-
-
 def _thread_or_error(thread_id):
     thread_id = _positive_int(thread_id, field='thread_id')
-    thread = _thread_queryset().filter(pk=thread_id).first()
+    thread = (
+        communication_query_service.thread_queryset()
+        .filter(pk=thread_id)
+        .first()
+    )
     if thread is None:
         raise ToolError(f'No existe un hilo con id={thread_id}.')
     return thread
@@ -78,61 +65,29 @@ def _message_or_error(message_id):
 
 def list_threads(arguments):
     """Return the same filtered, paginated thread list exposed by the panel."""
-    queryset = _thread_queryset()
+    query_params = {
+        key: value for key, value in arguments.items()
+        if key not in {'client_id', 'project_id', 'page', 'page_size'}
+    }
+    if arguments.get('client_id') not in (None, ''):
+        query_params['client'] = arguments['client_id']
+    if arguments.get('project_id') not in (None, ''):
+        query_params['project'] = arguments['project_id']
+    try:
+        filters = communication_query_service.parse_filters(query_params)
+    except communication_query_service.CommunicationFilterError as exc:
+        raise ToolError(_serializer_error(exc.errors)) from exc
 
-    for argument_name, model_field in (
-        ('client_id', 'client_id'),
-        ('project_id', 'project_id'),
-    ):
-        if arguments.get(argument_name) not in (None, ''):
-            queryset = queryset.filter(**{
-                model_field: _positive_int(arguments[argument_name], field=argument_name),
-            })
-
-    thread_status = arguments.get('status')
-    if thread_status:
-        valid = {value for value, _ in CommunicationThread.Status.choices}
-        if thread_status not in valid:
-            raise ToolError(f'status inválido; usa uno de {sorted(valid)}.')
-        queryset = queryset.filter(status=thread_status)
-
-    for field, choices in (
-        ('channel', CommunicationMessage.Channel.choices),
-        ('direction', CommunicationMessage.Direction.choices),
-        ('message_status', CommunicationMessage.Status.choices),
-    ):
-        value = arguments.get(field)
-        if not value:
-            continue
-        valid = {choice for choice, _ in choices}
-        if value not in valid:
-            raise ToolError(f'{field} inválido; usa uno de {sorted(valid)}.')
-        model_field = 'status' if field == 'message_status' else field
-        queryset = queryset.filter(**{f'messages__{model_field}': value})
-
-    for field, end in (('date_from', False), ('date_to', True)):
-        parsed = _date_filter(arguments.get(field), field=field, end=end)
-        if parsed:
-            queryset = queryset.filter(**{parsed[0]: parsed[1]})
-
-    query = (arguments.get('q') or '').strip()
-    if query:
-        queryset = queryset.filter(
-            Q(title__icontains=query)
-            | Q(client__company_name__icontains=query)
-            | Q(client__user__first_name__icontains=query)
-            | Q(client__user__last_name__icontains=query)
-            | Q(client__user__email__icontains=query)
-            | Q(messages__subject__icontains=query)
-            | Q(messages__content__icontains=query)
-        )
+    queryset = communication_query_service.apply_filters(
+        communication_query_service.thread_queryset(), filters,
+    )
 
     page_number = _positive_int(arguments.get('page'), field='page', default=1)
     page_size = _positive_int(
         arguments.get('page_size'), field='page_size', default=20, maximum=100,
     )
     paginator = Paginator(
-        queryset.distinct().order_by('-last_activity_at', '-id'), page_size,
+        communication_query_service.order_threads(queryset, filters.order), page_size,
     )
     page = paginator.get_page(page_number)
     return {
@@ -167,7 +122,7 @@ def create_thread(arguments):
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
     return CommunicationThreadDetailSerializer(
-        _thread_queryset().get(pk=thread.pk),
+        communication_query_service.thread_queryset().get(pk=thread.pk),
     ).data
 
 
@@ -198,7 +153,7 @@ def create_message(arguments):
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
     return CommunicationMessageSerializer(
-        _message_queryset().get(pk=message.pk),
+        communication_query_service.message_queryset().get(pk=message.pk),
     ).data
 
 
@@ -219,7 +174,7 @@ def mark_message_sent(arguments):
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
     return CommunicationMessageSerializer(
-        _message_queryset().get(pk=message.pk),
+        communication_query_service.message_queryset().get(pk=message.pk),
     ).data
 
 
