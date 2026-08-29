@@ -1405,3 +1405,25 @@ plain, validated values before snapshotting, comparing, writing route queries or
 saving a view. A real-browser direct-link case is essential here because a unit
 mock can miss the browser's `DataCloneError` and leave the route rendered but
 non-interactive.
+
+## 59. Preserve long evidence, index its fixed-size identity
+
+A field's character limit is not its index cost. Under MySQL `utf8mb4`, a
+2048-character URL can consume 8192 key bytes before the neighboring foreign key
+is counted, so a composite unique constraint can pass SQLite CI and still stop a
+production migration at InnoDB's 3072-byte limit. Do not shorten historical
+evidence merely to satisfy an index. Store the full value and enforce scoped
+uniqueness through a fixed-size SHA-256 fingerprint.
+
+The fingerprint must have one writer. A model `save()` hook is ineffective when
+the service uses `bulk_create`, so either populate the derived field explicitly
+at every bulk boundary or use the ordinary save path when row counts are small.
+Backfill before changing the field to non-null, detect duplicate fingerprints
+before DDL, and pin the worst-case production key width in a focused schema test.
+
+MySQL adds a second deployment concern: failed DDL may remain even when Django
+does not record the migration. Recovery belongs at the failing migration's entry
+only when it can recognize the exact residue. Count every new table and live
+reference first; clean only an entirely empty partial state and abort on any
+data. A generic `DROP IF EXISTS` or blind `--fake` turns an index bug into silent
+history loss.

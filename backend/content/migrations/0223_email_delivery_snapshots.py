@@ -5,6 +5,100 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+EMAIL_LOG_TABLE = 'content_emaillog'
+SNAPSHOT_COLUMN = 'snapshot_id'
+SNAPSHOT_TABLES = (
+    'content_emaillinksnapshot',
+    'content_emailattachmentsnapshot',
+    'content_emaildeliverysnapshot',
+)
+
+
+def reset_empty_mysql_snapshot_artifacts(_apps, schema_editor):
+    """Remove the known non-atomic residue left by a failed MySQL apply."""
+    connection = schema_editor.connection
+    if connection.vendor != 'mysql':
+        return
+
+    quote_name = connection.ops.quote_name
+    with connection.cursor() as cursor:
+        table_names = set(connection.introspection.table_names(cursor))
+        existing_snapshot_tables = [
+            table_name
+            for table_name in SNAPSHOT_TABLES
+            if table_name in table_names
+        ]
+        email_log_columns = set()
+        if EMAIL_LOG_TABLE in table_names:
+            email_log_columns = {
+                column.name
+                for column in connection.introspection.get_table_description(
+                    cursor,
+                    EMAIL_LOG_TABLE,
+                )
+            }
+        has_snapshot_column = SNAPSHOT_COLUMN in email_log_columns
+
+        if not existing_snapshot_tables and not has_snapshot_column:
+            return
+
+        populated_artifacts = []
+        for table_name in existing_snapshot_tables:
+            cursor.execute(
+                f'SELECT COUNT(*) FROM {quote_name(table_name)}',
+            )
+            row_count = cursor.fetchone()[0]
+            if row_count:
+                populated_artifacts.append(f'{table_name}={row_count}')
+
+        referenced_log_count = 0
+        email_log_constraints = {}
+        if has_snapshot_column:
+            cursor.execute(
+                f'SELECT COUNT(*) FROM {quote_name(EMAIL_LOG_TABLE)} '
+                f'WHERE {quote_name(SNAPSHOT_COLUMN)} IS NOT NULL',
+            )
+            referenced_log_count = cursor.fetchone()[0]
+            email_log_constraints = connection.introspection.get_constraints(
+                cursor,
+                EMAIL_LOG_TABLE,
+            )
+
+    if referenced_log_count:
+        populated_artifacts.append(
+            f'{EMAIL_LOG_TABLE}.{SNAPSHOT_COLUMN}={referenced_log_count}',
+        )
+    if populated_artifacts:
+        details = ', '.join(populated_artifacts)
+        raise RuntimeError(
+            'Refusing to reset partial email snapshot schema because it '
+            f'contains data: {details}.',
+        )
+
+    for table_name in SNAPSHOT_TABLES[:2]:
+        if table_name in existing_snapshot_tables:
+            schema_editor.execute(f'DROP TABLE {quote_name(table_name)}')
+
+    if has_snapshot_column:
+        for constraint_name, details in email_log_constraints.items():
+            if (
+                details.get('foreign_key')
+                and SNAPSHOT_COLUMN in details.get('columns', ())
+            ):
+                schema_editor.execute(
+                    f'ALTER TABLE {quote_name(EMAIL_LOG_TABLE)} '
+                    f'DROP FOREIGN KEY {quote_name(constraint_name)}',
+                )
+        schema_editor.execute(
+            f'ALTER TABLE {quote_name(EMAIL_LOG_TABLE)} '
+            f'DROP COLUMN {quote_name(SNAPSHOT_COLUMN)}',
+        )
+
+    delivery_table = SNAPSHOT_TABLES[2]
+    if delivery_table in existing_snapshot_tables:
+        schema_editor.execute(f'DROP TABLE {quote_name(delivery_table)}')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,6 +106,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(
+            reset_empty_mysql_snapshot_artifacts,
+            migrations.RunPython.noop,
+        ),
         migrations.CreateModel(
             name='EmailDeliverySnapshot',
             fields=[
@@ -93,9 +191,5 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name='emailattachmentsnapshot',
             constraint=models.UniqueConstraint(fields=('snapshot', 'position'), name='uniq_email_attachment_position'),
-        ),
-        migrations.AddConstraint(
-            model_name='emaillinksnapshot',
-            constraint=models.UniqueConstraint(fields=('snapshot', 'url'), name='uniq_email_snapshot_link'),
         ),
     ]

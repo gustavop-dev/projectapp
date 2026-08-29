@@ -55,6 +55,32 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-040] MySQL rejected the email-link snapshot index
+
+- **Date**: 2026-08-29
+- **Context**: `$deploy-and-check` fast-forwarded production `main`, installed
+  requirements and stopped while applying `content.0223_email_delivery_snapshots`.
+  The frontend build, `collectstatic` and service restarts were skipped, so the
+  previous runtime stayed active and `/api/health/` continued returning 200.
+- **Root Cause**: `EmailLinkSnapshot.url` permits 2048 characters and the migration
+  declared a unique key on `(snapshot, url)`. With MySQL `utf8mb4`, the URL alone
+  can require 8192 index bytes, above InnoDB's 3072-byte maximum. MySQL DDL is not
+  transactional, so the failed migration remained unrecorded after creating the
+  three empty snapshot tables, adding `EmailLog.snapshot_id` and earlier indexes.
+- **Resolution**: Preserve the full URL as evidence, derive a 64-character SHA-256
+  fingerprint on every model save and enforce `(snapshot, url_sha256)` in new
+  migration `0228`. The link writer now uses the model save path. The start of
+  `0223` detects the exact MySQL partial state and removes it only after proving
+  all snapshot tables and references are empty; otherwise it aborts without DDL.
+- **Files Affected**: email snapshot model/service, migrations `0223` and `0228`,
+  focused model/migration tests, and Memory Bank documentation.
+- **Verification**: A fresh test database applies the complete migration graph;
+  8 focused model/recovery cases and 3 gateway regressions pass. The schema test
+  pins the worst-case composite key below 3072 bytes.
+- **Lesson**: Size indexed text by the production charset, not by character count.
+  When MySQL can leave non-atomic DDL, recovery must recognize one known state,
+  prove it contains no data and fail closed for every other state.
+
 ### [ERR-038] El historial de correos no conservaba los archivos enviados
 
 - **Date**: 2026-08-28

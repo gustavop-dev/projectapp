@@ -288,16 +288,14 @@ def capture_delivery_snapshot(
                 )
                 stored_files.append((attachment.file.storage, attachment.file.name))
                 attachment.save()
-            EmailLinkSnapshot.objects.bulk_create([
-                EmailLinkSnapshot(
+            for position, link in enumerate(links):
+                EmailLinkSnapshot.objects.create(
                     snapshot=snapshot,
                     url=link['url'],
                     label=link['label'],
                     group=link['group'],
                     position=position,
                 )
-                for position, link in enumerate(links)
-            ])
         return snapshot
     except EmailSnapshotCaptureError:
         for storage, name in stored_files:
