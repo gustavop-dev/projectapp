@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-29 — Hotfix MySQL para snapshots de enlaces listo para integrar:** el
+deploy de `main` se detuvo en `content.0223_email_delivery_snapshots` porque el
+unique `(snapshot, url)` intentaba indexar un `URLField(2048)` bajo `utf8mb4` y
+superaba el límite InnoDB de 3072 bytes. Gunicorn/Huey no se reiniciaron y el
+runtime anterior siguió sano; MySQL sí dejó DDL parcial no transaccional, con las
+tres tablas nuevas vacías y `EmailLog.snapshot_id`, mientras `0223` quedó sin
+registrar. El hotfix conserva la URL exacta, calcula `url_sha256`, mueve la
+unicidad a `(snapshot, url_sha256)` y reemplaza el `bulk_create` por el writer del
+modelo. La entrada de `0223` reconoce únicamente ese residuo en MySQL, verifica
+que tablas y referencias estén vacías y recién entonces lo limpia; si encuentra
+datos aborta sin DDL. `0228` backfillea huellas y activa el índice corto. Pasan 8
+regresiones nuevas de modelo/migración y 3 del gateway; producción queda pendiente
+de merge y de una nueva corrida de `$deploy-and-check`.
+
 **2026-08-28 — Catálogo comercial de módulos adicionales listo para integrar:**
 los 17 módulos genéricos de PA-09 más Landing Page forman un inventario inicial
 de 18, agrupado en cinco categorías administrables e independiente de las
