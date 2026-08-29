@@ -2,7 +2,7 @@
  * Long-title disclosure and reusable column resizing on /panel/documents.
  *
  * @flow:admin-document-title-column-resize
- * Covers: clipped-only full-name hints, compact in-place disclosure, pointer
+ * Covers: reliable full-name hints, font-ready in-place disclosure, pointer
  *         resize persistence, fixed workflow/actions tracks and double-click reset.
  */
 import { test, expect } from '../helpers/test.js';
@@ -104,10 +104,7 @@ async function openDocuments(page) {
   await mockDocuments(page);
   await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText(LONG_TITLE, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    window.dispatchEvent(new Event('resize'));
-  });
+  await page.evaluate(() => document.fonts.ready);
 }
 
 async function dragTitleBy(page, delta) {
@@ -201,7 +198,7 @@ test.describe('Admin Document Title Column Resize', () => {
     });
   });
 
-  test('exposes the full-name hint only for clipped titles', {
+  test('keeps the full-name hint available for every collapsed title', {
     tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (la navegación del sidebar pertenece a los flows de layout; este caso aísla la medición de los títulos)
@@ -213,7 +210,7 @@ test.describe('Admin Document Title Column Resize', () => {
     await expect(page.getByTestId('document-open-501-toggle')).toBeVisible();
     await expect(longTitle).toHaveAttribute('title', LONG_TITLE);
     await expect(page.getByTestId('document-open-505-toggle')).toHaveCount(0);
-    await expect(page.getByTestId('document-open-505')).not.toHaveAttribute('title', /.+/);
+    await expect(page.getByTestId('document-open-505')).toHaveAttribute('title', 'Acta breve');
   });
 
   test('offers the same full-name control for an unbroken clipped title', {
@@ -298,7 +295,8 @@ test.describe('Admin Document Title Column Resize', () => {
     };
     const handle = page.getByTestId('documents-title-resize-handle');
     await handle.press('End');
-    await expect(handle).toHaveAttribute('aria-valuenow', '520');
+    await expect(handle).toHaveAttribute('aria-valuenow', '800');
+    await expect(handle).toHaveAttribute('title', 'Ajustar el ancho de la columna Título');
 
     expect(Math.abs(await columnWidth(page, 'Estados') - before.workflow)).toBeLessThanOrEqual(1);
     expect(Math.abs(await columnWidth(page, 'Acciones') - before.actions)).toBeLessThanOrEqual(1);

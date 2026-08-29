@@ -79,7 +79,7 @@ const widthColumns = [
       primary: true,
       compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
     },
-    columnWidth: { min: 240, default: 320, max: 520, resizable: true },
+    columnWidth: { min: 240, default: 320, max: 800, resizable: true },
   },
   {
     key: 'states',
@@ -174,11 +174,11 @@ function onFolderLink(event, sub) {
             <BaseResizeHandle
               :value="preferredWidth('title')"
               :min="240"
-              :max="520"
+              :max="800"
               label="Ajustar el ancho de la columna Título"
               test-id="documents-title-resize-handle"
-              class="absolute -right-2 top-0 z-20 h-full w-4"
-              indicator-class="h-7 w-0.5"
+              class="absolute -right-3 top-0 z-20 h-full w-6"
+              indicator-class="h-8 w-1 shadow-sm"
               @pointer-start="startColumnResize('title', $event)"
               @pointer-move="moveColumnResize('title', $event)"
               @pointer-end="endColumnResize('title')"

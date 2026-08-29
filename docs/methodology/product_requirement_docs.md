@@ -417,7 +417,7 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
   `docs/RESPONSIVE_STANDARDS.md`, `docs/RESPONSIVE_STANDARD.md` and
   `docs/methodology/responsive-standard.md`, respectively.
 - **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
-- **Readable document titles** — document names use two lines with end truncation by default. The complete native hint exists only when the rendered title is actually clipped, and the same condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default), remembered per browser and reset by double click; Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because two lines plus conditional reveal preserve the full value without inventing a second naming rule.
+- **Readable document titles** — document names use one contained line with end truncation by default. The complete collapsed value is always available through the native hover hint, independent of overflow timing; real clipping additionally exposes an in-place **Ver completo/Contraer** path for touch layouts and is remeasured after web fonts load. In list mode, Título is adjustable from 240 to 800 px (320 px default) through a visible labelled separator, remembered per browser and reset by double click; Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation remains deferred because explicit full-value disclosure avoids a second naming rule.
 - **Leading three-dot row actions** — every panel table whose row control is a single three-dot menu places it at the start with no visible heading. Selectable tables use Checkbox → Actions → Identity/Content; the action track is fixed at 56 px, does not join the data-width split, and opening it cannot activate row navigation. The adopted surfaces are Documents, Proposals, Diagnostics and both classic/grouped Incomes tables. Tables that still expose several loose action icons, including Collection Accounts, remain outside this contract until their actions are explicitly consolidated into one menu.
 
 ### 3.13 Internationalization (i18n)
@@ -630,3 +630,10 @@ The canonical counts, commands and exceptions are maintained in
     specific business behavior or promising unsupported compliance targets.
     Default-config snapshots and active drafts receive the new group; sent,
     inactive and otherwise historical proposal snapshots remain unchanged.
+27. **Indicator headers preserve content priority**: KPI cards use a fixed
+    label/value/reserved-support structure, consistent help and an explicit
+    action. Expanded views keep meaningful non-zero indicators in business
+    order and separate lifecycle from operational questions. Compact project
+    and income headers collapse to two actionable summaries whose drawers retain
+    the full detail, including zero-valued states, so the first list row remains
+    visible in the initial 412×915 viewport.

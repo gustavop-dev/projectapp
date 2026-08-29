@@ -259,6 +259,12 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   stop click/auxclick propagation from the action cell. The default
   `inline-end` mode is only for legacy loose-icon action rows; do not migrate
   those implicitly while adopting the kebab contract.
+- KPI cards use `BaseIndicatorCard`. Its fixed three-row layout always reserves
+  one support line; the help control remains outside the optional main action so
+  the DOM never nests buttons. Below `PANEL_BREAKPOINTS.landscape`, dense KPI
+  headers expose two summaries and move the complete facts into `BaseDrawer`;
+  expanded layouts may suppress zero-valued detail cards but must retain their
+  filters in the compact drawer or ordinary filter controls.
 
 ### Panel-owned dialogs and observation deletion
 
@@ -574,6 +580,11 @@ confirmed by the operator or another integration.
   unless equivalent adjacent copy owns the explanation.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
+- **Indicator-card contract** — use `BaseIndicatorCard` for label/value/support
+  KPI surfaces. Always supply consistent help and an explicit action; group
+  lifecycle and operational questions separately, preserve catalog order, and
+  use two drawer-backed summaries when the complete card set would push the
+  first result below the initial compact viewport.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
 - **Action tooltip/accessibility split** — `BaseActionButton` is the sole tooltip
   owner for an icon-only panel action. Its visual copy defaults to the short
@@ -590,9 +601,11 @@ confirmed by the operator or another integration.
   unhandled so the table wrapper can still pan horizontally. Loose icon rows are
   a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
-  `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
-  consumer classes may style typography but must not override its display/clamp
-  state. `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
+  `BaseOverflowText` for a measurement-independent full native hint while
+  collapsed plus clipping-only in-place touch disclosure. The primitive
+  remeasures after `document.fonts.ready`; consumer classes may style typography
+  but must not override its display/clamp state.
+  `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only
   bounded money/date/number fields stay nowrap. `BaseResponsiveTable` and
