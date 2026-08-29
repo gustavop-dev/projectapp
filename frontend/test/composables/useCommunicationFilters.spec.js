@@ -1,6 +1,8 @@
 import {
+  COMMUNICATION_ORDER_STORAGE_KEY,
   communicationFiltersFromQuery,
   communicationFiltersToQuery,
+  resolveCommunicationOrder,
 } from '../../composables/useCommunicationFilters';
 
 describe('communication filter URL contract', () => {
@@ -53,5 +55,41 @@ describe('communication filter URL contract', () => {
     expect(filters.status).toEqual(['open']);
     expect(filters.direction).toEqual(['incoming']);
     expect(filters.order).toBe('recent');
+  });
+
+  it('prefers an explicit URL order', () => {
+    const order = resolveCommunicationOrder({
+      queryOrder: 'title',
+      savedOrder: 'oldest',
+      storedOrder: 'recent',
+    });
+
+    expect(order).toBe('title');
+  });
+
+  it('uses the saved view order when the URL omits it', () => {
+    const order = resolveCommunicationOrder({
+      savedOrder: 'oldest',
+      storedOrder: 'title',
+    });
+
+    expect(order).toBe('oldest');
+  });
+
+  it('uses the browser preference as the final fallback', () => {
+    const order = resolveCommunicationOrder({ storedOrder: 'title' });
+
+    expect(order).toBe('title');
+    expect(COMMUNICATION_ORDER_STORAGE_KEY).toBe('panel.communications.order');
+  });
+
+  it('falls back to recent for an unsupported explicit order', () => {
+    const order = resolveCommunicationOrder({
+      queryOrder: 'unsupported',
+      savedOrder: 'oldest',
+      storedOrder: 'title',
+    });
+
+    expect(order).toBe('recent');
   });
 });

@@ -6,8 +6,8 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin navega los hilos por proyecto, cliente o sin proyecto, combina filtros de una misma dimensión y guarda recortes propios. La lista mantiene el contexto mientras el detalle se abre en un modal de trabajo; cada hilo conserva el registro manual bidireccional, sus estados y los documentos referenciados.",
-  "expectedSpecs": 5,
+  "description": "Admin identifica varios hilos mediante tarjetas compactas de resumen, sin desplazamiento horizontal, y conserva el orden elegido entre visitas. Navega por proyecto, cliente o sin proyecto, combina filtros y guarda recortes propios. El contenido completo permanece en el detalle modal, con registro manual bidireccional, estados y documentos referenciados.",
+  "expectedSpecs": 7,
   "outcomes": [
     "display",
     "success",

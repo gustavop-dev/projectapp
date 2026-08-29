@@ -1,5 +1,12 @@
 # Architecture — ProjectApp
 
+> **Comunicaciones 2026-08-29:** `/panel/communications` has two list
+> projections over the same thread DTO: a comparison table at landscape+ and a
+> compact card index below it. `CommunicationThreadTable` owns both projections,
+> bounds the optional message excerpt locally and leaves the workspace modal as
+> the only complete-content reader. Browser-local order preference augments the
+> canonical URL without changing REST, models or schema.
+
 > **Engagement 2026-08-29:** el navegador es dueño del ciclo visible/oculto del
 > tracker. `visibilitychange` delimita segmentos de atención; `sendBeacon`
 > entrega el cierre y el POST periódico queda reservado a una página visible.

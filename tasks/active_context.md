@@ -2,6 +2,16 @@
 
 ## Current State
 
+**2026-08-29 — Listado compacto de Comunicaciones listo para integrar:** por
+debajo de landscape cada hilo es una tarjeta de índice con asunto,
+cliente/proyecto, canal, estado, cantidad, fecha y borradores; el último mensaje
+se normaliza y corta a una sola línea de máximo 120 caracteres. No hay scroll
+horizontal ni rótulo **Hilo** repetido; landscape+ conserva la tabla con
+**Asunto** y el detalle sigue siendo el único lector completo. El orden visible
+se persiste bajo `panel.communications.order` con precedencia URL → vista
+guardada → navegador → recientes. Pasan 15 pruebas Jest y 7 E2E; el flow-map
+está fresco y `admin-client-communications` cubre display/success/error/failure.
+
 **2026-08-29 — Segundo hotfix MySQL para la recuperación de snapshots:** el
 primer hotfix ya llegó a `main`, pero el redeploy volvió a detenerse al entrar a
 `content.0223_email_delivery_snapshots`. Django envolvía el `RunPython` de

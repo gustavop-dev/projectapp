@@ -481,6 +481,14 @@ searchable `BaseFilterDropdown` instances with multi-selection and counts.
 Named cuts reuse `SavedFilterTab` with the `communication` view choice; migration
 `accounts.0056_add_communication_saved_filter_view` adds only that catalog value.
 
+`CommunicationThreadTable` switches explicitly through the page-owned
+`isPanelStacked` breakpoint: compact profiles render bounded cards with
+`overflow-x-hidden`; larger profiles retain `BaseResponsiveTable`. The latest
+message is normalized and capped at 120 characters before CSS truncation, with
+no `title` or alternate surface that leaks the full body. `useCommunicationFilters`
+stores only the validated order token under `panel.communications.order`; URL
+order wins, followed by a valid saved view, local preference and `recent`.
+
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 
 `content.0212_seed_communications_mcp` registers the Communications connector
