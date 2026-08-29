@@ -13,6 +13,11 @@ from content.models import (
     ProposalSection,
     ProposalShareLink,
 )
+from content.tests.proposal_traceability import (
+    TRACEABILITY_ITEM_ID,
+    create_traced_proposal_sections,
+    technical_document,
+)
 
 
 @pytest.fixture
@@ -208,6 +213,33 @@ class TestProposalsMcpHandlers:
             'proposal_id': proposal.id, 'sections': {},
         })
         assert response.data['result']['isError'] is True
+
+    def test_update_rejects_untraced_technical_document_atomically(
+        self, api_client, proposals_connector,
+    ):
+        proposal = BusinessProposal.objects.create(
+            title='Original MCP title', client_name='MCP Client',
+        )
+        technical_section = create_traced_proposal_sections(proposal)
+        _, token = proposals_connector
+
+        response = _call(api_client, token, 'update_proposal', {
+            'proposal_id': proposal.id,
+            'title': 'Title that must roll back',
+            'client_name': proposal.client_name,
+            'sections': {
+                'general': {'clientName': proposal.client_name},
+                'technicalDocument': technical_document([]),
+            },
+        })
+
+        assert response.data['result']['isError'] is True
+        assert 'Inicio de sesión' in response.data['result']['content'][0]['text']
+        proposal.refresh_from_db()
+        technical_section.refresh_from_db()
+        assert proposal.title == 'Original MCP title'
+        stored_requirement = technical_section.content_json['epics'][0]['requirements'][0]
+        assert stored_requirement['linked_item_ids'] == [TRACEABILITY_ITEM_ID]
 
     @mock.patch('content.mcp.proposal_tools.ProposalService.send_proposal')
     def test_send_proposal_dispatches_and_logs(

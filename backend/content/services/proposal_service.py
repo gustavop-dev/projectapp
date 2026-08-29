@@ -136,6 +136,63 @@ def enforce_scope_clause(new_content, default_content):
     return new_content
 
 
+def enforce_technical_item_coverage(section_payloads, technical_content_json):
+    """Refuse a technical document that leaves commercial items untraced.
+
+    ``requirement.linked_item_ids`` is the contract between the functional
+    requirements and the technical detail: it powers the client-facing "view
+    requirements" modal, the PDF, and the scope item each platform requirement
+    inherits on project handoff. The admin editor already blocks a save that
+    breaks it (``TechnicalDocumentEditor.vue``), but the JSON/MCP import had no
+    equivalent check, so a payload could land with every link empty and the
+    traceability would disappear without a single error — exactly what the
+    seller prompt warns about with "a changed or missing id silently breaks
+    that traceability".
+
+    Applies to the update path only. On creation the functional requirements
+    are the payload merged with the language template, so the required set
+    would include items the caller never authored; by the time a technical
+    document is written the proposal already carries the seller's own scope.
+
+    No-op when the document carries no epics: a proposal without a technical
+    detail has nothing to trace.
+    """
+    from content.api_errors import ProposalActionError
+    from content.services.proposal_module_links import (
+        build_item_link_options,
+        build_technical_item_coverage,
+    )
+
+    if not isinstance(technical_content_json, dict):
+        return
+    if not (technical_content_json.get('epics') or []):
+        return
+
+    options = build_item_link_options(section_payloads)
+    if not options:
+        return
+
+    coverage = build_technical_item_coverage(options, technical_content_json)
+    missing = coverage['missingRequired']
+    if not missing:
+        return
+
+    shown = ', '.join(entry['label'] for entry in missing[:8])
+    if len(missing) > 8:
+        shown += f' (+{len(missing) - 8} más)'
+    raise ProposalActionError(
+        f'El detalle técnico no cubre {len(missing)} de '
+        f'{coverage["requiredCount"]} ítems de los requerimientos funcionales: '
+        f'{shown}.',
+        code='technical_item_coverage_incomplete',
+        hint=(
+            'Cada ítem debe estar referenciado por al menos un requerimiento '
+            'técnico en "linked_item_ids". Sin ese enlace el cliente no ve el '
+            'detalle técnico del ítem y la trazabilidad se pierde en silencio.'
+        ),
+    )
+
+
 def merge_value_added_legal_terms(new_content, previous_content):
     """Keep the value-added legal terms when an incoming payload omits them.
 
@@ -4419,6 +4476,11 @@ def build_proposal_from_json(validated_data):
             technical_section['content_json'],
             resolved_sections,
         )
+        # Creation is deliberately NOT gated for item coverage: the functional
+        # requirements resolved above are the payload MERGED with the language
+        # template, so the required set includes items the caller never
+        # authored and could not link. The technical document is authored
+        # through updates, and apply_proposal_json_update gates those.
 
     for section in resolved_sections:
         ProposalSection.objects.create(proposal=proposal, **section)
@@ -4442,11 +4504,15 @@ def _default_commercial_conditions(language):
     return {}
 
 
+@transaction.atomic
 def apply_proposal_json_update(proposal, validated_data):
     """Update an existing proposal + its sections from validated from-JSON data.
 
     Runs atomically: metadata, change logs and section updates are committed
     together or not at all (no email/side effects happen inside this function).
+    The decorator is what makes that sentence true — without it a failure
+    part-way through left the proposal half-updated, which the coverage gate
+    below turns from a latent risk into a reachable one.
 
     Returns ``(proposal, updated_sections, unmapped_keys)``.
     """
@@ -4608,6 +4674,17 @@ def apply_proposal_json_update(proposal, validated_data):
             if normalized != technical_section.content_json:
                 technical_section.content_json = normalized
                 technical_section.save(update_fields=['content_json'])
+            # Gate only a technical document the caller actually authored —
+            # its own payload must carry epics. An update that omits the
+            # section, or sends an empty one and lets the seeder fill it, is
+            # asserting nothing about the detail, so it must not be rejected
+            # for what the system generated on its behalf. Mirrors the admin
+            # editor, which gates the technical-document save.
+            # Validates the NORMALIZED result so seeded links count, and
+            # raising rolls the whole update back (@transaction.atomic).
+            payload_technical = sections_data.get('technicalDocument')
+            if isinstance(payload_technical, dict) and payload_technical.get('epics'):
+                enforce_technical_item_coverage(section_payloads, normalized)
 
     ProposalChangeLog.objects.create(
         proposal=proposal,

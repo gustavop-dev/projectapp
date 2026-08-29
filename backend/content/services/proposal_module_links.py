@@ -119,6 +119,142 @@ def build_item_requirements_map(technical_content_json: Any) -> dict[str, list[d
     return result
 
 
+def build_item_link_options(sections: list[dict] | None) -> list[dict[str, Any]]:
+    """Group the commercial items a technical document is expected to cover.
+
+    Python mirror of ``buildProposalItemLinkOptions`` in
+    ``frontend/utils/proposalModuleLinkOptions.js`` — keep both in step.
+
+    ``groups`` are contractual scope, so their items are always required.
+    ``additionalModules`` are an optional catalog: they only become coverage
+    once the seller selected them (or a legacy proposal defaulted them in),
+    otherwise an unsold module would block every save.
+    """
+    if not isinstance(sections, list):
+        return []
+
+    functional = next(
+        (
+            section for section in sections
+            if isinstance(section, dict)
+            and section.get('section_type') == 'functional_requirements'
+        ),
+        None,
+    )
+    content_json = (functional or {}).get('content_json')
+    if not isinstance(content_json, dict):
+        return []
+
+    def _entries(key: str) -> list[Any]:
+        value = content_json.get(key)
+        return value if isinstance(value, list) else []
+
+    candidates: list[tuple[dict[str, Any], bool]] = []
+    for group in _entries('groups'):
+        if isinstance(group, dict):
+            candidates.append((group, True))
+    for group in _entries('additionalModules'):
+        if not isinstance(group, dict):
+            continue
+        selected = group.get('selected')
+        required = (
+            selected is True
+            or (selected is None and group.get('default_selected') is True)
+        )
+        candidates.append((group, required))
+
+    out: list[dict[str, Any]] = []
+    for group, required in candidates:
+        if group.get('is_visible') is False:
+            continue
+        group_id = _string_id(group.get('id'))
+        if not group_id:
+            continue
+        items = []
+        for item in group.get('items') or []:
+            if not isinstance(item, dict):
+                continue
+            item_id = _string_id(item.get('id'))
+            if not item_id:
+                continue
+            label = f"{item.get('icon') or ''} {item.get('name') or item_id}".strip()
+            items.append({'id': item_id, 'label': label})
+        if not items:
+            continue
+        out.append({
+            'groupId': group_id,
+            'groupLabel': f"{group.get('icon') or ''} {group.get('title') or group_id}".strip(),
+            'isRequiredForCoverage': required,
+            'items': items,
+        })
+    return out
+
+
+def build_technical_item_coverage(
+    item_link_options: list[dict[str, Any]] | None,
+    technical_content_json: Any,
+) -> dict[str, Any]:
+    """Report which required commercial items no technical requirement covers.
+
+    Python mirror of ``buildTechnicalItemCoverage`` in
+    ``frontend/utils/proposalModuleLinkOptions.js``.
+    """
+    linked: set[str] = set()
+    if isinstance(technical_content_json, dict):
+        epics = technical_content_json.get('epics')
+        if isinstance(epics, list):
+            for epic in epics:
+                if not isinstance(epic, dict):
+                    continue
+                requirements = epic.get('requirements')
+                if not isinstance(requirements, list):
+                    continue
+                for requirement in requirements:
+                    if not isinstance(requirement, dict):
+                        continue
+                    raw = (
+                        requirement.get('linked_item_ids')
+                        or requirement.get('linkedItemIds')
+                    )
+                    linked.update(normalize_linked_module_ids(raw))
+
+    missing_required: list[dict[str, Any]] = []
+    missing_optional: list[dict[str, Any]] = []
+    required_count = 0
+    covered_required_count = 0
+
+    for group in item_link_options or []:
+        if not isinstance(group, dict):
+            continue
+        is_required = group.get('isRequiredForCoverage') is True
+        group_id = group.get('groupId') or ''
+        for item in group.get('items') or []:
+            item_id = (item or {}).get('id')
+            if not item_id:
+                continue
+            entry = {
+                'id': item_id,
+                'label': item.get('label') or item_id,
+                'groupId': group_id,
+                'groupLabel': group.get('groupLabel') or group_id,
+            }
+            if is_required:
+                required_count += 1
+                if item_id in linked:
+                    covered_required_count += 1
+                else:
+                    missing_required.append(entry)
+            elif item_id not in linked:
+                missing_optional.append(entry)
+
+    return {
+        'missingRequired': missing_required,
+        'missingOptional': missing_optional,
+        'requiredCount': required_count,
+        'coveredRequiredCount': covered_required_count,
+    }
+
+
 def build_proposal_module_link_catalog(sections: list[dict] | None) -> dict[str, Any]:
     options: list[dict[str, Any]] = []
     alias_map: dict[str, str] = {}

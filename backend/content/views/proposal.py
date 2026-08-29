@@ -1080,9 +1080,12 @@ def update_proposal_from_json(request, proposal_id):
 
     from content.services.proposal_service import apply_proposal_json_update
 
-    proposal, updated_sections, unmapped_keys = apply_proposal_json_update(
-        proposal, serializer.validated_data,
-    )
+    try:
+        proposal, updated_sections, unmapped_keys = apply_proposal_json_update(
+            proposal, serializer.validated_data,
+        )
+    except ValueError as e:  # includes ProposalActionError
+        return error_response_from_exc(e)
 
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
