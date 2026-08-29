@@ -109,6 +109,7 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             reset_empty_mysql_snapshot_artifacts,
             migrations.RunPython.noop,
+            atomic=False,
         ),
         migrations.CreateModel(
             name='EmailDeliverySnapshot',

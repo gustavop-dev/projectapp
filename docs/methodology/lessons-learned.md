@@ -1431,4 +1431,6 @@ does not record the migration. Recovery belongs at the failing migration's entry
 only when it can recognize the exact residue. Count every new table and live
 reference first; clean only an entirely empty partial state and abort on any
 data. A generic `DROP IF EXISTS` or blind `--fake` turns an index bug into silent
-history loss.
+history loss. If that recovery itself issues DDL, its `RunPython` must also set
+`atomic=False`; otherwise Django opens `transaction.atomic()` around the
+operation and MySQL rejects the cleanup before its safety checks can help.
