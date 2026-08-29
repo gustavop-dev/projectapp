@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.91.0
+// Registry version: 2.92.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -133,6 +133,7 @@ export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:
 export const ADMIN_DOCUMENT_GALLERY = ['@flow:admin-document-gallery', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '@module:admin', '@priority:P1'];
+export const ADMIN_DOCUMENT_NAVIGATION = ['@flow:admin-document-navigation', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_OBSERVATION_DELETE = ['@flow:admin-document-observation-delete', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_PDF_DOWNLOAD = ['@flow:admin-document-pdf-download', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_PDF_PREVIEW = ['@flow:admin-document-pdf-preview', '@module:admin', '@priority:P2'];

@@ -2,13 +2,11 @@
   <aside class="flex h-full min-h-0 flex-col rounded-xl border border-border-muted bg-surface shadow-card">
     <div class="shrink-0 border-b border-border-muted px-4 py-3">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted">Navegar por</h2>
-      <BaseSegmented
+      <EntityNavigationModeSwitch
         class="mt-3"
-        full-width
-        size="sm"
         :model-value="mode"
-        :options="MODE_OPTIONS"
         aria-label="Agrupar comunicaciones"
+        test-id-prefix="communications-mode"
         @update:model-value="$emit('update:mode', $event)"
       />
     </div>
@@ -103,10 +101,6 @@ const props = defineProps({
 
 defineEmits(['update:mode', 'select']);
 
-const MODE_OPTIONS = [
-  { value: 'project', label: 'Proyectos', testId: 'communications-mode-project' },
-  { value: 'client', label: 'Clientes', testId: 'communications-mode-client' },
-];
 const search = ref('');
 
 watch(() => props.mode, () => { search.value = ''; });

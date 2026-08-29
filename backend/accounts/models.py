@@ -35,6 +35,13 @@ class UserProfile(models.Model):
         (ROLE_CLIENT, 'Client'),
     ]
 
+    DOCUMENT_NAVIGATION_PROJECT = 'project'
+    DOCUMENT_NAVIGATION_CLIENT = 'client'
+    DOCUMENT_NAVIGATION_CHOICES = [
+        (DOCUMENT_NAVIGATION_PROJECT, 'Proyectos'),
+        (DOCUMENT_NAVIGATION_CLIENT, 'Clientes'),
+    ]
+
     PLACEHOLDER_EMAIL_DOMAIN = '@temp.example.com'
 
     GENDER_MALE = 'male'
@@ -69,6 +76,12 @@ class UserProfile(models.Model):
         related_name='profile',
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_CLIENT)
+    document_navigation_mode = models.CharField(
+        max_length=10,
+        choices=DOCUMENT_NAVIGATION_CHOICES,
+        default=DOCUMENT_NAVIGATION_PROJECT,
+        help_text='Grouping last selected by this account in the document manager.',
+    )
     is_onboarded = models.BooleanField(
         default=False,
         help_text='True after the client sets their own password.',

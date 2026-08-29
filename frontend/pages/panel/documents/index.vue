@@ -49,7 +49,7 @@
         <BaseActionIcon action="folders" />
         <span class="truncate">{{ compactFolderLabel }}</span>
       </span>
-      <span class="shrink-0 text-xs font-medium text-text-brand">Cambiar carpeta</span>
+      <span class="shrink-0 text-xs font-medium text-text-brand">Cambiar navegación</span>
     </BaseButton>
 
     <!--
@@ -75,6 +75,12 @@
         :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
         :unfiled-count="sidebarUnfiledCount"
+        :navigation-mode="navigationMode"
+        :navigation-selection="navigationSelection"
+        :navigation-facets="navigationStore.facets"
+        :navigation-loading="navigationStore.isLoading"
+        :navigation-saving="navigationStore.isSavingPreference"
+        :navigation-error="navigationStore.error"
         :scope-locked="isSearching"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
@@ -86,6 +92,9 @@
         @archive="handleArchiveFolder"
         @view-archived="handleViewArchivedFolder"
         @toggle-archived="handleToggleArchivedMode"
+        @update:navigation-mode="handleNavigationModeChange"
+        @select-entity="handleSelectNavigationEntity"
+        @retry-navigation="navigationStore.fetchNavigation"
       />
 
       <!--
@@ -99,7 +108,7 @@
         :value="panelWidth"
         :min="FOLDER_PANEL_MIN"
         :max="FOLDER_PANEL_MAX"
-        label="Ajustar el ancho del panel de carpetas"
+        label="Ajustar el ancho del panel de navegación"
         test-id="folder-panel-resize-handle"
         data-enter
         style="--enter-delay: 150ms"
@@ -141,8 +150,8 @@
           v-if="showBreadcrumb"
           :active-id="documentStore.activeFolderId"
           :dragging-folder-id="draggingFolder?.id ?? null"
-          :root-label="isArchived ? 'Archivados' : 'Todos'"
-          :root-value="isArchived ? 'root' : 'all'"
+          :root-label="navigationRootLabel"
+          :root-value="navigationRootValue"
           @select="handleSelectFolder"
           @nest="handleNestFolder"
         />
@@ -415,7 +424,7 @@
     <BaseDrawer
       v-model="showFolderDrawer"
       placement="left"
-      title="Carpetas"
+      title="Navegación"
       test-id="folder-drawer"
     >
       <FolderSidebar
@@ -426,6 +435,12 @@
         :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
         :unfiled-count="sidebarUnfiledCount"
+        :navigation-mode="navigationMode"
+        :navigation-selection="navigationSelection"
+        :navigation-facets="navigationStore.facets"
+        :navigation-loading="navigationStore.isLoading"
+        :navigation-saving="navigationStore.isSavingPreference"
+        :navigation-error="navigationStore.error"
         :scope-locked="isSearching"
         touch-mode
         :is-dragging="false"
@@ -437,6 +452,9 @@
         @archive="archiveFolderFromDrawer"
         @view-archived="viewArchivedFolderFromDrawer"
         @toggle-archived="handleToggleArchivedMode"
+        @update:navigation-mode="handleNavigationModeChange"
+        @select-entity="selectNavigationEntityFromDrawer"
+        @retry-navigation="navigationStore.fetchNavigation"
       />
     </BaseDrawer>
 
@@ -530,7 +548,7 @@ import BasePagination from '~/components/base/BasePagination.vue';
 import BaseDrawer from '~/components/base/BaseDrawer.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { isRootInScope, treeScopeFor } from '~/utils/archiveScope';
+import { isRootInScope, matchesScope, treeScopeFor } from '~/utils/archiveScope';
 import { folderSummaryFrom, scopedCounts } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -555,6 +573,23 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const stateStore = useDocumentStateStore();
+const navigationStore = useDocumentNavigationStore();
+const navigationMode = computed({
+  get: () => navigationStore.mode,
+  set: (mode) => navigationStore.setTransientMode(mode),
+});
+const navigationSelection = computed(() => {
+  const value = navigationMode.value === 'project'
+    ? documentStore.activeProjectId
+    : documentStore.activeClientId;
+  return value == null ? 'all' : value;
+});
+const selectedNavigationEntry = computed(() => {
+  const entries = navigationMode.value === 'project'
+    ? navigationStore.facets.projects || []
+    : navigationStore.facets.clients || [];
+  return entries.find((entry) => entry.id === navigationSelection.value) || null;
+});
 
 const notify = usePanelNotify();
 const {
@@ -608,9 +643,23 @@ const compactFolderLabel = computed(() => {
   if (isSearching.value) return 'Resultados globales';
   if (currentFolder.value) return currentFolder.value.name;
   if (documentStore.activeFolderId === 'none') return 'Sin carpeta';
+  if (documentStore.activeFolderId === 'root' && navigationSelection.value !== 'all') {
+    if (navigationSelection.value === 'none') {
+      return navigationMode.value === 'project' ? 'Sin proyecto' : 'Sin cliente';
+    }
+    return selectedNavigationEntry.value?.name
+      || `${navigationMode.value === 'project' ? 'Proyecto' : 'Cliente'} #${navigationSelection.value}`;
+  }
   if (documentStore.activeFolderId === 'root') return 'Raíz de archivados';
   return 'Todos los documentos';
 });
+const navigationRootLabel = computed(() => {
+  if (navigationSelection.value !== 'all') return compactFolderLabel.value;
+  return isArchived.value ? 'Archivados' : 'Todos';
+});
+const navigationRootValue = computed(() => (
+  navigationSelection.value !== 'all' || isArchived.value ? 'root' : 'all'
+));
 
 // ── El panel lateral sigue al modo ───────────────────────────────────────────
 // Antes listaba siempre el árbol activo con contadores de activos, incluso con
@@ -660,9 +709,41 @@ const SCOPE_NOTICES = {
 
 const scopeNotice = computed(() => SCOPE_NOTICES[effectiveScope.value] || null);
 
+function folderMatchesNavigation(folder) {
+  const selection = navigationSelection.value;
+  if (selection === 'all') return true;
+  const association = navigationMode.value === 'project' ? folder.project : folder.client;
+  if (selection === 'none') return association == null;
+  return Number(association) === Number(selection);
+}
+
+const navigationFolders = computed(() => folderStore.folders.filter(
+  (folder) => matchesScope(folder, treeScope.value) && folderMatchesNavigation(folder),
+));
+const navigationFolderIds = computed(
+  () => new Set(navigationFolders.value.map((folder) => folder.id)),
+);
+const suppressedManagedRootId = computed(() => (
+  navigationMode.value === 'project' && typeof navigationSelection.value === 'number'
+    ? selectedNavigationEntry.value?.managed_root_id ?? null
+    : null
+));
+const navigationRootFolders = computed(() => navigationFolders.value.filter((folder) => {
+  if (folder.id === suppressedManagedRootId.value) return false;
+  if (folder.parent === suppressedManagedRootId.value) return true;
+  return folder.parent == null || !navigationFolderIds.value.has(folder.parent);
+}));
+
 const filteredDocuments = computed(() => {
   if (isSearching.value) return documentStore.searchResults;
   if (documentStore.activeFolderId !== 'root') return documentStore.documents;
+  if (navigationSelection.value !== 'all') {
+    return documentStore.documents.filter((documentRow) => (
+      documentRow.folder == null
+      || documentRow.folder === suppressedManagedRootId.value
+      || !navigationFolderIds.value.has(documentRow.folder)
+    ));
+  }
   // En la cima del árbol sólo se listan los documentos que no cuelgan de una
   // carpeta visible: los demás se ven entrando a su carpeta.
   return documentStore.documents.filter(
@@ -675,9 +756,15 @@ const filteredDocuments = computed(() => {
 const currentSubfolders = computed(() => {
   if (isSearching.value) return searchFolders.value;
   const id = documentStore.activeFolderId;
+  if (id === 'root' && navigationSelection.value !== 'all') {
+    return navigationRootFolders.value;
+  }
   if (id === 'root') return folderStore.scopedRootFolders(effectiveScope.value);
   if (typeof id !== 'number') return [];
-  return folderStore.childrenOf(id, effectiveScope.value);
+  const children = folderStore.childrenOf(id, treeScope.value);
+  return navigationSelection.value === 'all'
+    ? children
+    : children.filter(folderMatchesNavigation);
 });
 
 const hasContent = computed(
@@ -794,13 +881,18 @@ watch(searchQuery, (value) => {
  * Como la búsqueda ya no muta el scope de origen, navegar desde un resultado
  * sólo limpia `q` y cambia explícitamente los ejes pedidos.
  */
-function exitSearchAndNavigate({ folder, scope } = {}) {
+function exitSearchAndNavigate({ folder, scope, client, project } = {}) {
   clearTimeout(searchTimer);
   searchFolders.value = [];
   documentStore.searchResults = [];
   documentStore.isSearchLoading = false;
   searchQuery.value = '';
-  return documentStore.setFilters({ folder, scope: scope ?? documentStore.archiveScope });
+  return documentStore.setFilters({
+    folder,
+    scope: scope ?? documentStore.archiveScope,
+    client,
+    project,
+  });
 }
 
 onBeforeUnmount(() => {
@@ -846,7 +938,7 @@ const showDeleteFolderModal = computed({
 
 const createLink = computed(() => {
   const folder = documentStore.activeFolderId;
-  if (folder && folder !== 'all' && folder !== 'none') {
+  if (folder && folder !== 'all' && folder !== 'root' && folder !== 'none') {
     return localePath(`/panel/documents/create?folder=${folder}`);
   }
   return localePath('/panel/documents/create');
@@ -878,6 +970,7 @@ async function refreshView({ states = false } = {}) {
     documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
     folderStore.fetchFolders(),
     documentStore.fetchCounts(),
+    navigationStore.fetchNavigation(),
     states ? stateStore.fetchCatalog() : Promise.resolve(),
   ]);
   if (docsResult && !docsResult.success) {
@@ -929,12 +1022,14 @@ async function handleQueryNavigation(summary) {
 filterQuery = useDocumentFilterQuery(documentStore, {
   searchQuery,
   viewMode,
+  navigationMode,
   currentPage: docPage,
   focusedDocumentId,
   onNavigate: handleQueryNavigation,
 });
 
 onMounted(async () => {
+  await navigationStore.fetchPreference();
   filterQuery.applyQueryToStore();
   await loadDocuments();
   // La carpeta del deep link ya no existe: se cae a Todos y se refetchea.
@@ -945,6 +1040,38 @@ onMounted(async () => {
   await restoreFocusedDocument();
 });
 usePanelRefresh(loadDocuments);
+
+async function handleNavigationModeChange(mode) {
+  const result = await navigationStore.persistMode(mode);
+  if (!result.success) {
+    notify.error({
+      title: 'No se pudo guardar el modo de navegación',
+      detail: result.message,
+    });
+  }
+}
+
+function navigationEntityFilters(value) {
+  const selected = value === 'all' ? null : value;
+  const folder = selected == null
+    ? (documentStore.archiveScope === 'archived' ? 'root' : 'all')
+    : 'root';
+  return navigationMode.value === 'project'
+    ? { folder, project: selected }
+    : { folder, client: selected };
+}
+
+function handleSelectNavigationEntity(value) {
+  const filters = navigationEntityFilters(value);
+  if (isSearching.value) return exitSearchAndNavigate(filters);
+  return documentStore.setFilters(filters);
+}
+
+function selectNavigationEntityFromDrawer(value) {
+  const result = handleSelectNavigationEntity(value);
+  showFolderDrawer.value = false;
+  return result;
+}
 
 function handleSelectFolder(id) {
   if (isSearching.value) {
@@ -1008,7 +1135,11 @@ function handleToggleArchivedMode(on) {
   const folderId = documentStore.activeFolderId;
   let folder;
   if (on && folderId === 'all') folder = 'root';
-  if (!on && folderId === 'root') folder = 'all';
+  if (
+    !on
+    && folderId === 'root'
+    && navigationSelection.value === 'all'
+  ) folder = 'all';
   documentStore.setFilters({ folder, scope: on ? 'archived' : 'active' });
 }
 

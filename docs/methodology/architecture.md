@@ -276,7 +276,7 @@ erDiagram
 | **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
 | **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |
 | **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
-| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, **email_verified, email_verified_at**, is_active |
+| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, **email_verified, email_verified_at**, document_navigation_mode (project/client panel preference), is_active |
 | **VerificationCode** | OTP codes (login + email validation) | user_fk, code, purpose, expires_at, is_used |
 | **SavedFilterTab** | Persisted admin filter tabs | user_fk, scope, name, filters_json, order |
 | **Project** | Client project in platform with a real lifecycle | client_fk, name, description, current_state FK, state_review_required, compatibility status mirror (development/active/paused/suspended/completed/decommissioned; archived only for legacy review), progress, dates, payment/hosting snapshots and operational URLs/credentials |
@@ -317,6 +317,7 @@ flowchart TD
     Views --> CTS["ContractTermsService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
+    Views --> DNS["DocumentNavigationService"]
     Views --> GDFS["GeneratedDocumentFilingService"]
     Views --> CMS["CommunicationService"]
     Views --> CAS["CollectionAccountService"]
@@ -345,6 +346,8 @@ flowchart TD
     DPS -->|generate| ReportLab
     DPS -->|shared utils| PU
     DPS -->|parse markdown| MP["MarkdownParser"]
+    DNS -->|aggregate project/client ownership| Documents
+    DNS -->|aggregate folder ownership| Folders
     CMS -->|thread lifecycle, immutable delivery, audit| Models
     CMS -->|protected references| Documents["Document"]
     ETR -->|read overrides| ETC["EmailTemplateConfig model"]
@@ -369,6 +372,7 @@ flowchart TD
 | **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
+| **DocumentNavigationService** | Small | Builds active/archived project and client facets from canonical folder/document associations, including independent unassigned buckets and constant-query recursive inventory totals. |
 | **GeneratedDocumentFilingService** | Small | Owns deterministic project/client/type/year/month paths, Spanish month names, stable folder keys, collection-account/proposal titles, cancellation branches and proposal-snapshot moves on onboarding. |
 | **ProposalSnapshotService** | Small | Locks proposal rows, allocates monotonically increasing versions, renders every PDF before the first send, stores exact bytes and hash, files snapshots, and derives sent/needs-fix state from the delivery result. |
 | **CommunicationService** | Small | Transactional thread/message lifecycle, direction/channel/state validation, document-reference validation, derived last activity, annulment and append-only date corrections |
@@ -679,7 +683,7 @@ Charts are lazy and client-only: there is no global ApexCharts plugin in the Nux
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 35 total"]
+    subgraph Stores["Pinia Stores (Options API) — 41 total"]
         ProposalStore["proposals.js"]
         ProposalClientsStore["proposalClients.js"]
         DiagnosticsStore["diagnostics.js"]
@@ -687,6 +691,7 @@ flowchart LR
         McpsStore["mcps.js"]
         TasksStore["tasks.js"]
         DocumentFoldersStore["document_folders.js"]
+        DocumentNavigationStore["document_navigation.js"]
         DocumentStatesStore["document_states.js"]
         PlatformDocumentsStore["platform-documents.js"]
         BlogStore["blog.js"]
@@ -719,6 +724,8 @@ flowchart LR
     PortfolioStore --> RequestHTTP
     ContactStore --> RequestHTTP
     DocumentStore --> RequestHTTP
+    DocumentFoldersStore --> RequestHTTP
+    DocumentNavigationStore --> RequestHTTP
     DocumentStatesStore --> RequestHTTP
     CommunicationsStore --> RequestHTTP
     PanelAdmins --> RequestHTTP

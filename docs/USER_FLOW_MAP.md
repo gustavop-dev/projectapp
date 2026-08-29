@@ -6053,6 +6053,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-gallery` | admin | P2 | display | 1 |
 | `admin-document-list` | admin | P2 | display,success | 1 |
 | `admin-document-move-folder` | admin | P1 | display,success,failure | 3 |
+| `admin-document-navigation` | admin | P1 | display,success,failure | 1 |
 | `admin-document-observation-delete` | admin | P1 | display,success,failure | 1 |
 | `admin-document-pdf-download` | admin | P2 | success,failure,display | 1 |
 | `admin-document-pdf-preview` | admin | P2 | display | 1 |
@@ -7090,19 +7091,6 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
-### FLOW: `admin-document-email-history`
-
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P1
-- **Routes:** `/panel/documents/:id/edit` → `/panel/emails?tab=history&email=:id`
-- **Description:** El administrador ve los correos donde salió un documento y navega a la fila exacta del historial universal.
-- **Interacciones y outcomes:**
-  1. **display:** entrar al gestor, abrir un documento, leer **Este documento se envió en N correos** y comprobar asunto, destinatario, fecha y nombre archivado.
-  2. **display:** pulsar una referencia y llegar al Historial con esa fila cargada y expandida.
-  3. **success/error/failure:** n/a; es navegación de evidencia. La protección 409 al eliminar se cubre en integración backend.
-- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
-
 ### FLOW: `admin-additional-modules-catalog`
 
 - **Module:** admin / commercial
@@ -7153,6 +7141,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`, `error`, `failure`, `display`
 - **Evidence:** `CatalogSelectionModal.vue`, `ShareHistoryModal.vue`, admin share endpoints.
 
+### FLOW: `admin-document-email-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents/:id/edit` → `/panel/emails?tab=history&email=:id`
+- **Description:** El administrador ve los correos donde salió un documento y navega a la fila exacta del historial universal.
+- **Interacciones y outcomes:**
+  1. **display:** entrar al gestor, abrir un documento, leer **Este documento se envió en N correos** y comprobar asunto, destinatario, fecha y nombre archivado.
+  2. **display:** pulsar una referencia y llegar al Historial con esa fila cargada y expandida.
+  3. **success/error/failure:** n/a; es navegación de evidencia. La protección 409 al eliminar se cubre en integración backend.
+- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
+
 ### FLOW: `admin-document-gallery`
 
 - **Module:** admin
@@ -7176,6 +7177,32 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; una cuenta emitida conserva el mismo estado comercial y las mismas acciones restringidas en tabla y tarjeta; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
+
+### FLOW: `admin-document-navigation`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/documents`
+- **API:** `GET /api/documents/navigation/`, `GET/PATCH /api/accounts/panel-preferences/documents/`, `GET /api/documents/`, `GET /api/document-folders/`
+- **Description:** El administrador recorre el gestor por proyecto o por cliente con el mismo interruptor y en la misma posición que Comunicaciones. Cada entrada muestra por separado cuántas carpetas y documentos tiene en el ámbito activo, archivado o combinado; el inventario incluye todo descendiente porque la asociación canónica está copiada en cada carpeta y documento. «Sin proyecto» y «Sin cliente» permanecen visibles incluso con cero elementos. La preferencia se guarda por cuenta, mientras `?by=` permite compartir una visita sin cambiar esa memoria. «Carpetas propias» conserva su árbol y sus acciones sin depender del eje elegido.
+- **Steps:**
+  1. El administrador entra al Gestor Documental y encuentra el interruptor Proyectos/Clientes encima de la navegación lateral.
+  2. Recorre proyectos visibles; «Ver todos» recupera los que su estado excluye de la vista inicial.
+  3. Elige un proyecto o «Sin proyecto» y el listado consulta únicamente esa asociación.
+  4. Cambia a Clientes, elige una persona o «Sin cliente» y consulta su inventario.
+  5. Sale del módulo y vuelve: el último modo elegido reaparece.
+  6. Abre una carpeta propia antes o después del cambio de modo sin perder esa vía de organización.
+- **Branches:**
+  - [Branch A — Display] Cada entidad declara conteos separados de carpetas y documentos; clientes inactivos y proyectos ocultos con contenido siguen alcanzables.
+  - [Branch B — Sin asignar] Las entradas «Sin proyecto»/«Sin cliente» existen permanentemente y filtran los registros sin esa asociación.
+  - [Branch C — Memoria] Un cambio desde el interruptor hace `PATCH`; una visita posterior hidrata el modo mediante `GET`. Un `?by=` explícito sólo gobierna esa visita.
+  - [Branch D — Carpetas propias] La sección manual no cambia al alternar el eje y sigue navegable si falla la carga de facetas.
+  - [Branch E — Fallo recuperable] Un 5xx de `/documents/navigation/` muestra una explicación con «Reintentar» sin bloquear el resto del gestor.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-navigation.spec.js`
+- **Unit Tests:** `test/components/FolderSidebar.spec.js`, `test/stores/document_navigation.test.js`, `test/composables/useDocumentFilterQuery.test.js`
+- **Backend Tests:** `content/tests/views/test_document_navigation.py`, `accounts/tests/test_document_panel_preferences.py`
 
 ### FLOW: `admin-document-title-column-resize`
 

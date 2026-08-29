@@ -1,9 +1,7 @@
 /**
- * E2E tests for the admin document folders flow.
+ * E2E tests for the independent own-folder section in the document manager.
  *
  * @flow:admin-document-folders
- * Covers: folder sidebar navigation and the filter query params sent to the
- *         backend when switching folders.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -12,63 +10,179 @@ import { ADMIN_DOCUMENT_FOLDERS } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
 
-const authCheck = {
+const jsonOk = (body) => ({
   status: 200,
   contentType: 'application/json',
-  body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
+  body: JSON.stringify(body),
+});
+
+const FOLDER_CUENTAS = {
+  id: 11,
+  name: 'Cuentas de cobro',
+  slug: 'cuentas-de-cobro',
+  parent: null,
+  order: 0,
+  project: null,
+  client: null,
+  managed_project: null,
+  folder_kind: 'manual',
+  is_system_managed: false,
+  is_archived: false,
+  document_count: 1,
+  children_count: 0,
+  active_document_count: 1,
+  active_children_count: 0,
+  archived_document_count: 0,
+  archived_children_count: 0,
 };
 
-const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', parent: null, order: 0, document_count: 1 };
-const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', parent: null, order: 0, document_count: 0 };
+const FOLDER_CONTRATOS = {
+  ...FOLDER_CUENTAS,
+  id: 12,
+  name: 'Contratos',
+  slug: 'contratos',
+  order: 1,
+  document_count: 0,
+  active_document_count: 0,
+};
+
 const PROJECT_KORE = {
+  ...FOLDER_CUENTAS,
   id: 21,
   name: 'Kore Health',
   slug: 'kore-health',
-  parent: null,
-  order: 0,
+  project: 41,
+  client: 7,
+  managed_project: 41,
+  folder_kind: 'project',
+  is_system_managed: true,
+  is_project_visible: true,
+  managed_project_state: { name: 'Activo', system_key: 'active' },
   document_count: 2,
   children_count: 1,
   active_document_count: 2,
   active_children_count: 1,
-  folder_kind: 'project',
-  managed_project: 41,
-  is_project_visible: true,
-  managed_project_state: { name: 'Activo', system_key: 'active' },
-};
-const PROJECT_PAUSED = {
-  ...PROJECT_KORE,
-  id: 22,
-  name: 'Candle',
-  slug: 'candle',
-  managed_project: 42,
-  is_project_visible: false,
-  managed_project_state: { name: 'Suspendido', system_key: 'paused' },
 };
 
 const DOC_IN_FOLDER = {
-  id: 1, title: 'Factura ACME', status: 'published',
-  client_name: 'ACME', created_at: '2026-04-01T10:00:00Z',
-  folder: FOLDER_CUENTAS.id, folder_name: FOLDER_CUENTAS.name,
-};
-const DOC_ORPHAN = {
-  id: 2, title: 'Borrador sin carpeta', status: 'draft',
-  client_name: null, created_at: '2026-04-02T10:00:00Z',
-  folder: null, folder_name: null,
+  id: 1,
+  title: 'Factura ACME',
+  status: 'published',
+  is_archived: false,
+  client: null,
+  client_name: 'ACME',
+  project: null,
+  created_at: '2026-04-01T10:00:00Z',
+  folder: FOLDER_CUENTAS.id,
+  folder_name: FOLDER_CUENTAS.name,
+  tag_details: [],
+  active_states: [],
 };
 
-function jsonOk(body) {
-  return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
+const DOC_ORPHAN = {
+  ...DOC_IN_FOLDER,
+  id: 2,
+  title: 'Borrador sin carpeta',
+  status: 'draft',
+  client_name: null,
+  created_at: '2026-04-02T10:00:00Z',
+  folder: null,
+  folder_name: null,
+};
+
+const NAVIGATION = {
+  totals: {
+    active: { folders: 3, documents: 2 },
+    archived: { folders: 0, documents: 0 },
+  },
+  unassigned: {
+    project: {
+      active: { folders: 2, documents: 2 },
+      archived: { folders: 0, documents: 0 },
+    },
+    client: {
+      active: { folders: 2, documents: 2 },
+      archived: { folders: 0, documents: 0 },
+    },
+  },
+  projects: [{
+    id: 41,
+    name: 'Kore Health',
+    client: 7,
+    client_display_name: 'Kore SAS',
+    managed_root_id: PROJECT_KORE.id,
+    state: { name: 'Activo', system_key: 'active', show_in_document_manager: true },
+    is_visible: true,
+    counts: {
+      active: { folders: 1, documents: 0 },
+      archived: { folders: 0, documents: 0 },
+    },
+  }],
+  clients: [{
+    id: 7,
+    name: 'Kore SAS',
+    is_inactive: false,
+    counts: {
+      active: { folders: 1, documents: 0 },
+      archived: { folders: 0, documents: 0 },
+    },
+  }],
+};
+
+async function setupFolderApi(page, folders = [FOLDER_CUENTAS, FOLDER_CONTRATOS]) {
+  let preferenceMode = 'project';
+  const requestedUrls = [];
+
+  await mockApi(page, async ({ apiPath, method, route }) => {
+    if (apiPath === 'auth/check/') {
+      return jsonOk({ user: { username: 'admin', is_staff: true } });
+    }
+    if (apiPath === 'accounts/panel-preferences/documents/') {
+      if (method === 'PATCH') {
+        preferenceMode = route.request().postDataJSON().navigation_mode;
+      }
+      return jsonOk({ navigation_mode: preferenceMode });
+    }
+    if (apiPath === 'documents/navigation/') return jsonOk(NAVIGATION);
+    if (apiPath === 'document-folders/') return jsonOk(folders);
+    if (apiPath === 'documents/counts/') {
+      return jsonOk({
+        documents: { active: 2, archived: 0, unfiled_active: 1, unfiled_archived: 0 },
+        folders: { active: folders.length, archived: 0 },
+      });
+    }
+    if (apiPath === 'documents/') {
+      const requestUrl = route.request().url();
+      requestedUrls.push(requestUrl);
+      const folder = new URL(requestUrl).searchParams.get('folder');
+      if (folder === String(FOLDER_CUENTAS.id)) return jsonOk([DOC_IN_FOLDER]);
+      if (folder === 'none') return jsonOk([DOC_ORPHAN]);
+      return jsonOk([DOC_IN_FOLDER, DOC_ORPHAN]);
+    }
+    if (apiPath === 'document-states/' || apiPath === 'document-state-groups/') {
+      return jsonOk([]);
+    }
+    if (apiPath === 'document-tags/') return jsonOk([]);
+    if (apiPath.startsWith('accounting/projects/')) return jsonOk({ results: [] });
+    return null;
+  });
+
+  return { requestedUrls };
 }
 
 async function openDocuments(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('link', { name: 'Gestor Documental', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Gestor Documental', exact: true }),
-  ).toBeVisible({ timeout: 25_000 });
+  const documentsLink = page.getByRole('link', { name: 'Gestor Documental', exact: true });
+  await expect(documentsLink).toBeVisible({ timeout: 35_000 });
+  await documentsLink.click();
+  await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true }))
+    .toBeVisible({ timeout: 35_000 });
 }
 
 test.describe('Admin Document Folders', () => {
+  // Evita que la compilación fría de esta página Nuxt compita entre workers.
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
       token: 'e2e-token',
@@ -76,183 +190,76 @@ test.describe('Admin Document Folders', () => {
     });
   });
 
-  test('sidebar filters list by folder id via query param', {
+  test('filters the list by own-folder id', {
     tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    const requestedUrls = [];
+    const api = await setupFolderApi(page);
+    await openDocuments(page);
 
-    await mockApi(page, async ({ apiPath, route }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') return jsonOk([FOLDER_CUENTAS, FOLDER_CONTRATOS]);
-      if (apiPath.startsWith('documents/')) {
-        const reqUrl = route.request().url();
-        requestedUrls.push(reqUrl);
-        const u = new URL(reqUrl);
-        const folder = u.searchParams.get('folder');
-        if (folder === String(FOLDER_CUENTAS.id)) return jsonOk([DOC_IN_FOLDER]);
-        return jsonOk([DOC_IN_FOLDER, DOC_ORPHAN]);
-      }
-      return null;
-    });
+    await expect(page.getByTestId('document-row-1')).toBeVisible();
+    await expect(page.getByTestId('document-row-2')).toBeVisible();
+    await page.getByRole('button', { name: /^Cuentas de cobro —/ }).click();
 
-    await page.goto('/panel/documents');
-    await page.waitForLoadState('domcontentloaded');
-
-    await expect(page.getByRole('button', { name: /^Cuentas de cobro/ })).toBeVisible();
-    await expect(page.getByRole('table').getByText('Factura ACME')).toBeVisible();
-    await expect(page.getByRole('table').getByText('Borrador sin carpeta')).toBeVisible();
-
-    await page.getByRole('button', { name: /^Cuentas de cobro/ }).click();
-
-    await expect.poll(
-      () => requestedUrls.some((u) => u.includes(`folder=${FOLDER_CUENTAS.id}`)),
-      { timeout: 5000 },
-    ).toBe(true);
-
-    await expect(page.getByRole('table').getByText('Borrador sin carpeta')).toBeHidden();
-    await expect(page.getByRole('table').getByText('Factura ACME')).toBeVisible();
+    await expect.poll(() => api.requestedUrls.at(-1)).toContain('folder=11');
+    await expect(page.getByTestId('document-row-1')).toBeVisible();
+    await expect(page.getByTestId('document-row-2')).toHaveCount(0);
   });
 
-  test('Sin carpeta entry filters for uncategorized documents', {
+  test('filters uncategorized documents from Sin carpeta', {
     tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    const requestedUrls = [];
+    const api = await setupFolderApi(page);
+    await openDocuments(page);
 
-    await mockApi(page, async ({ apiPath, route }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') return jsonOk([FOLDER_CUENTAS]);
-      if (apiPath.startsWith('documents/')) {
-        const reqUrl = route.request().url();
-        requestedUrls.push(reqUrl);
-        const u = new URL(reqUrl);
-        if (u.searchParams.get('folder') === 'none') return jsonOk([DOC_ORPHAN]);
-        return jsonOk([DOC_IN_FOLDER, DOC_ORPHAN]);
-      }
-      return null;
-    });
-
-    await page.goto('/panel/documents');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Anclado al inicio: la fila ahora muestra el contador de huérfanos
-    // ("Sin carpeta 0"), así que el exact-match dejó de servir; el ancla ^
-    // sigue evitando el substring-match con los kebabs "Acciones de <título>".
     await page.getByRole('button', { name: /^Sin carpeta/ }).click();
 
-    await expect.poll(
-      () => requestedUrls.some((u) => u.includes('folder=none')),
-      { timeout: 5000 },
-    ).toBe(true);
-
-    await expect(page.getByRole('table').getByText('Borrador sin carpeta')).toBeVisible();
-    await expect(page.getByRole('table').getByText('Factura ACME')).toBeHidden();
+    await expect.poll(() => api.requestedUrls.at(-1)).toContain('folder=none');
+    await expect(page.getByTestId('document-row-2')).toBeVisible();
+    await expect(page.getByTestId('document-row-1')).toHaveCount(0);
   });
 
-  test('new folder form pre-selects the active folder as parent', {
+  test('preselects the active own folder as the new parent', {
     tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath, route }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') return jsonOk([FOLDER_CUENTAS]);
-      if (apiPath.startsWith('documents/')) {
-        const u = new URL(route.request().url());
-        if (u.searchParams.get('folder') === String(FOLDER_CUENTAS.id)) return jsonOk([DOC_IN_FOLDER]);
-        return jsonOk([DOC_IN_FOLDER, DOC_ORPHAN]);
-      }
-      return null;
-    });
+    await setupFolderApi(page);
+    await openDocuments(page);
 
-    await page.goto('/panel/documents');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Pararse dentro de la carpeta antes de abrir el gestor.
-    await page.getByRole('button', { name: /^Cuentas de cobro/ }).click();
+    await page.getByRole('button', { name: /^Cuentas de cobro —/ }).click();
     await page.getByRole('button', { name: 'Nueva carpeta' }).click();
 
     const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
-    await expect(parentSelect).toBeVisible();
-
     await expect(parentSelect.locator('option:checked')).toHaveText('Cuentas de cobro');
   });
 
-  test('sidebar separates automatic project roots from manual folders', {
-    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
-  }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') {
-        return jsonOk([PROJECT_KORE, FOLDER_CONTRATOS]);
-      }
-      if (apiPath.startsWith('documents/')) return jsonOk([]);
-      return null;
-    });
-
-    await openDocuments(page);
-
-    const projects = page.getByTestId('project-folder-section');
-    const folders = page.getByTestId('manual-folder-section');
-    await expect(projects).toContainText('Kore Health');
-    await expect(projects).toContainText('Activo');
-    await expect(folders).toContainText('Contratos');
-    await expect(projects.getByTestId('folder-edit')).toHaveCount(0);
-    await expect(projects.getByTestId('folder-archive')).toHaveCount(0);
-    await expect(projects.getByTestId('folder-delete')).toHaveCount(0);
-  });
-
-  test('configured project-state filter hides excluded roots by default', {
-    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
-  }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') {
-        return jsonOk([PROJECT_KORE, PROJECT_PAUSED]);
-      }
-      if (apiPath.startsWith('documents/')) return jsonOk([]);
-      return null;
-    });
-
-    await openDocuments(page);
-
-    const projects = page.getByTestId('project-folder-section');
-    await expect(projects).toContainText('Kore Health');
-    await expect(projects).not.toContainText('Candle');
-    await expect(projects).toContainText('1 fuera del filtro de estados');
-  });
-
-  test('Ver todos restores access to projects outside the default filter', {
+  test('keeps own folders independent from the entity mode', {
     tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') {
-        return jsonOk([PROJECT_KORE, PROJECT_PAUSED]);
-      }
-      if (apiPath.startsWith('documents/')) return jsonOk([]);
-      return null;
-    });
-
+    await setupFolderApi(page, [PROJECT_KORE, FOLDER_CONTRATOS]);
     await openDocuments(page);
-    await page.getByTestId('project-folders-toggle').click();
 
-    await expect(page.getByTestId('project-folder-section')).toContainText('Candle');
-    await expect(page.getByTestId('project-folder-22')).toContainText('Suspendido');
+    const ownFolders = page.getByTestId('manual-folder-section');
+    await expect(page.getByTestId('documents-navigation-project-41')).toContainText('Kore Health');
+    await expect(ownFolders).toContainText('Contratos');
+    await expect(ownFolders).not.toContainText('Kore Health');
+
+    await page.getByTestId('documents-mode-client').click();
+
+    await expect(page.getByTestId('documents-mode-client'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(ownFolders).toContainText('Contratos');
+    await expect(ownFolders).not.toContainText('Kore Health');
   });
 
-  test('project root remains available as a parent for manual subfolders', {
+  test('offers a managed project root as a manual-folder parent', {
     tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'document-folders/') return jsonOk([PROJECT_KORE]);
-      if (apiPath.startsWith('documents/')) return jsonOk([]);
-      return null;
-    });
-
+    await setupFolderApi(page, [PROJECT_KORE]);
     await openDocuments(page);
-    await page.getByTestId('project-folder-21').click();
+
     await page.getByRole('button', { name: 'Nueva carpeta' }).click();
 
     const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
-    await expect(parentSelect.locator('option:checked')).toHaveText('Kore Health');
+    await expect(parentSelect.locator('option', { hasText: 'Kore Health' })).toHaveCount(1);
+    await expect(parentSelect.locator('option:checked')).toHaveText('Ninguna (carpeta raíz)');
   });
 });

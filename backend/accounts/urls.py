@@ -24,6 +24,7 @@ from accounts.views_saved_filter_tabs import (
     saved_filter_tabs_reorder,
     saved_filter_tabs_reset,
 )
+from accounts.views_panel_preferences import document_panel_preferences
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
@@ -124,6 +125,11 @@ urlpatterns = [
     path('saved-filter-tabs/reset/', saved_filter_tabs_reset, name='panel-saved-filter-tabs-reset'),
     path('saved-filter-tabs/reorder/', saved_filter_tabs_reorder, name='panel-saved-filter-tabs-reorder'),
     path('saved-filter-tabs/<int:tab_id>/', saved_filter_tab_detail, name='panel-saved-filter-tab-detail'),
+    path(
+        'panel-preferences/documents/',
+        document_panel_preferences,
+        name='document-panel-preferences',
+    ),
 
     # Super admin — platform admin management
     path('admins/', admin_list_view, name='panel-admin-list'),

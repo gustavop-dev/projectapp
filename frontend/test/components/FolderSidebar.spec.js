@@ -97,6 +97,55 @@ const hiddenProjectFolder = {
   document_count: 1,
   children_count: 0,
 };
+const navigationFacets = {
+  totals: {
+    active: { folders: 8, documents: 21 },
+    archived: { folders: 2, documents: 5 },
+  },
+  unassigned: {
+    project: {
+      active: { folders: 1, documents: 3 },
+      archived: { folders: 0, documents: 1 },
+    },
+    client: {
+      active: { folders: 2, documents: 4 },
+      archived: { folders: 1, documents: 0 },
+    },
+  },
+  projects: [
+    {
+      id: 91,
+      name: 'Kore Health',
+      is_visible: true,
+      state: { name: 'Activo' },
+      counts: {
+        active: { folders: 3, documents: 9 },
+        archived: { folders: 1, documents: 2 },
+      },
+    },
+    {
+      id: 92,
+      name: 'Candle',
+      is_visible: false,
+      state: { name: 'Pausado' },
+      counts: {
+        active: { folders: 1, documents: 2 },
+        archived: { folders: 0, documents: 0 },
+      },
+    },
+  ],
+  clients: [
+    {
+      id: 71,
+      name: 'Kore SAS',
+      is_inactive: false,
+      counts: {
+        active: { folders: 4, documents: 10 },
+        archived: { folders: 2, documents: 5 },
+      },
+    },
+  ],
+};
 
 // Stub that renders all items from v-model and can emit @end
 const DraggableStub = {
@@ -129,6 +178,7 @@ function mountSidebar(props = {}) {
       folders: [],
       activeId: 'all',
       totalCount: 0,
+      navigationFacets,
       isDragging: false,
       ...props,
     },
@@ -143,7 +193,9 @@ function mountSidebar(props = {}) {
 }
 
 function folderNameButton(wrapper, name) {
-  return wrapper.findAll('button').find((b) => b.text().includes(name));
+  return wrapper.get('[data-testid="manual-folder-section"]')
+    .findAll('button')
+    .find((button) => button.text().includes(name));
 }
 
 describe('FolderSidebar', () => {
@@ -172,6 +224,70 @@ describe('FolderSidebar', () => {
 
       expect(wrapper.text()).toContain('Sin carpeta');
     });
+
+    it('always renders the active unassigned entity, including at zero', () => {
+      const wrapper = mountSidebar({
+        navigationFacets: {
+          totals: {},
+          unassigned: { project: {}, client: {} },
+          projects: [],
+          clients: [],
+        },
+      });
+
+      expect(wrapper.get('[data-testid="documents-navigation-unassigned"]').text())
+        .toContain('Sin proyecto');
+    });
+  });
+
+  describe('project/client navigation', () => {
+    it('uses the shared project/client switch', async () => {
+      const wrapper = mountSidebar();
+
+      await wrapper.get('[data-testid="documents-mode-client"]').trigger('click');
+
+      expect(wrapper.emitted('update:navigation-mode')).toEqual([['client']]);
+    });
+
+    it('labels each entity inventory count', () => {
+      const wrapper = mountSidebar();
+      const row = wrapper.get('[data-testid="documents-navigation-project-91"]');
+
+      expect(row.attributes('aria-label')).toBe('Kore Health, 3 carpetas, 9 documentos');
+      expect(row.text()).toContain('3');
+      expect(row.text()).toContain('9');
+    });
+
+    it('switches counts with the archive scope', () => {
+      const wrapper = mountSidebar({ archiveScope: 'archived' });
+
+      expect(wrapper.get('[data-testid="documents-navigation-project-91"]')
+        .attributes('aria-label')).toBe('Kore Health, 1 carpetas, 2 documentos');
+    });
+
+    it('renders the client navigation inventory', () => {
+      const wrapper = mountSidebar({ navigationMode: 'client' });
+
+      expect(wrapper.text()).toContain('Kore SAS');
+      expect(wrapper.get('[data-testid="documents-navigation-unassigned"]').text())
+        .toContain('Sin cliente');
+    });
+
+    it('emits the selected entity independently from folder selection', async () => {
+      const wrapper = mountSidebar();
+
+      await wrapper.get('[data-testid="documents-navigation-project-91"]').trigger('click');
+
+      expect(wrapper.emitted('select-entity')).toEqual([[91]]);
+      expect(wrapper.emitted('select')).toBeUndefined();
+    });
+
+    it('keeps a stale selected id reachable as an unavailable row', () => {
+      const wrapper = mountSidebar({ navigationSelection: 999 });
+
+      expect(wrapper.get('[data-testid="documents-navigation-project-999"]').text())
+        .toContain('No disponible');
+    });
   });
 
   // ── Folder list ───────────────────────────────────────────────────────────
@@ -184,45 +300,30 @@ describe('FolderSidebar', () => {
       expect(wrapper.text()).toContain('Contratos');
     });
 
-    it('separates project roots from manual roots', () => {
+    it('keeps project roots out of the independent manual-folder section', () => {
       const wrapper = mountSidebar({ folders: [projectFolder, folderA] });
 
-      expect(wrapper.get('[data-testid="project-folder-section"]').text())
-        .toContain('Kore Health');
       expect(wrapper.get('[data-testid="manual-folder-section"]').text())
         .toContain('Propuestas');
+      expect(wrapper.get('[data-testid="manual-folder-section"]').text())
+        .not.toContain('Kore Health');
     });
 
-    it('hides project states outside the configured filter', () => {
-      const wrapper = mountSidebar({ folders: [projectFolder, hiddenProjectFolder] });
-      const projectSection = wrapper.get('[data-testid="project-folder-section"]').text();
+    it('hides projects outside the configured state filter', () => {
+      const wrapper = mountSidebar();
 
-      expect(projectSection).toContain('Kore Health');
-      expect(projectSection).not.toContain('Candle');
+      expect(wrapper.text()).toContain('Kore Health');
+      expect(wrapper.text()).not.toContain('Candle');
     });
 
     it('reveals filtered projects with the explicit control', async () => {
-      const wrapper = mountSidebar({ folders: [projectFolder, hiddenProjectFolder] });
+      const wrapper = mountSidebar();
 
       await wrapper.get('[data-testid="project-folders-toggle"]').trigger('click');
 
-      expect(wrapper.get('[data-testid="project-folder-section"]').text())
-        .toContain('Candle');
+      expect(wrapper.text()).toContain('Candle');
       expect(wrapper.get('[data-testid="project-folders-toggle"]').text())
         .toBe('Ver vigentes');
-    });
-
-    it('renders the recursive project section inventory', () => {
-      mockFolderStore.rollupOf.mockImplementation((folder) => (
-        folder.id === projectFolder.id
-          ? { docs: 9, subs: 3 }
-          : { docs: 4, subs: 2 }
-      ));
-
-      const wrapper = mountSidebar({ folders: [projectFolder, folderA] });
-
-      expect(wrapper.get('[data-testid="project-folder-section-count"]').text())
-        .toBe('4 carp. · 9 docs');
     });
 
     it('renders the recursive manual section inventory', () => {
@@ -240,11 +341,12 @@ describe('FolderSidebar', () => {
 
     it('does not expose manual actions for project roots', () => {
       const wrapper = mountSidebar({ folders: [projectFolder] });
-      const projectSection = wrapper.get('[data-testid="project-folder-section"]');
+      const projectRow = wrapper.get('[data-testid="documents-navigation-project-91"]');
 
-      expect(projectSection.find('[data-testid="folder-edit"]').exists()).toBe(false);
-      expect(projectSection.find('[data-testid="folder-archive"]').exists()).toBe(false);
-      expect(projectSection.find('[data-testid="folder-delete"]').exists()).toBe(false);
+      expect(projectRow.text()).toContain('Kore Health');
+      expect(projectRow.find('[data-testid="folder-edit"]').exists()).toBe(false);
+      expect(projectRow.find('[data-testid="folder-archive"]').exists()).toBe(false);
+      expect(projectRow.find('[data-testid="folder-delete"]').exists()).toBe(false);
     });
 
     it('hides structural actions for a system-managed folder', () => {
@@ -318,7 +420,7 @@ describe('FolderSidebar', () => {
   describe('select emits', () => {
     it('emits select with all when the Todos button is clicked', async () => {
       const wrapper = mountSidebar();
-      const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos'));
+      const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos los documentos'));
       await todosBtn.trigger('click');
 
       expect(wrapper.emitted('select')).toEqual([['all']]);
@@ -366,7 +468,7 @@ describe('FolderSidebar', () => {
   describe('active styling', () => {
     it('applies active class to the Todos entry when activeId is all', () => {
       const wrapper = mountSidebar({ activeId: 'all' });
-      const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos'));
+      const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos los documentos'));
 
       expect(todosBtn.classes()).toContain('bg-primary-soft');
     });
@@ -387,7 +489,7 @@ describe('FolderSidebar', () => {
   describe('row alignment', () => {
     it('starts folder names on the same horizontal axis as the Todos entry', () => {
       const wrapper = mountSidebar({ folders: [folderA] });
-      const todosBtn = folderNameButton(wrapper, 'Todos');
+      const todosBtn = folderNameButton(wrapper, 'Todos los documentos');
       const folderBtn = folderNameButton(wrapper, 'Propuestas');
 
       expect(todosBtn.classes()).toContain('px-3');

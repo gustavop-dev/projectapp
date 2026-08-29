@@ -38,6 +38,7 @@ from content.services.collection_account_service import (
     is_collection_account,
 )
 from content.services.document_content import build_content_json, resolve_blocks
+from content.services.document_navigation_service import build_document_navigation
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_markdown_document_type
 from content.utils import safe_slug
@@ -737,6 +738,13 @@ def unarchive_document(request, document_id):
 def document_counts(request):
     """Contadores autoritativos del panel lateral. No acepta filtros a propósito."""
     return Response(document_archive_service.panel_counts())
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def document_navigation(request):
+    """Project/client sidebar facets, independent from transient list filters."""
+    return Response(build_document_navigation())
 
 
 @api_view(['POST'])

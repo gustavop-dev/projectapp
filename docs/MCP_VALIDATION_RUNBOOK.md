@@ -5,7 +5,7 @@ estado. `create_folder` hereda la asociación de su padre y `rename_folder`
 rechaza raíces automáticas de proyecto; estas protecciones se validan junto
 con los contratos de modelo antes de publicar cambios del gestor.
 
-Última revisión integral: 2026-08-27.
+Última revisión integral: 2026-08-29.
 
 Este documento es el procedimiento repetible para validar los conectores MCP de
 ProjectApp. Cubre el transporte compartido, las cinco herramientas de
@@ -30,6 +30,9 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 - `DocumentState.description` es una lectura clasificada del contrato MCP. Para
   estados de proyecto, la descripción administrable no sustituye el
   `operational_effect` ni la ayuda de consecuencias derivada por el sistema.
+- `UserProfile.document_navigation_mode` es una preferencia de presentación del
+  panel y permanece clasificada como perfil/plataforma: no altera ni se expone
+  en las herramientas MCP de clientes o Documentos.
 - `mark_message_sent` registra un hecho externo. No envía correo ni WhatsApp.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 
