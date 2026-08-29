@@ -2,7 +2,7 @@ from copy import deepcopy
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Max, Q
 from rest_framework import serializers
 
 from accounts.models import SavedFilterTab, UserProfile
@@ -1612,6 +1612,14 @@ class SavedFilterTabSerializer(serializers.ModelSerializer):
             validated_data['base_filters'] = deepcopy(
                 validated_data.get('filters') or {},
             )
+        # New user views belong after the existing strip, including builtin
+        # placeholders. Leaving the model default (0) would insert every new
+        # Communications view between the first factory chips until reload.
+        if 'order' not in validated_data:
+            current_max = SavedFilterTab.objects.filter(
+                user=validated_data['user'], view=validated_data['view'],
+            ).aggregate(value=Max('order'))['value']
+            validated_data['order'] = 0 if current_max is None else current_max + 1
         return super().create(validated_data)
 
     def validate(self, attrs):

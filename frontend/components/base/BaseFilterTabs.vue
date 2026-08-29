@@ -13,7 +13,7 @@
       class="mb-4"
       test-id="filter-tabs-select"
       aria-label="Filtro guardado"
-      :model-value="activeTabId"
+      :model-value="configActive ? '__config__' : activeTabId"
       :options="mobileOptions"
       @update:model-value="handleMobileSelect"
     />
@@ -38,6 +38,7 @@
       <!-- "Todas" tab -->
       <button
         type="button"
+        data-testid="filter-tabs-tab-all"
         class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
         :class="String(activeTabId) === 'all'
           ? 'border-emerald-600 text-text-brand'
@@ -88,6 +89,11 @@
               @keydown="onTabKeydown($event, tab)"
             >
               {{ tab.name }}<span
+                v-if="isOwnTab(tab)"
+                :data-testid="`filter-tabs-origin-${tab.id}`"
+                class="ml-1 rounded-full bg-info-soft px-1.5 py-0.5 text-[10px] font-medium text-info-strong"
+                title="Vista guardada por ti"
+              >Propia</span><span
                 v-if="countFor(tab) != null"
                 :data-testid="`filter-tabs-count-${tab.id}`"
                 class="ml-1 text-xs tabular-nums text-text-subtle"
@@ -311,7 +317,7 @@ const props = defineProps({
   counts: { type: Object, default: () => ({}) },
   // What the count badge means, which is not the same sentence in every view.
   countTitle: { type: String, default: 'Registros que cumplen este filtro' },
-  // Opt-in fixed trailing "Configuraciones" tab (clients/proposals views).
+  // Opt-in fixed trailing "Configuraciones" tab for module-owned settings.
   showConfigTab: { type: Boolean, default: false },
   configActive: { type: Boolean, default: false },
 });
@@ -366,7 +372,15 @@ const allCount = computed(() => {
  * Una pestaña oculta desde Configuración sigue existiendo; sólo deja de ocupar
  * lugar.
  */
-const visibleTabs = computed(() => props.tabs.filter((tab) => !tab.is_hidden));
+const hasFactoryTabs = computed(() => props.tabs.some((tab) => tab.builtin || tab.is_seeded));
+
+function isOwnTab(tab) {
+  return hasFactoryTabs.value && !tab.builtin && !tab.is_seeded;
+}
+
+const visibleTabs = computed(() => props.tabs.filter((tab) => (
+  !tab.is_hidden || String(tab.id) === String(props.activeTabId)
+)));
 
 /**
  * Mutable mirror of `visibleTabs`: vuedraggable writes the new order straight
@@ -481,7 +495,7 @@ const mobileOptions = computed(() => {
     const count = countFor(tab);
     options.push({
       value: String(tab.id),
-      label: `${tab.name}${count != null ? ` (${count})` : ''}${isModified(tab) ? ' •' : ''}`,
+      label: `${tab.name}${isOwnTab(tab) ? ' · Propia' : ''}${count != null ? ` (${count})` : ''}${isModified(tab) ? ' •' : ''}`,
     });
   }
   if (props.showConfigTab) options.push({ value: '__config__', label: '⚙ Configuraciones' });

@@ -1134,6 +1134,15 @@ The list URL owns that state and `thread=<id>` opens the selected conversation i
 a workspace modal, preserving the list when the modal closes or browser Back is
 used.
 
+The same boundary drives the quick-filter strip. Factory filter definitions are
+immutable application configuration; each user's `SavedFilterTab` builtin rows
+persist only order and visibility, while custom rows persist the user's own
+criteria. The panel sends all visible tab specifications to one bounded
+full-dataset count endpoint, so selecting one cut never corrupts the counts of
+the others. Reset deletes and reseeds only factory placeholders, preserving and
+renumbering custom views. This separation lets factory and user tabs share
+`BaseFilterTabs` overflow/reorder behavior without confusing ownership.
+
 ### Modal-Owned Selector Surfaces
 
 `BaseFloatingListbox` is the shared rendering boundary for searchable selectors

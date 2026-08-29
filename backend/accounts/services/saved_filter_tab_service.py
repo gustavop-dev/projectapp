@@ -5,7 +5,7 @@ The registry lives in ``accounts.default_filter_tabs``; this module turns it
 into per-user rows without ever clobbering tabs the user created or renamed.
 """
 
-from django.db import models
+from django.db import models, transaction
 
 from accounts.default_filter_tabs import BUILTIN_FILTER_TABS, DEFAULT_FILTER_TABS
 from accounts.models import SavedFilterTab
@@ -16,6 +16,7 @@ def builtin_order_offset(view):
     return len(BUILTIN_FILTER_TABS.get(view) or [])
 
 
+@transaction.atomic
 def seed_builtin_tabs(user, view):
     """
     Idempotently create the placeholder rows for ``view``'s builtin filters.
@@ -36,12 +37,12 @@ def seed_builtin_tabs(user, view):
     if not specs:
         return 0
 
-    existing = set(
-        SavedFilterTab.objects
+    rows = list(
+        SavedFilterTab.objects.select_for_update()
         .filter(user=user, view=view)
-        .exclude(builtin_key='')
-        .values_list('builtin_key', flat=True)
+        .order_by('order', 'created_at')
     )
+    existing = {row.builtin_key for row in rows if row.builtin_key}
     missing = [
         (idx, spec) for idx, spec in enumerate(specs)
         if spec['key'] not in existing
@@ -61,6 +62,19 @@ def seed_builtin_tabs(user, view):
         # the unique constraint turns the loser into a no-op instead of a 500.
         ignore_conflicts=True,
     )
+    # This is the upgrade path for a view that already had user-created tabs
+    # before it gained builtins (Communications is the first such view). The
+    # factory strip gets its canonical leading slots once; the user's existing
+    # relative order is preserved after it.
+    if not existing:
+        own_rows = [row for row in rows if not row.builtin_key]
+        changed = []
+        for index, tab in enumerate(own_rows, start=len(specs)):
+            if tab.order != index:
+                tab.order = index
+                changed.append(tab)
+        if changed:
+            SavedFilterTab.objects.bulk_update(changed, ['order'])
     return len(missing)
 
 
@@ -122,6 +136,7 @@ def seed_default_tabs(user, view, *, force=False):
     return (created, updated)
 
 
+@transaction.atomic
 def reset_default_tabs(user, view):
     """Put a view's factory tabs back, leaving the user's own alone.
 
@@ -138,7 +153,26 @@ def reset_default_tabs(user, view):
         models.Q(is_seeded=True) | ~models.Q(builtin_key=''),
     ).delete()
     seed_builtin_tabs(user, view)
-    return seed_default_tabs(user, view, force=True)
+    result = seed_default_tabs(user, view, force=True)
+
+    factory_count = SavedFilterTab.objects.filter(
+        user=user, view=view,
+    ).filter(
+        models.Q(is_seeded=True) | ~models.Q(builtin_key=''),
+    ).count()
+    own_tabs = list(
+        SavedFilterTab.objects.filter(
+            user=user, view=view, is_seeded=False, builtin_key='',
+        ).order_by('order', 'created_at')
+    )
+    changed = []
+    for index, tab in enumerate(own_tabs, start=factory_count):
+        if tab.order != index:
+            tab.order = index
+            changed.append(tab)
+    if changed:
+        SavedFilterTab.objects.bulk_update(changed, ['order'])
+    return result
 
 
 def reorder_tabs(user, view, ids):

@@ -33,6 +33,7 @@ def make_message(thread, actor, **overrides):
         subject=overrides.get('subject', ''),
         content=overrides.get('content', 'Seguimiento'),
         occurred_at=overrides.get('occurred_at', OCCURRED_AT),
+        reply_to=overrides.get('reply_to'),
     )
 
 
@@ -125,6 +126,122 @@ def test_facets_exclude_their_own_dimension(admin_client, admin_user):
     assert response.data['facets']['filters']['channel'] == {
         'email': 1, 'whatsapp': 1,
     }
+
+
+def test_unanswered_reply_status_excludes_threads_with_active_reply(
+    admin_client, admin_user,
+):
+    client = make_client('reply-filter@example.com', 'Fabiola')
+    pending = communication_service.create_thread(
+        actor=admin_user, client=client, title='Pendiente',
+    )
+    answered = communication_service.create_thread(
+        actor=admin_user, client=client, title='Respondido',
+    )
+    make_message(pending, admin_user)
+    sent = make_message(answered, admin_user)
+    make_message(
+        answered,
+        admin_user,
+        direction='incoming',
+        status='received',
+        reply_to=sent,
+    )
+
+    response = admin_client.get(
+        reverse('communication-threads'), {'reply_status': 'unanswered'},
+    )
+
+    assert response.status_code == 200
+    assert [row['title'] for row in response.data['results']] == ['Pendiente']
+
+
+def test_answered_reply_status_ignores_voided_replies(admin_client, admin_user):
+    client = make_client('voided-reply@example.com', 'Gabriela')
+    thread = communication_service.create_thread(
+        actor=admin_user, client=client, title='Respuesta anulada',
+    )
+    sent = make_message(thread, admin_user)
+    reply = make_message(
+        thread,
+        admin_user,
+        direction='incoming',
+        status='received',
+        reply_to=sent,
+    )
+    communication_service.void_message(reply, actor=admin_user, reason='Duplicada')
+
+    response = admin_client.get(
+        reverse('communication-threads'), {'reply_status': 'answered'},
+    )
+
+    assert response.status_code == 200
+    assert response.data['results'] == []
+
+
+def test_reply_status_facet_includes_honest_zero(admin_client, admin_user):
+    client = make_client('reply-facet@example.com', 'Helena')
+    thread = communication_service.create_thread(
+        actor=admin_user, client=client, title='Sin respuesta',
+    )
+    make_message(thread, admin_user)
+
+    response = admin_client.get(reverse('communication-threads'))
+
+    assert response.status_code == 200
+    assert response.data['facets']['filters']['reply_status'] == {
+        'answered': 0,
+        'unanswered': 1,
+    }
+
+
+def test_tab_counts_include_zero_for_the_full_dataset(admin_client, admin_user):
+    client = make_client('tab-counts@example.com', 'Isabel')
+    thread = communication_service.create_thread(
+        actor=admin_user, client=client, title='Borrador',
+    )
+    make_message(thread, admin_user, status='draft')
+
+    response = admin_client.post(
+        reverse('communication-thread-tab-counts'),
+        {
+            'tabs': [
+                {'id': 'all', 'filters': {}},
+                {'id': 'draft-pending', 'filters': {'message_status': ['draft']}},
+                {'id': 'channel-email', 'filters': {'channel': ['email']}},
+            ],
+        },
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert response.data['counts'] == {
+        'all': 1,
+        'draft-pending': 1,
+        'channel-email': 0,
+    }
+
+
+def test_tab_counts_reject_invalid_filter_values(admin_client):
+    response = admin_client.post(
+        reverse('communication-thread-tab-counts'),
+        {'tabs': [{'id': 'bad', 'filters': {'reply_status': ['waiting']}}]},
+        format='json',
+    )
+
+    assert response.status_code == 400
+    assert 'waiting' in response.data['reply_status']
+
+
+def test_tab_counts_reject_non_object_filters(admin_client):
+    response = admin_client.post(
+        reverse('communication-thread-tab-counts'),
+        {'tabs': [{'id': 'bad', 'filters': []}]},
+        format='json',
+    )
+
+    assert response.status_code == 400
+    assert response.data['tabs'] == 'Los filtros de cada pestaña deben ser un objeto.'
 
 
 def test_invalid_multi_value_token_returns_field_error(admin_client):

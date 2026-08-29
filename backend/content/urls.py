@@ -233,6 +233,7 @@ from content.views.communication import (
     communication_message_detail,
     communication_thread_detail,
     communication_thread_messages,
+    communication_thread_tab_counts,
     communication_threads,
     correct_communication_message_date,
     document_communication_usage,
@@ -622,6 +623,11 @@ urlpatterns = [
 
     # ── Client communications registry ────────────────────────────
     path('communications/threads/', communication_threads, name='communication-threads'),
+    path(
+        'communications/threads/tab-counts/',
+        communication_thread_tab_counts,
+        name='communication-thread-tab-counts',
+    ),
     path(
         'communications/threads/<int:thread_id>/',
         communication_thread_detail,

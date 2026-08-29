@@ -467,12 +467,15 @@ by ID and expose reverse usage through
 
 `communication_query_service.py` is the single read contract for REST and MCP.
 It parses scalar legacy parameters plus comma-separated/repeated values, applies
-OR inside `status`, `channel`, `direction` and `message_status`, and AND across
-dimensions. Message dimensions share one correlated `Exists`, so their values
-must match the same message. `project=none` addresses unscoped threads; `order`
-accepts `recent`, `oldest` or `title`. The REST response also includes
-self-excluding option counts plus project/client navigation counts, including
-nested thread totals.
+OR inside `status`, `channel`, `direction`, `message_status` and `reply_status`,
+and AND across dimensions. Message dimensions share one correlated `Exists`, so
+their values must match the same message. `reply_status=unanswered` means a
+non-void outgoing sent message has no non-void reply; the factory cut also pins
+the thread to `status=open`. `project=none` addresses unscoped threads; `order`
+accepts `recent`, `oldest` or `title`. The REST response includes self-excluding
+option counts plus project/client navigation counts. The staff-only
+`POST /api/communications/threads/tab-counts/` evaluates bounded tab specs
+against the full dataset so every strip count remains honest under an active cut.
 
 The panel URL is canonical for selection, filters, order and the `thread` detail
 modal. `CommunicationNavigation` is resizable on landscape widths and moves to
@@ -480,6 +483,12 @@ the shared drawer below that breakpoint. `CommunicationFilterPanel` consumes
 searchable `BaseFilterDropdown` instances with multi-selection and counts.
 Named cuts reuse `SavedFilterTab` with the `communication` view choice; migration
 `accounts.0056_add_communication_saved_filter_view` adds only that catalog value.
+The six factory definitions live in `communicationFilters.js`; persisted builtin
+placeholder rows own only order/visibility, while custom rows own user filters.
+Initial seeding moves existing custom rows after the factory positions without
+changing their relative order. Reset rebuilds only builtin rows, then renumbers
+the preserved custom rows. `BaseFilterTabs` supplies the shared wrapping/compact
+selector behavior and always renders a hidden active tab.
 
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 

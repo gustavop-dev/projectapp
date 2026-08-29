@@ -2,7 +2,8 @@
 
 REST and MCP both consume this module so a filter has one meaning everywhere.
 In particular, message dimensions are correlated through one ``Exists``
-predicate: channel, direction, status and date must belong to the same message.
+queryset: channel, direction, status, reply state and date must belong to the
+same outgoing message when the derived reply filter is active.
 """
 
 from dataclasses import dataclass
@@ -16,8 +17,13 @@ from accounts.services.proposal_client_service import build_client_display_name
 from content.models import CommunicationMessage, CommunicationThread
 
 
+REPLY_STATUS_CHOICES = (
+    ('answered', 'Respondido'),
+    ('unanswered', 'Sin respuesta'),
+)
+
 MESSAGE_FILTER_FIELDS = frozenset({
-    'channel', 'direction', 'message_status', 'date_from', 'date_to',
+    'channel', 'direction', 'message_status', 'reply_status', 'date_from', 'date_to',
 })
 
 
@@ -38,6 +44,7 @@ class CommunicationFilters:
     channels: tuple[str, ...] = ()
     directions: tuple[str, ...] = ()
     message_statuses: tuple[str, ...] = ()
+    reply_statuses: tuple[str, ...] = ()
     date_from: tuple[str, object] | None = None
     date_to: tuple[str, object] | None = None
     query: str = ''
@@ -164,6 +171,9 @@ def parse_filters(params):
         message_statuses=_choice_values(
             params, 'message_status', CommunicationMessage.Status.choices,
         ),
+        reply_statuses=_choice_values(
+            params, 'reply_status', REPLY_STATUS_CHOICES,
+        ),
         date_from=_date_lookup(params, 'date_from'),
         date_to=_date_lookup(params, 'date_to', end=True),
         query=str(params.get('q') or '').strip(),
@@ -193,6 +203,39 @@ def _message_predicate(filters, exclude=frozenset()):
     return predicate, active
 
 
+def _apply_reply_status(messages, reply_statuses):
+    """Narrow sent outgoing messages by their explicit active reply relation."""
+    active_replies = CommunicationMessage.objects.filter(
+        reply_to_id=OuterRef('pk'),
+        voided_at__isnull=True,
+    )
+    messages = messages.filter(
+        direction=CommunicationMessage.Direction.OUTGOING,
+        status=CommunicationMessage.Status.SENT,
+        voided_at__isnull=True,
+    ).annotate(_communication_has_reply=Exists(active_replies))
+
+    predicate = Q()
+    if 'answered' in reply_statuses:
+        predicate |= Q(_communication_has_reply=True)
+    if 'unanswered' in reply_statuses:
+        predicate |= Q(_communication_has_reply=False)
+    return messages.filter(predicate)
+
+
+def _filtered_messages(filters, exclude=frozenset()):
+    """Build the one message queryset shared by every message dimension."""
+    exclude = frozenset(exclude)
+    predicate, active = _message_predicate(filters, exclude)
+    messages = CommunicationMessage.objects.all()
+    if active:
+        messages = messages.filter(predicate)
+    if 'reply_status' not in exclude and filters.reply_statuses:
+        messages = _apply_reply_status(messages, filters.reply_statuses)
+        active = True
+    return messages, active
+
+
 def apply_filters(queryset, filters, *, exclude=frozenset()):
     """Apply navigation, thread, correlated-message and text filters."""
     exclude = frozenset(exclude)
@@ -206,11 +249,9 @@ def apply_filters(queryset, filters, *, exclude=frozenset()):
     if 'status' not in exclude and filters.statuses:
         queryset = queryset.filter(status__in=filters.statuses)
 
-    message_predicate, has_message_filter = _message_predicate(filters, exclude)
+    matching_messages, has_message_filter = _filtered_messages(filters, exclude)
     if has_message_filter:
-        matching_messages = CommunicationMessage.objects.filter(
-            thread_id=OuterRef('pk'),
-        ).filter(message_predicate)
+        matching_messages = matching_messages.filter(thread_id=OuterRef('pk'))
         queryset = queryset.annotate(
             _communication_message_match=Exists(matching_messages),
         ).filter(_communication_message_match=True)
@@ -256,18 +297,36 @@ def _message_dimension_counts(filters, dimension, choices):
         filters,
         exclude=MESSAGE_FILTER_FIELDS,
     )
-    other_message_filters, active = _message_predicate(filters, {dimension})
     model_field = 'status' if dimension == 'message_status' else dimension
-    messages = CommunicationMessage.objects.filter(
+    messages, _active = _filtered_messages(filters, {dimension})
+    messages = messages.filter(
         thread_id__in=Subquery(thread_candidates.values('pk')),
     )
-    if active:
-        messages = messages.filter(other_message_filters)
     rows = (
         messages.values(value=Lower(model_field))
         .annotate(count=Count('thread_id', distinct=True))
     )
     return _choice_count_dict(rows, choices)
+
+
+def _reply_status_counts(filters):
+    """Count the two derived reply states over the same candidate messages."""
+    thread_candidates = apply_filters(
+        CommunicationThread.objects.all(),
+        filters,
+        exclude=MESSAGE_FILTER_FIELDS,
+    )
+    messages, _active = _filtered_messages(filters, {'reply_status'})
+    messages = messages.filter(
+        thread_id__in=Subquery(thread_candidates.values('pk')),
+    )
+    return {
+        value: _apply_reply_status(messages, (value,))
+        .values('thread_id')
+        .distinct()
+        .count()
+        for value, _label in REPLY_STATUS_CHOICES
+    }
 
 
 def build_facets(filters):
@@ -355,5 +414,6 @@ def build_facets(filters):
             'message_status': _message_dimension_counts(
                 filters, 'message_status', CommunicationMessage.Status.choices,
             ),
+            'reply_status': _reply_status_counts(filters),
         },
     }

@@ -192,7 +192,7 @@ COMMUNICATION_TOOLS = [
         'description': (
             'Lista hilos de comunicaciones, ordenados por actividad reciente. '
             'Úsala para localizar conversaciones por cliente, proyecto, texto, '
-            'canal, dirección, estado del hilo o estado/fecha de sus mensajes.'
+            'canal, dirección, estado del hilo, respuesta o estado/fecha de sus mensajes.'
         ),
         'input_schema': {
             'type': 'object',
@@ -203,6 +203,7 @@ COMMUNICATION_TOOLS = [
                 'channel': {'type': 'string', 'enum': ['email', 'whatsapp'], 'description': 'Canal de al menos un mensaje.'},
                 'direction': {'type': 'string', 'enum': ['outgoing', 'incoming'], 'description': 'Dirección de al menos un mensaje.'},
                 'message_status': {'type': 'string', 'enum': ['draft', 'sent', 'received', 'failed'], 'description': 'Estado de al menos un mensaje.'},
+                'reply_status': {'type': 'string', 'enum': ['answered', 'unanswered'], 'description': 'Respondido o sin respuesta; aplica a mensajes salientes enviados y no anulados.'},
                 'date_from': {'type': 'string', 'description': 'Fecha o fecha-hora ISO mínima de los mensajes.'},
                 'date_to': {'type': 'string', 'description': 'Fecha o fecha-hora ISO máxima de los mensajes.'},
                 'q': {'type': 'string', 'description': 'Texto en título, cliente, asunto o contenido.'},

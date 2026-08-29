@@ -138,6 +138,7 @@ DEFAULT_FILTER_TABS = {
 #   accounting_collections     frontend/pages/panel/accounting/collections.vue
 #   accounting_history_*       frontend/constants/historyFilters.js
 #   client                     frontend/constants/clientFilters.js (CLIENT_SUBFILTERS)
+#   communication              frontend/constants/communicationFilters.js
 #
 # Drift degrades gracefully in both directions: a placeholder with no matching
 # constant is dropped from the strip, and a constant with no placeholder keeps
@@ -198,5 +199,13 @@ BUILTIN_FILTER_TABS = {
         {'key': 'no-emails', 'name': 'Sin ningún correo'},
         {'key': 'emails-failed', 'name': 'Con envíos fallidos'},
         {'key': 'emails-cold', 'name': 'Sin contacto en los últimos 30 días'},
+    ],
+    'communication': [
+        {'key': 'draft-pending', 'name': 'Borradores pendientes'},
+        {'key': 'sent-unanswered', 'name': 'Enviados sin respuesta'},
+        {'key': 'open', 'name': 'Abiertos'},
+        {'key': 'closed', 'name': 'Cerrados'},
+        {'key': 'channel-email', 'name': 'Correo'},
+        {'key': 'channel-whatsapp', 'name': 'WhatsApp'},
     ],
 }
