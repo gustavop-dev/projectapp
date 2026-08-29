@@ -6044,6 +6044,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-drag-organize` | admin | P3 | success | 0 |
 | `admin-document-duplicate` | admin | P3 | success,failure | 1 |
 | `admin-document-edit` | admin | P2 | display,success,error,failure | 2 |
+| `admin-document-email-history` | admin | P1 | display | — |
 | `admin-document-folder-change-client` | admin | P2 | success,error | 1 |
 | `admin-document-folder-hierarchy` | admin | P2 | display | 1 |
 | `admin-document-folder-manage` | admin | P2 | success,error,failure | 1 |
@@ -6079,8 +6080,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success | 4 |
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
+| `admin-outbound-email-history-attachments` | admin | P1 | display | — |
 | `admin-outbound-email-history-body` | admin | P1 | display | 1 |
 | `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
+| `admin-outbound-email-history-resend` | admin | P1 | success,failure | — |
 | `admin-panel-projects` | admin | P1 | display,success,error | 13 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
@@ -7087,6 +7090,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
+### FLOW: `admin-document-email-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents/:id/edit` → `/panel/emails?tab=history&email=:id`
+- **Description:** El administrador ve los correos donde salió un documento y navega a la fila exacta del historial universal.
+- **Interacciones y outcomes:**
+  1. **display:** entrar al gestor, abrir un documento, leer **Este documento se envió en N correos** y comprobar asunto, destinatario, fecha y nombre archivado.
+  2. **display:** pulsar una referencia y llegar al Historial con esa fila cargada y expandida.
+  3. **success/error/failure:** n/a; es navegación de evidencia. La protección 409 al eliminar se cubre en integración backend.
+- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
+
 ### FLOW: `admin-additional-modules-catalog`
 
 - **Module:** admin / commercial
@@ -7187,6 +7203,20 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
 
+### FLOW: `admin-outbound-email-history-attachments`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador reconoce y abre la evidencia exacta que acompañó cada correo, sin regenerarla desde el documento actual.
+- **Interacciones y outcomes:**
+  1. **display:** navegar a Emails, abrir Historial, expandir un envío y comprobar nombre, tipo documental, formato, tamaño individual, peso total, vínculo al documento y enlaces del contenido/plantilla.
+  2. **display:** abrir **Previsualizar** y ver el PDF retenido en el visor compartido.
+  3. **display:** un snapshot sin archivos afirma “Este correo no llevaba adjuntos”; un registro legado revela la brecha y no ofrece descarga.
+  4. **success/error/failure:** n/a; esta interacción sólo consulta evidencia. Descarga/autorización y bytes exactos se verifican en integración backend.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
 ### FLOW: `admin-outbound-email-history-body`
 
 - **Module:** admin
@@ -7207,12 +7237,26 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/emails?tab=history`
-- **Description:** El administrador llega desde la navegación del panel al Historial universal y acota las salidas por destinatario, familia, estado y rango de fechas; el servidor devuelve la fila principal coincidente sin limitar el resultado al compositor manual.
+- **Description:** El administrador llega desde la navegación del panel al Historial universal y acota las salidas por destinatario, familia, estado, rango de fechas, presencia de adjuntos y tipo documental/formato; el servidor devuelve la fila principal coincidente sin limitar el resultado al compositor manual.
 - **Interacciones y outcomes:**
-  1. **display:** navegar a Emails, abrir Historial, completar los cuatro tipos de filtro y comprobar tanto los parámetros enviados como los datos reales de la fila resultante.
+  1. **display:** navegar a Emails, abrir Historial, completar los filtros —incluidos **Con adjuntos** y **Cuenta de cobro/PDF**— y comprobar tanto los parámetros enviados como los datos reales de la fila resultante.
   2. **success:** n/a; filtrar no muta datos.
   3. **error:** n/a; los valores pertenecen a catálogos o controles de fecha y no existe una validación editable independiente.
   4. **failure:** la falla de carga se cubre en la frontera del store; esta interacción sólo registra la consulta exitosa con datos.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
+### FLOW: `admin-outbound-email-history-resend`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** Reenvía desde el snapshot inmutable y permite cambiar sólo el destinatario; asunto, cuerpo y archivos permanecen bloqueados.
+- **Interacciones y outcomes:**
+  1. **success:** expandir un correo capturado, abrir **Reenviar exacto**, editar el destinatario y confirmar; el modal cierra y el panel confirma la nueva entrega.
+  2. **failure:** si el SMTP rechaza el reenvío, el modal conserva el destinatario y muestra el error sin afirmar éxito.
+  3. **error:** la validación de dirección inválida pertenece al contrato backend/input email y no amplía el cuerpo editable.
+  4. **display:** el modal enumera el asunto y adjuntos bloqueados antes de confirmar.
 - **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
 
 ### FLOW: `admin-project-lifecycle-states`

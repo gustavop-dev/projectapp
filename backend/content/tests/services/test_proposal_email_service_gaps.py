@@ -7,7 +7,7 @@ send_documents_to_client (template disabled + fallback),
 send_standalone_branded_email.
 """
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
@@ -16,6 +16,7 @@ from freezegun import freeze_time
 
 from content.models import BusinessProposal
 from content.services.proposal_email_service import ProposalEmailService
+from content.tests.email_stubs import stub_email_message
 
 pytestmark = pytest.mark.django_db
 
@@ -151,7 +152,7 @@ class TestSendFinishedConfirmation:
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string', return_value='html')
     def test_sends_finished_email_successfully(self, mock_render, mock_email_cls, proposal):
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_finished_confirmation(proposal)
@@ -183,7 +184,7 @@ class TestSendMagicLinkEmail:
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     def test_sends_magic_link_with_one_proposal(self, mock_email_cls, proposal):
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_magic_link_email(
@@ -201,7 +202,7 @@ class TestSendMagicLinkEmail:
             client_email='gapclient@example.com',
             status='sent',
         )
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_magic_link_email(
@@ -244,7 +245,7 @@ class TestSendDocumentsToClient:
     def test_uses_fallback_content_when_fields_missing(
         self, mock_render, mock_email_cls, proposal,
     ):
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         # Call with no subject, greeting, body, or footer — triggers fallback
@@ -267,7 +268,7 @@ class TestSendDocumentsToClient:
     def test_uses_provided_content_when_all_fields_given(
         self, mock_render, mock_email_cls, proposal,
     ):
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_documents_to_client(
@@ -293,7 +294,7 @@ class TestSendStandaloneBrandedEmail:
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string', return_value='html')
     def test_sends_standalone_branded_email(self, mock_render, mock_email_cls):
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_standalone_branded_email(
@@ -369,7 +370,7 @@ class TestSendAcceptanceConfirmationPdfBranches:
         self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, proposal,
     ):
         """email.attach is called for tech PDF when generate_technical_document_pdf returns bytes (line 597)."""
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_acceptance_confirmation(proposal)
@@ -386,7 +387,7 @@ class TestSendAcceptanceConfirmationPdfBranches:
         self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, proposal,
     ):
         """Exception in tech PDF generation is silenced and email still sends (lines 602-603)."""
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_acceptance_confirmation(proposal)
@@ -403,7 +404,7 @@ class TestSendAcceptanceConfirmationPdfBranches:
         self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, proposal,
     ):
         """Exception in platform guide PDF generation is silenced and email still sends (lines 628-629)."""
-        mock_email = MagicMock()
+        mock_email = stub_email_message()
         mock_email_cls.return_value = mock_email
 
         result = ProposalEmailService.send_acceptance_confirmation(proposal)

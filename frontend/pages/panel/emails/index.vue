@@ -221,13 +221,15 @@
         <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
       </div>
 
-      <form class="mb-4 grid gap-3 rounded-lg border border-border-muted bg-surface-muted p-3 sm:grid-cols-2 lg:grid-cols-5" data-testid="email-history-filters" @submit.prevent="applyHistoryFilters">
+      <form class="mb-4 grid gap-3 rounded-lg border border-border-muted bg-surface-muted p-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" data-testid="email-history-filters" @submit.prevent="applyHistoryFilters">
         <BaseInput v-model="historyFilters.recipient" type="search" placeholder="Buscar destinatario" aria-label="Buscar destinatario" />
         <BaseSelect v-model="historyFilters.family" :options="familyFilterOptions" aria-label="Filtrar por familia" />
         <BaseSelect v-model="historyFilters.status" :options="statusFilterOptions" aria-label="Filtrar por estado" />
+        <BaseSelect v-model="historyFilters.has_attachments" :options="attachmentPresenceOptions" aria-label="Filtrar por presencia de adjuntos" />
+        <BaseSelect v-model="historyFilters.attachment_type" :options="attachmentTypeFilterOptions" aria-label="Filtrar por tipo de adjunto" />
         <BaseInput v-model="historyFilters.date_from" type="date" aria-label="Fecha inicial" />
         <BaseInput v-model="historyFilters.date_to" type="date" aria-label="Fecha final" />
-        <div class="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-5 lg:justify-end">
+        <div class="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4 xl:col-span-7 xl:justify-end">
           <BaseButton type="button" variant="ghost" size="sm" @click="clearHistoryFilters">Limpiar</BaseButton>
           <BaseButton type="submit" variant="secondary" size="sm">Aplicar filtros</BaseButton>
         </div>
@@ -269,9 +271,18 @@
 
           <!-- Expanded detail -->
           <div v-if="expandedIds[entry.id]" class="border-t border-border-muted  px-4 py-3 bg-surface-muted  space-y-3">
-            <div v-if="entry.has_body" class="flex justify-end">
-              <BaseButton variant="secondary" size="sm" :data-testid="`email-history-view-body-${entry.id}`" @click="openEmailBody(entry)">
+            <div class="flex flex-wrap justify-end gap-2">
+              <BaseButton v-if="entry.has_body" variant="secondary" size="sm" :data-testid="`email-history-view-body-${entry.id}`" @click="openEmailBody(entry)">
                 Ver contenido completo
+              </BaseButton>
+              <BaseButton
+                v-if="entry.can_resend"
+                variant="secondary"
+                size="sm"
+                :data-testid="`email-history-resend-${entry.id}`"
+                @click="openResend(entry)"
+              >
+                Reenviar exacto
               </BaseButton>
             </div>
             <div v-if="entry.metadata?.greeting">
@@ -291,13 +302,89 @@
               <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Pie de correo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.footer }}</p>
             </div>
-            <div v-if="entry.metadata?.attachment_names?.length">
-              <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Adjuntos</p>
-              <div class="flex flex-wrap gap-1">
-                <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
-                  class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded border border-border-default bg-surface px-2 py-0.5 text-[11px] text-text-muted [overflow-wrap:anywhere]">
-                  &#128206; {{ name }}
-                </span>
+            <div :data-testid="`email-history-attachments-${entry.id}`">
+              <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p class="text-[10px] uppercase tracking-wide text-text-subtle">Adjuntos</p>
+                <p v-if="entry.message_size_bytes !== null" class="text-[11px] text-text-subtle">
+                  Envío total: <strong class="text-text-default">{{ formatBytes(entry.message_size_bytes) }}</strong>
+                  <span v-if="entry.attachment_count"> · adjuntos {{ formatBytes(entry.attachment_size_bytes) }}</span>
+                </p>
+              </div>
+
+              <BaseAlert
+                v-if="entry.snapshot_state !== 'captured'"
+                variant="warning"
+                title="Información histórica incompleta"
+                class="mb-2"
+                :data-testid="`email-history-legacy-${entry.id}`"
+              >
+                {{ entry.snapshot_notice }}
+              </BaseAlert>
+              <p
+                v-else-if="entry.has_attachments === false"
+                class="rounded-lg border border-border-muted bg-surface px-3 py-2 text-xs text-text-muted"
+                :data-testid="`email-history-no-attachments-${entry.id}`"
+              >
+                Este correo no llevaba adjuntos.
+              </p>
+
+              <div v-if="entry.attachments?.length" class="grid gap-2 sm:grid-cols-2">
+                <article
+                  v-for="attachment in entry.attachments"
+                  :key="attachment.id || attachment.filename"
+                  class="min-w-0 rounded-lg border border-border-muted bg-surface px-3 py-2"
+                  :data-testid="attachment.id ? `email-attachment-${attachment.id}` : undefined"
+                >
+                  <p class="break-words text-xs font-medium text-text-default">{{ attachment.filename }}</p>
+                  <p class="mt-1 text-[10px] text-text-subtle">
+                    {{ attachment.business_kind_label || attachment.format_label }}
+                    <template v-if="attachment.business_kind_label && attachment.format_label"> · {{ attachment.format_label }}</template>
+                    <template v-if="attachment.size_bytes !== null"> · {{ formatBytes(attachment.size_bytes) }}</template>
+                  </p>
+                  <NuxtLink
+                    v-if="attachment.source_document"
+                    :to="localePath(`/panel/documents/${attachment.source_document.id}/edit`)"
+                    class="mt-1 block break-words text-[11px] font-medium text-text-brand hover:underline"
+                  >
+                    {{ attachment.source_document.title }}
+                  </NuxtLink>
+                  <div v-if="attachment.exact_available" class="mt-2 flex flex-wrap gap-2">
+                    <BaseButton
+                      v-if="attachment.preview_url"
+                      variant="ghost"
+                      size="sm"
+                      @click="openPdfPreview(attachment)"
+                    >
+                      Previsualizar
+                    </BaseButton>
+                    <a
+                      :href="attachment.download_url"
+                      class="inline-flex min-h-9 items-center rounded-lg px-3 text-xs font-medium text-text-brand hover:bg-surface-muted"
+                      download
+                    >
+                      Descargar
+                    </a>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <div v-if="hasLinks(entry)" :data-testid="`email-history-links-${entry.id}`">
+              <p class="mb-1 text-[10px] uppercase tracking-wide text-text-subtle">Enlaces enviados</p>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <div v-for="group in linkGroups(entry)" :key="group.key" class="rounded-lg border border-border-muted bg-surface px-3 py-2">
+                  <p class="text-[10px] font-medium uppercase tracking-wide text-text-subtle">{{ group.label }}</p>
+                  <a
+                    v-for="link in group.links"
+                    :key="link.url"
+                    :href="link.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-1 block break-all text-xs text-text-brand hover:underline"
+                  >
+                    {{ link.label || link.url }}
+                  </a>
+                </div>
               </div>
             </div>
             <div v-if="entry.copies?.length" :data-testid="`email-copy-list-${entry.id}`">
@@ -353,6 +440,20 @@
       :fetcher="fetchEmailBody"
       @close="selectedBodyEntry = null"
     />
+    <PdfPreviewModal
+      :model-value="Boolean(selectedPdfAttachment)"
+      :src="selectedPdfAttachment?.preview_url || ''"
+      :title="selectedPdfAttachment?.filename || 'Vista previa del adjunto'"
+      description="Archivo exacto conservado en el historial del correo."
+      test-id-prefix="email-pdf-preview"
+      @update:model-value="value => { if (!value) selectedPdfAttachment = null; }"
+    />
+    <EmailResendModal
+      :open="Boolean(selectedResendEntry)"
+      :entry="selectedResendEntry"
+      @close="selectedResendEntry = null"
+      @resent="handleResent"
+    />
   </div>
 </template>
 
@@ -362,6 +463,8 @@ import draggable from 'vuedraggable';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import ClientEmailCopySettings from '~/components/emails/ClientEmailCopySettings.vue';
 import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
+import EmailResendModal from '~/components/emails/EmailResendModal.vue';
+import PdfPreviewModal from '~/components/base/PdfPreviewModal.vue';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { vAutoResize } from '~/utils/autoResizeDirective';
@@ -375,6 +478,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const emailStore = useEmailStore();
 const notify = usePanelNotify();
+const localePath = useLocalePath();
 const route = useRoute();
 const router = useRouter();
 
@@ -385,7 +489,11 @@ const PAGE_TABS = [
   { id: 'defaults', label: 'Configuración' },
 ];
 const TAB_IDS = PAGE_TABS.map(t => t.id);
-const activeTab = ref(TAB_IDS.includes(route.query.tab) ? route.query.tab : 'compose');
+const activeTab = ref(
+  route.query.email
+    ? 'history'
+    : (TAB_IDS.includes(route.query.tab) ? route.query.tab : 'compose'),
+);
 watch(activeTab, (tab) => {
   // El default no se escribe: la URL limpia es la vista de reposo, y un
   // `?tab=compose` colgado es estado que el usuario no puede ver ni corregir.
@@ -417,12 +525,17 @@ const sendError = ref('');
 // ── History state ──
 const expandedIds = ref({});
 const selectedBodyEntry = ref(null);
+const selectedPdfAttachment = ref(null);
+const selectedResendEntry = ref(null);
 const historyFilters = ref({
   recipient: '',
   family: '',
   status: '',
+  has_attachments: '',
+  attachment_type: '',
   date_from: '',
   date_to: '',
+  email_id: route.query.email || '',
 });
 const familyFilterOptions = computed(() => [
   { value: '', label: 'Todas las familias' },
@@ -435,6 +548,18 @@ const statusFilterOptions = [
   { value: 'bounced', label: 'Rebotado' },
   { value: 'failed', label: 'Fallido' },
 ];
+const attachmentPresenceOptions = [
+  { value: '', label: 'Con o sin adjuntos' },
+  { value: 'true', label: 'Con adjuntos' },
+  { value: 'false', label: 'Sin adjuntos confirmados' },
+];
+const attachmentTypeFilterOptions = computed(() => [
+  { value: '', label: 'Todos los tipos' },
+  ...emailStore.attachmentTypeOptions.map(option => ({
+    value: option.value,
+    label: `${option.group === 'format' ? 'Formato' : 'Documento'} · ${option.label}`,
+  })),
+]);
 
 // ── Sections ──
 function addSection() {
@@ -626,14 +751,37 @@ async function clearHistoryFilters() {
     recipient: '',
     family: '',
     status: '',
+    has_attachments: '',
+    attachment_type: '',
     date_from: '',
     date_to: '',
+    email_id: '',
   };
+  const query = { ...route.query };
+  delete query.email;
+  await router.replace({ query });
   await applyHistoryFilters();
 }
 
 function openEmailBody(entry) {
   selectedBodyEntry.value = entry;
+}
+
+function openPdfPreview(attachment) {
+  selectedPdfAttachment.value = attachment;
+}
+
+function openResend(entry) {
+  selectedResendEntry.value = entry;
+}
+
+async function handleResent(result) {
+  selectedResendEntry.value = null;
+  notify.success({
+    title: 'Correo reenviado correctamente',
+    detail: result.copy_notice,
+  });
+  await emailStore.fetchHistory(1, historyFilters.value);
 }
 
 function fetchEmailBody(logId) {
@@ -668,16 +816,38 @@ function copyStatusClass(status) {
   return 'text-success-strong';
 }
 
+function formatBytes(value) {
+  if (value === null || value === undefined) return 'No archivado';
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function hasLinks(entry) {
+  return Boolean(entry.links?.content?.length || entry.links?.template?.length);
+}
+
+function linkGroups(entry) {
+  return [
+    { key: 'content', label: 'Contenido', links: entry.links?.content || [] },
+    { key: 'template', label: 'Plantilla y firma', links: entry.links?.template || [] },
+  ].filter(group => group.links.length);
+}
+
 function formatDate(isoString) {
   return formatDateTime(isoString, { fallback: '' });
 }
 
-function refreshEmails() {
-  return Promise.all([
+async function refreshEmails() {
+  await Promise.all([
     loadDefaults(),
     emailStore.fetchCopyRecipients(),
     emailStore.fetchHistory(1, historyFilters.value),
   ]);
+  const emailId = Number(route.query.email);
+  if (emailId && emailStore.history.some(entry => entry.id === emailId)) {
+    expandedIds.value[emailId] = true;
+  }
 }
 
 onMounted(refreshEmails);

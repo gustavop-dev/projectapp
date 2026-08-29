@@ -11,7 +11,10 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DOCUMENT_EDIT } from '../helpers/flow-tags.js';
+import {
+  ADMIN_DOCUMENT_EDIT,
+  ADMIN_DOCUMENT_EMAIL_HISTORY,
+} from '../helpers/flow-tags.js';
 import { viewportUse } from '../helpers/viewports.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -300,6 +303,105 @@ test.describe('Admin Document Edit', () => {
     const observation = page.getByTestId('document-observation-11');
     await expect(observation).toContainText('Seguimiento');
     await expect(observation).toContainText('Confirmar recepción el viernes.');
+  });
+
+  test('opens the exact email history row that used this document', {
+    tag: [...ADMIN_DOCUMENT_EMAIL_HISTORY, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the authenticated module entry;
+    // from there this test follows the real list → editor → email history path)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockDocument]) };
+      }
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocument) };
+      }
+      if (apiPath === 'documents/1/email-usage/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({
+          count: 1,
+          results: [{
+            email_log_id: 41,
+            recipient: 'cliente@example.com',
+            subject: 'Contrato para firma',
+            sent_at: '2026-08-28T10:00:00Z',
+            attachments: [{ id: 71, filename: 'contrato.pdf', size_bytes: 1024 }],
+          }],
+        }) };
+      }
+      if (apiPath === 'documents/1/communications/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ count: 0, results: [] }) };
+      }
+      if (
+        apiPath === 'document-folders/'
+        || apiPath === 'document-tags/'
+        || apiPath === 'document-states/'
+        || apiPath === 'document-state-groups/'
+      ) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'emails/defaults/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({
+          greeting: 'Hola', footer: 'Saludos', available_signers: [], available_variables: [],
+        }) };
+      }
+      if (apiPath === 'emails/copy-recipients/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({
+          results: [], families: [], copy_mode: 'bcc',
+        }) };
+      }
+      if (apiPath.startsWith('emails/history')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({
+          results: [{
+            id: 41,
+            subject: 'Contrato para firma',
+            recipient: 'cliente@example.com',
+            status: 'sent',
+            sent_at: '2026-08-28T10:00:00Z',
+            template_label: 'Correo personalizado',
+            family_label: 'Documentos y comunicaciones',
+            audience_label: 'Al cliente',
+            has_body: true,
+            metadata: {},
+            copies: [],
+            snapshot_state: 'captured',
+            snapshot_notice: '',
+            has_attachments: true,
+            attachment_count: 1,
+            message_size_bytes: 2048,
+            attachment_size_bytes: 1024,
+            can_resend: true,
+            attachments: [{
+              id: 71,
+              filename: 'contrato.pdf',
+              format_label: 'PDF',
+              business_kind_label: 'Contrato',
+              size_bytes: 1024,
+              exact_available: true,
+              source_document: { id: 1, title: 'Contrato de Servicios' },
+              download_url: '/api/emails/history/41/attachments/71/',
+              preview_url: '/api/emails/history/41/attachments/71/?inline=1',
+            }],
+            links: { content: [], template: [] },
+          }],
+          total: 1,
+          page: 1,
+          has_next: false,
+          attachment_type_options: [],
+        }) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('document-open-1').click();
+    await expect(page.getByTestId('document-email-usage')).toContainText('Contrato para firma');
+
+    await page.getByTestId('document-email-41').click();
+
+    await expect(page).toHaveURL(/\/panel\/emails\?.*email=41/);
+    await expect(page.getByTestId('email-history-attachments-41'))
+      .toContainText('contrato.pdf');
   });
 
   test('an issued collection account keeps the Ver notas action', {

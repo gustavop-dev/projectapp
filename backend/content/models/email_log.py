@@ -47,6 +47,13 @@ class EmailLog(models.Model):
         blank=True,
         related_name='logs',
     )
+    snapshot = models.ForeignKey(
+        'EmailDeliverySnapshot',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='logs',
+    )
     # What happened to the record that triggered the email, when the notice
     # is about a change ('' for the ones that are not).
     origin_action = models.CharField(

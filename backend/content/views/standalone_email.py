@@ -13,6 +13,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -106,6 +107,7 @@ def _parse_standalone_email(request):
 
     # ── File attachments ──
     attachments = []
+    attachment_sources = []
     for f in request.FILES.getlist('attachments'):
         ext = Path(f.name).suffix.lower()
         if ext not in _ALLOWED_EXT:
@@ -120,6 +122,7 @@ def _parse_standalone_email(request):
             )
         mime_type = mimetypes.guess_type(f.name)[0] or 'application/octet-stream'
         attachments.append((f.name, f.read(), mime_type))
+        attachment_sources.append({})
 
     # ── Document references (PDFs generated server-side) ──
     raw_doc_ids = request.data.get('document_ids', '[]')
@@ -151,6 +154,15 @@ def _parse_standalone_email(request):
                 continue
             filename = f'{doc.title or f"documento-{doc.pk}"}.pdf'
             attachments.append((filename, pdf_bytes, 'application/pdf'))
+            attachment_sources.append({
+                'document_id': doc.pk,
+                'business_kind': (
+                    doc.document_type.code if doc.document_type else 'document'
+                ),
+                'business_kind_label': (
+                    doc.document_type.name if doc.document_type else 'Documento'
+                ),
+            })
             document_targets.append({
                 'entity_type': 'document',
                 'object_id': doc.pk,
@@ -164,6 +176,7 @@ def _parse_standalone_email(request):
         'sections': sections,
         'footer': footer,
         'attachments': attachments or None,
+        'attachment_sources': attachment_sources,
         'document_targets': document_targets,
     }, None
 
@@ -184,6 +197,7 @@ def send_standalone_email(request):
         sections=parsed['sections'],
         footer=parsed['footer'],
         attachments=parsed['attachments'],
+        attachment_sources=parsed['attachment_sources'],
         targets=parsed['document_targets'],
         return_logs=True,
     )
@@ -358,9 +372,14 @@ def list_standalone_emails(request):
     The default remains the historical standalone-only scope for API
     compatibility. The Emails panel explicitly requests the global scope.
     """
-    logs = EmailLog.objects.filter(
-        delivery_role=EmailLog.DeliveryRole.PRIMARY,
-    ).select_related('body').order_by('-sent_at', '-id')
+    from content.services.email_history_service import (
+        apply_attachment_filters,
+        attachment_type_options,
+        history_queryset,
+        snapshot_payload,
+    )
+
+    logs = history_queryset()
     if request.query_params.get('scope') != 'all':
         logs = logs.filter(
             proposal__isnull=True,
@@ -395,6 +414,10 @@ def list_standalone_emails(request):
         logs = logs.filter(sent_at__date__gte=date_from)
     if date_to:
         logs = logs.filter(sent_at__date__lte=date_to)
+    email_id = (request.query_params.get('email_id') or '').strip()
+    if email_id.isdigit():
+        logs = logs.filter(pk=int(email_id))
+    logs = apply_attachment_filters(logs, request.query_params)
 
     total = logs.count()
     try:
@@ -412,8 +435,9 @@ def list_standalone_emails(request):
 
     page_logs = attach_delivery_copies(logs[offset:offset + page_size])
     family_labels = dict(EMAIL_COPY_FAMILY_CHOICES)
-    data = [
-        {
+    data = []
+    for log in page_logs:
+        data.append({
             'id': log.pk,
             'template_key': log.template_key,
             'template_label': ClientEmailLogSerializer().get_template_label(log),
@@ -432,15 +456,15 @@ def list_standalone_emails(request):
             'metadata': log.metadata,
             'has_body': log.body_id is not None,
             'copies': delivery_copy_payloads(log),
-        }
-        for log in page_logs
-    ]
+            **snapshot_payload(log),
+        })
     return Response({
         'results': data,
         'total': total,
         'page': page,
         'page_size': page_size,
         'has_next': offset + page_size < total,
+        'attachment_type_options': attachment_type_options(),
     }, status=status.HTTP_200_OK)
 
 
@@ -455,3 +479,99 @@ def standalone_email_body(request, log_id):
         pk=log_id,
     )
     return email_body_response(log)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def standalone_email_attachment(request, log_id, attachment_id):
+    """Stream retained bytes only through an authorized history record."""
+    from content.models import EmailAttachmentSnapshot
+
+    log = get_object_or_404(
+        EmailLog.objects.filter(
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
+        ),
+        pk=log_id,
+    )
+    attachment = get_object_or_404(
+        EmailAttachmentSnapshot.objects.select_related('snapshot'),
+        pk=attachment_id,
+        snapshot_id=log.snapshot_id,
+    )
+    inline = (
+        request.query_params.get('inline') == '1'
+        and attachment.format_kind == EmailAttachmentSnapshot.FormatKind.PDF
+    )
+    response = FileResponse(
+        attachment.file.open('rb'),
+        as_attachment=not inline,
+        filename=attachment.filename,
+        content_type=(
+            'application/pdf'
+            if inline else (attachment.mime_type or 'application/octet-stream')
+        ),
+    )
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    if inline:
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+    return response
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def resend_standalone_email(request, log_id):
+    """Resend exact retained content; only the destination may change."""
+    recipient = (request.data.get('recipient') or '').strip().lower()
+    try:
+        validate_email(recipient)
+    except DjangoValidationError:
+        return Response(
+            {'recipient': 'Ingresa un correo válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    log = get_object_or_404(
+        EmailLog.objects.filter(
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
+        ).select_related(
+            'snapshot__body', 'proposal', 'client',
+        ).prefetch_related(
+            'targets', 'snapshot__attachments__source_document',
+        ),
+        pk=log_id,
+    )
+    if not log.snapshot_id:
+        return Response(
+            {
+                'detail': 'Este correo es anterior al archivo exacto y no se puede reenviar.',
+                'code': 'email_snapshot_unavailable',
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    from content.services.email_snapshot_service import (
+        EmailSnapshotCaptureError,
+        EmailSnapshotResendError,
+        resend_email_log,
+    )
+    try:
+        resent_log = resend_email_log(log, recipient)
+    except EmailSnapshotCaptureError as exc:
+        return Response(
+            {'detail': str(exc), 'code': 'email_snapshot_capture_failed'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    except EmailSnapshotResendError as exc:
+        return Response(
+            {'detail': str(exc), 'code': 'email_resend_failed'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    return Response({
+        'message': f'Correo reenviado a {recipient}.',
+        'email_log_id': resent_log.pk,
+        'resend_of_email_log_id': log.pk,
+        'copy_notice': (
+            'Las copias BCC configuradas se intentaron después del envío principal.'
+        ),
+    })

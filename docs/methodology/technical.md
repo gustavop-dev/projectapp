@@ -1,5 +1,11 @@
 # Technical Documentation — ProjectApp
 
+> **Actualización — 2026-08-28:** cada entrega crea un snapshot previo al SMTP
+> con cuerpo, enlaces, MIME total y bytes decodificados de sus adjuntos. Si el
+> almacenamiento falla, el gateway bloquea el envío. Los archivos se sirven por
+> endpoints administradores `no-store`, el PDF usa el visor compartido y el
+> reenvío sólo admite cambiar destinatario mientras reutiliza la copia archivada.
+
 > **Estado 2026-08-28 — implementado:** el catálogo adicional reutiliza DRF
 > FBV, servicios de dominio, ReportLab, el cliente HTTP del panel y componentes
 > base. La página canónica es indexable y prerenderizada; cada enlace
@@ -324,6 +330,11 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   Configured internal recipients then receive independent BCC-only envelopes.
   A lookup/copy failure is logged independently and cannot alter or retry the
   already-successful primary delivery.
+- Before the primary SMTP call, the gateway renders a clone into MIME and writes
+  `EmailDeliverySnapshot`, `EmailAttachmentSnapshot` and `EmailLinkSnapshot`.
+  Attachment payloads are decoded from the rendered MIME, hashed and stored as
+  independent media files; a capture/storage/provenance mismatch raises and
+  prevents transport. Primary and copy logs reference the same snapshot.
 - `EmailLog.delivery_id` groups primary and copy attempts;
   `delivery_role=primary|copy` keeps dashboards, cooldowns, contact counts and
   retry endpoints from treating internal copies as new primary sends. Every
@@ -331,7 +342,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   complete bodies are retained by the explicit product policy.
 - Copy recipients are database configuration, separate from
   `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
-  more stable families. See `docs/client-email-copy-inventory.md`.
+  more stable families. Migration `content.0225` provisions
+  `carlos18bp@gmail.com` active for all eight families; the address remains an
+  administrable `EmailCopyRecipient` row instead of transport-layer branching.
+  See `docs/client-email-copy-inventory.md`.
+- `/api/emails/history/<log>/attachments/<attachment>/` streams retained bytes
+  only to panel admins (`private, no-store`; inline only for PDF). Exact resend
+  accepts a validated recipient only, constructs a new snapshot with `resend_of`,
+  and preserves archived subject/body/attachments. Rows without a snapshot are
+  `legacy_partial` or `legacy_unknown` and cannot be downloaded or resent.
 
 ### Document workflow is episode-derived and visibility-independent
 

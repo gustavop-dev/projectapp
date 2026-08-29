@@ -406,6 +406,23 @@ export const useDocumentStore = defineStore('documents', {
       }
     },
 
+    /** Return every retained email snapshot that contains this document. */
+    async fetchDocumentEmailUsage(id) {
+      try {
+        const response = await get_request(`documents/${id}/email-usage/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(
+            error,
+            'No se pudo cargar el historial de envíos del documento.',
+          ),
+        };
+      }
+    },
+
     /**
      * createFromMarkdown: Create a new document from markdown content.
      * @param {object} data - Document content, presentation metadata, and the

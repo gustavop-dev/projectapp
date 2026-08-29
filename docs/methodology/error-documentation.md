@@ -7,6 +7,10 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-08-28:** los envíos nuevos archivan evidencia completa antes
+> del SMTP. Los registros previos conservan honestamente su estado parcial o
+> desconocido y nunca ofrecen un archivo regenerado como si fuera el original.
+
 > **Revisión 2026-08-28 — catálogo adicional:** no se abrió un incidente. La
 > implementación cerró los riesgos previstos: la semilla usa migraciones nuevas,
 > el prerender sólo contiene el catálogo canónico, las aperturas se deduplican
@@ -51,7 +55,31 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-038] Document titles and row actions emitted competing browser hints
+### [ERR-038] El historial de correos no conservaba los archivos enviados
+
+- **Date**: 2026-08-28
+- **Context**: El módulo Emails mostraba destinatario, asunto, estado y cuerpo,
+  pero sólo algunas rutas dejaban nombres de adjuntos en metadata. No era posible
+  demostrar qué bytes recibió el cliente, calcular el peso real ni reenviar con
+  la misma evidencia.
+- **Root Cause**: Los logs se escribían después del intento SMTP y no existía un
+  modelo común para cuerpo, adjuntos, enlaces y procedencia documental. Consultar
+  el `Document` o regenerar un PDF devolvía estado actual, no estado histórico.
+- **Resolution**: El gateway captura un snapshot obligatorio antes del SMTP,
+  conserva cada archivo con hash/tipo/tamaño, extrae enlaces y comparte la
+  evidencia entre logs primarios y BCC. El historial diferencia captura exacta,
+  evidencia legada parcial y ausencia desconocida; sólo lo capturado permite
+  descarga, visor o reenvío. Los Documentos quedan enlazados y protegidos.
+- **Files Affected**: modelos/migración de snapshots, gateway y servicios de
+  historial/reenvío, APIs de Emails y Documentos, stores/páginas/modales, fake
+  data, tests y registro E2E.
+- **Verification**: 18 casos del historial backend, contratos del gateway,
+  pruebas unitarias del store/modal/visor, build Nuxt y 7 escenarios Playwright
+  focales pasan; el mapa está fresco y la auditoría reporta 0 flows missing.
+- **Lesson**: La evidencia de una entrega se captura antes de cruzar el límite
+  externo. Una versión actual o regenerada puede ser útil, pero no es historia.
+
+### [ERR-039] Document titles and row actions emitted competing browser hints
 
 - **Date**: 2026-08-28
 - **Context**: A clipped document title needed its complete value without
@@ -626,19 +654,20 @@ contracts, not conventions repeated in individual commands.
   destinatarios configurados estaba vacía. Además, la primera versión de la
   regla sólo cubría 23 correos dirigidos a clientes y excluía avisos internos y
   seguridad, contrario al alcance universal requerido.
-- **Resolution**: Mantener la dirección fuera del código; ampliar el gateway a
-  un inventario fail-closed de 56 canales y ocho familias, copiar toda audiencia
-  como BCC independiente, y exponer configuración e historial universal. Tras
-  desplegar `content.0213`, agregar la dirección desde Panel → Emails →
-  Configuración con las ocho familias.
+- **Resolution**: Ampliar el gateway a un inventario fail-closed de 56 canales y
+  ocho familias, copiar toda audiencia como BCC independiente y exponer
+  configuración e historial universal. `content.0225` crea o reactiva a Carlos
+  con las ocho familias para que el despliegue no dependa de una alta manual.
 - **Files Affected**: `content/services/email_delivery_service.py`,
   `content/services/outbound_email_inventory.py`, `content/models/email_log.py`,
-  `content/models/email_copy_recipient.py`, API y panel de Emails.
+  `content/models/email_copy_recipient.py`, migración `content.0225`, API y panel
+  de Emails.
 - **Verification**: Inventario exacto canal por canal, guard SMTP estático,
-  pruebas del gateway y API, pruebas unitarias/E2E del panel e historial.
+  pruebas del gateway y API, prueba de provisión de Carlos, pruebas unitarias/E2E
+  del panel e historial.
 - **Lesson**: Una configuración administrable sin fila activa equivale a una
-  regla deshabilitada; el rollout debe distinguir claramente código desplegado,
-  migración aplicada y dato operativo activado.
+  regla deshabilitada; cuando el destinatario es requisito del producto, el
+  rollout debe provisionarlo de forma idempotente y luego conservar su gestión.
 
 ### [ERR-030] Los cuadros nativos borraban el contexto de decisiones del panel
 

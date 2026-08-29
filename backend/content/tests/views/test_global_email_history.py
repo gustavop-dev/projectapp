@@ -1,15 +1,38 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
+from django.core import mail
+from django.core.files.base import ContentFile
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import EmailBody, EmailLog
+from content.models import (
+    Document,
+    DocumentType,
+    EmailAttachmentSnapshot,
+    EmailBody,
+    EmailCopyRecipient,
+    EmailDeliverySnapshot,
+    EmailLog,
+)
+from content.services.email_snapshot_service import EmailSnapshotCaptureError
 
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def email_storage(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    settings.MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    }
+    mail.outbox = []
 
 
 def make_log(
@@ -38,6 +61,57 @@ def global_history(admin_client, params=None):
     return admin_client.get(
         reverse('list-standalone-emails'),
         {'scope': 'all', **(params or {})},
+    )
+
+
+def make_snapshot_log(*, attachment_bytes=None, format_kind='pdf', document=None):
+    body = EmailBody.objects.create(
+        text='Contenido exacto https://projectapp.co/proposal/abc',
+        html='<p>Contenido exacto</p>',
+    )
+    delivery_id = uuid.uuid4()
+    snapshot = EmailDeliverySnapshot.objects.create(
+        delivery_id=delivery_id,
+        template_key='proposal_sent_client',
+        classification='client',
+        family='proposals',
+        subject='Propuesta exacta',
+        from_email='team@projectapp.co',
+        body=body,
+        message_size_bytes=800,
+        attachment_size_bytes=len(attachment_bytes or b''),
+        attachment_count=1 if attachment_bytes is not None else 0,
+    )
+    if attachment_bytes is not None:
+        attachment = EmailAttachmentSnapshot(
+            snapshot=snapshot,
+            filename='propuesta.pdf',
+            mime_type='application/pdf',
+            size_bytes=len(attachment_bytes),
+            sha256='0' * 64,
+            position=0,
+            format_kind=format_kind,
+            business_kind='proposal',
+            business_kind_label='Propuesta',
+            source_document=document,
+            source_document_type_code=(
+                document.document_type.code if document and document.document_type else ''
+            ),
+            source_document_type_name=(
+                document.document_type.name if document and document.document_type else ''
+            ),
+        )
+        attachment.file.save('propuesta.pdf', ContentFile(attachment_bytes), save=False)
+        attachment.save()
+    return EmailLog.objects.create(
+        template_key='proposal_sent_client',
+        recipient='recipient@example.com',
+        subject=snapshot.subject,
+        status=EmailLog.Status.SENT,
+        audience=EmailLog.Audience.CLIENT,
+        body=body,
+        snapshot=snapshot,
+        delivery_id=delivery_id,
     )
 
 
@@ -166,3 +240,176 @@ def test_anonymous_user_cannot_read_email_body(api_client):
     ))
 
     assert response.status_code in (401, 403)
+
+
+def test_history_exposes_exact_attachment_recognition_data(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    response = global_history(admin_client)
+
+    row = response.data['results'][0]
+    assert row['id'] == log.pk
+    assert row['snapshot_state'] == 'captured'
+    assert row['message_size_bytes'] == 800
+    assert row['attachments'][0]['filename'] == 'propuesta.pdf'
+    assert row['attachments'][0]['format_label'] == 'PDF'
+    assert row['attachments'][0]['size_bytes'] == len(b'pdf-original')
+
+
+def test_history_states_confirmed_no_attachments_explicitly(admin_client):
+    make_snapshot_log()
+
+    response = global_history(admin_client)
+
+    row = response.data['results'][0]
+    assert row['snapshot_state'] == 'captured'
+    assert row['has_attachments'] is False
+    assert row['attachment_count'] == 0
+
+
+def test_history_marks_legacy_attachment_as_unavailable(admin_client):
+    log = make_log('proposal_sent_client')
+    log.metadata = {'attachment_names': ['contrato.pdf']}
+    log.save(update_fields=['metadata'])
+
+    response = global_history(admin_client)
+
+    row = response.data['results'][0]
+    assert row['snapshot_state'] == 'legacy_partial'
+    assert row['attachments'][0]['exact_available'] is False
+    assert row['can_resend'] is False
+
+
+def test_attachment_filters_use_presence_and_format(admin_client):
+    attached = make_snapshot_log(attachment_bytes=b'pdf')
+    make_snapshot_log()
+
+    response = global_history(
+        admin_client,
+        {'has_attachments': 'true', 'attachment_type': 'format:pdf'},
+    )
+
+    assert [row['id'] for row in response.data['results']] == [attached.pk]
+
+
+def test_admin_downloads_retained_attachment_bytes(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+    attachment = log.snapshot.attachments.get()
+
+    response = admin_client.get(reverse(
+        'standalone-email-attachment',
+        kwargs={'log_id': log.pk, 'attachment_id': attachment.pk},
+    ))
+
+    assert response.status_code == 200
+    assert b''.join(response.streaming_content) == b'pdf-original'
+
+
+def test_exact_resend_preserves_retained_delivery(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+    EmailCopyRecipient.objects.create(email='carlos18bp@gmail.com')
+
+    response = admin_client.post(
+        reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+        {'recipient': 'nuevo@example.com'},
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert len(mail.outbox) == 2
+    assert mail.outbox[0].to == ['nuevo@example.com']
+    assert mail.outbox[0].attachments[0].content == b'pdf-original'
+    assert mail.outbox[1].bcc == ['carlos18bp@gmail.com']
+    resent = EmailLog.objects.get(pk=response.data['email_log_id'])
+    assert resent.snapshot.resend_of_id == log.snapshot_id
+
+
+def test_resend_returns_service_unavailable_when_snapshot_capture_fails(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    with patch(
+        'content.services.email_delivery_service.EmailDeliveryGateway.send',
+        side_effect=EmailSnapshotCaptureError('storage unavailable'),
+    ):
+        response = admin_client.post(
+            reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+            {'recipient': 'nuevo@example.com'},
+            format='json',
+        )
+
+    assert response.status_code == 503
+    assert response.data['code'] == 'email_snapshot_capture_failed'
+
+
+def test_resend_records_failed_log_when_gateway_raises(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    with patch(
+        'content.services.email_delivery_service.EmailDeliveryGateway.send',
+        side_effect=RuntimeError('SMTP down'),
+    ):
+        response = admin_client.post(
+            reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+            {'recipient': 'nuevo@example.com'},
+            format='json',
+        )
+
+    assert response.status_code == 502
+    failed = EmailLog.objects.exclude(pk=log.pk).get(status=EmailLog.Status.FAILED)
+    assert failed.error_message == 'SMTP down'
+
+
+def test_resend_records_failed_log_when_gateway_returns_zero(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    with patch(
+        'content.services.email_delivery_service.EmailDeliveryGateway.send',
+        return_value=0,
+    ):
+        response = admin_client.post(
+            reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+            {'recipient': 'nuevo@example.com'},
+            format='json',
+        )
+
+    assert response.status_code == 502
+    failed = EmailLog.objects.exclude(pk=log.pk).get(status=EmailLog.Status.FAILED)
+    assert failed.error_message == 'El backend de correo no aceptó el reenvío.'
+
+
+def _document_with_email_usage():
+    document_type, _ = DocumentType.objects.get_or_create(
+        code='proposal', defaults={'name': 'Propuesta'},
+    )
+    document = Document.objects.create(
+        title='Propuesta histórica',
+        document_type=document_type,
+    )
+    log = make_snapshot_log(
+        attachment_bytes=b'pdf-original',
+        document=document,
+    )
+    return document, log
+
+
+def test_document_email_usage_returns_primary_delivery(admin_client):
+    document, log = _document_with_email_usage()
+
+    usage = admin_client.get(reverse(
+        'document-email-usage',
+        kwargs={'document_id': document.pk},
+    ))
+
+    assert usage.data['results'][0]['email_log_id'] == log.pk
+
+
+def test_document_email_usage_blocks_destructive_delete(admin_client):
+    document, _ = _document_with_email_usage()
+
+    deleted = admin_client.delete(reverse(
+        'delete-document',
+        kwargs={'document_id': document.pk},
+    ))
+
+    assert deleted.status_code == 409
+    assert deleted.data['code'] == 'document_used_in_email_history'

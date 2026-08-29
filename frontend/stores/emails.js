@@ -12,6 +12,7 @@ export const useEmailStore = defineStore('emails', {
     history: [],
     historyPagination: { total: 0, page: 1, has_next: false },
     historyFilters: {},
+    attachmentTypeOptions: [],
     defaults: { greeting: '', footer: '' },
     copyRecipients: [],
     copyFamilies: [],
@@ -23,6 +24,7 @@ export const useEmailStore = defineStore('emails', {
     isLoadingPreview: false,
     isLoadingCopyRecipients: false,
     isSavingCopyRecipient: false,
+    isResending: false,
     error: null,
   }),
 
@@ -81,6 +83,7 @@ export const useEmailStore = defineStore('emails', {
           page: response.data.page,
           has_next: response.data.has_next,
         };
+        this.attachmentTypeOptions = response.data.attachment_type_options || [];
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'fetch_history_failed';
@@ -101,6 +104,26 @@ export const useEmailStore = defineStore('emails', {
           success: false,
           message: error.response?.data?.error || 'No se pudo cargar el correo.',
         };
+      }
+    },
+
+    async resendEmail(logId, recipient) {
+      this.isResending = true;
+      try {
+        const response = await create_request(
+          `emails/history/${logId}/resend/`,
+          { recipient },
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.response?.data,
+          message: error.response?.data?.detail || 'No se pudo reenviar el correo.',
+        };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isResending = false;
       }
     },
 

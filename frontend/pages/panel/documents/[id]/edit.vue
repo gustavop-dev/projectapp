@@ -121,6 +121,40 @@
     </BaseAlert>
 
     <BaseAlert
+      v-if="documentEmailUsage.count > 0 && !loadError"
+      variant="info"
+      class="mb-6"
+      data-testid="document-email-usage"
+    >
+      <div>
+        <p class="font-medium">
+          Este documento se envió en {{ documentEmailUsage.count }}
+          correo{{ documentEmailUsage.count === 1 ? '' : 's' }}.
+        </p>
+        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+          <NuxtLink
+            v-for="usage in documentEmailUsage.results"
+            :key="usage.email_log_id"
+            :to="localePath({
+              path: '/panel/emails',
+              query: { tab: 'history', email: usage.email_log_id },
+            })"
+            class="rounded-lg border border-border-muted bg-surface/70 px-3 py-2 text-sm hover:border-border-default"
+            :data-testid="`document-email-${usage.email_log_id}`"
+          >
+            <span class="block break-words font-semibold text-text-default">{{ usage.subject }}</span>
+            <span class="mt-0.5 block break-all text-xs text-text-subtle">
+              {{ usage.recipient }} · {{ formatDate(usage.sent_at) }}
+            </span>
+            <span class="mt-1 block break-words text-xs text-text-muted">
+              {{ usage.attachments.map(item => item.filename).join(', ') }}
+            </span>
+          </NuxtLink>
+        </div>
+      </div>
+    </BaseAlert>
+
+    <BaseAlert
       v-if="documentCommunications.count > 0 && !loadError"
       variant="info"
       class="mb-6"
@@ -681,6 +715,7 @@ import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import { joinEs } from '~/utils/spanishList';
 import { describeIncludedPages } from '~/utils/documentCoverPages';
 import { documentReturnLabel, resolveDocumentReturn } from '~/utils/documentReturnNavigation';
+import { formatDateTime } from '~/utils/formatDate';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -739,6 +774,7 @@ const workflowEpisodes = ref([]);
 const normalizedNotes = ref([]);
 const copiedMarkdown = ref(false);
 const documentCommunications = ref({ count: 0, results: [] });
+const documentEmailUsage = ref({ count: 0, results: [] });
 const pastedMarkdown = ref(false);
 const markdownTextareaRef = ref(null);
 
@@ -759,6 +795,10 @@ const form = reactive({
   folder_id: null,
   template_style: 'professional',
 });
+
+function formatDate(value) {
+  return formatDateTime(value, { fallback: '' });
+}
 
 // Nombres sin artículo: se encadenan como los encadenaría una persona
 // ("cliente y proyecto sin guardar").
@@ -1015,14 +1055,18 @@ async function handleUnarchive() {
 async function reloadDocument() {
   const id = route.params.id;
   loadError.value = false;
-  const [result, , , usageResult] = await Promise.all([
+  const [result, , , usageResult, emailUsageResult] = await Promise.all([
     documentStore.fetchDocument(id),
     folderStore.fetchFolders(),
     stateStore.fetchCatalog(),
     documentStore.fetchDocumentCommunications(id),
+    documentStore.fetchDocumentEmailUsage(id),
   ]);
   documentCommunications.value = usageResult.success
     ? usageResult.data
+    : { count: 0, results: [] };
+  documentEmailUsage.value = emailUsageResult.success
+    ? emailUsageResult.data
     : { count: 0, results: [] };
   if (result.success && result.data) {
     form.title = result.data.title || '';

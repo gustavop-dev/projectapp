@@ -30,6 +30,7 @@ from content.models import (
     ProposalSectionView,
     ProposalViewEvent,
 )
+from content.tests.email_stubs import stub_email_message
 
 pytestmark = pytest.mark.django_db
 
@@ -666,7 +667,7 @@ class TestSendMagicLinkEmail:
         with patch(
             'content.services.proposal_email_service.EmailMultiAlternatives',
         ) as mock_cls:
-            mock_instance = MagicMock()
+            mock_instance = stub_email_message()
             mock_cls.return_value = mock_instance
             result = ProposalEmailService.send_magic_link_email('magic@test.com', [p])
 
@@ -700,7 +701,7 @@ class TestSendMagicLinkEmail:
         with patch(
             'content.services.proposal_email_service.EmailMultiAlternatives',
         ) as mock_cls:
-            mock_instance = MagicMock()
+            mock_instance = stub_email_message()
             mock_instance.send.side_effect = Exception('SMTP error')
             mock_cls.return_value = mock_instance
             result = ProposalEmailService.send_magic_link_email('fail@test.com', [p])

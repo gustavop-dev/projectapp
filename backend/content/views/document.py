@@ -613,6 +613,17 @@ def delete_document(request, document_id):
     locked = _locked_collection_account_error(document)
     if locked:
         return locked
+    if document.email_attachment_snapshots.exists():
+        return Response(
+            {
+                'detail': (
+                    'Este documento forma parte del histórico de correos y '
+                    'debe conservarse. Puedes archivarlo en lugar de eliminarlo.'
+                ),
+                'code': 'document_used_in_email_history',
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
     # A draft cuenta reaching this far is still a cuenta de cobro: route it
     # through the accounting service so it leaves the same audit row a delete
     # from the Cuentas de cobro tab would. Deleting it here used to be the one
@@ -639,6 +650,53 @@ def delete_document(request, document_id):
             status=status.HTTP_409_CONFLICT,
         )
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def document_email_usage(request, document_id):
+    """Return primary deliveries that retained this exact document."""
+    from content.models import EmailAttachmentSnapshot, EmailLog
+
+    document = get_object_or_404(Document, pk=document_id)
+    attachments = list(
+        EmailAttachmentSnapshot.objects.filter(
+            source_document=document,
+        ).select_related('snapshot').order_by('position', 'id')
+    )
+    attachments_by_snapshot = {}
+    for attachment in attachments:
+        attachments_by_snapshot.setdefault(attachment.snapshot_id, []).append(
+            attachment,
+        )
+    logs = EmailLog.objects.filter(
+        snapshot_id__in=attachments_by_snapshot,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
+    ).order_by('-sent_at', '-id')
+    rows = [
+        {
+            'email_log_id': log.pk,
+            'recipient': log.recipient,
+            'subject': log.subject,
+            'status': log.status,
+            'sent_at': log.sent_at,
+            'attachments': [
+                {
+                    'id': attachment.pk,
+                    'filename': attachment.filename,
+                    'size_bytes': attachment.size_bytes,
+                }
+                for attachment in attachments_by_snapshot[log.snapshot_id]
+            ],
+        }
+        for log in logs
+    ]
+    return Response({
+        'document_id': document.pk,
+        'document_title': document.title,
+        'count': len(rows),
+        'results': rows,
+    })
 
 
 @api_view(['PATCH'])

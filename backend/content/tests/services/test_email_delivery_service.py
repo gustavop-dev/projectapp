@@ -6,13 +6,22 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 
 from content.email_copy_families import COLLECTIONS, PROPOSALS, SECURITY
-from content.models import ClientEmailCopyRecipient, EmailBody, EmailLog
+from content.models import (
+    ClientEmailCopyRecipient,
+    EmailBody,
+    EmailDeliverySnapshot,
+    EmailLog,
+)
 from content.services import email_log_service
 from content.services.client_email_inventory import CLIENT_EMAIL_CHANNELS
 from content.services.email_delivery_service import (
     DeliveryClassification,
     EmailDeliveryGateway,
     EmailMultiAlternatives,
+)
+from content.services.email_snapshot_service import (
+    _format_kind,
+    _inferred_business_kind,
 )
 from content.services.outbound_email_inventory import OUTBOUND_EMAIL_CHANNELS
 from content.serializers.accounting import EmailLogSerializer
@@ -22,12 +31,13 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def locmem_email_backend(settings):
+def locmem_email_backend(settings, tmp_path):
     settings.MAILERS = {
         'default': {
             'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
         },
     }
+    settings.MEDIA_ROOT = tmp_path
     mail.outbox = []
 
 
@@ -248,6 +258,7 @@ def test_copy_history_shares_delivery_body():
 
     assert primary.delivery_id == copy_log.delivery_id
     assert primary.body_id == copy_log.body_id
+    assert primary.snapshot_id == copy_log.snapshot_id
     assert EmailBody.objects.count() == 1
 
 
@@ -441,3 +452,99 @@ def test_model_normalizes_email_case():
     )
 
     assert recipient.email == 'audit@example.com'
+
+
+def test_gateway_archives_exact_attachment_bytes_before_delivery():
+    message = build_message()
+
+    EmailDeliveryGateway.send(message, template_key='proposal_sent_client')
+
+    snapshot = EmailDeliverySnapshot.objects.get()
+    attachment = snapshot.attachments.get()
+    with attachment.file.open('rb') as retained:
+        # text/plain MIME canonicalization adds the newline the recipient
+        # decodes; the archive follows the wire representation, not the input.
+        assert retained.read() == b'contenido\n'
+    assert attachment.filename == 'alcance.txt'
+    assert attachment.size_bytes == len(b'contenido\n')
+    assert snapshot.message_size_bytes > snapshot.attachment_size_bytes
+
+
+def test_gateway_records_confirmed_zero_attachments():
+    message = EmailMultiAlternatives(
+        subject='Sin adjuntos',
+        body='Contenido',
+        from_email='team@projectapp.co',
+        to=['client@example.com'],
+    )
+
+    EmailDeliveryGateway.send(message, template_key='proposal_sent_client')
+
+    snapshot = EmailDeliverySnapshot.objects.get()
+    assert snapshot.attachment_count == 0
+    assert snapshot.attachment_size_bytes == 0
+
+
+def test_gateway_archives_content_and_template_links_separately():
+    message = EmailMultiAlternatives(
+        subject='Enlaces',
+        body='Propuesta https://projectapp.co/proposal/abc',
+        from_email='team@projectapp.co',
+        to=['client@example.com'],
+    )
+    message.attach_alternative(
+        '<a href="https://projectapp.co">ProjectApp</a>',
+        'text/html',
+    )
+
+    EmailDeliveryGateway.send(message, template_key='proposal_sent_client')
+
+    links = set(EmailDeliverySnapshot.objects.get().links.values_list('url', 'group'))
+    assert links == {
+        ('https://projectapp.co', 'template'),
+        ('https://projectapp.co/proposal/abc', 'content'),
+    }
+
+
+def test_snapshot_failure_blocks_smtp():
+    message = build_message()
+
+    with patch(
+        'content.services.email_snapshot_service.capture_delivery_snapshot',
+        side_effect=RuntimeError('storage unavailable'),
+    ), patch(
+        'content.services.email_delivery_service.EmailMessage.send',
+    ) as smtp_send:
+        with pytest.raises(RuntimeError, match='storage unavailable'):
+            EmailDeliveryGateway.send(
+                message,
+                template_key='proposal_sent_client',
+            )
+
+    smtp_send.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ('filename', 'mime_type', 'expected'),
+    [
+        (
+            'alcance.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'word',
+        ),
+        (
+            'presupuesto.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'spreadsheet',
+        ),
+    ],
+    ids=['word', 'spreadsheet'],
+)
+def test_attachment_format_classifies_office_file(filename, mime_type, expected):
+    assert _format_kind(filename, mime_type) == expected
+
+
+def test_business_kind_infers_platform_guide():
+    result = _inferred_business_kind('platform_welcome', 'guia-plataforma.pdf')
+
+    assert result == ('platform_guide', 'Guía de plataforma')

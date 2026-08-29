@@ -1,0 +1,9 @@
+{
+  "id": "admin-outbound-email-history-resend",
+  "name": "Admin Resends Exact Archived Email",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin expands a captured delivery, opens Reenviar exacto, changes only the recipient and confirms. Subject, body and attachments remain locked; success closes with confirmation and a server failure stays visible without claiming delivery.",
+  "outcomes": ["success", "failure"]
+}

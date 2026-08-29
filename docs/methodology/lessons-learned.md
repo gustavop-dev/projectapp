@@ -7,6 +7,11 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Decisión consolidada — 2026-08-28:** un historial probatorio captura la
+> evidencia antes del envío, nunca desde el documento vivo. El snapshot se
+> comparte entre destinatario principal y copias, y una brecha legada se declara
+> en lugar de llenarse con una suposición.
+
 > **Lección 2026-08-28 — catálogo adicional:** un enlace comercial debe fijar
 > qué módulos se eligieron, no duplicar su contenido. Así la selección permanece
 > estable mientras las correcciones editoriales llegan a todos los clientes. La
@@ -1319,7 +1324,23 @@ rows, one list-owned scrollbar, a stationary modal, visible review content and
 the full-screen compact contract; a screenshot of an open dropdown proves none
 of those boundaries.
 
-## 54. Semantic association and lifecycle ownership need separate fields
+## 54. Outbound delivery evidence belongs before the SMTP boundary
+
+Logging a filename or regenerating a document later answers what the system has
+*now*, not what the recipient received. Build the MIME message first, persist the
+decoded attachment bytes, recognition metadata, body and user-facing links, and
+only then call the external mail backend. A storage failure must stop delivery;
+otherwise the system knowingly creates an unauditable success.
+
+The primary recipient and internal BCC attempts belong to one delivery snapshot,
+while their outcomes remain separate log rows. Resending creates a new delivery
+and lineage but reads subject, body and attachments from the retained snapshot;
+only the recipient is editable. When old rows lack evidence, use explicit
+`legacy_partial`/`legacy_unknown` states—never substitute the current Document.
+Keep the live Document relation for navigation and deletion protection, while
+the attachment filename, type name, hash and bytes remain historical fields.
+
+## 55. Semantic association and lifecycle ownership need separate fields
 
 A folder may point at a project without being the project's system-owned root.
 Reusing the ordinary `project` relation for both meanings makes every descendant
@@ -1337,7 +1358,7 @@ silently applied to a later database state. Preserve an inverse snapshot even wh
 the write is atomic: rollback of data classification is an operational procedure,
 not just a transaction primitive.
 
-## 55. A generated document is an artifact, not another editable projection
+## 56. A generated document is an artifact, not another editable projection
 
 When a system both generates and sends a PDF, regenerating it later is not an
 archive: templates, source data and fonts may have changed. Render once before
@@ -1354,7 +1375,7 @@ administrative observations editable. For legacy data, a dry-run-first backfill
 should touch only records still lacking a destination, preserve manual choices
 and refuse to invent the business date that defines the archive.
 
-## 56. KPI density and KPI geometry are separate contracts
+## 57. KPI density and KPI geometry are separate contracts
 
 Equal card heights require a stable internal grid, not copy of equal length.
 Reserve label, value and optional support rows in the shared primitive so missing
@@ -1368,7 +1389,7 @@ put the lossless detail in a focus-managed drawer. A summary total must combine
 like units: for heterogeneous operational facts, count active categories rather
 than adding clients, records and review rows into a misleading grand total.
 
-## 56. A thread filter is a correlated event question, not independent joins
+## 58. A thread filter is a correlated event question, not independent joins
 
 A conversation can contain many messages, so applying channel, direction and
 status as separate relation joins answers the wrong question: one email can

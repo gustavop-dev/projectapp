@@ -1,0 +1,9 @@
+{
+  "id": "admin-document-email-history",
+  "name": "Admin Navigates Document Email Usage",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin opens a document from the Documents list, sees the exact emails where it was attached and follows one usage link to the corresponding expanded row in the universal email history.",
+  "outcomes": ["display"]
+}

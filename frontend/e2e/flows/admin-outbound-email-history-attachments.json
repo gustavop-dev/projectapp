@@ -1,0 +1,9 @@
+{
+  "id": "admin-outbound-email-history-attachments",
+  "name": "Admin Inspects Exact Email Attachments",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin enters the universal email history, expands a primary delivery and recognizes every exact retained attachment by name, business type, format and size; PDF evidence opens in the shared protected viewer, confirmed empty deliveries say they had no attachments, and legacy rows disclose the archive gap instead of regenerating a file.",
+  "outcomes": ["display"]
+}

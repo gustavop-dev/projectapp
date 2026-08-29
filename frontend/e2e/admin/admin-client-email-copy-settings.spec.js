@@ -5,7 +5,9 @@ import {
   ADMIN_CLIENT_EMAIL_COPY_HISTORY,
   ADMIN_CLIENT_EMAIL_COPY_SETTINGS,
   ADMIN_OUTBOUND_EMAIL_HISTORY_BODY,
+  ADMIN_OUTBOUND_EMAIL_HISTORY_ATTACHMENTS,
   ADMIN_OUTBOUND_EMAIL_HISTORY_FILTER,
+  ADMIN_OUTBOUND_EMAIL_HISTORY_RESEND,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -80,6 +82,123 @@ const history = {
   total: 1,
   page: 1,
   has_next: false,
+  attachment_type_options: [
+    { value: 'business:collection_account', label: 'Cuenta de cobro', group: 'business' },
+  ],
+};
+
+const exactHistory = {
+  results: [{
+    id: 51,
+    subject: 'Cuenta de cobro agosto',
+    recipient: 'cliente@example.com',
+    status: 'sent',
+    sent_at: '2026-08-28T10:00:00Z',
+    template_key: 'collection_account_client',
+    template_label: 'Cuenta de cobro',
+    family: 'collections',
+    family_label: 'Cuentas de cobro',
+    audience: 'client',
+    audience_label: 'Al cliente',
+    has_body: true,
+    metadata: {},
+    copies: [{
+      id: 52,
+      recipient: 'carlos18bp@gmail.com',
+      status: 'sent',
+      status_label: 'Enviado',
+      error_message: '',
+    }],
+    snapshot_state: 'captured',
+    snapshot_notice: '',
+    has_attachments: true,
+    attachment_count: 1,
+    message_size_bytes: 1887436,
+    attachment_size_bytes: 1048576,
+    can_resend: true,
+    attachments: [{
+      id: 71,
+      filename: 'cuenta-cobro-agosto.pdf',
+      mime_type: 'application/pdf',
+      size_bytes: 1048576,
+      format_kind: 'pdf',
+      format_label: 'PDF',
+      business_kind: 'collection_account',
+      business_kind_label: 'Cuenta de cobro',
+      exact_available: true,
+      source_document: { id: 72, title: 'Cuenta de cobro agosto' },
+      download_url: '/api/emails/history/51/attachments/71/',
+      preview_url: '/api/emails/history/51/attachments/71/?inline=1',
+    }],
+    links: {
+      content: [{ url: 'https://projectapp.co/platform/payments/7', label: 'Pagar ahora', group: 'content' }],
+      template: [{ url: 'https://projectapp.co', label: 'ProjectApp', group: 'template' }],
+    },
+  }, {
+    id: 53,
+    subject: 'Confirmación sin archivos',
+    recipient: 'cliente@example.com',
+    status: 'sent',
+    sent_at: '2026-08-27T10:00:00Z',
+    template_key: 'proposal_reminder',
+    template_label: 'Recordatorio',
+    family: 'proposals',
+    family_label: 'Propuestas',
+    audience: 'client',
+    audience_label: 'Al cliente',
+    has_body: true,
+    metadata: {},
+    copies: [],
+    snapshot_state: 'captured',
+    snapshot_notice: '',
+    has_attachments: false,
+    attachment_count: 0,
+    message_size_bytes: 3200,
+    attachment_size_bytes: 0,
+    can_resend: true,
+    attachments: [],
+    links: { content: [], template: [] },
+  }, {
+    id: 54,
+    subject: 'Histórico anterior',
+    recipient: 'cliente@example.com',
+    status: 'sent',
+    sent_at: '2026-01-01T10:00:00Z',
+    template_key: 'branded_email',
+    template_label: 'Correo personalizado',
+    family: 'documents_communications',
+    family_label: 'Documentos y comunicaciones',
+    audience: 'client',
+    audience_label: 'Al cliente',
+    has_body: true,
+    metadata: { attachment_names: ['contrato-antiguo.pdf'] },
+    copies: [],
+    snapshot_state: 'legacy_partial',
+    snapshot_notice: 'Este correo es anterior al archivo exacto.',
+    has_attachments: true,
+    attachment_count: 1,
+    message_size_bytes: null,
+    attachment_size_bytes: null,
+    can_resend: false,
+    attachments: [{
+      id: null,
+      filename: 'contrato-antiguo.pdf',
+      format_label: 'Tipo no archivado',
+      size_bytes: null,
+      exact_available: false,
+      source_document: null,
+      download_url: '',
+      preview_url: '',
+    }],
+    links: { content: [], template: [] },
+  }],
+  total: 3,
+  page: 1,
+  has_next: false,
+  attachment_type_options: [
+    { value: 'business:collection_account', label: 'Cuenta de cobro', group: 'business' },
+    { value: 'format:pdf', label: 'PDF', group: 'format' },
+  ],
 };
 
 async function setupMocks(page, options = {}) {
@@ -94,6 +213,24 @@ async function setupMocks(page, options = {}) {
       return json({
         html: '<html><body><p>Código privado 123456</p></body></html>',
         text: 'Código privado 123456',
+      });
+    }
+    if (apiPath === 'emails/history/51/attachments/71/' && method === 'GET') {
+      calls.push({ method, path: apiPath, url: route.request().url() });
+      return {
+        status: 200,
+        contentType: 'application/pdf',
+        headers: { 'Content-Disposition': 'inline; filename="cuenta-cobro-agosto.pdf"' },
+        body: '%PDF-1.4 exact snapshot',
+      };
+    }
+    if (apiPath === 'emails/history/51/resend/' && method === 'POST') {
+      const payload = route.request().postDataJSON();
+      calls.push({ method, path: apiPath, payload });
+      if (options.resendFailure) return json({ detail: 'SMTP temporalmente no disponible.' }, 502);
+      return json({
+        email_log_id: 60,
+        copy_notice: 'Las copias BCC configuradas se intentaron después del envío principal.',
       });
     }
     if (apiPath.startsWith('emails/history') && method === 'GET') {
@@ -282,6 +419,8 @@ test('filters the universal outbound history by recipient, family, status and da
     .fill('client@example.com');
   await page.getByLabel('Filtrar por familia').selectOption('security');
   await page.getByLabel('Filtrar por estado').selectOption('sent');
+  await page.getByLabel('Filtrar por presencia de adjuntos').selectOption('true');
+  await page.getByLabel('Filtrar por tipo de adjunto').selectOption('business:collection_account');
   await page.getByLabel('Fecha inicial').fill('2026-08-01');
   await page.getByLabel('Fecha final').fill('2026-08-26');
   await page.getByRole('button', { name: 'Aplicar filtros' }).click();
@@ -291,6 +430,8 @@ test('filters the universal outbound history by recipient, family, status and da
     call.url?.includes('recipient=client%40example.com')
       && call.url.includes('family=security')
       && call.url.includes('status=sent')
+      && call.url.includes('has_attachments=true')
+      && call.url.includes('attachment_type=business%3Acollection_account')
       && call.url.includes('date_from=2026-08-01')
       && call.url.includes('date_to=2026-08-26'))).toBe(true);
 });
@@ -310,4 +451,76 @@ test('lets an admin inspect the retained full body of a security email', {
   await expect(page.frameLocator('[title="Contenido del correo"]')
     .getByText('Código privado 123456')).toBeVisible();
   expect(calls.some(call => call.path === 'emails/history/41/body/')).toBe(true);
+});
+
+test('shows exact attachment metadata and opens the retained PDF', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_ATTACHMENTS, '@role:admin', '@outcome:display'],
+}, async ({ page }) => {
+  await setupMocks(page, { history: exactHistory });
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+  await page.getByText('Cuenta de cobro agosto', { exact: true }).first().click();
+
+  const attachments = page.getByTestId('email-history-attachments-51');
+  await expect(attachments).toContainText('cuenta-cobro-agosto.pdf');
+  await expect(attachments).toContainText('Cuenta de cobro · PDF · 1.0 MB');
+  await expect(attachments).toContainText('Envío total: 1.8 MB');
+  await page.getByRole('button', { name: 'Previsualizar' }).click();
+  await expect(page.getByTestId('email-pdf-preview-frame')).toBeVisible();
+  await expect(page.getByTestId('email-history-links-51')).toContainText('Pagar ahora');
+});
+
+test('states explicitly that a captured email had no attachments', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_ATTACHMENTS, '@role:admin', '@outcome:display'],
+}, async ({ page }) => {
+  await setupMocks(page, { history: exactHistory });
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+  await page.getByText('Confirmación sin archivos').click();
+
+  await expect(page.getByTestId('email-history-no-attachments-53'))
+    .toHaveText('Este correo no llevaba adjuntos.');
+});
+
+test('discloses that a legacy attachment cannot be downloaded exactly', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_ATTACHMENTS, '@role:admin', '@outcome:display'],
+}, async ({ page }) => {
+  await setupMocks(page, { history: exactHistory });
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+  await page.getByText('Histórico anterior').click();
+
+  await expect(page.getByTestId('email-history-legacy-54'))
+    .toContainText('anterior al archivo exacto');
+  await expect(page.getByRole('link', { name: 'Descargar' })).toHaveCount(0);
+});
+
+test('resends an archived delivery after changing only its recipient', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_RESEND, '@role:admin', '@outcome:success'],
+}, async ({ page }) => {
+  const calls = await setupMocks(page, { history: exactHistory });
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+  await page.getByText('Cuenta de cobro agosto', { exact: true }).first().click();
+  await page.getByTestId('email-history-resend-51').click();
+  await page.getByTestId('email-resend-recipient').fill('nuevo@example.com');
+  await page.getByTestId('email-resend-confirm').click();
+
+  await expect(page.getByTestId('email-resend-modal')).toHaveCount(0);
+  expect(calls.find(call => call.path === 'emails/history/51/resend/').payload)
+    .toEqual({ recipient: 'nuevo@example.com' });
+});
+
+test('keeps the resend failure visible for correction', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_RESEND, '@role:admin', '@outcome:failure'],
+}, async ({ page }) => {
+  await setupMocks(page, { history: exactHistory, resendFailure: true });
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+  await page.getByText('Cuenta de cobro agosto', { exact: true }).first().click();
+  await page.getByTestId('email-history-resend-51').click();
+  await page.getByTestId('email-resend-confirm').click();
+
+  await expect(page.getByTestId('email-resend-modal'))
+    .toContainText('SMTP temporalmente no disponible.');
 });

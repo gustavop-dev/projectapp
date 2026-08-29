@@ -2579,7 +2579,7 @@ class ProposalEmailService:
     def _send_composed_email(
         cls, template_key, proposal, recipient_email, subject,
         greeting, sections, footer='', attachments=None, targets=(),
-        return_logs=False,
+        return_logs=False, attachment_sources=None,
     ):
         """
         Send a user-composed email with the standard Project App branding.
@@ -2638,6 +2638,7 @@ class ProposalEmailService:
                 email,
                 template_key=template_key,
                 classification=classification,
+                attachment_sources=attachment_sources,
             )
 
             logs = cls._log_email(
@@ -2682,11 +2683,13 @@ class ProposalEmailService:
     def send_standalone_branded_email(
         cls, recipient_email, subject, greeting,
         sections, footer='', attachments=None, targets=(), return_logs=False,
+        attachment_sources=None,
     ):
         """Send a standalone branded email not tied to any proposal."""
         return cls._send_composed_email(
             'branded_email', None, recipient_email, subject,
             greeting, sections, footer, attachments, targets, return_logs,
+            attachment_sources,
         )
 
     @classmethod
