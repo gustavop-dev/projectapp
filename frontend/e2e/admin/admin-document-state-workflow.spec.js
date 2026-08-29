@@ -375,6 +375,8 @@ test.describe('Admin Document State Filters', () => {
     const document = makeDocument();
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, document));
 
+    // quality: allow-no-interaction (responsive display contract is observable on initial render)
+    // quality: allow-deep-link (/panel/documents is the documented module entry and renders the filter directly)
     await page.goto('/en-us/panel/documents', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Gestor Documental' })).toBeVisible();
     await expect(page.getByTestId('document-state-filters')).toBeVisible();
