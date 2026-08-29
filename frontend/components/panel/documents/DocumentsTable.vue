@@ -51,6 +51,10 @@ const dateHeader = computed(() => {
 })
 
 const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
+// Production inventory on 2026-08-28: the widest of 40 titles needs 496 px
+// including cell padding and safety. 520 px fits that boundary without tying
+// the limit to a percentage of the table; disclosure remains the future fallback.
+const DOCUMENT_TITLE_WIDTH = Object.freeze({ min: 240, default: 320, max: 520 })
 const tableContainerRef = ref(null)
 const { profile: viewportProfile } = usePanelViewportProfile()
 
@@ -71,7 +75,7 @@ const widthColumns = [
       primary: true,
       compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
     },
-    columnWidth: { min: 240, default: 320, max: 800, resizable: true },
+    columnWidth: { ...DOCUMENT_TITLE_WIDTH, resizable: true },
   },
   {
     key: 'states',
@@ -165,8 +169,8 @@ function onFolderLink(event, sub) {
             Título
             <BaseResizeHandle
               :value="preferredWidth('title')"
-              :min="240"
-              :max="800"
+              :min="DOCUMENT_TITLE_WIDTH.min"
+              :max="DOCUMENT_TITLE_WIDTH.max"
               label="Ajustar el ancho de la columna Título"
               test-id="documents-title-resize-handle"
               class="absolute -right-3 top-0 z-20 h-full w-6"

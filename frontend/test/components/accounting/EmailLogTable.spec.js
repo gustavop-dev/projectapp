@@ -46,11 +46,20 @@ const DIGEST_FAILED = {
   retry_blocked_reason: 'Este aviso resume varios registros del día.',
 };
 
+const wrappers = [];
+
 function mountTable(entries, props = {}) {
-  return mount(EmailLogTable, { props: { entries, ...props } });
+  const wrapper = mount(EmailLogTable, { props: { entries, ...props } });
+  wrappers.push(wrapper);
+  return wrapper;
 }
 
 describe('EmailLogTable', () => {
+  afterEach(() => {
+    wrappers.splice(0).forEach(wrapper => wrapper.unmount());
+    document.body.innerHTML = '';
+  });
+
   it('contains unbroken labels, recipients and subjects in their columns', () => {
     const wrapper = mountTable([{
       ...SENT,
@@ -99,7 +108,8 @@ describe('EmailLogTable', () => {
     expect(button.attributes('title')).toBeUndefined();
     expect(proxy.attributes('aria-label')).toContain('resume varios registros');
     await proxy.trigger('click');
-    expect(wrapper.get('[role="tooltip"]').text()).toContain('resume varios registros');
+    expect(document.body.querySelector('[role="tooltip"]').textContent)
+      .toContain('resume varios registros');
   });
 
   it('blocks a second click while a retry is in flight', () => {
