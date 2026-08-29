@@ -78,6 +78,8 @@
         :scope-locked="isSearching"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
+        :project-readiness="folderStore.projectReadiness"
+        :project-readiness-error="folderStore.projectReadinessError"
         @select="handleSelectFolder"
         @manage="openFolderManager"
         @edit="openFolderForm"
@@ -430,6 +432,8 @@
         touch-mode
         :is-dragging="false"
         :dragging-folder-id="null"
+        :project-readiness="folderStore.projectReadiness"
+        :project-readiness-error="folderStore.projectReadinessError"
         @select="selectFolderFromDrawer"
         @manage="openFolderManagerFromDrawer"
         @edit="openFolderFormFromDrawer"
@@ -877,6 +881,7 @@ async function refreshView({ states = false } = {}) {
   const [docsResult] = await Promise.all([
     documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
     folderStore.fetchFolders(),
+    folderStore.fetchProjectReadiness(),
     documentStore.fetchCounts(),
     states ? stateStore.fetchCatalog() : Promise.resolve(),
   ]);

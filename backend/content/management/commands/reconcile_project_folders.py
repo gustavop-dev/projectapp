@@ -22,10 +22,15 @@ from content.management.commands.link_documents_from_folders import (
     normalize_name,
 )
 from content.models import Document, DocumentFolder
+from content.services.document_type_codes import COLLECTION_ACCOUNT
+from content.services.generated_document_filing_service import (
+    describe_generated_folder_path,
+    ensure_generated_folder_path,
+)
 from content.services.project_document_folder_service import ensure_project_folder
 
 
-MANIFEST_VERSION = 1
+MANIFEST_VERSION = 2
 PERSONAL_ROOTS = {
     normalize_name(name)
     for name in (
@@ -62,12 +67,14 @@ def database_snapshot():
         'folders': list(
             DocumentFolder.objects.order_by('id').values(
                 'id', 'name', 'parent_id', 'project_id', 'client_user_id',
-                'managed_project_id', 'is_archived', 'updated_at',
+                'managed_project_id', 'system_key', 'is_archived', 'updated_at',
             )
         ),
         'documents': list(
             Document.objects.order_by('id').values(
-                'id', 'folder_id', 'project_id', 'client_user_id', 'updated_at',
+                'id', 'folder_id', 'project_id', 'client_user_id',
+                'document_type_id', 'commercial_status', 'issue_date',
+                'updated_at',
             )
         ),
     }
@@ -76,7 +83,10 @@ def database_snapshot():
 def _json_snapshot(snapshot):
     return {
         section: [
-            {key: _iso(value) if key == 'updated_at' else value for key, value in row.items()}
+            {
+                key: _iso(value) if key in {'updated_at', 'issue_date'} else value
+                for key, value in row.items()
+            }
             for row in rows
         ]
         for section, rows in snapshot.items()
@@ -144,6 +154,32 @@ def _project_candidates(folder, projects):
     return prefixed, 'unique-leading-token' if prefixed else None
 
 
+def _root_id(folder_id, folders_by_id):
+    current = folders_by_id.get(folder_id)
+    visited = set()
+    while current is not None and current.parent_id and current.id not in visited:
+        visited.add(current.id)
+        current = folders_by_id.get(current.parent_id)
+    return current.id if current is not None else None
+
+
+def _generated_document_path(document):
+    cancelled = document.commercial_status == Document.CommercialStatus.CANCELLED
+    unissued = cancelled and not document.issue_date
+    if getattr(document.document_type, 'code', None) != COLLECTION_ACCOUNT:
+        return None
+    if not document.issue_date and not unissued:
+        return None
+    return describe_generated_folder_path(
+        COLLECTION_ACCOUNT,
+        business_date=document.issue_date,
+        project=document.project,
+        client_user=document.client_user,
+        cancelled=cancelled,
+        unissued=unissued,
+    )
+
+
 def build_manifest():
     projects = list(
         Project.objects.select_related('client__profile', 'current_state')
@@ -151,8 +187,13 @@ def build_manifest():
     )
     profiles = list(UserProfile.objects.clients().select_related('user'))
     folders = list(DocumentFolder.objects.all().order_by('id'))
-    documents = list(Document.objects.all().order_by('id'))
+    documents = list(
+        Document.objects.select_related(
+            'document_type', 'project', 'client_user',
+        ).order_by('id')
+    )
     roots = [folder for folder in folders if folder.parent_id is None]
+    folders_by_id = {folder.id: folder for folder in folders}
     existing_managed_by_project = {
         folder.managed_project_id: folder
         for folder in roots
@@ -175,9 +216,11 @@ def build_manifest():
 
     actions = []
     proposed_project_ids = set()
+    proposed_tree_roots = defaultdict(set)
     for root in roots:
         if root.managed_project_id:
             proposed_project_ids.add(root.managed_project_id)
+            proposed_tree_roots[root.managed_project_id].add(root.id)
             actions.append({
                 'id': f'existing-{root.id}',
                 'type': 'existing',
@@ -236,6 +279,7 @@ def build_manifest():
                 })
                 continue
             proposed_project_ids.add(project.id)
+            proposed_tree_roots[project.id].add(root.id)
             actions.append({
                 'id': f'convert-{root.id}-{project.id}',
                 'type': 'convert',
@@ -268,6 +312,7 @@ def build_manifest():
             client_projects = project_by_client.get(profile.user_id, [])
         if len(client_projects) == 1:
             project = client_projects[0]
+            proposed_tree_roots[project.id].add(root.id)
             actions.append({
                 'id': f'nest-{root.id}-{project.id}',
                 'type': 'nest_client_folder',
@@ -302,6 +347,58 @@ def build_manifest():
                 and project.current_state.show_in_document_manager
             ),
             'reason': 'El proyecto no tiene una raíz existente propuesta.',
+        })
+
+    for document in documents:
+        if not document.project_id:
+            continue
+        current_root_id = _root_id(document.folder_id, folders_by_id)
+        if current_root_id in proposed_tree_roots[document.project_id]:
+            continue
+        if document.folder_id is not None:
+            actions.append({
+                'id': f'document-conflict-{document.id}',
+                'type': 'document_conflict',
+                'decision': 'pending',
+                'document_id': document.id,
+                'document_title': document.title,
+                'folder_id': document.folder_id,
+                'project_id': document.project_id,
+                'project_name': document.project.name,
+                'reason': (
+                    'El documento apunta al proyecto, pero está dentro de otra '
+                    'raíz manual. Revisa su ubicación; no se moverá por inferencia.'
+                ),
+            })
+            continue
+        target_path = _generated_document_path(document)
+        if target_path is None:
+            actions.append({
+                'id': f'document-conflict-{document.id}',
+                'type': 'document_conflict',
+                'decision': 'pending',
+                'document_id': document.id,
+                'document_title': document.title,
+                'folder_id': None,
+                'project_id': document.project_id,
+                'project_name': document.project.name,
+                'reason': (
+                    'El documento tiene proyecto pero no una ruta automática '
+                    'inequívoca; permanece sin carpeta hasta revisión manual.'
+                ),
+            })
+            continue
+        actions.append({
+            'id': f'file-document-{document.id}',
+            'type': 'file_document',
+            'decision': 'pending',
+            'document_id': document.id,
+            'document_title': document.title,
+            'folder_id': None,
+            'project_id': document.project_id,
+            'project_name': document.project.name,
+            'target_path': target_path,
+            'reason': f'Ubicación propuesta: {target_path}.',
         })
 
     snapshot = _json_snapshot(database_snapshot())
@@ -340,7 +437,7 @@ def _markdown_report(manifest):
         )
         lines.append(
             f'| {action["decision"]} | {action["type"]} | '
-            f'{action.get("folder_name") or action.get("folder_id") or "—"} | '
+            f'{action.get("folder_name") or action.get("document_title") or action.get("folder_id") or "—"} | '
             f'{action.get("project_name") or action.get("project_id") or "—"} | '
             f'{detail} |'
         )
@@ -368,7 +465,7 @@ def _validate_review(manifest):
         action['id'] for action in manifest.get('actions', [])
         if action.get('decision') == 'approve'
         and action.get('type') not in {
-            'convert', 'create', 'nest_client_folder',
+            'convert', 'create', 'nest_client_folder', 'file_document',
         }
     ]
     if invalid_approvals:
@@ -416,6 +513,60 @@ def _associate_tree(root, project):
     folders.update(project=project, client_user=project.client)
     documents.filter(project__isnull=True).update(project=project)
     documents.filter(client_user__isnull=True).update(client_user=project.client)
+
+
+def _file_reviewed_document(action, inverse):
+    document = Document.objects.select_related(
+        'document_type', 'project', 'client_user',
+    ).get(pk=action['document_id'])
+    if document.project_id != action['project_id'] or document.folder_id is not None:
+        raise CommandError(
+            f'El documento {document.id} cambió desde el plan de ubicación.'
+        )
+    if document.client_user_id not in (None, document.project.client_id):
+        raise CommandError(
+            f'El documento {document.id} pertenece a otro cliente.'
+        )
+    try:
+        document.project.document_root_folder
+    except DocumentFolder.DoesNotExist as exc:
+        raise CommandError(
+            f'El proyecto {document.project_id} no tiene una raíz aprobada.'
+        ) from exc
+    target_path = _generated_document_path(document)
+    if target_path is None or target_path != action.get('target_path'):
+        raise CommandError(
+            f'La ruta canónica del documento {document.id} cambió desde el plan.'
+        )
+
+    previous_folder_ids = set(
+        DocumentFolder.objects.values_list('id', flat=True)
+    )
+    cancelled = document.commercial_status == Document.CommercialStatus.CANCELLED
+    target = ensure_generated_folder_path(
+        COLLECTION_ACCOUNT,
+        business_date=document.issue_date,
+        project=document.project,
+        client_user=document.client_user,
+        cancelled=cancelled,
+        unissued=cancelled and not document.issue_date,
+    )
+    inverse['changes'].append({
+        'type': 'filed_document',
+        'document_id': document.id,
+        'folder_id': document.folder_id,
+        'client_user_id': document.client_user_id,
+        'created_folder_ids': sorted(
+            set(DocumentFolder.objects.values_list('id', flat=True))
+            - previous_folder_ids
+        ),
+    })
+    document.folder = target
+    update_fields = ['folder', 'updated_at']
+    if document.client_user_id is None:
+        document.client_user = document.project.client
+        update_fields.append('client_user')
+    document.save(update_fields=update_fields)
 
 
 @transaction.atomic
@@ -491,6 +642,9 @@ def apply_manifest(manifest):
             'parent', 'project', 'client_user', 'updated_at',
         ])
         _associate_tree(folder, project)
+    for action in approved:
+        if action['type'] == 'file_document':
+            _file_reviewed_document(action, inverse)
     return inverse
 
 
