@@ -2,25 +2,34 @@ import { mount } from '@vue/test-utils'
 import BaseActionButton from '../../components/base/BaseActionButton.vue'
 import BaseActionIcon from '../../components/base/BaseActionIcon.vue'
 
-const factory = (props = {}, attrs = {}) => mount(BaseActionButton, {
-  props: { action: 'copy', ...props },
-  attrs,
-  attachTo: document.body,
-  global: {
-    stubs: {
-      NuxtLink: { template: '<a><slot /></a>' },
+const wrappers = []
+
+const factory = (props = {}, attrs = {}) => {
+  const wrapper = mount(BaseActionButton, {
+    props: { action: 'copy', ...props },
+    attrs,
+    attachTo: document.body,
+    global: {
+      stubs: {
+        NuxtLink: { template: '<a><slot /></a>' },
+      },
     },
-  },
-})
+  })
+  wrappers.push(wrapper)
+  return wrapper
+}
 
 describe('BaseActionButton', () => {
-  afterEach(() => { document.body.innerHTML = '' })
+  afterEach(() => {
+    wrappers.splice(0).forEach(wrapper => wrapper.unmount())
+    document.body.innerHTML = ''
+  })
 
-  it('uses the catalog label for its accessible name and tooltip', () => {
+  it('uses the catalog label for its accessible name', () => {
     const wrapper = factory()
     const button = wrapper.get('button')
     expect(button.attributes('aria-label')).toBe('Copiar')
-    expect(button.attributes('title')).toBe('Copiar')
+    expect(button.attributes('title')).toBeUndefined()
     expect(button.attributes('data-panel-action')).toBe('copy')
     expect(wrapper.getComponent(BaseActionIcon).props('action')).toBe('copy')
     const icon = wrapper.get('svg.base-action-icon')
@@ -28,10 +37,35 @@ describe('BaseActionButton', () => {
     expect(icon.classes()).toEqual(expect.arrayContaining(['!h-4', '!w-4']))
   })
 
-  it('uses one contextual label for the name and hover help', () => {
-    const wrapper = factory({ label: 'Copiar URL pública' })
-    expect(wrapper.get('button').attributes('aria-label')).toBe('Copiar URL pública')
-    expect(wrapper.get('button').attributes('title')).toBe('Copiar URL pública')
+  it('keeps contextual detail in the accessible name', () => {
+    const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
+    const button = wrapper.get('button')
+
+    expect(button.attributes('aria-label')).toBe('Acciones de Contrato de Servicios')
+    expect(button.attributes('title')).toBeUndefined()
+  })
+
+  it('shows the short catalog label in the application tooltip', async () => {
+    const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
+
+    await wrapper.get('[data-base-tooltip-trigger]')
+      .trigger('pointerenter', { pointerType: 'mouse' })
+
+    const hints = document.body.querySelectorAll('[role="tooltip"]')
+    expect(hints).toHaveLength(1)
+    expect(hints[0].textContent).toContain('Acciones')
+    expect(hints[0].textContent).not.toContain('Contrato de Servicios')
+    expect(hints[0].classList).toContain('w-max')
+    expect(hints[0].classList).toContain('max-w-xs')
+  })
+
+  it('prefers an explicit application tooltip', async () => {
+    const wrapper = factory({ label: 'Copiar URL pública', tooltip: 'Copiar enlace' })
+
+    await wrapper.get('button').trigger('focusin')
+
+    expect(document.body.querySelector('[role="tooltip"]').textContent)
+      .toContain('Copiar enlace')
   })
 
   it('forwards button behavior and consumer attributes', async () => {
@@ -67,8 +101,10 @@ describe('BaseActionButton', () => {
 
     expect(proxy.attributes('tabindex')).toBe('0')
     expect(proxy.attributes('aria-label')).toContain('Ya estás en la primera página.')
+    expect(wrapper.get('button').attributes('title')).toBeUndefined()
     await proxy.trigger('click')
-    expect(wrapper.get('[role="tooltip"]').text()).toContain('Ya estás en la primera página.')
+    expect(document.body.querySelector('[role="tooltip"]').textContent)
+      .toContain('Ya estás en la primera página.')
   })
 
   it('shows the existing spinner instead of a second action glyph while loading', () => {

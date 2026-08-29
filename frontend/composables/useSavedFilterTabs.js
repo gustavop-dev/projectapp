@@ -75,7 +75,7 @@ export function sameFilters(a, b) {
  * Las llamadas HTTP usan `frontend/stores/services/request_http.js`
  * (sesión Django + CSRF), no la API de plataforma.
  *
- * @param {string} viewName - Uno de: 'proposal' | 'client' | 'diagnostic' | 'view_map'
+ * @param {string} viewName - Identificador permitido por SavedFilterTab.VIEW_CHOICES.
  */
 export function useSavedFilterTabs(viewName) {
   const savedTabs = ref([]);

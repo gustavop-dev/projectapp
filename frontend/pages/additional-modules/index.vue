@@ -1,0 +1,133 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+
+const { locale, t } = useI18n()
+const runtimeConfig = useRuntimeConfig()
+const isEnglish = computed(() => locale.value.startsWith('en'))
+const language = computed(() => (isEnglish.value ? 'en' : 'es'))
+const catalog = ref(null)
+const liveError = ref(false)
+
+function unavailableCatalog() {
+  return {
+    language: language.value,
+    categories: [],
+    total_modules: 0,
+    unavailable: true,
+  }
+}
+
+const { data: initialCatalog } = await useAsyncData(
+  `additional-module-catalog-${locale.value}`,
+  async () => {
+    const base = import.meta.server ? runtimeConfig.apiInternalOrigin : ''
+    try {
+      return await $fetch(`${base}/api/additional-modules/public/?lang=${language.value}`)
+    } catch {
+      // Builds and blue/green deploys can run before Django is reachable. The
+      // browser refresh below replaces this shell with the live catalog.
+      return unavailableCatalog()
+    }
+  },
+)
+
+if (initialCatalog.value) catalog.value = initialCatalog.value
+
+onMounted(async () => {
+  try {
+    catalog.value = await $fetch(`/api/additional-modules/public/?lang=${language.value}`)
+    liveError.value = false
+  } catch {
+    liveError.value = !catalog.value || catalog.value.unavailable === true
+  }
+})
+
+const canonicalPath = computed(() => (
+  isEnglish.value ? '/en-us/additional-modules' : '/es-co/additional-modules'
+))
+const alternatePath = computed(() => (
+  isEnglish.value ? '/es-co/additional-modules' : '/en-us/additional-modules'
+))
+const title = computed(() => (
+  isEnglish.value
+    ? 'Additional Modules for Digital Platforms | Project App.'
+    : 'Módulos adicionales para plataformas | Project App.'
+))
+const description = computed(() => t('additionalModules.subtitle'))
+const baseUrl = 'https://projectapp.co'
+const itemList = computed(() => {
+  const modules = (catalog.value?.categories || []).flatMap((category) => category.modules)
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: t('additionalModules.title'),
+    numberOfItems: modules.length,
+    itemListElement: modules.map((module, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: module.name,
+      description: module.summary,
+      url: `${baseUrl}${canonicalPath.value}#module-${module.slug}`,
+    })),
+  }
+})
+
+useHead(() => ({
+  title: title.value,
+  htmlAttrs: { lang: isEnglish.value ? 'en-US' : 'es-CO' },
+  meta: [
+    { name: 'description', content: description.value },
+    { name: 'robots', content: 'index,follow' },
+    { property: 'og:title', content: title.value },
+    { property: 'og:description', content: description.value },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: `${baseUrl}${canonicalPath.value}` },
+    { name: 'twitter:card', content: 'summary' },
+  ],
+  link: [
+    { rel: 'canonical', href: `${baseUrl}${canonicalPath.value}` },
+    {
+      rel: 'alternate',
+      hreflang: isEnglish.value ? 'es-CO' : 'en-US',
+      href: `${baseUrl}${alternatePath.value}`,
+    },
+    {
+      rel: 'alternate',
+      hreflang: isEnglish.value ? 'en-US' : 'es-CO',
+      href: `${baseUrl}${canonicalPath.value}`,
+    },
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(itemList.value),
+    },
+  ],
+}))
+
+const pdfUrl = computed(() => `/api/additional-modules/public/pdf/?lang=${language.value}`)
+
+async function retry() {
+  liveError.value = false
+  try {
+    catalog.value = await $fetch(`/api/additional-modules/public/?lang=${language.value}`)
+  } catch {
+    liveError.value = true
+  }
+}
+</script>
+
+<template>
+  <section class="min-h-screen bg-surface">
+    <div v-if="liveError" class="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 text-center">
+      <h1 class="text-2xl font-medium text-text-brand">{{ t('additionalModules.loadError') }}</h1>
+      <BaseButton class="mt-5" @click="retry">{{ t('additionalModules.retry') }}</BaseButton>
+    </div>
+    <AdditionalModulesCatalogView
+      v-else
+      :categories="catalog?.categories || []"
+      :total-modules="catalog?.total_modules || 0"
+      :download-url="pdfUrl"
+    />
+  </section>
+</template>

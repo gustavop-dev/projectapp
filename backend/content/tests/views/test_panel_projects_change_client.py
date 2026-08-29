@@ -176,6 +176,7 @@ class TestApplyEndpoint:
         assert response.status_code == 200, response.data
         assert response.data['moved'] == {
             'hostings': 1, 'incomes': 1, 'draft_accounts': 0,
+            'project_folders': 5,
         }
         row = response.data['project']
         assert row['client']['profile_id'] == target.pk

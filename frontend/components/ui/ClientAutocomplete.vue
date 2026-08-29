@@ -10,8 +10,10 @@
       <input
         ref="inputRef"
         v-model="inputText"
-        type="text"
+        :type="isCatalog ? 'search' : 'text'"
         :placeholder="placeholder"
+        :disabled="disabled"
+        :title="disabled && disabledReason ? disabledReason : undefined"
         :data-testid="testId"
         autocomplete="off"
         class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
@@ -20,22 +22,27 @@
         @keydown.down.prevent="onArrowDown"
         @keydown.up.prevent="onArrowUp"
         @keydown.enter.prevent="onEnter"
-        @keydown.esc.prevent="closeDropdown"
-        role="combobox"
-        :aria-expanded="isOpen"
-        :aria-controls="isOpen ? listboxId : undefined"
+        @keydown.esc="onEscape"
+        :role="isCatalog ? 'searchbox' : 'combobox'"
+        :aria-expanded="isCatalog ? undefined : isOpen"
+        :aria-controls="isCatalog || isOpen ? listboxId : undefined"
         :aria-busy="isSearching || isLoadingMore"
-        aria-autocomplete="list"
-        aria-haspopup="listbox"
+        :aria-autocomplete="isCatalog ? undefined : 'list'"
+        :aria-haspopup="isCatalog ? undefined : 'listbox'"
       />
-      <!-- Clear button — visible when there's a selected client OR text typed -->
+      <!-- In catalog mode this clears only the filter; selecting a client and
+           filtering the visible catalog are deliberately independent acts. -->
       <button
-        v-if="modelValue || inputText"
+        v-if="!disabled && (isCatalog ? inputText : (modelValue || inputText))"
         type="button"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
-        :aria-label="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
-        :title="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
-        @click="clearSelection"
+        :aria-label="isCatalog
+          ? 'Limpiar búsqueda'
+          : ($t ? $t('clients.autocomplete.clear') : 'Limpiar')"
+        :title="isCatalog
+          ? 'Limpiar búsqueda'
+          : ($t ? $t('clients.autocomplete.clear') : 'Limpiar')"
+        @click="isCatalog ? clearCatalogFilter() : clearSelection()"
       >
         <BaseActionIcon action="clear" />
       </button>
@@ -50,8 +57,9 @@
       Cliente enlazado: {{ committedLabel }} <span class="tabular-nums">(#{{ modelValue }})</span>
     </p>
 
-    <!-- Dropdown -->
+    <!-- Default form presentation: a modal-owned floating listbox. -->
     <BaseFloatingListbox
+      v-if="!isCatalog"
       :id="listboxId"
       :open="isOpen"
       :anchor="inputRef"
@@ -59,138 +67,48 @@
       @close="closeDropdown"
       @reach-end="loadMore"
     >
-      <!-- Loading -->
-      <div
-        v-if="isSearching"
-        class="px-4 py-3 text-sm text-text-subtle text-center"
-      >
-        {{ inputText.trim() ? 'Buscando...' : 'Cargando clientes...' }}
-      </div>
-
-      <!-- Request failed before there was anything useful to show. -->
-      <div
-        v-else-if="searchError"
-        class="space-y-2 px-4 py-3 text-sm text-text-muted"
-        data-testid="client-autocomplete-error"
-      >
-        <p>No se pudo cargar la lista de clientes.</p>
-        <button
-          type="button"
-          class="text-xs font-medium text-text-brand hover:underline"
-          data-testid="client-autocomplete-retry"
-          @click="retrySearch"
-        >
-          Reintentar
-        </button>
-      </div>
-
-      <!-- Results -->
-      <template v-else-if="results.length > 0">
-        <ul class="divide-y divide-border-muted">
-          <li
-            v-for="(client, idx) in results"
-            :key="client.id"
-            :data-testid="`client-autocomplete-option-${client.id}`"
-            :class="[
-              'px-4 py-2.5 cursor-pointer transition-colors',
-              highlightIndex === idx ? 'bg-primary-soft' : 'hover:bg-surface-raised',
-            ]"
-            role="option"
-            :aria-selected="highlightIndex === idx"
-            @click="selectClient(client)"
-            @mouseenter="highlightIndex = idx"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <p class="font-medium text-text-default text-sm truncate">
-                    {{ client.name }}
-                    <span class="text-text-subtle font-normal tabular-nums">(#{{ client.id }})</span>
-                  </p>
-                  <span
-                    v-if="clientHasNoEmail(client)"
-                    class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
-                    title="Este cliente todavía no tiene correo. Las acciones que envían mensajes pedirán agregarlo antes de continuar."
-                  >
-                    📧 Sin correo
-                  </span>
-                </div>
-                <p class="text-xs text-text-muted truncate mt-0.5">
-                  <span v-if="client.company">{{ client.company }} · </span>
-                  {{ clientHasNoEmail(client) ? 'Correo pendiente · habrá que agregarlo para enviar' : client.email }}
-                </p>
-              </div>
-              <p
-                v-if="client.phone"
-                class="text-xs text-text-subtle flex-shrink-0 tabular-nums"
-              >
-                {{ client.phone }}
-              </p>
-            </div>
-          </li>
-        </ul>
-        <div
-          v-if="isLoadingMore"
-          class="border-t border-border-muted px-4 py-2 text-center text-xs text-text-subtle"
-          data-testid="client-autocomplete-loading-more"
-        >
-          Cargando más clientes...
-        </div>
-        <div
-          v-else-if="loadMoreError"
-          class="flex items-center justify-between gap-3 border-t border-border-muted px-4 py-2 text-xs text-text-muted"
-          data-testid="client-autocomplete-load-more-error"
-        >
-          <span>No se pudo cargar la siguiente página.</span>
-          <button type="button" class="font-medium text-text-brand hover:underline" @click="loadMore">
-            Reintentar
-          </button>
-        </div>
-      </template>
-
-      <!-- No results — offer to create -->
-      <div v-else-if="hasSearched && inputText.trim()" class="px-4 py-3 text-sm text-text-muted">
-        <p class="mb-2">No se encontraron clientes con "{{ inputText }}".</p>
-        <button
-          type="button"
-          class="w-full text-left px-3 py-2 rounded-lg bg-primary-soft text-text-brand hover:opacity-90 transition-colors font-medium text-xs flex items-center gap-2"
-          data-testid="client-autocomplete-create-new"
-          @click="emitCreateNew"
-        >
-          <BaseActionIcon action="create" />
-          <span>Crear nuevo cliente "{{ inputText.trim() }}"</span>
-        </button>
-      </div>
-
-      <!-- Empty catalog: blank query is a real list request, never an instruction
-           to guess what to type. -->
-      <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-text-muted">
-        <p class="mb-2">No hay clientes registrados.</p>
-        <button
-          type="button"
-          class="w-full text-left px-3 py-2 rounded-lg bg-primary-soft text-text-brand hover:opacity-90 transition-colors font-medium text-xs flex items-center gap-2"
-          data-testid="client-autocomplete-create-new"
-          @click="emitCreateNew"
-        >
-          <BaseActionIcon action="create" />
-          <span>Crear un cliente</span>
-        </button>
-      </div>
-
-      <div v-else class="px-4 py-3 text-sm text-text-subtle text-center">
-        Cargando clientes...
-      </div>
+      <ClientAutocompleteResults
+        v-bind="resultsProps"
+        @create-new="emitCreateNew"
+        @highlight="highlightIndex = $event"
+        @load-more="loadMore"
+        @retry="retrySearch"
+        @select="selectClient"
+      />
     </BaseFloatingListbox>
+
+    <!-- Bulk-decision presentation: permanent in-flow catalog. The header is
+         outside the five-row scroller, so the modal never reserves an empty
+         dropdown-sized block and never becomes the catalog's scrollbar. -->
+    <div
+      v-else
+      :id="listboxId"
+      role="grid"
+      aria-label="Clientes disponibles"
+      class="mt-2 overflow-hidden rounded-xl border border-border-default bg-surface"
+      data-testid="client-catalog"
+    >
+      <ClientAutocompleteResults
+        v-bind="resultsProps"
+        @create-new="emitCreateNew"
+        @highlight="highlightIndex = $event"
+        @load-more="loadMore"
+        @retry="retrySearch"
+        @select="selectClient"
+        @toggle-sort="toggleCatalogSort"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, useId, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import {
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline';
 import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
+import ClientAutocompleteResults from '~/components/ui/ClientAutocompleteResults.vue';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 
 /**
@@ -219,12 +137,41 @@ const props = defineProps({
    * flex y arrastra el input fuera de línea con los botones de al lado.
    */
   showLinkedHint: { type: Boolean, default: true },
+  /** Floating combobox for forms; permanent catalog for bulk decisions. */
+  presentation: {
+    type: String,
+    default: 'floating',
+    validator: (value) => ['floating', 'catalog'].includes(value),
+  },
+  /** Catalog lifecycle. Opening reloads a clean first page without waiting for focus. */
+  active: { type: Boolean, default: true },
+  /** Browser-local preference key. Empty means A-Z without persistence. */
+  sortStorageKey: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'select', 'create-new']);
 
 const clientsStore = useProposalClientsStore();
 const PAGE_SIZE = 20;
+const isCatalog = computed(() => props.presentation === 'catalog');
+
+function readCatalogSort() {
+  if (!props.sortStorageKey || typeof window === 'undefined') return 'asc';
+  try {
+    return window.localStorage.getItem(props.sortStorageKey) === 'desc' ? 'desc' : 'asc';
+  } catch (_error) {
+    return 'asc';
+  }
+}
+
+function persistCatalogSort(direction) {
+  if (!props.sortStorageKey || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(props.sortStorageKey, direction);
+  } catch (_error) { /* Browser storage is an enhancement, never a blocker. */ }
+}
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
@@ -244,7 +191,22 @@ const hasMore = ref(false);
 const nextOffset = ref(0);
 const searchError = ref('');
 const loadMoreError = ref('');
+const sortDirection = ref(readCatalogSort());
 let searchGeneration = 0;
+
+const resultsProps = computed(() => ({
+  results: results.value,
+  inputText: inputText.value,
+  modelValue: props.modelValue,
+  highlightIndex: highlightIndex.value,
+  hasSearched: hasSearched.value,
+  isSearching: isSearching.value,
+  isLoadingMore: isLoadingMore.value,
+  searchError: searchError.value,
+  loadMoreError: loadMoreError.value,
+  presentation: props.presentation,
+  sortDirection: sortDirection.value,
+}));
 
 // -------------------------------------------------------------------
 // Search (debounced 200ms)
@@ -268,16 +230,20 @@ const runSearch = async (query, { append = false } = {}) => {
   }
 
   try {
-    const result = await clientsStore.searchClients(query, {
+    const paging = {
       offset,
       limit: PAGE_SIZE,
-    });
+    };
+    if (isCatalog.value) {
+      paging.order = sortDirection.value === 'desc' ? '-name' : 'name';
+    }
+    const result = await clientsStore.searchClients(query, paging);
     if (generation !== searchGeneration) return;
     if (result?.cancelled) {
       // Superseded searches are normally rejected after the next generation
       // starts. If an adapter cancels the current request on its own, close the
       // empty layer instead of leaving a permanent "Cargando" state behind.
-      if (!append) isOpen.value = false;
+      if (!append && !isCatalog.value) isOpen.value = false;
       return;
     }
     if (!result?.success) {
@@ -327,6 +293,7 @@ const onInput = () => {
 
 const onFocus = () => {
   isOpen.value = true;
+  if (isCatalog.value) return;
   // Skip the auto-search when the parent already committed a selection
   // (editing an existing proposal) — otherwise we'd waste a request.
   if (!hasSearched.value && props.modelValue === null) {
@@ -338,10 +305,6 @@ const retrySearch = () => runSearch(inputText.value.trim());
 
 const loadMore = () => runSearch(inputText.value.trim(), { append: true });
 
-const clientHasNoEmail = (client) => (
-  Boolean(client?.is_email_placeholder) || !String(client?.email || '').trim()
-);
-
 // -------------------------------------------------------------------
 // Selection
 // -------------------------------------------------------------------
@@ -349,9 +312,21 @@ const clientHasNoEmail = (client) => (
 const selectClient = (client) => {
   emit('update:modelValue', client.id);
   emit('select', client);
-  inputText.value = client.name;
   committedLabel.value = client.name;
+  if (isCatalog.value) {
+    highlightIndex.value = results.value.findIndex((result) => result.id === client.id);
+    return;
+  }
+  inputText.value = client.name;
   closeDropdown();
+};
+
+const clearCatalogFilter = () => {
+  searchGeneration += 1;
+  inputText.value = '';
+  highlightIndex.value = -1;
+  runSearch('');
+  inputRef.value?.focus();
 };
 
 const clearSelection = () => {
@@ -378,6 +353,7 @@ const clearSelection = () => {
  * donde el texto tecleado es el nombre del cliente por crear).
  */
 const closeDropdown = (opts) => {
+  if (isCatalog.value) return;
   isOpen.value = false;
   highlightIndex.value = -1;
   const restore = !(opts && opts.restore === false);
@@ -418,6 +394,18 @@ const onEnter = () => {
   }
 };
 
+const onEscape = (event) => {
+  if (isCatalog.value) return;
+  event.preventDefault();
+  closeDropdown();
+};
+
+const toggleCatalogSort = () => {
+  sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  persistCatalogSort(sortDirection.value);
+  runSearch(inputText.value.trim());
+};
+
 // -------------------------------------------------------------------
 // Create new
 // -------------------------------------------------------------------
@@ -425,6 +413,7 @@ const onEnter = () => {
 const emitCreateNew = () => {
   const typed = inputText.value.trim();
   emit('create-new', typed);
+  if (isCatalog.value) return;
   // Lo tecleado ES el nombre del cliente nuevo: se vuelve la etiqueta enlazada
   // en vez de perderse contra el cliente anterior.
   committedLabel.value = typed;
@@ -438,6 +427,10 @@ const emitCreateNew = () => {
 watch(
   () => props.initialLabel,
   (newLabel) => {
+    if (isCatalog.value) {
+      committedLabel.value = newLabel || '';
+      return;
+    }
     // Los dos casos del input son excluyentes (uno exige rótulo, el otro que no
     // lo haya), pero NINGUNO puede cortar el watcher: la sincronización de
     // `committedLabel` de más abajo tiene que correr siempre.
@@ -461,6 +454,36 @@ watch(
     if (inputText.value === committedLabel.value || !committedLabel.value) {
       committedLabel.value = newLabel || '';
     }
+  },
+);
+
+watch(
+  () => props.active,
+  (active) => {
+    if (!isCatalog.value) return;
+    searchGeneration += 1;
+    isOpen.value = active;
+    if (!active) return;
+    inputText.value = '';
+    highlightIndex.value = -1;
+    runSearch('');
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.modelValue,
+  (clientId, previousClientId) => {
+    if (
+      !isCatalog.value
+      || !props.active
+      || clientId == null
+      || clientId === previousClientId
+      || results.value.some((client) => client.id === clientId)
+    ) return;
+    // Inline creation happens in the parent modal. Refetching the current
+    // query places the new row back into the canonical server order.
+    runSearch(inputText.value.trim());
   },
 );
 

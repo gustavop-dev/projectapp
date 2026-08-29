@@ -1,5 +1,10 @@
 # Guion de validación y mantenimiento de MCP
 
+Las carpetas del conector de Documentos declaran `folder_kind`, proyecto y
+estado. `create_folder` hereda la asociación de su padre y `rename_folder`
+rechaza raíces automáticas de proyecto; estas protecciones se validan junto
+con los contratos de modelo antes de publicar cambios del gestor.
+
 Última revisión integral: 2026-08-27.
 
 Este documento es el procedimiento repetible para validar los conectores MCP de
@@ -17,6 +22,9 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   decisión explícita del superusuario en `/panel/mcps`.
 - Los handlers MCP reutilizan serializers y servicios del panel. Una regla que
   impide una acción en la interfaz también la impide por conversación.
+- Las carpetas con `system_key` pertenecen al archivado automático. El MCP puede
+  listarlas para orientar al operador, pero no crearlas debajo, renombrarlas ni
+  usarlas como destino de un documento markdown.
 - Ninguna descripción puede prometer un dato que el handler descarte o una
   acción que el servidor no realiza.
 - `DocumentState.description` es una lectura clasificada del contrato MCP. Para
@@ -30,7 +38,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | Slug | Herramientas | Alcance |
 |---|---:|---|
 | `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
-| `documents` | 17 | Carpetas, markdown, cliente/proyecto, estados y observaciones recuperables |
+| `documents` | 17 | Carpetas manuales, markdown, cliente/proyecto, estados y observaciones recuperables; jerarquías generadas visibles pero protegidas |
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
 | `communications` | 5 | Hilos y registro conversacional de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
@@ -81,6 +89,13 @@ inactividad responden 404 para no revelar conectores.
 
 Usar dos clientes, un proyecto de cada cliente, un documento markdown de cada
 cliente y un superusuario. Conservar los IDs que devuelve cada paso.
+
+`list_threads` y el endpoint del panel comparten
+`communication_query_service.py`. Los argumentos escalares del conector se
+normalizan como una selección de un valor y conservan su contrato; el REST puede
+enviar valores repetidos o separados por coma para la selección múltiple del
+panel. En ambos caminos, canal, dirección, estado del mensaje y fechas deben
+coincidir en un mismo mensaje, no en mensajes distintos del mismo hilo.
 
 ### 1. `list_threads`
 

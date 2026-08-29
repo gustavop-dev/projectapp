@@ -12,8 +12,8 @@ import BaseRowLink from '../../components/base/BaseRowLink.vue';
 
 const BaseTooltipStub = {
   name: 'BaseTooltip',
-  props: ['position', 'width', 'minWidth'],
-  template: '<div><slot name="trigger" /><slot /></div>',
+  props: ['text', 'position', 'width', 'minWidth'],
+  template: '<div :data-tooltip="text"><slot name="trigger" /><slot /></div>',
 };
 
 const BaseBadgeStub = {
@@ -116,7 +116,8 @@ describe('DocumentsTable — archived mode', () => {
 
     const cells = wrapper.get('[data-testid="document-row-1"]').findAll('td');
 
-    expect(cells[0].find('[aria-label="Acciones de Contrato de Servicios"]').exists()).toBe(true);
+    const actionsButton = cells[0].get('[aria-label="Acciones de Contrato de Servicios"]');
+    expect(actionsButton.attributes('title')).toBeUndefined();
     expect(cells[1].text()).toContain('Contrato de Servicios');
     expect(cells[2].text()).toContain('Enviado');
     expect(cells[3].text()).toContain('2026');
@@ -157,6 +158,19 @@ describe('DocumentsTable — archived mode', () => {
     expect(wrapper.text()).not.toContain('Enviado');
   });
 
+  it('renders the derived commercial state instead of workflow episodes', () => {
+    const wrapper = mountTable({
+      documents: [{
+        ...activeDoc,
+        display_state: { key: 'paid', label: 'Pagada', variant: 'success' },
+      }],
+    });
+
+    const badge = wrapper.get('[data-testid="doc-derived-state-1"]');
+    expect(badge.text()).toBe('Pagada');
+    expect(wrapper.get('[data-testid="doc-states-cell-1"]').text()).not.toContain('Enviado');
+  });
+
   it('marks only the archived row in a mixed list', () => {
     // Es la mitad de fondo del requisito de búsqueda: un resultado archivado
     // tiene que declararse como tal aunque su vecino esté activo.
@@ -175,6 +189,26 @@ describe('DocumentsTable — archived mode', () => {
     // `draggable` es enumerado, no booleano: "false" es la forma de apagarlo.
     expect(rows[0].attributes('draggable')).toBe('true');
     expect(rows[1].attributes('draggable')).toBe('false');
+  });
+
+  it('does not make generated snapshots draggable', () => {
+    const wrapper = mountTable({
+      documents: [{ ...activeDoc, is_generated_snapshot: true }],
+    });
+
+    expect(wrapper.get('[data-testid="document-row-1"]').attributes('draggable')).toBe('false');
+  });
+
+  it('does not make issued collection accounts draggable', () => {
+    const wrapper = mountTable({
+      documents: [{
+        ...activeDoc,
+        document_type_code: 'collection_account',
+        commercial_status: 'issued',
+      }],
+    });
+
+    expect(wrapper.get('[data-testid="document-row-1"]').attributes('draggable')).toBe('false');
   });
 
   it('renders a restore action on archived folder rows instead of the navigation chevron', async () => {
@@ -337,6 +371,14 @@ describe('DocumentsTable — fila navegable', () => {
 describe('DocumentsTable — fila de carpeta', () => {
   const folderToFor = (sub) => `/panel/documents?folder=${sub.id}`;
 
+  it('does not make system-managed folders draggable', () => {
+    const wrapper = mountTable({
+      subfolders: [{ ...activeFolder, is_system_managed: true }],
+    });
+
+    expect(wrapper.findAll('tbody tr')[0].attributes('draggable')).toBe('false');
+  });
+
   it('publishes the folder address on its name', () => {
     const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
 
@@ -419,6 +461,8 @@ describe('DocumentsTable — title column', () => {
     const handle = wrapper.get('[data-testid="documents-title-resize-handle"]');
     expect(handle.attributes('role')).toBe('separator');
     expect(handle.attributes('aria-valuenow')).toBe('320');
+    expect(handle.attributes('aria-valuemax')).toBe('520');
+    expect(handle.attributes('title')).toBe('Ajustar el ancho de la columna Título');
   });
 
   it('keeps the workflow states column fixed', () => {

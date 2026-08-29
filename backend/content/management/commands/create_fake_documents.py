@@ -40,6 +40,9 @@ from content.services import collection_account_service as ca_service
 from content.services import collection_account_create_service as ca_create_service
 from content.services.document_content import build_content_json
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
+from content.services.generated_document_filing_service import (
+    file_collection_account,
+)
 from content.services.document_note_service import (
     create_note,
     delete_notes,
@@ -308,7 +311,6 @@ class Command(BaseCommand):
             created_md += 1
 
         # ── Collection accounts ───────────────────────────────────────────
-        ca_folders = [f for f in leaves if f.name in ('Cuentas de cobro', 'Facturas')] or leaves
         # Lifecycle buckets across the generated accounts.
         lifecycles = self._lifecycle_plan(n_collection)
 
@@ -338,14 +340,11 @@ class Command(BaseCommand):
                 acting_user=admin,
             )
             doc.uuid = self.seed_context.uuid(f'collection-account-{i}')
-            doc.folder = rng.choice(ca_folders) if i % 2 == 0 else None
             doc.terms_and_conditions = (
                 'Pago dentro del plazo indicado. Valores en pesos colombianos.'
             )
-            if i == n_collection - 1:
-                doc.title = ('CuentaCobroExtremaSinEspacios' * 12)[:255]
             doc.save(update_fields=[
-                'uuid', 'folder', 'terms_and_conditions', 'title', 'updated_at',
+                'uuid', 'terms_and_conditions', 'updated_at',
             ])
             doc.tags.add(*rng.sample(tags, k=rng.randint(1, 2)))
             self._apply_income_lifecycle(doc, lifecycle, admin, rng)
@@ -511,7 +510,11 @@ class Command(BaseCommand):
         #    forma de comprobar que restaurar algo de dentro reabre la cadena.
         nested_parent = next(
             (
-                f for f in DocumentFolder.objects.filter(is_archived=False, parent__isnull=True)
+                f for f in DocumentFolder.objects.filter(
+                    is_archived=False,
+                    parent__isnull=True,
+                    managed_project__isnull=True,
+                )
                 if DocumentFolder.objects.filter(parent=f, is_archived=False).exists()
                 and f.pk != getattr(target, 'pk', None)
             ),
@@ -557,7 +560,8 @@ class Command(BaseCommand):
         if lifecycle == 'draft':
             Document.objects.filter(pk=document.pk).update(
                 commercial_status=Document.CommercialStatus.DRAFT,
-                public_number='', issue_date=None, due_date=None,
+                public_number='', issue_date=None, due_date=None, folder=None,
+                title=f'Cuenta de cobro — {document.collection_account.billing_concept}',
             )
             return
 
@@ -570,6 +574,7 @@ class Command(BaseCommand):
             due_date=due_date,
         )
         document.refresh_from_db()
+        file_collection_account(document)
         if lifecycle == 'paid':
             ca_service.mark_collection_account_paid(document, acting_user=actor)
         elif lifecycle == 'cancelled':

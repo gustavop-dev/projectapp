@@ -12,7 +12,7 @@
           v-model="inputText"
           type="text"
           :placeholder="placeholder"
-          :disabled="!clientProfileId && !allowNoClient"
+          :disabled="disabled || (!clientProfileId && !allowNoClient)"
           :title="!clientProfileId && !allowNoClient ? 'Elige un cliente antes de buscar o crear un proyecto.' : undefined"
           :data-testid="testid"
           autocomplete="off"
@@ -30,7 +30,7 @@
           @keydown.esc.prevent="closeDropdown"
         >
         <button
-          v-if="modelValue || inputText"
+          v-if="!disabled && (modelValue || inputText)"
           type="button"
           class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
           aria-label="Quitar proyecto"
@@ -213,6 +213,7 @@ const props = defineProps({
   /** Filter bars and grouped rows render one explanation below the complete
    * field/action group instead of letting this field change the row height. */
   showHint: { type: Boolean, default: true },
+  disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'created', 'select']);

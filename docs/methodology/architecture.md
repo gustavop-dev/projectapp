@@ -1,5 +1,11 @@
 # Architecture — ProjectApp
 
+> **Estado 2026-08-28 — implementado:** el dominio `AdditionalModule` separa
+> categorías, módulos, enlaces compartidos y aperturas únicas por sesión. El
+> panel usa sesión/CSRF; el índice público y los enlaces seleccionados usan
+> contratos REST de sólo lectura, con tracking first-party y generación PDF en
+> el backend. Esta primera versión no expone el catálogo mediante MCP.
+
 ## 1. System Overview
 
 ```mermaid
@@ -189,6 +195,8 @@ erDiagram
     DocumentStateEpisode ||--o{ DocumentStateEpisodeEvent : "records immutable events"
     Project ||--o{ DocumentStateEpisode : "has lifecycle episodes"
     DocumentState ||--o{ Project : "is current lifecycle state"
+    Project ||--o| DocumentFolder : "owns managed root"
+    DocumentFolder ||--o{ DocumentFolder : "contains"
     Document ||--o{ DocumentNote : "has observations"
     DocumentStateEpisode ||--o{ DocumentNote : "may originate"
     ContractTemplate ||--o{ ProposalDocument : "used in"
@@ -239,10 +247,10 @@ erDiagram
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
 | **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, is_client_visible, legacy status (expand/contract only), language (es/en), cover_type, content_json, private delivery copy, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
-| **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect`; non-null `system_key` is database-unique per catalog and `NULL` remains repeatable |
+| **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect` and configurable `show_in_document_manager`; non-null `system_key` is database-unique per catalog and `NULL` remains repeatable |
 | **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document/project workflow and append-only audit | exactly one of document/project, state, opened_at/closed_at, actors, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
 | **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
-| **DocumentFolder / DocumentTag** | Folder hierarchy plus legacy tag compatibility during rollout | name, color, parent (folder), created_by |
+| **DocumentFolder / DocumentTag** | Folder hierarchy, system-owned project roots and legacy tag compatibility | name, color, parent (folder), client, project, optional one-to-one `managed_project`, created_by; database checks keep a managed root active, top-level and aligned with its project |
 | **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
 | **CommunicationMessage** | One ordered incoming/outgoing conversation event | thread, channel, direction, status, subject/content, occurred_at/recorded_at, source, reply_to, optional EmailLog seam, void audit |
 | **CommunicationAttachment** | Bidirectional reference to an existing document | message (CASCADE), document (PROTECT), unique message/document pair |
@@ -291,6 +299,7 @@ flowchart TD
     Views --> CTS["ContractTermsService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
+    Views --> GDFS["GeneratedDocumentFilingService"]
     Views --> CMS["CommunicationService"]
     Views --> CAS["CollectionAccountService"]
     Views --> PST["ProposalStageTracker"]
@@ -305,6 +314,11 @@ flowchart TD
     PST -->|send_stage_warning / send_stage_overdue| PES
     PPDF -->|generate| ReportLab["ReportLab PDF"]
     PPDF -->|shared utils| PU["PdfUtils"]
+    PS -->|prepare/finalize send versions| PSS["ProposalSnapshotService"]
+    PSS -->|generate once| PPDF
+    PSS -->|store exact bytes + source version| Documents
+    GDFS -->|idempotent system_key hierarchy| Folders["DocumentFolder"]
+    GDFS -->|canonical folder/title| Documents
     CPDF -->|generate| ReportLab
     CPDF -->|shared utils| PU
     CTS -->|masked current default| CPDF
@@ -325,7 +339,7 @@ flowchart TD
 | Service | Footprint | Responsibilities |
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Shared helpers: `_attach_commercial_pdf(email, proposal)` (used by `send_proposal_to_client`, `send_acceptance_confirmation`, `send_multi_proposal_to_client`), `_build_initial_email_context(proposal)` (per-proposal phase context), `_send_stage_notification`. |
+| **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Initial/resend flows pass a prepared snapshot to `_attach_commercial_pdf`, so the retained bytes and attached bytes are identical; the generation fallback remains for non-send compatibility callers. Shared helpers also include `_build_initial_email_context(proposal)` and `_send_stage_notification`. |
 | **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires every key in the universal inventory plus explicit client/internal/security classification, persists baseline history, sends the primary envelope first, resolves segmented BCC recipients only after success, deduplicates original recipients, isolates copy failures and exposes one delivery trace to `EmailLog`. |
 | **OutboundEmailInventory** | Small | Authoritative mapping of all 56 outbound template keys to one of eight configurable copy families. Unknown keys fail closed; static tests reject mail calls outside the gateway. `ClientEmailInventory` remains the exact client-only compatibility subset. |
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
@@ -335,6 +349,8 @@ flowchart TD
 | **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
+| **GeneratedDocumentFilingService** | Small | Owns deterministic project/client/type/year/month paths, Spanish month names, stable folder keys, collection-account/proposal titles, cancellation branches and proposal-snapshot moves on onboarding. |
+| **ProposalSnapshotService** | Small | Locks proposal rows, allocates monotonically increasing versions, renders every PDF before the first send, stores exact bytes and hash, files snapshots, and derives sent/needs-fix state from the delivery result. |
 | **CommunicationService** | Small | Transactional thread/message lifecycle, direction/channel/state validation, document-reference validation, derived last activity, annulment and append-only date corrections |
 | **MarkdownParser** | Small | Parses markdown content for Document PDF rendering |
 | **CollectionAccountService** | Small | Collection account business logic |
@@ -350,6 +366,14 @@ flowchart TD
 ### 6.0 Design System
 
 Panel operational actions resolve through a semantic action catalog. Consumers keep handlers, routes, permissions and loading state locally; the catalog owns only the canonical Heroicons 24 Outline glyph and default Spanish label. `BaseActionIcon`, `BaseActionButton` and catalog-backed menus apply that metadata so icon changes remain one-place changes, while the panel action guard blocks local SVG/emoji drift and inaccessible icon-only controls in CI.
+
+`BaseActionButton` also owns the complete tooltip boundary. Its visible
+hover/focus hint defaults to the short catalog label, while the consumer-provided
+`label` may retain row context as the accessible name. The wrapped `BaseButton`
+disables native `title` forwarding, so browsers cannot render a second tooltip;
+the application tooltip sizes to its short content up to one bounded maximum.
+This shared boundary applies equally to document rows/cards and every other
+panel consumer of the action primitive.
 
 Control availability is also a design-system contract. `BaseButton`,
 `BaseActionButton`, `BaseActionMenu`, `BaseSegmented` and
@@ -404,9 +428,14 @@ Table sizing is a capability of that same layer: `BaseResizeHandle` owns the
 separator interaction, `useResizableTableColumns` resolves persisted preferred
 tracks against fixed columns and ordered donors, and `BaseResponsiveTable`
 exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
-owns measured one/two-line clipping and the touch disclosure, so consumers do
-not duplicate tooltip or line-clamp heuristics. The Documents table is the
-first specialized adopter and the folder-panel handle now uses the same input
+owns measured one/two-line clipping, remeasures after web fonts are ready, and
+provides one conditional floating `BaseTooltip` plus the in-place touch
+disclosure, so consumers do not duplicate tooltip or line-clamp heuristics. The
+same viewport-aware tooltip primitive is teleported for `BaseActionButton`; that
+component disables `BaseButton`'s native title so one control never emits two
+competing notices. `BaseResizeHandle` exposes its accessible label as a native
+hint so pointer users can discover the resize affordance. The Documents table
+is the first specialized adopter and the folder-panel handle uses the same input
 primitive. Its local column contract owns order, width and per-profile behavior
 together: Actions → Title → States → Date → Client → Project. Landscape keeps
 Actions plus the first three data tracks and groups Client/Project under Title;
@@ -448,6 +477,17 @@ fork with layout. Incomes and Collection Accounts use the same leading menu in
 their classic and grouped tables. Long modal flows declare a semantic `kind`,
 and all compact badges use the atomic `BaseBadge` contract.
 
+Indicator headers share `BaseIndicatorCard`, whose three-row grid reserves
+label, value and one optional support line even when the last row is empty.
+Help is a separate sibling control and actionable cards expose one semantic
+main button, avoiding nested interactive elements. Projects uses this shell for
+catalog-ordered non-zero lifecycle cards and a separate operational group on
+expanded layouts; below the landscape breakpoint one **Estados** summary and one
+**Pendientes** summary open drawers with the complete facts. Incomes applies the
+same compact pattern as **Resultado anual** plus **Detalle operativo**, while its
+expanded branch keeps four business-ranked cards. Both branches reuse the same
+filter functions, so layout changes presentation without forking behavior.
+
 `BaseDrawer` is the shared transient second zone for compact panel views: it
 teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll
 and supports left/right/bottom placement. `BaseModal` keeps the Phase 1 semantic
@@ -458,8 +498,8 @@ only provide scrollable bodies and sticky actions where their workflow needs it.
 
 | Viewport | Layout role | Documentos | Clientes | Proyectos |
 |----------|-------------|------------|----------|-----------|
-| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | One-column cards + secondary-KPI disclosure |
-| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two-column cards |
+| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | Two indicator summaries + one-column cards |
+| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two indicator summaries + two-column cards |
 | 1195×835 | Landscape tablet | Two zones + prioritized table | Visible two-level filters | Sortable table |
 | 1440×900 | Laptop | Full desktop information | Full desktop information | Full desktop information |
 | 2560×1440 | Large monitor | 1400 px centered cap | 1400 px centered cap | 1400 px centered cap |
@@ -739,6 +779,8 @@ flowchart TD
 
     ProposalPage --> ProposalClosing["Synthetic final closing panel"]
 
+    FunctionalRequirements --> CoreRequirementCards["views · components · features · cross_cutting_features"]
+    CoreRequirementCards --> ContextualQuality["Editable quality scope by business, stage and proposal"]
     FunctionalRequirements --> ItemRequirementsMap["item id → linked technical requirements"]
     ItemRequirementsMap --> LinkedRequirementsModal["Ver requerimientos (N)"]
 
@@ -754,6 +796,17 @@ flowchart TD
 `next_steps` is data-only in the public route: it is not rendered as an independent horizontal panel. Its prerequisite steps are merged into `FinalNote`, while commercial calls to action and contact channels are passed to the synthetic `ProposalClosing` panel in detailed, executive and technical modes. This keeps the commitment narrative distinct from the final response/contact surface.
 
 Commercial item traceability is inclusion-aware. Visible base groups always require coverage; calculator modules require it only when selected/default-selected, and hidden groups are ignored. `TechnicalDocumentEditor` blocks saving when an included item has no technical requirement in `linked_item_ids`, but reports unselected optional gaps as non-blocking warnings. The same mapping powers the client-facing “Ver requerimientos (N)” link for base and contracted-module cards.
+
+The functional-requirements JSON starts with four core presentation groups in a
+stable order: `views`, `components`, `features`, and
+`cross_cutting_features`. The latter is a required container but not fixed
+content: proposal generation adapts its quality items to the business, stage,
+audience and actual scope. Every retained item receives a stable id and the
+technical prompt creates the matching epic plus `linked_item_ids`; PDF rendering,
+the proposal module catalog and proposal→project scope synchronization consume
+all groups generically. Migration `content.0222` inserts the group into stored
+defaults and active draft snapshots, moves the legacy responsive item without
+changing its id, and deliberately leaves historical proposals untouched.
 
 ---
 
@@ -871,7 +924,7 @@ The explicit `$proposal-create` / `/proposal-create` workflow can precede the pa
 
 1. Admin creates proposal via `/panel/proposals/create` (or JSON import)
 2. Admin selects an existing client from `<ClientAutocomplete>` (or types a new one). Backend resolves the client via `proposal_client_service.get_or_create_client_for_proposal()` — case-insensitive dedup by `User.email`, never hijacks admin accounts. Empty emails get a placeholder `cliente_<id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save, which automatically pauses every email automation for that proposal until a real address is entered.
-3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF). The frontend seller prompt and backend `_seller_prompt.bold_formatting` share the same 14-field lead-copy emphasis contract; both must remain aligned. `show_contract_terms` remains separate top-level metadata, so enabling the fourth reading mode does not mutate this section snapshot or its prompt/JSON shape.
+3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF). Functional requirements begin with the four core cards `views` → `components` → `features` → `cross_cutting_features`; the fourth container is stable while its quality items are contextual. The frontend seller prompt and backend `_seller_prompt.bold_formatting` share the same 14-field lead-copy emphasis contract; both must remain aligned. `show_contract_terms` remains separate top-level metadata, so enabling the fourth reading mode does not mutate this section snapshot or its prompt/JSON shape.
 4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
 5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
 6. Client opens unique link `/proposal/{uuid}`
@@ -1030,7 +1083,7 @@ The legacy `Project.status` remains a compatibility mirror, while new panel and
 platform writes cannot mutate it directly. Hosting failure produces a manual
 suggestion only; no timer automatically moves Suspendido to Dado de baja.
 
-### Client Communication → Manual Send Fact → Reply Context
+### Client Communication Scope → Manual Fact → Reply Context
 
 ```mermaid
 flowchart LR
@@ -1044,14 +1097,24 @@ flowchart LR
     Sent --> Void["Annul with reason"]
 ```
 
-Phase 1 is deliberately a registry, not a transport. A manual source records the
+The registry is deliberately not a transport. A manual source records the
 operator's assertion that a message was sent; it never impersonates an SMTP or
-WhatsApp delivery receipt. A later email phase must enter through
-`EmailDeliveryGateway` and atomically associate the existing `EmailLog` seam.
-Historical conversations keep their original client: when a project changes
-owner, its threads are detached from the project rather than reassigned.
+WhatsApp delivery receipt. This is the chosen workflow, so the interface does
+not present automatic delivery as a pending phase. Historical conversations
+keep their original client: when a project changes owner, its threads are
+detached from the project rather than reassigned.
 
-### Modal-Owned Floating Listboxes
+Read navigation has one shared boundary. The panel sends its project/client
+selection, multi-value filters and order to `communication_query_service`; the
+REST view returns both rows and facets, while the MCP scalar inputs are normalized
+through the same parser. Filters within one dimension are OR and dimensions are
+AND. Channel, direction, message status and date are correlated against one
+message instead of being satisfied by unrelated messages in the same thread.
+The list URL owns that state and `thread=<id>` opens the selected conversation in
+a workspace modal, preserving the list when the modal closes or browser Back is
+used.
+
+### Modal-Owned Selector Surfaces
 
 `BaseFloatingListbox` is the shared rendering boundary for searchable selectors
 inside `BaseModal`. The modal provides a dedicated floating root outside its
@@ -1066,15 +1129,26 @@ income selector in `CollectionAccountFormModal` consume that primitive. This
 keeps accounting and Documents modals on one clipping, focus and scroll contract
 instead of repeating per-screen absolute dropdown workarounds.
 
-Geometry and data readiness are separate parts of that contract.
-`ClientAutocomplete` requests the empty query when an uncommitted picker gains
-focus, so a modal whose picker is its primary decision can focus it on open and
-render a real catalog immediately. `search_proposal_clients` orders by the
-display-name fallback (person name → company → email), returns at most 20 rows
-for `limit`/`offset`, and keeps its historical array body while publishing the
-filtered total in `X-Total-Count`. `BaseFloatingListbox` signals its scroll end;
-the client picker appends the next page without duplicates while the modal stays
-fixed. Empty and failed reads remain actionable inside the same layer.
+The same selector can expose two rendering surfaces without duplicating its data
+state. `ClientAutocompleteResults` owns client identity, loading, retry, empty
+and progressive-page states. The default `floating` presentation wraps it in
+`BaseFloatingListbox` for secondary form choices. The explicit `catalog`
+presentation keeps the same results permanently in document flow; only
+`BulkAssignModal` opts into it because client selection is that dialog's main
+decision. The modal therefore reserves no overlay height and the catalog owns
+the sole overflow region while count, affected identities and actions remain
+still. Project assignment and the selectors in Documents/cuenta de cobro retain
+their floating behavior.
+
+Geometry, ordering and data readiness are separate parts of that contract.
+`ClientAutocomplete` requests the empty query when an active catalog opens (or
+when an uncommitted floating picker gains focus). `search_proposal_clients`
+orders by the display-name fallback (person name → company → email), accepts
+`order=name|-name`, returns at most 20 rows for `limit`/`offset`, and keeps its
+historical array body while publishing the filtered total in `X-Total-Count`.
+The catalog defaults to A-Z and persists its A-Z/Z-A choice under a consumer-
+owned browser key. Scroll-end appends the next page without duplicates and keeps
+the requested order. Empty and failed reads remain actionable in either surface.
 
 The linked-income selector owns a stable view-state default rather than a
 server restriction: it fetches the eligible expected/liquid pool, scopes it to

@@ -1,5 +1,12 @@
 # Technical Documentation — ProjectApp
 
+> **Estado 2026-08-28 — implementado:** el catálogo adicional reutiliza DRF
+> FBV, servicios de dominio, ReportLab, el cliente HTTP del panel y componentes
+> base. La página canónica es indexable y prerenderizada; cada enlace
+> seleccionado lleva `noindex`, selección inmutable y contenido vivo. Los
+> errores JSON de descargas PDF se decodifican aun cuando Axios los entrega como
+> `Blob`, para conservar mensajes accionables.
+
 ## 1. Technology Stack
 
 | Layer | Technology | Version |
@@ -259,6 +266,12 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   stop click/auxclick propagation from the action cell. The default
   `inline-end` mode is only for legacy loose-icon action rows; do not migrate
   those implicitly while adopting the kebab contract.
+- KPI cards use `BaseIndicatorCard`. Its fixed three-row layout always reserves
+  one support line; the help control remains outside the optional main action so
+  the DOM never nests buttons. Below `PANEL_BREAKPOINTS.landscape`, dense KPI
+  headers expose two summaries and move the complete facts into `BaseDrawer`;
+  expanded layouts may suppress zero-valued detail cards but must retain their
+  filters in the compact drawer or ordinary filter controls.
 
 ### Panel-owned dialogs and observation deletion
 
@@ -372,6 +385,30 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   a second `operating` meaning. Legacy `archived` remains unclassified and
   review-required; deploy applies migrations, never a session worktree.
 
+### Project-owned document roots and reviewed reconciliation
+
+- Migration `content.0222_project_document_folders` adds the nullable one-to-one
+  `DocumentFolder.managed_project`, database checks for managed-root invariants,
+  and `DocumentState.show_in_document_manager`. Existing development, active and
+  evolving project states are seeded visible; later catalog entries are configured
+  in the state manager instead of being hard-coded into the folder UI.
+- `ProjectDocumentFolderService` is the only owner of automatic root creation and
+  synchronization. The `Project` post-save signal delegates to it; it is atomic,
+  idempotent and creates the four standard children only when the managed root is
+  first provisioned. Descendants retain normal user-controlled hierarchy.
+- Managed roots cannot be renamed, moved, archived, deleted or reordered through
+  REST, MCP or Django admin. On project deletion the nullable ownership link is
+  cleared, deliberately preserving the former root and all content as a personal
+  hierarchy.
+- Production reconciliation is always two-step and review-gated:
+  `python manage.py reconcile_project_folders --plan <artifact.json>` performs no
+  writes and emits the JSON artifact plus a Markdown proposal. After every pending
+  action is marked `approve` or `skip`, run
+  `python manage.py reconcile_project_folders --apply-reviewed <artifact.json> --confirm <sha256> --inverse-out <snapshot.json>`.
+  Apply aborts if the database fingerprint or digest changed, if decisions remain
+  pending, or if conflicts exist. Never manufacture an approval artifact or apply
+  a proposal that was not reviewed against the named folders and impacts.
+
 ### Communications are a separate domain with shared infrastructure
 
 The client communications registry lives in the existing `content` Django app
@@ -380,16 +417,33 @@ by migration `content.0210_communications_registry` own threads, ordered message
 references and append-only date corrections. `communication_service.py` is the
 only write owner; DRF function-based views remain thin and staff-only.
 
-Phase 1 is transport-neutral: `source=manual` means an operator recorded the
-fact, while `source=platform_email` plus the optional one-to-one `email_log`
-field is reserved for a later `EmailDeliveryGateway` integration. “Respondido”
-is derived from a non-void reply and is not an additional mutable database
-status. Delivered/received messages are corrected or annulled, never edited.
+The operating model is transport-neutral: `source=manual` means an operator
+recorded the fact. `source=platform_email` and the optional one-to-one
+`email_log` remain persistence seams, not a product commitment to automatic
+delivery. “Respondido” is derived from a non-void reply and is not an additional
+mutable database status. Delivered/received messages are corrected or annulled,
+never edited.
 
 The Nuxt surface is `/panel/communications`; its Options-API Pinia store uses
 `request_http` (session + CSRF), not `usePlatformApi`. Documents are referenced
 by ID and expose reverse usage through
 `GET /api/documents/<id>/communications/`.
+
+`communication_query_service.py` is the single read contract for REST and MCP.
+It parses scalar legacy parameters plus comma-separated/repeated values, applies
+OR inside `status`, `channel`, `direction` and `message_status`, and AND across
+dimensions. Message dimensions share one correlated `Exists`, so their values
+must match the same message. `project=none` addresses unscoped threads; `order`
+accepts `recent`, `oldest` or `title`. The REST response also includes
+self-excluding option counts plus project/client navigation counts, including
+nested thread totals.
+
+The panel URL is canonical for selection, filters, order and the `thread` detail
+modal. `CommunicationNavigation` is resizable on landscape widths and moves to
+the shared drawer below that breakpoint. `CommunicationFilterPanel` consumes
+searchable `BaseFilterDropdown` instances with multi-selection and counts.
+Named cuts reuse `SavedFilterTab` with the `communication` view choice; migration
+`accounts.0056_add_communication_saved_filter_view` adds only that catalog value.
 
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 
@@ -451,23 +505,34 @@ confirmed by the operator or another integration.
 
 ### Client picker catalog and progressive paging
 
-- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit` and `offset`.
-  It caps each page at 20, sorts case-insensitively by the same display-name
-  fallback the serializer renders, and uses the profile id as a stable tie-break.
+- `GET /api/proposals/client-profiles/search/` accepts `q`, `limit`, `offset`
+  and optional `order=name|-name`. It caps each page at 20, sorts case-
+  insensitively by the same display-name fallback the serializer renders, and
+  uses the profile id as a stable tie-break. Missing/invalid order stays A-Z.
 - The response body remains the legacy array. The filtered total is exposed as
   `X-Total-Count`, allowing existing consumers to remain compatible while
   `proposal_clients.searchClients()` derives `hasMore` and `nextOffset`.
-- `ClientAutocomplete` loads `q=''` immediately on focus when no client is
-  committed. Text input is debounced and generation-guarded; scroll-end paging
-  appends de-duplicated rows. Initial and subsequent-page failures have separate
-  retry states, and an empty initial catalog offers the same `create-new` event
-  as an unmatched filter.
+- `ClientAutocomplete` keeps one request/selection state and two presentations.
+  `floating` is the backward-compatible default and loads `q=''` on focus when
+  uncommitted. `catalog` loads while its `active` prop is true, is always visible
+  in flow and delegates the shared result markup to
+  `ClientAutocompleteResults`. Text input is debounced and generation-guarded;
+  scroll-end paging appends de-duplicated rows. Bulk client assignment supplies
+  `panel.accounting.bulk-client-name-order`, default `asc`, as the browser-local
+  persistence key. Initial and subsequent-page failures have separate retry
+  states, and an empty initial catalog offers the same `create-new` event as an
+  unmatched filter.
 
 ### Content Storage: Structured JSON
 - Proposal sections, portfolio works, and blog posts store content as JSON fields
 - Each proposal section's `content_json` matches the props schema of its Vue component
 - Enables rich, structured content without a full CMS
 - Blog supports dual format: structured JSON (preferred) with HTML fallback
+- `functional_requirements.groups` has nine base entries because five
+  value-added-module catalogs remain stored there for shared data. Its first four
+  client-facing entries are ordered `views`, `components`, `features`,
+  `cross_cutting_features`; the last id is structurally required and protected
+  from whole-group deletion, while its internal content remains editable.
 
 ### Proposal presentation and traceability contracts
 
@@ -477,6 +542,17 @@ confirmed by the operator or another integration.
 - Responsive acceptance is based on usable inner width. `FinalNote` switches to two columns at `xl` and keeps each column above 520 px at a 1366 px viewport; investment payment rows allow the label to wrap but apply `shrink-0 whitespace-nowrap tabular-nums` to the amount so the tax suffix remains attached.
 - `buildProposalItemLinkOptions()` marks each commercial item as required, optional or ignored from its real group visibility/selection. `buildTechnicalItemCoverage()` compares those ids against technical `linked_item_ids`; the technical editor refuses to emit `save` while required gaps remain.
 - Public requirement cards receive `itemRequirementsMap` in detailed and executive modes. A base item is never filtered merely because it has no calculator selection; only uncontracted optional-module requirements are removed.
+- The commercial prompt treats `cross_cutting_features` as a contextual starter
+  catalog, distinguishes it from project-specific behavior and forbids unsupported
+  compliance/performance promises. The technical prompt requires an epic with the
+  exact same id and links every retained commercial item through
+  `linked_item_ids`; an extra technical-only cross-cutting epic may exist only at
+  the end and may not duplicate the commercial card.
+- Data migration `content.0222_cross_cutting_features` updates
+  `ProposalDefaultConfig` and active draft functional-requirement snapshots only.
+  It inserts after `features`, preserves a customized existing group, and moves
+  the legacy responsive item with its stable id. Reverse is intentionally a
+  no-op so contractual history is never reconstructed destructively.
 - Commercial and technical generation prompts preserve scope discipline: requirement lifting, QA and deployment are distinct processes; warranty text comes from contractual context; analytics is never inferred; institutional users/roles/admin are not invented; requirements should normally fit a 1–3 point story and external feeds should model source, ingestion, resource version, health, cache/retention and last-valid-data semantics separately.
 
 ### Contract terms are global proposal metadata, not section JSON
@@ -518,6 +594,27 @@ confirmed by the operator or another integration.
   Domain-specific `_log_email` calls enrich that row through the shared delivery
   trace instead of creating a duplicate.
 - **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
+- **Generated-document paths are keyed, not name-matched** —
+  `generated_document_filing_service` builds each level from a stable nullable
+  `DocumentFolder.system_key`, then reconciles parent, name, owner and archive
+  flags inside a transaction. Human-readable project/client names may change;
+  identity and concurrency safety do not depend on them.
+- **One render, one retained proposal version** — proposal send/resend/multi-send
+  calls `proposal_snapshot_service` before SMTP. It locks source proposals,
+  allocates `source_version`, renders all PDFs before writing any Document,
+  stores a SHA-256 plus `generated_file`, and passes those in-memory bytes to
+  `ProposalEmailService`. A generated file, rather than the nullable source FK,
+  is the immutable marker so deleting a proposal cannot make its archive editable.
+- **Generated branches are server-owned** — REST serializers/views, folder
+  endpoints and the Documents MCP reject manual targets or structural mutations
+  with an explicit conflict. The list sorts a selected generated folder by
+  case-insensitive title; collection accounts expose a derived lifecycle/email
+  state instead of workflow episodes.
+- **Backfill deployment order** — apply schema migrations first, preview with
+  `python manage.py backfill_collection_account_filing`, review its paths, then
+  run the same command with `--apply`. It only considers folderless collection
+  accounts, preserves manual classification and skips missing issue dates. Never
+  run either migrations or this data-writing command from a session worktree.
 
 ### Frontend Patterns
 
@@ -531,7 +628,20 @@ confirmed by the operator or another integration.
   unless equivalent adjacent copy owns the explanation.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
+- **Indicator-card contract** — use `BaseIndicatorCard` for label/value/support
+  KPI surfaces. Always supply consistent help and an explicit action; group
+  lifecycle and operational questions separately, preserve catalog order, and
+  use two drawer-backed summaries when the complete card set would push the
+  first result below the initial compact viewport.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
+- **Action tooltip/accessibility split** — `BaseActionButton` is the sole tooltip
+  owner for an icon-only panel action. Its visual copy defaults to the short
+  action-catalog label (for example, **Acciones**), while `label` remains the
+  contextual `aria-label` (for example, **Acciones de Contrato**). It passes
+  `nativeTitle=false` to `BaseButton`, which filters the fallthrough `title`
+  attribute without dropping `aria-*`, `data-*` or link attributes. Do not add a
+  second `title` to a consumer; use the explicit `tooltip` prop only when the
+  short visual copy genuinely differs from the catalog.
 - **Leading kebab control track** — tables with a single three-dot menu use
   `rowActionsLayout="menu-start"`: selection remains first when present, then a
   fixed 56 px actions track with an empty visual header, then identity/content.
@@ -539,9 +649,14 @@ confirmed by the operator or another integration.
   unhandled so the table wrapper can still pan horizontally. Loose icon rows are
   a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
-  `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
-  consumer classes may style typography but must not override its display/clamp
-  state. `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
+  `BaseOverflowText` for one clipped-only floating `BaseTooltip` plus in-place
+  touch disclosure; consumer classes may style typography but must not override
+  its display/clamp state. The primitive remeasures after
+  `document.fonts.ready`. Floating tooltips
+  teleport to `body`, flip/clamp to the viewport and update on scroll/resize.
+  `BaseActionButton` consumes the same primitive and suppresses
+  `BaseButton.nativeTitle` to avoid duplicate notices.
+  `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only
   bounded money/date/number fields stay nowrap. `BaseResponsiveTable` and
@@ -550,7 +665,9 @@ confirmed by the operator or another integration.
   stable `columnWidthsKey`, then delegate pointer/keyboard/reset behavior to
   `BaseResizeHandle` and allocation/persistence to `useResizableTableColumns`.
   Fixed tracks never donate; ordered flexible tracks reach their minima before
-  internal table scroll.
+  internal table scroll. Documentos keeps its content-backed Título range at
+  240–520 px (320 px default); the 520 px cap covers the current 56-character
+  production boundary with cell padding and safety.
 - **Composables** — 70 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useResizableTableColumns`, `usePanelViewportProfile`, etc.)
 - **Component architecture** — 377 `.vue` components (387 files) under `frontend/components/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages

@@ -140,6 +140,18 @@ describe('useTechnicalPrompt DEFAULT_PROMPT coherence rules (regression guard)',
     expect(DEFAULT_PROMPT).not.toContain('4 módulos base')
   })
 
+  it('requires the commercial cross-cutting epic', () => {
+    expect(DEFAULT_PROMPT).toContain('\`features\`, \`cross_cutting_features\`')
+  })
+
+  it('requires links for every commercial cross-cutting item', () => {
+    expect(DEFAULT_PROMPT).toContain('incluidos TODOS los items de la tarjeta comercial \`cross_cutting_features\`')
+  })
+
+  it('prevents a technical-only epic from duplicating the commercial cross-cutting card', () => {
+    expect(DEFAULT_PROMPT).toContain('no puede duplicar \`cross_cutting_features\`')
+  })
+
   it('requires canonical linked_module_ids on additional-module epics', () => {
     expect(DEFAULT_PROMPT).toContain('["module-<id>"]')
     expect(DEFAULT_PROMPT).toContain('OBLIGATORIO')

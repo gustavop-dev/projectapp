@@ -164,9 +164,9 @@ prefer the bare class without `/N`.
 | `BaseCurrencyInput` | `modelValue` (Number/null), `decimals` (0 = COP; 2 allows a decimal comma), `size`, `error`, `placeholder`, `disabled` — money input that live-formats es-CO thousands (`1234567` → `1.234.567`) and emits the numeric value |
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
-| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `textPolicy` (`atomic` default / `wrap`), `loading`, `disabled`, `disabledReason`, `iconOnly`, `as` — see [Button variants](#button-variants) |
+| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `textPolicy` (`atomic` default / `wrap`), `loading`, `disabled`, `disabledReason`, `nativeTitle` (internal tooltip-owner escape hatch), `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseActionIcon` | `action` — renders the canonical 16 px Heroicons 24 Outline glyph from `config/panelActions.js`; consumers cannot replace it |
-| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `disabledReason`, `as`, `to` — canonical icon-only action with hover/focus tooltip and accessible name |
+| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `disabledReason`, `as`, `to` — canonical icon-only action with one short viewport-aware hover/focus tooltip, no native duplicate, and a separately contextual accessible name |
 | `BaseControlGate` | `reasons`, `label`, `visible`, `reserveSpace`, `align`, `position` — complete visible + hover/focus/touch explanation around a native disabled control |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`, `textPolicy` (`atomic` default / `wrap`); status icon + label never separate |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
@@ -185,14 +185,14 @@ prefer the bare class without `/N`.
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, href?, testid?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
 | `BaseActionMenu` | `items`, `label`, `disabled`, `placement`, `align`, `width`, `variant` — canonical row/action overflow menu |
 | `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`, `testid`; emits `clear`/`select-all` |
-| `BaseResizeHandle` | Accessible vertical separator shared by panels and tables: pointer capture, Arrow/Home/End keyboard control and double-click reset |
-| `BaseOverflowText` | `text`, `to`, `lines` (1/2), `stretch`, `expandable`, `testId`, `contentClasses`; measures real clipping, adds the full native hint only on overflow and exposes an in-place touch disclosure |
+| `BaseResizeHandle` | Accessible, natively hinted vertical separator shared by panels and tables: pointer capture, Arrow/Home/End keyboard control and double-click reset |
+| `BaseOverflowText` | `text`, `to`, `lines` (1/2), `stretch`, `expandable`, `testId`, `contentClasses`; measures real clipping (including after web-font readiness), adds one floating `BaseTooltip` only on overflow and exposes an in-place touch disclosure |
 | `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; `textPolicy` is `wrap`/`truncate`/`atomic`; opt-in resizing uses `columnWidth` on every column plus `columnWidthsKey`; `rowActionsLayout="menu-start"` reserves a fixed leading kebab track (after selection), while `inline-end` preserves loose-icon rows; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
 | `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` and may opt into the same `textPolicy` contract |
 | `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |
-| `BaseTooltip`   | `position` (`top`/`bottom`/`left`/`right`), `backgroundColor`, `textColor`, `width`, `minWidth`. Trigger via `#trigger`, body via default slot. Click for touch, hover for desktop |
+| `BaseTooltip`   | `position` (`top`/`bottom`/`left`/`right`), `backgroundColor`, `textColor`, `width`, `minWidth`, `rootClass`, `triggerClass`, `toggleOnClick`, `floating`, `viewportPadding`. Trigger via `#trigger`, body via default slot. `floating` teleports to `body`, flips/clamps inside the viewport and follows scroll/resize; click provides the touch path when enabled |
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
@@ -209,10 +209,13 @@ and default Spanish label, and every glyph comes from
 <BaseActionIcon action="download" />
 ```
 
-Use `BaseActionButton` for an icon-only control. It supplies a title, a
-hover/focus tooltip and an accessible name; `statusLabel` announces transient
-feedback without replacing the action glyph. Text buttons and menu items may
-render `BaseActionIcon` beside their visible label. Do not import a Heroicon,
+Use `BaseActionButton` for an icon-only control. It supplies one viewport-aware
+hover/focus tooltip from the short catalog label and a separate accessible name
+from `label`; it deliberately emits no native browser `title`. Pass `tooltip`
+only when intentional visual copy should override the catalog label.
+`statusLabel` announces transient feedback without replacing the action glyph.
+Text buttons and menu items may render `BaseActionIcon` beside their visible
+label. Do not import a Heroicon,
 embed SVG, or use an emoji to represent an executable action. Run
 `npm run check:panel-action-icons` to verify the contract. Informational,
 decorative and content glyphs are outside the action vocabulary and need an

@@ -29,6 +29,10 @@ const mockFolderStore = {
   reorderFolders: jest.fn(),
   fetchFolders: jest.fn(),
   recursiveDocumentCount: jest.fn(directDocs),
+  rollupOf: jest.fn((folder, scope = 'active') => ({
+    docs: directDocs(folder, scope),
+    subs: folder?.children_count || 0,
+  })),
   // Espejo de los getters reales: el ícono de eliminar depende de ellos.
   archivedContentCount,
   totalContentCount: (f) => (f?.active_document_count ?? f?.document_count ?? 0)
@@ -75,6 +79,24 @@ const scopedFolder = {
   archived_document_count: 3,
   archived_children_count: 1,
 };
+const projectFolder = {
+  id: 10,
+  name: 'Kore Health',
+  folder_kind: 'project',
+  is_project_visible: true,
+  managed_project_state: { name: 'Activo', system_key: 'active' },
+  document_count: 2,
+  children_count: 1,
+};
+const hiddenProjectFolder = {
+  id: 11,
+  name: 'Candle',
+  folder_kind: 'project',
+  is_project_visible: false,
+  managed_project_state: { name: 'Pausado', system_key: 'paused' },
+  document_count: 1,
+  children_count: 0,
+};
 
 // Stub that renders all items from v-model and can emit @end
 const DraggableStub = {
@@ -111,7 +133,10 @@ function mountSidebar(props = {}) {
       ...props,
     },
     global: {
-      stubs: { draggable: DraggableStub },
+      stubs: {
+        draggable: DraggableStub,
+        NuxtLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+      },
       components: { BaseTooltip: BaseTooltipStub },
     },
   });
@@ -126,6 +151,10 @@ describe('FolderSidebar', () => {
     mockFolderStore.reorderFolders.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.fetchFolders.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.recursiveDocumentCount.mockReset().mockImplementation(directDocs);
+    mockFolderStore.rollupOf.mockReset().mockImplementation((folder, scope = 'active') => ({
+      docs: directDocs(folder, scope),
+      subs: folder?.children_count || 0,
+    }));
   });
 
   // ── Static entries ────────────────────────────────────────────────────────
@@ -153,6 +182,80 @@ describe('FolderSidebar', () => {
 
       expect(wrapper.text()).toContain('Propuestas');
       expect(wrapper.text()).toContain('Contratos');
+    });
+
+    it('separates project roots from manual roots', () => {
+      const wrapper = mountSidebar({ folders: [projectFolder, folderA] });
+
+      expect(wrapper.get('[data-testid="project-folder-section"]').text())
+        .toContain('Kore Health');
+      expect(wrapper.get('[data-testid="manual-folder-section"]').text())
+        .toContain('Propuestas');
+    });
+
+    it('hides project states outside the configured filter', () => {
+      const wrapper = mountSidebar({ folders: [projectFolder, hiddenProjectFolder] });
+      const projectSection = wrapper.get('[data-testid="project-folder-section"]').text();
+
+      expect(projectSection).toContain('Kore Health');
+      expect(projectSection).not.toContain('Candle');
+    });
+
+    it('reveals filtered projects with the explicit control', async () => {
+      const wrapper = mountSidebar({ folders: [projectFolder, hiddenProjectFolder] });
+
+      await wrapper.get('[data-testid="project-folders-toggle"]').trigger('click');
+
+      expect(wrapper.get('[data-testid="project-folder-section"]').text())
+        .toContain('Candle');
+      expect(wrapper.get('[data-testid="project-folders-toggle"]').text())
+        .toBe('Ver vigentes');
+    });
+
+    it('renders the recursive project section inventory', () => {
+      mockFolderStore.rollupOf.mockImplementation((folder) => (
+        folder.id === projectFolder.id
+          ? { docs: 9, subs: 3 }
+          : { docs: 4, subs: 2 }
+      ));
+
+      const wrapper = mountSidebar({ folders: [projectFolder, folderA] });
+
+      expect(wrapper.get('[data-testid="project-folder-section-count"]').text())
+        .toBe('4 carp. · 9 docs');
+    });
+
+    it('renders the recursive manual section inventory', () => {
+      mockFolderStore.rollupOf.mockImplementation((folder) => (
+        folder.id === projectFolder.id
+          ? { docs: 9, subs: 3 }
+          : { docs: 4, subs: 2 }
+      ));
+
+      const wrapper = mountSidebar({ folders: [projectFolder, folderA] });
+
+      expect(wrapper.get('[data-testid="manual-folder-section-count"]').text())
+        .toBe('3 carp. · 4 docs');
+    });
+
+    it('does not expose manual actions for project roots', () => {
+      const wrapper = mountSidebar({ folders: [projectFolder] });
+      const projectSection = wrapper.get('[data-testid="project-folder-section"]');
+
+      expect(projectSection.find('[data-testid="folder-edit"]').exists()).toBe(false);
+      expect(projectSection.find('[data-testid="folder-archive"]').exists()).toBe(false);
+      expect(projectSection.find('[data-testid="folder-delete"]').exists()).toBe(false);
+    });
+
+    it('hides structural actions for a system-managed folder', () => {
+      const wrapper = mountSidebar({
+        folders: [{ ...folderA, is_system_managed: true }],
+      });
+
+      expect(wrapper.find('[data-testid="folder-edit"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-archive"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-delete"]').exists()).toBe(false);
+      expect(wrapper.find('.folder-drag-handle').exists()).toBe(false);
     });
   });
 

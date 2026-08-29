@@ -104,10 +104,39 @@ function secondThread() {
   });
 }
 
+function communicationFacets() {
+  return {
+    total: 2,
+    navigation_total: 2,
+    without_project_count: 1,
+    projects: [{
+      id: 19,
+      name: 'Portal de clientes',
+      client_id: 7,
+      count: 1,
+      unavailable: false,
+    }],
+    clients: [{
+      id: 7,
+      name: 'Ana Proyecto',
+      count: 2,
+      unavailable: false,
+    }],
+    filters: {
+      status: { open: 2, closed: 0 },
+      channel: { email: 1, whatsapp: 1 },
+      direction: { outgoing: 1, incoming: 1 },
+      message_status: { draft: 0, sent: 1, received: 1, failed: 0 },
+    },
+  };
+}
+
 async function setupCommunicationsApi(page, {
   listFailure = false,
   messageFailure = false,
   onMessage = null,
+  onListRequest = null,
+  onSavedView = null,
 } = {}) {
   let shouldFailList = listFailure;
   const state = {
@@ -118,6 +147,7 @@ async function setupCommunicationsApi(page, {
     if (apiPath === 'auth/check/') return authCheck;
 
     if (apiPath === 'communications/threads/' && method === 'GET') {
+      if (onListRequest) onListRequest(route.request().url());
       if (shouldFailList) {
         return {
           status: 503,
@@ -139,7 +169,40 @@ async function setupCommunicationsApi(page, {
           count: 2,
           page: 1,
           num_pages: 1,
+          facets: communicationFacets(),
         }),
+      };
+    }
+
+    if (apiPath.startsWith('accounts/saved-filter-tabs')) {
+      if (method === 'POST' && apiPath === 'accounts/saved-filter-tabs/') {
+        const payload = route.request().postDataJSON();
+        if (onSavedView) onSavedView(payload);
+        return {
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 901,
+            ...payload,
+            base_filters: payload.filters,
+            builtin_key: '',
+            order: 0,
+            is_seeded: false,
+          }),
+        };
+      }
+      if (method === 'PATCH') {
+        const payload = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 901, view: 'communication', ...payload }),
+        };
+      }
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
       };
     }
 
@@ -225,7 +288,9 @@ async function enterCommunicationsThroughPanel(page) {
 }
 
 async function openMainThread(page) {
-  await page.getByTestId('communication-thread-41').click();
+  await page.getByTestId('communication-thread-row-41').click();
+  await expect(page).toHaveURL(/(?:\?|&)thread=41(?:&|$)/);
+  await expect(page.locator('[data-modal-kind="workspace"]')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Aprobación de alcance', exact: true }))
     .toBeVisible();
 }
@@ -252,7 +317,17 @@ test.describe('Admin Client Communications', () => {
     await enterCommunicationsThroughPanel(page);
 
     await expect(page.getByTestId('communications-channel-scope'))
-      .toContainText('el panel conserva el registro');
+      .toContainText('conserva el registro manual');
+    await expect(page.getByTestId('communications-channel-scope'))
+      .not.toContainText(/fase posterior|envío automático/i);
+
+    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+      await expect(page.getByTestId('communications-navigation-drawer-trigger')).toBeVisible();
+    } else {
+      const navigation = page.getByTestId('communications-navigation-panel');
+      await expect(navigation).toContainText('Portal de clientes');
+      await expect(navigation).toContainText('Sin proyecto');
+    }
     await openMainThread(page);
 
     const timeline = page.getByTestId('communication-timeline');
@@ -268,6 +343,59 @@ test.describe('Admin Client Communications', () => {
       .toHaveAttribute('href', '#communication-message-801');
     await expect(timeline.getByText('Respondido', { exact: true })).toBeVisible();
     await expect(timeline.getByText('Recibido', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Cerrar detalle del hilo' }).click();
+    await expect(page).not.toHaveURL(/(?:\?|&)thread=/);
+    await expect(page.getByTestId('communication-thread-row-41')).toBeVisible();
+  });
+
+  test('navigates by client, combines message statuses and saves the view', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const listRequests = [];
+    let savedPayload = null;
+    await setupCommunicationsApi(page, {
+      onListRequest: (url) => listRequests.push(url),
+      onSavedView: (payload) => { savedPayload = payload; },
+    });
+    await gotoCommunications(page);
+
+    await page.getByTestId('communications-navigation-without-project').click();
+    await expect(page).toHaveURL(/project=none/);
+    await page.getByTestId('communications-mode-client').click();
+    await expect(page).toHaveURL(/by=client/);
+    await expect(page).not.toHaveURL(/project=/);
+    await page.getByTestId('communications-navigation-client-7').click();
+    await expect(page).toHaveURL(/client=7/);
+
+    await page.getByTestId('communications-filter-toggle').click();
+    await page.getByTestId('communications-message-status-filter').click();
+    const statusDialog = page.getByRole('dialog', { name: 'Estado del mensaje' });
+    await statusDialog.locator('input[value="draft"]').check();
+    await statusDialog.locator('input[value="sent"]').check();
+    await page.keyboard.press('Escape');
+
+    await expect.poll(() => listRequests.at(-1)).toContain('message_status=draft%2Csent');
+    await page.getByTestId('filter-tabs-create').click();
+    await page.getByTestId('filter-tabs-input').fill('Borradores y enviados');
+    await page.getByTestId('filter-tabs-confirm').click();
+
+    await expect.poll(() => savedPayload).toMatchObject({
+      view: 'communication',
+      name: 'Borradores y enviados',
+      filters: {
+        by: 'client',
+        client: '7',
+        message_status: ['draft', 'sent'],
+      },
+    });
+    await expect(page.getByTestId('filter-tabs-tab-901')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Todas', exact: true }).click();
+    await expect(page).not.toHaveURL(/client=7/);
+    await page.getByTestId('filter-tabs-tab-901').click();
+    await expect(page).toHaveURL(/client=7/);
+    await expect(page).toHaveURL(/message_status=draft(?:%2C|,)sent/);
   });
 
   test('registers an outgoing WhatsApp message as sent', {
@@ -328,6 +456,6 @@ test.describe('Admin Client Communications', () => {
 
     await expect(refresh).toBeEnabled();
     await expect(page.getByRole('alert').filter({ hasText: 'El registro no está disponible.' }))
-      .toContainText('No se pudieron completar los cambios.');
+      .toContainText('No se pudieron cargar las comunicaciones.');
   });
 });

@@ -4,6 +4,7 @@ from django.db import transaction
 
 from accounts.models import HostingSubscription, Payment, PaymentHistory, Project
 from content.models import (
+    AdditionalModuleShareLink,
     BlogPost,
     BusinessProposal,
     CommunicationMessage,
@@ -69,6 +70,15 @@ class Command(BaseCommand):
         deleted, _ = CommunicationMessage.objects.all().delete()
         self.stdout.write(self.style.SUCCESS(
             f'Deleted communication messages ({deleted} rows)'
+        ))
+
+        # The catalog itself is deploy-seeded configuration and is preserved.
+        # Only the representative share history carries the [Demo] marker.
+        deleted, _ = AdditionalModuleShareLink.objects.filter(
+            recipient_label__startswith='[Demo] Catálogo',
+        ).delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Deleted additional-module demo shares ({deleted} rows)'
         ))
 
         for model, label in (
@@ -150,5 +160,6 @@ class Command(BaseCommand):
             ))
 
         self.stdout.write(self.style.SUCCESS(
-            'Fake content data deleted. DocumentType / IssuerProfile catalogs preserved.'
+            'Fake content data deleted. DocumentType / IssuerProfile / '
+            'additional-module catalogs preserved.'
         ))

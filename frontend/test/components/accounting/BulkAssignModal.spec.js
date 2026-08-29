@@ -18,7 +18,16 @@ jest.mock('../../../stores/proposal_clients', () => ({
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
-  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint', 'initialLabel'],
+  props: [
+    'active',
+    'initialLabel',
+    'modelValue',
+    'placeholder',
+    'presentation',
+    'showLinkedHint',
+    'sortStorageKey',
+    'testId',
+  ],
   emits: ['update:modelValue', 'select', 'create-new'],
   template: `
     <div data-testid="client-autocomplete-stub">
@@ -73,7 +82,8 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['modelValue', 'size', 'titleId', 'initialFocus'],
+          name: 'BaseModal',
+          props: ['modelValue', 'kind', 'size', 'titleId', 'initialFocus'],
           emits: ['update:modelValue', 'close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
@@ -115,6 +125,16 @@ beforeEach(() => {
 });
 
 describe('BulkAssignModal — nothing is confirmable without a reason on screen', () => {
+  it('renders client assignment as a permanent ordered catalog', () => {
+    const wrapper = mountModal();
+    const picker = wrapper.findComponent(ClientAutocompleteStub);
+
+    expect(picker.props('presentation')).toBe('catalog');
+    expect(picker.props('active')).toBe(true);
+    expect(picker.props('sortStorageKey')).toBe('panel.accounting.bulk-client-name-order');
+    expect(wrapper.findComponent({ name: 'BaseModal' }).props('kind')).toBe('form-wide');
+  });
+
   it('keeps Asignar disabled with the reason visible until a client is picked', () => {
     const wrapper = mountModal();
 
@@ -151,6 +171,15 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
 });
 
 describe('BulkAssignModal — the scope is visible before it runs', () => {
+  it('names every selected record before a destination is chosen', () => {
+    const wrapper = mountModal();
+
+    const review = wrapper.get('[data-testid="hostings-bulk-selection-review"]');
+    expect(review.text()).toContain('Registros seleccionados (2)');
+    expect(review.text()).toContain('kore.com.co');
+    expect(review.text()).toContain('tuhuella.co');
+  });
+
   it('breaks a mixed selection into its two halves instead of one flat count', async () => {
     const wrapper = mountModal({ selectedIds: [1, 2, 3] });
     await pickClient(wrapper);

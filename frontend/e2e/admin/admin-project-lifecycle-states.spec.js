@@ -75,6 +75,7 @@ function projectState(
     is_active: true,
     merged_into: null,
     incompatibility_ids: [],
+    show_in_document_manager: ['development', 'active', 'evolving'].includes(systemKey),
     active_project_count: 0,
     historical_episode_count: 0,
     ...overrides,
@@ -491,6 +492,27 @@ test.describe('Admin project state catalog', () => {
       'Acompañamiento activo posterior a la entrega.',
     );
     await expect(page.getByTestId('catalog-state-8')).toContainText('Garantía activa');
+  });
+
+  test('persists whether a project state appears in Documents by default', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'project-states/8/' && method === 'PATCH') {
+        Object.assign(catalog.find((state) => state.id === 8), route.request().postDataJSON());
+        return json(catalog.find((state) => state.id === 8));
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    await page.getByTestId('catalog-state-document-visibility-8').check();
+    await page.getByTestId('catalog-save-state-8').click();
+
+    await expect(page.getByRole('alert')).toContainText('Estado actualizado');
+    await expect(page.getByTestId('catalog-state-document-visibility-8')).toBeChecked();
   });
 
   test('retires an unused custom state while keeping it in the catalog history', {

@@ -68,6 +68,7 @@ describe('viewCapabilityCatalog', () => {
     expect(publicExperiences.children.map((node) => node.label)).toEqual([
       'Marca y captación',
       'Contenido y prueba social',
+      'Módulos adicionales',
       'Propuesta comercial',
       'Diagnóstico',
     ])

@@ -7,6 +7,12 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Revisión 2026-08-28 — catálogo adicional:** no se abrió un incidente. La
+> implementación cerró los riesgos previstos: la semilla usa migraciones nuevas,
+> el prerender sólo contiene el catálogo canónico, las aperturas se deduplican
+> por enlace/sesión y el contrato público omite datos internos. Además, los
+> errores JSON de PDF se recuperan desde respuestas `Blob` en el frontend.
+
 ---
 
 ## Format
@@ -45,6 +51,120 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-038] Document titles and row actions emitted competing browser hints
+
+- **Date**: 2026-08-28
+- **Context**: A clipped document title needed its complete value without
+  opening the editor, while the adjacent action control already combined a
+  custom tooltip with a browser-native `title`. Native hints could be clipped by
+  the table, were not controllable on touch and made actions show two notices.
+- **Root Cause**: `BaseOverflowText` and `BaseActionButton` each delegated part
+  of the contract to the browser instead of sharing one overlay owner;
+  `BaseTooltip` remained absolutely positioned inside overflow containers. The
+  first clipping measurement could also become stale after web fonts loaded.
+- **Resolution**: Give `BaseTooltip` an opt-in teleported placement mode that
+  flips and clamps inside the viewport; use it conditionally from measured
+  document titles and unconditionally from catalog actions; suppress the native
+  `BaseButton` title for those shared-tooltip owners. Repeat the measurement
+  after `document.fonts.ready`, keep **Ver completo** as the explicit
+  coarse-pointer path and preserve the generic persisted table resize contract
+  at the inventory-backed 520 px maximum. The shared separator also publishes
+  its accessible label as a discoverability hint.
+- **Files Affected**: `BaseTooltip.vue`, `BaseOverflowText.vue`,
+  `BaseActionButton.vue`, `BaseButton.vue`, `DocumentsTable.vue`, focused
+  unit/E2E coverage and the document-title flow registry.
+- **Verification**: Unit coverage checks clipping, single-tooltip ownership,
+  viewport placement and teardown; Playwright checks clipped/complete titles,
+  the action notice, touch expansion, persisted/reset widths, the current
+  inventory boundary, font-ready remeasurement and fixed Estados/Acciones
+  tracks.
+- **Lesson**: A browser `title` is not a fallback for an application tooltip.
+  One primitive must own placement and semantics, and every hover path needs a
+  separate explicit touch path. Clipping must be rechecked after asynchronous
+  font layout changes rather than papered over with a synthetic resize in E2E.
+
+### [ERR-037] Panel action buttons rendered two competing tooltips
+
+- **Date**: 2026-08-28
+- **Context**: Hovering the three-dot action button in Documents showed the
+  application tooltip and the browser-native tooltip at the same time. The
+  application copy inherited the full accessible label, such as “Acciones de
+  Contrato de Servicios”, and collapsed into an unreadably narrow box.
+- **Root Cause**: `BaseActionButton` wrapped the control in `BaseTooltip` while
+  also forwarding the same text as the button's native `title`. Its visual
+  tooltip fell back to the contextual accessible name and had no intrinsic
+  content width. Vue fallthrough attributes also meant that simply removing a
+  template binding did not reliably suppress `title` at the rendered root.
+- **Resolution**: Make `BaseActionButton` the only tooltip owner. Its visual copy
+  now defaults to the short catalog label, its contextual `label` remains the
+  `aria-label`, and `BaseButton.nativeTitle=false` filters `title` while
+  forwarding every other consumer attribute. The tooltip uses intrinsic width
+  with a bounded maximum.
+- **Files Affected**: `frontend/components/base/BaseActionButton.vue`,
+  `frontend/components/base/BaseButton.vue`, focused component tests and the
+  Documents list/gallery E2E specs.
+- **Verification**: Component coverage proves that no native `title` is emitted,
+  focus exposes one tooltip named **Acciones**, contextual accessible names stay
+  intact and explicit visual copy still wins. The list and gallery Playwright
+  scenarios verify the same contract before opening their action menus; flow-map
+  freshness and the qualifying-flow audit pass.
+- **Lesson**: Visual help and accessible naming are separate contracts. A
+  tooltip-owning primitive must also own native-title suppression, including
+  Vue's automatic attribute fallthrough.
+
+### [ERR-036] El catálogo inicial dejaba un modal alto y vacío
+
+- **Date**: 2026-08-28
+- **Context**: La asignación masiva ya cargaba clientes sin escribir y evitaba
+  el recorte original, pero seguía presentándolos como un desplegable. Al abrir,
+  el modal reservaba la altura necesaria para esa capa y mostraba un vacío hasta
+  que el buscador recibía foco; al desplegarla, la información aparecía en el
+  espacio que ya estaba reservado.
+- **Root Cause**: El selector primario de una decisión masiva se modeló como un
+  autocomplete flotante y el consumidor compensó su geometría con una altura
+  mínima fija. Un overlay activado por foco no puede ser a la vez el contenido
+  permanente que explica la decisión.
+- **Resolution**: Añadir a `ClientAutocomplete` una presentación `catalog`
+  explícita y en flujo, reutilizando el mismo motor de búsqueda, selección,
+  paginación, vacío y errores. `BulkAssignModal` la activa sólo para clientes y
+  elimina la altura reservada. El catálogo abre A-Z, permite alternar A-Z/Z-A,
+  conserva el criterio en `localStorage`, muestra nombre/empresa/correo y deja su
+  propia lista como único scroll; los demás selectores siguen flotando.
+- **Files Affected**: endpoint/store de búsqueda de clientes,
+  `ClientAutocomplete`, `ClientAutocompleteResults`, `BulkAssignModal` y sus
+  pruebas backend/frontend/E2E.
+- **Verification**: casos focales de orden y fallback del endpoint, contrato del
+  store, siete estados del catálogo, modal y tres escenarios Playwright: cinco
+  filas completas con revisión visible, persistencia entre aperturas y pantalla
+  compacta 412×915 sin scroll del panel.
+- **Lesson**: Cuando una lista es el contenido principal de una decisión, debe
+  vivir en el flujo del modal; un desplegable sólo corresponde a información
+  secundaria que el usuario decide invocar.
+
+### [ERR-035] Cross-cutting proposal qualities were mixed into specific features
+
+- **Date**: 2026-08-28
+- **Context**: The public functional-requirements overview had only three core
+  cards. Responsive design lived inside `features`, while other quality concerns
+  had no explicit commercial container and could be repeated as generic
+  boilerplate by proposal-generation prompts.
+- **Root Cause**: The JSON contract modeled screens, components and specific
+  behavior, but did not distinguish qualities that span multiple views and flows.
+  The seller and technical prompts therefore had no stable id or traceability
+  rule for contextual cross-cutting scope.
+- **Resolution**: Added the bilingual `cross_cutting_features` group immediately
+  after `features`, moved responsive design into it, made its starter items
+  explicitly adaptable, protected only the container from deletion, and aligned
+  commercial/technical prompt rules and item links. Migration `content.0222`
+  updates defaults and active drafts while preserving historical snapshots.
+- **Files Affected**: Proposal defaults/service, JSON template and generation
+  prompts, functional-requirements editor, data migration, public/admin flow
+  definitions and focused backend/frontend/E2E tests.
+- **Verification**: Focused backend and frontend unit suites pass; both affected
+  Playwright flows pass and remain fully covered in the flow audit.
+- **Lesson**: A reusable quality catalog needs a stable structural boundary and
+  contextual content rules; otherwise “generic” quickly becomes an unsupported
+  promise copied into every proposal.
 ### [ERR-034] Nuxt generated a self-referential SPA fallback
 
 - **Date**: 2026-08-28
@@ -590,3 +710,41 @@ contracts, not conventions repeated in individual commands.
 - **Lesson**: Una tabla financiera densa no se vuelve móvil encogiendo tracks.
   Cuando la identidad, el monto y la acción ya compiten, la estructura debe
   cambiar a tarjetas sin perder campos ni bifurcar acciones o semántica de saldo.
+
+### [ERR-035] Las tarjetas de indicadores desalineaban y ocultaban el listado
+
+- **Date**: 2026-08-28
+- **Context**: Proyectos mostraba diez indicadores de alturas distintas y, en
+  celular, el encabezado desplazaba el primer proyecto fuera de la pantalla.
+  Ingresos repetía el problema con siete preguntas de distinta longitud.
+- **Root Cause**: Cada página componía tarjetas ad hoc cuya altura dependía del
+  texto de apoyo y trasladaba el inventario completo al perfil compacto. Ayuda
+  y posibilidad de acción tampoco seguían un contrato uniforme.
+- **Resolution**: Crear `BaseIndicatorCard` con tres filas reservadas, ayuda
+  consistente y acción explícita; separar ciclo y pendientes en Proyectos; y
+  reducir ambos módulos a dos resúmenes compactos con detalle en drawers. Las
+  acciones reutilizan los filtros existentes y el detalle conserva ceros.
+- **Files Affected**: `frontend/components/base/BaseIndicatorCard.vue`, wrapper
+  contable y páginas/pruebas/flujos de Proyectos e Ingresos.
+- **Verification**: Unitarios del primitive y wrapper, acciones Playwright y
+  geometría/contenido en 412, 835, 1195, 1440 y 2560 px.
+- **Lesson**: Reservar altura corrige alineación; reducir preguntas visibles
+  corrige prioridad. Son contratos distintos y ambos deben verificarse.
+
+### [ERR-036] Una vista guardada intentaba clonar proxies reactivos
+
+- **Date**: 2026-08-29
+- **Context**: Al abrir directamente Comunicaciones con filtros en la URL, la
+  página podía dibujarse pero el estado de filtros dejaba de sincronizarse y el
+  flujo Playwright terminaba antes de operar la lista.
+- **Root Cause**: `snapshot()` pasaba arrays reactivos de Vue directamente a
+  `structuredClone`. El navegador rechaza esos proxies con `DataCloneError`.
+- **Resolution**: Convertir el estado a valores planos, validados y ordenados con
+  `normalizeStoredFilters` antes de compararlo, guardarlo o escribir el query.
+- **Files Affected**: `frontend/composables/useCommunicationFilters.js` y el flujo
+  E2E de Comunicaciones.
+- **Verification**: Los cinco outcomes del flujo y las cinco geometrías
+  responsive pasan con entrada directa, cambio de filtros, vista guardada y
+  apertura/cierre del detalle.
+- **Lesson**: Los snapshots persistibles deben cruzar explícitamente de estado
+  reactivo a datos planos; clonar un proxy no es una serialización.

@@ -10,6 +10,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { PANEL_BREAKPOINTS, PANEL_VIEWPORTS } from '../../config/responsive.js';
+import { viewportUse } from '../helpers/viewports.js';
 import {
   ADMIN_CLIENTS_FILTER_PRESETS,
   ADMIN_DOCUMENT_LIST,
@@ -19,11 +20,11 @@ import {
 test.setTimeout(60_000);
 
 const VIEWPORTS = [
-  { label: 'celular', ...PANEL_VIEWPORTS.compact, compact: true, phone: true },
-  { label: 'tableta vertical', ...PANEL_VIEWPORTS.portrait, compact: true, phone: false },
-  { label: 'tableta horizontal', ...PANEL_VIEWPORTS.landscape, compact: false, phone: false },
-  { label: 'portátil', ...PANEL_VIEWPORTS.desktop, compact: false, phone: false },
-  { label: 'monitor 27 pulgadas', ...PANEL_VIEWPORTS.wide, compact: false, phone: false },
+  { alias: 'compact', label: 'celular', ...PANEL_VIEWPORTS.compact, compact: true, phone: true },
+  { alias: 'portrait', label: 'tableta vertical', ...PANEL_VIEWPORTS.portrait, compact: true, phone: false },
+  { alias: 'landscape', label: 'tableta horizontal', ...PANEL_VIEWPORTS.landscape, compact: false, phone: false },
+  { alias: 'desktop', label: 'portátil', ...PANEL_VIEWPORTS.desktop, compact: false, phone: false },
+  { alias: 'wide', label: 'monitor 27 pulgadas', ...PANEL_VIEWPORTS.wide, compact: false, phone: false },
 ];
 
 const jsonOk = (body) => ({
@@ -354,36 +355,117 @@ async function mockProjects(page) {
   });
 }
 
-test.describe('Proyectos — matriz responsiva', () => {
-  for (const viewport of VIEWPORTS) {
+async function enterCompactProjectsModule(page) {
+  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Abrir menú' }).click();
+  const link = page.getByRole('link', { name: 'Proyectos', exact: true });
+  await expect(link).toBeVisible({ timeout: 25_000 });
+  await link.click();
+  await expect(page.getByRole('heading', { name: 'Proyectos', exact: true }))
+    .toBeVisible({ timeout: 30_000 });
+}
+
+async function enterExpandedProjectsModule(page) {
+  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  const link = page.getByRole('link', { name: 'Proyectos', exact: true });
+  await expect(link).toBeVisible({ timeout: 25_000 });
+  await link.click();
+  await expect(page.getByRole('heading', { name: 'Proyectos', exact: true }))
+    .toBeVisible({ timeout: 30_000 });
+}
+
+const COMPACT_PROJECT_VIEWPORTS = [
+  { alias: 'compact', label: 'celular', width: 412 },
+  { alias: 'portrait', label: 'tableta vertical', width: 835 },
+];
+
+const EXPANDED_PROJECT_VIEWPORTS = [
+  { alias: 'landscape', label: 'tableta horizontal', width: 1195 },
+  { alias: 'desktop', label: 'portátil', width: 1440 },
+];
+
+for (const viewport of COMPACT_PROJECT_VIEWPORTS) {
+  test.describe(`Proyectos — contrato compacto en ${viewport.label}`, () => {
+    test.use(viewportUse(viewport.alias));
+
     test(`presenta el módulo responsivo en ${viewport.label} (${viewport.width}px)`, {
-      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
+      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
     }, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await mockProjects(page);
-      await enterModule(page, 'Proyectos', 'Proyectos');
+      await enterCompactProjectsModule(page);
 
-      if (viewport.compact) {
-        await expect(page.getByTestId('projects-card-list')).toBeVisible();
-        await expect(page.getByTestId('project-card-12'))
-          .toContainText('Plataforma Atlas Internacional');
-        await expect(page.getByTestId('projects-state-filter')).toBeVisible();
-        await expect(page.getByTestId('panel-projects-stat-state-2')).toContainText('Activo');
+      const cards = page.getByTestId('projects-indicators-compact').locator('article');
+      await expect(cards).toHaveCount(2);
+      await expect(page.getByTestId('projects-card-list')).toBeVisible();
+      await expect(page.getByTestId('accounting-row-12')).toHaveCount(0);
+      await expect(page.getByTestId('project-card-12'))
+        .toContainText('Plataforma Atlas Internacional');
+      await expect(page.getByTestId('projects-state-filter')).toBeVisible();
+      await expect(page.getByTestId('panel-projects-stat-states-summary')).toContainText('1');
 
-        await page.getByTestId('project-actions-12').click();
-        const actions = page.getByTestId('project-actions-drawer');
-        await expect(actions.getByRole('button', { name: 'Editar proyecto' })).toBeVisible();
-        await actions.getByRole('button', { name: 'Cerrar' }).click();
-      } else {
-        await expect(page.getByTestId('accounting-row-12'))
-          .toContainText('Plataforma Atlas Internacional');
-        await expect(page.getByTestId('projects-card-list')).toHaveCount(0);
-        await expect(page.getByTestId('projects-state-filter')).toBeVisible();
-        await expect(page.getByTestId('panel-projects-stat-state-2')).toContainText('Activo');
-      }
+      const firstCard = await cards.first().boundingBox();
+      const secondCard = await cards.nth(1).boundingBox();
+      expect(Math.round(firstCard.height)).toBe(Math.round(secondCard.height));
 
+      await page.getByTestId('project-actions-12').click();
+      const actions = page.getByTestId('project-actions-drawer');
+      await expect(actions.getByRole('button', { name: 'Editar proyecto' })).toBeVisible();
+      await actions.getByRole('button', { name: 'Cerrar' }).click();
       await expectNoViewportOverflow(page);
-      await expectWidePageCap(page, 'projects-page', viewport.width);
     });
-  }
+  });
+}
+
+for (const viewport of EXPANDED_PROJECT_VIEWPORTS) {
+  test.describe(`Proyectos — contrato expandido en ${viewport.label}`, () => {
+    test.use(viewportUse(viewport.alias));
+
+    test(`presenta el módulo responsivo en ${viewport.label} (${viewport.width}px)`, {
+      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+    }, async ({ page }) => {
+      await mockProjects(page);
+      await enterExpandedProjectsModule(page);
+
+      const cards = page.locator('[aria-label="Indicadores de proyectos"] article');
+      await expect(cards).toHaveCount(3);
+      await expect(page.getByTestId('accounting-row-12'))
+        .toContainText('Plataforma Atlas Internacional');
+      await expect(page.getByTestId('projects-card-list')).toHaveCount(0);
+      await expect(page.getByTestId('projects-state-filter')).toBeVisible();
+      await expect(page.getByTestId('panel-projects-stat-state-2')).toContainText('Activo');
+      await expect(page.getByTestId('panel-projects-stat-orphans')).toContainText('3');
+      await expect(page.getByTestId('panel-projects-stat-unlinked')).toContainText('3');
+
+      const card = await cards.first().boundingBox();
+      expect(Math.round(card.height)).toBeGreaterThan(0);
+      await expectNoViewportOverflow(page);
+    });
+  });
+}
+
+test.describe('Proyectos — contrato expandido de monitor', () => {
+  test.use(viewportUse('wide'));
+
+  test('presenta el módulo responsivo en monitor 27 pulgadas (2560px)', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+  }, async ({ page }) => {
+    await mockProjects(page);
+    await enterExpandedProjectsModule(page);
+
+    const cards = page.locator('[aria-label="Indicadores de proyectos"] article');
+    await expect(cards).toHaveCount(3);
+    await expect(page.getByTestId('accounting-row-12'))
+      .toContainText('Plataforma Atlas Internacional');
+    await expect(page.getByTestId('projects-card-list')).toHaveCount(0);
+    await expect(page.getByTestId('projects-state-filter')).toBeVisible();
+    await expect(page.getByTestId('panel-projects-stat-state-2')).toContainText('Activo');
+    await expect(page.getByTestId('panel-projects-stat-orphans')).toContainText('3');
+    await expect(page.getByTestId('panel-projects-stat-unlinked')).toContainText('3');
+
+    const card = await cards.first().boundingBox();
+    const pageBox = await page.getByTestId('projects-page').boundingBox();
+    expect(Math.round(card.height)).toBeGreaterThan(0);
+    expect(pageBox.width).toBeLessThanOrEqual(1401);
+    await expectNoViewportOverflow(page);
+  });
 });

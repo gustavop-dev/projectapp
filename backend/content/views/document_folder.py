@@ -18,6 +18,30 @@ from content.views.document import (
 )
 
 
+def _system_managed_folder_error(folder):
+    if folder is None or not folder.is_system_managed:
+        return None
+    return error_response(
+        'Esta carpeta pertenece al archivado automático del sistema y su '
+        'estructura no se puede modificar manualmente.',
+        code='system_managed_folder',
+        hint='Administra los documentos desde su flujo de origen.',
+        status=status.HTTP_409_CONFLICT,
+    )
+
+
+def _managed_parent_error(request):
+    if 'parent' not in request.data or request.data.get('parent') in (None, ''):
+        return None
+    try:
+        parent_id = int(request.data['parent'])
+    except (TypeError, ValueError):
+        return None
+    return _system_managed_folder_error(
+        DocumentFolder.objects.filter(pk=parent_id).first(),
+    )
+
+
 def _annotated_folders(scope):
     """Carpetas del scope pedido, con los contadores activos y archivados.
 
@@ -39,6 +63,7 @@ def _annotated_folders(scope):
     # sin el select_related el panel lateral paga tres consultas por carpeta.
     queryset = DocumentFolder.objects.select_related(
         'client_user__profile', 'project',
+        'managed_project__current_state',
     )
     return apply_archive_scope(queryset, scope).annotate(
         active_document_count=Count(
@@ -60,6 +85,17 @@ def _folder_payload(folder, scope):
     """Serializa una carpeta con los contadores anotados de su scope."""
     annotated = _annotated_folders(scope).filter(pk=folder.pk).first() or folder
     return DocumentFolderSerializer(annotated).data
+
+
+def _managed_folder_error(folder):
+    if not folder.managed_project_id:
+        return None
+    return error_response(
+        'La raíz del proyecto se administra automáticamente. Renombra o '
+        'cambia el proyecto desde el módulo Proyectos.',
+        code='managed_project_folder',
+        status=status.HTTP_409_CONFLICT,
+    )
 
 
 @api_view(['GET'])
@@ -91,6 +127,9 @@ def list_document_folders(request):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def create_document_folder(request):
+    managed = _managed_parent_error(request)
+    if managed:
+        return managed
     serializer = DocumentFolderSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -126,6 +165,13 @@ def update_document_folder(request, folder_id):
     folder o cuelga de una subcarpeta suya, así que una de las dos existe.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    managed = (
+        _managed_folder_error(folder)
+        or _system_managed_folder_error(folder)
+        or _managed_parent_error(request)
+    )
+    if managed:
+        return managed
     if _changes_client(folder, request) and (
         folder.documents.exists() or folder.children.exists()
     ):
@@ -154,6 +200,9 @@ def delete_document_folder(request, folder_id):
     sacar de la vista una carpeta con contenido está archivar, no borrar.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    if managed:
+        return managed
     document_count = folder.documents.count()
     if document_count:
         return Response(
@@ -191,6 +240,9 @@ def archive_document_folder(request, folder_id):
     nada. Devuelve cuánto arrastró para que la UI lo pueda reportar.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    if managed:
+        return managed
     counts = document_archive_service.archive_folder(folder)
     return Response({
         'folder': _folder_payload(folder, scope='archived'),
@@ -211,6 +263,9 @@ def unarchive_document_folder(request, folder_id):
     propia.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    if managed:
+        return managed
     counts = document_archive_service.unarchive_folder(folder)
     return Response({
         'folder': _folder_payload(folder, scope='active'),
@@ -250,6 +305,9 @@ def _resolve_target_profile(folder, raw_profile_id):
 def preview_document_folder_client_change(request, folder_id):
     """Impacto de mover la carpeta a otro cliente. No escribe nada."""
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    if managed:
+        return managed
     profile, error = _resolve_target_profile(
         folder, request.query_params.get('client_profile_id'),
     )
@@ -300,6 +358,9 @@ def change_document_folder_client(request, folder_id):
     servicio, así que su bloque atómico nunca se abre sobre un plan viejo.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    if managed:
+        return managed
 
     serializer = DocumentFolderChangeClientSerializer(data=request.data)
     if not serializer.is_valid():
@@ -350,7 +411,23 @@ def reorder_document_folders(request):
     ids = request.data.get('ids', [])
     if not isinstance(ids, list):
         return Response({'ids': 'Debe ser una lista.'}, status=status.HTTP_400_BAD_REQUEST)
-    folders_by_id = {f.id: f for f in DocumentFolder.objects.filter(pk__in=ids)}
+    folders = list(DocumentFolder.objects.filter(pk__in=ids))
+    system_managed = next(
+        (folder for folder in folders if folder.is_system_managed),
+        None,
+    )
+    managed = _system_managed_folder_error(system_managed)
+    if managed:
+        return managed
+
+    # Las raíces de proyecto se ordenan por nombre de proyecto y no participan
+    # del orden manual. Ignorarlas mantiene compatible el payload de clientes
+    # antiguos que todavía envían todas las raíces juntas.
+    folders_by_id = {
+        folder.id: folder
+        for folder in folders
+        if not folder.managed_project_id
+    }
     for order, folder_id in enumerate(ids):
         if folder_id in folders_by_id:
             folders_by_id[folder_id].order = order

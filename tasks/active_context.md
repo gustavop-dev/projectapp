@@ -2,6 +2,148 @@
 
 ## Current State
 
+**2026-08-28 — Catálogo comercial de módulos adicionales listo para integrar:**
+los 17 módulos genéricos de PA-09 más Landing Page forman un inventario inicial
+de 18, agrupado en cinco categorías administrables e independiente de las
+propuestas. El panel cubre CRUD, retiro, reordenamiento, selección, PDF e
+historial de aperturas; la experiencia pública reutiliza el mismo índice y
+detalle responsivo. El catálogo completo es canónico/indexable, mientras los
+enlaces con subconjuntos son revocables, sin vencimiento, `noindex`, con idioma
+y selección inmutables, contenido vivo y aperturas únicas por sesión. No se
+almacenan ni muestran precios; MCP queda fuera de esta primera versión. Pasan
+38 pruebas backend, 10 unitarias y 21 E2E, además de migraciones/checks, gates de
+flujos/calidad/responsividad y el build Nuxt de producción.
+
+**2026-08-29 — Comunicaciones alineadas con el Gestor Documental:** el módulo
+conserva una sola lista amplia y traslada el detalle del hilo a un modal de
+trabajo direccionable por `thread=<id>`. A la izquierda incorpora navegación
+ajustable por Proyectos/Clientes, conteos agregados, búsqueda y un corte explícito
+**Sin proyecto**; por debajo del perfil landscape la misma navegación usa el
+drawer compartido. Los selectores nativos se reemplazaron por filtros buscables
+con conteos y selección múltiple; la URL conserva el corte y `SavedFilterTab`
+guarda/restaura vistas propias con el nuevo catálogo `communication`. REST y MCP
+convergen en `communication_query_service.py`, que aplica OR dentro de cada
+dimensión, AND entre dimensiones y correlaciona filtros de mensaje sobre el
+mismo registro. El aviso describe sólo el registro manual vigente, se puede
+cerrar y reabrir desde ayuda. PA-89 queda cerrado: Comunicaciones ya es un módulo
+propio, no una subsección de Documentos. Pasan 6 pruebas backend, 25 unitarias,
+5 outcomes E2E, los 5 perfiles responsive, build y auditoría de flows.
+
+**2026-08-28 — Carpetas automáticas de proyecto listas para integrar:** el gestor
+documental separa Proyectos de Carpetas y asigna a cada proyecto nuevo una raíz
+protegida que sigue su nombre. La visibilidad del primer bloque se configura en
+el catálogo de estados (En desarrollo, Activo y En evolución arrancan visibles),
+con Ver todos para conservar acceso a suspendidos o retirados. La plantilla
+inicial incluye Cuentas de cobro, Propuestas, Entregables y QA; todo descendiente
+hereda proyecto/cliente salvo asociación explícita. REST, MCP, admin y restricciones
+de base impiden alterar el primer nivel automático, mientras borrar el proyecto
+conserva la jerarquía como carpeta manual. La migración histórica **no se aplicó**:
+`reconcile_project_folders --plan` genera JSON + propuesta Markdown y sólo
+`--apply-reviewed` con todas las decisiones, fingerprint y SHA vigentes puede
+convertir, crear o anidar; además escribe un snapshot inverso. Pendiente tras
+deploy: generar el plan sobre producción, revisar el emparejamiento completo con
+el operador y aplicar únicamente el artefacto confirmado. Las slices backend
+afectadas, 47 pruebas unitarias del sidebar y 19 E2E están verdes; también pasan
+Django/schema checks, build Nuxt y el mapa de 343 flows con 0 missing/junk-only.
+
+**2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
+`BaseOverflowText` mide el recorte real y publica el nombre completo mediante un
+`BaseTooltip` flotante sólo cuando hace falta; el mismo primitive sirve las
+acciones de fila y `BaseButton` ya no agrega un `title` nativo competidor. El
+overlay se teletransporta fuera de la tabla, se voltea/limita al viewport y se
+reubica con scroll o resize; la medición se repite al terminar de cargar las
+fuentes web. **Ver completo/Contraer** conserva la alternativa táctil. El
+separador visible y etiquetado usa la capacidad compartida de tabla: Título
+usa 240–520 px, persiste por navegador, vuelve a 320 px con doble clic, recibe
+espacio de Proyecto→Cliente→Fecha y no comprime Estados/Acciones. El límite de
+520 px cubre el inventario productivo consultado (40 nombres, máximo 56
+caracteres, 496 px estimados con padding y margen). Verificación focal:
+unitarios de primitives/consumidores, 13 escenarios Playwright sin retries,
+build Nuxt, guards de acciones y controles, flow-map fresco y auditoría global
+sin `junk-only` ni faltantes.
+
+**2026-08-28 — Un solo aviso breve para las acciones del panel:**
+`BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
+la etiqueta corta del catálogo (**Acciones**) y el `aria-label` conserva el
+contexto de fila (**Acciones de Contrato de Servicios**). El primitive es el
+único dueño del aviso y pide a `BaseButton` filtrar el `title` nativo, incluidos
+los atributos que Vue reenvía por fallthrough; el resto de `aria-*`, `data-*` y
+semántica de enlace se conserva. La corrección alcanza automáticamente todos los
+botones de acción compartidos del panel y no cambia el clic/tap que abre sus
+menús. Unitarias de los primitives y consumidores de Documentos, más Playwright
+en lista y galería, verifican ausencia de `title`, un solo tooltip legible,
+nombre accesible contextual y apertura del menú. El mapa está fresco y la
+auditoría registra 272 flujos cubiertos, 37 parciales, 0 `junk-only` y 0 faltantes.
+
+**2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
+Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al
+recibir foco. `ClientAutocomplete` conserva un único motor de consulta,
+selección, retry, creación y paginación, pero suma una presentación `catalog` en
+flujo; sólo `BulkAssignModal` la activa para cliente y los selectores de proyecto,
+documentos e ingreso vinculado siguen usando la capa flotante compartida. La
+lista se ve desde la apertura, muestra nombre/empresa/correo, señala correo
+faltante y ofrece creación en vacío. Abre A-Z; el encabezado Nombre alterna
+A-Z/Z-A y guarda la preferencia en el navegador. El endpoint suma
+`order=name|-name` sin cambiar su cuerpo array ni `limit`/`offset`/
+`X-Total-Count`. Cinco filas completas y el alcance de cuatro ingresos caben sin
+scroll del panel; un catálogo largo desplaza sólo su lista y el perfil 412×915
+usa pantalla completa. Pasan los cortes backend/store/componente/modal y tres
+escenarios Playwright; el flow-map quedó regenerado con 0 junk-only y 0 missing.
+
+**2026-08-28 — Cuarta tarjeta contextual de requerimientos lista para integrar:**
+`functional_requirements` incorpora `cross_cutting_features` después de
+`features` en los defaults ES/EN. La tarjeta conserva un contenedor obligatorio
+y editable, con siete capacidades iniciales de calidad que el prompt comercial
+debe mantener, reescribir, quitar o ampliar según negocio, etapa, audiencia y
+alcance; el prompt técnico crea su épica exacta y enlaza cada item retenido.
+Diseño Responsive salió de las funcionalidades específicas. La migración `0222`
+actualiza configuraciones por defecto y borradores activos, preserva ids y no
+toca propuestas históricas. El editor impide borrar el grupo completo, no su
+contenido. Backend, unitarios frontend y ambos E2E focales están verdes; el mapa
+está fresco y los flows público/admin siguen cubiertos sin junk-only.
+
+**2026-08-28 — Documentos generados se archivan solos:** al emitir una cuenta
+de cobro, el backend crea o reutiliza una jerarquía protegida basada en la fecha
+de emisión de Bogotá: **Proyectos / {proyecto} / Cuentas de cobro / año / mes**.
+La mayoría histórica que aún no tiene proyecto cae de forma permisiva en
+**Clientes / {cliente} / Sin proyecto**; si tampoco se puede identificar al
+cliente usa **Sin clasificar**. Anular una emitida la mueve bajo **Anuladas** sin
+duplicarla, y anular un borrador usa **Sin emitir / Anuladas**. Reintentar el
+correo conserva el mismo documento; una sustitución posterior a la anulación
+nace como otra cuenta con otro consecutivo. El nombre queda
+`fecha · consecutivo · concepto`, el estado visible se deriva del ciclo
+comercial y del historial real de correo, y estas cuentas dejan de contaminar
+el preset Por clasificar. Las carpetas automáticas tienen `system_key`: el panel,
+REST y MCP permiten navegar, pero no renombrar, mover, reordenar, archivar ni
+inyectar documentos manuales en ellas.
+
+El alcance transversal incluye propuestas comerciales: cada envío o reenvío
+genera primero el PDF, persiste exactamente esos bytes como versión inmutable
+`vNN`, adjunta esa misma versión al correo y la archiva por cliente/proyecto,
+año y mes. Un fallo de render no cambia el borrador ni envía; un fallo de correo
+conserva la versión con señal de corrección. Cuando la aceptación crea el
+proyecto, todas las versiones previas se mueven a su rama. En la UI el contenido,
+carpeta y estados de estas versiones son de sólo lectura, mientras las
+observaciones administrativas siguen editables. La migración `content.0223`
+añade identidad de carpeta y origen/archivo de snapshot. Después de migrar,
+producción debe previsualizar y luego aplicar
+`python manage.py backfill_collection_account_filing --apply`; la orden sólo
+toca cuentas sin carpeta y nunca inventa fechas. Verificación focal: 25 pruebas
+de servicios/backfill, 16 de API, 3 de onboarding/MCP, 1 contrato de fake data,
+13 unitarias y 3 E2E, más regresiones específicas de envío/reenvío y build de
+producción.
+
+**2026-08-28 — Indicadores de Proyectos e Ingresos listos para integrar:** un
+`BaseIndicatorCard` compartido reserva siempre rótulo, cifra y apoyo, por lo que
+la presencia de explicación ya no cambia la altura. Cada tarjeta visible tiene
+ayuda y acción explícita. Proyectos ordena los estados no nulos según el ciclo y
+separa pendientes operativos; Ingresos conserva cuatro preguntas priorizadas en
+ancho expandido. En 412/835 ambos encabezados se convierten en exactamente dos
+resúmenes con drawers que preservan estados en cero y el detalle completo. Sus
+acciones aplican los filtros existentes y la primera fila permanece en la
+pantalla inicial. La cobertura focal incluye unitarios, acciones y geometría en
+los cinco anchos canónicos; el flow map queda versionado con el contrato.
+
 **2026-08-28 — Hotfix del fallback SPA listo para integrar:** el panel de
 producción seguía respondiendo 200, pero el `200.html` generado tras la
 actualización Nuxt/i18n era sólo un meta refresh hacia `/en-us/200.html`; Django
@@ -341,7 +483,7 @@ aplicó la migración ni se alteraron datos productivos.
 
 **2026-08-25 — iconos de acción del panel unificados:** las 51 páginas bajo `/panel` y sus componentes alcanzables resuelven 84 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables; el módulo concurrente de Comunicaciones adoptó el catálogo al integrarse. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 273 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 261 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
 
-**2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
+**2026-08-25 — Registro de comunicaciones con clientes:** la decisión
 de producto es un módulo Comunicaciones propio que reutiliza el Django app
 `content`, clientes, proyectos, Documentos y primitivas del panel sin deformar
 `Document` en una conversación. La migración
@@ -353,8 +495,9 @@ responsive, borradores, registro manual de enviado/recibido, Respondido derivado
 cierre/reapertura, anulación y corrección de fecha. Clientes, Proyectos y
 Documentos enlazan al registro; al cambiar el dueño de un proyecto sus hilos
 históricos se desvinculan en vez de cambiar de cliente. Fake data y cobertura
-focal backend/unit/E2E acompañan el flujo. Envío real, plantillas/importación e
-integraciones quedan por fases en
+focal backend/unit/E2E acompañan el flujo. El registro manual es la operación
+elegida; plantillas, importaciones o integraciones necesitarían requerimientos
+independientes. La decisión queda en
 `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
 
 **2026-08-25 — Notas de documentos con guardado directo desde el modal:** en
@@ -373,15 +516,16 @@ edición cubren éxito, error, falla y cambios concurrentes; flow-map fresco
 errores (96/100; ocho warnings preexistentes en los specs completos).
 
 **2026-08-25 — Títulos de Documentos legibles y columna ajustable:** la lista
-usa `BaseOverflowText` para dos líneas con elipsis final, mide el recorte real y
-sólo entonces agrega el nombre completo en `title` y **Ver completo/Contraer**;
-la misma expansión funciona en las tarjetas de celular/tableta sin abrir el
-documento. Se evaluó el recorte central y se mantuvo el final porque las dos
-líneas más la revelación condicional resuelven la identidad sin una segunda
-regla visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
+introdujo `BaseOverflowText` para una línea con elipsis final, medición de
+recorte y **Ver completo/Contraer**; la misma expansión funciona en las tarjetas
+de celular/tableta sin abrir el documento. El contrato vigente desde 2026-08-28
+publica un único aviso flotante sólo cuando confirma recorte y vuelve a medir al
+finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
+final porque la revelación explícita resuelve la identidad sin una segunda regla
+visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
 `BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
 viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
-default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (80),
+default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (56),
 y deja scroll interno al agotar mínimos. La API genérica quedó
 expuesta en `BaseResponsiveTable` y documentada en el styleguide. Sin backend ni
 schema. Cobertura focal: primitives/engine/Documentos, flow P2

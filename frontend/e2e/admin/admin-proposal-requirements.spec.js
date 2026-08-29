@@ -67,8 +67,16 @@ const mockProposal = {
             title: 'Funcionalidades',
             description: 'Acciones interactivas.',
             items: [
-              { icon: '🌐', name: 'Diseño Responsive', description: 'Adapta a dispositivos.' },
               { icon: '💬', name: 'WhatsApp', description: 'Canal directo.' },
+            ],
+          },
+          {
+            id: 'cross_cutting_features',
+            icon: '🔗',
+            title: 'Funcionalidades Transversales',
+            description: 'Calidades compartidas por varias experiencias.',
+            items: [
+              { id: 'item-features-diseno-responsive', icon: '📱', name: 'Diseño Responsive', description: 'Adapta la experiencia a los dispositivos priorizados.' },
             ],
           },
           {
@@ -146,7 +154,7 @@ test.describe('Functional Requirements — Form Mode', () => {
     });
   });
 
-  test('loads section showing 4 groups with item counts in headers', {
+  test('loads section showing 5 groups with item counts', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
   }, async ({ page }) => {
     await openRequirementsEditor(page, null);
@@ -156,12 +164,23 @@ test.describe('Functional Requirements — Form Mode', () => {
     // Verify group headers are visible
     await expect(editor.getByText('Vistas')).toBeVisible();
     await expect(editor.getByText('Componentes')).toBeVisible();
-    await expect(editor.getByText('Funcionalidades')).toBeVisible();
+    await expect(editor.getByTestId('requirement-group-features')).toBeVisible();
+    await expect(editor.getByTestId('requirement-group-cross_cutting_features')).toBeVisible();
     await expect(editor.getByText('Módulo Admin')).toBeVisible();
 
     // Verify item counts in group headers (e.g., "(2 elementos)")
     await expect(editor.getByText('(2 elementos)').first()).toBeVisible();
     await expect(editor.getByText('(1 elementos)').first()).toBeVisible();
+  });
+
+  test('protects the cross-cutting group from whole-group deletion', {
+    tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    await openRequirementsEditor(page, null);
+
+    const editor = page.getByTestId('section-editor');
+    await expect(editor.getByTestId('delete-requirement-group-cross_cutting_features')).toHaveCount(0);
+    await expect(editor.getByTestId('delete-requirement-group-admin_module')).toHaveCount(1);
   });
 
   test('save produces correct groups structure in payload', {
@@ -181,7 +200,7 @@ test.describe('Functional Requirements — Form Mode', () => {
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
     expect(last.sectionId).toBe(301);
-    expect(last.body.content_json.groups).toHaveLength(4);
+    expect(last.body.content_json.groups).toHaveLength(5);
     expect(last.body.content_json.additionalModules).toEqual([]);
   });
 
@@ -304,13 +323,12 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     const editor = page.getByTestId('section-editor');
 
     // Each group header should have Formulario/Pegar contenido buttons
-    // There are 4 groups, so we expect at least 4 "Formulario" buttons (one per group + main)
+    // There are 5 groups, plus the main section toggle.
     const formularioBtns = editor.getByRole('button', { name: 'Formulario' });
     const pasteBtns = editor.getByRole('button', { name: 'Pegar contenido' });
 
-    // Main section has its own toggle + 4 groups = at least 5
-    expect(await formularioBtns.count()).toBeGreaterThanOrEqual(5);
-    expect(await pasteBtns.count()).toBeGreaterThanOrEqual(5);
+    expect(await formularioBtns.count()).toBeGreaterThanOrEqual(6);
+    expect(await pasteBtns.count()).toBeGreaterThanOrEqual(6);
   });
 
   test('group paste toggle shows textarea for that group', {

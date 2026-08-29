@@ -957,18 +957,20 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `GET /api/content/documents/document-folders/`, `PATCH /api/content/documents/document-folders/<id>/update/`
-- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment.
+- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Manual folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment. Generated branches remain navigable through project/client, document type, issue year and issue month, but their structure and contents are system-owned.
 - **Steps:**
   1. Admin loads `/panel/documents` — sidebar shows root folders only (a chevron marks folders that contain subfolders).
   2. Admin clicks a root folder → table shows that folder's subfolder rows on top, then its documents; a breadcrumb `Todos › <Folder>` appears above the table.
   3. Admin clicks a subfolder row → navigates into it; breadcrumb grows (`Todos › <Folder> › <Subfolder>`).
   4. Admin clicks a breadcrumb segment (or "Todos") → navigates back to that level.
   5. Admin drags a subfolder row onto another folder → the dragged folder is re-parented (`PATCH parent`).
+  6. Admin navigates `Proyectos → <Proyecto> → Cuentas de cobro → <Año> → <Mes>` and finds issued accounts ordered by their canonical title.
 - **Branches:**
   - [Branch A — Only subfolders] A folder with subfolders but no documents still renders the subfolder rows (no empty state).
   - [Branch B — Cycle prevented] Dropping a folder onto itself or one of its descendants is rejected client-side and by the backend serializer.
   - [Branch C — Drop on "Sin carpeta"] Dragging a subfolder onto "Sin carpeta" promotes it to a root folder (`parent = null`).
   - [Branch D — Search active] While a search query is active, subfolder rows are hidden and the search applies to documents only.
+  - [Branch E — Generated hierarchy] A folder with `system_key` hides rename, move, archive, delete and drag affordances; the API and Documents MCP reject those mutations and manual document drops.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folder-hierarchy.spec.js`
 
@@ -4361,24 +4363,26 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/communications`
-- **API:** `GET/POST /api/communications/threads/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`
-- **Description:** El administrador conserva el recorrido de una conversación sin convertirla en documento. Un hilo pertenece a un cliente, puede apuntar a un proyecto y contiene mensajes entrantes o salientes con canal, fecha, estado y referencias a documentos existentes. En esta primera fase la plataforma registra; no envía realmente por correo ni WhatsApp.
+- **API:** `GET/POST /api/communications/threads/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`, `/api/accounts/saved-filter-tabs/`
+- **Description:** El administrador recorre el registro manual de conversaciones por proyecto, por cliente o por la entrada explícita «Sin proyecto». Puede combinar filtros, guardar recortes propios y abrir el detalle en un modal de trabajo sin perder la lista. Cada hilo conserva mensajes entrantes o salientes con canal, fecha, estado y referencias a documentos existentes.
 - **Steps:**
-  1. El administrador abre Comunicaciones y consulta los hilos filtrables.
-  2. Selecciona un hilo y lee los mensajes en orden temporal junto con canal, dirección y estado.
-  3. Escribe o pega el texto exacto de una comunicación.
-  4. Registra una salida como borrador o enviada, o una entrada como respuesta recibida.
-  5. La línea de tiempo se vuelve a consultar y muestra el nuevo registro.
+  1. El administrador entra a Comunicaciones desde el panel y navega por proyectos o clientes, con conteos que incluyen sus hilos.
+  2. Elige «Sin proyecto» cuando necesita consultar conversaciones todavía no asociadas a uno.
+  3. Combina varios valores dentro de un filtro y, si reutiliza ese recorte, lo guarda con nombre como vista propia.
+  4. Selecciona un hilo; el detalle se abre sobre la lista y muestra la línea de tiempo, sus estados y documentos referenciados.
+  5. Escribe o pega el texto exacto y registra una salida como borrador o enviada, o una entrada como recibida.
+  6. Cierra el detalle o vuelve atrás y recupera el mismo contexto de navegación y filtros.
 - **Branches:**
-  - [Branch A — Consulta] La línea de tiempo muestra juntos lo enviado, lo recibido y los documentos referenciados.
-  - [Branch B — Registro exitoso] Un mensaje saliente queda con estado `sent` y fecha explícita.
-  - [Branch C — Error de negocio] La API rechaza el registro y el panel conserva el texto, mostrando la razón.
-  - [Branch D — Fallo de carga] El listado no está disponible y el panel muestra un estado de error visible.
-  - [Branch E — Alcance de canal] El aviso superior aclara que copiar/enviar ocurre fuera de la plataforma en esta fase.
+  - [Branch A — Display] La navegación muestra proyectos, clientes y «Sin proyecto»; el modal presenta juntos lo enviado, lo recibido y los documentos referenciados.
+  - [Branch B — Recorte guardado] La selección por cliente y los estados múltiples se guardan y se restauran como una vista propia.
+  - [Branch C — Registro exitoso] Un mensaje saliente queda con estado `sent` y fecha explícita.
+  - [Branch D — Error de negocio] La API rechaza el registro y el panel conserva el texto, mostrando la razón.
+  - [Branch E — Fallo de carga] El listado no está disponible y el panel mantiene un reintento visible.
+  - [Branch F — Alcance de canal] El aviso describe el registro manual vigente y puede cerrarse después de leído, sin prometer una fase posterior.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-client-communications.spec.js`
 - **Unit Tests:** `test/stores/communications.test.js`
-- **Backend Tests:** `content/tests/views/test_communication_views.py`
+- **Backend Tests:** `content/tests/views/test_communication_views.py`, `content/tests/views/test_communication_filters.py`
 
 ### FLOW: `admin-mini-crm-clients`
 
@@ -5628,7 +5632,7 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/:id/edit`
-- **Description:** Edita contenido, asociación cliente/proyecto, visibilidad en el portal y presentación de un documento. La entrada desde el gestor conserva carpeta, filtros, búsqueda, archivo, vista y página en un `from` interno validado; las salidas explícitas restauran ese contexto, mientras una entrada directa o no confiable vuelve a la raíz. La cabecera reserva el ancho de las acciones, limita el título a dos líneas y mantiene visibilidad/cliente sin empujar los controles; debajo muestra los estados concurrentes con su duración. **Acciones** contiene las salidas PDF y queda separado de **Cancelar/Guardar**. La asociación guardada ofrece backlinks y conserva el `client_name` heredado cuando no existe relación. La barra de Markdown permite copiar o pegar contenido. `doc-client-note-open` conserva los mensajes para el cliente, guarda esa metadata directamente y administra observaciones normalizadas enlazables con **Solucionar bug**. Nada de esta metadata aparece en el PDF ni en el portal del cliente.
+- **Description:** Edita contenido, asociación cliente/proyecto, visibilidad en el portal y presentación de un documento manual. La entrada desde el gestor conserva carpeta, filtros, búsqueda, archivo, vista y página en un `from` interno validado; las salidas explícitas restauran ese contexto, mientras una entrada directa o no confiable vuelve a la raíz. La cabecera reserva el ancho de las acciones, limita el título a dos líneas y mantiene visibilidad/cliente sin empujar los controles; debajo muestra los estados concurrentes con su duración. **Acciones** contiene las salidas PDF y queda separado de **Cancelar/Guardar**. La asociación guardada ofrece backlinks y conserva el `client_name` heredado cuando no existe relación. La barra de Markdown permite copiar o pegar contenido. `doc-client-note-open` conserva los mensajes para el cliente, guarda esa metadata directamente y administra observaciones normalizadas enlazables con **Solucionar bug**. Una versión PDF generada al enviar una propuesta abre en esta misma ruta como registro inmutable: título, asociación, carpeta, mensajes y workflow no se editan; se descarga exactamente el archivo guardado y las observaciones privadas sí siguen disponibles. Nada de esta metadata aparece en el PDF ni en el portal del cliente.
 - **Steps:**
   1. Admin llega desde el gestor a `/panel/documents/:id/edit` con su origen canónico en `from`; `GET /api/documents/:id/detail/` carga el documento.
   2. El formulario aparece precargado con título, contenido, visibilidad, asociación, configuración visual, episodios vigentes y notas privadas.
@@ -5639,6 +5643,7 @@ Two transitions that were previously bundled into other flows now have their own
   7. Admin modifica o guarda por separado cualquier otro dato necesario.
 - **Branches:**
   - [Display — lectura] Una cuenta de cobro emitida permite consultar y copiar todas sus notas, pero no crearlas, modificarlas ni eliminarlas.
+  - [Display — versión generada] Una propuesta archivada muestra el aviso de inmutabilidad, reemplaza el editor Markdown por el panel del PDF guardado y deja una sola descarga. Sus mensajes quedan bloqueados, pero las observaciones privadas se pueden crear, editar, resolver o eliminar.
   - [Display — volver] **Volver a documentos** y las demás salidas explícitas restauran la lista con su contexto y foco; el guard interviene si hay cambios sin guardar. Back del navegador conserva su semántica nativa y un `from` directo, externo o de otro módulo cae a la raíz localizada.
   - [Success — PDF] Preview y descarga usan la configuración guardada; **Acciones** permite descargar PDF Amigable o Profesional.
   - [Success — visibilidad] El interruptor persiste `is_client_visible` sin modificar el ciclo de trabajo.
@@ -5953,7 +5958,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-hostings` | admin | P2 | display,success,error | 3 |
 | `admin-accounting-income-bulk-settle` | admin | P1 | success,error,failure,display | 8 |
 | `admin-accounting-income-client` | admin | P1 | display,success,failure,error | 10 |
-| `admin-accounting-income-crud` | admin | P1 | display,success,error,failure | 27 |
+| `admin-accounting-income-crud` | admin | P1 | display,success,error,failure | 34 |
 | `admin-accounting-list-error-retry` | admin | P3 | failure,display | 1 |
 | `admin-accounting-pocket` | admin | P2 | display,success,error | 6 |
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
@@ -5963,6 +5968,11 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
+| `admin-additional-modules-catalog` | admin | P1 | display,failure | 2 |
+| `admin-additional-modules-manage` | admin | P1 | success,error,failure | 4 |
+| `admin-additional-modules-pdf` | admin | P2 | success,failure | 2 |
+| `admin-additional-modules-reorder` | admin | P2 | success,failure | 2 |
+| `admin-additional-modules-share` | admin | P1 | success,error,failure,display | 4 |
 | `admin-admin-management` | admin | P3 | display,success,error | 1 |
 | `admin-auto-archive-zombie` | admin | P3 | — | 0 |
 | `admin-blog-calendar` | admin | P2 | display | 1 |
@@ -5976,7 +5986,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-blog-overdue-detection` | admin | P2 | — | 0 |
 | `admin-blog-publish-mode` | admin | P2 | display,success | 1 |
 | `admin-calculator-followup-alert` | admin | P2 | — | 0 |
-| `admin-client-communications` | admin | P1 | display,success,error,failure | 4 |
+| `admin-client-communications` | admin | P1 | display,success,error,failure | 5 |
 | `admin-client-create-standalone` | admin | P2 | success,error | 1 |
 | `admin-client-delete-orphan` | admin | P2 | display,success | 1 |
 | `admin-client-delete-protected` | admin | P2 | error | 1 |
@@ -6038,7 +6048,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-folder-hierarchy` | admin | P2 | display | 1 |
 | `admin-document-folder-manage` | admin | P2 | success,error,failure | 1 |
 | `admin-document-folder-panel-resize` | admin | P3 | display,success | 1 |
-| `admin-document-folders` | admin | P2 | display | 1 |
+| `admin-document-folders` | admin | P2 | display,success | 1 |
 | `admin-document-gallery` | admin | P2 | display | 1 |
 | `admin-document-list` | admin | P2 | display,success | 1 |
 | `admin-document-move-folder` | admin | P1 | display,success,failure | 3 |
@@ -6071,7 +6081,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
 | `admin-outbound-email-history-body` | admin | P1 | display | 1 |
 | `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
-| `admin-panel-projects` | admin | P1 | display,success,error | 9 |
+| `admin-panel-projects` | admin | P1 | display,success,error | 13 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
 | `admin-portfolio-create` | admin | P2 | display,success,error | 1 |
@@ -6082,7 +6092,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
 | `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 5 |
-| `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 6 |
+| `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 7 |
 | `admin-proposal-actions-modal` | admin | P1 | display | 1 |
 | `admin-proposal-advanced-filters` | admin | P2 | display | 1 |
 | `admin-proposal-analytics` | admin | P2 | display | 1 |
@@ -6263,6 +6273,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-view-paste-rendering` | proposal | P2 | display | 1 |
 | `proposal-welcome-back` | proposal | P2 | success,display | 1 |
 | `public-about-us` | public | P3 | — | 0 |
+| `public-additional-modules-catalog` | public | P1 | display,failure | 2 |
+| `public-additional-modules-detail` | public | P1 | success | 1 |
+| `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
+| `public-additional-modules-share` | public | P1 | display,failure | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
@@ -6337,7 +6351,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   1. Superuser creates or edits an income and picks its client and origin (or creates the client inline).
   2. The Cliente column and the Cliente/Origen filters read the ledger by client; the "Sin cliente" tab lists what is still unassigned.
   3. Selecting rows reveals the bulk bar. "Asignar cliente" stays off until a client is picked, with the reason on screen; "Desvincular cliente" only shows up when the selection has a client to lose.
-  4. Either action confirms first: the modal breaks the selection into what gains a client, what changes one and from whom, and lists every affected record. On open it focuses the destination picker and immediately shows a stable alphabetical page of clients — no typing is required; typing filters that visible catalog, later pages load progressively inside the list, and an empty catalog or unmatched filter offers inline client creation. Results render in the modal-owned floating layer: at least five complete options are visible, a long result set scrolls there without moving the modal, and four affected rows fit in the review without scrolling. Cancelling writes nothing.
+  4. Either action confirms first: the modal breaks the selection into what gains a client, what changes one and from whom, and lists every affected record. On open it focuses the search input and immediately shows a permanent in-flow catalog — no click or typing is required. The name header toggles A-Z/Z-A and remembers that choice between openings; typing filters the visible rows, later pages load progressively inside the catalog, and an empty catalog or unmatched filter offers inline client creation. Every row identifies the client by name, company and email and flags missing email. At least five complete rows are visible; a long catalog owns the only scrollbar while the modal and its four-row review stay still. On a compact viewport the modal fills the screen. Cancelling writes nothing.
   5. On confirm only the rows that change are sent, and the toast reports how many the server actually modified.
   6. "Totales por cliente" answers how much each client was billed and how much is still pending, over the filtered set.
 - **Error cases:**
@@ -6347,7 +6361,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Cancelled confirmation] No request fires and the selection survives untouched.
   - [Selected record deleted] (Ago 2026) La selección se reconcilia contra lo que existe de verdad: el id borrado se descarta solo —**sólo ése**, así que de tres seleccionados y uno eliminado quedan dos— el contador y el aviso "· N fuera del filtro actual" se recalculan sobre filas reales, y la barra se oculta sola cuando ya no queda nada que asignar, sin recargar ni pulsar Cancelar. Aplica a cualquier acción que cambie el conjunto, porque la reconciliación cuelga de los datos (`useRowSelection`) y no del handler que los cambió.
   - [Record deleted while the confirmation was open] `POST /api/accounting/incomes/bulk-assign-client/` responde **409 `records_not_found`** nombrando `missing_ids` y **no escribe nada** — una edición masiva se confirma contra un alcance nombrado, así que corre entera o no corre. El panel descarta esos ids de la selección y recarga la lista.
-- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, initial client catalog visible without typing, floating results with five complete options and list-only scroll, four-row review visible at once, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, session-only toggle back to classic writing nothing, la selección depurándose tras un borrado —clásica, agrupada y tras "Seleccionar los N filtrados"— y el 409 reconciliando)
+- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, permanent catalog visible without typing, persisted A-Z/Z-A order, filtering and progressive loading inside the list-only scroll, five complete client rows, four-row review visible at once, full-screen compact modal, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, session-only toggle back to classic writing nothing, la selección depurándose tras un borrado —clásica, agrupada y tras "Seleccionar los N filtrados"— y el 409 reconciliando)
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-income-crud`
@@ -6356,9 +6370,10 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Its indicator cards use the shared fixed label/value/reserved-support structure, so all heights match, and every visible card has contextual help plus an explicit filtering action. Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
+- **Responsive contract:** En 412 px y 835 px la cabecera muestra exactamente dos resúmenes — **Resultado anual** y **Detalle operativo** — y sus drawers conservan las siete preguntas originales (esperado, líquido, perdido, mes actual, principal origen, sin cliente y sin proyecto). La primera fila queda dentro de la pantalla inicial del teléfono. Desde 1195 px se muestran cuatro tarjetas detalladas. Los cinco anchos de referencia verifican cantidad, alturas parejas y acceso al detalle.
 - **Steps:**
-  1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner).
+  1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner), and may activate an indicator to apply its year/month/kind/search/missing-relation filter.
   2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total, and the period field (shared PeriodDateField) defaults to today's exact date with a toggle down to month-only. Edits always open in full-date mode showing the stored day (01 remains the month-only storage sentinel; the toggle still downgrades to month). (Ago 2026) With **Origen Hosting** the single date swaps for the period the income covers: inicio (same exact-day toggle), fin and a **Periodicidad** selector reusing the recurring-payments catalog. The block is laid out in the order it is filled — **Periodicidad** rides in the top row beside **Tipo**, because how often is decided before the dates it proposes, and **inicio** and **fin** share the row below so the range reads left to right instead of splitting into two loose dates; the exact-day toggle sits under inicio, the date it applies to, and the cadence shortcuts under both. Its hint says what the control does for the operator ("Al elegirla se calcula la fecha de fin del período") rather than where the catalog came from. Picking a cadence recomputes on the spot: it writes the inclusive end — inicio + cadence − 1 day, day clamped like `add_months` — and, with no inicio yet, opens the window on the period after the last one recorded. `GET /api/accounting/incomes/period-suggestion/` resolves that antecedent by client, narrowed by project (an income has no FK to a hosting, so `origin` is only a label), and the inicio field says which period this one follows; a client's first charge falls back to today, and a client holding several active hostings with no project to tell them apart gets no proposal rather than a guessed one. Moving inicio carries fin with it keeping the cadence, and writing fin by hand turns the cadence to **Personalizada** instead of leaving the selector claiming a length the window no longer has; under "Personalizada" both dates are handwritten and nothing recomputes. The recompute watches the values rather than the keystrokes, so it also fires when inicio is written programmatically — switching the origin, or a shortcut — which is where the first delivery silently did nothing. The three fields are required for hosting (legacy rows complete their period on first edit; the backend derives `period_date` from the inicio so orderings and KPIs keep one axis), fin must come after inicio — refused inline under the field before the submit, not only by the serializer — and other origins keep the single date, clearing any stray window. Switching the origin still keeps everything typed, with one correction: a create's untouched "today" default is boilerplate, not an answer, so it no longer carries into the window, which is what lets the antecedent fill it. The recorded window pre-fills the cuenta de cobro's "Período facturado" and appends three columns to the income export.
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
@@ -6381,7 +6396,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch H] A settlement deduction is an `ExpenseRecord` flagged with `deduction_type` and linked to its origin via `source_income` (migration `content/0173` backfilled the link from the `income:<pk>:settlement` stamp and re-grossed the parents earlier settlements had netted): it books no pocket movement (the money never entered the pocket), keeps the expected income **gross** and counts as **payment credit** toward it — liquid children + linked deductions add up to the parent's total, so a fee-settled income still reads Pagado. Under the gross convention it **reduces expected utility** like any expense, while liquid utility subtracts only operational spending (the liquid total already arrives net of every fee — subtracting deductions there would double-count). It shows in the Gastos tab with a "Descuento de ingreso" pill whose tooltip names the origin income, filters by "Tipo de deducción" (shared catalog with the liquidation modal) or "Naturaleza", totalizes in the "Deducciones (año)" KPI with a per-type breakdown and in Operativo/Deducciones chips over the filtered rows, exports with "Tipo de deducción" + "Ingreso origen" columns, and is reported apart as `deductions_total` on the accounting dashboard. Deductions are created from Liquidar only: manual writes can neither set nor clear `deduction_type`, and editing one hides the pocket toggle behind a hint.
   - [Branch J] Duplicating (Aug 2026) always produces an **expected** record, whatever the original was — reopening the next period of an already collected hosting is the case it exists for — and never carries what belonged to the original occurrence: settlement links, cuenta de cobro, deductions, history and silenced reminders all stay behind, so the duplicate enters the payment calendar clean. The proposed date is the original's plus one hosting cycle, resolved server-side by matching the client (narrowed by project) among active hostings when the origin is Hosting; an ambiguous or absent match leaves the field empty and its `required` blocks the save until a date is chosen. A failing draft raises "No se pudo preparar el duplicado" and opens no form. (Ago 2026) **Origen is required** on every income the form writes — creating, editing and duplicating alike. `BaseSegmented` carries no native `required`, so the refusal is the form's own ("Elige la línea de negocio del ingreso."), held back until the first submit attempt so a freshly opened form never opens complaining; the write serializer enforces the same rule on create and on any update that writes the field, which is what turns editing a legacy row into the gradual backfill of the book. A partial PATCH that does not touch `origin` leaves the record as unclassified as it was, and settling is exempt on purpose: the liquid child and the rescheduled balance copy the parent's line of business, blank included, since refusing to collect money over a classification would block Liquidar on most of the book.
   - [Branch K] (Ago 2026) Una mutación **refresca en sitio**. Al eliminar, la fila deja su grupo de inmediato y el contador del grupo, el conteo de resultados y los totales de la cabecera (Total esperado / líquido / perdido) se recalculan solos, porque derivan del set filtrado. Dos cosas que hacían que eso *pareciera* una recarga se corrigieron con el mismo cambio, y valen para las seis vistas de contabilidad: las tablas pintan skeleton **sólo cuando todavía no hay nada en pantalla**, no encima de datos ya visibles, y la paginación vuelve a la página 1 cuando cambian los **filtros**, no cada vez que se reconstruyen las filas — borrar una fila desde la página 3 ya no deja al lector en la 1.
-- **Coverage:** ✅ Covered — all four outcome classes, including the settlement's deduction, follow-up income, over-allocation block and backend rejection, y el borrado recalculando totales sin recargar ni mover la página.
+- **Coverage:** ✅ Covered — all four outcome classes, including the five-width indicator header, its filtering actions, the settlement's deduction, follow-up income, over-allocation block and backend rejection, y el borrado recalculando totales sin recargar ni mover la página.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-income-bulk-settle`
@@ -6496,11 +6511,11 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/history`
-- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
+- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. That reason remains reachable through a focusable accessible proxy and one application tooltip, without a duplicate native `title`. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
 - **Steps:**
   1. Superuser opens the Envíos subtab and clicks the eye on a row → the delivered message opens in a modal.
   2. On a failed row, the retry icon re-sends to that recipient; the list and its counts reload so the new attempt is visible.
-  3. A failed digest shows the retry disabled with the reason in its tooltip; a send that worked offers no retry at all.
+  3. A failed digest shows the retry disabled; activating its focusable proxy reveals exactly one tooltip with the reason, and the button has no native `title`. A send that worked offers no retry at all.
   4. Expanding a row names the records the email was about and, when applicable, the send it was a retry of.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-history-filters.spec.js`
@@ -6908,11 +6923,11 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 - **Priority:** P1
 - **Routes:** `/panel/projects`
 - **API:** `GET /api/projects/?scope=all`, `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `GET /api/project-states/`, `GET /api/proposals/client-profiles/?without_projects=true`
-- **Description:** Listing of every project with client, administrable lifecycle state, created date and per-project hosting/income counts. It loads once and filters client-side by every active catalog state plus the manual-review bucket; search is accent/case-blind and columns remain sortable. Each lifecycle state owns a header count. Counts, the active filter, desktop rows and compact cards offer contextual state help with its editable meaning and system-owned implications. **Clients without project** remains literal (no `Project` row) and opens a create path pre-seeded with that client. Create requires name + client, defaults to **En desarrollo**, and may choose another initial catalog state; later state changes are intentionally absent from edit and use the consequence-preview flow. A same-name project warns without blocking. For superusers, counts link into accounting pre-filtered by project.
-- **Responsive contract:** En 412 px y 835 px el scope es selector, el orden sigue explícito y el listado usa tarjetas en una o dos columnas. El teléfono prioriza dos KPI y revela los otros dos bajo demanda. Desde 1195 px vuelve la tabla. Crear, editar, asignar huérfanos y cambiar cliente usan pantalla completa en teléfono; la vista previa de impacto se apila antes de la decisión y conserva acciones sticky. En 2560 px la página se centra con máximo de 1400 px.
-- **Steps:** open module → search/sort/filter by catalog state → create from CTA or uncovered-client panel → edit descriptive data → open the dedicated lifecycle/history actions → jump into hostings/incomes by count.
+- **Description:** Listing of every project with client, administrable lifecycle state, created date and per-project hosting/income counts. It loads once and filters client-side by every active catalog state plus the manual-review bucket; search is accent/case-blind and columns remain sortable. Indicator cards share a fixed label/value/reserved-support structure, so help copy never changes their height, and every visible card has contextual help plus an explicit action. On expanded widths, non-zero lifecycle states follow catalog order under **Ciclo del proyecto**; review, clients without projects and unlinked accounting records are grouped separately under **Pendientes operativos**. **Clients without project** remains literal (no `Project` row) and opens a create path pre-seeded with that client. Create requires name + client, defaults to **En desarrollo**, and may choose another initial catalog state; later state changes are intentionally absent from edit and use the consequence-preview flow. A same-name project warns without blocking. For superusers, counts link into accounting pre-filtered by project.
+- **Responsive contract:** En 412 px y 835 px la cabecera muestra exactamente dos resúmenes accionables — **Estados** y **Pendientes** —; sus drawers conservan todos los estados, incluidos los que están en cero, y cada detalle operativo. La primera tarjeta del listado queda dentro de la pantalla inicial del teléfono. El scope es selector, el orden sigue explícito y el listado usa tarjetas en una o dos columnas. Desde 1195 px vuelven las tarjetas detalladas y la tabla. Crear, editar, asignar huérfanos y cambiar cliente usan pantalla completa en teléfono; la vista previa de impacto se apila antes de la decisión y conserva acciones sticky. En 2560 px la página se centra con máximo de 1400 px.
+- **Steps:** open module → inspect or activate an indicator → search/sort/filter by catalog state → create from CTA or uncovered-client panel → edit descriptive data → open the dedicated lifecycle/history actions → jump into hostings/incomes by count.
 - **Branches:** duplicate name warns and still saves; backend 400 keeps the modal open with the message; zero counts render as plain text; non-superusers see plain counts (no links).
-- **Coverage:** ✅ Covered, incluido display responsivo en los cinco anchos reales.
+- **Coverage:** ✅ Covered, incluidas alturas parejas, orden del ciclo, estados en cero dentro del detalle compacto, acciones de filtro/navegación y display responsivo en los cinco anchos reales.
 - **E2E Specs:** `e2e/admin/admin-panel-projects.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 
 ### FLOW: `admin-project-fly-create`
@@ -7072,15 +7087,77 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
+### FLOW: `admin-additional-modules-catalog`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Navigate from the panel sidebar, read the grouped catalog and retry a failed initial request.
+- **Outcomes:** `display`, `failure`
+- **Evidence:** `frontend/pages/panel/additional-modules/index.vue`, `GET /api/additional-modules/admin/`
+
+### FLOW: `admin-additional-modules-manage`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Create or edit bilingual module content; a successful edit sends a `PATCH` and closes the form, while incomplete content and API failures remain visible inside it.
+- **Outcomes:** `success`, `error`, `failure`
+- **Evidence:** `ModuleFormModal.vue`, module create/update endpoints.
+
+### FLOW: `admin-additional-modules-pdf`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Select catalog modules and download the generated PDF without prices.
+- **Outcomes:** `success`, `failure`
+- **Evidence:** PDF selection modal and `POST /api/additional-modules/admin/pdf/`.
+
+### FLOW: `admin-additional-modules-reorder`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Reorder categories/modules by controls or drag and save the complete optimistic-lock payload.
+- **Outcomes:** `success`, `failure` (stale revision reloads the catalog)
+- **Evidence:** `CatalogOrderModal.vue`, `POST /api/additional-modules/admin/reorder/`.
+
+### FLOW: `admin-additional-modules-share`
+
+- **Module:** admin / commercial
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/additional-modules`
+- **Interaction:** Select modules and recipient, generate a fixed-selection link, then inspect openings or revoke it in Seguimiento.
+- **Outcomes:** `success`, `error`, `failure`, `display`
+- **Evidence:** `CatalogSelectionModal.vue`, `ShareHistoryModal.vue`, admin share endpoints.
+
+### FLOW: `admin-document-gallery`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/documents`
+- **Description:** El gestor cambia de Lista a Galería y ve una tarjeta por documento con vista previa Markdown saneada, cliente, fecha, episodios de estado activos y un resumen `+N` cuando hay desborde. El botón de tres puntos abre la misma hoja de acciones de la lista, conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`.
+- **Steps:** entrar a Documentos → elegir Galería → leer una tarjeta real → enfocar o posar el cursor sobre el botón de acciones y ver un solo aviso `Acciones` → abrir la hoja de acciones.
+- **Branches:** las subcarpetas aparecen primero y aceptan arrastre; la preferencia de vista persiste; en móvil la galería es obligatoria y el toque abre la hoja sin depender de hover.
+- **Coverage:** ✅ Display y apertura de acciones cubiertos.
+- **E2E Spec:** `e2e/admin/admin-document-gallery.spec.js`
+
 ### FLOW: `admin-document-list`
 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
 - **Route:** `/panel/documents`
-- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
-- **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → acceder a las acciones de la fila/tarjeta → cambiar entre activos, archivados y todos.
-- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; ningún ancho produce scroll horizontal de página.
+- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. Los documentos manuales muestran episodios de workflow; las cuentas de cobro muestran en su lugar el estado comercial derivado (**Borrador, Emitida, Enviada, Envío fallido, Pagada o Anulada**). Una cuenta ya emitida sólo ofrece consulta, una descarga de su PDF contable y archivar/restaurar: no ofrece renombrar, mover, duplicar ni eliminar. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
+- **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → enfocar o posar el cursor sobre las acciones y ver un solo aviso `Acciones` → abrir el menú de la fila/tarjeta → cambiar entre activos, archivados y todos.
+- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; una cuenta emitida conserva el mismo estado comercial y las mismas acciones restringidas en tabla y tarjeta; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 
@@ -7090,10 +7167,10 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, el navegador recibe el nombre completo como ayuda y aparece **Ver completo** para expandirlo con corte seguro incluso cuando no contiene espacios. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija del encabezado **Título** ajusta el ancho entre 240 y 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
+- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, incluso después de cargar las fuentes web, un único aviso flotante de la aplicación muestra el nombre completo y **Ver completo** permite expandirlo por foco, toque o clic con corte seguro incluso cuando no contiene espacios. El aviso usa el mismo `BaseTooltip` de las acciones de fila, se mantiene dentro del viewport y no convive con un `title` nativo duplicado. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija visible y etiquetada del encabezado **Título** ajusta el ancho entre 240 y el máximo de inventario de 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
 - **Steps:**
   1. Admin abre **Gestor Documental** y consulta el listado.
-  2. Un título recortado —con espacios o con guiones bajos— muestra la ayuda y **Ver completo**; uno que cabe no agrega información repetida.
+  2. Un título recortado —con espacios o con guiones bajos— muestra un solo aviso flotante y **Ver completo**; uno que cabe no agrega información repetida.
   3. Pulsa **Ver completo** en la tabla o tarjeta y el título se despliega sin abrir el documento.
   4. Comprueba que la carpeta aparece debajo del título y que títulos, carpeta y metadatos permanecen dentro de la fila o tarjeta.
   5. En la tabla, arrastra la manija de **Título** o la opera con teclado para elegir el ancho.
@@ -7101,13 +7178,13 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   7. Hace doble clic en la manija para recuperar el ancho predeterminado.
 - **Branches:**
   - [Display — contención] Los nombres reales largos, incluidos los escritos sin espacios, permanecen dentro de su celda o tarjeta en celular, tableta y escritorio; nunca invaden Cliente ni otro contenido.
-  - [Display — recorte] La ayuda y el control de expansión sólo existen cuando la medición del texto confirma recorte.
+  - [Display — recorte] El aviso flotante y el control de expansión sólo existen cuando la medición del texto confirma recorte, incluida la remedición tras cargar fuentes web; el control de acciones reutiliza el mismo aviso sin sumar un `title` nativo.
   - [Display — metadatos] Carpeta aparece primero en el renglón inferior; Cliente, Proyecto y Estado siguen allí cuando el perfil compacto los oculta como columnas. Sin carpeta, la tabla de escritorio conserva altura natural.
   - [Success — consulta] **Ver completo** expande el nombre en el mismo contexto con `overflow-wrap:anywhere`, y **Contraer** recupera la línea truncada.
   - [Success — reparto] Proyecto, Cliente y Fecha ceden espacio en ese orden; Estados y Acciones conservan su ancho.
-  - [Success — límite] Tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
+  - [Success — límite] El máximo de 520 px cubre el nombre más largo del inventario productivo vigente; tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
-- **Coverage:** ✅ Covered (nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
+- **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
 
 ### FLOW: `admin-outbound-email-history-body`
@@ -7225,3 +7302,43 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   3. El total mantiene la moneda y el texto `+ IVA` sin duplicarlos.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-payment-plan-closing.spec.js`
+
+### FLOW: `public-additional-modules-catalog`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/additional-modules`
+- **Interaction:** Follow the footer link and read active modules grouped in the live catalog order; retry a failed live request.
+- **Outcomes:** `display`, `failure`
+- **Evidence:** public catalog page/component and `GET /api/additional-modules/public/`.
+
+### FLOW: `public-additional-modules-detail`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/additional-modules`
+- **Interaction:** Open a module card, read what it is, purpose, problems, integrations and requirements, then close back to the opener.
+- **Outcomes:** `success`
+- **Evidence:** `AdditionalModules/CatalogView.vue`.
+
+### FLOW: `public-additional-modules-pdf`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P2
+- **Routes:** canonical catalog and shared selection
+- **Interaction:** Download the full or selected no-price PDF; unavailable shares return 410.
+- **Outcomes:** `success`, `failure`
+- **Evidence:** public PDF endpoints and the shared/catalog download control.
+
+### FLOW: `public-additional-modules-share`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/additional-modules/share/:uuid`
+- **Interaction:** Open a prepared selection, record one first-party browser session and read only selected live modules; revoked/empty selections show an unavailable state.
+- **Outcomes:** `display`, `failure`
+- **Evidence:** share page, public share and tracking endpoints.

@@ -58,6 +58,10 @@ export default defineNuxtConfig({
     '/es-co/landing-apps': { ssr: true },
     '/en-us/about-us': { ssr: true },
     '/es-co/about-us': { ssr: true },
+    '/en-us/additional-modules': { ssr: true },
+    '/es-co/additional-modules': { ssr: true },
+    '/en-us/additional-modules/share/**': { ssr: false },
+    '/es-co/additional-modules/share/**': { ssr: false },
     '/en-us/portfolio-works': { ssr: true },
     '/en-us/portfolio-works/**': { ssr: true },
     '/es-co/portfolio-works': { ssr: true },
@@ -115,12 +119,14 @@ export default defineNuxtConfig({
         '/es-co/contact',
         '/es-co/contact-success',
         '/es-co/blog',
+        '/en-us/additional-modules',
+        '/es-co/additional-modules',
         ...(await blogPrerenderRoutes()),
       ],
     },
     hooks: {
       'prerender:generate'(route) {
-        const privateRoute = /^\/(?:(?:en-us|es-co)\/)?(?:panel|platform|proposal|auth)(?:\/|$)/
+        const privateRoute = /^\/(?:(?:en-us|es-co)\/)?(?:(?:panel|platform|proposal|auth)(?:\/|$)|additional-modules\/share(?:\/|$))/
         if (privateRoute.test(route.route ?? '')) route.skip = true
       },
     },

@@ -1,480 +1,225 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH" data-testid="communications-page">
-    <header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+  <div :class="[PAGE_MAX_WIDTH, 'flex min-h-full flex-col']" data-testid="communications-page">
+    <header class="mb-4 flex flex-col gap-3 panel-portrait:flex-row panel-portrait:items-start panel-portrait:justify-between">
       <div>
         <h1 class="text-2xl font-light text-text-default">Comunicaciones</h1>
         <p class="mt-1 max-w-3xl text-sm text-text-subtle">
-          Registro por cliente de lo que se envió y lo que respondió, con fechas y documentos enlazados.
+          Registro por cliente de lo enviado y recibido, organizado por proyecto o por cliente.
         </p>
       </div>
       <BaseButton
         variant="primary"
         size="md"
         data-testid="communications-new-thread"
-        @click="openThreadModal"
+        @click="openThreadForm"
       >
         <BaseActionIcon action="create" />
         Nuevo hilo
       </BaseButton>
     </header>
 
-    <BaseAlert variant="info" class="mb-5" data-testid="communications-channel-scope">
-      En esta fase el panel conserva el registro. Copia el texto a WhatsApp o a tu correo y luego marca
-      la comunicación como enviada; el envío automático se incorporará en una fase posterior.
+    <BaseAlert
+      v-if="noticeReady && showNotice"
+      variant="info"
+      dismissible
+      class="mb-4"
+      data-testid="communications-channel-scope"
+      @dismiss="dismissNotice"
+    >
+      Este módulo conserva el registro manual de las conversaciones. Copia el texto a WhatsApp o a tu correo y registra aquí lo enviado o recibido.
     </BaseAlert>
+    <div v-else-if="noticeReady" class="mb-3">
+      <BaseButton variant="link" size="sm" data-testid="communications-show-help" @click="showNotice = true">
+        Cómo funciona el registro manual
+      </BaseButton>
+    </div>
 
-    <section class="mb-5 grid gap-3 rounded-xl border border-border-muted bg-surface p-4 md:grid-cols-4">
+    <BaseFilterTabs
+      :tabs="displayTabs"
+      :active-tab-id="activeTabId"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="selectTab"
+      @create="handleCreateTab"
+      @rename="renameTab"
+      @delete="deleteTab"
+      @restore="restoreTab"
+      @rebase="rebaseTab"
+      @reorder="reorderTabs"
+    />
+
+    <div class="mb-4 flex flex-col gap-3 rounded-xl border border-border-muted bg-surface p-3 panel-portrait:flex-row panel-portrait:items-center">
       <BaseInput
-        v-model="filters.q"
-        placeholder="Buscar cliente, asunto o texto..."
+        v-model="searchInput"
+        class="min-w-0 flex-1"
+        placeholder="Buscar cliente, proyecto, asunto o texto..."
         aria-label="Buscar comunicaciones"
         data-testid="communications-search"
-        @keyup.enter="applyFilters"
       />
-      <BaseSelect
-        v-model="filters.status"
-        :options="THREAD_STATUS_OPTIONS"
-        aria-label="Estado del hilo"
-        data-testid="communications-status-filter"
-        @update:model-value="applyFilters"
+      <BaseButton
+        :variant="isFilterPanelOpen || activeFilterCount ? 'primary' : 'secondary'"
+        size="md"
+        data-testid="communications-filter-toggle"
+        :aria-expanded="isFilterPanelOpen"
+        @click="isFilterPanelOpen = !isFilterPanelOpen"
+      >
+        <BaseActionIcon action="filter" />
+        Filtros<span v-if="activeFilterCount"> ({{ activeFilterCount }})</span>
+      </BaseButton>
+      <BaseSegmented
+        :model-value="currentFilters.order"
+        :options="ORDER_OPTIONS"
+        size="sm"
+        aria-label="Orden de los hilos"
+        @update:model-value="setOrder"
       />
-      <BaseSelect
-        v-model="filters.channel"
-        :options="CHANNEL_FILTER_OPTIONS"
-        aria-label="Canal"
-        data-testid="communications-channel-filter"
-        @update:model-value="applyFilters"
+      <BaseActionButton
+        action="refresh"
+        label="Actualizar hilos"
+        size="md"
+        :loading="store.isLoading"
+        @click="loadThreads"
       />
-      <div class="flex gap-2">
-        <BaseSelect
-          v-model="filters.direction"
-          :options="DIRECTION_FILTER_OPTIONS"
-          class="min-w-0 flex-1"
-          aria-label="Dirección"
-          data-testid="communications-direction-filter"
-          @update:model-value="applyFilters"
-        />
-        <BaseButton variant="secondary" size="md" @click="applyFilters">Buscar</BaseButton>
-      </div>
-    </section>
+    </div>
 
-    <BaseAlert v-if="store.error" variant="danger" class="mb-5">
-      No se pudieron completar los cambios. {{ store.error }}
+    <CommunicationFilterPanel
+      :model-value="currentFilters"
+      :facets="store.facets"
+      :is-open="isFilterPanelOpen"
+      :results-count="store.count"
+      :search-value="currentFilters.q.trim()"
+      @update:model-value="updateFilters"
+      @clear-search="searchInput = ''"
+      @reset="clearFilters"
+    />
+
+    <BaseAlert v-if="store.error" variant="danger" class="mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span>No se pudieron cargar las comunicaciones. {{ store.error }}</span>
+        <BaseButton variant="secondary" size="sm" @click="loadThreads">Reintentar</BaseButton>
+      </div>
     </BaseAlert>
 
-    <div class="grid min-h-[34rem] gap-4 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.65fr)]">
-      <section
-        v-show="!isCompactDetail"
-        class="overflow-hidden rounded-xl border border-border-muted bg-surface"
-        aria-label="Hilos de comunicación"
-      >
-        <div class="flex items-center justify-between border-b border-border-muted px-4 py-3">
+    <BaseButton
+      v-if="isPanelStacked"
+      variant="secondary"
+      size="md"
+      class="mb-4 w-full justify-between"
+      data-testid="communications-navigation-drawer-trigger"
+      aria-haspopup="dialog"
+      :aria-expanded="navigationDrawerOpen"
+      @click="navigationDrawerOpen = true"
+    >
+      <span class="flex min-w-0 items-center gap-2">
+        <BaseActionIcon action="folders" />
+        <span class="truncate">{{ compactNavigationLabel }}</span>
+      </span>
+      <span class="shrink-0 text-xs font-medium text-text-brand">Cambiar</span>
+    </BaseButton>
+
+    <div
+      ref="navigationGridRef"
+      class="grid min-h-[32rem] flex-1 grid-cols-1 items-stretch gap-6 panel-landscape:grid-cols-[var(--communications-panel-w,18rem)_1.5rem_minmax(0,1fr)] panel-landscape:gap-0"
+      :class="panelDragging ? 'select-none' : ''"
+      :style="panelGridStyle"
+    >
+      <CommunicationNavigation
+        v-if="!isPanelStacked"
+        :mode="currentFilters.by"
+        :selection="navigationSelection"
+        :facets="store.facets"
+        data-testid="communications-navigation-panel"
+        @update:mode="setMode"
+        @select="selectNavigation"
+      />
+
+      <BaseResizeHandle
+        v-if="!isPanelStacked"
+        :value="panelWidth"
+        :min="COMMUNICATION_PANEL_MIN"
+        :max="COMMUNICATION_PANEL_MAX"
+        label="Ajustar el ancho de la navegación de comunicaciones"
+        test-id="communications-navigation-resize-handle"
+        @pointer-start="onHandleDown"
+        @pointer-move="onHandleMove"
+        @pointer-end="onHandleUp"
+        @resize="resizePanelWidth"
+        @reset="resetPanelWidth"
+      />
+
+      <section class="min-w-0">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-sm font-semibold text-text-default">Hilos</h2>
-            <p class="text-xs text-text-subtle">{{ store.count }} en total</p>
+            <p class="text-xs text-text-subtle">{{ store.count }} en este recorte</p>
           </div>
-          <BaseButton
-            variant="ghost"
-            size="sm"
-            :loading="store.isLoading"
-            aria-label="Actualizar hilos"
-            @click="loadThreads"
-          >
-            Actualizar
-          </BaseButton>
         </div>
 
-        <div v-if="store.isLoading && store.threads.length === 0" class="space-y-3 p-4">
-          <BaseSkeleton v-for="index in 4" :key="index" class="h-24 rounded-xl" />
-        </div>
         <BaseEmptyState
-          v-else-if="store.threads.length === 0"
-          title="No hay hilos con estos filtros"
-          description="Cambia los filtros o registra la primera conversación."
-          class="m-4"
+          v-if="!store.isLoading && store.threads.length === 0"
+          title="No hay hilos con este recorte"
+          description="Cambia la navegación o los filtros, o registra una conversación."
+          class="rounded-xl border border-border-muted bg-surface"
         >
           <template #actions>
-            <BaseButton variant="primary" size="sm" @click="openThreadModal">
-              Crear hilo
-            </BaseButton>
+            <BaseButton variant="primary" size="sm" @click="openThreadForm">Crear hilo</BaseButton>
           </template>
         </BaseEmptyState>
-        <div v-else class="divide-y divide-border-muted" data-testid="communications-thread-list">
-          <!-- design-tokens: allow-raw-button -->
-          <button
-            v-for="thread in store.threads"
-            :key="thread.id"
-            type="button"
-            class="block w-full px-4 py-4 text-left transition-colors hover:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-inset focus:ring-focus-ring/40"
-            :class="selectedThreadId === thread.id ? 'bg-primary-soft' : ''"
-            :data-testid="`communication-thread-${thread.id}`"
-            @click="selectThread(thread.id)"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="max-w-full truncate text-sm font-semibold text-text-default" :title="thread.title">{{ thread.title }}</p>
-                <p
-                  class="mt-0.5 max-w-full truncate text-xs text-text-muted"
-                  :title="thread.project_name ? `${thread.client_name} · ${thread.project_name}` : thread.client_name"
-                >
-                  {{ thread.client_name }}<template v-if="thread.project_name"> · {{ thread.project_name }}</template>
-                </p>
-              </div>
-              <BaseBadge :variant="thread.status === 'open' ? 'success' : 'neutral'" size="sm">
-                {{ thread.status === 'open' ? 'Abierto' : 'Cerrado' }}
-              </BaseBadge>
-            </div>
-            <p v-if="thread.latest_message" class="mt-3 line-clamp-2 min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]">
-              {{ thread.latest_message.direction === 'incoming' ? 'Cliente:' : 'Nosotros:' }}
-              {{ thread.latest_message.content }}
-            </p>
-            <div class="mt-3 flex flex-wrap items-center gap-2 text-2xs text-text-subtle">
-              <span>{{ thread.messages_count }} mensaje{{ thread.messages_count === 1 ? '' : 's' }}</span>
-              <span v-if="thread.draft_count" class="rounded-full bg-warning-soft px-2 py-0.5 text-warning-strong">
-                {{ thread.draft_count }} borrador{{ thread.draft_count === 1 ? '' : 'es' }}
-              </span>
-              <span class="ml-auto">{{ formatDateTime(thread.last_activity_at) }}</span>
-            </div>
-          </button>
-        </div>
+        <CommunicationThreadTable
+          v-else
+          :threads="store.threads"
+          :loading="store.isLoading"
+          :search-query="currentFilters.q"
+          :href-for="threadHref"
+          @open="openThreadFromRow"
+          @link-activate="markLinkActivation"
+        />
 
-        <div v-if="store.numPages > 1" class="flex items-center justify-between border-t border-border-muted p-3">
-          <BaseButton
-            variant="secondary"
-            size="sm"
-            :disabled="store.page <= 1"
-            disabled-reason="Ya estás en la primera página."
-            @click="changePage(store.page - 1)"
-          >
-            Anterior
-          </BaseButton>
-          <span class="text-xs text-text-subtle">{{ store.page }} / {{ store.numPages }}</span>
-          <BaseButton
-            variant="secondary"
-            size="sm"
-            :disabled="store.page >= store.numPages"
-            disabled-reason="Ya estás en la última página."
-            @click="changePage(store.page + 1)"
-          >
-            Siguiente
-          </BaseButton>
-        </div>
-      </section>
-
-      <section
-        v-show="!isPhone || isCompactDetail"
-        class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border-muted bg-surface"
-        aria-label="Detalle del hilo"
-      >
-        <BaseEmptyState
-          v-if="!currentThread"
-          title="Selecciona un hilo"
-          description="Aquí verás el recorrido completo de la conversación."
-          class="m-auto border-0"
-        >
-          <template #icon><ChatBubbleLeftRightIcon class="h-8 w-8" /></template>
-        </BaseEmptyState>
-
-        <template v-else>
-          <header class="border-b border-border-muted px-4 py-4 sm:px-5">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex min-w-0 items-start gap-2">
-                <BaseActionButton
-                  v-if="isPhone"
-                  action="back"
-                  variant="ghost"
-                  size="sm"
-                  label="Volver a los hilos"
-                  @click="showCompactDetail = false"
-                />
-                <div class="min-w-0 flex-1">
-                  <h2 class="min-w-0 max-w-full text-lg font-semibold text-text-default [overflow-wrap:anywhere]">{{ currentThread.title }}</h2>
-                  <p class="mt-1 min-w-0 max-w-full text-sm text-text-muted [overflow-wrap:anywhere]">
-                    <NuxtLink
-                      :to="{ path: '/panel/clients', query: { client: currentThread.client_id } }"
-                      class="text-text-brand hover:underline"
-                    >
-                      {{ currentThread.client_name }}
-                    </NuxtLink>
-                    <template v-if="currentThread.project_name"> · {{ currentThread.project_name }}</template>
-                  </p>
-                </div>
-              </div>
-              <BaseButton
-                :variant="currentThread.status === 'open' ? 'secondary' : 'primary'"
-                size="sm"
-                :loading="store.isMutating"
-                :data-testid="`communication-thread-toggle-${currentThread.id}`"
-                @click="toggleThread"
-              >
-                {{ currentThread.status === 'open' ? 'Cerrar hilo' : 'Reabrir hilo' }}
-              </BaseButton>
-            </div>
-          </header>
-
-          <div class="flex-1 space-y-4 overflow-y-auto bg-surface-muted p-4 sm:p-5" data-testid="communication-timeline">
-            <BaseEmptyState
-              v-if="currentThread.messages.length === 0"
-              title="Este hilo todavía no tiene mensajes"
-              description="Registra lo enviado o la respuesta del cliente para iniciar el histórico."
-            />
-            <template v-else>
-            <article
-              v-for="message in currentThread.messages"
-              :key="message.id"
-              :id="`communication-message-${message.id}`"
-              class="max-w-[92%] rounded-xl border p-4 shadow-sm sm:max-w-[82%]"
-              :class="[
-                message.direction === 'outgoing'
-                  ? 'ml-auto border-primary/20 bg-primary-soft'
-                  : 'mr-auto border-border-default bg-surface',
-                message.voided_at ? 'opacity-60' : '',
-              ]"
-              :data-testid="`communication-message-${message.id}`"
-            >
-              <div class="flex flex-wrap items-center gap-2">
-                <BaseBadge :variant="channelTone(message.channel)" size="sm">
-                  {{ message.channel_display }}
-                </BaseBadge>
-                <BaseBadge :variant="messageStatusTone(message)" size="sm">
-                  {{ messageStatusLabel(message) }}
-                </BaseBadge>
-                <span class="ml-auto text-2xs text-text-subtle">{{ formatDateTime(message.occurred_at) }}</span>
-              </div>
-              <p v-if="message.subject" class="mt-3 min-w-0 max-w-full text-sm font-semibold text-text-default [overflow-wrap:anywhere]">
-                {{ message.subject }}
-              </p>
-              <a
-                v-if="message.reply_to_id"
-                :href="`#communication-message-${message.reply_to_id}`"
-                class="mt-2 block rounded-lg border border-border-muted bg-surface/70 px-3 py-2 text-xs text-text-subtle hover:border-border-default hover:text-text-default"
-              >
-                <span class="font-semibold">En respuesta al mensaje #{{ message.reply_to_id }}</span>
-                <span v-if="replyOriginPreview(message)" class="ml-1">
-                  · “{{ replyOriginPreview(message) }}”
-                </span>
-              </a>
-              <p class="mt-2 min-w-0 max-w-full whitespace-pre-wrap text-sm text-text-default [overflow-wrap:anywhere]">{{ message.content }}</p>
-
-              <div v-if="message.documents.length" class="mt-3 space-y-1 border-t border-border-muted pt-3">
-                <p class="text-2xs font-semibold uppercase tracking-wide text-text-subtle">Documentos referenciados</p>
-                <BaseButton
-                  v-for="document in message.documents"
-                  :key="document.id"
-                  as="NuxtLink"
-                  :to="`/panel/documents/${document.id}/edit`"
-                  variant="link"
-                  size="sm"
-                  class="mr-3 max-w-full whitespace-normal [overflow-wrap:anywhere]"
-                >
-                  <BaseActionIcon action="view" /> {{ document.title }}
-                </BaseButton>
-              </div>
-
-              <p v-if="message.voided_at" class="mt-3 text-xs text-danger-strong">
-                Motivo: {{ message.void_reason }}
-              </p>
-              <details v-if="message.date_corrections.length" class="mt-3 text-xs text-text-subtle">
-                <summary class="cursor-pointer">{{ message.date_corrections.length }} corrección(es) de fecha</summary>
-                <ul class="mt-2 space-y-1">
-                  <li v-for="correction in message.date_corrections" :key="correction.id">
-                    {{ formatDateTime(correction.previous_occurred_at) }} →
-                    {{ formatDateTime(correction.corrected_occurred_at) }} · {{ correction.reason }}
-                  </li>
-                </ul>
-              </details>
-
-              <div v-if="!message.voided_at" class="mt-4 flex flex-wrap gap-2 border-t border-border-muted pt-3">
-                <BaseButton
-                  v-if="message.direction === 'outgoing'"
-                  variant="ghost"
-                  size="sm"
-                  @click="copyMessage(message)"
-                >
-                  <BaseActionIcon action="copy" /> Copiar
-                </BaseButton>
-                <BaseButton
-                  v-if="message.status === 'draft'"
-                  variant="ghost"
-                  size="sm"
-                  @click="editDraft(message)"
-                >
-                  Editar
-                </BaseButton>
-                <BaseButton
-                  v-if="message.status === 'draft' && message.direction === 'outgoing'"
-                  variant="primary"
-                  size="sm"
-                  :loading="store.isMutating"
-                  :data-testid="`communication-mark-sent-${message.id}`"
-                  @click="markSent(message)"
-                >
-                  Marcar enviado
-                </BaseButton>
-                <BaseButton
-                  v-if="message.status === 'draft'"
-                  variant="danger-ghost"
-                  size="sm"
-                  @click="deleteDraft(message)"
-                >
-                  Eliminar
-                </BaseButton>
-                <BaseButton
-                  v-else
-                  variant="ghost"
-                  size="sm"
-                  @click="openCorrectionModal(message)"
-                >
-                  Corregir fecha
-                </BaseButton>
-                <BaseButton
-                  v-if="message.status !== 'draft'"
-                  variant="ghost"
-                  size="sm"
-                  @click="replyTo(message)"
-                >
-                  Responder
-                </BaseButton>
-                <BaseButton
-                  v-if="message.status !== 'draft'"
-                  variant="danger-ghost"
-                  size="sm"
-                  @click="openVoidModal(message)"
-                >
-                  Anular
-                </BaseButton>
-              </div>
-            </article>
-            </template>
-          </div>
-
-          <form
-            v-if="currentThread.status === 'open'"
-            ref="composerRef"
-            class="border-t border-border-muted bg-surface p-4 sm:p-5"
-            data-testid="communication-composer"
-            @submit.prevent="submitMessage()"
-          >
-            <div v-if="messageForm.reply_to" class="mb-3 flex items-center justify-between rounded-lg bg-info-soft px-3 py-2 text-xs text-info-strong">
-              <span>Respuesta al mensaje #{{ messageForm.reply_to }}</span>
-              <BaseButton variant="ghost" size="sm" @click="messageForm.reply_to = null">Quitar</BaseButton>
-            </div>
-            <BaseFormRow :cols="3" :gap="3" at="sm">
-              <BaseFormField label="Dirección">
-                <BaseSelect
-                  v-model="messageForm.direction"
-                  :options="DIRECTION_OPTIONS"
-                  :disabled="Boolean(editingMessageId)"
-                  disabled-reason="La dirección de un borrador existente no se puede cambiar. Crea un mensaje nuevo para usar otra dirección."
-                  data-testid="communication-message-direction"
-                  @update:model-value="onDirectionChange"
-                />
-              </BaseFormField>
-              <BaseFormField label="Canal">
-                <BaseSelect
-                  v-model="messageForm.channel"
-                  :options="CHANNEL_OPTIONS"
-                  data-testid="communication-message-channel"
-                  @update:model-value="onChannelChange"
-                />
-              </BaseFormField>
-              <BaseFormField label="Fecha y hora">
-                <BaseInput v-model="messageForm.occurred_at" type="datetime-local" />
-              </BaseFormField>
-            </BaseFormRow>
-            <BaseFormField v-if="messageForm.channel === 'email'" label="Asunto" class="mt-3">
-              <BaseInput
-                v-model="messageForm.subject"
-                placeholder="Asunto del correo"
-                data-testid="communication-message-subject"
-              />
-            </BaseFormField>
-            <BaseFormField label="Contenido" class="mt-3">
-              <BaseTextarea
-                v-model="messageForm.content"
-                :rows="4"
-                placeholder="Escribe o pega el texto exacto de la comunicación..."
-                data-testid="communication-message-content"
-              />
-            </BaseFormField>
-
-            <details v-if="availableDocuments.length" class="mt-3 rounded-lg border border-border-muted p-3">
-              <summary class="cursor-pointer text-sm font-medium text-text-default">
-                Adjuntar documentos existentes ({{ messageForm.document_ids.length }} elegidos)
-              </summary>
-              <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                <BaseCheckbox
-                  v-for="document in availableDocuments"
-                  :key="document.id"
-                  v-model="messageForm.document_ids"
-                  :value="document.id"
-                >
-                  {{ document.title }}
-                </BaseCheckbox>
-              </div>
-            </details>
-
-            <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <BaseButton
-                v-if="editingMessageId"
-                variant="secondary"
-                size="md"
-                @click="resetMessageForm"
-              >
-                Cancelar edición
-              </BaseButton>
-              <BaseButton
-                v-if="editingMessageId"
-                type="submit"
-                variant="primary"
-                size="md"
-                :loading="store.isMutating"
-              >
-                Guardar cambios
-              </BaseButton>
-              <template v-else-if="messageForm.direction === 'outgoing'">
-                <BaseButton
-                  variant="secondary"
-                  size="md"
-                  :loading="store.isMutating"
-                  data-testid="communication-save-draft"
-                  @click="submitMessage('draft')"
-                >
-                  Guardar borrador
-                </BaseButton>
-                <BaseButton
-                  variant="primary"
-                  size="md"
-                  :loading="store.isMutating"
-                  data-testid="communication-register-sent"
-                  @click="submitMessage('sent')"
-                >
-                  Registrar enviado
-                </BaseButton>
-              </template>
-              <BaseButton
-                v-else
-                type="submit"
-                variant="primary"
-                size="md"
-                :loading="store.isMutating"
-                data-testid="communication-register-received"
-              >
-                Registrar respuesta recibida
-              </BaseButton>
-            </div>
-          </form>
-        </template>
+        <BasePagination
+          v-if="store.numPages > 1"
+          class="mt-4"
+          :current-page="store.page"
+          :total-pages="store.numPages"
+          :total-items="store.count"
+          :range-from="(store.page - 1) * 20 + 1"
+          :range-to="Math.min(store.page * 20, store.count)"
+          @prev="page = Math.max(1, page - 1)"
+          @next="page = Math.min(store.numPages, page + 1)"
+          @go="page = $event"
+        />
       </section>
     </div>
 
-    <BaseModal v-model="threadModalOpen" kind="form" padding="none">
+    <BaseDrawer
+      v-model="navigationDrawerOpen"
+      placement="left"
+      :title="currentFilters.by === 'project' ? 'Proyectos' : 'Clientes'"
+      test-id="communications-navigation-drawer"
+    >
+      <div class="h-full p-3">
+        <CommunicationNavigation
+          :mode="currentFilters.by"
+          :selection="navigationSelection"
+          :facets="store.facets"
+          @update:mode="handleDrawerMode"
+          @select="handleDrawerSelection"
+        />
+      </div>
+    </BaseDrawer>
+
+    <CommunicationWorkspaceModal
+      :model-value="workspaceOpen"
+      :thread-id="requestedThreadId"
+      @update:model-value="handleWorkspaceOpenChange"
+      @changed="loadThreads"
+    />
+
+    <BaseModal v-model="threadFormOpen" kind="form" padding="none">
       <form @submit.prevent="createThread">
-        <div class="border-b border-border-muted px-5 py-4 sm:px-6">
+        <div class="border-b border-border-muted px-5 py-4 panel-portrait:px-6">
           <h2 class="text-lg font-semibold text-text-default">Nuevo hilo de comunicación</h2>
           <p class="mt-1 text-sm text-text-subtle">Un cliente puede mantener varios hilos abiertos a la vez.</p>
         </div>
-        <div class="space-y-4 px-5 py-5 sm:px-6">
+        <div class="space-y-4 px-5 py-5 panel-portrait:px-6">
           <BaseFormField label="Cliente">
             <ClientAutocomplete
               v-model="threadForm.client"
@@ -501,12 +246,13 @@
           </BaseFormField>
         </div>
         <BaseModalActions>
-          <BaseButton variant="secondary" size="md" @click="threadModalOpen = false">Cancelar</BaseButton>
+          <BaseButton variant="secondary" size="md" @click="threadFormOpen = false">Cancelar</BaseButton>
           <BaseButton
             type="submit"
             variant="primary"
             size="md"
             :disabled="!threadForm.client || !threadForm.title.trim()"
+            disabled-reason="Selecciona un cliente y escribe el título."
             :loading="store.isMutating"
             data-testid="communication-thread-create-submit"
           >
@@ -515,190 +261,198 @@
         </BaseModalActions>
       </form>
     </BaseModal>
-
-    <BaseModal v-model="actionModal.open" kind="confirm" padding="none">
-      <form @submit.prevent="submitActionModal">
-        <div class="border-b border-border-muted px-5 py-4 sm:px-6">
-          <h2 class="text-lg font-semibold text-text-default">
-            {{ actionModal.kind === 'void' ? 'Anular mensaje' : 'Corregir fecha' }}
-          </h2>
-        </div>
-        <div class="space-y-4 px-5 py-5 sm:px-6">
-          <BaseFormField v-if="actionModal.kind === 'date'" label="Fecha y hora corregida">
-            <BaseInput v-model="actionModal.occurred_at" type="datetime-local" />
-          </BaseFormField>
-          <BaseFormField label="Motivo" hint="Quedará guardado en el histórico de auditoría.">
-            <BaseTextarea v-model="actionModal.reason" :rows="3" data-testid="communication-action-reason" />
-          </BaseFormField>
-        </div>
-        <BaseModalActions>
-          <BaseButton variant="secondary" size="md" @click="actionModal.open = false">Cancelar</BaseButton>
-          <BaseButton
-            type="submit"
-            :variant="actionModal.kind === 'void' ? 'danger' : 'primary'"
-            size="md"
-            :disabled="!actionModal.reason.trim()"
-            :loading="store.isMutating"
-            data-testid="communication-action-submit"
-          >
-            {{ actionModal.kind === 'void' ? 'Anular mensaje' : 'Guardar corrección' }}
-          </BaseButton>
-        </BaseModalActions>
-      </form>
-    </BaseModal>
-
-    <ConfirmModal
-      v-model="confirmState.open"
-      :title="confirmState.title"
-      :message="confirmState.message"
-      :confirm-text="confirmState.confirmText"
-      :cancel-text="confirmState.cancelText"
-      :variant="confirmState.variant"
-      :loading="confirmState.busy"
-      @confirm="handleConfirmed"
-      @cancel="handleCancelled"
-    />
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
-import { ChatBubbleLeftRightIcon } from '@heroicons/vue/24/outline';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
+import CommunicationFilterPanel from '~/components/communications/CommunicationFilterPanel.vue';
+import CommunicationNavigation from '~/components/communications/CommunicationNavigation.vue';
+import CommunicationThreadTable from '~/components/communications/CommunicationThreadTable.vue';
+import CommunicationWorkspaceModal from '~/components/communications/CommunicationWorkspaceModal.vue';
+import { useCommunicationFilters } from '~/composables/useCommunicationFilters';
+import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
+import {
+  COMMUNICATION_PANEL_MAX,
+  COMMUNICATION_PANEL_MIN,
+  useCommunicationPanelWidth,
+} from '~/composables/useCommunicationPanelWidth';
 import { useIsMobile } from '~/composables/useIsMobile';
 import { usePanelNotify } from '~/composables/usePanelNotify';
-import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useRowNavigation } from '~/composables/useRowNavigation';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { useCommunicationsStore } from '~/stores/communications';
-import { useDocumentStore } from '~/stores/documents';
+import { isPlainActivation } from '~/utils/rowNavigation';
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
+const NOTICE_KEY = 'projectapp-communications-manual-notice-v1';
+const ORDER_OPTIONS = [
+  { value: 'recent', label: 'Recientes', testId: 'communications-order-recent' },
+  { value: 'oldest', label: 'Antiguos', testId: 'communications-order-oldest' },
+  { value: 'title', label: 'A–Z', testId: 'communications-order-title' },
+];
+
 const route = useRoute();
+const router = useRouter();
 const store = useCommunicationsStore();
-const documentStore = useDocumentStore();
 const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
-const { isMobile: isPhone } = useIsMobile(PANEL_BREAKPOINTS.portrait - 1);
+const { openRow } = useRowNavigation();
+const {
+  currentFilters,
+  page,
+  activeTabId,
+  isFilterPanelOpen,
+  searchInput,
+  displayTabs,
+  navigationSelection,
+  activeFilterCount,
+  isTabLimitReached,
+  setMode,
+  selectNavigation,
+  updateFilters,
+  setOrder,
+  clearFilters,
+  selectTab,
+  saveTab,
+  deleteTab,
+  renameTab,
+  restoreTab,
+  rebaseTab,
+  reorderTabs,
+  requestFilters,
+} = useCommunicationFilters();
 
-const selectedThreadId = ref(null);
-const showCompactDetail = ref(false);
-const threadModalOpen = ref(false);
-const composerRef = ref(null);
-const editingMessageId = ref(null);
-const availableDocuments = computed(() => documentStore.documents || []);
-const currentThread = computed(() => store.currentThread);
-const isCompactDetail = computed(() => isPhone.value && showCompactDetail.value);
+const { isMobile: isPanelStacked } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+const navigationGridRef = ref(null);
+const {
+  width: panelWidth,
+  dragging: panelDragging,
+  gridStyle: panelGridStyle,
+  onHandleDown,
+  onHandleMove,
+  onHandleUp,
+  resizeWidth: resizePanelWidth,
+  resetWidth: resetPanelWidth,
+} = useCommunicationPanelWidth(navigationGridRef);
 
-const filters = reactive({
-  q: '',
-  status: '',
-  channel: '',
-  direction: '',
-  page: 1,
-  client: route.query.client || '',
-  project: route.query.project || '',
-});
-
-const THREAD_STATUS_OPTIONS = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'open', label: 'Abiertos' },
-  { value: 'closed', label: 'Cerrados' },
-];
-const CHANNEL_FILTER_OPTIONS = [
-  { value: '', label: 'Todos los canales' },
-  { value: 'email', label: 'Correo' },
-  { value: 'whatsapp', label: 'WhatsApp' },
-];
-const DIRECTION_FILTER_OPTIONS = [
-  { value: '', label: 'Ambas direcciones' },
-  { value: 'outgoing', label: 'Salientes' },
-  { value: 'incoming', label: 'Entrantes' },
-];
-const CHANNEL_OPTIONS = CHANNEL_FILTER_OPTIONS.slice(1);
-const DIRECTION_OPTIONS = DIRECTION_FILTER_OPTIONS.slice(1);
+const noticeReady = ref(false);
+const showNotice = ref(false);
+const navigationDrawerOpen = ref(false);
+const threadFormOpen = ref(false);
+const workspaceOpenedLocally = ref(false);
+const {
+  openId: requestedThreadId,
+  isOpen: workspaceOpen,
+  toFor: threadLocation,
+  close: removeThreadFromUrl,
+} = useDetailQueryParam('thread');
 
 const threadForm = reactive({
-  client: route.query.client ? Number(route.query.client) : null,
+  client: null,
   clientLabel: '',
-  project: route.query.project ? Number(route.query.project) : null,
+  project: null,
   title: '',
 });
 
-function localDateTime(date = new Date()) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-}
-
-const messageForm = reactive({
-  direction: 'outgoing',
-  channel: 'whatsapp',
-  subject: '',
-  content: '',
-  occurred_at: localDateTime(),
-  reply_to: null,
-  document_ids: [],
+const compactNavigationLabel = computed(() => {
+  if (navigationSelection.value === 'all') {
+    return currentFilters.by === 'project' ? 'Todos los proyectos' : 'Todos los clientes';
+  }
+  if (navigationSelection.value === 'none') return 'Sin proyecto';
+  const entries = currentFilters.by === 'project' ? store.facets.projects : store.facets.clients;
+  return entries.find((entry) => String(entry.id) === String(navigationSelection.value))?.name
+    || (currentFilters.by === 'project' ? 'Proyecto seleccionado' : 'Cliente seleccionado');
 });
 
-const actionModal = reactive({
-  open: false,
-  kind: 'date',
-  messageId: null,
-  occurred_at: '',
-  reason: '',
+const requestSignature = computed(() => JSON.stringify(requestFilters()));
+watch(requestSignature, loadThreads, { immediate: true });
+watch(requestedThreadId, (threadId) => {
+  if (!threadId) store.clearCurrentThread();
 });
 
-function requestFilters() {
-  return Object.fromEntries(
-    Object.entries(filters).filter(([, value]) => value !== '' && value != null),
-  );
+onMounted(() => {
+  noticeReady.value = true;
+  showNotice.value = localStorage.getItem(NOTICE_KEY) !== 'dismissed';
+});
+
+function dismissNotice() {
+  showNotice.value = false;
+  localStorage.setItem(NOTICE_KEY, 'dismissed');
 }
 
 async function loadThreads() {
-  const result = await store.fetchThreads(requestFilters());
-  if (!result.success) return;
-  if (selectedThreadId.value && !store.getThreadById(selectedThreadId.value)) {
-    selectedThreadId.value = null;
-    store.currentThread = null;
-  }
+  await store.fetchThreads(requestFilters());
 }
 
-async function applyFilters() {
-  filters.page = 1;
-  await loadThreads();
+async function handleCreateTab(name) {
+  const tab = await saveTab(name);
+  if (tab) notify.success({ title: 'Vista guardada' });
+  else notify.error({ title: 'No se pudo guardar la vista' });
 }
 
-async function changePage(page) {
-  filters.page = page;
-  await loadThreads();
+function handleDrawerMode(mode) {
+  setMode(mode);
 }
 
-async function selectThread(id) {
-  selectedThreadId.value = id;
-  showCompactDetail.value = true;
-  const result = await store.fetchThread(id);
-  if (!result.success) {
-    notify.error({ title: 'No se pudo abrir el hilo', detail: result.message });
+function handleDrawerSelection(selection) {
+  selectNavigation(selection);
+  navigationDrawerOpen.value = false;
+}
+
+function threadHref(thread) {
+  return router.resolve(threadLocation(thread.id)).href;
+}
+
+function openThreadFromRow(thread, event) {
+  if (isPlainActivation(event)) workspaceOpenedLocally.value = true;
+  openRow(threadHref(thread), event);
+}
+
+function markLinkActivation(_thread, event) {
+  if (isPlainActivation(event)) workspaceOpenedLocally.value = true;
+}
+
+function handleWorkspaceOpenChange(open) {
+  if (open) return;
+  if (workspaceOpenedLocally.value) {
+    workspaceOpenedLocally.value = false;
+    router.back();
     return;
   }
-  await loadDocumentsForThread();
+  removeThreadFromUrl();
 }
 
-async function loadDocumentsForThread() {
-  if (!currentThread.value?.client_id) return;
-  await documentStore.fetchDocuments({
-    scope: 'all', client: currentThread.value.client_id, project: null,
+function selectedClientEntry(clientId) {
+  return store.facets.clients.find((entry) => String(entry.id) === String(clientId));
+}
+
+function openThreadForm() {
+  Object.assign(threadForm, {
+    client: null,
+    clientLabel: '',
+    project: null,
+    title: '',
   });
-}
 
-function openThreadModal() {
-  threadForm.client = route.query.client ? Number(route.query.client) : null;
-  threadForm.project = route.query.project ? Number(route.query.project) : null;
-  threadForm.clientLabel = '';
-  threadForm.title = '';
-  threadModalOpen.value = true;
+  if (currentFilters.by === 'client' && currentFilters.client) {
+    const client = selectedClientEntry(currentFilters.client);
+    threadForm.client = Number(currentFilters.client);
+    threadForm.clientLabel = client?.name || '';
+  } else if (currentFilters.by === 'project' && currentFilters.project && currentFilters.project !== 'none') {
+    const project = store.facets.projects.find(
+      (entry) => String(entry.id) === String(currentFilters.project),
+    );
+    if (project && !project.unavailable) {
+      threadForm.project = Number(project.id);
+      threadForm.client = Number(project.client_id);
+      threadForm.clientLabel = selectedClientEntry(project.client_id)?.name || '';
+    }
+  }
+  threadFormOpen.value = true;
 }
 
 function onThreadClientSelect(client) {
@@ -716,240 +470,10 @@ async function createThread() {
     notify.error({ title: 'No se pudo crear el hilo', detail: result.message });
     return;
   }
-  threadModalOpen.value = false;
-  selectedThreadId.value = result.data.id;
-  showCompactDetail.value = true;
-  await loadDocumentsForThread();
+  threadFormOpen.value = false;
+  await loadThreads();
+  workspaceOpenedLocally.value = true;
+  await router.push(threadLocation(result.data.id));
   notify.success({ title: 'Hilo creado' });
 }
-
-async function toggleThread() {
-  const shouldOpen = currentThread.value.status === 'closed';
-  const result = await store.setThreadOpen(currentThread.value.id, shouldOpen);
-  if (!result.success) {
-    notify.error({ title: shouldOpen ? 'No se pudo reabrir' : 'No se pudo cerrar', detail: result.message });
-    return;
-  }
-  notify.success({ title: shouldOpen ? 'Hilo reabierto' : 'Hilo cerrado' });
-}
-
-function onDirectionChange(direction) {
-  if (direction === 'incoming' && messageForm.reply_to) {
-    const original = currentThread.value?.messages.find((item) => item.id === messageForm.reply_to);
-    if (original?.direction === 'incoming') messageForm.reply_to = null;
-  }
-}
-
-function onChannelChange(channel) {
-  if (channel === 'whatsapp') messageForm.subject = '';
-}
-
-function resetMessageForm() {
-  editingMessageId.value = null;
-  Object.assign(messageForm, {
-    direction: 'outgoing',
-    channel: 'whatsapp',
-    subject: '',
-    content: '',
-    occurred_at: localDateTime(),
-    reply_to: null,
-    document_ids: [],
-  });
-}
-
-function messagePayload(statusOverride) {
-  return {
-    direction: messageForm.direction,
-    channel: messageForm.channel,
-    subject: messageForm.channel === 'email' ? messageForm.subject.trim() : '',
-    content: messageForm.content.trim(),
-    occurred_at: new Date(messageForm.occurred_at).toISOString(),
-    reply_to: messageForm.reply_to,
-    document_ids: [...messageForm.document_ids],
-    ...(statusOverride ? { status: statusOverride } : {}),
-  };
-}
-
-async function submitMessage(statusOverride = null) {
-  if (!messageForm.content.trim()) {
-    notify.warning({ title: 'Escribe el contenido del mensaje' });
-    return;
-  }
-  if (messageForm.channel === 'email' && !messageForm.subject.trim()) {
-    notify.warning({ title: 'El asunto es obligatorio para correo' });
-    return;
-  }
-  const payload = messagePayload(
-    messageForm.direction === 'incoming' ? 'received' : statusOverride,
-  );
-  const wasEditing = Boolean(editingMessageId.value);
-  const result = editingMessageId.value
-    ? await store.updateDraft(editingMessageId.value, payload)
-    : await store.createMessage(currentThread.value.id, payload);
-  if (!result.success) {
-    notify.error({ title: 'No se pudo guardar el mensaje', detail: result.message });
-    return;
-  }
-  resetMessageForm();
-  await loadThreads();
-  notify.success({
-    title: wasEditing
-      ? 'Borrador actualizado'
-      : (payload.status === 'draft' ? 'Borrador guardado' : 'Mensaje registrado'),
-  });
-}
-
-function editDraft(message) {
-  editingMessageId.value = message.id;
-  Object.assign(messageForm, {
-    direction: message.direction,
-    channel: message.channel,
-    subject: message.subject || '',
-    content: message.content,
-    occurred_at: localDateTime(new Date(message.occurred_at)),
-    reply_to: message.reply_to_id,
-    document_ids: message.documents.map((document) => document.id),
-  });
-  nextTick(() => composerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
-}
-
-async function deleteDraft(message) {
-  await requestConfirm({
-    title: 'Eliminar borrador',
-    message: `Se eliminará el borrador “${message.subject || message.content.slice(0, 80)}”. Esta acción no se puede deshacer.`,
-    confirmText: 'Eliminar borrador',
-    variant: 'danger',
-    waitForConfirm: true,
-    onConfirm: async () => {
-      const result = await store.deleteDraft(message);
-      if (!result.success) {
-        notify.error({ title: 'No se pudo eliminar el borrador', detail: result.message });
-        return;
-      }
-      await loadThreads();
-      notify.success({ title: 'Borrador eliminado' });
-    },
-  });
-}
-
-async function markSent(message) {
-  const result = await store.markSent(message.id, new Date().toISOString());
-  if (!result.success) {
-    notify.error({ title: 'No se pudo marcar como enviado', detail: result.message });
-    return;
-  }
-  await loadThreads();
-  notify.success({ title: 'Mensaje marcado como enviado' });
-}
-
-function replyTo(message) {
-  resetMessageForm();
-  messageForm.reply_to = message.id;
-  messageForm.direction = message.direction === 'incoming' ? 'outgoing' : 'incoming';
-  messageForm.channel = message.channel;
-  if (messageForm.channel === 'email' && message.subject) {
-    messageForm.subject = message.subject.startsWith('Re:') ? message.subject : `Re: ${message.subject}`;
-  }
-  nextTick(() => composerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
-}
-
-async function copyMessage(message) {
-  try {
-    await navigator.clipboard.writeText(message.content);
-    notify.success({ title: 'Texto copiado' });
-  } catch {
-    notify.error({ title: 'No se pudo copiar el texto' });
-  }
-}
-
-function openCorrectionModal(message) {
-  Object.assign(actionModal, {
-    open: true,
-    kind: 'date',
-    messageId: message.id,
-    occurred_at: localDateTime(new Date(message.occurred_at)),
-    reason: '',
-  });
-}
-
-function openVoidModal(message) {
-  Object.assign(actionModal, {
-    open: true,
-    kind: 'void',
-    messageId: message.id,
-    occurred_at: '',
-    reason: '',
-  });
-}
-
-async function submitActionModal() {
-  const result = actionModal.kind === 'void'
-    ? await store.voidMessage(actionModal.messageId, actionModal.reason)
-    : await store.correctDate(
-      actionModal.messageId,
-      new Date(actionModal.occurred_at).toISOString(),
-      actionModal.reason,
-    );
-  if (!result.success) {
-    notify.error({ title: 'No se pudo actualizar el histórico', detail: result.message });
-    return;
-  }
-  actionModal.open = false;
-  await loadThreads();
-  notify.success({ title: actionModal.kind === 'void' ? 'Mensaje anulado' : 'Fecha corregida' });
-}
-
-function formatDateTime(value) {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat('es-CO', {
-    dateStyle: 'medium', timeStyle: 'short',
-  }).format(new Date(value));
-}
-
-function statusTone(status) {
-  return ({ draft: 'warning', sent: 'success', received: 'info', failed: 'danger' })[status] || 'neutral';
-}
-
-function messageStatusLabel(message) {
-  if (message.voided_at) return 'Anulado';
-  if (message.direction === 'outgoing' && message.has_reply) return 'Respondido';
-  return message.status_display;
-}
-
-function messageStatusTone(message) {
-  if (message.voided_at) return 'neutral';
-  if (message.direction === 'outgoing' && message.has_reply) return 'info';
-  return statusTone(message.status);
-}
-
-function replyOriginPreview(message) {
-  if (!message.reply_to_id) return '';
-  const origin = currentThread.value?.messages.find(
-    (candidate) => candidate.id === message.reply_to_id,
-  );
-  if (!origin?.content) return '';
-  return origin.content.length > 110
-    ? `${origin.content.slice(0, 107)}…`
-    : origin.content;
-}
-
-function channelTone(channel) {
-  return channel === 'whatsapp' ? 'success' : 'info';
-}
-
-watch(
-  () => route.query,
-  async (query) => {
-    filters.client = query.client || '';
-    filters.project = query.project || '';
-    await applyFilters();
-  },
-);
-
-onMounted(async () => {
-  await loadThreads();
-  const requestedThread = Number(route.query.thread || 0);
-  if (requestedThread) await selectThread(requestedThread);
-  else if (store.threads.length === 1) await selectThread(store.threads[0].id);
-});
 </script>

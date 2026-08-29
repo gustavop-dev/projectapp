@@ -47,6 +47,8 @@ STATIC_SITEMAP_PAGES = [
     ('/es-co/portfolio-works', '/en-us/portfolio-works', 'weekly', '0.9'),
     ('/en-us/contact', '/es-co/contact', 'monthly', '0.6'),
     ('/es-co/contact', '/en-us/contact', 'monthly', '0.6'),
+    ('/en-us/additional-modules', '/es-co/additional-modules', 'weekly', '0.8'),
+    ('/es-co/additional-modules', '/en-us/additional-modules', 'weekly', '0.8'),
 ]
 
 

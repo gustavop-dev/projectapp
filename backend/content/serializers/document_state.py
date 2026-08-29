@@ -44,6 +44,7 @@ class DocumentStateSummarySerializer(serializers.ModelSerializer):
         fields = (
             'id', 'catalog', 'name', 'description', 'slug', 'color',
             'system_key', 'operational_effect', 'operational_effect_help', 'order',
+            'show_in_document_manager',
             'group_id', 'group_name', 'group_mode', 'group_order',
         )
 
@@ -145,6 +146,16 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
             raise serializers.ValidationError({
                 'operational_effect': (
                     'Los estados de documentos no tienen efecto de proyecto.'
+                ),
+            })
+        visibility = attrs.get(
+            'show_in_document_manager',
+            getattr(self.instance, 'show_in_document_manager', False),
+        )
+        if catalog == DocumentStateGroup.Catalog.DOCUMENTS and visibility:
+            raise serializers.ValidationError({
+                'show_in_document_manager': (
+                    'La visibilidad de carpetas sólo aplica a estados de proyecto.'
                 ),
             })
         if expected_mode and group and group.selection_mode != expected_mode:

@@ -45,12 +45,24 @@ const emit = defineEmits([
   'drop-on-folder',
 ])
 
+function isDocumentDraggable(document) {
+  if (document.is_archived || document.is_generated_snapshot) return false
+  return !(
+    document.document_type_code === 'collection_account'
+    && document.commercial_status !== 'draft'
+  )
+}
+
 const dateHeader = computed(() => {
   if (props.scope === 'archived') return 'Archivado'
   return props.scope === 'all' ? 'Fecha' : 'Creado'
 })
 
 const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
+// Production inventory on 2026-08-28: the widest of 40 titles needs 496 px
+// including cell padding and safety. 520 px fits that boundary without tying
+// the limit to a percentage of the table; disclosure remains the future fallback.
+const DOCUMENT_TITLE_WIDTH = Object.freeze({ min: 240, default: 320, max: 520 })
 const tableContainerRef = ref(null)
 const { profile: viewportProfile } = usePanelViewportProfile()
 
@@ -71,7 +83,7 @@ const widthColumns = [
       primary: true,
       compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
     },
-    columnWidth: { min: 240, default: 320, max: 520, resizable: true },
+    columnWidth: { ...DOCUMENT_TITLE_WIDTH, resizable: true },
   },
   {
     key: 'states',
@@ -165,12 +177,12 @@ function onFolderLink(event, sub) {
             Título
             <BaseResizeHandle
               :value="preferredWidth('title')"
-              :min="240"
-              :max="520"
+              :min="DOCUMENT_TITLE_WIDTH.min"
+              :max="DOCUMENT_TITLE_WIDTH.max"
               label="Ajustar el ancho de la columna Título"
               test-id="documents-title-resize-handle"
-              class="absolute -right-2 top-0 z-20 h-full w-4"
-              indicator-class="h-7 w-0.5"
+              class="absolute -right-3 top-0 z-20 h-full w-6"
+              indicator-class="h-8 w-1 shadow-sm"
               @pointer-start="startColumnResize('title', $event)"
               @pointer-move="moveColumnResize('title', $event)"
               @pointer-end="endColumnResize('title')"
@@ -199,7 +211,7 @@ function onFolderLink(event, sub) {
           :key="`folder-${sub.id}`"
           class="transition-colors select-none hover:bg-surface-muted cursor-pointer"
           :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
-          :draggable="!sub.is_archived"
+          :draggable="!sub.is_archived && sub.folder_kind !== 'project' && !sub.is_system_managed"
           @click="emit('select-folder', sub.id)"
           @dragstart="emit('folder-dragstart', $event, sub)"
           @dragend="emit('folder-dragend')"
@@ -238,6 +250,9 @@ function onFolderLink(event, sub) {
                 :title="sub.name"
                 @click="onFolderLink($event, sub)"
               >{{ sub.name }}</BaseRowLink>
+              <BaseBadge v-if="sub.folder_kind === 'project'" variant="info" size="sm">
+                Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
+              </BaseBadge>
               <FolderArchivedBadge
                 v-if="!sub.is_archived && archivedContentCount(sub)"
                 :count="archivedContentCount(sub)"
@@ -259,7 +274,7 @@ function onFolderLink(event, sub) {
             { 'opacity-50': draggingDocId === doc.id },
             { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
           ]"
-          :draggable="!doc.is_archived"
+          :draggable="isDocumentDraggable(doc)"
           :data-testid="`document-row-${doc.id}`"
           @click="emit('open', doc, $event)"
           @auxclick.middle="emit('open', doc, $event)"
@@ -331,6 +346,14 @@ function onFolderLink(event, sub) {
               data-testid="doc-archived-badge"
             >
               Archivado
+            </BaseBadge>
+            <BaseBadge
+              v-else-if="doc.display_state"
+              :variant="doc.display_state.variant"
+              size="sm"
+              :data-testid="`doc-derived-state-${doc.id}`"
+            >
+              {{ doc.display_state.label }}
             </BaseBadge>
             <DocumentStateList v-else :episodes="doc.active_states" :max-visible="3" />
           </td>

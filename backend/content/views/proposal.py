@@ -790,6 +790,19 @@ def get_proposal_json_template(request):
             'Every item MUST carry a stable "id" — see '
             'CRITICAL_functionalRequirements_itemIds.'
         ),
+        'CRITICAL_crossCuttingFeatures': (
+            'The required group with id "cross_cutting_features" belongs immediately after '
+            '"features". It is a CONTEXTUAL STARTER CATALOG, not fixed boilerplate: review '
+            'responsive design, accessibility, consistent usability, performance, security, '
+            'data privacy, and browser compatibility against the business, product stage, '
+            'audience, and actual proposal scope. Keep, rewrite, remove, or add individual '
+            'items as justified, but keep the group non-empty and preserve its id. Put '
+            'single-screen or business-specific behaviors in "features"; put qualities that '
+            'apply across multiple views, components, or flows here, with no duplication '
+            'between the two groups. Never promise a compliance level, certification, '
+            'browser/version matrix, security control, or performance target unless the '
+            'proposal context supports it.'
+        ),
         'CRITICAL_functionalRequirements_itemIds': (
             'EVERY item in every functionalRequirements group AND in every additional '
             'module must have a stable "id" with the exact format '
@@ -817,8 +830,8 @@ def get_proposal_json_template(request):
             'a single item name with " y ", " e ", " o ", "/" or "&": '
             '"Registro e Inicio de Sesion" is WRONG — produce TWO items ("Registro de '
             'Usuario" and "Inicio de Sesion"), each with its own id and its own '
-            'description. The rule applies to views, components, features and module '
-            'items alike. Only exception: names denoting a single indivisible '
+            'description. The rule applies to views, components, features, cross-cutting '
+            'features and module items alike. Only exception: names denoting a single indivisible '
             'capability or an idiomatic proper name (e.g. "Terminos y Condiciones" is '
             'one legal page; "Registro con Google" and "Inicio de Sesion con Google" '
             'are still two items even though both use the same Google account). When '
@@ -1240,7 +1253,7 @@ def bulk_action(request):
         from content.services.proposal_service import ProposalService
         for p in proposals.filter(status__in=['sent', 'viewed'], client_email__gt=''):
             try:
-                ProposalService.resend_proposal(p)
+                ProposalService.resend_proposal(p, acting_user=request.user)
                 affected += 1
             except Exception:
                 logger.exception('Bulk resend failed for proposal %s', p.id)
@@ -1279,7 +1292,9 @@ def send_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        delivery = ProposalService.send_proposal(proposal)
+        delivery = ProposalService.send_proposal(
+            proposal, acting_user=request.user,
+        )
     except ValueError as e:
         return error_response_from_exc(e)
 
@@ -1468,7 +1483,9 @@ def send_multi_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        result = ProposalService.send_multi_proposals(ordered)
+        result = ProposalService.send_multi_proposals(
+            ordered, acting_user=request.user,
+        )
     except ValueError as e:
         return error_response_from_exc(e)
 
@@ -1783,7 +1800,9 @@ def resend_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        delivery = ProposalService.resend_proposal(proposal)
+        delivery = ProposalService.resend_proposal(
+            proposal, acting_user=request.user,
+        )
     except ValueError as e:
         return error_response_from_exc(e)
 

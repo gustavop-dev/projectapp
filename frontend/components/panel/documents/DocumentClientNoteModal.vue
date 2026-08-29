@@ -16,6 +16,10 @@
       <BaseAlert v-if="readonly" variant="warning">
         Esta cuenta de cobro ya fue emitida y es de solo lectura. Anúlala y crea una nueva para cambiar sus notas.
       </BaseAlert>
+      <BaseAlert v-else-if="immutableContent" variant="info">
+        El PDF y los mensajes guardados con esta versión son inmutables. Puedes
+        agregar y gestionar observaciones privadas más abajo.
+      </BaseAlert>
 
       <section class="space-y-5" aria-labelledby="document-client-messages-heading">
         <h4 id="document-client-messages-heading" class="text-xs font-semibold uppercase tracking-wide text-text-muted">
@@ -41,7 +45,7 @@
           <BaseInput
             id="document-client-note-subject"
             v-model="draft.subject"
-            :disabled="readonly || isBusy"
+            :disabled="readonly || immutableContent || isBusy"
             :disabled-reason="fieldDisabledReason"
             maxlength="255"
             placeholder="Asunto breve y concreto"
@@ -68,7 +72,7 @@
           <BaseTextarea
             id="document-client-note-email"
             v-model="draft.emailBody"
-            :disabled="readonly || isBusy"
+            :disabled="readonly || immutableContent || isBusy"
             :disabled-reason="fieldDisabledReason"
             rows="9"
             placeholder="Saludo, contenido y cierre del correo…"
@@ -95,7 +99,7 @@
           <BaseTextarea
             id="document-client-note-whatsapp"
             v-model="draft.whatsappMessage"
-            :disabled="readonly || isBusy"
+            :disabled="readonly || immutableContent || isBusy"
             :disabled-reason="fieldDisabledReason"
             rows="5"
             placeholder="Mensaje breve que invita a revisar el correo…"
@@ -115,7 +119,7 @@
             <p class="mt-0.5 text-xs text-text-subtle">Agrega títulos y contenidos personalizados.</p>
           </div>
           <BaseButton
-            v-if="!readonly"
+            v-if="!readonly && !immutableContent"
             type="button"
             variant="secondary"
             size="sm"
@@ -142,7 +146,7 @@
           <div class="flex items-center justify-between gap-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Nota {{ index + 1 }}</p>
             <BaseActionButton
-              v-if="!readonly"
+              v-if="!readonly && !immutableContent"
               action="delete"
               type="button"
               variant="danger-ghost"
@@ -174,7 +178,7 @@
             <BaseInput
               :id="`document-custom-note-title-${index}`"
               v-model="note.title"
-              :disabled="readonly || isBusy"
+              :disabled="readonly || immutableContent || isBusy"
               :disabled-reason="fieldDisabledReason"
               :error="validationAttempted && !note.title.trim()"
               maxlength="255"
@@ -205,7 +209,7 @@
             <BaseTextarea
               :id="`document-custom-note-content-${index}`"
               v-model="note.content"
-              :disabled="readonly || isBusy"
+              :disabled="readonly || immutableContent || isBusy"
               :disabled-reason="fieldDisabledReason"
               :error="validationAttempted && !note.content.trim()"
               rows="5"
@@ -233,7 +237,7 @@
       />
 
       <p
-        v-if="mode === 'draft' && !readonly"
+        v-if="mode === 'draft' && !readonly && !immutableContent"
         class="rounded-xl border border-warning-soft bg-warning-soft px-4 py-3 text-sm text-warning-strong"
         data-testid="client-note-draft-hint"
       >
@@ -242,9 +246,9 @@
 
       <div class="flex justify-end gap-2 pt-1">
         <BaseButton type="button" variant="ghost" :disabled="isBusy" :disabled-reason="busyDisabledReason" data-testid="client-note-cancel" @click="close">
-          {{ readonly ? 'Cerrar' : 'Cancelar' }}
+          {{ readonly || immutableContent ? 'Cerrar' : 'Cancelar' }}
         </BaseButton>
-        <BaseButton v-if="!readonly" type="button" variant="primary" :disabled="isBusy" :disabled-reason="busyDisabledReason" :loading="saving" data-testid="client-note-submit" @click="submit">
+        <BaseButton v-if="!readonly && !immutableContent" type="button" variant="primary" :disabled="isBusy" :disabled-reason="busyDisabledReason" :loading="saving" data-testid="client-note-submit" @click="submit">
           {{ mode === 'draft' ? 'Aplicar al borrador' : 'Guardar cambios' }}
         </BaseButton>
       </div>
@@ -266,6 +270,7 @@ const props = defineProps({
   documentId: { type: [Number, String], default: null },
   notes: { type: Array, default: () => [] },
   readonly: { type: Boolean, default: false },
+  immutableContent: { type: Boolean, default: false },
   mode: {
     type: String,
     default: 'save',
@@ -289,6 +294,9 @@ const busyDisabledReason = computed(() => {
 const fieldDisabledReason = computed(() => {
   if (props.readonly) {
     return 'Esta cuenta de cobro ya fue emitida y es de solo lectura. Anúlala y crea una nueva para cambiarla.';
+  }
+  if (props.immutableContent) {
+    return 'Esta versión conserva exactamente lo enviado y no se puede modificar.';
   }
   return busyDisabledReason.value || undefined;
 });

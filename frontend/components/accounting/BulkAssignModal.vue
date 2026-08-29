@@ -1,14 +1,13 @@
 <template>
   <BaseModal
     :model-value="open"
-    kind="form"
-    size="lg"
+    :kind="isClient ? 'form-wide' : 'form'"
     title-id="bulk-assign-title"
     :initial-focus="initialFocusSelector"
     @close="emit('close')"
   >
     <div
-      class="flex h-full min-h-0 flex-col panel-portrait:min-h-[min(36rem,calc(90dvh-2rem))]"
+      class="flex h-full min-h-0 flex-col"
       :data-testid="`${testidPrefix}-bulk-assign-modal`"
     >
       <div class="shrink-0 px-6 pt-6 pb-2">
@@ -23,74 +22,107 @@
         </p>
       </div>
 
-      <!-- El listbox flota fuera del panel: esta zona conserva sitio para el
-           alcance y no compite con el desplegable por el scroll del modal. -->
-      <div class="min-h-0 flex-1 px-6 py-4 space-y-4">
-        <ClientAutocomplete
-          v-if="isClient"
-          v-model="clientId"
-          :test-id="`${testidPrefix}-bulk-client`"
-          placeholder="Buscar el cliente a asignar..."
-          :show-linked-hint="false"
-          :initial-label="clientLabel"
-          @select="onClientSelect"
-          @create-new="onCreateNewClient"
-        />
-        <ProjectCatalogSelect
-          v-else
-          v-model="projectId"
-          :test-id="`${testidPrefix}-bulk-project`"
-          placeholder="Buscar el proyecto a asignar..."
-          @select="onProjectSelect"
-        />
-
+      <!-- The client catalog and the named scope stay visible together. The
+           project picker remains the ordinary floating field presentation. -->
+      <div class="min-h-0 flex-1 px-6 py-4">
         <div
-          v-if="isClient && inlineClientOpen"
-          class="space-y-3 rounded-xl border border-border-default bg-surface-raised p-4"
-          :data-testid="`${testidPrefix}-bulk-inline-client`"
+          v-if="isClient"
+          class="grid min-h-0 gap-4 panel-landscape:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]"
         >
-          <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
-          <ClientFormFields
-            v-model="inlineClient"
-            :testid-prefix="`${testidPrefix}-bulk-inline-client`"
-            dense
+          <ClientAutocomplete
+            v-model="clientId"
+            :active="open"
+            :test-id="`${testidPrefix}-bulk-client`"
+            placeholder="Filtrar clientes por nombre, correo o empresa..."
+            presentation="catalog"
+            :show-linked-hint="false"
+            sort-storage-key="panel.accounting.bulk-client-name-order"
+            :initial-label="clientLabel"
+            @select="onClientSelect"
+            @create-new="onCreateNewClient"
           />
-          <BaseAlert
-            v-if="clientCreateError"
-            variant="danger"
-            :data-testid="`${testidPrefix}-bulk-inline-client-error`"
-          >
-            {{ clientCreateError }}
-          </BaseAlert>
-          <div class="flex justify-end gap-2">
-            <BaseButton type="button" variant="secondary" size="sm" @click="cancelInlineClient">
-              Cancelar
-            </BaseButton>
-            <BaseButton
-              type="button"
-              variant="primary"
-              size="sm"
-              :loading="creatingClient"
-              :disabled="creatingClient || !inlineClient.name.trim()"
-              disabled-reason="Escribe el nombre del cliente."
-              :data-testid="`${testidPrefix}-bulk-inline-client-save`"
-              @click="createInlineClient"
+
+          <div class="min-w-0 space-y-4">
+            <div
+              v-if="inlineClientOpen"
+              class="space-y-3 rounded-xl border border-border-default bg-surface-raised p-4"
+              :data-testid="`${testidPrefix}-bulk-inline-client`"
             >
-              {{ creatingClient ? 'Creando...' : 'Crear cliente' }}
-            </BaseButton>
+              <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
+              <ClientFormFields
+                v-model="inlineClient"
+                :testid-prefix="`${testidPrefix}-bulk-inline-client`"
+                dense
+              />
+              <BaseAlert
+                v-if="clientCreateError"
+                variant="danger"
+                :data-testid="`${testidPrefix}-bulk-inline-client-error`"
+              >
+                {{ clientCreateError }}
+              </BaseAlert>
+              <div class="flex justify-end gap-2">
+                <BaseButton type="button" variant="secondary" size="sm" @click="cancelInlineClient">
+                  Cancelar
+                </BaseButton>
+                <BaseButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  :loading="creatingClient"
+                  :disabled="creatingClient || !inlineClient.name.trim()"
+                  disabled-reason="Escribe el nombre del cliente."
+                  :data-testid="`${testidPrefix}-bulk-inline-client-save`"
+                  @click="createInlineClient"
+                >
+                  {{ creatingClient ? 'Creando...' : 'Crear cliente' }}
+                </BaseButton>
+              </div>
+            </div>
+
+            <ClientBulkAssignSummary
+              v-if="hasTarget"
+              :plan="plan"
+              :record-label="recordLabel"
+            />
+            <div
+              v-else
+              class="space-y-2"
+              :data-testid="`${testidPrefix}-bulk-selection-review`"
+            >
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-subtle">
+                Registros seleccionados ({{ selectedRows.length }})
+              </p>
+              <ul
+                class="max-h-64 divide-y divide-border-muted overflow-y-auto rounded-lg border border-border-muted bg-surface-muted"
+                :data-testid="`${testidPrefix}-bulk-selection-list`"
+              >
+                <li
+                  v-for="row in selectedRows"
+                  :key="row.id"
+                  class="truncate px-3 py-1.5 text-xs text-text-default"
+                  :title="recordLabel(row)"
+                >
+                  {{ recordLabel(row) }}
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <ClientBulkAssignSummary
-          v-if="isClient && hasTarget"
-          :plan="plan"
-          :record-label="recordLabel"
-        />
-        <ProjectBulkAssignSummary
-          v-else-if="hasTarget"
-          :plan="plan"
-          :record-label="recordLabel"
-        />
+        <div v-else class="space-y-4">
+          <ProjectCatalogSelect
+            v-model="projectId"
+            :test-id="`${testidPrefix}-bulk-project`"
+            placeholder="Buscar el proyecto a asignar..."
+            @select="onProjectSelect"
+          />
+          <ProjectBulkAssignSummary
+            v-if="hasTarget"
+            :plan="plan"
+            :record-label="recordLabel"
+          />
+        </div>
       </div>
 
       <!--
@@ -212,6 +244,10 @@ const rowsSnapshot = ref([]);
 const idsSnapshot = ref([]);
 
 const selectedCount = computed(() => idsSnapshot.value.length);
+const selectedRows = computed(() => {
+  const rowsById = new Map(rowsSnapshot.value.map((row) => [row.id, row]));
+  return idsSnapshot.value.map((id) => rowsById.get(id)).filter(Boolean);
+});
 
 const plan = computed(() => (isClient.value
   ? buildAssignmentPlan({

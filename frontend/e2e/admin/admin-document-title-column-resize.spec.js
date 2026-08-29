@@ -2,8 +2,9 @@
  * Long-title disclosure and reusable column resizing on /panel/documents.
  *
  * @flow:admin-document-title-column-resize
- * Covers: clipped-only full-name hints, compact in-place disclosure, pointer
- *         resize persistence, fixed workflow/actions tracks and double-click reset.
+ * Covers: one clipped-only floating hint shared with actions, compact in-place
+ *         disclosure remeasured after web-font readiness, inventory-sized resize
+ *         persistence, fixed workflow/actions tracks and double-click reset.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -14,6 +15,7 @@ test.setTimeout(60_000);
 
 const WIDTH_KEY = 'projectapp-table-widths:documents-list';
 const LONG_TITLE = 'Cliente Atlas — Contrato marco de servicios profesionales para el Comité Ejecutivo Regional — versión final aprobada para firma del 25 de agosto de 2026';
+const INVENTORY_BOUND_TITLE = 'Contrato Cliente Atlas implementación soporte agosto 26.';
 const UNBROKEN_TITLES = [
   'guia_apuntar_dominio_ux_26082026',
   'Levantamiento_Fase_4_Multi-Tenant_24082026',
@@ -79,6 +81,7 @@ const DOCUMENTS = [
   documentFixture(503, UNBROKEN_TITLES[1], { folder: 77, folder_name: LONG_FOLDER }),
   documentFixture(504, UNBROKEN_TITLES[2]),
   documentFixture(505, 'Acta breve'),
+  documentFixture(506, INVENTORY_BOUND_TITLE),
 ];
 
 async function mockDocuments(page) {
@@ -87,7 +90,7 @@ async function mockDocuments(page) {
     if (apiPath === 'documents/') return jsonOk(DOCUMENTS);
     if (apiPath === 'documents/counts/') {
       return jsonOk({
-        documents: { active: 5, archived: 0, unfiled_active: 3, unfiled_archived: 0 },
+        documents: { active: 6, archived: 0, unfiled_active: 4, unfiled_archived: 0 },
         folders: { active: 0, archived: 0 },
       });
     }
@@ -104,10 +107,7 @@ async function openDocuments(page) {
   await mockDocuments(page);
   await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText(LONG_TITLE, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    window.dispatchEvent(new Event('resize'));
-  });
+  await page.evaluate(() => document.fonts.ready);
 }
 
 async function dragTitleBy(page, delta) {
@@ -133,6 +133,17 @@ async function expectInside(inner, outer) {
   expect(outerBox).not.toBeNull();
   expect(innerBox.x).toBeGreaterThanOrEqual(outerBox.x - 1);
   expect(innerBox.x + innerBox.width).toBeLessThanOrEqual(outerBox.x + outerBox.width + 1);
+}
+
+async function expectInsideViewport(page, locator) {
+  const box = await locator.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
 }
 
 async function expectVerticalSeparation(upper, lower) {
@@ -201,19 +212,47 @@ test.describe('Admin Document Title Column Resize', () => {
     });
   });
 
-  test('exposes the full-name hint only for clipped titles', {
+  test('shows one full-name hint only for clipped titles', {
     tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (la navegación del sidebar pertenece a los flows de layout; este caso aísla la medición de los títulos)
-    // quality: allow-no-interaction (es un outcome display que contrasta recorte real contra texto completo; los otros cuatro casos operan los controles)
     await page.setViewportSize({ width: 1440, height: 900 });
     await openDocuments(page);
 
     const longTitle = page.getByTestId('document-open-501');
     await expect(page.getByTestId('document-open-501-toggle')).toBeVisible();
-    await expect(longTitle).toHaveAttribute('title', LONG_TITLE);
+    await expect(longTitle).not.toHaveAttribute('title', /.+/);
+    await longTitle.hover();
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toHaveCount(1);
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText(LONG_TITLE);
+    await expectInsideViewport(page, tooltip);
+
+    const shortTitle = page.getByTestId('document-open-505');
     await expect(page.getByTestId('document-open-505-toggle')).toHaveCount(0);
-    await expect(page.getByTestId('document-open-505')).not.toHaveAttribute('title', /.+/);
+    await expect(shortTitle).not.toHaveAttribute('title', /.+/);
+    await shortTitle.hover();
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+  });
+
+  test('uses the shared tooltip for a row action', {
+    tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (la navegación del sidebar pertenece a los flows de layout; este caso aísla el tooltip compartido)
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openDocuments(page);
+
+    const action = page.getByTestId('doc-actions-cell-501')
+      .getByRole('button', { name: `Acciones de ${LONG_TITLE}` });
+    await expect(action).not.toHaveAttribute('title', /.+/);
+    await action.hover();
+
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toHaveCount(1);
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toHaveText('Acciones');
+    await expectInsideViewport(page, tooltip);
   });
 
   test('offers the same full-name control for an unbroken clipped title', {
@@ -229,7 +268,10 @@ test.describe('Admin Document Title Column Resize', () => {
     const title = page.getByTestId('document-open-503');
     const toggle = page.getByTestId('document-open-503-toggle');
     await expect(toggle).toBeVisible();
-    await expect(title).toHaveAttribute('title', UNBROKEN_TITLES[1]);
+    await expect(title).not.toHaveAttribute('title', /.+/);
+    await title.hover();
+    await expect(page.getByRole('tooltip')).toBeVisible();
+    await expect(page.getByRole('tooltip')).toContainText(UNBROKEN_TITLES[1]);
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
@@ -299,9 +341,28 @@ test.describe('Admin Document Title Column Resize', () => {
     const handle = page.getByTestId('documents-title-resize-handle');
     await handle.press('End');
     await expect(handle).toHaveAttribute('aria-valuenow', '520');
+    await expect(handle).toHaveAttribute('title', 'Ajustar el ancho de la columna Título');
 
     expect(Math.abs(await columnWidth(page, 'Estados') - before.workflow)).toBeLessThanOrEqual(1);
     expect(Math.abs(await columnWidth(page, 'Acciones') - before.actions)).toBeLessThanOrEqual(1);
+  });
+
+  test('fits the current longest inventory boundary at maximum width', {
+    tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openDocuments(page);
+
+    const title = page.getByTestId('document-open-506');
+    const toggle = page.getByTestId('document-open-506-toggle');
+    await expect(toggle).toBeVisible();
+
+    const handle = page.getByTestId('documents-title-resize-handle');
+    await handle.press('End');
+    await expect(handle).toHaveAttribute('aria-valuenow', '520');
+    await expect(toggle).toHaveCount(0);
+    await title.hover();
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
   });
 
   test('resets the saved title width on double click', {

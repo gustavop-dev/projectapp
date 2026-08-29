@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-28 — catálogo adicional:** un enlace comercial debe fijar
+> qué módulos se eligieron, no duplicar su contenido. Así la selección permanece
+> estable mientras las correcciones editoriales llegan a todos los clientes. La
+> migración semilla crea el inventario una sola vez; los enlaces nunca heredan
+> precios ni datos de una propuesta, y las URLs seleccionadas usan `noindex`
+> aunque el catálogo canónico sí sirva para captación.
+
 ---
 
 ## 1. Architecture Patterns
@@ -970,13 +977,17 @@ rewritten: annulment and business-date corrections append audit context, while
 only drafts remain mutable. When project ownership changes, historical threads
 stay with the original client and lose only their optional project scope.
 
-## 39. Clipping is measured state, and its primitive must own display
+## 39. Clipping is measured state, but full-value access must not depend on it
 
 A fixed `title` attribute only repeats short values and still leaves touch users
 without a path. Measure the rendered element after layout, text changes and
-container-width changes; publish the complete native hint and disclosure only
-while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
-The disclosure expands in the same row/card so it cannot require navigation.
+container-width changes, and again after `document.fonts.ready`; publish one application-owned tooltip only while
+`scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping. That
+tooltip must portal outside overflow containers, flip/clamp within the viewport
+and be the sole notice—never pair it with a native `title`. The disclosure
+expands in the same row/card so it cannot require navigation. E2E setup must
+await font readiness without dispatching a compensating resize event that
+production never receives.
 
 Line clamping is a bundle of display, overflow and WebKit properties, not a
 decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another
@@ -1252,3 +1263,124 @@ generated artifact before touching the live directory. A usable fallback is
 non-empty, contains the `#__nuxt` mount, and cannot redirect. Validate those
 properties before the atomic swap, and monitor one real SPA deep route by content;
 file existence and status 200 prove neither hydration nor availability.
+
+## 51. Cross-cutting commercial scope is a mutable contract, not boilerplate
+
+A fourth card improves the proposal only when it owns a real semantic boundary.
+Screens, components and business-specific actions answer *what this product
+does*; responsive behavior, accessibility, usability, performance, security,
+privacy and browser support describe qualities that can affect several of those
+surfaces. Mixing both categories creates duplication and makes technical
+traceability ambiguous.
+
+Keep the `cross_cutting_features` container and its position stable, but treat
+its items as a context-dependent catalog. Preserve item ids when copy changes,
+require technical links for every retained commercial item, and qualify targets
+instead of inventing certification levels, browser matrices or performance
+guarantees. When evolving stored proposal JSON, update live defaults and editable
+drafts while leaving sent or inactive snapshots intact; commercial documents are
+history, not caches to be silently normalized.
+
+## 52. A visual tooltip and an accessible name serve different readers
+
+An icon-only row action may need a contextual accessible name such as **Acciones
+de Contrato de Servicios**, but repeating that string in a hover hint adds no
+value when the document title is already visible. Keep the application tooltip
+short and canonical, keep row context in `aria-label`, and let touch users reach
+the same action through the button itself rather than depending on hover help.
+
+Tooltip ownership must be singular at the rendered DOM boundary. Wrapping a
+button in an application tooltip while also forwarding `title` creates two
+competing notices. In Vue, removing an explicit `:title` binding is not enough
+when `$attrs` can still fall through automatically: the owning primitive must
+filter `title` deliberately while preserving `aria-*`, `data-*` and link
+semantics. Test the rendered attribute and the visible `role="tooltip"`
+separately; each protects a different half of the contract.
+
+## 53. A primary selection catalog is modal content, not a dropdown
+
+Fixing a dropdown's clipping can expose a second problem: reserving enough room
+for a click-triggered overlay leaves the dialog inexplicably empty before the
+click. If choosing among records is the modal's main task, those records are not
+supplementary disclosure. Render them permanently in flow and let the search
+field filter them; keep floating listboxes for secondary choices in forms.
+
+Do not fork the data behavior to get two layouts. One selector should own query
+generation guards, selection, paging, retry and creation while a shared results
+renderer supplies either a floating or in-flow surface. The consumer opts into
+the permanent presentation explicitly, supplies any persistence key and remains
+responsible for the review/action context around it.
+
+Ordering is part of catalog usability. Start with a stable server order and an
+id tie-break, expose the direction in the column header with `aria-sort`, carry
+the same order through filtering and every progressive page, and persist only
+the small user preference locally. Geometry tests must prove at least five full
+rows, one list-owned scrollbar, a stationary modal, visible review content and
+the full-screen compact contract; a screenshot of an open dropdown proves none
+of those boundaries.
+
+## 54. Semantic association and lifecycle ownership need separate fields
+
+A folder may point at a project without being the project's system-owned root.
+Reusing the ordinary `project` relation for both meanings makes every descendant
+look immutable and leaves no reliable way to distinguish a hand-made hierarchy
+from the canonical entry point. Keep semantic inheritance on `project`/`client`
+and represent lifecycle ownership with a separate one-to-one relation whose
+invariants are enforced in the database and every mutation surface.
+
+Historical name matching is evidence, not authorization. A safe reconciliation
+first emits a stable inventory with proposed actions, impacts and conflicts; a
+human decides every pending row; apply revalidates both the plan digest and the
+database fingerprint inside one transaction. This makes ambiguous client/project
+names visible before documents move and prevents an approved proposal from being
+silently applied to a later database state. Preserve an inverse snapshot even when
+the write is atomic: rollback of data classification is an operational procedure,
+not just a transaction primitive.
+
+## 55. A generated document is an artifact, not another editable projection
+
+When a system both generates and sends a PDF, regenerating it later is not an
+archive: templates, source data and fonts may have changed. Render once before
+the outbound boundary, persist those exact bytes with source/version/hash, and
+attach that same byte sequence. Generation failure must stop the send before
+any lifecycle transition; delivery failure may retain the prepared artifact and
+mark the operational problem without rewriting it.
+
+Location is another derived fact. Use stable server-owned folder keys for
+project/client/type/year/month identity, not display-name matching, and create
+the path idempotently inside the business transaction. Protect that structure
+at every mutation surface (REST, MCP and drag/drop), while leaving orthogonal
+administrative observations editable. For legacy data, a dry-run-first backfill
+should touch only records still lacking a destination, preserve manual choices
+and refuse to invent the business date that defines the archive.
+
+## 56. KPI density and KPI geometry are separate contracts
+
+Equal card heights require a stable internal grid, not copy of equal length.
+Reserve label, value and optional support rows in the shared primitive so missing
+support text cannot shrink one card. Keep help as its own sibling control and
+make the primary surface a button only when it performs an explicit action.
+
+That geometric fix does not solve a header with too many questions. Expanded
+layouts can show non-zero details in business order and group different question
+families separately. Compact layouts should summarize by question family and
+put the lossless detail in a focus-managed drawer. A summary total must combine
+like units: for heterogeneous operational facts, count active categories rather
+than adding clients, records and review rows into a misleading grand total.
+
+## 56. A thread filter is a correlated event question, not independent joins
+
+A conversation can contain many messages, so applying channel, direction and
+status as separate relation joins answers the wrong question: one email can
+satisfy channel while an unrelated incoming WhatsApp satisfies direction. Build
+one message predicate and apply it through one correlated `Exists`; use OR for
+multiple values inside a dimension and AND across dimensions. REST, MCP and
+facet counts must consume that same read service or they will disagree while
+each appears locally correct.
+
+URL and saved-view state add a separate reactivity boundary. Vue reactive arrays
+are proxies and cannot be passed blindly to `structuredClone`; normalize them to
+plain, validated values before snapshotting, comparing, writing route queries or
+saving a view. A real-browser direct-link case is essential here because a unit
+mock can miss the browser's `DataCloneError` and leave the route rendered but
+non-interactive.

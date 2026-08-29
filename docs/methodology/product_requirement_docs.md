@@ -1,5 +1,12 @@
 # Product Requirements Document — ProjectApp
 
+> **Estado 2026-08-28 — implementado:** el catálogo comercial de módulos
+> adicionales es un dominio administrable y bilingüe, separado de las
+> propuestas. Publica un índice canónico completo y enlaces revocables con una
+> selección fija, contenido vivo, PDF y seguimiento de aperturas, siempre sin
+> precios ni personalización por proyecto. El inventario inicial contiene 18
+> módulos en cinco categorías, incluida Landing Page.
+
 ## 1. Overview
 
 **ProjectApp** is the full-stack web application for **Project App** (projectapp.co), a custom software development company based in Colombia. The platform serves as:
@@ -40,6 +47,13 @@ The proposal system is the most complex and central feature. It allows the admin
 - **Create proposals** with client name, email, investment amount, currency, expiration date, language, project type, and market type
 - **18 section types auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Process & Methodology, Functional Requirements, Timeline, Investment, Proposal Summary, Final Note, Next Steps, Technical Document, Value Added Modules, ROI Projection, and Commercial Conditions (the last few are order-dependent; some — e.g. `roi_projection`, `value_added_modules`, `proposal_summary` — are web-only and intentionally skip the PDF)
 - **Edit section content** — each section stores structured JSON matching a specific Vue component's props schema
+- **Contextual functional-requirement scope** — the core catalog distinguishes
+  four client-facing cards in order: views, components, project-specific
+  features, and `cross_cutting_features`. The fourth card starts from reusable
+  quality concerns (responsive design, accessibility, usability, performance,
+  security, privacy, and browser compatibility), but its title, description and
+  individual items must be adapted to the business, product stage, audience and
+  actual proposal scope rather than copied as fixed boilerplate.
 - **Choose a reading mode** — the public gateway offers executive, detailed, technical, and **Contrato y condiciones**. The legal mode is a separate, generic document surface rather than another proposal section.
 - **Readable proposal presentation** — closing cards use two columns only when each retains a comfortable reading width; payment amounts keep number, currency, and tax suffix together on laptop/desktop screens. Non-empty lead copy below section titles contains one or two short, safe bold fragments for scanability.
 - **Send to client** — triggers email with unique UUID link, schedules automated reminders
@@ -185,6 +199,27 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 ### 3.5 Document System
 
 - Generic branded PDF documents separate from proposals
+- The folder panel separates two ownership models: **Projects** lists the
+  system-managed root of each visible project, while **Folders** lists roots
+  created by people. Both sections are independently collapsible and their
+  counters include all descendant folders and documents.
+- Every project owns at most one managed root. Creating or renaming a project
+  creates or renames that root automatically; users may create arbitrary
+  descendants but cannot rename, move, archive or delete the managed first
+  level. Deleting a project preserves its former root and content as a manual
+  folder instead of cascading document loss.
+- Project-state catalog entries expose a configurable **show in document
+  manager** flag. The default visible states are En desarrollo, Activo and En
+  evolución. “Ver todos” remains an explicit route to suspended, retired or
+  otherwise hidden project roots without changing or deleting their content.
+- A new project root starts with Cuentas de cobro, Propuestas, Entregables and
+  QA. Content and subfolders created below it inherit the project and client
+  when the caller does not provide an explicit association.
+- Existing roots are reconciled only through a review artifact: a dry-run plan
+  records every proposed conversion, nesting, creation, skip and conflict; the
+  apply command requires the reviewed decisions, database fingerprint and plan
+  digest to still match. A client-named root is nested under the unique project
+  root; no production folder is converted from a name-only shortcut.
 - Client visibility is an independent `is_client_visible` gate. The legacy
   draft/published field remains only during the expand/contract rollout and no
   longer represents the internal workflow.
@@ -253,6 +288,32 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   colored document tags were consolidated into additive workflow states instead of
   leaving two overlapping user-facing systems; legacy tag assignments are expanded
   into open episodes with an explicitly unknown opening time during migration.
+- **Generated-document filing**: an issued collection account is filed from its
+  Bogotá issue date under `Proyectos / {project} / Cuentas de cobro / YYYY /
+  MM - Mes`. Without a project it uses `Clientes / {client} / Sin proyecto`;
+  without an identifiable client it uses `Sin clasificar`. Missing levels are
+  created idempotently. Cancellation moves the same record to `Anuladas`; a
+  never-issued cancellation uses `Sin emitir / Anuladas`. Retrying delivery
+  keeps the same document; issuing a replacement after cancellation creates a
+  new account/number while the annulled original remains in its branch.
+- System-owned folders carry a stable `system_key`. They remain navigable but
+  cannot be renamed, moved, reordered, archived or targeted by manual document
+  creation through the panel, REST or MCP. Issued accounts and generated PDF
+  snapshots cannot be dragged out of their canonical branch.
+- Account titles follow `YYYY-MM-DD · public number · concept`. Their visible
+  state is derived from the commercial lifecycle plus real email delivery
+  history, so draft/issued/sent/send-failed/paid/cancelled never depend on a
+  loose manual workflow episode and never appear in Por clasificar.
+- Every initial proposal send, resend and multi-send stores the exact PDF bytes
+  attached to the email as an immutable `vNN` Document snapshot, named
+  `YYYY-MM-DD · Propuesta comercial · title · vNN` and filed under the parallel
+  `Propuestas comerciales / YYYY / MM - Month` hierarchy. Observations remain
+  editable; source data, folder and workflow state do not. Acceptance moves all
+  retained versions to the created project.
+- Historical folderless collection accounts are handled by the dry-run-first
+  `backfill_collection_account_filing` command. Applying it uses the same live
+  rule, preserves manually classified records and skips rows whose issue date
+  cannot be established.
   - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
   - Folder mutations from `FolderManagerModal` re-fetch both the documents list and the folder store so the sidebar count and order reflect the change without a page reload.
 - **Context-preserving navigation**: the list URL is the canonical representation of
@@ -278,9 +339,21 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **State semantics**: outgoing messages are draft or sent; incoming messages are
   received. “Respondido” is derived from a valid opposite-direction reply and
   does not overwrite the stored send fact.
-- **Manual-channel boundary**: phase 1 records what the operator copied/sent via
-  WhatsApp or email; it does not claim that ProjectApp delivered it. Real email
-  delivery through `EmailDeliveryGateway` remains a later phase.
+- **Document-manager navigation**: the module has a resizable side panel that
+  switches between projects and clients, includes aggregate counts and keeps
+  threads without a project reachable through an explicit **Sin proyecto**
+  entry. On compact screens the same navigation moves into the shared drawer.
+- **Canonical cuts**: navigation, searchable multi-value filters and ordering
+  live in the URL. A thread opens in a workspace modal addressed by
+  `thread=<id>`, so closing it or using browser Back restores the exact list.
+  Frequent combinations can be named and restored through the accounting saved
+  filter mechanism.
+- **Manual-channel boundary**: recording what the operator sent or received via
+  WhatsApp or email is the chosen operating model, not a provisional phase. The
+  product never claims that ProjectApp delivered it, and the interface does not
+  promise a future automatic-delivery capability.
+- The explanatory notice describes that current manual workflow, can be closed
+  after it is understood and remains reachable from contextual help.
 - **References, never copies**: messages link existing `Document` rows through a
   protected join. Document detail exposes reverse usage, and a referenced
   document cannot be deleted accidentally.
@@ -384,7 +457,7 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
   `docs/RESPONSIVE_STANDARDS.md`, `docs/RESPONSIVE_STANDARD.md` and
   `docs/methodology/responsive-standard.md`, respectively.
 - **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
-- **Readable document titles** — document names use two lines with end truncation by default. The complete native hint exists only when the rendered title is actually clipped, and the same condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default), remembered per browser and reset by double click; Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because two lines plus conditional reveal preserve the full value without inventing a second naming rule.
+- **Readable document titles** — document names use end truncation by default. A single app-owned, viewport-aware hint exposes the complete name only when rendered measurement proves clipping; it reuses the same `BaseTooltip` primitive as row actions and never adds a duplicate browser `title`. Measurement repeats after web fonts load, and the same clipping condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default) through a visible labelled separator, remembered per browser and reset by double click. The 520 px maximum is content-backed: the 2026-08-28 production inventory contained 40 titles, its longest had 56 characters and required an estimated 496 px including cell padding and safety. Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because conditional reveal preserves the full value without inventing a second naming rule.
 - **Leading three-dot row actions** — every panel table whose row control is a single three-dot menu places it at the start with no visible heading. Selectable tables use Checkbox → Actions → Identity/Content; the action track is fixed at 56 px, does not join the data-width split, and opening it cannot activate row navigation. The adopted surfaces are Documents, Proposals, Diagnostics and both classic/grouped Incomes tables. Tables that still expose several loose action icons, including Collection Accounts, remain outside this contract until their actions are explicitly consolidated into one menu.
 
 ### 3.13 Internationalization (i18n)
@@ -497,7 +570,7 @@ The canonical counts, commands and exceptions are maintained in
   reason. A transient operation uses its active status label. The collection
   account flow additionally warns about clients without email in the selector
   and permits an explicit inline repair without losing the draft.
-- **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
+- **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose exactly one short, readable hover/focus hint, an accessible name and a touch target of at least 44×44 px. Row context belongs in the accessible name, not in the visual hint, and an application tooltip must suppress the duplicate native browser `title`; decorative, status and editable-content symbols are not action glyphs.
 - **Text containment**: Every panel table, card and metadata row must contain
   arbitrary user/API strings, including values with no spaces, at every canonical
   viewport. Data-owned prose/identifiers wrap with intrinsic-safe break
@@ -568,18 +641,21 @@ The canonical counts, commands and exceptions are maintained in
     and closure use `DocumentState.operational_effect`, never an editable display
     name. Every transition is previewed, token-bound and recorded as a dated
     episode; legacy unclassified rows fail closed for financial automation.
-24. **Searchable selectors inside modals**: result lists belong to a floating
-    layer owned by the modal, not to its scrollable panel. On desktop the picker
-    exposes at least five complete options and only a long result list scrolls;
-    the modal remains still and grows with its review content up to its viewport
-    limit. On narrow screens the modal follows the shared full-screen contract.
-    An uncommitted client picker loads a stable alphabetical catalog on focus;
-    the primary picker is focused when the modal opens, typing filters what is
-    already visible, and later pages load progressively inside the list. Each row
-    distinguishes name, company and email and flags missing email. Empty filters
-    and empty catalogs offer client creation; read failures offer retry.
-    A bulk action must show the affected count and record identities before its
-    confirmation without requiring the operator to scroll the modal.
+24. **Searchable selectors inside modals**: secondary selectors render their
+    result list in a floating layer owned by the modal, never inside its
+    scrollable panel. A selector that is itself the primary decision uses an
+    explicit permanent in-flow catalog instead: bulk client assignment opens
+    with the rows visible, without click-triggered disclosure or reserved blank
+    height. On desktop it exposes at least five complete clients and only a long
+    catalog scrolls; the modal remains still, grows with its review content and
+    caps at the viewport. On narrow screens it follows the shared full-screen
+    contract. The catalog opens in stable A-Z order, its Nombre header toggles
+    A-Z/Z-A and remembers that browser-local choice between openings; typing
+    filters the visible rows and later pages load progressively. Each row shows
+    name, company and email and flags missing email. Empty filters/catalogs offer
+    client creation; read failures offer retry. A bulk action must show the
+    affected count and record identities before confirmation without requiring
+    the operator to scroll the modal.
 24. **Observation removal semantics**: discard retains the row and optional
     reason; soft delete removes it from active reads and counts while preserving
     recoverability. Deleting the last pending note reconciles only a linked
@@ -587,3 +663,17 @@ The canonical counts, commands and exceptions are maintained in
 25. **No browser-native dialogs in panel flows**: `/panel` confirmations, data
     requests and errors use application-owned modals or inline alerts. Native
     `alert`, `confirm` and `prompt` are prohibited and guarded in CI.
+26. **Cross-cutting proposal scope is contextual but structurally stable**:
+    `functional_requirements.groups` keeps `cross_cutting_features` immediately
+    after `features` and non-empty. Sellers may keep, rewrite, remove or add its
+    individual items according to the proposal context, without duplicating
+    specific business behavior or promising unsupported compliance targets.
+    Default-config snapshots and active drafts receive the new group; sent,
+    inactive and otherwise historical proposal snapshots remain unchanged.
+27. **Indicator headers preserve content priority**: KPI cards use a fixed
+    label/value/reserved-support structure, consistent help and an explicit
+    action. Expanded views keep meaningful non-zero indicators in business
+    order and separate lifecycle from operational questions. Compact project
+    and income headers collapse to two actionable summaries whose drawers retain
+    the full detail, including zero-valued states, so the first list row remains
+    visible in the initial 412×915 viewport.

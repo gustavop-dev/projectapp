@@ -76,10 +76,93 @@
         </button>
       </li>
 
-      <li v-if="folders.length" class="my-1 border-t border-border-muted"></li>
+      <li class="my-1 border-t border-border-muted"></li>
+
+      <li role="presentation">
+        <details open data-testid="project-folder-section">
+          <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
+            <span>Proyectos</span>
+            <span class="font-normal normal-case text-text-subtle" data-testid="project-folder-section-count">
+              {{ sectionInventory(visibleProjectFolders) }}
+            </span>
+          </summary>
+          <div v-if="filteredOutProjectCount" class="flex items-center justify-between gap-2 px-3 py-1.5">
+            <span class="text-2xs text-text-subtle">
+              {{ filteredOutProjectCount }} fuera del filtro de estados
+            </span>
+            <button
+              type="button"
+              class="text-xs font-medium text-text-brand hover:text-text-default"
+              data-testid="project-folders-toggle"
+              @click="showAllProjects = !showAllProjects"
+            >
+              {{ showAllProjects ? 'Ver vigentes' : 'Ver todos' }}
+            </button>
+          </div>
+          <p v-if="!visibleProjectFolders.length" class="px-3 py-2 text-xs text-text-subtle">
+            No hay proyectos en este filtro.
+          </p>
+          <ul v-else class="mt-1 space-y-1" role="list">
+            <li v-for="folder in visibleProjectFolders" :key="folder.id">
+              <div
+                class="flex items-center rounded-lg transition-all"
+                :class="[entryClass(folder.id), dropZoneClass(folder.id)]"
+                @dragover.prevent="onFolderDragOver(folder.id)"
+                @dragleave="dragOverId = null"
+                @drop.prevent="onFolderDrop(folder.id)"
+              >
+                <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
+                <button
+                  type="button"
+                  class="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm"
+                  :class="touchMode ? 'min-h-11' : ''"
+                  :aria-current="ariaCurrent(folder.id)"
+                  :aria-label="projectRowLabel(folder)"
+                  :data-testid="`project-folder-${folder.id}`"
+                  @click="$emit('select', folder.id)"
+                >
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-medium" :title="folder.name">{{ folder.name }}</span>
+                    <span class="block truncate text-2xs text-text-subtle">
+                      {{ folder.managed_project_state?.name || 'Sin estado' }}
+                    </span>
+                  </span>
+                  <span
+                    v-if="rowCounts(folder).subs"
+                    class="flex flex-shrink-0 items-center gap-0.5 text-xs text-text-subtle"
+                    data-testid="folder-subfolder-count"
+                  >
+                    <BaseActionIcon action="folders" />
+                    {{ rowCounts(folder).subs }}
+                  </span>
+                  <span class="flex flex-shrink-0 items-center gap-0.5 text-xs text-text-subtle" data-testid="folder-document-count">
+                    <BaseActionIcon action="documents" />
+                    {{ rowCounts(folder).docs }}
+                  </span>
+                </button>
+              </div>
+            </li>
+          </ul>
+        </details>
+      </li>
+
+      <li class="my-1 border-t border-border-muted"></li>
+
+      <li role="presentation">
+        <details open data-testid="manual-folder-section">
+          <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
+            <span>Carpetas</span>
+            <span class="font-normal normal-case text-text-subtle" data-testid="manual-folder-section-count">
+              {{ sectionInventory(manualFolders) }}
+            </span>
+          </summary>
+          <p v-if="!manualFolders.length" class="px-3 py-2 text-xs text-text-subtle">
+            No hay carpetas propias en este ámbito.
+          </p>
 
       <!-- Folder entries — draggable to reorder, also drop targets for documents -->
       <draggable
+        v-else
         v-model="localFolders"
         item-key="id"
         handle=".folder-drag-handle"
@@ -94,10 +177,10 @@
           <li :key="folder.id" class="group">
             <div
               class="flex items-center rounded-lg transition-all"
-              :class="[entryClass(folder.id), dropZoneClass(folder.id)]"
-              @dragover.prevent="onFolderDragOver(folder.id)"
+              :class="[entryClass(folder.id), dropZoneClass(folder)]"
+              @dragover.prevent="onFolderDragOver(folder)"
               @dragleave="dragOverId = null"
-              @drop.prevent="onFolderDrop(folder.id)"
+              @drop.prevent="onFolderDrop(folder)"
             >
               <!--
                 Comparte padding, radio y tamaño con Todos/Sin carpeta para que
@@ -166,7 +249,7 @@
               </button>
 
               <!-- Clúster derecho: reordenar (hover) + archivar + eliminar. -->
-              <div class="flex items-center flex-shrink-0 pr-1.5">
+              <div v-if="!folder.is_system_managed" class="flex items-center flex-shrink-0 pr-1.5">
                 <div
                   class="folder-drag-handle touch-reveal touch-drag-handle flex cursor-grab items-center justify-center text-text-subtle transition-opacity active:cursor-grabbing dark:text-text-muted"
                   :class="[
@@ -244,6 +327,8 @@
           </li>
         </template>
       </draggable>
+        </details>
+      </li>
     </ul>
 
     <div class="p-3 border-t border-border-muted flex-shrink-0">
@@ -288,8 +373,28 @@ const folderStore = useDocumentFolderStore();
 const dragOverId = ref(null);
 const localFolders = ref([]);
 const isFolderDragging = ref(false);
+const showAllProjects = ref(false);
 
-watch(() => props.folders, (v) => {
+const projectFolders = computed(() => props.folders
+  .filter((folder) => folder.folder_kind === 'project')
+  .sort((a, b) => a.name.localeCompare(b.name)));
+
+const manualFolders = computed(() => props.folders
+  .filter((folder) => folder.folder_kind !== 'project'));
+
+const visibleProjectFolders = computed(() => (
+  showAllProjects.value
+    ? projectFolders.value
+    : projectFolders.value.filter(
+      (folder) => folder.is_project_visible || folder.id === props.activeId,
+    )
+));
+
+const filteredOutProjectCount = computed(
+  () => projectFolders.value.filter((folder) => !folder.is_project_visible).length,
+);
+
+watch(manualFolders, (v) => {
   localFolders.value = [...v];
 }, { immediate: true });
 
@@ -325,6 +430,21 @@ function rowLabel(folder) {
   return folderRowLabel(folder.name, rowCounts(folder));
 }
 
+function projectRowLabel(folder) {
+  const state = folder.managed_project_state?.name || 'Sin estado';
+  return `${rowLabel(folder)} — Proyecto, ${state}`;
+}
+
+function sectionInventory(folders) {
+  const totals = folders.reduce((result, folder) => {
+    const counts = folderStore.rollupOf(folder, props.archiveScope);
+    result.docs += counts.docs;
+    result.folders += 1 + counts.subs;
+    return result;
+  }, { docs: 0, folders: 0 });
+  return `${totals.folders} carp. · ${totals.docs} docs`;
+}
+
 // Ojo: `hasContent` y `deleteTooltip` se quedan con el conteo DIRECTO a
 // propósito. Espejan el 409 de `delete_document_folder`, que cuenta
 // `folder.documents` y `folder.children` de un salto y sin excluir archivados;
@@ -345,7 +465,9 @@ function deleteTooltip(folder) {
 // el archivo; ese caso lo declara el rótulo de la cabecera del listado.
 const archivedMode = computed(() => props.archiveScope === 'archived');
 
-function dropZoneClass(id) {
+function dropZoneClass(folder) {
+  if (folder?.is_system_managed) return '';
+  const id = folder?.id ?? folder;
   // Acepta documentos (props.isDragging) o carpetas en arrastre para anidar.
   const anyDrag = props.isDragging || props.draggingFolderId != null;
   if (!anyDrag || isFolderDragging.value) return '';
@@ -360,18 +482,25 @@ function onDrop(folderId) {
   emit('folder-drop', folderId);
 }
 
-function onFolderDragOver(folderId) {
-  if (!isFolderDragging.value) dragOverId.value = folderId;
+function onFolderDragOver(folder) {
+  if (!folder.is_system_managed && !isFolderDragging.value) {
+    dragOverId.value = folder.id;
+  }
 }
 
-function onFolderDrop(folderId) {
-  if (!isFolderDragging.value) onDrop(folderId);
+function onFolderDrop(folder) {
+  if (!folder.is_system_managed && !isFolderDragging.value) onDrop(folder.id);
 }
 
 async function handleFolderReorder() {
   isFolderDragging.value = false;
-  const newIds = localFolders.value.map((f) => f.id);
-  const unchanged = newIds.every((id, i) => id === props.folders[i]?.id);
+  const newIds = localFolders.value
+    .filter((folder) => !folder.is_system_managed)
+    .map((folder) => folder.id);
+  const previousIds = manualFolders.value
+    .filter((folder) => !folder.is_system_managed)
+    .map((folder) => folder.id);
+  const unchanged = newIds.every((id, i) => id === previousIds[i]);
   if (unchanged) return;
   const result = await folderStore.reorderFolders(newIds);
   if (!result.success) {

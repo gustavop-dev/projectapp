@@ -53,6 +53,27 @@ const FOLDER_SUBSUB = activeFolder({
 
 const ALL_FOLDERS = [FOLDER_ROOT, FOLDER_OTHER_ROOT, FOLDER_SUB, FOLDER_SUBSUB];
 
+const GENERATED_FOLDERS = [
+  activeFolder({ id: 41, name: 'Proyectos', slug: 'proyectos', parent: null, order: 10, document_count: 0, children_count: 1 }),
+  activeFolder({ id: 42, name: 'Portal Nube', slug: 'portal-nube', parent: 41, order: 0, document_count: 0, children_count: 1 }),
+  activeFolder({ id: 43, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro-auto', parent: 42, order: 10, document_count: 0, children_count: 1 }),
+  activeFolder({ id: 44, name: '2026', slug: 'cuentas-2026', parent: 43, order: 0, document_count: 0, children_count: 1 }),
+  activeFolder({ id: 45, name: '08 - Agosto', slug: 'cuentas-2026-08', parent: 44, order: 8, document_count: 1, children_count: 0 }),
+].map((folder) => ({ ...folder, is_system_managed: true }));
+
+const GENERATED_ACCOUNT = {
+  id: 401,
+  title: '2026-08-14 · PA-2026-0042 · Soporte mensual',
+  document_type_code: 'collection_account',
+  commercial_status: 'issued',
+  display_state: { key: 'sent', label: 'Enviada', variant: 'success' },
+  active_states: [],
+  folder: 45,
+  folder_name: '08 - Agosto',
+  project_name: 'Portal Nube',
+  created_at: '2026-08-14T15:00:00Z',
+};
+
 const DOC_IN_ROOT = {
   id: 1, title: 'Doc En Raiz', status: 'published',
   client_name: 'ACME', created_at: '2026-04-01T10:00:00Z',
@@ -227,5 +248,37 @@ test.describe('Admin Document Folder Hierarchy', () => {
     ).toBe(true);
 
     await expect(page.getByRole('table').getByText('Doc En Raiz')).toBeVisible();
+  });
+
+  test('navigates the generated project and issue-month hierarchy', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; the test
+    // exercises the hierarchy through its real folder-navigation controls)
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk(GENERATED_FOLDERS);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) {
+        const folderId = new URL(route.request().url()).searchParams.get('folder');
+        return jsonOk(folderId === '45' ? [GENERATED_ACCOUNT] : []);
+      }
+      return null;
+    });
+    await page.goto('/panel/documents');
+
+    const root = sidebar(page).getByRole('listitem').filter({ hasText: 'Proyectos' });
+    await expect(root.getByTestId('folder-edit')).toHaveCount(0);
+    await expect(root.locator('.folder-drag-handle')).toHaveCount(0);
+    await root.getByRole('button', { name: /^Proyectos/ }).click();
+    await page.getByTestId('folder-open-42').click();
+    await page.getByTestId('folder-open-43').click();
+    await page.getByTestId('folder-open-44').click();
+    await page.getByTestId('folder-open-45').click();
+
+    await expect(page.getByRole('navigation', { name: 'Ruta de carpetas' }))
+      .toContainText(/Proyectos[\s\S]*Portal Nube[\s\S]*Cuentas de cobro[\s\S]*2026[\s\S]*08 - Agosto/);
+    await expect(page.getByText(GENERATED_ACCOUNT.title, { exact: true })).toBeVisible();
+    await expect(page.getByText('Enviada', { exact: true }).first()).toBeVisible();
   });
 });

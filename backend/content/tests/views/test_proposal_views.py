@@ -1122,6 +1122,7 @@ class TestCreateProposalFromJSON:
         # Default groups like 'components' and 'features' should still be present
         assert 'components' in group_ids
         assert 'features' in group_ids
+        assert 'cross_cutting_features' in group_ids
 
     def test_preserves_default_additional_modules_when_json_omits_them(self, admin_client):
         """Default additionalModules survive even if JSON provides an empty list."""
@@ -1138,11 +1139,10 @@ class TestCreateProposalFromJSON:
         assert response.status_code == 201
         sections = {s['section_type']: s for s in response.data['sections']}
         fr = sections['functional_requirements']['content_json']
-        # All default groups should be present despite empty JSON groups
-        group_ids = [g['id'] for g in fr['groups']]
-        assert 'views' in group_ids
-        assert 'components' in group_ids
-        assert 'features' in group_ids
+        additional_ids = {module['id'] for module in fr['additionalModules']}
+        assert len(additional_ids) == 17
+        assert 'pwa_module' in additional_ids
+        assert 'integration_international_payments' in additional_ids
 
     def test_new_groups_from_json_are_appended(self, admin_client):
         """New groups from JSON that don't exist in defaults are appended."""
@@ -1172,6 +1172,39 @@ class TestCreateProposalFromJSON:
         assert 'custom_new_group' in group_ids
         # Default groups still present
         assert 'views' in group_ids
+
+    def test_import_keeps_contextual_cross_cutting_items_from_json(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['functionalRequirements'] = {
+            'index': '9',
+            'title': 'Requerimientos',
+            'intro': 'Intro',
+            'groups': [{
+                'id': 'cross_cutting_features',
+                'icon': '🔗',
+                'title': 'Calidades para esta etapa',
+                'description': 'Solo lo aplicable al MVP.',
+                'items': [{
+                    'id': 'item-cross_cutting_features-low-bandwidth',
+                    'icon': '📶',
+                    'name': 'Conectividad Limitada',
+                    'description': 'Prioriza la audiencia con conexiones inestables.',
+                }],
+            }],
+            'additionalModules': [],
+        }
+
+        response = admin_client.post(url, payload, format='json')
+
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        groups = sections['functional_requirements']['content_json']['groups']
+        group = next(g for g in groups if g['id'] == 'cross_cutting_features')
+        assert group['title'] == 'Calidades para esta etapa'
+        assert [item['name'] for item in group['items']] == ['Conectividad Limitada']
+        ids = [g['id'] for g in groups]
+        assert ids.index('cross_cutting_features') == ids.index('features') + 1
 
 
 # ---------------------------------------------------------------------------
@@ -4680,6 +4713,20 @@ class TestCompleteProjectStage:
 
 
 class TestProposalJsonTemplate:
+    def test_template_includes_cross_cutting_group_as_fourth_core_card(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+
+        groups = response.data['functionalRequirements']['groups']
+        ids = [group['id'] for group in groups]
+        cross_cutting = next(
+            group for group in groups if group['id'] == 'cross_cutting_features'
+        )
+        features = next(group for group in groups if group['id'] == 'features')
+        assert ids.index('cross_cutting_features') == ids.index('features') + 1
+        assert cross_cutting['_do_not_remove'] is True
+        assert cross_cutting['title'] == 'Funcionalidades Transversales'
+        assert all(item['name'] != 'Diseño Responsive' for item in features['items'])
+
     @pytest.mark.parametrize('field_path', [
         'executiveSummary.paragraphs[]',
         'contextDiagnostic.paragraphs[]',
@@ -4732,6 +4779,16 @@ class TestProposalJsonTemplate:
         assert 'linked_item_ids' in rules
         # The base FR rule must point at the id rules
         assert 'CRITICAL_functionalRequirements_itemIds' in prompt['CRITICAL_functionalRequirements']
+
+    def test_seller_prompt_marks_cross_cutting_catalog_as_contextual(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        prompt = response.data['_seller_prompt']
+        rules = prompt['CRITICAL_crossCuttingFeatures']
+
+        assert 'cross_cutting_features' in rules
+        assert 'CONTEXTUAL STARTER CATALOG' in rules
+        assert 'Keep, rewrite, remove, or add individual items' in rules
+        assert 'no duplication' in rules
 
     def test_template_includes_roi_projection_section(self, admin_client):
         response = admin_client.get('/api/proposals/json-template/?lang=es')
