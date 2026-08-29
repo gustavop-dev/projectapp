@@ -135,14 +135,14 @@ describe('BaseButton', () => {
 
   it('preserves an explicit native hint by default', () => {
     const wrapper = mount(BaseButton, {
-      props: { title: 'Ayuda contextual' },
+      attrs: { title: 'Ayuda contextual' },
       slots: { default: 'Continuar' },
     })
 
     expect(wrapper.get('button').attributes('title')).toBe('Ayuda contextual')
   })
 
-  it('suppresses the native disabled hint for a shared tooltip owner', () => {
+  it('suppresses the native title for an owning tooltip primitive', () => {
     const wrapper = mount(BaseButton, {
       props: {
         disabled: true,

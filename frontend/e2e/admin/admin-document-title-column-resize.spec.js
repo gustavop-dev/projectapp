@@ -254,7 +254,7 @@ test.describe('Admin Document Title Column Resize', () => {
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toHaveCount(1);
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toContainText(`Acciones de ${LONG_TITLE}`);
+    await expect(tooltip).toHaveText('Acciones');
     await expectInsideViewport(page, tooltip);
   });
 

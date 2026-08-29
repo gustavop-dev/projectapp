@@ -282,6 +282,13 @@ test.describe('Admin View Map', () => {
 
     const viewCard = page.locator('article').filter({ hasText: '/panel/views' });
     const copyButton = viewCard.getByRole('button', { name: 'Copiar referencia' });
+    await expect(copyButton).not.toHaveAttribute('title', /.+/);
+
+    await copyButton.hover();
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toHaveCount(1);
+    await expect(tooltip).toHaveText('Copiar');
+
     await copyButton.click();
 
     await expect(viewCard.getByRole('button', { name: 'Copiado: referencia' })).toBeVisible({ timeout: 5000 });

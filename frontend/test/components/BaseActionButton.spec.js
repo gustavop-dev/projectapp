@@ -25,7 +25,7 @@ describe('BaseActionButton', () => {
     document.body.innerHTML = ''
   })
 
-  it('derives accessible help from the catalog label', async () => {
+  it('uses the catalog label for its accessible name', () => {
     const wrapper = factory()
     const button = wrapper.get('button')
     expect(button.attributes('aria-label')).toBe('Copiar')
@@ -35,21 +35,37 @@ describe('BaseActionButton', () => {
     const icon = wrapper.get('svg.base-action-icon')
     expect(icon.attributes('aria-hidden')).toBe('true')
     expect(icon.classes()).toEqual(expect.arrayContaining(['!h-4', '!w-4']))
-    await wrapper.get('[data-base-tooltip-trigger]')
-      .trigger('pointerenter', { pointerType: 'mouse' })
-    const hints = document.body.querySelectorAll('[role="tooltip"]')
-    expect(hints).toHaveLength(1)
-    expect(hints[0].textContent).toContain('Copiar')
   })
 
-  it('reuses one contextual label throughout the control', async () => {
-    const wrapper = factory({ label: 'Copiar URL pública' })
-    expect(wrapper.get('button').attributes('aria-label')).toBe('Copiar URL pública')
-    expect(wrapper.get('button').attributes('title')).toBeUndefined()
+  it('keeps contextual detail in the accessible name', () => {
+    const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
+    const button = wrapper.get('button')
+
+    expect(button.attributes('aria-label')).toBe('Acciones de Contrato de Servicios')
+    expect(button.attributes('title')).toBeUndefined()
+  })
+
+  it('shows the short catalog label in the application tooltip', async () => {
+    const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
+
     await wrapper.get('[data-base-tooltip-trigger]')
       .trigger('pointerenter', { pointerType: 'mouse' })
+
+    const hints = document.body.querySelectorAll('[role="tooltip"]')
+    expect(hints).toHaveLength(1)
+    expect(hints[0].textContent).toContain('Acciones')
+    expect(hints[0].textContent).not.toContain('Contrato de Servicios')
+    expect(hints[0].classList).toContain('w-max')
+    expect(hints[0].classList).toContain('max-w-xs')
+  })
+
+  it('prefers an explicit application tooltip', async () => {
+    const wrapper = factory({ label: 'Copiar URL pública', tooltip: 'Copiar enlace' })
+
+    await wrapper.get('button').trigger('focusin')
+
     expect(document.body.querySelector('[role="tooltip"]').textContent)
-      .toContain('Copiar URL pública')
+      .toContain('Copiar enlace')
   })
 
   it('forwards button behavior and consumer attributes', async () => {

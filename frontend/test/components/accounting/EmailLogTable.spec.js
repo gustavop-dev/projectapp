@@ -46,11 +46,20 @@ const DIGEST_FAILED = {
   retry_blocked_reason: 'Este aviso resume varios registros del día.',
 };
 
+const wrappers = [];
+
 function mountTable(entries, props = {}) {
-  return mount(EmailLogTable, { props: { entries, ...props } });
+  const wrapper = mount(EmailLogTable, { props: { entries, ...props } });
+  wrappers.push(wrapper);
+  return wrapper;
 }
 
 describe('EmailLogTable', () => {
+  afterEach(() => {
+    wrappers.splice(0).forEach(wrapper => wrapper.unmount());
+    document.body.innerHTML = '';
+  });
+
   it('contains unbroken labels, recipients and subjects in their columns', () => {
     const wrapper = mountTable([{
       ...SENT,
@@ -88,14 +97,18 @@ describe('EmailLogTable', () => {
     expect(wrapper.find('[data-testid="email-log-retry-2"]').exists()).toBe(true);
   });
 
-  it('shows the digest button disabled, carrying its reason', () => {
+  it('shows the digest button disabled, carrying its reason', async () => {
     const wrapper = mountTable([DIGEST_FAILED]);
     const button = wrapper.get('[data-testid="email-log-retry-3"]');
+    const proxy = wrapper.get('[data-disabled-action-proxy]');
 
     // Disabled and explained, rather than absent: a missing button reads as
     // "this failure cannot be acted on" without saying why.
     expect(button.attributes('disabled')).toBe('');
-    expect(wrapper.get('[data-disabled-action-proxy]').attributes('aria-label'))
+    expect(button.attributes('title')).toBeUndefined();
+    expect(proxy.attributes('aria-label')).toContain('resume varios registros');
+    await proxy.trigger('click');
+    expect(document.body.querySelector('[role="tooltip"]').textContent)
       .toContain('resume varios registros');
   });
 
