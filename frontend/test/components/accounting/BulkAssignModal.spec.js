@@ -82,7 +82,8 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['modelValue', 'size', 'titleId', 'initialFocus'],
+          name: 'BaseModal',
+          props: ['modelValue', 'kind', 'size', 'titleId', 'initialFocus'],
           emits: ['update:modelValue', 'close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
@@ -131,6 +132,7 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
     expect(picker.props('presentation')).toBe('catalog');
     expect(picker.props('active')).toBe(true);
     expect(picker.props('sortStorageKey')).toBe('panel.accounting.bulk-client-name-order');
+    expect(wrapper.findComponent({ name: 'BaseModal' }).props('kind')).toBe('form-wide');
   });
 
   it('keeps Asignar disabled with the reason visible until a client is picked', () => {
@@ -169,6 +171,15 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
 });
 
 describe('BulkAssignModal — the scope is visible before it runs', () => {
+  it('names every selected record before a destination is chosen', () => {
+    const wrapper = mountModal();
+
+    const review = wrapper.get('[data-testid="hostings-bulk-selection-review"]');
+    expect(review.text()).toContain('Registros seleccionados (2)');
+    expect(review.text()).toContain('kore.com.co');
+    expect(review.text()).toContain('tuhuella.co');
+  });
+
   it('breaks a mixed selection into its two halves instead of one flat count', async () => {
     const wrapper = mountModal({ selectedIds: [1, 2, 3] });
     await pickClient(wrapper);
