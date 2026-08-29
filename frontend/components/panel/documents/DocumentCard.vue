@@ -21,6 +21,14 @@ const emit = defineEmits(['open', 'action', 'dragstart', 'dragend'])
 
 const excerpt = computed(() => makeSafeExcerpt(props.document.content_excerpt || ''))
 
+const isReadOnlyDocument = computed(() => (
+  props.document.is_generated_snapshot
+  || (
+    props.document.document_type_code === 'collection_account'
+    && props.document.commercial_status !== 'draft'
+  )
+))
+
 const meta = computed(() => {
   const parts = []
   if (props.archived) {
@@ -46,7 +54,7 @@ const meta = computed(() => {
       { 'opacity-50': dragging },
       { 'ring-2 ring-focus-ring/40 bg-primary-soft': newlyCreated },
     ]"
-    :draggable="!archived"
+    :draggable="!archived && !isReadOnlyDocument"
     :data-testid="`document-card-${document.id}`"
     @click="emit('open', $event)"
     @auxclick.middle="emit('open', $event)"
@@ -79,7 +87,15 @@ const meta = computed(() => {
         Archivado
       </span>
       <div v-else class="absolute right-2 top-2 max-w-[80%]">
-        <DocumentStateList :episodes="document.active_states" :max-visible="1" />
+        <BaseBadge
+          v-if="document.display_state"
+          :variant="document.display_state.variant"
+          size="sm"
+          :data-testid="`document-card-derived-state-${document.id}`"
+        >
+          {{ document.display_state.label }}
+        </BaseBadge>
+        <DocumentStateList v-else :episodes="document.active_states" :max-visible="1" />
       </div>
     </div>
 
@@ -112,7 +128,14 @@ const meta = computed(() => {
         class="flex items-center justify-between gap-2 mt-2 min-h-11"
         :data-testid="`document-card-priority-row-${document.id}`"
       >
-        <DocumentStateList class="min-w-0" :episodes="document.active_states" :max-visible="2" />
+        <BaseBadge
+          v-if="document.display_state"
+          :variant="document.display_state.variant"
+          size="sm"
+        >
+          {{ document.display_state.label }}
+        </BaseBadge>
+        <DocumentStateList v-else class="min-w-0" :episodes="document.active_states" :max-visible="2" />
         <BaseActionButton
           action="more"
           :label="`Acciones de ${document.title}`"

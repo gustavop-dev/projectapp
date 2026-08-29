@@ -58,6 +58,37 @@ toca propuestas históricas. El editor impide borrar el grupo completo, no su
 contenido. Backend, unitarios frontend y ambos E2E focales están verdes; el mapa
 está fresco y los flows público/admin siguen cubiertos sin junk-only.
 
+**2026-08-28 — Documentos generados se archivan solos:** al emitir una cuenta
+de cobro, el backend crea o reutiliza una jerarquía protegida basada en la fecha
+de emisión de Bogotá: **Proyectos / {proyecto} / Cuentas de cobro / año / mes**.
+La mayoría histórica que aún no tiene proyecto cae de forma permisiva en
+**Clientes / {cliente} / Sin proyecto**; si tampoco se puede identificar al
+cliente usa **Sin clasificar**. Anular una emitida la mueve bajo **Anuladas** sin
+duplicarla, y anular un borrador usa **Sin emitir / Anuladas**. Reintentar el
+correo conserva el mismo documento; una sustitución posterior a la anulación
+nace como otra cuenta con otro consecutivo. El nombre queda
+`fecha · consecutivo · concepto`, el estado visible se deriva del ciclo
+comercial y del historial real de correo, y estas cuentas dejan de contaminar
+el preset Por clasificar. Las carpetas automáticas tienen `system_key`: el panel,
+REST y MCP permiten navegar, pero no renombrar, mover, reordenar, archivar ni
+inyectar documentos manuales en ellas.
+
+El alcance transversal incluye propuestas comerciales: cada envío o reenvío
+genera primero el PDF, persiste exactamente esos bytes como versión inmutable
+`vNN`, adjunta esa misma versión al correo y la archiva por cliente/proyecto,
+año y mes. Un fallo de render no cambia el borrador ni envía; un fallo de correo
+conserva la versión con señal de corrección. Cuando la aceptación crea el
+proyecto, todas las versiones previas se mueven a su rama. En la UI el contenido,
+carpeta y estados de estas versiones son de sólo lectura, mientras las
+observaciones administrativas siguen editables. La migración `content.0223`
+añade identidad de carpeta y origen/archivo de snapshot. Después de migrar,
+producción debe previsualizar y luego aplicar
+`python manage.py backfill_collection_account_filing --apply`; la orden sólo
+toca cuentas sin carpeta y nunca inventa fechas. Verificación focal: 25 pruebas
+de servicios/backfill, 16 de API, 3 de onboarding/MCP, 1 contrato de fake data,
+13 unitarias y 3 E2E, más regresiones específicas de envío/reenvío y build de
+producción.
+
 **2026-08-28 — Indicadores de Proyectos e Ingresos listos para integrar:** un
 `BaseIndicatorCard` compartido reserva siempre rótulo, cifra y apoyo, por lo que
 la presencia de explicación ya no cambia la altura. Cada tarjeta visible tiene

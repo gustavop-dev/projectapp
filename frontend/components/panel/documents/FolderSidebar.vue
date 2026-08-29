@@ -94,10 +94,10 @@
           <li :key="folder.id" class="group">
             <div
               class="flex items-center rounded-lg transition-all"
-              :class="[entryClass(folder.id), dropZoneClass(folder.id)]"
-              @dragover.prevent="onFolderDragOver(folder.id)"
+              :class="[entryClass(folder.id), dropZoneClass(folder)]"
+              @dragover.prevent="onFolderDragOver(folder)"
               @dragleave="dragOverId = null"
-              @drop.prevent="onFolderDrop(folder.id)"
+              @drop.prevent="onFolderDrop(folder)"
             >
               <!--
                 Comparte padding, radio y tamaño con Todos/Sin carpeta para que
@@ -166,7 +166,7 @@
               </button>
 
               <!-- Clúster derecho: reordenar (hover) + archivar + eliminar. -->
-              <div class="flex items-center flex-shrink-0 pr-1.5">
+              <div v-if="!folder.is_system_managed" class="flex items-center flex-shrink-0 pr-1.5">
                 <div
                   class="folder-drag-handle touch-reveal touch-drag-handle flex cursor-grab items-center justify-center text-text-subtle transition-opacity active:cursor-grabbing dark:text-text-muted"
                   :class="[
@@ -345,7 +345,9 @@ function deleteTooltip(folder) {
 // el archivo; ese caso lo declara el rótulo de la cabecera del listado.
 const archivedMode = computed(() => props.archiveScope === 'archived');
 
-function dropZoneClass(id) {
+function dropZoneClass(folder) {
+  if (folder?.is_system_managed) return '';
+  const id = folder?.id ?? folder;
   // Acepta documentos (props.isDragging) o carpetas en arrastre para anidar.
   const anyDrag = props.isDragging || props.draggingFolderId != null;
   if (!anyDrag || isFolderDragging.value) return '';
@@ -360,18 +362,25 @@ function onDrop(folderId) {
   emit('folder-drop', folderId);
 }
 
-function onFolderDragOver(folderId) {
-  if (!isFolderDragging.value) dragOverId.value = folderId;
+function onFolderDragOver(folder) {
+  if (!folder.is_system_managed && !isFolderDragging.value) {
+    dragOverId.value = folder.id;
+  }
 }
 
-function onFolderDrop(folderId) {
-  if (!isFolderDragging.value) onDrop(folderId);
+function onFolderDrop(folder) {
+  if (!folder.is_system_managed && !isFolderDragging.value) onDrop(folder.id);
 }
 
 async function handleFolderReorder() {
   isFolderDragging.value = false;
-  const newIds = localFolders.value.map((f) => f.id);
-  const unchanged = newIds.every((id, i) => id === props.folders[i]?.id);
+  const newIds = localFolders.value
+    .filter((folder) => !folder.is_system_managed)
+    .map((folder) => folder.id);
+  const previousIds = props.folders
+    .filter((folder) => !folder.is_system_managed)
+    .map((folder) => folder.id);
+  const unchanged = newIds.every((id, i) => id === previousIds[i]);
   if (unchanged) return;
   const result = await folderStore.reorderFolders(newIds);
   if (!result.success) {

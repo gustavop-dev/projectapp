@@ -105,6 +105,21 @@ class Document(models.Model):
         blank=True,
         related_name='collection_documents',
     )
+    source_proposal = models.ForeignKey(
+        'content.BusinessProposal',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_documents',
+        help_text='Proposal whose immutable PDF snapshot produced this document.',
+    )
+    source_version = models.PositiveIntegerField(null=True, blank=True)
+    generated_file = models.FileField(
+        upload_to='documents/generated/%Y/%m/',
+        blank=True,
+        default='',
+        help_text='Immutable file generated and stored by a system workflow.',
+    )
 
     public_number = models.CharField(
         max_length=64,
@@ -222,9 +237,22 @@ class Document(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=('source_proposal', 'source_version'),
+                name='unique_document_source_proposal_version',
+            ),
+        ]
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_generated_snapshot(self):
+        # The retained file is the immutable fact. ``source_proposal`` uses
+        # SET_NULL deliberately, so deleting the source must never turn its
+        # archived PDF back into an editable markdown document.
+        return bool(self.generated_file)
 
     def save(self, *args, **kwargs):
         if not self.slug:
