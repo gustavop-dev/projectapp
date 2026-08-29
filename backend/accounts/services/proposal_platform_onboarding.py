@@ -138,6 +138,16 @@ def handle_proposal_accepted_for_platform(
     sync_result: dict[str, Any] = {'ok': True, 'detail': 'no_deliverable_skip_sync'}
 
     actor = _acting_user_for_sync(acting_user)
+    if d:
+        from content.services.generated_document_filing_service import (
+            move_proposal_snapshots_to_project,
+        )
+
+        move_proposal_snapshots_to_project(
+            proposal,
+            d.project,
+            acting_user=actor,
+        )
     if d and actor:
         sync_result = sync_technical_requirements_for_deliverable(d, actor)
         if not sync_result.get('ok'):

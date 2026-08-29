@@ -134,6 +134,7 @@ TRACKED_FIELDS = {
         ('title', 'Título'),
         ('client_user', 'Cliente'),
         ('project', 'Proyecto'),
+        ('folder', 'Carpeta'),
         ('commercial_status', 'Estado comercial'),
     ],
     EntityType.DOCUMENT_FOLDER: [
@@ -145,6 +146,7 @@ TRACKED_FIELDS = {
         ('title', 'Título'),
         ('client_user', 'Cliente'),
         ('project', 'Proyecto'),
+        ('folder', 'Carpeta'),
     ],
     EntityType.RECURRING: [
         ('name', 'Nombre'),
@@ -857,6 +859,24 @@ def assign_project_to_documents(document_ids, project, user):
         old_values = snapshot_values(document, entity_type)
         document.project = project
         document.save(update_fields=['project', 'updated_at'])
+        if (
+            entity_type == EntityType.COLLECTION_ACCOUNT
+            and (
+                document.issue_date
+                or document.commercial_status == Document.CommercialStatus.CANCELLED
+            )
+        ):
+            from content.services.generated_document_filing_service import (
+                file_collection_account,
+            )
+
+            file_collection_account(document)
+        elif document.is_generated_snapshot:
+            from content.services.generated_document_filing_service import (
+                file_proposal_snapshot,
+            )
+
+            file_proposal_snapshot(document)
         log_entity_diff(entity_type, document, old_values, user)
         updated.append(document)
     return updated

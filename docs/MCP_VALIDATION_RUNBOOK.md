@@ -17,6 +17,9 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   decisión explícita del superusuario en `/panel/mcps`.
 - Los handlers MCP reutilizan serializers y servicios del panel. Una regla que
   impide una acción en la interfaz también la impide por conversación.
+- Las carpetas con `system_key` pertenecen al archivado automático. El MCP puede
+  listarlas para orientar al operador, pero no crearlas debajo, renombrarlas ni
+  usarlas como destino de un documento markdown.
 - Ninguna descripción puede prometer un dato que el handler descarte o una
   acción que el servidor no realiza.
 - `DocumentState.description` es una lectura clasificada del contrato MCP. Para
@@ -30,7 +33,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | Slug | Herramientas | Alcance |
 |---|---:|---|
 | `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
-| `documents` | 17 | Carpetas, markdown, cliente/proyecto, estados y observaciones recuperables |
+| `documents` | 17 | Carpetas manuales, markdown, cliente/proyecto, estados y observaciones recuperables; jerarquías generadas visibles pero protegidas |
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
 | `communications` | 5 | Hilos y registro conversacional de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |

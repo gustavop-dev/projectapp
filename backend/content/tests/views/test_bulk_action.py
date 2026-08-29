@@ -88,7 +88,9 @@ class TestBulkActionResend:
         }, format='json')
         assert response.status_code == 200
         assert response.data['affected'] == 1
-        mock_resend.assert_called_once_with(sent_proposal)
+        mock_resend.assert_called_once_with(
+            sent_proposal, acting_user=response.wsgi_request.user,
+        )
 
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_skips_draft_proposals_on_resend(self, mock_resend, admin_client, proposal):

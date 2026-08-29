@@ -176,7 +176,56 @@ const isArchived = computed(() => props.archived || !!props.document?.is_archive
 // tiene sentido sobre algo guardado: consultarlo, restaurarlo o borrarlo.
 const ARCHIVED_EVENTS = new Set(['download-pdf', 'copy-markdown', 'delete']);
 
+const GENERATED_ACTIONS = [
+  {
+    event: 'edit',
+    action: 'view',
+    label: 'Ver versión archivada',
+    description: 'Consultar el PDF y los datos guardados de esta versión',
+  },
+  BASE_ACTIONS.find((action) => action.event === 'open-new-tab'),
+  {
+    event: 'download-pdf',
+    action: 'download',
+    label: 'Descargar versión archivada',
+  },
+  ARCHIVE_ACTION,
+].filter(Boolean);
+
+const ISSUED_ACCOUNT_ACTIONS = [
+  {
+    event: 'edit',
+    action: 'view',
+    label: 'Ver cuenta de cobro',
+    description: 'Consultar el documento emitido y sus datos',
+  },
+  BASE_ACTIONS.find((action) => action.event === 'open-new-tab'),
+  {
+    event: 'download-pdf',
+    action: 'download',
+    label: 'Descargar cuenta de cobro',
+  },
+  ARCHIVE_ACTION,
+].filter(Boolean);
+
+const isIssuedAccount = computed(() => (
+  props.document?.document_type_code === 'collection_account'
+  && props.document?.commercial_status !== 'draft'
+));
+
 const actions = computed(() => {
+  if (props.document?.is_generated_snapshot || isIssuedAccount.value) {
+    const readOnlyActions = props.document?.is_generated_snapshot
+      ? GENERATED_ACTIONS
+      : ISSUED_ACCOUNT_ACTIONS;
+    if (isArchived.value) {
+      return [
+        UNARCHIVE_ACTION,
+        readOnlyActions.find((action) => action.event === 'download-pdf'),
+      ];
+    }
+    return readOnlyActions.filter((action) => !action.newTab || props.editTo);
+  }
   if (isArchived.value) {
     return [
       UNARCHIVE_ACTION,

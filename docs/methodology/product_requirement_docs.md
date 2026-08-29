@@ -260,6 +260,32 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   colored document tags were consolidated into additive workflow states instead of
   leaving two overlapping user-facing systems; legacy tag assignments are expanded
   into open episodes with an explicitly unknown opening time during migration.
+- **Generated-document filing**: an issued collection account is filed from its
+  Bogotá issue date under `Proyectos / {project} / Cuentas de cobro / YYYY /
+  MM - Mes`. Without a project it uses `Clientes / {client} / Sin proyecto`;
+  without an identifiable client it uses `Sin clasificar`. Missing levels are
+  created idempotently. Cancellation moves the same record to `Anuladas`; a
+  never-issued cancellation uses `Sin emitir / Anuladas`. Retrying delivery
+  keeps the same document; issuing a replacement after cancellation creates a
+  new account/number while the annulled original remains in its branch.
+- System-owned folders carry a stable `system_key`. They remain navigable but
+  cannot be renamed, moved, reordered, archived or targeted by manual document
+  creation through the panel, REST or MCP. Issued accounts and generated PDF
+  snapshots cannot be dragged out of their canonical branch.
+- Account titles follow `YYYY-MM-DD · public number · concept`. Their visible
+  state is derived from the commercial lifecycle plus real email delivery
+  history, so draft/issued/sent/send-failed/paid/cancelled never depend on a
+  loose manual workflow episode and never appear in Por clasificar.
+- Every initial proposal send, resend and multi-send stores the exact PDF bytes
+  attached to the email as an immutable `vNN` Document snapshot, named
+  `YYYY-MM-DD · Propuesta comercial · title · vNN` and filed under the parallel
+  `Propuestas comerciales / YYYY / MM - Month` hierarchy. Observations remain
+  editable; source data, folder and workflow state do not. Acceptance moves all
+  retained versions to the created project.
+- Historical folderless collection accounts are handled by the dry-run-first
+  `backfill_collection_account_filing` command. Applying it uses the same live
+  rule, preserves manually classified records and skips rows whose issue date
+  cannot be established.
   - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
   - Folder mutations from `FolderManagerModal` re-fetch both the documents list and the folder store so the sidebar count and order reflect the change without a page reload.
 - **Context-preserving navigation**: the list URL is the canonical representation of
@@ -403,7 +429,7 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
   `docs/RESPONSIVE_STANDARDS.md`, `docs/RESPONSIVE_STANDARD.md` and
   `docs/methodology/responsive-standard.md`, respectively.
 - **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
-- **Readable document titles** — document names use one contained line with end truncation by default. The complete collapsed value is always available through the native hover hint, independent of overflow timing; real clipping additionally exposes an in-place **Ver completo/Contraer** path for touch layouts and is remeasured after web fonts load. In list mode, Título is adjustable from 240 to 800 px (320 px default) through a visible labelled separator, remembered per browser and reset by double click; Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation remains deferred because explicit full-value disclosure avoids a second naming rule.
+- **Readable document titles** — document names use end truncation by default. A single app-owned, viewport-aware hint exposes the complete name only when rendered measurement proves clipping; it reuses the same `BaseTooltip` primitive as row actions and never adds a duplicate browser `title`. Measurement repeats after web fonts load, and the same clipping condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default) through a visible labelled separator, remembered per browser and reset by double click. The 520 px maximum is content-backed: the 2026-08-28 production inventory contained 40 titles, its longest had 56 characters and required an estimated 496 px including cell padding and safety. Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because conditional reveal preserves the full value without inventing a second naming rule.
 - **Leading three-dot row actions** — every panel table whose row control is a single three-dot menu places it at the start with no visible heading. Selectable tables use Checkbox → Actions → Identity/Content; the action track is fixed at 56 px, does not join the data-width split, and opening it cannot activate row navigation. The adopted surfaces are Documents, Proposals, Diagnostics and both classic/grouped Incomes tables. Tables that still expose several loose action icons, including Collection Accounts, remain outside this contract until their actions are explicitly consolidated into one menu.
 
 ### 3.13 Internationalization (i18n)

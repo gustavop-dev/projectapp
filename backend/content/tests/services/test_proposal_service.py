@@ -969,7 +969,7 @@ class TestSendInitialEmailExceptionPath:
         )
         ProposalService._send_initial_email(proposal)
         assert mock_send.call_count == 1
-        mock_send.assert_called_once_with(proposal)
+        mock_send.assert_called_once_with(proposal, snapshot=None)
 
 
 class TestCheckExpiration:
