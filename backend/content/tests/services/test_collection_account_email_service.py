@@ -162,7 +162,7 @@ class TestBuildCollectionAccountEmail:
         assert 'Fecha límite de pago: <strong style="font-weight:500;">' in html
         assert '<strong style="font-weight:500;">00774149350</strong>' in html
 
-    @freeze_time('2026-08-11')
+    @freeze_time('2026-08-11 12:00:00-05:00')
     def test_gives_the_payment_deadline_a_line_of_its_own(self, super_client):
         """Fails if the deadline goes back to riding along on the amount's line, where it was invisible."""
         # Frozen because the deadline is issue date + PAYMENT_TERM_DAYS: the
