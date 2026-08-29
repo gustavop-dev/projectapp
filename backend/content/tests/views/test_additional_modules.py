@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from freezegun import freeze_time
 from pypdf import PdfReader
 from rest_framework.test import APIClient
 
@@ -17,6 +18,42 @@ from content.models import (
 
 pytestmark = pytest.mark.django_db
 FIXED_REVOKED_AT = datetime(2026, 8, 20, 12, tzinfo=datetime_timezone.utc)
+ADMIN_ENDPOINTS = (
+    pytest.param('get', '/api/additional-modules/admin/', id='catalog'),
+    pytest.param(
+        'post', '/api/additional-modules/admin/categories/', id='create-category',
+    ),
+    pytest.param(
+        'patch', '/api/additional-modules/admin/categories/999999/',
+        id='update-category',
+    ),
+    pytest.param(
+        'post', '/api/additional-modules/admin/categories/999999/retire/',
+        id='category-status',
+    ),
+    pytest.param(
+        'post', '/api/additional-modules/admin/modules/', id='create-module',
+    ),
+    pytest.param(
+        'patch', '/api/additional-modules/admin/modules/999999/',
+        id='update-module',
+    ),
+    pytest.param(
+        'post', '/api/additional-modules/admin/modules/999999/retire/',
+        id='module-status',
+    ),
+    pytest.param(
+        'post', '/api/additional-modules/admin/reorder/', id='reorder',
+    ),
+    pytest.param('get', '/api/additional-modules/admin/shares/', id='shares'),
+    pytest.param(
+        'post',
+        '/api/additional-modules/admin/shares/'
+        '00000000-0000-4000-8000-000000000099/revoke/',
+        id='share-status',
+    ),
+    pytest.param('post', '/api/additional-modules/admin/pdf/', id='pdf'),
+)
 
 
 def module_data(category, slug='landing-page', order=0):
@@ -77,6 +114,18 @@ def staff_client():
     client = APIClient()
     client.force_authenticate(user=user)
     client.user = user
+    return client
+
+
+@pytest.fixture
+def non_staff_client():
+    user = get_user_model().objects.create_user(
+        username='catalog-user',
+        password='catalog-pass',
+        is_staff=False,
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
     return client
 
 
@@ -362,3 +411,354 @@ def test_unknown_share_returns_not_found(catalog):
     )
 
     assert response.status_code == 404
+
+
+class TestAdditionalModuleCatalogAdministration:
+    def test_category_creation_uses_next_catalog_position(self, catalog, staff_client):
+        """Falla si una categoría nueva reutiliza una posición ya ocupada."""
+        response = staff_client.post(
+            '/api/additional-modules/admin/categories/',
+            {
+                'slug': 'security',
+                'name_es': 'Seguridad',
+                'name_en': 'Security',
+            },
+            format='json',
+        )
+
+        category = AdditionalModuleCategory.objects.get(slug='security')
+        assert response.status_code == 201
+        assert response.data['order'] == 2
+        assert category.order == 2
+        assert category.is_active is True
+
+    def test_category_update_cannot_bypass_status_action(self, catalog, staff_client):
+        """Falla si editar contenido permite retirar una categoría por accidente."""
+        commerce, _experience, _landing, _pwa = catalog
+
+        response = staff_client.patch(
+            f'/api/additional-modules/admin/categories/{commerce.id}/',
+            {'name_es': 'Comercio actualizado', 'is_active': False},
+            format='json',
+        )
+
+        commerce.refresh_from_db()
+        assert response.status_code == 200
+        assert response.data['name_es'] == 'Comercio actualizado'
+        assert commerce.name_es == 'Comercio actualizado'
+        assert commerce.is_active is True
+
+    def test_category_restore_reactivates_retired_category(
+        self,
+        catalog,
+        staff_client,
+    ):
+        """Falla si restaurar una categoría retirada no la vuelve publicable."""
+        commerce, _experience, landing, _pwa = catalog
+        landing.is_active = False
+        landing.save(update_fields=['is_active', 'updated_at'])
+        commerce.is_active = False
+        commerce.save(update_fields=['is_active', 'updated_at'])
+
+        response = staff_client.post(
+            f'/api/additional-modules/admin/categories/{commerce.id}/restore/',
+            {},
+            format='json',
+        )
+
+        commerce.refresh_from_db()
+        assert response.status_code == 200
+        assert response.data['is_active'] is True
+        assert commerce.is_active is True
+
+    def test_module_creation_uses_next_category_position(self, catalog, staff_client):
+        """Falla si un módulo nuevo pisa el orden de otro módulo de su categoría."""
+        commerce, _experience, _landing, _pwa = catalog
+        payload = module_data(commerce, slug='regional-payments', order=99)
+        payload['category'] = commerce.id
+
+        response = staff_client.post(
+            '/api/additional-modules/admin/modules/',
+            payload,
+            format='json',
+        )
+
+        module = AdditionalModule.objects.get(slug='regional-payments')
+        assert response.status_code == 201
+        assert response.data['order'] == 1
+        assert module.order == 1
+        assert module.is_active is True
+
+    def test_module_update_moves_to_destination_end(self, catalog, staff_client):
+        """Falla si mover un módulo crea una posición duplicada en el destino."""
+        _commerce, experience, landing, _pwa = catalog
+
+        response = staff_client.patch(
+            f'/api/additional-modules/admin/modules/{landing.id}/',
+            {'category': experience.id},
+            format='json',
+        )
+
+        landing.refresh_from_db()
+        assert response.status_code == 200
+        assert response.data['category'] == experience.id
+        assert landing.category_id == experience.id
+        assert landing.order == 1
+
+    def test_module_restore_requires_active_category(self, catalog, staff_client):
+        """Falla si un módulo vuelve a publicarse dentro de una categoría retirada."""
+        commerce, _experience, landing, _pwa = catalog
+        landing.is_active = False
+        landing.save(update_fields=['is_active', 'updated_at'])
+        commerce.is_active = False
+        commerce.save(update_fields=['is_active', 'updated_at'])
+
+        response = staff_client.post(
+            f'/api/additional-modules/admin/modules/{landing.id}/restore/',
+            {},
+            format='json',
+        )
+
+        landing.refresh_from_db()
+        assert response.status_code == 409
+        assert response.data['detail'] == 'Restaura primero la categoría del módulo.'
+        assert landing.is_active is False
+
+    def test_reorder_rejects_incomplete_category_set(self, catalog, staff_client):
+        """Falla si un reordenamiento puede omitir una categoría del catálogo."""
+        commerce, experience, landing, pwa = catalog
+        current = staff_client.get('/api/additional-modules/admin/').data
+
+        response = staff_client.post(
+            '/api/additional-modules/admin/reorder/',
+            {
+                'revision': current['revision'],
+                'category_ids': [commerce.id],
+                'module_groups': [
+                    {'category_id': commerce.id, 'module_ids': [landing.id]},
+                    {'category_id': experience.id, 'module_ids': [pwa.id]},
+                ],
+            },
+            format='json',
+        )
+
+        commerce.refresh_from_db()
+        experience.refresh_from_db()
+        assert response.status_code == 400
+        assert response.data['code'] == 'invalid_catalog_order'
+        assert response.data['detail'] == (
+            'La lista de categorías debe incluir el catálogo completo.'
+        )
+        assert (commerce.order, experience.order) == (0, 1)
+
+    def test_share_list_returns_fixed_selection(self, catalog, staff_client):
+        """Falla si el historial administrativo pierde la selección compartida."""
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing], language='en')
+
+        response = staff_client.get('/api/additional-modules/admin/shares/')
+
+        assert response.status_code == 200
+        assert response.data[0]['uuid'] == str(share.uuid)
+        assert response.data[0]['selected_modules'][0]['slug'] == 'landing-page'
+        assert response.data[0]['public_path'] == (
+            f'/en-us/additional-modules/share/{share.uuid}'
+        )
+
+    def test_share_creation_rejects_empty_selection(self, catalog, staff_client):
+        """Falla si se publica un enlace que no contiene ningún módulo."""
+        response = staff_client.post(
+            '/api/additional-modules/admin/shares/',
+            {
+                'recipient_label': 'Selección vacía',
+                'language': 'es',
+                'selected_module_ids': [],
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['selected_module_ids'] == [
+            'Selecciona al menos un módulo.',
+        ]
+
+    def test_share_creation_rejects_duplicate_selection(self, catalog, staff_client):
+        """Falla si un enlace guarda el mismo módulo más de una vez."""
+        _commerce, _experience, landing, _pwa = catalog
+
+        response = staff_client.post(
+            '/api/additional-modules/admin/shares/',
+            {
+                'recipient_label': 'Selección repetida',
+                'language': 'es',
+                'selected_module_ids': [landing.id, landing.id],
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['selected_module_ids'] == [
+            'La selección contiene módulos repetidos.',
+        ]
+
+    @freeze_time('2026-08-20 12:00:00')
+    def test_share_revocation_disables_public_access(self, catalog, staff_client):
+        """Falla si revocar un enlace no bloquea su catálogo público."""
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing])
+
+        revoke_response = staff_client.post(
+            f'/api/additional-modules/admin/shares/{share.uuid}/revoke/',
+            {},
+            format='json',
+        )
+        public_response = APIClient().get(
+            f'/api/additional-modules/public/shares/{share.uuid}/',
+        )
+
+        share.refresh_from_db()
+        assert revoke_response.status_code == 200
+        assert revoke_response.data['is_active'] is False
+        assert share.revoked_at == FIXED_REVOKED_AT
+        assert public_response.status_code == 410
+        assert public_response.data['code'] == 'catalog_link_unavailable'
+
+    def test_share_restoration_reopens_public_access(self, catalog, staff_client):
+        """Falla si restaurar un enlace no recupera su selección pública."""
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing])
+        share.is_active = False
+        share.revoked_at = FIXED_REVOKED_AT
+        share.save(update_fields=['is_active', 'revoked_at'])
+
+        restore_response = staff_client.post(
+            f'/api/additional-modules/admin/shares/{share.uuid}/restore/',
+            {},
+            format='json',
+        )
+        public_response = APIClient().get(
+            f'/api/additional-modules/public/shares/{share.uuid}/',
+        )
+
+        share.refresh_from_db()
+        assert restore_response.status_code == 200
+        assert restore_response.data['is_active'] is True
+        assert share.revoked_at is None
+        assert public_response.status_code == 200
+        assert public_response.data['total_modules'] == 1
+
+    def test_admin_pdf_rejects_empty_selection(self, catalog, staff_client):
+        """Falla si el panel genera un PDF sin módulos seleccionados."""
+        response = staff_client.post(
+            '/api/additional-modules/admin/pdf/',
+            {'language': 'es', 'module_ids': []},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['module_ids'] == ['Selecciona al menos un módulo.']
+
+    def test_admin_pdf_rejects_duplicate_selection(self, catalog, staff_client):
+        """Falla si el PDF procesa dos veces el mismo módulo."""
+        _commerce, _experience, landing, _pwa = catalog
+
+        response = staff_client.post(
+            '/api/additional-modules/admin/pdf/',
+            {'language': 'es', 'module_ids': [landing.id, landing.id]},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['module_ids'] == [
+            'La selección contiene módulos repetidos.',
+        ]
+
+
+class TestAdditionalModuleCatalogPublicErrors:
+    def test_public_catalog_pdf_rejects_unknown_language(self, catalog):
+        """Falla si el PDF público acepta un idioma sin contenido definido."""
+        response = APIClient().get('/api/additional-modules/public/pdf/?lang=fr')
+
+        assert response.status_code == 400
+        assert response.data['lang'] == ['Usa es o en.']
+
+    def test_public_catalog_pdf_reports_empty_catalog(self, catalog):
+        """Falla si un catálogo vacío descarga un documento engañoso."""
+        AdditionalModule.objects.update(is_active=False)
+
+        response = APIClient().get('/api/additional-modules/public/pdf/?lang=es')
+
+        assert response.status_code == 410
+        assert response.data['code'] == 'catalog_link_unavailable'
+        assert response.data['detail'] == 'No hay módulos activos para generar el PDF.'
+
+    def test_tracking_rejects_invalid_session_identifier(self, catalog, staff_client):
+        """Falla si el seguimiento acepta una sesión con formato inválido."""
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing])
+
+        response = APIClient().post(
+            f'/api/additional-modules/public/shares/{share.uuid}/track/',
+            {'session_id': 'short'},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['session_id'] == [
+            'Usa un identificador de sesión válido.',
+        ]
+        assert AdditionalModuleShareView.objects.filter(share_link=share).count() == 0
+
+    def test_tracking_rejects_revoked_share(self, catalog, staff_client):
+        """Falla si un enlace revocado todavía registra aperturas."""
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing])
+        share.is_active = False
+        share.revoked_at = FIXED_REVOKED_AT
+        share.save(update_fields=['is_active', 'revoked_at'])
+
+        response = APIClient().post(
+            f'/api/additional-modules/public/shares/{share.uuid}/track/',
+            {'session_id': 'revoked_12345678'},
+            format='json',
+        )
+
+        assert response.status_code == 410
+        assert response.data['code'] == 'catalog_link_unavailable'
+        assert AdditionalModuleShareView.objects.filter(share_link=share).count() == 0
+
+    def test_public_share_pdf_rejects_revoked_share(self, catalog, staff_client):
+        """Falla si un enlace revocado conserva una descarga PDF pública."""
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing])
+        share.is_active = False
+        share.revoked_at = FIXED_REVOKED_AT
+        share.save(update_fields=['is_active', 'revoked_at'])
+
+        response = APIClient().get(
+            f'/api/additional-modules/public/shares/{share.uuid}/pdf/',
+        )
+
+        assert response.status_code == 410
+        assert response.data['code'] == 'catalog_link_unavailable'
+
+
+class TestAdditionalModuleCatalogPermissions:
+    @pytest.mark.parametrize(('method', 'path'), ADMIN_ENDPOINTS)
+    def test_admin_endpoint_requires_authentication(self, method, path):
+        """Falla si una vista administrativa queda accesible sin iniciar sesión."""
+        response = getattr(APIClient(), method)(path, {}, format='json')
+
+        assert response.status_code == 401
+
+    @pytest.mark.parametrize(('method', 'path'), ADMIN_ENDPOINTS)
+    def test_admin_endpoint_rejects_non_staff_user(
+        self,
+        non_staff_client,
+        method,
+        path,
+    ):
+        """Falla si un usuario común puede administrar el catálogo comercial."""
+        response = getattr(non_staff_client, method)(path, {}, format='json')
+
+        assert response.status_code == 403
