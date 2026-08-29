@@ -368,6 +368,43 @@ test.describe('Admin Document State Filters', () => {
     await expect(page.getByTestId('document-state-filter-20')).toHaveClass(/bg-primary-soft/);
   });
 
+  test('keeps the needs-fix filter pill on one line in the compact layout', {
+    tag: [...ADMIN_DOCUMENT_STATE_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 412, height: 915 });
+    const document = makeDocument();
+    await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, document));
+
+    // quality: allow-no-interaction (responsive display contract is observable on initial render)
+    // quality: allow-deep-link (/panel/documents is the documented module entry and renders the filter directly)
+    await page.goto('/en-us/panel/documents', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Gestor Documental' })).toBeVisible();
+    await expect(page.getByTestId('document-state-filters')).toBeVisible();
+
+    const needsFixPill = page.getByTestId('document-state-filter-20');
+    await expect(needsFixPill).toContainText('Solucionar bug');
+    await expect.poll(() => needsFixPill.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        display: style.display,
+        flexShrink: style.flexShrink,
+        flexWrap: style.flexWrap,
+        whiteSpace: style.whiteSpace,
+      };
+    })).toEqual({
+      display: 'flex',
+      flexShrink: '0',
+      flexWrap: 'nowrap',
+      whiteSpace: 'nowrap',
+    });
+
+    const viewportOverflow = await page.evaluate(() => (
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
+      - document.documentElement.clientWidth
+    ));
+    expect(viewportOverflow).toBeLessThanOrEqual(1);
+  });
+
   test('encodes multi-state filter semantics', {
     tag: [...ADMIN_DOCUMENT_STATE_FILTERS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
