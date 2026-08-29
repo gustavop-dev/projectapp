@@ -955,18 +955,20 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `GET /api/content/documents/document-folders/`, `PATCH /api/content/documents/document-folders/<id>/update/`
-- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment.
+- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Manual folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment. Generated branches remain navigable through project/client, document type, issue year and issue month, but their structure and contents are system-owned.
 - **Steps:**
   1. Admin loads `/panel/documents` — sidebar shows root folders only (a chevron marks folders that contain subfolders).
   2. Admin clicks a root folder → table shows that folder's subfolder rows on top, then its documents; a breadcrumb `Todos › <Folder>` appears above the table.
   3. Admin clicks a subfolder row → navigates into it; breadcrumb grows (`Todos › <Folder> › <Subfolder>`).
   4. Admin clicks a breadcrumb segment (or "Todos") → navigates back to that level.
   5. Admin drags a subfolder row onto another folder → the dragged folder is re-parented (`PATCH parent`).
+  6. Admin navigates `Proyectos → <Proyecto> → Cuentas de cobro → <Año> → <Mes>` and finds issued accounts ordered by their canonical title.
 - **Branches:**
   - [Branch A — Only subfolders] A folder with subfolders but no documents still renders the subfolder rows (no empty state).
   - [Branch B — Cycle prevented] Dropping a folder onto itself or one of its descendants is rejected client-side and by the backend serializer.
   - [Branch C — Drop on "Sin carpeta"] Dragging a subfolder onto "Sin carpeta" promotes it to a root folder (`parent = null`).
   - [Branch D — Search active] While a search query is active, subfolder rows are hidden and the search applies to documents only.
+  - [Branch E — Generated hierarchy] A folder with `system_key` hides rename, move, archive, delete and drag affordances; the API and Documents MCP reject those mutations and manual document drops.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folder-hierarchy.spec.js`
 

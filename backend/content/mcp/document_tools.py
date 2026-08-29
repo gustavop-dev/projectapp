@@ -112,6 +112,11 @@ def _resolve_folder(folder_id):
             f'La carpeta "{folder.name}" está archivada y no admite documentos. '
             'Usa list_folders para ver las disponibles.'
         )
+    if folder.is_system_managed:
+        raise ToolError(
+            f'La carpeta "{folder.name}" pertenece al archivado automático '
+            'y no admite cambios manuales.'
+        )
     return folder
 
 
@@ -175,6 +180,7 @@ def _folder_payload(folder):
         'parent_id': folder.parent_id,
         'order': folder.order,
         'folder_kind': folder.folder_kind,
+        'is_system_managed': folder.is_system_managed,
         'project_id': folder.project_id,
         'client_id': (
             getattr(folder.client_user, 'profile', None).pk

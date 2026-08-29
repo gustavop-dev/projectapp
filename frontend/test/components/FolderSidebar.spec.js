@@ -133,7 +133,10 @@ function mountSidebar(props = {}) {
       ...props,
     },
     global: {
-      stubs: { draggable: DraggableStub },
+      stubs: {
+        draggable: DraggableStub,
+        NuxtLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+      },
       components: { BaseTooltip: BaseTooltipStub },
     },
   });
@@ -242,6 +245,17 @@ describe('FolderSidebar', () => {
       expect(projectSection.find('[data-testid="folder-edit"]').exists()).toBe(false);
       expect(projectSection.find('[data-testid="folder-archive"]').exists()).toBe(false);
       expect(projectSection.find('[data-testid="folder-delete"]').exists()).toBe(false);
+    });
+
+    it('hides structural actions for a system-managed folder', () => {
+      const wrapper = mountSidebar({
+        folders: [{ ...folderA, is_system_managed: true }],
+      });
+
+      expect(wrapper.find('[data-testid="folder-edit"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-archive"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-delete"]').exists()).toBe(false);
+      expect(wrapper.find('.folder-drag-handle').exists()).toBe(false);
     });
   });
 

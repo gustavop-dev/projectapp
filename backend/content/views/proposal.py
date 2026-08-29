@@ -1250,7 +1250,7 @@ def bulk_action(request):
         from content.services.proposal_service import ProposalService
         for p in proposals.filter(status__in=['sent', 'viewed'], client_email__gt=''):
             try:
-                ProposalService.resend_proposal(p)
+                ProposalService.resend_proposal(p, acting_user=request.user)
                 affected += 1
             except Exception:
                 logger.exception('Bulk resend failed for proposal %s', p.id)
@@ -1289,7 +1289,9 @@ def send_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        delivery = ProposalService.send_proposal(proposal)
+        delivery = ProposalService.send_proposal(
+            proposal, acting_user=request.user,
+        )
     except ValueError as e:
         return error_response_from_exc(e)
 
@@ -1478,7 +1480,9 @@ def send_multi_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        result = ProposalService.send_multi_proposals(ordered)
+        result = ProposalService.send_multi_proposals(
+            ordered, acting_user=request.user,
+        )
     except ValueError as e:
         return error_response_from_exc(e)
 
@@ -1793,7 +1797,9 @@ def resend_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        delivery = ProposalService.resend_proposal(proposal)
+        delivery = ProposalService.resend_proposal(
+            proposal, acting_user=request.user,
+        )
     except ValueError as e:
         return error_response_from_exc(e)
 

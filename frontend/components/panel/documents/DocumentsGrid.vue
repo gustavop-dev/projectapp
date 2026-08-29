@@ -60,7 +60,7 @@ function archivedContentCount(folder) {
         'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
           dragOverFolderId === sub.id,
       }"
-      :draggable="!sub.is_archived && sub.folder_kind !== 'project'"
+      :draggable="!sub.is_archived && sub.folder_kind !== 'project' && !sub.is_system_managed"
       :data-testid="`folder-card-${sub.id}`"
       @click="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"

@@ -254,3 +254,56 @@ describe('DocumentActionsSheet — abrir en pestaña nueva', () => {
     expect(actionByLabel(wrapper, 'Restaurar')).toBeDefined();
   });
 });
+
+describe('DocumentActionsSheet — generated snapshots', () => {
+  it('offers only read-only navigation, one stored download and archive', () => {
+    const wrapper = mountSheet({
+      document: { ...baseDocument, is_generated_snapshot: true },
+      editTo: '/es-co/panel/documents/7/edit',
+    });
+    const labels = wrapper.findAll('[data-testid="document-actions-list"] > *')
+      .map((element) => element.text().replace(/\s+/g, ' ').trim());
+
+    expect(labels).toHaveLength(4);
+    expect(labels[0]).toContain('Ver versión archivada');
+    expect(labels[1]).toContain('Abrir en pestaña nueva');
+    expect(labels[2]).toContain('Descargar versión archivada');
+    expect(labels[3]).toContain('Archivar');
+    expect(labels.join(' | ')).not.toMatch(/Renombrar|Mover|Enviar|Duplicar|Eliminar/);
+    expect(labels.filter((label) => label.includes('Descargar'))).toHaveLength(1);
+  });
+
+  it('limits an archived generated snapshot to restore and stored download', () => {
+    const wrapper = mountSheet({
+      document: { ...baseDocument, is_generated_snapshot: true, is_archived: true },
+      editTo: '/es-co/panel/documents/7/edit',
+    });
+    const labels = actionButtons(wrapper).map((button) => button.text());
+
+    expect(labels).toHaveLength(2);
+    expect(labels[0]).toContain('Restaurar');
+    expect(labels[1]).toContain('Descargar versión archivada');
+  });
+});
+
+describe('DocumentActionsSheet — issued collection accounts', () => {
+  it('offers only account viewing, one account PDF and archive', () => {
+    const wrapper = mountSheet({
+      document: {
+        ...baseDocument,
+        document_type_code: 'collection_account',
+        commercial_status: 'issued',
+      },
+      editTo: '/es-co/panel/documents/7/edit',
+    });
+    const labels = wrapper.findAll('[data-testid="document-actions-list"] > *')
+      .map((element) => element.text().replace(/\s+/g, ' ').trim());
+
+    expect(labels).toHaveLength(4);
+    expect(labels[0]).toContain('Ver cuenta de cobro');
+    expect(labels[1]).toContain('Abrir en pestaña nueva');
+    expect(labels[2]).toContain('Descargar cuenta de cobro');
+    expect(labels[3]).toContain('Archivar');
+    expect(labels.join(' | ')).not.toMatch(/Renombrar|Mover|Enviar|Duplicar|Eliminar/);
+  });
+});

@@ -1330,7 +1330,24 @@ silently applied to a later database state. Preserve an inverse snapshot even wh
 the write is atomic: rollback of data classification is an operational procedure,
 not just a transaction primitive.
 
-## 55. KPI density and KPI geometry are separate contracts
+## 55. A generated document is an artifact, not another editable projection
+
+When a system both generates and sends a PDF, regenerating it later is not an
+archive: templates, source data and fonts may have changed. Render once before
+the outbound boundary, persist those exact bytes with source/version/hash, and
+attach that same byte sequence. Generation failure must stop the send before
+any lifecycle transition; delivery failure may retain the prepared artifact and
+mark the operational problem without rewriting it.
+
+Location is another derived fact. Use stable server-owned folder keys for
+project/client/type/year/month identity, not display-name matching, and create
+the path idempotently inside the business transaction. Protect that structure
+at every mutation surface (REST, MCP and drag/drop), while leaving orthogonal
+administrative observations editable. For legacy data, a dry-run-first backfill
+should touch only records still lacking a destination, preserve manual choices
+and refuse to invent the business date that defines the archive.
+
+## 56. KPI density and KPI geometry are separate contracts
 
 Equal card heights require a stable internal grid, not copy of equal length.
 Reserve label, value and optional support rows in the shared primitive so missing

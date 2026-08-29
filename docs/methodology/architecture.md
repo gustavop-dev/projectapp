@@ -293,6 +293,7 @@ flowchart TD
     Views --> CTS["ContractTermsService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
+    Views --> GDFS["GeneratedDocumentFilingService"]
     Views --> CMS["CommunicationService"]
     Views --> CAS["CollectionAccountService"]
     Views --> PST["ProposalStageTracker"]
@@ -307,6 +308,11 @@ flowchart TD
     PST -->|send_stage_warning / send_stage_overdue| PES
     PPDF -->|generate| ReportLab["ReportLab PDF"]
     PPDF -->|shared utils| PU["PdfUtils"]
+    PS -->|prepare/finalize send versions| PSS["ProposalSnapshotService"]
+    PSS -->|generate once| PPDF
+    PSS -->|store exact bytes + source version| Documents
+    GDFS -->|idempotent system_key hierarchy| Folders["DocumentFolder"]
+    GDFS -->|canonical folder/title| Documents
     CPDF -->|generate| ReportLab
     CPDF -->|shared utils| PU
     CTS -->|masked current default| CPDF
@@ -327,7 +333,7 @@ flowchart TD
 | Service | Footprint | Responsibilities |
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Shared helpers: `_attach_commercial_pdf(email, proposal)` (used by `send_proposal_to_client`, `send_acceptance_confirmation`, `send_multi_proposal_to_client`), `_build_initial_email_context(proposal)` (per-proposal phase context), `_send_stage_notification`. |
+| **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Initial/resend flows pass a prepared snapshot to `_attach_commercial_pdf`, so the retained bytes and attached bytes are identical; the generation fallback remains for non-send compatibility callers. Shared helpers also include `_build_initial_email_context(proposal)` and `_send_stage_notification`. |
 | **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires every key in the universal inventory plus explicit client/internal/security classification, persists baseline history, sends the primary envelope first, resolves segmented BCC recipients only after success, deduplicates original recipients, isolates copy failures and exposes one delivery trace to `EmailLog`. |
 | **OutboundEmailInventory** | Small | Authoritative mapping of all 56 outbound template keys to one of eight configurable copy families. Unknown keys fail closed; static tests reject mail calls outside the gateway. `ClientEmailInventory` remains the exact client-only compatibility subset. |
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
@@ -337,6 +343,8 @@ flowchart TD
 | **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
+| **GeneratedDocumentFilingService** | Small | Owns deterministic project/client/type/year/month paths, Spanish month names, stable folder keys, collection-account/proposal titles, cancellation branches and proposal-snapshot moves on onboarding. |
+| **ProposalSnapshotService** | Small | Locks proposal rows, allocates monotonically increasing versions, renders every PDF before the first send, stores exact bytes and hash, files snapshots, and derives sent/needs-fix state from the delivery result. |
 | **CommunicationService** | Small | Transactional thread/message lifecycle, direction/channel/state validation, document-reference validation, derived last activity, annulment and append-only date corrections |
 | **MarkdownParser** | Small | Parses markdown content for Document PDF rendering |
 | **CollectionAccountService** | Small | Collection account business logic |

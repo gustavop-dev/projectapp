@@ -127,7 +127,7 @@ class TestHappyPath:
         assert ext.customer_identification == '999999'
         assert ext.customer_identification_type == 'CC'
 
-    @freeze_time('2026-08-05')
+    @freeze_time('2026-08-05 12:00:00-05:00')
     def test_days_after_issue_default_term(self):
         document = create_income_collection_account(
             payload(make_client(), make_income()),

@@ -6,6 +6,7 @@ import { useDocumentStateStore } from '~/stores/document_states';
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   documentId: { type: [Number, String], required: true },
+  readonly: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue', 'changed']);
 const stateStore = useDocumentStateStore();
@@ -97,7 +98,7 @@ async function correctOpening(episode) {
           <BaseButton type="submit" variant="primary" size="sm" :loading="correctionBusy" :disabled="!correctedAt">Guardar corrección</BaseButton>
         </div>
       </form>
-      <div v-else class="mt-3 flex justify-end">
+      <div v-else-if="!readonly" class="mt-3 flex justify-end">
         <BaseButton variant="ghost" size="sm" @click="openCorrection(episode)">Corregir apertura</BaseButton>
       </div>
     </template>
