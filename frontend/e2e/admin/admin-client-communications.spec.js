@@ -387,6 +387,8 @@ test.describe('Admin Client Communications', () => {
       '@responsive:communications',
     ],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — this scenario validates the initial compact list density and clipping contract)
+    // quality: allow-deep-link (communications navigation is covered separately; this scenario isolates the responsive list render)
     await page.setViewportSize({ width: 412, height: 915 });
     await setupCommunicationsApi(page);
     await gotoCommunications(page);

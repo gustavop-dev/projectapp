@@ -92,12 +92,15 @@ describe('CommunicationThreadTable', () => {
   it('omits the preview when the thread has no messages', () => {
     const wrapper = mountList({ threads: [thread({ latest_message: null })] });
 
+    expect(wrapper.get('[data-testid="communication-thread-row-41"]').text())
+      .toContain('Aprobación de alcance');
     expect(wrapper.find('[data-testid="communication-thread-excerpt-41"]').exists()).toBe(false);
   });
 
   it('removes the redundant compact card label', () => {
     const wrapper = mountList();
 
+    expect(wrapper.text()).toContain('Aprobación de alcance');
     expect(wrapper.text()).not.toContain('Hilo');
   });
 
