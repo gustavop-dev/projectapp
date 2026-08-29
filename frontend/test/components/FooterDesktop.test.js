@@ -1,6 +1,9 @@
 import { mount } from '@vue/test-utils';
 
 global.useLocalePath = jest.fn(() => (path) => path);
+global.useI18n = jest.fn(() => ({
+  t: jest.fn((key) => (key === 'additionalModules.title' ? 'Additional modules' : key)),
+}));
 global.requestAnimationFrame = jest.fn(() => 0);
 global.cancelAnimationFrame = jest.fn();
 global.IntersectionObserver = jest.fn(() => ({
@@ -83,7 +86,7 @@ function mountFooterDesktop() {
       stubs: {
         Email: true,
         Teleport: true,
-        NuxtLink: { template: '<a v-bind="$attrs"><slot /></a>' },
+        NuxtLink: { props: ['to'], template: '<a :href="to" v-bind="$attrs"><slot /></a>' },
       },
     },
   });
@@ -129,6 +132,13 @@ describe('FooterDesktop', () => {
     const wrapper = mountFooterDesktop();
 
     expect(wrapper.text()).toContain('Custom Software');
+  });
+
+  it('renders the additional modules catalog link', () => {
+    const wrapper = mountFooterDesktop();
+
+    expect(wrapper.get('a[href="/additional-modules"]').attributes('aria-label'))
+      .toBe('Additional modules');
   });
 
   // ── modal open / close ────────────────────────────────────────────────────

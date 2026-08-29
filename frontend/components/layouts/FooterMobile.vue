@@ -22,14 +22,13 @@
                 v-for="item in solutions" 
                 :key="item.name" 
                 class="flex p-1 ps-4 font-regular text-white text-sm relative group"
-                aria-label="Navigate to {{ item.name }}"
+                :aria-label="item.name"
               >
                 {{ item.name }}
                 <div class="absolute ms-4 left-0 bottom-0 h-0.5 w-0 bg-surface transition-all duration-300 group-hover:w-full"></div>
                 <div class="relative ps-2 transform opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-regular">
                   ➜
                 </div>
-                <span class="sr-only">Visit our {{ item.name }} page</span>
               </NuxtLink>
             </nav>
             <div class="ps-4 mt-2">
@@ -111,6 +110,7 @@ import { useGlobalMessages } from '~/composables/useMessages';
 import { useFreeResources } from '~/composables/useFreeResources';
 
 const localePath = useLocalePath();
+const { t } = useI18n();
 const { globalMessages } = useGlobalMessages('footer');
 
 // Estado reactivo
@@ -120,6 +120,7 @@ const solutions = computed(() => [
   { name: globalMessages.value?.solutions?.apps || 'App Development', href: '/landing-apps' },
   { name: globalMessages.value?.solutions?.web_developments || 'Our work', href: '/portfolio-works' },
   { name: globalMessages.value?.solutions?.blog || 'Blog', href: '/blog' },
+  { name: t('additionalModules.title'), href: '/additional-modules' },
 ]);
 
 const mainVideo = ref(null);

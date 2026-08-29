@@ -2,11 +2,11 @@
 Frontend prerender rebuild service.
 
 The public site is a static `nuxi generate` build served by Django from
-backend/static/frontend/ (see projectapp.views.serve_nuxt). Blog posts are
-prerendered into that build, so the static HTML goes stale whenever published
-blog content changes. This service runs the frontend build (which fetches the
-current slugs from the API and atomically swaps the output dir) and tracks the
-last successful build in a marker file so unnecessary rebuilds are skipped.
+backend/static/frontend/ (see projectapp.views.serve_nuxt). Blog posts and the
+canonical additional-modules catalog are prerendered into that build, so their
+static HTML goes stale after a publish or catalog change. This service runs the
+frontend build and tracks the last successful build in a marker file so
+unnecessary rebuilds are skipped.
 
 No service restarts are involved: serve_nuxt reads the files from disk on
 every request, and collectstatic only copies hashed assets.
@@ -40,14 +40,23 @@ FAILURE_ALERT_INTERVAL_SECONDS = 60 * 60 * 6
 
 
 def latest_published_change():
-    """Most recent updated_at among published posts, or None."""
-    from content.models import BlogPost
-    post = (
-        BlogPost.objects.filter(is_published=True)
-        .order_by('-updated_at')
-        .first()
+    """Most recent change that affects a prerendered public content surface."""
+    from content.models import (
+        AdditionalModule,
+        AdditionalModuleCategory,
+        BlogPost,
     )
-    return post.updated_at if post else None
+
+    candidates = []
+    for queryset in (
+        BlogPost.objects.filter(is_published=True),
+        AdditionalModuleCategory.objects.all(),
+        AdditionalModule.objects.all(),
+    ):
+        row = queryset.order_by('-updated_at').first()
+        if row:
+            candidates.append(row.updated_at)
+    return max(candidates) if candidates else None
 
 
 def last_build_started_at():
@@ -65,7 +74,7 @@ def _write_marker(started_at):
 
 
 def rebuild_needed():
-    """True when published blog content changed after the last build started.
+    """True when prerendered public content changed after the last build start.
 
     Using the build *start* time means content edited mid-build (and therefore
     possibly missing from that build's API snapshot) still triggers the next
@@ -98,8 +107,8 @@ def _notify_failure(detail):
 
     body = (
         'El rebuild automático del frontend (nuxi generate) está fallando.\n\n'
-        'Mientras siga fallando, los posts publicados no aparecen en el HTML '
-        'público que leen los crawlers y los previews de enlaces.\n\n'
+        'Mientras siga fallando, el contenido publicado no aparece actualizado '
+        'en el HTML público que leen los crawlers y los previews de enlaces.\n\n'
         f'Último error:\n{(detail or "(sin detalle)")[:2000]}\n\n'
         'Diagnóstico: backend/logs/blog_publish.log y '
         'journalctl -u projectapp-huey.'

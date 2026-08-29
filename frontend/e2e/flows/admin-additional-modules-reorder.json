@@ -1,0 +1,10 @@
+{
+  "id": "admin-additional-modules-reorder",
+  "name": "Admin Reorder Additional Modules",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Admin changes category or module order and receives a recoverable message when the optimistic catalog revision is stale.",
+  "expectedSpecs": 2,
+  "outcomes": ["success", "failure"]
+}

@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-28 — Catálogo comercial de módulos adicionales listo para integrar:**
+los 17 módulos genéricos de PA-09 más Landing Page forman un inventario inicial
+de 18, agrupado en cinco categorías administrables e independiente de las
+propuestas. El panel cubre CRUD, retiro, reordenamiento, selección, PDF e
+historial de aperturas; la experiencia pública reutiliza el mismo índice y
+detalle responsivo. El catálogo completo es canónico/indexable, mientras los
+enlaces con subconjuntos son revocables, sin vencimiento, `noindex`, con idioma
+y selección inmutables, contenido vivo y aperturas únicas por sesión. No se
+almacenan ni muestran precios; MCP queda fuera de esta primera versión. Pasan
+38 pruebas backend, 10 unitarias y 21 E2E, además de migraciones/checks, gates de
+flujos/calidad/responsividad y el build Nuxt de producción.
+
 **2026-08-29 — Comunicaciones alineadas con el Gestor Documental:** el módulo
 conserva una sola lista amplia y traslada el detalle del hilo a un modal de
 trabajo direccionable por `thread=<id>`. A la izquierda incorpora navegación

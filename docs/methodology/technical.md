@@ -1,5 +1,12 @@
 # Technical Documentation — ProjectApp
 
+> **Estado 2026-08-28 — implementado:** el catálogo adicional reutiliza DRF
+> FBV, servicios de dominio, ReportLab, el cliente HTTP del panel y componentes
+> base. La página canónica es indexable y prerenderizada; cada enlace
+> seleccionado lleva `noindex`, selección inmutable y contenido vivo. Los
+> errores JSON de descargas PDF se decodifican aun cuando Axios los entrega como
+> `Blob`, para conservar mensajes accionables.
+
 ## 1. Technology Stack
 
 | Layer | Technology | Version |

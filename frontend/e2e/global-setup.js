@@ -21,6 +21,7 @@ export default async function globalSetup() {
     '/panel/login',                         // SPA — admin panel login
     '/panel',                               // SPA — admin dashboard
     '/panel/admins',                        // SPA — admin management
+    '/panel/additional-modules',            // SPA — reusable sales catalog
     '/panel/blog',                          // SPA — blog list
     '/panel/blog/create',                   // SPA — blog create
     '/panel/blog/1/edit',                   // SPA — blog edit (dynamic)
@@ -53,6 +54,8 @@ export default async function globalSetup() {
     '/platform/projects/1/board',           // SPA — platform project board (nested dynamic)
     '/proposal/warmup-prefetch',            // SPA — proposal viewer
     '/diagnostic/warmup-prefetch',          // SPA — diagnostic public viewer
+    '/es-co/additional-modules',            // SSR — public additional modules catalog
+    '/es-co/additional-modules/share/11111111-1111-4111-8111-111111111111', // SPA — shared catalog
     '/blog',                                // SSR — public blog list
     '/landing-apps',                        // SSR — landing apps page
     '/landing-software',                    // SSR — landing software page

@@ -48,6 +48,11 @@ export const ADMIN_ACCOUNTING_SETTINGS = ['@flow:admin-accounting-settings', '@m
 export const ADMIN_ACCOUNTING_SETTINGS_RESET_TABS = ['@flow:admin-accounting-settings-reset-tabs', '@module:admin', '@priority:P3'];
 export const ADMIN_ACCOUNTING_STATEMENTS = ['@flow:admin-accounting-statements', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_STATS_MODALS = ['@flow:admin-accounting-stats-modals', '@module:admin', '@priority:P2'];
+export const ADMIN_ADDITIONAL_MODULES_CATALOG = ['@flow:admin-additional-modules-catalog', '@module:admin', '@priority:P1'];
+export const ADMIN_ADDITIONAL_MODULES_MANAGE = ['@flow:admin-additional-modules-manage', '@module:admin', '@priority:P1'];
+export const ADMIN_ADDITIONAL_MODULES_PDF = ['@flow:admin-additional-modules-pdf', '@module:admin', '@priority:P2'];
+export const ADMIN_ADDITIONAL_MODULES_REORDER = ['@flow:admin-additional-modules-reorder', '@module:admin', '@priority:P2'];
+export const ADMIN_ADDITIONAL_MODULES_SHARE = ['@flow:admin-additional-modules-share', '@module:admin', '@priority:P1'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
 export const ADMIN_AUTO_ARCHIVE_ZOMBIE = ['@flow:admin-auto-archive-zombie', '@module:admin', '@priority:P3'];
 export const ADMIN_BLOG_CALENDAR = ['@flow:admin-blog-calendar', '@module:admin', '@priority:P2'];
@@ -362,6 +367,10 @@ export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:pr
 
 // ── public ──
 export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
+export const PUBLIC_ADDITIONAL_MODULES_CATALOG = ['@flow:public-additional-modules-catalog', '@module:public', '@priority:P1'];
+export const PUBLIC_ADDITIONAL_MODULES_DETAIL = ['@flow:public-additional-modules-detail', '@module:public', '@priority:P1'];
+export const PUBLIC_ADDITIONAL_MODULES_PDF = ['@flow:public-additional-modules-pdf', '@module:public', '@priority:P2'];
+export const PUBLIC_ADDITIONAL_MODULES_SHARE = ['@flow:public-additional-modules-share', '@module:public', '@priority:P1'];
 export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
 export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
 export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];

@@ -1,5 +1,12 @@
 # Product Requirements Document — ProjectApp
 
+> **Estado 2026-08-28 — implementado:** el catálogo comercial de módulos
+> adicionales es un dominio administrable y bilingüe, separado de las
+> propuestas. Publica un índice canónico completo y enlaces revocables con una
+> selección fija, contenido vivo, PDF y seguimiento de aperturas, siempre sin
+> precios ni personalización por proyecto. El inventario inicial contiene 18
+> módulos en cinco categorías, incluida Landing Page.
+
 ## 1. Overview
 
 **ProjectApp** is the full-stack web application for **Project App** (projectapp.co), a custom software development company based in Colombia. The platform serves as:
