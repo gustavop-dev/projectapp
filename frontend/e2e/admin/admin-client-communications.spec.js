@@ -426,6 +426,7 @@ test.describe('Admin Client Communications', () => {
     tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupCommunicationsApi(page);
+    // quality: allow-deep-link (panel entry is covered by the timeline display outcome)
     await gotoCommunications(page);
 
     await page.getByRole('button', { name: 'Cerrar alerta' }).click();
