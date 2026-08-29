@@ -23,11 +23,12 @@ const presets = [
   <div class="space-y-2" data-testid="document-state-filters">
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-xs font-medium text-text-muted">Consultas:</span>
+      <!-- design-tokens: allow-raw-button — selectable filter pill. -->
       <button
         v-for="preset in presets"
         :key="preset.value"
         type="button"
-        class="rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+        class="inline-flex shrink-0 flex-nowrap items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
         :class="activePreset === preset.value ? 'border-primary-strong bg-primary-soft text-text-brand' : 'border-border-default bg-surface text-text-muted hover:bg-surface-raised'"
         :data-testid="`document-state-preset-${preset.value}`"
         @click="$emit('preset', activePreset === preset.value ? '' : preset.value)"
@@ -37,11 +38,12 @@ const presets = [
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-xs font-medium text-text-muted">Estados:</span>
+      <!-- design-tokens: allow-raw-button — selectable filter pill. -->
       <button
         v-for="state in states"
         :key="state.id"
         type="button"
-        class="rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+        class="inline-flex shrink-0 flex-nowrap items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
         :class="activeIds.includes(state.id) ? 'border-primary-strong bg-primary-soft text-text-brand' : 'border-border-default bg-surface text-text-muted hover:bg-surface-raised'"
         :data-testid="`document-state-filter-${state.id}`"
         @click="$emit('toggle', state.id)"
@@ -49,11 +51,12 @@ const presets = [
         <BaseActionIcon v-if="state.system_key === 'needs_fix'" action="analyze" />
         {{ state.name }}
       </button>
+      <!-- design-tokens: allow-raw-button — selectable filter pill. -->
       <button
         v-for="state in states.filter((item) => item.system_key === 'closed')"
         :key="`without-${state.id}`"
         type="button"
-        class="rounded-full border px-2.5 py-1 text-xs font-medium"
+        class="inline-flex shrink-0 flex-nowrap items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium"
         :class="withoutIds.includes(state.id) ? 'border-warning-strong bg-warning-soft text-warning-strong' : 'border-border-default bg-surface text-text-muted'"
         :data-testid="`document-state-without-${state.id}`"
         @click="$emit('toggle-absence', state.id)"
