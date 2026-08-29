@@ -1,6 +1,9 @@
 import { mount } from '@vue/test-utils';
 
 global.useLocalePath = jest.fn(() => (path) => path);
+global.useI18n = jest.fn(() => ({
+  t: jest.fn((key) => (key === 'additionalModules.title' ? 'Additional modules' : key)),
+}));
 global.IntersectionObserver = jest.fn(() => ({
   observe: jest.fn(),
   disconnect: jest.fn(),
@@ -51,7 +54,7 @@ function mountFooterMobile() {
     global: {
       stubs: {
         Email: true,
-        NuxtLink: { template: '<a v-bind="$attrs"><slot /></a>' },
+        NuxtLink: { props: ['to'], template: '<a :href="to" v-bind="$attrs"><slot /></a>' },
       },
     },
   });
@@ -96,5 +99,12 @@ describe('FooterMobile', () => {
     const wrapper = mountFooterMobile();
 
     expect(wrapper.text()).toContain('Custom Software');
+  });
+
+  it('renders the additional modules catalog link', () => {
+    const wrapper = mountFooterMobile();
+
+    expect(wrapper.get('a[href="/additional-modules"]').attributes('aria-label'))
+      .toBe('Additional modules');
   });
 });
