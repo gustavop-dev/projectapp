@@ -1448,6 +1448,17 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(modal).toContainText('4 ingresos seleccionados');
     await expect(page.getByTestId('incomes-bulk-client')).toBeFocused();
 
+    const initialScope = page.getByTestId('incomes-bulk-selection-review');
+    expect(await initialScope.evaluate((element) => ({
+      hasEveryRecord: [
+        'Kore - Inicio 40%',
+        'Kore - Entrega 30%',
+        'Kore - Integración 20%',
+        'Kore - Cierre 10%',
+      ].every((label) => element.textContent.includes(label)),
+      fitsWithoutScroll: element.scrollHeight <= element.clientHeight + 1,
+    }))).toEqual({ hasEveryRecord: true, fitsWithoutScroll: true });
+
     const catalog = page.getByRole('grid', { name: 'Clientes disponibles' });
     const scroller = page.getByTestId('client-catalog-scroll');
     await expect(catalog).toBeVisible();

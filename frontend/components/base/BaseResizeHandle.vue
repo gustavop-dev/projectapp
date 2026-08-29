@@ -61,6 +61,7 @@ function onKeydown(event) {
     :aria-valuemin="min"
     :aria-valuemax="max"
     :data-testid="testId || undefined"
+    :title="label"
     tabindex="0"
     class="group flex cursor-col-resize touch-none items-center justify-center focus:outline-none"
     @pointerdown="onPointerDown"

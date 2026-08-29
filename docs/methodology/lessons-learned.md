@@ -970,13 +970,17 @@ rewritten: annulment and business-date corrections append audit context, while
 only drafts remain mutable. When project ownership changes, historical threads
 stay with the original client and lose only their optional project scope.
 
-## 39. Clipping is measured state, and its primitive must own display
+## 39. Clipping is measured state, but full-value access must not depend on it
 
-A fixed `title` attribute only repeats short values and still leaves touch users
-without a path. Measure the rendered element after layout, text changes and
-container-width changes; publish the complete native hint and disclosure only
-while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
-The disclosure expands in the same row/card so it cannot require navigation.
+Overflow can change after the first layout pass when a web font finishes
+loading. Keep the complete collapsed value available through the native `title`
+hint without waiting for measurement; use measured state only to decide whether
+the in-place touch disclosure is necessary. Measure after layout, text changes,
+container-width changes and `document.fonts.ready`, comparing
+`scrollWidth/clientWidth` or `scrollHeight/clientHeight`. The disclosure expands
+in the same row/card so it cannot require navigation. E2E setup must await font
+readiness without dispatching a compensating resize event that production never
+receives.
 
 Line clamping is a bundle of display, overflow and WebKit properties, not a
 decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another
@@ -1270,23 +1274,21 @@ guarantees. When evolving stored proposal JSON, update live defaults and editabl
 drafts while leaving sent or inactive snapshots intact; commercial documents are
 history, not caches to be silently normalized.
 
-## 52. Semantic association and lifecycle ownership need separate fields
+## 52. A visual tooltip and an accessible name serve different readers
 
-A folder may point at a project without being the project's system-owned root.
-Reusing the ordinary `project` relation for both meanings makes every descendant
-look immutable and leaves no reliable way to distinguish a hand-made hierarchy
-from the canonical entry point. Keep semantic inheritance on `project`/`client`
-and represent lifecycle ownership with a separate one-to-one relation whose
-invariants are enforced in the database and every mutation surface.
+An icon-only row action may need a contextual accessible name such as **Acciones
+de Contrato de Servicios**, but repeating that string in a hover hint adds no
+value when the document title is already visible. Keep the application tooltip
+short and canonical, keep row context in `aria-label`, and let touch users reach
+the same action through the button itself rather than depending on hover help.
 
-Historical name matching is evidence, not authorization. A safe reconciliation
-first emits a stable inventory with proposed actions, impacts and conflicts; a
-human decides every pending row; apply revalidates both the plan digest and the
-database fingerprint inside one transaction. This makes ambiguous client/project
-names visible before documents move and prevents an approved proposal from being
-silently applied to a later database state. Preserve an inverse snapshot even when
-the write is atomic: rollback of data classification is an operational procedure,
-not just a transaction primitive.
+Tooltip ownership must be singular at the rendered DOM boundary. Wrapping a
+button in an application tooltip while also forwarding `title` creates two
+competing notices. In Vue, removing an explicit `:title` binding is not enough
+when `$attrs` can still fall through automatically: the owning primitive must
+filter `title` deliberately while preserving `aria-*`, `data-*` and link
+semantics. Test the rendered attribute and the visible `role="tooltip"`
+separately; each protects a different half of the contract.
 
 ## 53. A primary selection catalog is modal content, not a dropdown
 
@@ -1309,3 +1311,21 @@ the small user preference locally. Geometry tests must prove at least five full
 rows, one list-owned scrollbar, a stationary modal, visible review content and
 the full-screen compact contract; a screenshot of an open dropdown proves none
 of those boundaries.
+
+## 54. Semantic association and lifecycle ownership need separate fields
+
+A folder may point at a project without being the project's system-owned root.
+Reusing the ordinary `project` relation for both meanings makes every descendant
+look immutable and leaves no reliable way to distinguish a hand-made hierarchy
+from the canonical entry point. Keep semantic inheritance on `project`/`client`
+and represent lifecycle ownership with a separate one-to-one relation whose
+invariants are enforced in the database and every mutation surface.
+
+Historical name matching is evidence, not authorization. A safe reconciliation
+first emits a stable inventory with proposed actions, impacts and conflicts; a
+human decides every pending row; apply revalidates both the plan digest and the
+database fingerprint inside one transaction. This makes ambiguous client/project
+names visible before documents move and prevents an approved proposal from being
+silently applied to a later database state. Preserve an inverse snapshot even when
+the write is atomic: rollback of data classification is an operational procedure,
+not just a transaction primitive.

@@ -6496,11 +6496,11 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/history`
-- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
+- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. That reason remains reachable through a focusable accessible proxy and one application tooltip, without a duplicate native `title`. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
 - **Steps:**
   1. Superuser opens the Envíos subtab and clicks the eye on a row → the delivered message opens in a modal.
   2. On a failed row, the retry icon re-sends to that recipient; the list and its counts reload so the new attempt is visible.
-  3. A failed digest shows the retry disabled with the reason in its tooltip; a send that worked offers no retry at all.
+  3. A failed digest shows the retry disabled; activating its focusable proxy reveals exactly one tooltip with the reason, and the button has no native `title`. A send that worked offers no retry at all.
   4. Expanding a row names the records the email was about and, when applicable, the send it was a retry of.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-history-filters.spec.js`
@@ -7072,15 +7072,27 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
+### FLOW: `admin-document-gallery`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Route:** `/panel/documents`
+- **Description:** El gestor cambia de Lista a Galería y ve una tarjeta por documento con vista previa Markdown saneada, cliente, fecha, episodios de estado activos y un resumen `+N` cuando hay desborde. El botón de tres puntos abre la misma hoja de acciones de la lista, conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`.
+- **Steps:** entrar a Documentos → elegir Galería → leer una tarjeta real → enfocar o posar el cursor sobre el botón de acciones y ver un solo aviso `Acciones` → abrir la hoja de acciones.
+- **Branches:** las subcarpetas aparecen primero y aceptan arrastre; la preferencia de vista persiste; en móvil la galería es obligatoria y el toque abre la hoja sin depender de hover.
+- **Coverage:** ✅ Display y apertura de acciones cubiertos.
+- **E2E Spec:** `e2e/admin/admin-document-gallery.spec.js`
+
 ### FLOW: `admin-document-list`
 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
 - **Route:** `/panel/documents`
-- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
-- **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → acceder a las acciones de la fila/tarjeta → cambiar entre activos, archivados y todos.
-- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; ningún ancho produce scroll horizontal de página.
+- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
+- **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → enfocar o posar el cursor sobre las acciones y ver un solo aviso `Acciones` → abrir el menú de la fila/tarjeta → cambiar entre activos, archivados y todos.
+- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 
@@ -7090,10 +7102,10 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, el navegador recibe el nombre completo como ayuda y aparece **Ver completo** para expandirlo con corte seguro incluso cuando no contiene espacios. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija del encabezado **Título** ajusta el ancho entre 240 y 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
+- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos y el navegador siempre recibe el nombre completo como ayuda mientras está contraído; si la medición confirma recorte, aparece además **Ver completo** para expandirlo con corte seguro incluso cuando no contiene espacios. La medición se repite cuando terminan de cargar las fuentes web. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija visible y etiquetada del encabezado **Título** ajusta el ancho entre 240 y 800 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
 - **Steps:**
   1. Admin abre **Gestor Documental** y consulta el listado.
-  2. Un título recortado —con espacios o con guiones bajos— muestra la ayuda y **Ver completo**; uno que cabe no agrega información repetida.
+  2. Pasa el mouse por cualquier título contraído y consulta su nombre completo; uno recortado —con espacios o con guiones bajos— muestra además **Ver completo**.
   3. Pulsa **Ver completo** en la tabla o tarjeta y el título se despliega sin abrir el documento.
   4. Comprueba que la carpeta aparece debajo del título y que títulos, carpeta y metadatos permanecen dentro de la fila o tarjeta.
   5. En la tabla, arrastra la manija de **Título** o la opera con teclado para elegir el ancho.
@@ -7101,13 +7113,13 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   7. Hace doble clic en la manija para recuperar el ancho predeterminado.
 - **Branches:**
   - [Display — contención] Los nombres reales largos, incluidos los escritos sin espacios, permanecen dentro de su celda o tarjeta en celular, tableta y escritorio; nunca invaden Cliente ni otro contenido.
-  - [Display — recorte] La ayuda y el control de expansión sólo existen cuando la medición del texto confirma recorte.
+  - [Display — recorte] La ayuda nativa no depende de la medición; el control de expansión sólo existe cuando se confirma recorte, incluso si aparece después de cargar fuentes web.
   - [Display — metadatos] Carpeta aparece primero en el renglón inferior; Cliente, Proyecto y Estado siguen allí cuando el perfil compacto los oculta como columnas. Sin carpeta, la tabla de escritorio conserva altura natural.
   - [Success — consulta] **Ver completo** expande el nombre en el mismo contexto con `overflow-wrap:anywhere`, y **Contraer** recupera la línea truncada.
   - [Success — reparto] Proyecto, Cliente y Fecha ceden espacio en ese orden; Estados y Acciones conservan su ancho.
   - [Success — límite] Tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
-- **Coverage:** ✅ Covered (nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
+- **Coverage:** ✅ Covered (ayuda completa fiable, carga tardía de fuentes, nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, ajuste 240–800, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
 
 ### FLOW: `admin-outbound-email-history-body`

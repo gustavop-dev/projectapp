@@ -578,6 +578,14 @@ confirmed by the operator or another integration.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
+- **Action tooltip/accessibility split** — `BaseActionButton` is the sole tooltip
+  owner for an icon-only panel action. Its visual copy defaults to the short
+  action-catalog label (for example, **Acciones**), while `label` remains the
+  contextual `aria-label` (for example, **Acciones de Contrato**). It passes
+  `nativeTitle=false` to `BaseButton`, which filters the fallthrough `title`
+  attribute without dropping `aria-*`, `data-*` or link attributes. Do not add a
+  second `title` to a consumer; use the explicit `tooltip` prop only when the
+  short visual copy genuinely differs from the catalog.
 - **Leading kebab control track** — tables with a single three-dot menu use
   `rowActionsLayout="menu-start"`: selection remains first when present, then a
   fixed 56 px actions track with an empty visual header, then identity/content.
@@ -585,9 +593,11 @@ confirmed by the operator or another integration.
   unhandled so the table wrapper can still pan horizontally. Loose icon rows are
   a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
-  `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
-  consumer classes may style typography but must not override its display/clamp
-  state. `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
+  `BaseOverflowText` for a measurement-independent full native hint while
+  collapsed plus clipping-only in-place touch disclosure. The primitive
+  remeasures after `document.fonts.ready`; consumer classes may style typography
+  but must not override its display/clamp state.
+  `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only
   bounded money/date/number fields stay nowrap. `BaseResponsiveTable` and

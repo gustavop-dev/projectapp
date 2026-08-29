@@ -2,6 +2,8 @@
 import { computed, useAttrs, watchEffect } from 'vue'
 import { oneOf } from './propValidators'
 
+defineOptions({ inheritAttrs: false })
+
 const props = defineProps({
   // One variant per kind of action — see the action→variant table in
   // components/base/README.md. Anything destructive uses danger (confirmed,
@@ -18,6 +20,9 @@ const props = defineProps({
   /** Why a non-loading action is unavailable. Resolvable forms should also
    *  render the same copy visibly through BaseControlGate. */
   disabledReason: { type: String, default: '' },
+  /** Keep the browser-native title unless an owning primitive already exposes
+   * the same help through an application tooltip. */
+  nativeTitle: { type: Boolean, default: true },
   iconOnly: { type: Boolean, default: false },    // square padding for icon buttons
   /** Buttons are short UI controls by default. Sentence-like CTAs can opt in
    * to wrapping without allowing an icon to detach from its text. */
@@ -33,11 +38,17 @@ const props = defineProps({
 defineEmits(['click'])
 
 const attrs = useAttrs()
-const disabledTitle = computed(() => (
-  props.disabled && !props.loading
+const forwardedAttrs = computed(() => {
+  const result = { ...attrs }
+  if (!props.nativeTitle) delete result.title
+  return result
+})
+const disabledTitle = computed(() => {
+  if (!props.nativeTitle) return ''
+  return props.disabled && !props.loading
     ? (props.disabledReason || attrs.title || 'Operación en curso. Espera un momento.')
     : (attrs.title || '')
-))
+})
 
 const variants = {
   primary: 'bg-primary text-on-primary hover:bg-primary-strong border border-transparent',
@@ -100,6 +111,7 @@ if (process.env.NODE_ENV !== 'production') {
 <template>
   <NuxtLink
     v-if="as === 'NuxtLink'"
+    v-bind="forwardedAttrs"
     :to="to"
     :class="classes"
     @click="$emit('click', $event)"
@@ -118,6 +130,7 @@ if (process.env.NODE_ENV !== 'production') {
   </NuxtLink>
   <a
     v-else-if="as === 'a'"
+    v-bind="forwardedAttrs"
     :href="typeof to === 'string' ? to : undefined"
     :class="classes"
     @click="$emit('click', $event)"
@@ -136,6 +149,7 @@ if (process.env.NODE_ENV !== 'production') {
   </a>
   <button
     v-else
+    v-bind="forwardedAttrs"
     :type="type"
     :disabled="disabled || loading"
     :title="disabledTitle || undefined"

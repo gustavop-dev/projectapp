@@ -353,6 +353,14 @@ flowchart TD
 
 Panel operational actions resolve through a semantic action catalog. Consumers keep handlers, routes, permissions and loading state locally; the catalog owns only the canonical Heroicons 24 Outline glyph and default Spanish label. `BaseActionIcon`, `BaseActionButton` and catalog-backed menus apply that metadata so icon changes remain one-place changes, while the panel action guard blocks local SVG/emoji drift and inaccessible icon-only controls in CI.
 
+`BaseActionButton` also owns the complete tooltip boundary. Its visible
+hover/focus hint defaults to the short catalog label, while the consumer-provided
+`label` may retain row context as the accessible name. The wrapped `BaseButton`
+disables native `title` forwarding, so browsers cannot render a second tooltip;
+the application tooltip sizes to its short content up to one bounded maximum.
+This shared boundary applies equally to document rows/cards and every other
+panel consumer of the action primitive.
+
 Control availability is also a design-system contract. `BaseButton`,
 `BaseActionButton`, `BaseActionMenu`, `BaseSegmented` and
 `BaseSegmentedMulti` accept a specific disabled reason. When the operator can
@@ -406,10 +414,13 @@ Table sizing is a capability of that same layer: `BaseResizeHandle` owns the
 separator interaction, `useResizableTableColumns` resolves persisted preferred
 tracks against fixed columns and ordered donors, and `BaseResponsiveTable`
 exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
-owns measured one/two-line clipping and the touch disclosure, so consumers do
-not duplicate tooltip or line-clamp heuristics. The Documents table is the
-first specialized adopter and the folder-panel handle now uses the same input
-primitive. Its local column contract owns order, width and per-profile behavior
+owns measured one/two-line clipping, a measurement-independent native hint for
+the complete collapsed value, font-ready remeasurement and the touch disclosure,
+so consumers do not duplicate tooltip or line-clamp heuristics.
+`BaseResizeHandle` also exposes its accessible label as a native hint so pointer
+users can discover the resize affordance. The Documents table is the first
+specialized adopter and the folder-panel handle uses the same input primitive.
+Its local column contract owns order, width and per-profile behavior
 together: Actions → Title → States → Date → Client → Project. Landscape keeps
 Actions plus the first three data tracks and groups Client/Project under Title;
 desktop restores every data track without moving Actions from the leading
