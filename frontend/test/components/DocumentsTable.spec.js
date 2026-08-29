@@ -420,7 +420,7 @@ describe('DocumentsTable — title column', () => {
     const handle = wrapper.get('[data-testid="documents-title-resize-handle"]');
     expect(handle.attributes('role')).toBe('separator');
     expect(handle.attributes('aria-valuenow')).toBe('320');
-    expect(handle.attributes('aria-valuemax')).toBe('800');
+    expect(handle.attributes('aria-valuemax')).toBe('520');
     expect(handle.attributes('title')).toBe('Ajustar el ancho de la columna Título');
   });
 

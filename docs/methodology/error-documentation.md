@@ -73,33 +73,37 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Lesson**: La evidencia de una entrega se captura antes de cruzar el límite
   externo. Una versión actual o regenerada puede ser útil, pero no es historia.
 
-### [ERR-039] La elipsis del título podía quedar sin una vía de revelación
+### [ERR-039] Document titles and row actions emitted competing browser hints
 
 - **Date**: 2026-08-28
-- **Context**: En `/panel/documents`, algunos nombres largos terminaban en
-  elipsis pero no mostraban el valor completo al pasar el mouse ni el control
-  **Ver completo**. La columna también se detenía en 520 px aunque todavía había
-  espacio útil disponible mediante scroll interno.
-- **Root Cause**: El `title` nativo dependía del mismo estado de overflow medido
-  durante el primer layout. Una fuente web que terminaba de cargar después podía
-  cambiar la geometría sin disparar otra medición. El E2E esperaba las fuentes y
-  luego emitía un `resize` artificial, ocultando esa carrera. Además, el máximo
-  local de 520 px y un indicador de 2 px hacían el ajuste poco útil y difícil de
-  descubrir.
-- **Resolution**: El valor completo se publica siempre en el hint nativo mientras
-  el texto está contraído; la medición que gobierna el disclosure táctil se repite
-  tras `document.fonts.ready`. Título admite ahora 240–800 px y su separador tiene
-  una zona activa, indicador y hint más claros, sin alterar las columnas fijas.
-- **Files Affected**: `frontend/components/base/BaseOverflowText.vue`,
-  `frontend/components/base/BaseResizeHandle.vue`,
-  `frontend/components/panel/documents/DocumentsTable.vue` y cobertura focal.
-- **Verification**: 23 unit tests reproducen la carga tardía de fuentes y el
-  contrato 240–800; 11 escenarios Playwright pasan esperando fuentes sin
-  fabricar un evento de resize. El design-token gate, flow freshness, coverage
-  audit y build Nuxt también aprueban.
-- **Lesson**: La accesibilidad al valor completo no debe depender de una medición
-  temporal; los tests no deben introducir eventos correctivos que el navegador
-  real no garantiza.
+- **Context**: A clipped document title needed its complete value without
+  opening the editor, while the adjacent action control already combined a
+  custom tooltip with a browser-native `title`. Native hints could be clipped by
+  the table, were not controllable on touch and made actions show two notices.
+- **Root Cause**: `BaseOverflowText` and `BaseActionButton` each delegated part
+  of the contract to the browser instead of sharing one overlay owner;
+  `BaseTooltip` remained absolutely positioned inside overflow containers. The
+  first clipping measurement could also become stale after web fonts loaded.
+- **Resolution**: Give `BaseTooltip` an opt-in teleported placement mode that
+  flips and clamps inside the viewport; use it conditionally from measured
+  document titles and unconditionally from catalog actions; suppress the native
+  `BaseButton` title for those shared-tooltip owners. Repeat the measurement
+  after `document.fonts.ready`, keep **Ver completo** as the explicit
+  coarse-pointer path and preserve the generic persisted table resize contract
+  at the inventory-backed 520 px maximum. The shared separator also publishes
+  its accessible label as a discoverability hint.
+- **Files Affected**: `BaseTooltip.vue`, `BaseOverflowText.vue`,
+  `BaseActionButton.vue`, `BaseButton.vue`, `DocumentsTable.vue`, focused
+  unit/E2E coverage and the document-title flow registry.
+- **Verification**: Unit coverage checks clipping, single-tooltip ownership,
+  viewport placement and teardown; Playwright checks clipped/complete titles,
+  the action notice, touch expansion, persisted/reset widths, the current
+  inventory boundary, font-ready remeasurement and fixed Estados/Acciones
+  tracks.
+- **Lesson**: A browser `title` is not a fallback for an application tooltip.
+  One primitive must own placement and semantics, and every hover path needs a
+  separate explicit touch path. Clipping must be rechecked after asynchronous
+  font layout changes rather than papered over with a synthetic resize in E2E.
 
 ### [ERR-037] Panel action buttons rendered two competing tooltips
 
