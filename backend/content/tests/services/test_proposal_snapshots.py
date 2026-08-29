@@ -186,6 +186,26 @@ def test_pdf_failure_preserves_draft_status(proposal, settings, tmp_path):
     mock_send.assert_not_called()
 
 
+def test_empty_pdf_aborts_send(proposal, settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    with (
+        patch(
+            'content.services.proposal_pdf_service.ProposalPdfService.generate',
+            return_value=b'',
+        ),
+        patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_proposal_to_client',
+        ) as mock_send,
+        pytest.raises(ProposalSnapshotError, match='quedó vacío'),
+    ):
+        ProposalService.send_proposal(proposal)
+
+    proposal.refresh_from_db()
+    assert proposal.status == BusinessProposal.Status.DRAFT
+    assert not Document.objects.filter(source_proposal=proposal).exists()
+    mock_send.assert_not_called()
+
+
 def test_email_failure_marks_snapshot_needs_fix(proposal, settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
     with (

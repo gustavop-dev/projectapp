@@ -81,7 +81,7 @@ observaciones administrativas siguen editables. La migración `content.0223`
 añade identidad de carpeta y origen/archivo de snapshot. Después de migrar,
 producción debe previsualizar y luego aplicar
 `python manage.py backfill_collection_account_filing --apply`; la orden sólo
-toca cuentas sin carpeta y nunca inventa fechas. Verificación focal: 20 pruebas
+toca cuentas sin carpeta y nunca inventa fechas. Verificación focal: 25 pruebas
 de servicios/backfill, 16 de API, 3 de onboarding/MCP, 1 contrato de fake data,
 13 unitarias y 3 E2E, más regresiones específicas de envío/reenvío y build de
 producción.

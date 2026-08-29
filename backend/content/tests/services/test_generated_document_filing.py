@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import (
@@ -19,8 +20,11 @@ from content.services.collection_account_service import (
 )
 from content.services.accounting_service import assign_project_to_documents
 from content.services.generated_document_filing_service import (
+    build_generated_folder_path,
     file_collection_account,
+    file_proposal_snapshot,
 )
+from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import (
     get_collection_account_document_type,
 )
@@ -139,6 +143,51 @@ def test_repeated_filing_reuses_hierarchy(issuer, project, client_user):
     file_collection_account(document)
 
     assert DocumentFolder.objects.count() == initial_folder_count
+
+
+@freeze_time('2026-08-14 15:00:00')
+def test_repeated_filing_repairs_managed_folder(issuer, project, client_user):
+    document = make_account(client_user=client_user, project=project)
+    issue_collection_account(document, issuer=issuer)
+    month_folder = document.folder
+    month_folder.name = 'Mes alterado'
+    month_folder.is_archived = True
+    month_folder.archived_at = timezone.now()
+    month_folder.archived_via_folder = month_folder.parent
+    month_folder.save(update_fields=[
+        'name', 'is_archived', 'archived_at', 'archived_via_folder',
+        'updated_at',
+    ])
+
+    file_collection_account(document)
+    month_folder.refresh_from_db()
+
+    assert (
+        month_folder.name,
+        month_folder.is_archived,
+        month_folder.archived_at,
+        month_folder.archived_via_folder_id,
+    ) == ('08 - Agosto', False, None, None)
+
+
+def test_generated_path_rejects_unknown_document_kind():
+    with pytest.raises(ValueError, match='Unsupported generated document kind'):
+        build_generated_folder_path('invoice', business_date=date(2026, 8, 14))
+
+
+def test_generated_path_requires_business_date():
+    with pytest.raises(ValueError, match='business date is required'):
+        build_generated_folder_path(COLLECTION_ACCOUNT)
+
+
+def test_proposal_filing_rejects_non_snapshot(client_user):
+    document = Document.objects.create(
+        title='Documento manual',
+        client_user=client_user,
+    )
+
+    with pytest.raises(ValueError, match='not a proposal snapshot'):
+        file_proposal_snapshot(document)
 
 
 @freeze_time('2026-08-14 15:00:00')
