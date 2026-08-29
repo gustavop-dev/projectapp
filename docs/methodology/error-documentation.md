@@ -833,3 +833,23 @@ contracts, not conventions repeated in individual commands.
   apertura/cierre del detalle.
 - **Lesson**: Los snapshots persistibles deben cruzar explícitamente de estado
   reactivo a datos planos; clonar un proxy no es una serialización.
+
+### [ERR-037] La búsqueda de Comunicaciones prometía proyectos pero no los consultaba
+
+- **Date**: 2026-08-29
+- **Context**: El campo global indicaba “Buscar cliente, proyecto, asunto o
+  texto”, pero escribir el nombre de un proyecto no devolvía sus hilos. La
+  búsqueda local del navegador lateral sí encontraba ese proyecto.
+- **Root Cause**: El predicado `q` compartido por REST y MCP incluía título del
+  hilo, datos del cliente, asunto y contenido del mensaje, pero omitía
+  `project__name`.
+- **Resolution**: Añadir el nombre del proyecto al mismo predicado OR, actualizar
+  la descripción pública del tool MCP y fijar la semántica con regresiones REST,
+  MCP y del flujo visible.
+- **Files Affected**: servicio de consulta de Comunicaciones, tool y pruebas MCP,
+  flujo E2E y documentación del contrato.
+- **Verification**: búsqueda por proyecto con facets coherentes en REST, paridad
+  MCP, flujo Playwright focal y mapa de flows regenerado.
+- **Lesson**: El texto de ayuda de un buscador es parte de su contrato; cada
+  entidad nombrada ahí debe aparecer en el predicado compartido y en una
+  regresión observable.
