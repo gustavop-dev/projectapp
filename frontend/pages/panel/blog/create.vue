@@ -104,7 +104,7 @@
       <!-- Cover image URL -->
       <div>
         <label for="cover_image_url" class="block text-sm font-medium text-text-default mb-1">Imagen de portada (URL)</label>
-        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://example.com/image.jpg (opcional)" />
+        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://example.com/image.jpg" />
         <p class="text-xs text-text-subtle mt-1">También puedes subir un archivo después de crear el post desde la vista de edición.</p>
       </div>
 

@@ -99,6 +99,7 @@
                 v-model="form.client"
                 :initial-label="clientDisplayName"
                 test-id="doc-client-autocomplete"
+                allow-create
                 @select="onClientSelect"
                 @create-new="onCreateNewClient"
               />

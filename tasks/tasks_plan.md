@@ -1,5 +1,9 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-08-29:** Nuevo proyecto y los modales de creación
+> del panel comparten validación bajo el campo, anchos coherentes, textos breves,
+> una sola convención de obligatoriedad y una fila final sólo para acciones.
+
 > **Segundo hotfix listo para integrar — 2026-08-29:** la recuperación segura
 > del residuo vacío de `content.0223` se ejecuta fuera de
 > `transaction.atomic()`, como exige el DDL no transaccional de MySQL. El primer
@@ -12,6 +16,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Panel — creation-form validation and modal actions | 🟡 Ready for merge | 2026-08-29. Nuevo proyecto muestra nombre/cliente/estado/descripción como un bloque de ancho completo, conserva En desarrollo sin ayuda contradictoria y expone Crear cliente aun con coincidencias. Errores locales y del API quedan bajo su control con relación ARIA; Cancelar/Guardar quedan solos. `BaseFormField`, `ClientAutocomplete` y los modales de creación de Clientes, Tareas, Documentos, Contabilidad y contenido comparten el contrato; no hay cambio backend ni de esquema. Unitarias focales, cuatro escenarios Playwright, build y flow audit están verdes. |
 | Proposals — visibility-aware engagement tracking | 🟡 Ready for merge | 2026-08-29. Ocultar la página finaliza un único segmento por beacon y detiene el intervalo; volver a verla inicia otro segmento. Los flushes concurrentes se coalescen y un response sólo limpia las entradas que realmente envió. 38 pruebas focales verdes. |
 | Emails — historial probatorio con adjuntos exactos | 🟡 Second hotfix ready for merge | Actualizado 2026-08-29. El primer hotfix de MySQL ya está en `main`: conserva la URL completa, usa `url_sha256` para la unicidad y hace que `content.0223` reconozca sólo el residuo vacío. El segundo deploy mostró que Django envolvía esa recuperación en una transacción incompatible con DDL MySQL. La operación queda explícitamente `atomic=False`, con una regresión sobre el límite transaccional; el fallo ocurrió antes de limpiar y la base conserva el mismo residuo vacío. Producción espera merge + redeploy. |
 | Commercial — additional modules catalog | 🟡 Ready for merge | 2026-08-28. Dominio administrable y bilingüe con 18 módulos iniciales en cinco categorías, índice/modal en panel y público, enlaces revocables de selección fija y contenido vivo, PDF sin precios y tracking first-party por sesión. El catálogo canónico es indexable/prerenderizado y los enlaces seleccionados son `noindex`. Pasan 38 pruebas backend, 10 unitarias, 21 E2E, migraciones/checks, gates de flujos/calidad/responsividad y build Nuxt. MCP queda fuera de esta primera versión. |

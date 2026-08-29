@@ -60,6 +60,27 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-042] Los avisos de creación competían con las acciones y no identificaban su campo
+
+- **Date**: 2026-08-29
+- **Context**: El modal Nuevo proyecto agrupaba nombre y cliente como una lista
+  roja junto a Guardar; el estado ocupaba media fila pese a ser el único control
+  y su ayuda contradecía el valor En desarrollo ya seleccionado. Otros modales
+  repetían pies con bloqueos, etiquetas “(opcional)” y errores generales.
+- **Root Cause**: La validación pertenecía al contenedor y a
+  `BaseControlGate`, no al campo. Los controles no compartían un contrato para
+  enlazar mensajes locales/API, y la creación de cliente en el autocomplete se
+  mostraba sólo como resultado vacío.
+- **Resolution**: `BaseFormField` conecta validación nativa o explícita mediante
+  `role="alert"`, `aria-invalid` y `aria-describedby`; los formularios envían el
+  intento y presentan cada error bajo su control. Proyecto usa una columna
+  completa, estado inicial seleccionado sin ayuda redundante, creación al vuelo
+  persistente y un footer exclusivo de acciones. Los modales de creación del
+  panel adoptan el mismo patrón y la convención única de asterisco.
+- **Files Affected**: primitivas `BaseFormField`/inputs,
+  `ClientAutocomplete`, `ProjectFormModal`, páginas de Proyectos y modales de
+  creación de Clientes, Tareas, Documentos, Contabilidad y contenido del panel.
+
 ### [ERR-041] Django wrapped the MySQL snapshot recovery in a transaction
 
 - **Date**: 2026-08-29

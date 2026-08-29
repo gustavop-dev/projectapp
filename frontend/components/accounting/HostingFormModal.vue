@@ -20,6 +20,7 @@ const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
 const inlineClientOpen = ref(false)
 const inlineClient = ref(emptyClientForm())
+const inlineClientErrors = ref({})
 /** Proposed pairing for a record saved before the relation existed. */
 const suggestion = ref(null)
 
@@ -94,6 +95,7 @@ watch(
       form.value = defaultForm()
     }
     inlineClientOpen.value = false
+    inlineClientErrors.value = {}
     suggestion.value = null
     if (props.record && !props.record.client) proposeClient()
   },
@@ -146,20 +148,42 @@ function onClientSelect(client) {
 
 function onCreateNewClient(typedName) {
   inlineClientOpen.value = true
+  inlineClientErrors.value = {}
   inlineClient.value = {
     ...emptyClientForm(),
     name: typedName || form.value.client_name || '',
   }
 }
 
+function clearInlineClientError(field) {
+  if (!inlineClientErrors.value[field]) return
+  const next = { ...inlineClientErrors.value }
+  delete next[field]
+  inlineClientErrors.value = next
+}
+
 async function createInlineClient() {
+  inlineClientErrors.value = {}
+  if (!inlineClient.value.name.trim()) {
+    inlineClientErrors.value = { name: 'Escribe el nombre del cliente.' }
+    return
+  }
   creatingClient.value = true
   const result = await clientsStore.createClient(clientFormPayload(inlineClient.value))
   creatingClient.value = false
   if (result.success && result.data?.id) {
     inlineClientOpen.value = false
     onClientSelect(result.data)
+    return
   }
+  inlineClientErrors.value = Object.fromEntries(
+    Object.entries(result.errors || {})
+      .filter(([field]) => !['message', 'error'].includes(field))
+      .map(([field, messages]) => [
+        field,
+        Array.isArray(messages) ? messages.join(' ') : String(messages || ''),
+      ]),
+  )
 }
 
 function addIfFilled(payload, key, value) {
@@ -198,12 +222,15 @@ function onSubmit() {
       <BaseFormField
         label="Cliente"
         :required="!isEdit"
-        hint="Todo hosting pertenece a un cliente."
+        hint="Cliente al que pertenece el hosting."
       >
         <ClientAutocomplete
           v-model="form.client"
           :initial-label="form.client_display_name"
           test-id="hosting-form-client"
+          allow-create
+          :required="!isEdit"
+          required-message="Elige o crea un cliente."
           @select="onClientSelect"
           @create-new="onCreateNewClient"
         />
@@ -258,8 +285,10 @@ function onSubmit() {
         <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
         <ClientFormFields
           v-model="inlineClient"
+          :errors="inlineClientErrors"
           testid-prefix="hosting-form-inline-client"
           dense
+          @clear-error="clearInlineClientError"
         />
         <div class="flex justify-end gap-2">
           <BaseButton type="button" variant="secondary" size="sm" @click="inlineClientOpen = false">
@@ -365,7 +394,7 @@ function onSubmit() {
         <BaseTextarea v-model="form.notes" :rows="3" />
       </BaseFormField>
 
-      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
+      <BaseModalActions class="-mx-6 -mb-4 mt-6">
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cancelar
         </BaseButton>
@@ -377,7 +406,7 @@ function onSubmit() {
         >
           {{ saving ? 'Guardando...' : 'Guardar' }}
         </BaseButton>
-      </div>
+      </BaseModalActions>
     </form>
   </BaseModal>
 </template>

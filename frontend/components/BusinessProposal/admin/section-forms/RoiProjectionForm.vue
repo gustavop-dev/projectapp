@@ -31,8 +31,8 @@
             <FieldInput v-model="kpi.value" label="Valor" placeholder="≈90K" />
             <FieldInput v-model="kpi.label" label="Etiqueta" placeholder="Visualizaciones diarias" />
           </div>
-          <FieldInput v-model="kpi.sublabel" label="Subtítulo (opcional)" placeholder="mes 6, escenario realista" />
-          <FieldInput v-model="kpi.source" label="Fuente (opcional)" placeholder="Stickermanager benchmark" />
+          <FieldInput v-model="kpi.sublabel" label="Subtítulo" placeholder="mes 6, escenario realista" />
+          <FieldInput v-model="kpi.source" label="Fuente" placeholder="Stickermanager benchmark" />
         </div>
       </template>
     </draggable>

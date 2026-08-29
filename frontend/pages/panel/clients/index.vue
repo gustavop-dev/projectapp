@@ -949,21 +949,25 @@
             automatizaciones quedarán pausadas para este cliente.
           </p>
         </div>
-        <form @submit.prevent="submitCreate" class="px-6 py-4 space-y-4">
+        <form novalidate @submit.prevent="submitCreate">
+          <div class="space-y-4 px-6 py-4">
           <ClientFormFields
             :model-value="createForm"
             testid-prefix="clients-new"
+            :errors="createFieldErrors"
             @update:model-value="Object.assign(createForm, $event)"
+            @clear-error="clearCreateFieldError"
           />
-          <p v-if="createError" class="text-xs text-danger-strong">{{ createError }}</p>
-          <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
+          <BaseAlert v-if="createError" variant="danger">{{ createError }}</BaseAlert>
+          </div>
+          <BaseModalActions>
             <BaseButton variant="ghost" size="md" @click="closeCreateModal">
               Cancelar
             </BaseButton>
-            <BaseButton variant="primary" size="md" type="submit" :disabled="clientsStore.isUpdating" data-testid="clients-new-submit">
+            <BaseButton variant="primary" size="md" type="submit" :loading="clientsStore.isUpdating" data-testid="clients-new-submit">
               Crear cliente
             </BaseButton>
-          </div>
+          </BaseModalActions>
         </form>
     </BaseModal>
 
@@ -980,21 +984,25 @@
             Los cambios se propagarán a todas las propuestas vinculadas a este cliente.
           </p>
         </div>
-        <form @submit.prevent="submitEdit" class="px-6 py-4 space-y-4">
+        <form novalidate @submit.prevent="submitEdit">
+          <div class="space-y-4 px-6 py-4">
           <ClientFormFields
             :model-value="editForm"
             testid-prefix="clients-edit"
+            :errors="editFieldErrors"
             @update:model-value="Object.assign(editForm, $event)"
+            @clear-error="clearEditFieldError"
           />
-          <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
-          <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
+          <BaseAlert v-if="editError" variant="danger">{{ editError }}</BaseAlert>
+          </div>
+          <BaseModalActions>
             <BaseButton variant="ghost" size="md" @click="closeEditModal">
               Cancelar
             </BaseButton>
-            <BaseButton variant="primary" size="md" type="submit" :disabled="clientsStore.isUpdating" data-testid="clients-edit-submit">
+            <BaseButton variant="primary" size="md" type="submit" :loading="clientsStore.isUpdating" data-testid="clients-edit-submit">
               Guardar cambios
             </BaseButton>
-          </div>
+          </BaseModalActions>
         </form>
     </BaseModal>
 
@@ -1617,10 +1625,32 @@ async function toggleClient(client) {
 const showCreateModal = ref(false);
 const createForm = reactive(emptyClientForm());
 const createError = ref('');
+const createFieldErrors = ref({});
+
+function clientFieldErrors(errors) {
+  if (!errors || typeof errors !== 'object') return {};
+  const fields = ['name', 'email', 'phone', 'company', 'nit', 'billing_code'];
+  const normalized = Object.fromEntries(fields.flatMap((field) => {
+    const value = errors[field];
+    const message = Array.isArray(value) ? value[0] : value;
+    return typeof message === 'string' && message.trim() ? [[field, message]] : [];
+  }));
+  if (errors.error === 'invalid_billing_code' && errors.message) {
+    normalized.billing_code = errors.message;
+  }
+  return normalized;
+}
+
+function clearCreateFieldError(field) {
+  const nextErrors = { ...createFieldErrors.value };
+  delete nextErrors[field];
+  createFieldErrors.value = nextErrors;
+}
 
 function openCreateModal() {
   Object.assign(createForm, emptyClientForm());
   createError.value = '';
+  createFieldErrors.value = {};
   showCreateModal.value = true;
 }
 
@@ -1630,15 +1660,22 @@ function closeCreateModal() {
 
 async function submitCreate() {
   createError.value = '';
+  createFieldErrors.value = {};
+  if (!createForm.name.trim()) {
+    createFieldErrors.value = { name: 'Escribe el nombre del cliente.' };
+    return;
+  }
   const result = await clientsStore.createClient(clientFormPayload(createForm));
   if (result.success) {
     closeCreateModal();
     await loadClients();
   } else {
-    createError.value =
-      result.errors?.message ||
-      result.errors?.error ||
-      'No se pudo crear el cliente. Verifica los datos e intenta nuevamente.';
+    createFieldErrors.value = clientFieldErrors(result.errors);
+    if (!Object.keys(createFieldErrors.value).length) {
+      createError.value = result.errors?.message
+        || result.errors?.error
+        || 'No se pudo crear el cliente. Verifica los datos e intenta nuevamente.';
+    }
   }
 }
 
@@ -1649,6 +1686,13 @@ async function submitCreate() {
 const editingClient = ref(null);
 const editForm = reactive(emptyClientForm());
 const editError = ref('');
+const editFieldErrors = ref({});
+
+function clearEditFieldError(field) {
+  const nextErrors = { ...editFieldErrors.value };
+  delete nextErrors[field];
+  editFieldErrors.value = nextErrors;
+}
 
 function openEditModal(client) {
   editingClient.value = client;
@@ -1659,6 +1703,7 @@ function openEditModal(client) {
   editForm.nit = client.nit || '';
   editForm.billing_code = client.billing_code || '';
   editError.value = '';
+  editFieldErrors.value = {};
 }
 
 function closeEditModal() {
@@ -1668,20 +1713,23 @@ function closeEditModal() {
 
 async function submitEdit() {
   editError.value = '';
+  editFieldErrors.value = {};
+  if (!editForm.name.trim()) {
+    editFieldErrors.value = { name: 'Escribe el nombre del cliente.' };
+    return;
+  }
   const result = await clientsStore.updateClient(
     editingClient.value.id, clientFormPayload(editForm),
   );
   if (result.success) {
     closeEditModal();
   } else {
-    editError.value =
-      result.errors?.message ||
-      result.errors?.error ||
-      result.errors?.name?.[0] ||
-      result.errors?.email?.[0] ||
-      result.errors?.phone?.[0] ||
-      result.errors?.company?.[0] ||
-      'Error al actualizar el cliente.';
+    editFieldErrors.value = clientFieldErrors(result.errors);
+    if (!Object.keys(editFieldErrors.value).length) {
+      editError.value = result.errors?.message
+        || result.errors?.error
+        || 'Error al actualizar el cliente.';
+    }
   }
 }
 

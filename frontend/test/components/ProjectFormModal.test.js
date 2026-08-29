@@ -1,7 +1,7 @@
 /**
  * ProjectFormModal: the module's create/edit form.
  *
- * Covers the PA-38 minimum (name + client gate the submit), the client
+ * Covers the PA-38 minimum (name + client validate on submit), the client
  * immutability on edit (the payload must not carry client_profile_id), the
  * non-blocking duplicate warning, and the orphans-panel seed that leaves
  * only the name to type.
@@ -20,7 +20,14 @@ jest.mock('../../stores/services/request_http', () => ({
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
-  props: ['modelValue', 'initialLabel', 'testId'],
+  props: {
+    modelValue: { type: Number, default: null },
+    initialLabel: { type: String, default: '' },
+    testId: { type: String, default: '' },
+    allowCreate: { type: Boolean, default: false },
+    error: { type: Boolean, default: false },
+    errorDescribedBy: { type: String, default: '' },
+  },
   emits: ['update:modelValue', 'select', 'create-new'],
   template: '<div data-testid="client-autocomplete-stub" />',
 };
@@ -59,12 +66,20 @@ function mountModal(props = {}) {
           template: '<div v-if="modelValue"><slot /></div>',
         },
         BaseFormField: {
-          props: ['label', 'hint', 'required'],
-          template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
+          props: ['label', 'hint', 'required', 'error'],
+          template: `
+            <div>
+              <label v-if="label">{{ label }}<span v-if="required">*</span></label>
+              <slot :invalid="Boolean(error)" :error-id="error ? 'field-error' : undefined" />
+              <p v-if="error" role="alert">{{ error }}</p>
+              <p v-else-if="hint">{{ hint }}</p>
+            </div>
+          `,
         },
         BaseFormRow: { template: '<div><slot /></div>' },
+        BaseModalActions: { template: '<div data-testid="base-modal-actions"><slot /></div>' },
         BaseInput: {
-          props: ['modelValue', 'type', 'placeholder'],
+          props: ['modelValue', 'type', 'placeholder', 'error'],
           emits: ['update:modelValue'],
           template:
             '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
@@ -78,7 +93,13 @@ function mountModal(props = {}) {
         BaseSelect: {
           props: ['modelValue', 'options'],
           emits: ['update:modelValue'],
-          template: '<select :value="modelValue" />',
+          template: `
+            <select :value="modelValue">
+              <option v-for="option in options" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          `,
         },
         BaseButton: {
           props: ['variant', 'size', 'disabled', 'type'],
@@ -111,19 +132,27 @@ describe('ProjectFormModal', () => {
     }));
   });
 
-  it('gates the submit on the PA-38 minimum: name AND client', async () => {
+  it('places validation beside each missing required field after submit', async () => {
     const wrapper = mountModal();
     await flushPromises();
 
     const submit = () => wrapper.find('[data-testid="project-form-submit"]');
-    expect(submit().attributes('disabled')).toBeDefined();
+    expect(submit().attributes('disabled')).toBeUndefined();
+
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.findAll('[role="alert"]').map((alert) => alert.text())).toEqual([
+      'Escribe el nombre del proyecto.',
+      'Elige o crea un cliente.',
+    ]);
+    expect(wrapper.emitted('submit')).toBeUndefined();
 
     await wrapper.find('[data-testid="project-form-name"]').setValue('Kore');
-    expect(submit().attributes('disabled')).toBeDefined();
+    expect(wrapper.text()).not.toContain('Escribe el nombre del proyecto.');
 
     wrapper.findComponent(ClientAutocompleteStub).vm.$emit('select', CLIENT);
     await flushPromises();
-    expect(submit().attributes('disabled')).toBeUndefined();
+    expect(wrapper.text()).not.toContain('Elige o crea un cliente.');
 
     await wrapper.find('form').trigger('submit');
     const payload = wrapper.emitted('submit')[0][0];
@@ -133,6 +162,29 @@ describe('ProjectFormModal', () => {
       description: '',
       state_id: 10,
     });
+  });
+
+  it('renders En desarrollo as the initial state selection', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="project-form-status"]').element.value).toBe('10');
+  });
+
+  it('omits the redundant default-state help', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="project-form-status"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('Si no eliges un estado');
+    expect(wrapper.text()).not.toContain('(opcional)');
+  });
+
+  it('exposes inline client creation from the selector', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+
+    expect(wrapper.findComponent(ClientAutocompleteStub).props('allowCreate')).toBe(true);
   });
 
   it('editing hydrates the form and never sends the client', async () => {

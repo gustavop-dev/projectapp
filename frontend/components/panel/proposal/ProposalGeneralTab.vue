@@ -382,6 +382,7 @@
           v-model="form.client_id"
           :initial-label="form.client_name"
           test-id="proposal-edit-client-autocomplete"
+          allow-create
           @select="emit('client-selected', $event)"
           @create-new="emit('create-inline-client', $event)"
         />

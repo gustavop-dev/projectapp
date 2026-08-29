@@ -38,6 +38,7 @@
             :show-linked-hint="false"
             sort-storage-key="panel.accounting.bulk-client-name-order"
             :initial-label="clientLabel"
+            allow-create
             @select="onClientSelect"
             @create-new="onCreateNewClient"
           />
@@ -51,8 +52,10 @@
               <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
               <ClientFormFields
                 v-model="inlineClient"
+                :errors="inlineClientErrors"
                 :testid-prefix="`${testidPrefix}-bulk-inline-client`"
                 dense
+                @clear-error="clearInlineClientError"
               />
               <BaseAlert
                 v-if="clientCreateError"
@@ -70,8 +73,7 @@
                   variant="primary"
                   size="sm"
                   :loading="creatingClient"
-                  :disabled="creatingClient || !inlineClient.name.trim()"
-                  disabled-reason="Escribe el nombre del cliente."
+                  :disabled="creatingClient"
                   :data-testid="`${testidPrefix}-bulk-inline-client-save`"
                   @click="createInlineClient"
                 >
@@ -234,6 +236,7 @@ const inlineClientOpen = ref(false);
 const inlineClient = ref(emptyClientForm());
 const creatingClient = ref(false);
 const clientCreateError = ref('');
+const inlineClientErrors = ref({});
 
 /**
  * Selection frozen at open time. The page clears the selection right after a
@@ -324,6 +327,7 @@ function onProjectSelect(project) {
 
 function onCreateNewClient(typedName) {
   clientCreateError.value = '';
+  inlineClientErrors.value = {};
   inlineClient.value = { ...emptyClientForm(), name: typedName || '' };
   inlineClientOpen.value = true;
 }
@@ -332,25 +336,41 @@ function cancelInlineClient() {
   inlineClientOpen.value = false;
   inlineClient.value = emptyClientForm();
   clientCreateError.value = '';
+  inlineClientErrors.value = {};
 }
 
-function firstClientCreateError(errors) {
-  if (!errors || typeof errors !== 'object') return '';
-  const direct = errors.message || errors.error || errors.detail;
-  if (direct) return Array.isArray(direct) ? direct[0] : direct;
-  const fieldError = Object.values(errors).flat().find(Boolean);
-  return Array.isArray(fieldError) ? fieldError[0] : fieldError || '';
+function clearInlineClientError(field) {
+  if (!inlineClientErrors.value[field]) return;
+  const next = { ...inlineClientErrors.value };
+  delete next[field];
+  inlineClientErrors.value = next;
 }
 
 async function createInlineClient() {
-  if (creatingClient.value || !inlineClient.value.name.trim()) return;
+  if (creatingClient.value) return;
+  inlineClientErrors.value = {};
+  if (!inlineClient.value.name.trim()) {
+    inlineClientErrors.value = { name: 'Escribe el nombre del cliente.' };
+    return;
+  }
   creatingClient.value = true;
   clientCreateError.value = '';
   const result = await clientsStore.createClient(clientFormPayload(inlineClient.value));
   creatingClient.value = false;
   if (!result.success || !result.data?.id) {
-    clientCreateError.value = firstClientCreateError(result.errors)
-      || 'No se pudo crear el cliente. Revisa los datos e inténtalo de nuevo.';
+    const fields = Object.fromEntries(
+      Object.entries(result.errors || {})
+        .filter(([field]) => !['message', 'error', 'detail'].includes(field))
+        .map(([field, messages]) => [
+          field,
+          Array.isArray(messages) ? messages.join(' ') : String(messages || ''),
+        ]),
+    );
+    inlineClientErrors.value = fields;
+    clientCreateError.value = Object.keys(fields).length
+      ? ''
+      : (result.errors?.message || result.errors?.error || result.errors?.detail
+        || 'No se pudo crear el cliente. Inténtalo de nuevo.');
     return;
   }
   clientId.value = result.data.id;
@@ -379,6 +399,7 @@ watch(() => props.open, (open) => {
   inlineClient.value = emptyClientForm();
   creatingClient.value = false;
   clientCreateError.value = '';
+  inlineClientErrors.value = {};
   rowsSnapshot.value = [...props.rows];
   idsSnapshot.value = [...props.selectedIds];
 }, { immediate: true });

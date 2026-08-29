@@ -6084,7 +6084,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-outbound-email-history-body` | admin | P1 | display | 1 |
 | `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
 | `admin-outbound-email-history-resend` | admin | P1 | success,failure | — |
-| `admin-panel-projects` | admin | P1 | display,success,error | 13 |
+| `admin-panel-projects` | admin | P1 | display,success,error | 15 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
 | `admin-portfolio-create` | admin | P2 | display,success,error | 1 |
@@ -6926,11 +6926,11 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 - **Priority:** P1
 - **Routes:** `/panel/projects`
 - **API:** `GET /api/projects/?scope=all`, `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `GET /api/project-states/`, `GET /api/proposals/client-profiles/?without_projects=true`
-- **Description:** Listing of every project with client, administrable lifecycle state, created date and per-project hosting/income counts. It loads once and filters client-side by every active catalog state plus the manual-review bucket; search is accent/case-blind and columns remain sortable. Indicator cards share a fixed label/value/reserved-support structure, so help copy never changes their height, and every visible card has contextual help plus an explicit action. On expanded widths, non-zero lifecycle states follow catalog order under **Ciclo del proyecto**; review, clients without projects and unlinked accounting records are grouped separately under **Pendientes operativos**. **Clients without project** remains literal (no `Project` row) and opens a create path pre-seeded with that client. Create requires name + client, defaults to **En desarrollo**, and may choose another initial catalog state; later state changes are intentionally absent from edit and use the consequence-preview flow. A same-name project warns without blocking. For superusers, counts link into accounting pre-filtered by project.
+- **Description:** Listing of every project with client, administrable lifecycle state, created date and per-project hosting/income counts. It loads once and filters client-side by every active catalog state plus the manual-review bucket; search is accent/case-blind and columns remain sortable. Indicator cards share a fixed label/value/reserved-support structure, so help copy never changes their height, and every visible card has contextual help plus an explicit action. On expanded widths, non-zero lifecycle states follow catalog order under **Ciclo del proyecto**; review, clients without projects and unlinked accounting records are grouped separately under **Pendientes operativos**. **Clients without project** remains literal (no `Project` row) and opens a create path pre-seeded with that client. Create presents name, client, initial state and description as one full-width block; **En desarrollo** is visibly selected without redundant help. Name/client errors appear beneath their controls, the footer contains only Cancelar/Guardar, and Crear cliente remains visible in the selector even with matching results. Later state changes are intentionally absent from edit and use the consequence-preview flow. A same-name project warns without blocking. For superusers, counts link into accounting pre-filtered by project.
 - **Responsive contract:** En 412 px y 835 px la cabecera muestra exactamente dos resúmenes accionables — **Estados** y **Pendientes** —; sus drawers conservan todos los estados, incluidos los que están en cero, y cada detalle operativo. La primera tarjeta del listado queda dentro de la pantalla inicial del teléfono. El scope es selector, el orden sigue explícito y el listado usa tarjetas en una o dos columnas. Desde 1195 px vuelven las tarjetas detalladas y la tabla. Crear, editar, asignar huérfanos y cambiar cliente usan pantalla completa en teléfono; la vista previa de impacto se apila antes de la decisión y conserva acciones sticky. En 2560 px la página se centra con máximo de 1400 px.
 - **Steps:** open module → inspect or activate an indicator → search/sort/filter by catalog state → create from CTA or uncovered-client panel → edit descriptive data → open the dedicated lifecycle/history actions → jump into hostings/incomes by count.
-- **Branches:** duplicate name warns and still saves; backend 400 keeps the modal open with the message; zero counts render as plain text; non-superusers see plain counts (no links).
-- **Coverage:** ✅ Covered, incluidas alturas parejas, orden del ciclo, estados en cero dentro del detalle compacto, acciones de filtro/navegación y display responsivo en los cinco anchos reales.
+- **Branches:** missing name/client marks each incomplete control without sending; duplicate name warns and still saves; backend 400 keeps the modal open and places the serializer message under its field; zero counts render as plain text; non-superusers see plain counts (no links).
+- **Coverage:** ✅ Covered, incluidas validación local/API junto al campo, footer limpio, ancho uniforme, estado inicial coherente, creación de cliente visible, alturas parejas, orden del ciclo, estados en cero dentro del detalle compacto, acciones de filtro/navegación y display responsivo en los cinco anchos reales.
 - **E2E Specs:** `e2e/admin/admin-panel-projects.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 
 ### FLOW: `admin-project-fly-create`
@@ -7090,19 +7090,6 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 ## Unsectioned flows
 
-### FLOW: `admin-document-email-history`
-
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P1
-- **Routes:** `/panel/documents/:id/edit` → `/panel/emails?tab=history&email=:id`
-- **Description:** El administrador ve los correos donde salió un documento y navega a la fila exacta del historial universal.
-- **Interacciones y outcomes:**
-  1. **display:** entrar al gestor, abrir un documento, leer **Este documento se envió en N correos** y comprobar asunto, destinatario, fecha y nombre archivado.
-  2. **display:** pulsar una referencia y llegar al Historial con esa fila cargada y expandida.
-  3. **success/error/failure:** n/a; es navegación de evidencia. La protección 409 al eliminar se cubre en integración backend.
-- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
-
 ### FLOW: `admin-additional-modules-catalog`
 
 - **Module:** admin / commercial
@@ -7152,6 +7139,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Interaction:** Select modules and recipient, generate a fixed-selection link, then inspect openings or revoke it in Seguimiento.
 - **Outcomes:** `success`, `error`, `failure`, `display`
 - **Evidence:** `CatalogSelectionModal.vue`, `ShareHistoryModal.vue`, admin share endpoints.
+
+### FLOW: `admin-document-email-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents/:id/edit` → `/panel/emails?tab=history&email=:id`
+- **Description:** El administrador ve los correos donde salió un documento y navega a la fila exacta del historial universal.
+- **Interacciones y outcomes:**
+  1. **display:** entrar al gestor, abrir un documento, leer **Este documento se envió en N correos** y comprobar asunto, destinatario, fecha y nombre archivado.
+  2. **display:** pulsar una referencia y llegar al Historial con esa fila cargada y expandida.
+  3. **success/error/failure:** n/a; es navegación de evidencia. La protección 409 al eliminar se cubre en integración backend.
+- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
 
 ### FLOW: `admin-document-gallery`
 

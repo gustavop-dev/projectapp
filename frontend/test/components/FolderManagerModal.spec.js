@@ -48,6 +48,9 @@ global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
 import { mount } from '@vue/test-utils';
 import FolderManagerModal from '../../components/panel/documents/FolderManagerModal.vue';
 import FolderManagerTree from '../../components/panel/documents/FolderManagerTree.vue';
+import BaseFormField from '../../components/base/BaseFormField.vue';
+import BaseInput from '../../components/base/BaseInput.vue';
+import BaseSelect from '../../components/base/BaseSelect.vue';
 
 async function flushPromises() {
   await Promise.resolve();
@@ -83,11 +86,19 @@ function mountModal(props = {}) {
         draggable: DraggableStub,
         FolderFormModal: FolderFormModalStub,
       },
+      components: { BaseFormField, BaseInput, BaseSelect },
     },
   });
 }
 
 describe('FolderManagerModal', () => {
+  function expectDescribedError(wrapper, control, message) {
+    const errorId = control.attributes('aria-describedby');
+    const error = wrapper.findAll('[role="alert"]')
+      .find((node) => node.attributes('id') === errorId);
+    expect(error.exists()).toBe(true);
+    expect(error.text()).toBe(message);
+  }
   beforeEach(() => {
     mockFolderStore.folders = [];
     mockFolderStore.isUpdating = false;
@@ -148,10 +159,39 @@ describe('FolderManagerModal', () => {
       );
     });
 
-    it('disables the Crear button when the input is empty', () => {
+    // Falla si la validación local vuelve a bloquear preventivamente la acción.
+    it('keeps Crear enabled before validation', () => {
       const wrapper = mountModal();
 
-      expect(wrapper.findAll('button').find((btn) => btn.text() === 'Crear').element.disabled).toBe(true);
+      const createButton = wrapper.findAll('button').find((btn) => btn.text() === 'Crear');
+      expect(createButton.element.disabled).toBe(false);
+    });
+
+    // Falla si el envío vacío no marca el control o lleva su explicación a otra zona del modal.
+    it('marks an empty folder name with its described error', async () => {
+      const wrapper = mountModal();
+      await wrapper.find('form').trigger('submit');
+
+      const name = wrapper.get('[data-testid="folder-manager-new-name"]');
+
+      expect(mockFolderStore.createFolder).toHaveBeenCalledTimes(0);
+      expect(name.attributes('aria-invalid')).toBe('true');
+      expectDescribedError(wrapper, name, 'Escribe el nombre de la carpeta.');
+    });
+
+    // Falla si corregir el nombre conserva la marca de error obsoleta.
+    it('clears the folder name validation after typing', async () => {
+      const wrapper = mountModal();
+      await wrapper.find('form').trigger('submit');
+      const name = wrapper.get('[data-testid="folder-manager-new-name"]');
+      const errorId = name.attributes('aria-describedby');
+
+      await name.setValue('Diseño');
+
+      expect(name.attributes('aria-invalid')).toBeUndefined();
+      expect(name.attributes('aria-describedby')).toBeUndefined();
+      expect(wrapper.findAll('[role="alert"]')
+        .some((node) => node.attributes('id') === errorId)).toBe(false);
     });
 
     it('clears the input and emits changed after a successful create', async () => {

@@ -538,9 +538,11 @@
       :saving="store.isUpdating"
       :seed-client="seedClient"
       :existing-projects="store.records"
+      :field-errors="projectFormErrors"
       @close="closeModal"
       @submit="onFormSubmit"
       @change-client="openChangeClient"
+      @clear-error="clearProjectFormError"
     />
 
     <!-- Guided cascade: the only path that moves a project between clients -->
@@ -848,6 +850,7 @@ const {
       ? 'No se pudo actualizar el proyecto'
       : 'No se pudo crear el proyecto'),
   },
+  suppressFieldErrorNotification: true,
 });
 
 const columns = computed(() => [
@@ -1020,6 +1023,7 @@ function onClientChanged() {
 async function onFormSubmit(payload) {
   const wasEditing = Boolean(editingRecord.value);
   const result = await handleSubmit(payload);
+  projectFormErrors.value = result?.success ? {} : (result?.fieldErrors || {});
   if (!wasEditing && result?.success && unlinkedTotal(result.data) > 0) {
     openAssign(result.data);
   }
@@ -1029,6 +1033,14 @@ async function onFormSubmit(payload) {
 
 const orphansOpen = ref(false);
 const seedClient = ref(null);
+const projectFormErrors = ref({});
+
+function clearProjectFormError(field) {
+  if (!projectFormErrors.value[field]) return;
+  const nextErrors = { ...projectFormErrors.value };
+  delete nextErrors[field];
+  projectFormErrors.value = nextErrors;
+}
 
 function openOrphansPanel() {
   orphansOpen.value = true;
@@ -1049,6 +1061,7 @@ function openCreateFromOrphan(client) {
 // The seed belongs to one modal opening; a later plain "Nuevo proyecto"
 // must not inherit it.
 watch(isModalOpen, (open) => {
+  projectFormErrors.value = {};
   if (!open) seedClient.value = null;
 });
 

@@ -27,41 +27,36 @@
           </div>
 
           <!-- New folder form -->
-          <div class="px-6 pt-5 pb-4 flex-shrink-0 space-y-2">
-            <form class="flex gap-2" @submit.prevent="handleCreate">
-              <div class="relative flex-1">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                </svg>
-                <input
+          <div class="px-6 pt-5 pb-4 flex-shrink-0 space-y-3">
+            <form class="space-y-3" novalidate @submit.prevent="handleCreate">
+              <BaseFormField label="Nombre" required :error="newNameError">
+                <BaseInput
                   v-model="newName"
                   type="text"
-                  placeholder="Nombre de la nueva carpeta..."
-                  class="w-full pl-9 pr-3 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface placeholder:text-input-placeholder transition-colors"
+                  placeholder="Nombre de la nueva carpeta"
+                  :error="!!newNameError"
+                  data-testid="folder-manager-new-name"
+                  @update:model-value="newNameError = ''"
                 />
-              </div>
+              </BaseFormField>
+              <BaseFormField label="Dentro de">
+                <BaseSelect v-model="newParent">
+                  <option :value="null">Ninguna (carpeta raíz)</option>
+                  <option v-for="opt in createOptions" :key="opt.id" :value="opt.id">
+                    {{ opt.label }}
+                  </option>
+                </BaseSelect>
+              </BaseFormField>
+              <div class="flex justify-end">
               <BaseButton
                 type="submit"
                 variant="primary"
-                class="flex-shrink-0"
-                :disabled="!newName.trim()"
                 :loading="folderStore.isUpdating"
               >
                 Crear
               </BaseButton>
+              </div>
             </form>
-            <label class="flex items-center gap-2 text-xs text-text-muted">
-              <span class="flex-shrink-0">Dentro de:</span>
-              <select
-                v-model="newParent"
-                class="flex-1 min-w-0 px-2.5 py-2 border border-border-default rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
-              >
-                <option :value="null">Ninguna (carpeta raíz)</option>
-                <option v-for="opt in createOptions" :key="opt.id" :value="opt.id">
-                  {{ opt.label }}
-                </option>
-              </select>
-            </label>
           </div>
 
           <div v-if="folderStore.activeFolders.length" class="px-6 pb-2 flex-shrink-0">
@@ -171,10 +166,12 @@ const showFolderForm = ref(false);
 const deletingFolder = ref(null);
 const showDeleteFolder = ref(false);
 const errorMsg = ref('');
+const newNameError = ref('');
 
 watch(() => props.modelValue, async (open) => {
   if (open) {
     errorMsg.value = '';
+    newNameError.value = '';
     deletingFolder.value = null;
     showDeleteFolder.value = false;
     editingFolder.value = null;
@@ -213,7 +210,10 @@ function close() {
 
 async function handleCreate() {
   const name = newName.value.trim();
-  if (!name) return;
+  if (!name) {
+    newNameError.value = 'Escribe el nombre de la carpeta.';
+    return;
+  }
   errorMsg.value = '';
   // Crear dentro de una carpeta con dueño hereda su asociación: es el mismo
   // default que propone el formulario completo, no una atadura.
@@ -229,7 +229,12 @@ async function handleCreate() {
     newParent.value = props.initialParent ?? null;
     emit('changed');
   } else {
-    errorMsg.value = formatErr(result.errors) || 'No se pudo crear la carpeta.';
+    newNameError.value = Array.isArray(result.errors?.name)
+      ? result.errors.name.join(' ')
+      : (result.errors?.name || '');
+    errorMsg.value = newNameError.value
+      ? ''
+      : (formatErr(result.errors) || 'No se pudo crear la carpeta.');
   }
 }
 

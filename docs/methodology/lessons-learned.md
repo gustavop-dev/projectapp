@@ -7,6 +7,12 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-29 — el error pertenece al campo:** un formulario no debe
+> resumir junto al CTA lo que puede señalar exactamente en el control. La misma
+> fuente del mensaje debe gobernar borde, relación ARIA y limpieza al editar;
+> el footer conserva sólo acciones y, si hiciera falta, un conteo sin repetir
+> nombres. “Opcional” no se escribe cuando el asterisco ya define la convención.
+
 > **Lección 2026-08-29 — telemetría visible:** un tab abierto no equivale a
 > atención. Todo heartbeat de engagement debe obedecer Page Visibility, cerrar
 > una sola vez al ocultarse y protegerse contra requests concurrentes; de lo
@@ -1434,3 +1440,18 @@ data. A generic `DROP IF EXISTS` or blind `--fake` turns an index bug into silen
 history loss. If that recovery itself issues DDL, its `RunPython` must also set
 `atomic=False`; otherwise Django opens `transaction.atomic()` around the
 operation and MySQL rejects the cleanup before its safety checks can help.
+
+## 60. Validation is field state, not footer content
+
+An actionable validation message has one owner: the field that can resolve it.
+That owner must render the copy, expose it as an alert, mark the actual control
+invalid and clear the relationship when the value changes. A disabled submit
+plus a distant list hides the first useful interaction and duplicates content;
+submitting an incomplete form can instead reveal every local correction while
+leaving the action row stable.
+
+The same economy applies to labels and help. Choose one required-field marker,
+let its absence mean optional, and remove default explanations when the default
+is already visibly selected. Inline creation is part of a selector's capability
+contract, so it must remain discoverable before the empty or error state and be
+opted into only by consumers that can complete the creation flow.

@@ -223,7 +223,7 @@ async function createInline(confirmSimilar = false) {
       </div>
       <div class="space-y-4 px-5 py-5 sm:px-6">
         <BaseFormField
-          :label="finishDialog.outcome === 'removed' ? 'Motivo (opcional)' : 'Detalle del cierre (opcional)'"
+          :label="finishDialog.outcome === 'removed' ? 'Motivo' : 'Detalle del cierre'"
           :hint="finishDialog.outcome === 'removed' ? 'Si lo dejas vacío, quedará registrado sin motivo.' : 'Describe brevemente qué se completó.'"
         >
           <BaseTextarea v-model="finishDialog.note" :rows="4" maxlength="500" :disabled="stateStore.isUpdating" data-testid="document-state-finish-note" />

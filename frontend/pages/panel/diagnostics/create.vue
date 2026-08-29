@@ -52,7 +52,7 @@
         />
       </BaseFormField>
 
-      <BaseFormField label="Título (opcional)">
+      <BaseFormField label="Título">
         <BaseInput
           v-model="title"
           placeholder="Se generará automáticamente si lo dejas vacío"
