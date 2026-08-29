@@ -60,6 +60,31 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-041] Django wrapped the MySQL snapshot recovery in a transaction
+
+- **Date**: 2026-08-29
+- **Context**: After the URL-index hotfix reached `main`, the next
+  `$deploy-and-check` stopped again at `content.0223_email_delivery_snapshots`
+  while its recovery tried to remove the previously verified empty residue.
+  The exception occurred before the first cleanup statement; service restarts
+  were skipped and the existing runtime remained healthy.
+- **Root Cause**: A migration is atomic by default. On a backend whose schema
+  editor cannot roll DDL back, Django therefore wrapped the recovery
+  `RunPython` in `transaction.atomic()`. MySQL correctly rejected its first DDL
+  statement with `TransactionManagementError`.
+- **Resolution**: Mark only the recovery `RunPython` as `atomic=False`. The
+  following schema operations retain Django's normal migration semantics, and
+  the existing fail-closed checks still prove that every artifact is empty
+  before any cleanup.
+- **Files Affected**: migration `0223`, its focused recovery tests and Memory
+  Bank documentation.
+- **Verification**: A behavioral regression applies the recovery operation with
+  a non-transactional schema editor and proves that Django does not enter
+  `transaction.atomic()`.
+- **Lesson**: Recovery code that executes MySQL DDL must declare its own
+  transaction boundary; checking that the data is safe is necessary but does
+  not make the DDL transaction-compatible.
+
 ### [ERR-040] MySQL rejected the email-link snapshot index
 
 - **Date**: 2026-08-29

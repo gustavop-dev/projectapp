@@ -1,7 +1,10 @@
+from contextlib import contextmanager
 from importlib import import_module
 from types import SimpleNamespace
 
 import pytest
+from django.db import migrations
+from django.db.migrations.state import ProjectState
 
 
 migration = import_module('content.migrations.0223_email_delivery_snapshots')
@@ -47,6 +50,7 @@ class FakeIntrospection:
 
 
 class FakeConnection:
+    alias = 'default'
     vendor = 'mysql'
 
     def __init__(self, tables, counts):
@@ -59,6 +63,8 @@ class FakeConnection:
 
 
 class FakeSchemaEditor:
+    atomic_migration = False
+
     def __init__(self, tables, counts):
         self.connection = FakeConnection(tables, counts)
         self.statements = []
@@ -98,6 +104,29 @@ def test_recovery_removes_empty_mysql_artifacts():
         'ALTER TABLE `content_emaillog` DROP COLUMN `snapshot_id`',
         'DROP TABLE `content_emaildeliverysnapshot`',
     ]
+
+
+def test_recovery_stays_outside_transaction_on_nontransactional_ddl_backend(
+    monkeypatch,
+):
+    entered_transactions = []
+
+    @contextmanager
+    def record_atomic(alias):
+        entered_transactions.append(alias)
+        yield
+
+    monkeypatch.setattr('django.db.migrations.migration.atomic', record_atomic)
+    schema_editor = partial_schema_editor()
+    recovery_migration = migrations.Migration(
+        'test_recovery_atomicity',
+        'content',
+    )
+    recovery_migration.operations = [migration.Migration.operations[0]]
+
+    recovery_migration.apply(ProjectState(), schema_editor)
+
+    assert entered_transactions == []
 
 
 def test_recovery_refuses_populated_mysql_artifacts():
