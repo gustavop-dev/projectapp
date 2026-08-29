@@ -4363,24 +4363,26 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/communications`
-- **API:** `GET/POST /api/communications/threads/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`
-- **Description:** El administrador conserva el recorrido de una conversación sin convertirla en documento. Un hilo pertenece a un cliente, puede apuntar a un proyecto y contiene mensajes entrantes o salientes con canal, fecha, estado y referencias a documentos existentes. En esta primera fase la plataforma registra; no envía realmente por correo ni WhatsApp.
+- **API:** `GET/POST /api/communications/threads/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`, `/api/accounts/saved-filter-tabs/`
+- **Description:** El administrador recorre el registro manual de conversaciones por proyecto, por cliente o por la entrada explícita «Sin proyecto». Puede combinar filtros, guardar recortes propios y abrir el detalle en un modal de trabajo sin perder la lista. Cada hilo conserva mensajes entrantes o salientes con canal, fecha, estado y referencias a documentos existentes.
 - **Steps:**
-  1. El administrador abre Comunicaciones y consulta los hilos filtrables.
-  2. Selecciona un hilo y lee los mensajes en orden temporal junto con canal, dirección y estado.
-  3. Escribe o pega el texto exacto de una comunicación.
-  4. Registra una salida como borrador o enviada, o una entrada como respuesta recibida.
-  5. La línea de tiempo se vuelve a consultar y muestra el nuevo registro.
+  1. El administrador entra a Comunicaciones desde el panel y navega por proyectos o clientes, con conteos que incluyen sus hilos.
+  2. Elige «Sin proyecto» cuando necesita consultar conversaciones todavía no asociadas a uno.
+  3. Combina varios valores dentro de un filtro y, si reutiliza ese recorte, lo guarda con nombre como vista propia.
+  4. Selecciona un hilo; el detalle se abre sobre la lista y muestra la línea de tiempo, sus estados y documentos referenciados.
+  5. Escribe o pega el texto exacto y registra una salida como borrador o enviada, o una entrada como recibida.
+  6. Cierra el detalle o vuelve atrás y recupera el mismo contexto de navegación y filtros.
 - **Branches:**
-  - [Branch A — Consulta] La línea de tiempo muestra juntos lo enviado, lo recibido y los documentos referenciados.
-  - [Branch B — Registro exitoso] Un mensaje saliente queda con estado `sent` y fecha explícita.
-  - [Branch C — Error de negocio] La API rechaza el registro y el panel conserva el texto, mostrando la razón.
-  - [Branch D — Fallo de carga] El listado no está disponible y el panel muestra un estado de error visible.
-  - [Branch E — Alcance de canal] El aviso superior aclara que copiar/enviar ocurre fuera de la plataforma en esta fase.
+  - [Branch A — Display] La navegación muestra proyectos, clientes y «Sin proyecto»; el modal presenta juntos lo enviado, lo recibido y los documentos referenciados.
+  - [Branch B — Recorte guardado] La selección por cliente y los estados múltiples se guardan y se restauran como una vista propia.
+  - [Branch C — Registro exitoso] Un mensaje saliente queda con estado `sent` y fecha explícita.
+  - [Branch D — Error de negocio] La API rechaza el registro y el panel conserva el texto, mostrando la razón.
+  - [Branch E — Fallo de carga] El listado no está disponible y el panel mantiene un reintento visible.
+  - [Branch F — Alcance de canal] El aviso describe el registro manual vigente y puede cerrarse después de leído, sin prometer una fase posterior.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-client-communications.spec.js`
 - **Unit Tests:** `test/stores/communications.test.js`
-- **Backend Tests:** `content/tests/views/test_communication_views.py`
+- **Backend Tests:** `content/tests/views/test_communication_views.py`, `content/tests/views/test_communication_filters.py`
 
 ### FLOW: `admin-mini-crm-clients`
 
@@ -5984,7 +5986,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-blog-overdue-detection` | admin | P2 | — | 0 |
 | `admin-blog-publish-mode` | admin | P2 | display,success | 1 |
 | `admin-calculator-followup-alert` | admin | P2 | — | 0 |
-| `admin-client-communications` | admin | P1 | display,success,error,failure | 4 |
+| `admin-client-communications` | admin | P1 | display,success,error,failure | 5 |
 | `admin-client-create-standalone` | admin | P2 | success,error | 1 |
 | `admin-client-delete-orphan` | admin | P2 | display,success | 1 |
 | `admin-client-delete-protected` | admin | P2 | error | 1 |

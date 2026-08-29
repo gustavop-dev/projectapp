@@ -12,10 +12,24 @@ function queryString(filters = {}) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (value !== null && value !== undefined && value !== '') {
-      params.set(key, String(value));
+      params.set(key, Array.isArray(value) ? value.join(',') : String(value));
     }
   }
   return params.toString();
+}
+
+
+function emptyFacets() {
+  return {
+    total: 0,
+    navigation_total: 0,
+    without_project_count: 0,
+    projects: [],
+    clients: [],
+    filters: {
+      status: {}, channel: {}, direction: {}, message_status: {},
+    },
+  };
 }
 
 
@@ -26,9 +40,13 @@ export const useCommunicationsStore = defineStore('communications', {
     count: 0,
     page: 1,
     numPages: 1,
+    facets: emptyFacets(),
     isLoading: false,
+    isThreadLoading: false,
     isMutating: false,
     error: null,
+    threadError: null,
+    threadsRequestId: 0,
   }),
 
   getters: {
@@ -45,8 +63,10 @@ export const useCommunicationsStore = defineStore('communications', {
       if (this.currentThread?.id === thread.id) this.currentThread = thread;
     },
 
-    _failure(error, fallback) {
-      this.error = error?.response?.data?.detail || 'request_failed';
+    _failure(error, fallback, target = 'error') {
+      const fieldMessage = Object.values(error?.response?.data || {})
+        .find((value) => typeof value === 'string');
+      this[target] = error?.response?.data?.detail || fieldMessage || 'request_failed';
       return {
         success: false,
         errors: error?.response?.data,
@@ -55,6 +75,7 @@ export const useCommunicationsStore = defineStore('communications', {
     },
 
     async fetchThreads(filters = {}) {
+      const requestId = ++this.threadsRequestId;
       this.isLoading = true;
       this.error = null;
       try {
@@ -62,31 +83,43 @@ export const useCommunicationsStore = defineStore('communications', {
         const response = await get_request(
           `communications/threads/${query ? `?${query}` : ''}`,
         );
+        if (requestId !== this.threadsRequestId) {
+          return { success: true, stale: true, data: response.data };
+        }
         this.threads = response.data?.results || [];
         this.count = response.data?.count || 0;
         this.page = response.data?.page || 1;
         this.numPages = response.data?.num_pages || 1;
+        this.facets = response.data?.facets || emptyFacets();
         return { success: true, data: response.data };
       } catch (error) {
+        if (requestId !== this.threadsRequestId) {
+          return { success: false, stale: true };
+        }
         return this._failure(error, 'No se pudieron cargar las comunicaciones.');
       } finally {
-        this.isLoading = false;
+        if (requestId === this.threadsRequestId) this.isLoading = false;
       }
     },
 
     async fetchThread(id) {
-      this.isLoading = true;
-      this.error = null;
+      this.isThreadLoading = true;
+      this.threadError = null;
       try {
         const response = await get_request(`communications/threads/${id}/`);
         this.currentThread = response.data;
         this._replaceThread(response.data);
         return { success: true, data: response.data };
       } catch (error) {
-        return this._failure(error, 'No se pudo cargar el hilo.');
+        return this._failure(error, 'No se pudo cargar el hilo.', 'threadError');
       } finally {
-        this.isLoading = false;
+        this.isThreadLoading = false;
       }
+    },
+
+    clearCurrentThread() {
+      this.currentThread = null;
+      this.threadError = null;
     },
 
     async createThread(payload) {
