@@ -418,10 +418,13 @@ Table sizing is a capability of that same layer: `BaseResizeHandle` owns the
 separator interaction, `useResizableTableColumns` resolves persisted preferred
 tracks against fixed columns and ordered donors, and `BaseResponsiveTable`
 exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
-owns measured one/two-line clipping and the touch disclosure, so consumers do
-not duplicate tooltip or line-clamp heuristics. The Documents table is the
-first specialized adopter and the folder-panel handle now uses the same input
-primitive. Its local column contract owns order, width and per-profile behavior
+owns measured one/two-line clipping, a measurement-independent native hint for
+the complete collapsed value, font-ready remeasurement and the touch disclosure,
+so consumers do not duplicate tooltip or line-clamp heuristics.
+`BaseResizeHandle` also exposes its accessible label as a native hint so pointer
+users can discover the resize affordance. The Documents table is the first
+specialized adopter and the folder-panel handle uses the same input primitive.
+Its local column contract owns order, width and per-profile behavior
 together: Actions → Title → States → Date → Client → Project. Landscape keeps
 Actions plus the first three data tracks and groups Client/Project under Title;
 desktop restores every data track without moving Actions from the leading
@@ -462,6 +465,17 @@ fork with layout. Incomes and Collection Accounts use the same leading menu in
 their classic and grouped tables. Long modal flows declare a semantic `kind`,
 and all compact badges use the atomic `BaseBadge` contract.
 
+Indicator headers share `BaseIndicatorCard`, whose three-row grid reserves
+label, value and one optional support line even when the last row is empty.
+Help is a separate sibling control and actionable cards expose one semantic
+main button, avoiding nested interactive elements. Projects uses this shell for
+catalog-ordered non-zero lifecycle cards and a separate operational group on
+expanded layouts; below the landscape breakpoint one **Estados** summary and one
+**Pendientes** summary open drawers with the complete facts. Incomes applies the
+same compact pattern as **Resultado anual** plus **Detalle operativo**, while its
+expanded branch keeps four business-ranked cards. Both branches reuse the same
+filter functions, so layout changes presentation without forking behavior.
+
 `BaseDrawer` is the shared transient second zone for compact panel views: it
 teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll
 and supports left/right/bottom placement. `BaseModal` keeps the Phase 1 semantic
@@ -472,8 +486,8 @@ only provide scrollable bodies and sticky actions where their workflow needs it.
 
 | Viewport | Layout role | Documentos | Clientes | Proyectos |
 |----------|-------------|------------|----------|-----------|
-| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | One-column cards + secondary-KPI disclosure |
-| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two-column cards |
+| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | Two indicator summaries + one-column cards |
+| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two indicator summaries + two-column cards |
 | 1195×835 | Landscape tablet | Two zones + prioritized table | Visible two-level filters | Sortable table |
 | 1440×900 | Laptop | Full desktop information | Full desktop information | Full desktop information |
 | 2560×1440 | Large monitor | 1400 px centered cap | 1400 px centered cap | 1400 px centered cap |

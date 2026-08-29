@@ -31,54 +31,116 @@
       </div>
     </div>
 
-    <!-- Meta cards -->
-    <div class="mb-6 grid grid-cols-2 gap-3 panel-landscape:grid-cols-4">
+    <!-- Indicators: two compact summaries, business groups on larger screens. -->
+    <section class="mb-6" aria-label="Indicadores de proyectos">
       <div
-        v-for="state in store.meta.by_state || []"
-        :key="state.state_id"
-        class="relative min-w-0"
+        v-if="isCompact"
+        class="grid grid-cols-2 gap-3"
+        data-testid="projects-indicators-compact"
       >
         <AccountingStatCard
-          :label="state.name"
-          :value="String(state.count ?? 0)"
-          :tone="statTone(state.color)"
-          clickable
-          :data-testid="`panel-projects-stat-state-${state.state_id}`"
-          @click="scope = `state:${state.state_id}`"
-        />
-        <ProjectStateHelpBadge
-          :state="{ ...state, id: state.state_id }"
-          position="bottom"
-          class="absolute bottom-2 right-2 z-20"
-          :test-id="`project-stat-state-help-${state.state_id}`"
-        />
+          label="Estados"
+          :value="String(store.meta.total ?? store.records.length)"
+          :sub="stateSummarySupport"
+          action="list"
+          action-label="Ver proyectos por estado"
+          help-label="Ayuda sobre el resumen de estados"
+          help-position="bottom"
+          help-test-id="project-states-summary-help"
+          data-testid="panel-projects-stat-states-summary"
+          @click="statesDrawerOpen = true"
+        >
+          <template #help>
+            <p class="font-semibold">Estados del proyecto</p>
+            <p>Distribuye el total según el ciclo administrable vigente.</p>
+            <p>Abre el detalle para ver y filtrar incluso los estados con cero proyectos.</p>
+          </template>
+        </AccountingStatCard>
+        <AccountingStatCard
+          label="Pendientes"
+          :value="String(pendingCategoryCount)"
+          :sub="pendingSummarySupport"
+          :tone="pendingCategoryCount > 0 ? 'warning' : 'success'"
+          action="list"
+          action-label="Ver pendientes operativos"
+          help-label="Ayuda sobre los pendientes operativos"
+          help-position="left"
+          help-test-id="project-pending-summary-help"
+          data-testid="panel-projects-stat-pending-summary"
+          @click="pendingDrawerOpen = true"
+        >
+          <template #help>
+            <p class="font-semibold">Pendientes operativos</p>
+            <p>Cuenta categorías con trabajo pendiente, no suma entidades de tipos distintos.</p>
+            <p>Abre el detalle para revisar proyectos, clientes y registros contables.</p>
+          </template>
+        </AccountingStatCard>
       </div>
-      <AccountingStatCard
-        label="Clientes sin proyecto"
-        :value="String(store.meta.clients_without_projects ?? 0)"
-        :tone="(store.meta.clients_without_projects ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Por registrar de forma deliberada"
-        clickable
-        data-testid="panel-projects-stat-orphans"
-        @click="openOrphansPanel"
-      />
-      <AccountingStatCard
-        v-if="(store.meta.review_required ?? 0) > 0"
-        label="Por revisar"
-        :value="String(store.meta.review_required)"
-        tone="warning"
-        clickable
-        data-testid="panel-projects-stat-review"
-        @click="scope = 'review'"
-      />
-      <AccountingStatCard
-        label="Registros sin proyecto"
-        :value="String(store.meta.records_without_project ?? 0)"
-        :tone="(store.meta.records_without_project ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Hostings e ingresos por asignar"
-        data-testid="panel-projects-stat-unlinked"
-      />
-    </div>
+
+      <div v-else class="space-y-5" data-testid="projects-indicators-expanded">
+        <section v-if="nonZeroProjectStates.length" aria-labelledby="project-state-indicators-title">
+          <h2
+            id="project-state-indicators-title"
+            class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-subtle"
+          >
+            Ciclo del proyecto
+          </h2>
+          <div class="grid grid-cols-4 gap-3 panel-wide:grid-cols-5">
+            <AccountingStatCard
+              v-for="state in nonZeroProjectStates"
+              :key="state.state_id"
+              :label="state.name"
+              :value="String(state.count)"
+              :tone="statTone(state.color)"
+              action="filter"
+              :action-label="`Filtrar proyectos en estado ${state.name}`"
+              :help-label="`Ayuda sobre el estado ${state.name}`"
+              help-position="left"
+              :help-test-id="`project-stat-state-help-${state.state_id}`"
+              :data-testid="`panel-projects-stat-state-${state.state_id}`"
+              @click="applyProjectScope(`state:${state.state_id}`)"
+            >
+              <template #help>
+                <p class="font-semibold">{{ state.name }}</p>
+                <p>{{ stateDescription(state) }}</p>
+                <p><strong>Implica:</strong> {{ stateImplications(state) }}</p>
+              </template>
+            </AccountingStatCard>
+          </div>
+        </section>
+
+        <section v-if="nonZeroPendingIndicators.length" aria-labelledby="project-pending-indicators-title">
+          <h2
+            id="project-pending-indicators-title"
+            class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-subtle"
+          >
+            Pendientes operativos
+          </h2>
+          <div class="grid grid-cols-3 gap-3">
+            <AccountingStatCard
+              v-for="indicator in nonZeroPendingIndicators"
+              :key="indicator.key"
+              :label="indicator.label"
+              :value="String(indicator.value)"
+              :sub="indicator.support"
+              tone="warning"
+              :action="indicator.action"
+              :action-label="indicator.actionLabel"
+              :help-label="`Ayuda sobre ${indicator.label}`"
+              help-position="left"
+              :help-test-id="`project-stat-${indicator.key}-help`"
+              :data-testid="indicator.testId"
+              @click="activatePendingIndicator(indicator.key)"
+            >
+              <template #help>
+                <p class="font-semibold">{{ indicator.label }}</p>
+                <p>{{ indicator.help }}</p>
+              </template>
+            </AccountingStatCard>
+          </div>
+        </section>
+      </div>
+    </section>
 
     <!-- Search + scope -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-5">
@@ -316,6 +378,118 @@
     </template>
 
     <BaseDrawer
+      v-model="statesDrawerOpen"
+      placement="bottom"
+      title="Estados de los proyectos"
+      test-id="project-states-indicator-drawer"
+    >
+      <div class="space-y-2 p-4 panel-portrait:p-6">
+        <!-- design-tokens: allow-raw-button — selectable detail row. -->
+        <button
+          v-for="state in projectStates"
+          :key="state.state_id"
+          type="button"
+          class="flex min-h-11 w-full items-start gap-3 rounded-xl border border-border-muted bg-surface-raised p-3 text-left transition-colors hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          :aria-label="`Filtrar proyectos en estado ${state.name}`"
+          :data-testid="`project-state-detail-${state.state_id}`"
+          @click="applyProjectScope(`state:${state.state_id}`)"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center justify-between gap-3">
+              <span class="font-medium text-text-default">{{ state.name }}</span>
+              <span class="tabular-nums text-text-muted">{{ state.count ?? 0 }}</span>
+            </span>
+            <span class="mt-1 block text-xs text-text-subtle">{{ stateDescription(state) }}</span>
+            <span class="mt-1 block text-xs text-text-muted">
+              <strong>Implica:</strong> {{ stateImplications(state) }}
+            </span>
+          </span>
+          <BaseActionIcon action="filter" class="mt-1 text-text-subtle" />
+        </button>
+      </div>
+    </BaseDrawer>
+
+    <BaseDrawer
+      v-model="pendingDrawerOpen"
+      placement="bottom"
+      title="Pendientes operativos"
+      test-id="project-pending-indicator-drawer"
+    >
+      <div class="space-y-3 p-4 panel-portrait:p-6">
+        <!-- design-tokens: allow-raw-button — selectable detail row. -->
+        <button
+          type="button"
+          class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border-muted bg-surface-raised p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          data-testid="project-pending-review-action"
+          @click="applyProjectScope('review')"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center justify-between gap-3 font-medium text-text-default">
+              <span>Por revisar</span>
+              <span class="tabular-nums">{{ store.meta.review_required ?? 0 }}</span>
+            </span>
+            <span class="mt-1 block text-xs text-text-subtle">Proyectos heredados cuya clasificación aún debe confirmarse.</span>
+          </span>
+          <BaseActionIcon action="filter" class="text-text-subtle" />
+        </button>
+
+        <!-- design-tokens: allow-raw-button — selectable detail row. -->
+        <button
+          type="button"
+          class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border-muted bg-surface-raised p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          data-testid="project-pending-clients-action"
+          @click="openOrphansFromIndicators"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center justify-between gap-3 font-medium text-text-default">
+              <span>Clientes sin proyecto</span>
+              <span class="tabular-nums">{{ store.meta.clients_without_projects ?? 0 }}</span>
+            </span>
+            <span class="mt-1 block text-xs text-text-subtle">Clientes activos que todavía no tienen ninguna ficha de proyecto.</span>
+          </span>
+          <BaseActionIcon action="list" class="text-text-subtle" />
+        </button>
+
+        <section class="rounded-xl border border-border-muted bg-surface-raised p-3" data-testid="project-pending-records-detail">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-medium text-text-default">Registros sin proyecto</h3>
+              <p class="mt-1 text-xs text-text-subtle">Hostings e ingresos que ya tienen cliente, pero aún no proyecto.</p>
+            </div>
+            <span class="tabular-nums text-text-default">{{ store.meta.records_without_project ?? 0 }}</span>
+          </div>
+          <div v-if="isSuperuser" class="mt-3 grid grid-cols-1 gap-2 panel-portrait:grid-cols-2">
+            <BaseButton
+              as="NuxtLink"
+              :to="{ path: '/panel/accounting/hostings', query: { accounting_hostingTab: 'no-project' } }"
+              variant="secondary"
+              size="md"
+              class="min-h-11 justify-center"
+              data-testid="project-unlinked-hostings-link"
+            >
+              Ver hostings
+              <BaseActionIcon action="forward" />
+            </BaseButton>
+            <BaseButton
+              as="NuxtLink"
+              :to="{ path: '/panel/accounting/incomes', query: { accounting_incomeTab: 'no-project' } }"
+              variant="secondary"
+              size="md"
+              class="min-h-11 justify-center"
+              data-testid="project-unlinked-incomes-link"
+            >
+              Ver ingresos
+              <BaseActionIcon action="forward" />
+            </BaseButton>
+          </div>
+          <p v-else class="mt-3 text-xs text-text-muted">
+            El detalle contable está disponible para usuarios con acceso de superusuario.
+          </p>
+        </section>
+      </div>
+    </BaseDrawer>
+
+    <BaseDrawer
       v-model="showProjectActions"
       placement="bottom"
       :title="projectActionTarget?.name || 'Acciones del proyecto'"
@@ -453,7 +627,7 @@
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
@@ -486,6 +660,95 @@ const { isMobile: isCompact } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
 // plain admins (same flag the sidebar uses).
 const proposalStore = useProposalStore();
 const isSuperuser = computed(() => proposalStore.isSuperuser);
+
+const projectStates = computed(() => store.meta.by_state || []);
+const nonZeroProjectStates = computed(() => (
+  projectStates.value.filter((state) => Number(state.count) > 0)
+));
+const pendingIndicators = computed(() => [
+  {
+    key: 'review',
+    label: 'Por revisar',
+    value: Number(store.meta.review_required ?? 0),
+    support: 'Clasificación pendiente',
+    action: 'filter',
+    actionLabel: 'Filtrar proyectos por revisar',
+    help: 'Proyectos heredados cuya clasificación todavía debe confirmarse.',
+    testId: 'panel-projects-stat-review',
+  },
+  {
+    key: 'orphans',
+    label: 'Clientes sin proyecto',
+    value: Number(store.meta.clients_without_projects ?? 0),
+    support: 'Por registrar de forma deliberada',
+    action: 'list',
+    actionLabel: 'Ver clientes sin proyecto',
+    help: 'Clientes activos que no tienen ninguna ficha Project registrada.',
+    testId: 'panel-projects-stat-orphans',
+  },
+  {
+    key: 'unlinked',
+    label: 'Registros sin proyecto',
+    value: Number(store.meta.records_without_project ?? 0),
+    support: 'Hostings e ingresos por asignar',
+    action: 'forward',
+    actionLabel: 'Ver registros sin proyecto',
+    help: 'Suma hostings e ingresos con cliente vinculado y proyecto todavía vacío.',
+    testId: 'panel-projects-stat-unlinked',
+  },
+]);
+const nonZeroPendingIndicators = computed(() => (
+  pendingIndicators.value.filter((indicator) => indicator.value > 0)
+));
+const pendingCategoryCount = computed(() => nonZeroPendingIndicators.value.length);
+const stateSummarySupport = computed(() => {
+  const count = nonZeroProjectStates.value.length;
+  return count === 1 ? '1 estado con proyectos' : `${count} estados con proyectos`;
+});
+const pendingSummarySupport = computed(() => {
+  const count = pendingCategoryCount.value;
+  if (count === 0) return 'Sin pendientes operativos';
+  return count === 1 ? '1 frente por atender' : `${count} frentes por atender`;
+});
+
+const statesDrawerOpen = ref(false);
+const pendingDrawerOpen = ref(false);
+
+function stateDescription(state) {
+  return state?.description?.trim() || 'Estado administrable del ciclo del proyecto.';
+}
+
+function stateImplications(state) {
+  return state?.operational_effect_help?.trim()
+    || 'Consulta las consecuencias antes de confirmar un cambio de estado.';
+}
+
+async function applyProjectScope(nextScope) {
+  scope.value = nextScope;
+  statesDrawerOpen.value = false;
+  pendingDrawerOpen.value = false;
+  await nextTick();
+  if (typeof document !== 'undefined') {
+    document.querySelector('[data-testid="projects-state-filter"]')?.focus();
+  }
+}
+
+function activatePendingIndicator(key) {
+  if (key === 'review') {
+    applyProjectScope('review');
+    return;
+  }
+  if (key === 'orphans') {
+    openOrphansPanel();
+    return;
+  }
+  pendingDrawerOpen.value = true;
+}
+
+function openOrphansFromIndicators() {
+  pendingDrawerOpen.value = false;
+  openOrphansPanel();
+}
 
 // ── State + search. The options come from the administrable catalog, so a
 //    newly created state immediately becomes a real filter. ──

@@ -15,6 +15,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { bulkAction, bulkMenuItem, openBulkMenu } from '../helpers/bulk-actions.js';
+import { viewportUse } from '../helpers/viewports.js';
 import {
   ADMIN_ACCOUNTING_COLLECTION_CREATE,
   ADMIN_ACCOUNTING_INCOME_CLIENT,
@@ -56,6 +57,74 @@ function incomeRow(overrides = {}) {
     ...overrides,
   };
 }
+
+const INCOME_INDICATOR_META = {
+  expected_total: '3000000.00',
+  liquid_total: '1800000.00',
+  lost_total: '200000.00',
+  received_pct: 60,
+  current_month_liquid: '800000.00',
+  top_income: { concept: 'Ingreso líquido principal', amount: '1000000.00' },
+  without_client_count: 1,
+  without_project_count: 1,
+};
+
+const INCOME_INDICATOR_ROWS = [
+  incomeRow({
+    id: 1,
+    concept: 'Ingreso esperado anual',
+    kind: 'expected',
+    kind_label: 'Esperado',
+    period: '2026-03',
+    period_label: 'Marzo 2026',
+    period_date: '2026-03-01',
+    client: 5,
+    client_name: 'Ana Pérez',
+    project: 10,
+    project_name: 'Kore',
+  }),
+  incomeRow({
+    id: 2,
+    concept: 'Ingreso líquido principal',
+    kind: 'liquid',
+    kind_label: 'Líquido',
+    period: '2026-08',
+    period_label: 'Agosto 2026',
+    period_date: '2026-08-15',
+    total_amount: '1000000.00',
+    payment_status: null,
+    payment_status_label: null,
+    client: 5,
+    client_name: 'Ana Pérez',
+    project: 10,
+    project_name: 'Kore',
+  }),
+  incomeRow({
+    id: 3,
+    concept: 'Ingreso perdido anual',
+    kind: 'lost',
+    kind_label: 'Perdido',
+    period: '2026-05',
+    period_label: 'Mayo 2026',
+    period_date: '2026-05-01',
+    total_amount: '200000.00',
+    payment_status: null,
+    payment_status_label: null,
+    client: 5,
+    client_name: 'Ana Pérez',
+    project: 10,
+    project_name: 'Kore',
+  }),
+  incomeRow({ id: 4, concept: 'Pendiente de cliente', project: null }),
+  incomeRow({
+    id: 5,
+    concept: 'Pendiente de proyecto',
+    client: 5,
+    client_name: 'Ana Pérez',
+    project: null,
+    project_name: null,
+  }),
+];
 
 function buildHandler({
   rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
@@ -320,9 +389,12 @@ async function gotoIncomes(page, query = '?accounting_incomeTab=all') {
 
 async function navigateToIncomesFromPanel(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('navigation', { name: 'Navegación del panel' })
-    .getByRole('link', { name: 'Ingresos', exact: true })
-    .click();
+  if (page.viewportSize().width < 1024) {
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+  }
+  // The desktop sidebar names its navigation landmark; the compact drawer
+  // exposes the same semantic link inside an unnamed dialog navigation.
+  await page.getByRole('link', { name: 'Ingresos', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
@@ -335,6 +407,118 @@ async function openBulkClientAssignment(page) {
   await page.getByTestId('accounting-select-4').check();
   await bulkAction(page, 'incomes', 'Asignar cliente');
 }
+
+const INCOME_INDICATOR_VIEWPORTS = [
+  { alias: 'compact', compact: true },
+  { alias: 'portrait', compact: true },
+  { alias: 'landscape', compact: false },
+  { alias: 'desktop', compact: false },
+  { alias: 'wide', compact: false },
+];
+
+for (const viewport of INCOME_INDICATOR_VIEWPORTS) {
+  test.describe(`Income indicator header — ${viewport.alias}`, () => {
+    test.use(viewportUse(viewport.alias));
+
+    test.beforeEach(async ({ page }) => {
+      await setAuthLocalStorage(page, {
+        token: 'e2e-token',
+        userAuth: { id: 9001, role: 'admin', is_staff: true },
+      });
+    });
+
+    test('keeps the indicator set compact at its reference width', {
+      tag: [
+        ...ADMIN_ACCOUNTING_INCOME_CRUD,
+        '@role:admin',
+        '@outcome:display',
+        '@responsive:accounting',
+      ],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({
+        rows: INCOME_INDICATOR_ROWS,
+        calls: [],
+        meta: INCOME_INDICATOR_META,
+      }));
+      await navigateToIncomesFromPanel(page);
+
+      const group = page.getByTestId(
+        viewport.compact ? 'income-indicators-compact' : 'income-indicators-expanded',
+      );
+      const cards = group.locator('article');
+      await expect(cards).toHaveCount(viewport.compact ? 2 : 4);
+      const heights = await cards.evaluateAll((elements) => (
+        elements.map((card) => Math.round(card.getBoundingClientRect().height))
+      ));
+      expect(new Set(heights).size).toBe(1);
+      await expect(group.locator('button[aria-label^="Ayuda"]'))
+        .toHaveCount(viewport.compact ? 2 : 4);
+
+      const firstRow = await page.getByTestId('accounting-row-1').boundingBox();
+      expect(firstRow.y).toBeLessThan(page.viewportSize().height);
+    });
+  });
+}
+
+test.describe('Income indicator actions', () => {
+  test.use(viewportUse('compact'));
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('filters the list from the annual summary detail', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_CRUD,
+      '@role:admin',
+      '@outcome:success',
+      '@responsive:accounting',
+    ],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: INCOME_INDICATOR_ROWS,
+      calls: [],
+      meta: INCOME_INDICATOR_META,
+    }));
+    await page.clock.install({ time: new Date('2026-06-15T12:00:00Z') });
+    await navigateToIncomesFromPanel(page);
+
+    await page.getByTestId('income-stat-result-summary').click();
+    await page.getByTestId('income-indicator-detail-liquid').click();
+
+    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+    await expect(page).toHaveURL(/kind=liquid/);
+    await expect(page).toHaveURL(/periodAfter=2026-01-01/);
+  });
+
+  test('selects the no-project quick filter from operational detail', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_CRUD,
+      '@role:admin',
+      '@outcome:success',
+      '@responsive:accounting',
+    ],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: INCOME_INDICATOR_ROWS,
+      calls: [],
+      meta: INCOME_INDICATOR_META,
+    }));
+    await navigateToIncomesFromPanel(page);
+
+    await page.getByTestId('income-stat-operational-summary').click();
+    await expect(page.locator('[data-testid^="income-indicator-detail-"]')).toHaveCount(4);
+    await page.getByTestId('income-indicator-detail-no-project').click();
+
+    await expect(page).toHaveURL(/accounting_incomeTab=no-project/);
+    await expect(page.getByTestId('accounting-row-5')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+  });
+});
 
 test.describe('Admin Accounting Incomes CRUD', () => {
   test.beforeEach(async ({ page }) => {
@@ -1447,6 +1631,17 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     const modal = page.getByTestId('incomes-bulk-assign-modal');
     await expect(modal).toContainText('4 ingresos seleccionados');
     await expect(page.getByTestId('incomes-bulk-client')).toBeFocused();
+
+    const initialScope = page.getByTestId('incomes-bulk-selection-review');
+    expect(await initialScope.evaluate((element) => ({
+      hasEveryRecord: [
+        'Kore - Inicio 40%',
+        'Kore - Entrega 30%',
+        'Kore - Integración 20%',
+        'Kore - Cierre 10%',
+      ].every((label) => element.textContent.includes(label)),
+      fitsWithoutScroll: element.scrollHeight <= element.clientHeight + 1,
+    }))).toEqual({ hasEveryRecord: true, fitsWithoutScroll: true });
 
     const catalog = page.getByRole('grid', { name: 'Clientes disponibles' });
     const scroller = page.getByTestId('client-catalog-scroll');

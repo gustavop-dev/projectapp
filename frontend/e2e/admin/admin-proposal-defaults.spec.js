@@ -89,11 +89,13 @@ test.describe('Admin Proposal Defaults Config', () => {
     tag: ['@outcome:display', ...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/defaults?tab=sections');
+    await page.goto('/es-co/panel/defaults?mode=proposal&tab=sections');
 
     // Click on greeting section header to expand
     // quality: disable fragile_locator (section items have no testids; first match targets the section list row heading)
-    await page.getByText('👋 Saludo').first().click({ timeout: 5000 });
+    const greetingSection = page.getByText('👋 Saludo').first();
+    await expect(greetingSection).toBeVisible({ timeout: 15000 });
+    await greetingSection.click();
 
     // SectionEditor should render with title input
     await expect(page.locator('[data-testid="section-editor"]')).toBeVisible({ timeout: 5000 });

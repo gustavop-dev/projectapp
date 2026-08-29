@@ -33,52 +33,127 @@
 
     <AccountingSubnav active="incomes" />
 
-    <!-- KPI cards (year scope, server-computed) -->
-    <AccountingIndicatorGroup :columns="7" :secondary-count="4">
-      <template #primary>
+    <!-- KPI cards: two compact summaries, four business cards from landscape. -->
+    <section class="mb-2 sm:mb-6" aria-label="Indicadores de ingresos">
+      <div
+        v-if="isCompact"
+        class="grid grid-cols-2 gap-3"
+        data-testid="income-indicators-compact"
+      >
+        <AccountingStatCard
+          label="Resultado anual"
+          :value="money(incomesMeta.liquid_total)"
+          :sub="incomesMeta.received_pct != null ? `${incomesMeta.received_pct}% recibido` : ''"
+          tone="success"
+          action="list"
+          action-label="Ver detalle del resultado anual"
+          help-label="Ayuda sobre el resultado anual"
+          help-position="bottom"
+          help-test-id="income-result-summary-help"
+          data-testid="income-stat-result-summary"
+          @click="annualIndicatorsOpen = true"
+        >
+          <template #help>
+            <p class="font-semibold">Resultado anual</p>
+            <p>Agrupa los totales esperado, líquido y perdido del año en curso.</p>
+            <p>Abre el detalle para aplicar cada filtro sobre el listado.</p>
+          </template>
+        </AccountingStatCard>
+        <AccountingStatCard
+          label="Detalle operativo"
+          :value="money(incomesMeta.current_month_liquid)"
+          :sub="incomeOperationalSupport"
+          :tone="incomePendingTotal > 0 ? 'warning' : 'brand'"
+          action="list"
+          action-label="Ver detalle operativo de ingresos"
+          help-label="Ayuda sobre el detalle operativo"
+          help-position="left"
+          help-test-id="income-operational-summary-help"
+          data-testid="income-stat-operational-summary"
+          @click="operationalIndicatorsOpen = true"
+        >
+          <template #help>
+            <p class="font-semibold">Detalle operativo</p>
+            <p>La cifra principal es lo recibido este mes.</p>
+            <p>El detalle reúne el mayor ingreso y los registros que aún necesitan cliente o proyecto.</p>
+          </template>
+        </AccountingStatCard>
+      </div>
+
+      <div
+        v-else
+        class="grid grid-cols-4 gap-3"
+        data-testid="income-indicators-expanded"
+      >
         <AccountingStatCard
           label="Total esperado (año)"
           :value="money(incomesMeta.expected_total)"
-        />
+          sub="Año en curso"
+          action="filter"
+          action-label="Filtrar ingresos esperados del año"
+          help-label="Ayuda sobre el total esperado anual"
+          help-test-id="income-expected-help"
+          data-testid="income-stat-expected"
+          @click="activateIncomeIndicator('expected')"
+        >
+          <template #help>
+            <p class="font-semibold">Total esperado</p>
+            <p>Ingresos previstos dentro del año en curso, incluidos los que ya recibieron abonos.</p>
+          </template>
+        </AccountingStatCard>
         <AccountingStatCard
           label="Total líquido (año)"
           :value="money(incomesMeta.liquid_total)"
           :sub="incomesMeta.received_pct != null ? `${incomesMeta.received_pct}% recibido` : ''"
           tone="success"
-        />
+          action="filter"
+          action-label="Filtrar ingresos líquidos del año"
+          help-label="Ayuda sobre el total líquido anual"
+          help-test-id="income-liquid-help"
+          data-testid="income-stat-liquid"
+          @click="activateIncomeIndicator('liquid')"
+        >
+          <template #help>
+            <p class="font-semibold">Total líquido</p>
+            <p>Dinero efectivamente recibido durante el año en curso.</p>
+          </template>
+        </AccountingStatCard>
         <AccountingStatCard
           label="Perdido (año)"
           :value="money(incomesMeta.lost_total)"
+          sub="Año en curso"
           :tone="Number(incomesMeta.lost_total) > 0 ? 'danger' : 'default'"
-        />
-      </template>
-      <template #secondary>
+          action="filter"
+          action-label="Filtrar ingresos perdidos del año"
+          help-label="Ayuda sobre los ingresos perdidos"
+          help-test-id="income-lost-help"
+          data-testid="income-stat-lost"
+          @click="activateIncomeIndicator('lost')"
+        >
+          <template #help>
+            <p class="font-semibold">Ingresos perdidos</p>
+            <p>Valores dados de baja durante el año y conservados para trazabilidad.</p>
+          </template>
+        </AccountingStatCard>
         <AccountingStatCard
-          label="Mes actual (líquido)"
+          label="Detalle operativo"
           :value="money(incomesMeta.current_month_liquid)"
-        />
-        <AccountingStatCard
-          label="Mayor ingreso del año"
-          :value="incomesMeta.top_income ? money(incomesMeta.top_income.amount) : '—'"
-          :sub="incomesMeta.top_income?.concept || ''"
-          tone="brand"
-        />
-        <AccountingStatCard
-          label="Sin cliente"
-          :value="String(incomesMeta.without_client_count ?? 0)"
-          :tone="(incomesMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
-          sub="Pendientes de vincular"
-        />
-        <!-- Cuenta sólo filas con cliente: sin cliente todavía no hay
-             proyecto coherente que proponer. -->
-        <AccountingStatCard
-          label="Sin proyecto"
-          :value="String(incomesMeta.without_project_count ?? 0)"
-          :tone="(incomesMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
-          sub="Con cliente, pendientes de proyecto"
-        />
-      </template>
-    </AccountingIndicatorGroup>
+          :sub="incomeOperationalSupport"
+          :tone="incomePendingTotal > 0 ? 'warning' : 'brand'"
+          action="list"
+          action-label="Ver detalle operativo de ingresos"
+          help-label="Ayuda sobre el detalle operativo"
+          help-test-id="income-operational-help"
+          data-testid="income-stat-operational"
+          @click="operationalIndicatorsOpen = true"
+        >
+          <template #help>
+            <p class="font-semibold">Detalle operativo</p>
+            <p>Resume lo recibido este mes y abre los indicadores de contexto y vinculación.</p>
+          </template>
+        </AccountingStatCard>
+      </div>
+    </section>
 
     <!-- Quick + saved filter tabs -->
     <ProposalFilterTabs
@@ -352,6 +427,64 @@
       </template>
     </template>
 
+    <BaseDrawer
+      v-model="annualIndicatorsOpen"
+      placement="bottom"
+      title="Resultado anual"
+      test-id="income-annual-indicators-drawer"
+    >
+      <div class="space-y-2 p-4 panel-portrait:p-6">
+        <!-- design-tokens: allow-raw-button — selectable detail row. -->
+        <button
+          v-for="indicator in annualIndicatorDetails"
+          :key="indicator.key"
+          type="button"
+          class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border-muted bg-surface-raised p-3 text-left transition-colors hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          :data-testid="`income-indicator-detail-${indicator.key}`"
+          @click="activateIncomeIndicator(indicator.key)"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center justify-between gap-3">
+              <span class="font-medium text-text-default">{{ indicator.label }}</span>
+              <span class="tabular-nums" :class="indicator.toneClass">{{ indicator.value }}</span>
+            </span>
+            <span class="mt-1 block text-xs text-text-subtle">{{ indicator.help }}</span>
+          </span>
+          <BaseActionIcon action="filter" class="text-text-subtle" />
+        </button>
+      </div>
+    </BaseDrawer>
+
+    <BaseDrawer
+      v-model="operationalIndicatorsOpen"
+      placement="bottom"
+      title="Detalle operativo"
+      test-id="income-operational-indicators-drawer"
+    >
+      <div class="space-y-2 p-4 panel-portrait:p-6">
+        <!-- design-tokens: allow-raw-button — selectable detail row. -->
+        <button
+          v-for="indicator in operationalIndicatorDetails"
+          :key="indicator.key"
+          type="button"
+          class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border-muted bg-surface-raised p-3 text-left transition-colors hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="indicator.disabled"
+          :title="indicator.disabled ? indicator.help : undefined"
+          :data-testid="`income-indicator-detail-${indicator.key}`"
+          @click="activateIncomeIndicator(indicator.key)"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center justify-between gap-3">
+              <span class="font-medium text-text-default">{{ indicator.label }}</span>
+              <span class="tabular-nums" :class="indicator.toneClass">{{ indicator.value }}</span>
+            </span>
+            <span class="mt-1 block text-xs text-text-subtle">{{ indicator.help }}</span>
+          </span>
+          <BaseActionIcon :action="indicator.action" class="text-text-subtle" />
+        </button>
+      </div>
+    </BaseDrawer>
+
     <!--
       Bulk client assignment: the completion path for rows without client.
       Below the table and sticky, so it stays reachable after selecting at the
@@ -490,7 +623,6 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
-import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
@@ -509,6 +641,7 @@ import BaseBadge from '~/components/base/BaseBadge.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useIsMobile } from '~/composables/useIsMobile';
 import { useIncomeViewMode } from '~/composables/useIncomeViewMode';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { useRowSelection } from '~/composables/useRowSelection';
@@ -530,6 +663,7 @@ import { describeProjectAssignmentResult } from '~/utils/projectAssignment';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import {
   clientLabelOf,
   groupByClient,
@@ -541,11 +675,95 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 const store = useAccountingStore();
 const notify = usePanelNotify();
 const projectsStore = usePanelProjectsStore();
+const { isMobile: isCompact } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
 
 /** Noun the bulk client bar uses in its confirmation and result copy. */
 const INCOME_ENTITY = { singular: 'ingreso', plural: 'ingresos' };
 
 const incomesMeta = computed(() => store.metaFor('incomes'));
+
+const annualIndicatorsOpen = ref(false);
+const operationalIndicatorsOpen = ref(false);
+const incomePendingTotal = computed(() => (
+  Number(incomesMeta.value.without_client_count ?? 0)
+  + Number(incomesMeta.value.without_project_count ?? 0)
+));
+const incomeOperationalSupport = computed(() => (
+  incomePendingTotal.value === 0
+    ? 'Sin registros por completar'
+    : `${incomePendingTotal.value} por completar`
+));
+
+const annualIndicatorDetails = computed(() => [
+  {
+    key: 'expected',
+    label: 'Total esperado (año)',
+    value: money(incomesMeta.value.expected_total),
+    toneClass: 'text-text-default',
+    help: 'Ingresos previstos dentro del año en curso.',
+  },
+  {
+    key: 'liquid',
+    label: 'Total líquido (año)',
+    value: money(incomesMeta.value.liquid_total),
+    toneClass: 'text-success-strong',
+    help: incomesMeta.value.received_pct != null
+      ? `${incomesMeta.value.received_pct}% de lo esperado ya fue recibido.`
+      : 'Dinero efectivamente recibido durante el año en curso.',
+  },
+  {
+    key: 'lost',
+    label: 'Perdido (año)',
+    value: money(incomesMeta.value.lost_total),
+    toneClass: Number(incomesMeta.value.lost_total) > 0
+      ? 'text-danger-strong'
+      : 'text-text-default',
+    help: 'Valores dados de baja durante el año y conservados para trazabilidad.',
+  },
+]);
+
+const operationalIndicatorDetails = computed(() => [
+  {
+    key: 'current-month',
+    label: 'Mes actual (líquido)',
+    value: money(incomesMeta.value.current_month_liquid),
+    toneClass: 'text-text-default',
+    help: 'Dinero líquido recibido durante el mes en curso.',
+    action: 'filter',
+    disabled: false,
+  },
+  {
+    key: 'top-income',
+    label: 'Mayor ingreso del año',
+    value: incomesMeta.value.top_income ? money(incomesMeta.value.top_income.amount) : '—',
+    toneClass: 'text-text-brand',
+    help: incomesMeta.value.top_income?.concept || 'No hay un ingreso líquido para destacar.',
+    action: 'search',
+    disabled: !incomesMeta.value.top_income,
+  },
+  {
+    key: 'no-client',
+    label: 'Sin cliente',
+    value: String(incomesMeta.value.without_client_count ?? 0),
+    toneClass: Number(incomesMeta.value.without_client_count) > 0
+      ? 'text-warning-strong'
+      : 'text-text-default',
+    help: 'Registros pendientes de vincular con un cliente.',
+    action: 'filter',
+    disabled: false,
+  },
+  {
+    key: 'no-project',
+    label: 'Sin proyecto',
+    value: String(incomesMeta.value.without_project_count ?? 0),
+    toneClass: Number(incomesMeta.value.without_project_count) > 0
+      ? 'text-warning-strong'
+      : 'text-text-default',
+    help: 'Registros con cliente que todavía necesitan un proyecto.',
+    action: 'filter',
+    disabled: false,
+  },
+]);
 
 function money(value) {
   return formatMoney(Number(value ?? 0), 'COP');
@@ -701,6 +919,64 @@ const {
   // este cliente"), and it only survives a paste if it is in the URL.
   syncFiltersToUrl: true,
 });
+
+function toIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+const indicatorToday = new Date();
+const indicatorYear = indicatorToday.getFullYear();
+const currentYearFilters = Object.freeze({
+  periodAfter: `${indicatorYear}-01-01`,
+  periodBefore: `${indicatorYear}-12-31`,
+});
+const currentMonthFilters = Object.freeze({
+  periodAfter: toIsoDate(new Date(indicatorYear, indicatorToday.getMonth(), 1)),
+  periodBefore: toIsoDate(new Date(indicatorYear, indicatorToday.getMonth() + 1, 0)),
+});
+
+async function focusIncomeList() {
+  await nextTick();
+  if (typeof document === 'undefined') return;
+  const input = document.querySelector('[data-testid="incomes-search-input"]');
+  input?.scrollIntoView?.({ block: 'center' });
+  input?.focus?.();
+}
+
+async function applyIncomeIndicatorFilters(filters) {
+  resetFilters();
+  Object.assign(currentFilters, filters);
+  annualIndicatorsOpen.value = false;
+  operationalIndicatorsOpen.value = false;
+  await focusIncomeList();
+}
+
+async function activateIncomeIndicator(key) {
+  if (key === 'no-client' || key === 'no-project') {
+    selectFilterTab(key);
+    annualIndicatorsOpen.value = false;
+    operationalIndicatorsOpen.value = false;
+    await focusIncomeList();
+    return;
+  }
+
+  const filtersByIndicator = {
+    expected: { ...currentYearFilters, kind: ['expected'] },
+    liquid: { ...currentYearFilters, kind: ['liquid'] },
+    lost: { ...currentYearFilters, kind: ['lost'] },
+    'current-month': { ...currentMonthFilters, kind: ['liquid'] },
+    'top-income': {
+      ...currentYearFilters,
+      kind: ['liquid'],
+      search: incomesMeta.value.top_income?.concept || '',
+    },
+  };
+  if (!filtersByIndicator[key]) return;
+  await applyIncomeIndicatorFilters(filtersByIndicator[key]);
+}
 
 const clientFilterOptions = computed(() => {
   // Derived from the loaded rows, not the full client catalog: the dropdown
