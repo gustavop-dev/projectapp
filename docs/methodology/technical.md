@@ -1,5 +1,10 @@
 # Technical Documentation — ProjectApp
 
+> **Tracking 2026-08-29:** `useProposalTracking` suspende su intervalo durante
+> `document.visibilityState=hidden`, finaliza por `sendBeacon`, reanuda con un
+> segmento nuevo y comparte una sola promesa para flushes concurrentes. Al
+> confirmar un POST sólo retira las entradas incluidas en ese request.
+
 > **Actualización — 2026-08-28:** cada entrega crea un snapshot previo al SMTP
 > con cuerpo, enlaces, MIME total y bytes decodificados de sus adjuntos. Si el
 > almacenamiento falla, el gateway bloquea el envío. Los archivos se sirven por

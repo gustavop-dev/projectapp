@@ -1,5 +1,10 @@
 # Architecture — ProjectApp
 
+> **Engagement 2026-08-29:** el navegador es dueño del ciclo visible/oculto del
+> tracker. `visibilitychange` delimita segmentos de atención; `sendBeacon`
+> entrega el cierre y el POST periódico queda reservado a una página visible.
+> El endpoint y el modelo de analytics no cambian.
+
 > **Actualización — 2026-08-28:** `EmailDeliveryGateway` crea obligatoriamente
 > un `EmailDeliverySnapshot` antes del SMTP. El destinatario principal y sus
 > intentos BCC comparten cuerpo, archivos y enlaces; cada adjunto conserva hash,

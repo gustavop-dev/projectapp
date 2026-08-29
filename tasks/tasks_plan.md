@@ -5,10 +5,14 @@
 > MySQL. La migración repara sólo el DDL parcial vacío dejado por el deploy
 > fallido y aborta si encuentra datos.
 
+> **Listo para integrar — 2026-08-29:** tracking de propuestas pausado en
+> pestañas ocultas, con cierre único, reanudación segmentada y flush exclusivo.
+
 ## 1. Feature Status
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Proposals — visibility-aware engagement tracking | 🟡 Ready for merge | 2026-08-29. Ocultar la página finaliza un único segmento por beacon y detiene el intervalo; volver a verla inicia otro segmento. Los flushes concurrentes se coalescen y un response sólo limpia las entradas que realmente envió. 38 pruebas focales verdes. |
 | Emails — historial probatorio con adjuntos exactos | 🟡 Hotfix ready for merge | Actualizado 2026-08-29. El gateway archiva antes del SMTP cuerpo, enlaces, tamaño MIME y bytes/hash/tipo/tamaño/procedencia de cada adjunto. El deploy productivo reveló que el unique sobre `URLField(2048)` excedía el índice MySQL/utf8mb4; la URL completa se conserva y la unicidad usa ahora `url_sha256`. `content.0223` limpia sólo su residuo MySQL vacío y aborta ante datos; `0228` backfillea la huella y crea el índice corto. Pasan 8 regresiones nuevas de modelo/migración y 3 del gateway. Producción sigue con el runtime anterior hasta merge + redeploy. |
 | Commercial — additional modules catalog | 🟡 Ready for merge | 2026-08-28. Dominio administrable y bilingüe con 18 módulos iniciales en cinco categorías, índice/modal en panel y público, enlaces revocables de selección fija y contenido vivo, PDF sin precios y tracking first-party por sesión. El catálogo canónico es indexable/prerenderizado y los enlaces seleccionados son `noindex`. Pasan 38 pruebas backend, 10 unitarias, 21 E2E, migraciones/checks, gates de flujos/calidad/responsividad y build Nuxt. MCP queda fuera de esta primera versión. |
 | Communications — document-style navigation and saved views | 🟡 Ready for merge | 2026-08-29. `/panel/communications` now uses a resizable project/client navigator with aggregate counts, searchable entries and an explicit **Sin proyecto** scope; compact profiles use the shared drawer. The thread list consumes the remaining width and opens detail in a URL-addressed workspace modal. Custom searchable filters support multi-selection with OR within a dimension, saved cuts reuse accounting `SavedFilterTab`, and REST/MCP share one correlated query service. The factual manual-workflow notice is dismissible and no longer promises automatic delivery. PA-89 is closed by the existing separate-module decision. Six focused backend, 25 frontend-unit and five E2E outcomes plus the five responsive profiles, build and flow audit are green. |

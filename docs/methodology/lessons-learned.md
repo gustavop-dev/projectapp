@@ -7,6 +7,11 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-29 — telemetría visible:** un tab abierto no equivale a
+> atención. Todo heartbeat de engagement debe obedecer Page Visibility, cerrar
+> una sola vez al ocultarse y protegerse contra requests concurrentes; de lo
+> contrario degrada analytics y carga backend al mismo tiempo.
+
 > **Decisión consolidada — 2026-08-28:** un historial probatorio captura la
 > evidencia antes del envío, nunca desde el documento vivo. El snapshot se
 > comparte entre destinatario principal y copias, y una brecha legada se declara

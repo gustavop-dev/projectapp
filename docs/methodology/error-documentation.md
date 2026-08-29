@@ -7,6 +7,11 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-08-29:** una propuesta abierta en una pestaña oculta seguía
+> enviando snapshots cada 30 segundos y contabilizando tiempo no atendido. El
+> tracker ahora finaliza una vez al ocultarse, pausa el intervalo, evita flushes
+> solapados y sólo reanuda con un segmento nuevo al volver a ser visible.
+
 > **Resuelto 2026-08-28:** los envíos nuevos archivan evidencia completa antes
 > del SMTP. Los registros previos conservan honestamente su estado parcial o
 > desconocido y nunca ofrecen un archivo regenerado como si fuera el original.

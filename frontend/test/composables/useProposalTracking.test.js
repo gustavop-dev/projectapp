@@ -19,6 +19,11 @@ beforeEach(() => {
 
   jest.useFakeTimers();
   jest.setSystemTime(new Date('2026-03-07T12:00:00Z'));
+  Object.defineProperty(document, 'visibilityState', {
+    value: 'visible',
+    writable: true,
+    configurable: true,
+  });
 
   jest.clearAllMocks();
   jest.resetModules();
@@ -367,6 +372,70 @@ describe('useProposalTracking', () => {
       expect(body.sections[0].section_type).toBe('investment');
       expect(body.sections[0].time_spent_seconds).toBe(2.5);
     });
+
+    it('coalesces overlapping flushes into one tracking request', async () => {
+      let resolveFetch;
+      global.fetch = jest.fn(() => new Promise((resolve) => {
+        resolveFetch = resolve;
+      }));
+      const { proposalUuid, currentPanel } = createRefs('uuid-overlap');
+      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      sectionLog.value.push({
+        section_type: 'greeting',
+        section_title: 'Hi',
+        entered_at: '2026-03-07T12:00:00.000Z',
+        time_spent_seconds: 5,
+      });
+
+      const first = flush();
+      const second = flush();
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      resolveFetch({ ok: true });
+      await Promise.all([first, second]);
+      expect(sectionLog.value).toHaveLength(0);
+    });
+
+    it('preserves a fresh segment appended after a hidden-tab beacon', async () => {
+      let resolveFetch;
+      global.fetch = jest.fn(() => new Promise((resolve) => {
+        resolveFetch = resolve;
+      }));
+      const mockBeacon = jest.fn().mockReturnValue(true);
+      navigator.sendBeacon = mockBeacon;
+      const { proposalUuid, currentPanel } = createRefs('uuid-inflight-hidden');
+      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      const originalEntry = {
+        section_type: 'greeting',
+        section_title: 'Hi',
+        entered_at: '2026-03-07T12:00:00.000Z',
+        time_spent_seconds: 5,
+      };
+      sectionLog.value.push(originalEntry);
+      const inFlight = flush();
+
+      document.visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+      document.visibilityState = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      const freshEntry = {
+        section_type: 'investment',
+        section_title: 'Investment',
+        entered_at: '2026-03-07T12:00:10.000Z',
+        time_spent_seconds: 2,
+      };
+      sectionLog.value.push(freshEntry);
+
+      resolveFetch({ ok: true });
+      await inFlight;
+
+      expect(sectionLog.value).toEqual([freshEntry]);
+    });
   });
 
   describe('flushBeacon', () => {
@@ -420,7 +489,83 @@ describe('useProposalTracking', () => {
       });
       document.dispatchEvent(new Event('visibilitychange'));
 
-      expect(mockBeacon).toHaveBeenCalled();
+      expect(mockBeacon).toHaveBeenCalledWith(
+        '/api/proposals/uuid-vis/track/',
+        expect.any(Blob),
+      );
+    });
+
+    it('pauses periodic tracking after the page becomes hidden', async () => {
+      let now = 0;
+      jest.spyOn(performance, 'now').mockImplementation(() => now);
+      const mockBeacon = jest.fn().mockReturnValue(true);
+      navigator.sendBeacon = mockBeacon;
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      const panel = { section_type: 'greeting', title: 'Hello' };
+      const { proposalUuid, currentPanel } = createRefs('uuid-hidden-pause', panel);
+      useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      now = 5000;
+      document.visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      jest.advanceTimersByTime(90_000);
+      await Promise.resolve();
+      expect(mockBeacon).toHaveBeenCalledWith(
+        '/api/proposals/uuid-hidden-pause/track/',
+        expect.any(Blob),
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('sends one final beacon across hidden-tab lifecycle events', () => {
+      let now = 0;
+      jest.spyOn(performance, 'now').mockImplementation(() => now);
+      const mockBeacon = jest.fn().mockReturnValue(true);
+      navigator.sendBeacon = mockBeacon;
+      const panel = { section_type: 'greeting', title: 'Hello' };
+      const { proposalUuid, currentPanel } = createRefs('uuid-hidden-final', panel);
+      useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      now = 5000;
+      document.visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      window.dispatchEvent(new Event('beforeunload'));
+      expect(mockBeacon).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts a fresh section segment when the page becomes visible again', async () => {
+      let now = 0;
+      jest.spyOn(performance, 'now').mockImplementation(() => now);
+      navigator.sendBeacon = jest.fn().mockReturnValue(true);
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      const panel = { section_type: 'investment', title: 'Investment' };
+      const { proposalUuid, currentPanel } = createRefs('uuid-resume', panel);
+      const { flush } = useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      now = 4000;
+      document.visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      now = 7000;
+      document.visibilityState = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      now = 9000;
+      await flush();
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+      expect(body.sections).toEqual([
+        expect.objectContaining({
+          section_type: 'investment',
+          time_spent_seconds: 2,
+        }),
+      ]);
     });
 
     it('silently handles sendBeacon errors', () => {

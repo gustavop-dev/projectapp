@@ -30,7 +30,11 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   const sectionLog = ref([]);
   let currentEntry = null;
   let flushTimer = null;
+  let flushPromise = null;
+  let isPaused = false;
+  let beaconFinalized = false;
   let visibilityHandler = null;
+  let beforeUnloadHandler = null;
 
   function generateSessionId() {
     // Prefer crypto.randomUUID for collision-resistant IDs; fall back to
@@ -107,39 +111,76 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   }
 
   async function flush() {
+    if (isPaused) return;
+    if (flushPromise) return flushPromise;
+
     const payload = buildPayload();
     if (!payload.sections.length || !proposalUuid.value) return;
 
-    try {
-      const url = `/api/proposals/${proposalUuid.value}/track/`;
-      const headers = { 'Content-Type': 'application/json' };
-      const csrf = _getCsrfToken();
-      if (csrf) headers['X-CSRFToken'] = csrf;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-      });
-      if (response.ok) {
-        // Clear flushed entries (keep current running entry)
-        sectionLog.value = [];
+    // Only remove the exact completed entries included in this request.
+    // Visibility changes can clear the queue and append a fresh segment while
+    // a slow request is still in flight; positional slicing would drop it.
+    const completedEntriesSent = new Set(sectionLog.value);
+
+    flushPromise = (async () => {
+      try {
+        const url = `/api/proposals/${proposalUuid.value}/track/`;
+        const headers = { 'Content-Type': 'application/json' };
+        const csrf = _getCsrfToken();
+        if (csrf) headers['X-CSRFToken'] = csrf;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+        if (response.ok) {
+          sectionLog.value = sectionLog.value.filter(
+            (entry) => !completedEntriesSent.has(entry)
+          );
+        }
+      } catch (_err) {
+        // Silently fail — tracking is non-critical
       }
-    } catch (_err) {
-      // Silently fail — tracking is non-critical
+    })();
+
+    try {
+      await flushPromise;
+    } finally {
+      flushPromise = null;
     }
   }
 
   function flushBeacon() {
+    if (beaconFinalized) return;
     const payload = buildPayload();
     if (!payload.sections.length || !proposalUuid.value) return;
     const url = `/api/proposals/${proposalUuid.value}/track/`;
     try {
-      navigator.sendBeacon(url, new Blob(
+      const queued = navigator.sendBeacon(url, new Blob(
         [JSON.stringify(payload)],
         { type: 'application/json' }
-      ));
+      )) !== false;
+      if (queued) {
+        // sendBeacon has taken ownership of these completed entries. Clearing
+        // them prevents beforeunload/unmount from sending the same final slice.
+        sectionLog.value = [];
+        beaconFinalized = true;
+      }
     } catch (_err) {
       // Silently fail
+    }
+  }
+
+  function startFlushTimer() {
+    if (!flushTimer) {
+      flushTimer = setInterval(flush, FLUSH_INTERVAL_MS);
+    }
+  }
+
+  function stopFlushTimer() {
+    if (flushTimer) {
+      clearInterval(flushTimer);
+      flushTimer = null;
     }
   }
 
@@ -150,7 +191,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
       if (oldPanel && newPanel !== oldPanel) {
         stopSectionTimer();
       }
-      if (newPanel) {
+      if (newPanel && !isPaused) {
         startSectionTimer(newPanel);
       }
     },
@@ -160,20 +201,35 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   onMounted(() => {
     sessionId.value = getOrCreateSessionId();
 
-    // Start timer for initial section
-    if (currentPanel.value) {
+    isPaused = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+
+    // Start timers only while the page is actually visible. Hidden tabs do
+    // not represent engaged reading time and must not keep a heartbeat alive.
+    if (currentPanel.value && !isPaused) {
       startSectionTimer(currentPanel.value);
     }
 
-    // Periodic flush
-    flushTimer = setInterval(flush, FLUSH_INTERVAL_MS);
+    if (!isPaused) startFlushTimer();
 
     // Flush on page unload
     if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', flushBeacon);
+      beforeUnloadHandler = () => {
+        if (!isPaused) stopSectionTimer();
+        flushBeacon();
+      };
+      window.addEventListener('beforeunload', beforeUnloadHandler);
       visibilityHandler = () => {
         if (document.visibilityState === 'hidden') {
+          if (isPaused) return;
+          isPaused = true;
+          stopFlushTimer();
+          stopSectionTimer();
           flushBeacon();
+        } else if (isPaused) {
+          isPaused = false;
+          beaconFinalized = false;
+          if (currentPanel.value) startSectionTimer(currentPanel.value);
+          startFlushTimer();
         }
       };
       document.addEventListener('visibilitychange', visibilityHandler);
@@ -181,11 +237,17 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   });
 
   onBeforeUnmount(() => {
-    stopSectionTimer();
-    flush();
-    if (flushTimer) clearInterval(flushTimer);
+    if (isPaused) {
+      flushBeacon();
+    } else {
+      stopSectionTimer();
+      flush();
+    }
+    stopFlushTimer();
     if (typeof window !== 'undefined') {
-      window.removeEventListener('beforeunload', flushBeacon);
+      if (beforeUnloadHandler) {
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+      }
       if (visibilityHandler) {
         document.removeEventListener('visibilitychange', visibilityHandler);
       }
