@@ -2,18 +2,21 @@
 
 ## Current State
 
-**2026-08-28 — Títulos largos de Documentos revelables y columna ampliada:**
-el nombre completo ya no depende de que la medición de overflow termine a
-tiempo: mientras está contraído siempre se expone en el hover nativo, y el
-control táctil **Ver completo/Contraer** se recalcula también cuando finaliza la
-carga de fuentes web. En lista, Título conserva 320 px iniciales pero ahora puede
-ajustarse entre 240 y 800 px; el separador tiene una zona de interacción más
-amplia, indicador más visible y ayuda nativa, sin ceder los tracks fijos de
-Estados o Acciones. La prueba E2E dejó de emitir el resize artificial que
-ocultaba la carrera real. Verificación: 23 unitarias focales, 11 escenarios
-Playwright, design-token gate, flow-map fresh (272 cubiertos, 37 parciales,
-0 junk-only, 0 faltantes) y build Nuxt aprobados. Sin cambios de backend ni
-esquema.
+**2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
+`BaseOverflowText` mide el recorte real y publica el nombre completo mediante un
+`BaseTooltip` flotante sólo cuando hace falta; el mismo primitive sirve las
+acciones de fila y `BaseButton` ya no agrega un `title` nativo competidor. El
+overlay se teletransporta fuera de la tabla, se voltea/limita al viewport y se
+reubica con scroll o resize; la medición se repite al terminar de cargar las
+fuentes web. **Ver completo/Contraer** conserva la alternativa táctil. El
+separador visible y etiquetado usa la capacidad compartida de tabla: Título
+usa 240–520 px, persiste por navegador, vuelve a 320 px con doble clic, recibe
+espacio de Proyecto→Cliente→Fecha y no comprime Estados/Acciones. El límite de
+520 px cubre el inventario productivo consultado (40 nombres, máximo 56
+caracteres, 496 px estimados con padding y margen). Verificación focal:
+unitarios de primitives/consumidores, 13 escenarios Playwright sin retries,
+build Nuxt, guards de acciones y controles, flow-map fresco y auditoría global
+sin `junk-only` ni faltantes.
 
 **2026-08-28 — Un solo aviso breve para las acciones del panel:**
 `BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
@@ -440,13 +443,13 @@ errores (96/100; ocho warnings preexistentes en los specs completos).
 introdujo `BaseOverflowText` para una línea con elipsis final, medición de
 recorte y **Ver completo/Contraer**; la misma expansión funciona en las tarjetas
 de celular/tableta sin abrir el documento. El contrato vigente desde 2026-08-28
-mantiene el nombre completo en `title` mientras está contraído y vuelve a medir
-al finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
+publica un único aviso flotante sólo cuando confirma recorte y vuelve a medir al
+finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
 final porque la revelación explícita resuelve la identidad sin una segunda regla
-visual. Título parte en 320 px y se ajusta entre 240/800 mediante el mismo
+visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
 `BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
 viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
-default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (80),
+default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (56),
 y deja scroll interno al agotar mínimos. La API genérica quedó
 expuesta en `BaseResponsiveTable` y documentada en el styleguide. Sin backend ni
 schema. Cobertura focal: primitives/engine/Documentos, flow P2
