@@ -564,7 +564,7 @@ test.describe('Admin Client Communications', () => {
     await expect(page.getByTestId('filter-tabs-tab-901')).toBeVisible();
     await expect(page.getByTestId('filter-tabs-origin-901')).toHaveText('Propia');
 
-    await page.getByTestId('filter-tabs-tab-all').click();
+    await page.getByTestId('filter-tabs-all').click();
     await expect(page).not.toHaveURL(/client=7/);
     await page.getByTestId('filter-tabs-tab-901').click();
     await expect(page).toHaveURL(/client=7/);
