@@ -118,11 +118,11 @@ y almacenamiento del historial.
 
 ## Activación de `carlos18bp@gmail.com`
 
-La dirección no se fija en código ni se siembra en una migración. El diagnóstico
-de producción encontró la tabla de destinatarios vacía: por eso Carlos no estaba
-recibiendo copias. Antes de validar esta entrega en producción, un administrador
-debe agregar `carlos18bp@gmail.com` en Configuración con las ocho familias
-seleccionadas y confirmar que la traza BCC del primer correo figura como Enviado.
+La migración `content.0225` crea o reactiva esta dirección en
+`EmailCopyRecipient` con las ocho familias. Así el despliegue no depende de una
+alta manual para cumplir la notificación solicitada; después sigue siendo una
+fila administrable desde Configuración. La validación operativa debe confirmar
+que la traza BCC del primer correo posterior al despliegue figura como Enviado.
 
 ## Evidencia de completitud
 

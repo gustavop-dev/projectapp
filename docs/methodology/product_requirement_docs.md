@@ -4,9 +4,9 @@
 > cuerpo, enlaces y bytes exactos de cada adjunto, con nombre, tipo, tamaño y
 > peso total del envío. Permite filtrar, descargar, previsualizar PDF y reenviar
 > la evidencia sin regenerarla; enlaza Documentos en ambas direcciones y declara
-> de forma explícita la ausencia o la brecha de datos legados. La notificación a
-> `carlos18bp@gmail.com` usa la copia BCC configurable existente y sólo se intenta
-> después de que el envío principal fue aceptado.
+> de forma explícita la ausencia o la brecha de datos legados. La migración
+> `content.0225` habilita `carlos18bp@gmail.com` en la copia BCC configurable y
+> ésta sólo se intenta después de que el envío principal fue aceptado.
 
 ## 1. Overview
 

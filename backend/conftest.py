@@ -167,6 +167,17 @@ def allow_fake_data_for_tests(settings):
     settings.FAKE_DATA_ALLOWED = True
 
 
+@pytest.fixture(scope='session', autouse=True)
+def isolate_seeded_email_copy_recipient(django_db_setup, django_db_blocker):
+    """Keep recipient-dependent tests explicit while testing the seed separately."""
+    from content.models import EmailCopyRecipient
+
+    with django_db_blocker.unblock():
+        EmailCopyRecipient.objects.filter(
+            email='carlos18bp@gmail.com',
+        ).delete()
+
+
 @pytest.fixture
 def api_client():
     """Unauthenticated DRF API client."""

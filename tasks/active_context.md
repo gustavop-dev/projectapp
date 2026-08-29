@@ -9,9 +9,10 @@ comparten evidencia; fallar al archivarla bloquea el envío. `/panel/emails`
 distingue captura exacta, adjuntos confirmados en cero y legado parcial/desconocido;
 filtra por presencia/tipo, descarga, reutiliza el visor PDF y reenvía desde el
 archivo cambiando sólo destinatario. Los Documentos muestran los correos donde
-salieron y quedan protegidos de borrado. `carlos18bp@gmail.com` usa la configuración
-existente de `EmailCopyRecipient`: su BCC se intenta sólo después del éxito
-principal. Backend, unitarios, build, 7 E2E focales, freshness y flow audit están
+salieron y quedan protegidos de borrado. La migración `content.0225` habilita
+`carlos18bp@gmail.com` en las ocho familias de `EmailCopyRecipient`; su BCC se
+intenta sólo después del éxito principal y sigue siendo administrable. Backend,
+unitarios, build, 7 E2E focales, freshness y flow audit están
 verdes; fake-data refresh se omitió por el guardrail absoluto de producción.
 
 **2026-08-28 — Títulos largos de Documentos revelables y columna ampliada:**
@@ -232,8 +233,9 @@ segmentación por familias, deduplica contra destinatarios primarios y centraliz
 la traza de principales/copias, incluidos los canales internos y de seguridad.
 La migración `content.0213`, el inventario exacto de 56 canales, los 21 casos del
 gateway, 9 casos de API global, 10 E2E y el build Nuxt están verdes; el flow-map
-queda fresco con cero junk-only, unvalidated o missing. Después de desplegar y
-migrar aún debe agregarse Carlos desde Configuración con las ocho familias.
+queda fresco con cero junk-only, unvalidated o missing. El seguimiento
+`content.0225` provisiona a Carlos con las ocho familias durante el despliegue,
+sin requerir una alta manual posterior.
 
 **2026-08-26 — Eliminación recuperable de observaciones y cero diálogos nativos
 en el panel:** **Descartar** conserva la observación y su motivo opcional;
@@ -495,8 +497,9 @@ enviadas/fallidas/omitidas y permite a cualquier admin ver el cuerpo completo,
 incluido seguridad, con advertencia visible. Migración `content.0213`;
 inventario y activación en `docs/client-email-copy-inventory.md`. El diagnóstico
 read-only de producción confirmó la causa de que Carlos no recibiera: la tabla
-de copias estaba vacía. Tras deploy/migración todavía hay que crear desde
-Configuración `carlos18bp@gmail.com` con las ocho familias; no se hardcodea.
+de copias estaba vacía. El seguimiento `content.0225` crea o reactiva
+`carlos18bp@gmail.com` con las ocho familias y conserva luego su administración
+desde Configuración.
 
 **2026-08-22 — Auditoría final responsiva Fase 5 sobre `main`:** las fases 0–4 quedaron integradas antes de iniciar el censo. La revisión triestado corrigió el E2E de Proyectos para sus representaciones fila/tarjeta y segmento/select, eliminó el breakpoint local de Blog edit y dio paridad táctil/teclado a completar tarjeta en Kanban y al avatar de Perfil. El contrato ahora fija también alturas, rechaza breakpoints JS locales del panel y detecta acciones interactivas ocultas sólo por hover; `.testquality.yml` expone al ledger los 12 módulos, breakpoints y viewports exactos. Verificación focal aprobada por QA independiente: contrato 101/12/5, 7/7 unitarias de configuración, Proyectos 5/5, Perfil/Kanban 15/15 y flujos de selector/guardado 2/2. El veredicto permanece amarillo: no hubo acceso a dispositivos físicos; PA-45 conserva overlays locales; el estándar fleet del toolkit está desfasado y el harness/ledger modela los módulos de forma distinta. El informe `docs/audits/2026-08-22-responsive-phase-5-final.md` y las fichas RSP-F5-01…04 registran esos pendientes.
 

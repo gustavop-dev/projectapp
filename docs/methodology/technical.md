@@ -335,9 +335,10 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   complete bodies are retained by the explicit product policy.
 - Copy recipients are database configuration, separate from
   `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
-  more stable families. `carlos18bp@gmail.com` must be active in
-  `EmailCopyRecipient` for the desired families; it is deliberately not a
-  hard-coded address. See `docs/client-email-copy-inventory.md`.
+  more stable families. Migration `content.0225` provisions
+  `carlos18bp@gmail.com` active for all eight families; the address remains an
+  administrable `EmailCopyRecipient` row instead of transport-layer branching.
+  See `docs/client-email-copy-inventory.md`.
 - `/api/emails/history/<log>/attachments/<attachment>/` streams retained bytes
   only to panel admins (`private, no-store`; inline only for PDF). Exact resend
   accepts a validated recipient only, constructs a new snapshot with `resend_of`,
