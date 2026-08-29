@@ -19,6 +19,10 @@ from content.services.email_delivery_service import (
     EmailDeliveryGateway,
     EmailMultiAlternatives,
 )
+from content.services.email_snapshot_service import (
+    _format_kind,
+    _inferred_business_kind,
+)
 from content.services.outbound_email_inventory import OUTBOUND_EMAIL_CHANNELS
 from content.serializers.accounting import EmailLogSerializer
 
@@ -518,3 +522,29 @@ def test_snapshot_failure_blocks_smtp():
             )
 
     smtp_send.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ('filename', 'mime_type', 'expected'),
+    [
+        (
+            'alcance.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'word',
+        ),
+        (
+            'presupuesto.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'spreadsheet',
+        ),
+    ],
+    ids=['word', 'spreadsheet'],
+)
+def test_attachment_format_classifies_office_file(filename, mime_type, expected):
+    assert _format_kind(filename, mime_type) == expected
+
+
+def test_business_kind_infers_platform_guide():
+    result = _inferred_business_kind('platform_welcome', 'guia-plataforma.pdf')
+
+    assert result == ('platform_guide', 'Guía de plataforma')

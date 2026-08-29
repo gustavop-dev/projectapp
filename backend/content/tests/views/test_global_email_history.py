@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core import mail
@@ -17,6 +18,7 @@ from content.models import (
     EmailDeliverySnapshot,
     EmailLog,
 )
+from content.services.email_snapshot_service import EmailSnapshotCaptureError
 
 
 pytestmark = pytest.mark.django_db
@@ -320,6 +322,59 @@ def test_exact_resend_preserves_retained_delivery(admin_client):
     assert mail.outbox[1].bcc == ['carlos18bp@gmail.com']
     resent = EmailLog.objects.get(pk=response.data['email_log_id'])
     assert resent.snapshot.resend_of_id == log.snapshot_id
+
+
+def test_resend_returns_service_unavailable_when_snapshot_capture_fails(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    with patch(
+        'content.services.email_delivery_service.EmailDeliveryGateway.send',
+        side_effect=EmailSnapshotCaptureError('storage unavailable'),
+    ):
+        response = admin_client.post(
+            reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+            {'recipient': 'nuevo@example.com'},
+            format='json',
+        )
+
+    assert response.status_code == 503
+    assert response.data['code'] == 'email_snapshot_capture_failed'
+
+
+def test_resend_records_failed_log_when_gateway_raises(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    with patch(
+        'content.services.email_delivery_service.EmailDeliveryGateway.send',
+        side_effect=RuntimeError('SMTP down'),
+    ):
+        response = admin_client.post(
+            reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+            {'recipient': 'nuevo@example.com'},
+            format='json',
+        )
+
+    assert response.status_code == 502
+    failed = EmailLog.objects.exclude(pk=log.pk).get(status=EmailLog.Status.FAILED)
+    assert failed.error_message == 'SMTP down'
+
+
+def test_resend_records_failed_log_when_gateway_returns_zero(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    with patch(
+        'content.services.email_delivery_service.EmailDeliveryGateway.send',
+        return_value=0,
+    ):
+        response = admin_client.post(
+            reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+            {'recipient': 'nuevo@example.com'},
+            format='json',
+        )
+
+    assert response.status_code == 502
+    failed = EmailLog.objects.exclude(pk=log.pk).get(status=EmailLog.Status.FAILED)
+    assert failed.error_message == 'El backend de correo no aceptó el reenvío.'
 
 
 def _document_with_email_usage():
