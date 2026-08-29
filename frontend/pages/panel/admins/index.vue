@@ -25,6 +25,7 @@
       alcanza, no hace falta colapsar en un selector.
     -->
     <div class="flex flex-wrap gap-2 mb-5">
+      <!-- design-tokens: allow-raw-button — selectable filter chip -->
       <button
         v-for="f in filters"
         :key="f.value"

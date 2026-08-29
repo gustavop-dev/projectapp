@@ -16,7 +16,7 @@ const typedName = computed(() => props.inputText.trim())
   <BaseButton
     variant="ghost"
     size="sm"
-    text-policy="wrap"
+    textPolicy="wrap"
     class="w-full !justify-start !bg-primary-soft text-left !text-text-brand hover:opacity-90"
     data-testid="client-autocomplete-create-new"
     @click="$emit('create')"

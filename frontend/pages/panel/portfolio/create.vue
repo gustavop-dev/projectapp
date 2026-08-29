@@ -7,9 +7,11 @@
 
     <!-- Tab toggle -->
     <div class="flex gap-1 mb-6 bg-surface-raised rounded-xl p-1 max-w-xs">
+      <!-- design-tokens: allow-raw-button — segmented mode control -->
       <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'manual' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default']" @click="mode = 'manual'">
         Manual
       </button>
+      <!-- design-tokens: allow-raw-button — segmented mode control -->
       <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'json' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default']" @click="mode = 'json'">
         Importar JSON
       </button>
