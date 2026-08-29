@@ -31,3 +31,11 @@ from .accounting import (
     CardBalanceSnapshotSerializer, CardBalanceSnapshotCreateUpdateSerializer,
     AccountingChangeLogSerializer, AccountingSettingsSerializer,
 )
+from .additional_modules import (
+    AdditionalModuleAdminSerializer,
+    AdditionalModuleCategorySerializer,
+    AdditionalModulePdfSelectionSerializer,
+    AdditionalModuleShareAdminSerializer,
+    AdditionalModuleShareCreateSerializer,
+    AdditionalModuleTrackSerializer,
+)

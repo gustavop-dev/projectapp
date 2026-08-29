@@ -21,6 +21,9 @@ from accounts.models import (
 )
 from content.fake_data import SeedContext, covered_model_labels
 from content.models import (
+    AdditionalModule,
+    AdditionalModuleShareLink,
+    AdditionalModuleShareView,
     BlogPost,
     BusinessProposal,
     CommunicationMessage,
@@ -368,6 +371,24 @@ def test_auxiliary_seed_populates_visible_history_without_credentials():
     assert QRCard.objects.count() == 6
     assert McpRequestLog.objects.count() == 12
     assert McpConnector.objects.filter(is_active=True).count() == 0
+
+
+def test_auxiliary_seed_populates_additional_module_share_history():
+    """The auxiliary seed exposes realistic catalog-link tracking history."""
+    run_command(
+        'create_fake_clients_projects', '--count', '12',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+    run_command(
+        'create_fake_auxiliary', '--count', '12',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+
+    assert AdditionalModuleShareLink.objects.count() == 5
+    assert AdditionalModuleShareView.objects.count() == 4
+    assert AdditionalModuleShareLink.objects.filter(view_count=0).count() == 2
+    assert AdditionalModuleShareLink.objects.filter(is_active=False).count() == 1
+    assert AdditionalModule.objects.filter(share_links__isnull=False).exists()
 
 
 def test_orchestrator_rolls_back_a_failed_stage(monkeypatch):

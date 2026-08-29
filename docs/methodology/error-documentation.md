@@ -11,6 +11,12 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 > del SMTP. Los registros previos conservan honestamente su estado parcial o
 > desconocido y nunca ofrecen un archivo regenerado como si fuera el original.
 
+> **Revisión 2026-08-28 — catálogo adicional:** no se abrió un incidente. La
+> implementación cerró los riesgos previstos: la semilla usa migraciones nuevas,
+> el prerender sólo contiene el catálogo canónico, las aperturas se deduplican
+> por enlace/sesión y el contrato público omite datos internos. Además, los
+> errores JSON de PDF se recuperan desde respuestas `Blob` en el frontend.
+
 ---
 
 ## Format

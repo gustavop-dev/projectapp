@@ -12,6 +12,13 @@ This file captures important patterns, preferences, and project intelligence tha
 > comparte entre destinatario principal y copias, y una brecha legada se declara
 > en lugar de llenarse con una suposición.
 
+> **Lección 2026-08-28 — catálogo adicional:** un enlace comercial debe fijar
+> qué módulos se eligieron, no duplicar su contenido. Así la selección permanece
+> estable mientras las correcciones editoriales llegan a todos los clientes. La
+> migración semilla crea el inventario una sola vez; los enlaces nunca heredan
+> precios ni datos de una propuesta, y las URLs seleccionadas usan `noindex`
+> aunque el catálogo canónico sí sirva para captación.
+
 ---
 
 ## 1. Architecture Patterns
@@ -1333,7 +1340,25 @@ only the recipient is editable. When old rows lack evidence, use explicit
 Keep the live Document relation for navigation and deletion protection, while
 the attachment filename, type name, hash and bytes remain historical fields.
 
-## 54. A generated document is an artifact, not another editable projection
+## 55. Semantic association and lifecycle ownership need separate fields
+
+A folder may point at a project without being the project's system-owned root.
+Reusing the ordinary `project` relation for both meanings makes every descendant
+look immutable and leaves no reliable way to distinguish a hand-made hierarchy
+from the canonical entry point. Keep semantic inheritance on `project`/`client`
+and represent lifecycle ownership with a separate one-to-one relation whose
+invariants are enforced in the database and every mutation surface.
+
+Historical name matching is evidence, not authorization. A safe reconciliation
+first emits a stable inventory with proposed actions, impacts and conflicts; a
+human decides every pending row; apply revalidates both the plan digest and the
+database fingerprint inside one transaction. This makes ambiguous client/project
+names visible before documents move and prevents an approved proposal from being
+silently applied to a later database state. Preserve an inverse snapshot even when
+the write is atomic: rollback of data classification is an operational procedure,
+not just a transaction primitive.
+
+## 56. A generated document is an artifact, not another editable projection
 
 When a system both generates and sends a PDF, regenerating it later is not an
 archive: templates, source data and fonts may have changed. Render once before
@@ -1350,7 +1375,7 @@ administrative observations editable. For legacy data, a dry-run-first backfill
 should touch only records still lacking a destination, preserve manual choices
 and refuse to invent the business date that defines the archive.
 
-## 55. KPI density and KPI geometry are separate contracts
+## 57. KPI density and KPI geometry are separate contracts
 
 Equal card heights require a stable internal grid, not copy of equal length.
 Reserve label, value and optional support rows in the shared primitive so missing
@@ -1364,7 +1389,7 @@ put the lossless detail in a focus-managed drawer. A summary total must combine
 like units: for heterogeneous operational facts, count active categories rather
 than adding clients, records and review rows into a misleading grand total.
 
-## 56. A thread filter is a correlated event question, not independent joins
+## 58. A thread filter is a correlated event question, not independent joins
 
 A conversation can contain many messages, so applying channel, direction and
 status as separate relation joins answers the wrong question: one email can

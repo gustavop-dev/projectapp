@@ -66,10 +66,16 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Revisar cambios de cliente y administrar el catálogo de estados.',
   ]),
   commercial: module('commercial', [
+    'frontend/components/AdditionalModules/CatalogOrderModal.vue',
+    'frontend/components/AdditionalModules/CatalogSelectionModal.vue',
+    'frontend/components/AdditionalModules/CategoryManagerModal.vue',
+    'frontend/components/AdditionalModules/ModuleFormModal.vue',
+    'frontend/components/AdditionalModules/ShareHistoryModal.vue',
     'frontend/components/BusinessProposal/admin/',
     'frontend/components/WebAppDiagnostic/admin/',
     'frontend/components/proposals/',
     'frontend/pages/panel/defaults.vue',
+    'frontend/pages/panel/additional-modules/',
     'frontend/pages/panel/diagnostics/',
     'frontend/pages/panel/hour-packages/',
     'frontend/pages/panel/proposals/',
@@ -78,6 +84,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Usar selección múltiple y acciones por fila.',
     'Crear, editar y previsualizar una pieza comercial.',
     'Crear o editar un paquete de horas.',
+    'Administrar, reordenar, seleccionar y compartir módulos adicionales.',
   ]),
   emails: module('emails', [
     'frontend/components/email/',
@@ -138,14 +145,18 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Activar o desactivar el conector.',
   ]),
   public: module('public', [
+    'frontend/components/AdditionalModules/CatalogView.vue',
     'frontend/components/BusinessProposal/',
     'frontend/components/Linktree/',
     'frontend/components/WebAppDiagnostic/public/',
     'frontend/components/home/',
     'frontend/components/landing/',
+    'frontend/components/layouts/FooterDesktop.vue',
+    'frontend/components/layouts/FooterMobile.vue',
     'frontend/components/pages/',
     'frontend/layouts/default.vue',
     'frontend/pages/about-us.vue',
+    'frontend/pages/additional-modules/',
     'frontend/pages/blog/',
     'frontend/pages/contact',
     'frontend/pages/diagnostic/',
@@ -160,6 +171,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Abrir home, landings, contacto, blog, portafolio y legales.',
     'Abrir un linktree y usar sus acciones principales.',
     'Recorrer una propuesta y un diagnóstico compartidos.',
+    'Explorar el catálogo de módulos, abrir detalles y descargar la selección.',
     'Confirmar que controles flotantes no cubren el contenido.',
   ]),
 });
@@ -229,7 +241,7 @@ export function responsiveOwnerForView(sectionId, view) {
   if (url === '/panel/communications') return 'communications';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';
   if (url === '/panel/emails' || url.includes('/email-')) return 'emails';
-  if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url === '/panel/defaults') return 'commercial';
+  if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url.startsWith('/panel/additional-modules') || url === '/panel/defaults') return 'commercial';
   if (url.startsWith('/panel/blog') || url.startsWith('/panel/linkedin') || url.startsWith('/panel/portfolio') || url.startsWith('/panel/qr-cards') || url.startsWith('/panel/linktrees')) return 'content';
   if (url === '/panel' || url.startsWith('/panel/tasks') || url.startsWith('/panel/admins') || url === '/panel/views') return 'dashboard';
   return null;

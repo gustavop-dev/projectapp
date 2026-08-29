@@ -211,7 +211,7 @@ function onFolderLink(event, sub) {
           :key="`folder-${sub.id}`"
           class="transition-colors select-none hover:bg-surface-muted cursor-pointer"
           :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
-          :draggable="!sub.is_archived && !sub.is_system_managed"
+          :draggable="!sub.is_archived && sub.folder_kind !== 'project' && !sub.is_system_managed"
           @click="emit('select-folder', sub.id)"
           @dragstart="emit('folder-dragstart', $event, sub)"
           @dragend="emit('folder-dragend')"
@@ -250,6 +250,9 @@ function onFolderLink(event, sub) {
                 :title="sub.name"
                 @click="onFolderLink($event, sub)"
               >{{ sub.name }}</BaseRowLink>
+              <BaseBadge v-if="sub.folder_kind === 'project'" variant="info" size="sm">
+                Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
+              </BaseBadge>
               <FolderArchivedBadge
                 v-if="!sub.is_archived && archivedContentCount(sub)"
                 :count="archivedContentCount(sub)"

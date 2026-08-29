@@ -8,6 +8,13 @@
 > `content.0225` habilita `carlos18bp@gmail.com` en la copia BCC configurable y
 > ésta sólo se intenta después de que el envío principal fue aceptado.
 
+> **Estado 2026-08-28 — implementado:** el catálogo comercial de módulos
+> adicionales es un dominio administrable y bilingüe, separado de las
+> propuestas. Publica un índice canónico completo y enlaces revocables con una
+> selección fija, contenido vivo, PDF y seguimiento de aperturas, siempre sin
+> precios ni personalización por proyecto. El inventario inicial contiene 18
+> módulos en cinco categorías, incluida Landing Page.
+
 ## 1. Overview
 
 **ProjectApp** is the full-stack web application for **Project App** (projectapp.co), a custom software development company based in Colombia. The platform serves as:
@@ -201,6 +208,27 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 ### 3.5 Document System
 
 - Generic branded PDF documents separate from proposals
+- The folder panel separates two ownership models: **Projects** lists the
+  system-managed root of each visible project, while **Folders** lists roots
+  created by people. Both sections are independently collapsible and their
+  counters include all descendant folders and documents.
+- Every project owns at most one managed root. Creating or renaming a project
+  creates or renames that root automatically; users may create arbitrary
+  descendants but cannot rename, move, archive or delete the managed first
+  level. Deleting a project preserves its former root and content as a manual
+  folder instead of cascading document loss.
+- Project-state catalog entries expose a configurable **show in document
+  manager** flag. The default visible states are En desarrollo, Activo and En
+  evolución. “Ver todos” remains an explicit route to suspended, retired or
+  otherwise hidden project roots without changing or deleting their content.
+- A new project root starts with Cuentas de cobro, Propuestas, Entregables and
+  QA. Content and subfolders created below it inherit the project and client
+  when the caller does not provide an explicit association.
+- Existing roots are reconciled only through a review artifact: a dry-run plan
+  records every proposed conversion, nesting, creation, skip and conflict; the
+  apply command requires the reviewed decisions, database fingerprint and plan
+  digest to still match. A client-named root is nested under the unique project
+  root; no production folder is converted from a name-only shortcut.
 - Client visibility is an independent `is_client_visible` gate. The legacy
   draft/published field remains only during the expand/contract rollout and no
   longer represents the internal workflow.

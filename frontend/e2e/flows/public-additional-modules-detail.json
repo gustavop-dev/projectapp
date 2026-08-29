@@ -1,0 +1,10 @@
+{
+  "id": "public-additional-modules-detail",
+  "name": "Public Additional Module Detail",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P1",
+  "description": "Visitor opens a module card, reads all five explanatory blocks in a modal, closes it, and returns to the same card.",
+  "expectedSpecs": 1,
+  "outcomes": ["success"]
+}

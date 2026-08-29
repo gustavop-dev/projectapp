@@ -277,10 +277,112 @@ from content.views.diagnostic import (
     download_public_diagnostic_pdf,
     diagnostic_defaults, reset_diagnostic_defaults,
 )
+from content.views.additional_modules import (
+    admin_catalog,
+    admin_catalog_pdf,
+    admin_share_links,
+    create_category as create_additional_module_category,
+    create_module as create_additional_module,
+    public_catalog as public_additional_module_catalog,
+    public_catalog_pdf as public_additional_module_catalog_pdf,
+    public_share_catalog as public_additional_module_share,
+    public_share_catalog_pdf as public_additional_module_share_pdf,
+    reorder_admin_catalog as reorder_additional_module_catalog,
+    set_category_status as set_additional_module_category_status,
+    set_module_status as set_additional_module_status,
+    set_share_link_status as set_additional_module_share_status,
+    track_public_share_catalog as track_public_additional_module_share,
+    update_category as update_additional_module_category,
+    update_module as update_additional_module,
+)
 
 urlpatterns = [
     path('contacts/', contact_list, name='contact-list'),
     path('new-contact/', new_contact, name='new-contact'),
+
+    # Additional modules catalog — public
+    path(
+        'additional-modules/public/',
+        public_additional_module_catalog,
+        name='public-additional-module-catalog',
+    ),
+    path(
+        'additional-modules/public/pdf/',
+        public_additional_module_catalog_pdf,
+        name='public-additional-module-catalog-pdf',
+    ),
+    path(
+        'additional-modules/public/shares/<uuid:share_uuid>/',
+        public_additional_module_share,
+        name='public-additional-module-share',
+    ),
+    path(
+        'additional-modules/public/shares/<uuid:share_uuid>/track/',
+        track_public_additional_module_share,
+        name='track-public-additional-module-share',
+    ),
+    path(
+        'additional-modules/public/shares/<uuid:share_uuid>/pdf/',
+        public_additional_module_share_pdf,
+        name='public-additional-module-share-pdf',
+    ),
+
+    # Additional modules catalog — admin
+    path(
+        'additional-modules/admin/',
+        admin_catalog,
+        name='admin-additional-module-catalog',
+    ),
+    path(
+        'additional-modules/admin/categories/',
+        create_additional_module_category,
+        name='create-additional-module-category',
+    ),
+    path(
+        'additional-modules/admin/categories/<int:category_id>/',
+        update_additional_module_category,
+        name='update-additional-module-category',
+    ),
+    path(
+        'additional-modules/admin/categories/<int:category_id>/<str:action>/',
+        set_additional_module_category_status,
+        name='set-additional-module-category-status',
+    ),
+    path(
+        'additional-modules/admin/modules/',
+        create_additional_module,
+        name='create-additional-module',
+    ),
+    path(
+        'additional-modules/admin/modules/<int:module_id>/',
+        update_additional_module,
+        name='update-additional-module',
+    ),
+    path(
+        'additional-modules/admin/modules/<int:module_id>/<str:action>/',
+        set_additional_module_status,
+        name='set-additional-module-status',
+    ),
+    path(
+        'additional-modules/admin/reorder/',
+        reorder_additional_module_catalog,
+        name='reorder-additional-module-catalog',
+    ),
+    path(
+        'additional-modules/admin/shares/',
+        admin_share_links,
+        name='admin-additional-module-shares',
+    ),
+    path(
+        'additional-modules/admin/shares/<uuid:share_uuid>/<str:action>/',
+        set_additional_module_share_status,
+        name='set-additional-module-share-status',
+    ),
+    path(
+        'additional-modules/admin/pdf/',
+        admin_catalog_pdf,
+        name='admin-additional-module-catalog-pdf',
+    ),
 
     # Proposals — public
     path('proposals/<uuid:proposal_uuid>/', retrieve_public_proposal, name='retrieve-public-proposal'),

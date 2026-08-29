@@ -1,0 +1,10 @@
+{
+  "id": "admin-additional-modules-pdf",
+  "name": "Admin Download Additional Modules PDF",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Admin downloads a PDF for the selected modules and gets a visible failure message if generation fails.",
+  "expectedSpecs": 2,
+  "outcomes": ["success", "failure"]
+}

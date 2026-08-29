@@ -7,6 +7,7 @@
     chosen-class="ring-2 ring-emerald-400"
     drag-class="rotate-1"
     class="space-y-1"
+    :move="canMove"
     @end="onReorderEnd"
   >
     <template #item="{ element: folder }">
@@ -17,7 +18,7 @@
           :style="{ marginLeft: `${depth * 18}px` }"
         >
           <div
-            v-if="!folder.is_system_managed"
+            v-if="folder.folder_kind !== 'project' && !folder.is_system_managed"
             class="folder-tree-handle flex-shrink-0 w-4 flex items-center justify-center
                    text-text-subtle cursor-grab active:cursor-grabbing"
             title="Arrastrar para reordenar"
@@ -26,6 +27,7 @@
               <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 21a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
             </svg>
           </div>
+          <div v-else class="w-4 flex-shrink-0" aria-hidden="true"></div>
 
           <div class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
             <svg class="w-3 h-3 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24">
@@ -36,6 +38,9 @@
           <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">
             {{ folder.name }}
           </span>
+          <BaseBadge v-if="folder.folder_kind === 'project'" variant="info" size="sm">
+            Automática
+          </BaseBadge>
 
           <!-- Directo, a diferencia del panel lateral: acá el árbol se dibuja
                anidado e indentado, así que un total del subárbol pondría 12 en
@@ -44,7 +49,7 @@
             {{ folder.document_count }} doc
           </span>
 
-          <div v-if="!folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div v-if="folder.folder_kind !== 'project' && !folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <BaseButton
               variant="ghost"
               icon-only
@@ -121,12 +126,17 @@ function rowClass(folder) {
     + 'bg-surface hover:bg-surface-muted';
 }
 
+function canMove(event) {
+  const folder = event.draggedContext?.element;
+  return folder?.folder_kind !== 'project' && !folder?.is_system_managed;
+}
+
 // vuedraggable aísla cada lista por defecto: el reorden solo afecta este nivel.
 function onReorderEnd() {
   emit('reorder', {
     parentId: props.parentId,
     orderedIds: localSiblings.value
-      .filter((folder) => !folder.is_system_managed)
+      .filter((folder) => folder.folder_kind !== 'project' && !folder.is_system_managed)
       .map((folder) => folder.id),
   });
 }

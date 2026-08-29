@@ -6,9 +6,10 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Organize admin documents with root-folder sidebar navigation and folder management modals. In the folder manager modal, the 'Nueva carpeta' form's 'Dentro de:' parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root). State filtering is an independent axis covered by admin-document-state-filters.",
+  "description": "Organize admin documents with two collapsible root sections: lifecycle-managed project roots under Proyectos and operator-created roots under Carpetas. Project roots display the project's current state, do not expose rename/archive/delete/reorder controls, and remain valid parents for manually created subfolders. The default project list follows each project state's show_in_document_manager configuration; excluded projects remain reachable through Ver todos. In the folder manager modal, the 'Nueva carpeta' form's 'Dentro de:' parent selector defaults to the currently active folder. Document state filtering remains an independent axis covered by admin-document-state-filters.",
   "expectedSpecs": 1,
   "outcomes": [
-    "display"
+    "display",
+    "success"
   ]
 }

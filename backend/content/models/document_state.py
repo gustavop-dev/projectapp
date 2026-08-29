@@ -149,6 +149,13 @@ class DocumentState(models.Model):
         default=OperationalEffect.NONE,
         help_text='Project-side consequence policy; blank for document states.',
     )
+    show_in_document_manager = models.BooleanField(
+        default=False,
+        help_text=(
+            'Whether projects in this state appear in the default Documents '
+            'project-folder list. Ignored for document states.'
+        ),
+    )
     merged_into = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,

@@ -1,5 +1,10 @@
 # Guion de validación y mantenimiento de MCP
 
+Las carpetas del conector de Documentos declaran `folder_kind`, proyecto y
+estado. `create_folder` hereda la asociación de su padre y `rename_folder`
+rechaza raíces automáticas de proyecto; estas protecciones se validan junto
+con los contratos de modelo antes de publicar cambios del gestor.
+
 Última revisión integral: 2026-08-27.
 
 Este documento es el procedimiento repetible para validar los conectores MCP de

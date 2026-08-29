@@ -86,8 +86,8 @@ export async function get_request(url, config = {}) {
  * @param {object} params - Params.
  * @returns {object} - Data and status from endpoint.
  */
-export async function create_request(url, params) {
-  return await makeRequest("POST", url, params);
+export async function create_request(url, params, config = {}) {
+  return await makeRequest("POST", url, params, config);
 }
 
 /**

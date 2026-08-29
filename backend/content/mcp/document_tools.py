@@ -40,6 +40,7 @@ from content.models import (
     DocumentStateEpisode,
 )
 from content.serializers.document import apply_client_project_association
+from content.serializers.document_folder import DocumentFolderSerializer
 from content.services.document_content import build_content_json
 from content.services.document_notes import (
     DocumentNotesValidationError, normalize_client_custom_notes,
@@ -168,12 +169,36 @@ def _folder_path(folder):
 
 
 def _folder_payload(folder):
+    project_state = (
+        folder.managed_project.current_state
+        if folder.managed_project_id else None
+    )
     return {
         'id': folder.id,
         'name': folder.name,
         'path': _folder_path(folder),
         'parent_id': folder.parent_id,
+        'order': folder.order,
+        'folder_kind': folder.folder_kind,
         'is_system_managed': folder.is_system_managed,
+        'project_id': folder.project_id,
+        'client_id': (
+            getattr(folder.client_user, 'profile', None).pk
+            if folder.client_user_id
+            and getattr(folder.client_user, 'profile', None) is not None
+            else None
+        ),
+        'project_state': (
+            {
+                'id': project_state.pk,
+                'name': project_state.name,
+                'system_key': project_state.system_key,
+                'show_in_document_manager': (
+                    project_state.show_in_document_manager
+                ),
+            }
+            if project_state else None
+        ),
         # Count only markdown docs, to match what list_documents exposes.
         'document_count': folder.documents.filter(
             document_type__code=MARKDOWN, is_archived=False,
@@ -353,7 +378,10 @@ def _client_custom_notes_value(arguments):
 # ── Handlers ─────────────────────────────────────────────────────────────────
 
 def list_folders(arguments):
-    folders = DocumentFolder.objects.filter(is_archived=False).select_related('parent')
+    folders = DocumentFolder.objects.filter(is_archived=False).select_related(
+        'parent', 'project', 'client_user__profile',
+        'managed_project__current_state',
+    )
     return {'folders': [_folder_payload(f) for f in folders]}
 
 
@@ -362,7 +390,17 @@ def create_folder(arguments):
     if not name:
         raise ToolError('El nombre de la carpeta es obligatorio.')
     parent = _resolve_folder(arguments.get('parent_id'))
-    folder = DocumentFolder.objects.create(name=name, parent=parent)
+    serializer = DocumentFolderSerializer(data={
+        'name': name,
+        'parent': parent.pk if parent else None,
+    })
+    if not serializer.is_valid():
+        raise ToolError(
+            'Datos inválidos: ' + json.dumps(
+                serializer.errors, ensure_ascii=False, default=str,
+            )
+        )
+    folder = serializer.save()
     return _folder_payload(folder)
 
 
@@ -371,6 +409,10 @@ def rename_folder(arguments):
     if folder_id in (None, '', 'none', 'null'):
         raise ToolError('folder_id es obligatorio para renombrar una carpeta.')
     folder = _resolve_folder(folder_id)
+    if folder.managed_project_id:
+        raise ToolError(
+            'La raíz de un proyecto se renombra desde el módulo Proyectos.'
+        )
     name = (arguments.get('name') or '').strip()
     if not name:
         raise ToolError('El nuevo nombre de la carpeta es obligatorio.')
@@ -832,9 +874,8 @@ DOCUMENT_TOOLS = [
     {
         'name': 'list_folders',
         'description': (
-            'Lista todas las carpetas del Gestor Documental con su ruta '
-            'jerárquica y cuántos documentos contiene cada una. Úsala para '
-            'saber dónde colocar o buscar documentos.'
+            'Lista todas las carpetas activas con su ruta, naturaleza '
+            '(project/manual), proyecto, estado y conteo directo.'
         ),
         'input_schema': {'type': 'object', 'properties': {}},
         'handler': list_folders,
@@ -843,7 +884,8 @@ DOCUMENT_TOOLS = [
         'name': 'create_folder',
         'description': (
             'Crea una carpeta nueva para organizar documentos. Opcionalmente '
-            'anídala bajo otra con parent_id (de list_folders).'
+            'anídala bajo otra con parent_id; dentro de un proyecto hereda '
+            'automáticamente su proyecto y cliente.'
         ),
         'input_schema': {
             'type': 'object',
@@ -862,7 +904,8 @@ DOCUMENT_TOOLS = [
         'name': 'rename_folder',
         'description': (
             'Cambia el nombre de una carpeta existente. Envía folder_id (de '
-            'list_folders) y el nuevo name. No mueve ni borra la carpeta.'
+            'list_folders) y el nuevo name. Las raíces automáticas de proyecto '
+            'sólo se renombran desde Proyectos.'
         ),
         'input_schema': {
             'type': 'object',

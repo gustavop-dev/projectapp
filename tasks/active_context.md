@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-28 — Catálogo comercial de módulos adicionales listo para integrar:**
+los 17 módulos genéricos de PA-09 más Landing Page forman un inventario inicial
+de 18, agrupado en cinco categorías administrables e independiente de las
+propuestas. El panel cubre CRUD, retiro, reordenamiento, selección, PDF e
+historial de aperturas; la experiencia pública reutiliza el mismo índice y
+detalle responsivo. El catálogo completo es canónico/indexable, mientras los
+enlaces con subconjuntos son revocables, sin vencimiento, `noindex`, con idioma
+y selección inmutables, contenido vivo y aperturas únicas por sesión. No se
+almacenan ni muestran precios; MCP queda fuera de esta primera versión. Pasan
+38 pruebas backend, 10 unitarias y 21 E2E, además de migraciones/checks, gates de
+flujos/calidad/responsividad y el build Nuxt de producción.
+
 **2026-08-29 — Comunicaciones alineadas con el Gestor Documental:** el módulo
 conserva una sola lista amplia y traslada el detalle del hilo a un modal de
 trabajo direccionable por `thread=<id>`. A la izquierda incorpora navegación
@@ -29,6 +41,23 @@ salieron y quedan protegidos de borrado. La migración `content.0225` habilita
 intenta sólo después del éxito principal y sigue siendo administrable. Backend,
 unitarios, build, 7 E2E focales, freshness y flow audit están
 verdes; fake-data refresh se omitió por el guardrail absoluto de producción.
+
+**2026-08-28 — Carpetas automáticas de proyecto listas para integrar:** el gestor
+documental separa Proyectos de Carpetas y asigna a cada proyecto nuevo una raíz
+protegida que sigue su nombre. La visibilidad del primer bloque se configura en
+el catálogo de estados (En desarrollo, Activo y En evolución arrancan visibles),
+con Ver todos para conservar acceso a suspendidos o retirados. La plantilla
+inicial incluye Cuentas de cobro, Propuestas, Entregables y QA; todo descendiente
+hereda proyecto/cliente salvo asociación explícita. REST, MCP, admin y restricciones
+de base impiden alterar el primer nivel automático, mientras borrar el proyecto
+conserva la jerarquía como carpeta manual. La migración histórica **no se aplicó**:
+`reconcile_project_folders --plan` genera JSON + propuesta Markdown y sólo
+`--apply-reviewed` con todas las decisiones, fingerprint y SHA vigentes puede
+convertir, crear o anidar; además escribe un snapshot inverso. Pendiente tras
+deploy: generar el plan sobre producción, revisar el emparejamiento completo con
+el operador y aplicar únicamente el artefacto confirmado. Las slices backend
+afectadas, 47 pruebas unitarias del sidebar y 19 E2E están verdes; también pasan
+Django/schema checks, build Nuxt y el mapa de 343 flows con 0 missing/junk-only.
 
 **2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
 `BaseOverflowText` mide el recorte real y publica el nombre completo mediante un

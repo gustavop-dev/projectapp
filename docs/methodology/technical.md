@@ -6,6 +6,13 @@
 > endpoints administradores `no-store`, el PDF usa el visor compartido y el
 > reenvío sólo admite cambiar destinatario mientras reutiliza la copia archivada.
 
+> **Estado 2026-08-28 — implementado:** el catálogo adicional reutiliza DRF
+> FBV, servicios de dominio, ReportLab, el cliente HTTP del panel y componentes
+> base. La página canónica es indexable y prerenderizada; cada enlace
+> seleccionado lleva `noindex`, selección inmutable y contenido vivo. Los
+> errores JSON de descargas PDF se decodifican aun cuando Axios los entrega como
+> `Blob`, para conservar mensajes accionables.
+
 ## 1. Technology Stack
 
 | Layer | Technology | Version |
@@ -396,6 +403,30 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   backfills existing project states and seeds **En evolución** after **Activo** as
   a second `operating` meaning. Legacy `archived` remains unclassified and
   review-required; deploy applies migrations, never a session worktree.
+
+### Project-owned document roots and reviewed reconciliation
+
+- Migration `content.0222_project_document_folders` adds the nullable one-to-one
+  `DocumentFolder.managed_project`, database checks for managed-root invariants,
+  and `DocumentState.show_in_document_manager`. Existing development, active and
+  evolving project states are seeded visible; later catalog entries are configured
+  in the state manager instead of being hard-coded into the folder UI.
+- `ProjectDocumentFolderService` is the only owner of automatic root creation and
+  synchronization. The `Project` post-save signal delegates to it; it is atomic,
+  idempotent and creates the four standard children only when the managed root is
+  first provisioned. Descendants retain normal user-controlled hierarchy.
+- Managed roots cannot be renamed, moved, archived, deleted or reordered through
+  REST, MCP or Django admin. On project deletion the nullable ownership link is
+  cleared, deliberately preserving the former root and all content as a personal
+  hierarchy.
+- Production reconciliation is always two-step and review-gated:
+  `python manage.py reconcile_project_folders --plan <artifact.json>` performs no
+  writes and emits the JSON artifact plus a Markdown proposal. After every pending
+  action is marked `approve` or `skip`, run
+  `python manage.py reconcile_project_folders --apply-reviewed <artifact.json> --confirm <sha256> --inverse-out <snapshot.json>`.
+  Apply aborts if the database fingerprint or digest changed, if decisions remain
+  pending, or if conflicts exist. Never manufacture an approval artifact or apply
+  a proposal that was not reviewed against the named folders and impacts.
 
 ### Communications are a separate domain with shared infrastructure
 

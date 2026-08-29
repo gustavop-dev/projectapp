@@ -1,0 +1,10 @@
+{
+  "id": "admin-additional-modules-catalog",
+  "name": "Admin Additional Modules Catalog",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin navigates from the panel sidebar to the commercial catalog, sees the grouped module data, and can retry a failed catalog load.",
+  "expectedSpecs": 2,
+  "outcomes": ["display", "failure"]
+}

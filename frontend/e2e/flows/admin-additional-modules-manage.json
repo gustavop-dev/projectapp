@@ -1,0 +1,10 @@
+{
+  "id": "admin-additional-modules-manage",
+  "name": "Admin Manage Additional Modules",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin creates or edits a bilingual module, receives local validation for incomplete content, and sees server save failures in the form.",
+  "expectedSpecs": 4,
+  "outcomes": ["success", "error", "failure"]
+}

@@ -15,6 +15,7 @@
       <BaseActionButton
         action="open-navigation"
         label="Abrir menú"
+        tooltip-position="right"
         variant="secondary"
         size="md"
         class="h-11 w-11 rounded-full"
@@ -35,6 +36,7 @@
       <BaseActionButton
         :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'"
         :label="themeToggleLabel(isDark)"
+        tooltip-position="left"
         variant="secondary"
         size="md"
         class="h-11 w-11 rounded-full"

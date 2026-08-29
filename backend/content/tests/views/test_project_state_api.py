@@ -50,6 +50,19 @@ def test_project_catalog_exposes_the_seven_seed_states(admin_client):
     assert evolving['description'].startswith('Está en producción')
     assert evolving['operational_effect'] == 'operating'
     assert 'cobros' in evolving['operational_effect_help']
+    visibility = {
+        item['system_key']: item['show_in_document_manager']
+        for item in response.data
+    }
+    assert visibility == {
+        'development': True,
+        'active': True,
+        'evolving': True,
+        'paused': False,
+        'suspended': False,
+        'completed': False,
+        'decommissioned': False,
+    }
 
 
 def test_user_can_create_a_project_state_with_an_operational_effect(
@@ -68,6 +81,19 @@ def test_user_can_create_a_project_state_with_an_operational_effect(
         'Opera con acompañamiento posterior a la entrega.'
     )
     assert response.data['operational_effect'] == 'operating'
+
+
+def test_user_configures_project_folder_visibility(admin_client):
+    created = admin_client.post('/api/project-states/', {
+        'name': 'En garantía visible',
+        'description': 'Opera mientras recibe acompañamiento de garantía.',
+        'color': 'purple',
+        'operational_effect': 'operating',
+        'show_in_document_manager': True,
+    }, format='json')
+
+    assert created.status_code == 201, created.data
+    assert created.data['show_in_document_manager'] is True
 
 
 def test_project_state_requires_a_help_description(admin_client):

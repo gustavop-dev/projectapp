@@ -18,6 +18,7 @@ export default defineI18nLocale(async () => {
     notFound,
     termsAndConditions,
     privacyPolicy,
+    additionalModules,
   ] = await Promise.all([
     import('~/locales/global/en.js'),
     import('~/locales/home/en.js'),
@@ -37,6 +38,7 @@ export default defineI18nLocale(async () => {
     import('~/locales/404View/en.js'),
     import('~/locales/termsAndConditions/en.js'),
     import('~/locales/privacyPolicy/en.js'),
+    import('~/locales/additionalModules/en.js'),
   ])
 
   return {
@@ -58,5 +60,6 @@ export default defineI18nLocale(async () => {
     '404View': notFound.default,
     termsAndConditions: termsAndConditions.default,
     privacyPolicy: privacyPolicy.default,
+    additionalModules: additionalModules.default,
   }
 })

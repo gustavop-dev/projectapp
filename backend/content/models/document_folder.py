@@ -50,6 +50,17 @@ class DocumentFolder(models.Model):
         blank=True,
         related_name='document_folders',
     )
+    # Sólo las raíces creadas y mantenidas por el ciclo de vida de Project
+    # llevan este vínculo. `project` sigue siendo la asociación heredable de
+    # PA-64 para CUALQUIER carpeta; separar ambos conceptos evita confundir una
+    # carpeta manual asociada a un proyecto con la raíz automática del mismo.
+    managed_project = models.OneToOneField(
+        'accounts.Project',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='document_root_folder',
+    )
     client_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -75,9 +86,36 @@ class DocumentFolder(models.Model):
 
     class Meta:
         ordering = ['order', 'name']
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_project__isnull=True)
+                    | models.Q(parent__isnull=True)
+                ),
+                name='managed_project_folder_is_root',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_project__isnull=True)
+                    | models.Q(project=models.F('managed_project'))
+                ),
+                name='managed_folder_matches_project',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_project__isnull=True)
+                    | models.Q(is_archived=False)
+                ),
+                name='managed_project_folder_is_active',
+            ),
+        ]
 
     def __str__(self):
         return self.name
+
+    @property
+    def folder_kind(self):
+        return 'project' if self.managed_project_id else 'manual'
 
     @property
     def is_system_managed(self):
