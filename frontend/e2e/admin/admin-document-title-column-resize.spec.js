@@ -3,8 +3,8 @@
  *
  * @flow:admin-document-title-column-resize
  * Covers: one clipped-only floating hint shared with actions, compact in-place
- *         disclosure, inventory-sized resize persistence, fixed workflow/actions
- *         tracks and double-click reset.
+ *         disclosure remeasured after web-font readiness, inventory-sized resize
+ *         persistence, fixed workflow/actions tracks and double-click reset.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -107,10 +107,7 @@ async function openDocuments(page) {
   await mockDocuments(page);
   await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText(LONG_TITLE, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    window.dispatchEvent(new Event('resize'));
-  });
+  await page.evaluate(() => document.fonts.ready);
 }
 
 async function dragTitleBy(page, delta) {
@@ -344,6 +341,7 @@ test.describe('Admin Document Title Column Resize', () => {
     const handle = page.getByTestId('documents-title-resize-handle');
     await handle.press('End');
     await expect(handle).toHaveAttribute('aria-valuenow', '520');
+    await expect(handle).toHaveAttribute('title', 'Ajustar el ancho de la columna Título');
 
     expect(Math.abs(await columnWidth(page, 'Estados') - before.workflow)).toBeLessThanOrEqual(1);
     expect(Math.abs(await columnWidth(page, 'Acciones') - before.actions)).toBeLessThanOrEqual(1);

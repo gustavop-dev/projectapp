@@ -571,9 +571,11 @@ confirmed by the operator or another integration.
 - **Measured overflow, intrinsic containment and table widths** — use
   `BaseOverflowText` for one clipped-only floating `BaseTooltip` plus in-place
   touch disclosure; consumer classes may style typography but must not override
-  its display/clamp state. Floating tooltips teleport to `body`, flip/clamp to
-  the viewport and update on scroll/resize. `BaseActionButton` consumes the same
-  primitive and suppresses `BaseButton.nativeTitle` to avoid duplicate notices.
+  its display/clamp state. The primitive remeasures after
+  `document.fonts.ready`. Floating tooltips
+  teleport to `body`, flip/clamp to the viewport and update on scroll/resize.
+  `BaseActionButton` consumes the same primitive and suppresses
+  `BaseButton.nativeTitle` to avoid duplicate notices.
   `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only

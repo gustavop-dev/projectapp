@@ -7,15 +7,16 @@
 `BaseTooltip` flotante sólo cuando hace falta; el mismo primitive sirve las
 acciones de fila y `BaseButton` ya no agrega un `title` nativo competidor. El
 overlay se teletransporta fuera de la tabla, se voltea/limita al viewport y se
-reubica con scroll o resize. **Ver completo/Contraer** conserva la alternativa
-táctil. El redimensionado sigue siendo capacidad compartida de tabla: Título
+reubica con scroll o resize; la medición se repite al terminar de cargar las
+fuentes web. **Ver completo/Contraer** conserva la alternativa táctil. El
+separador visible y etiquetado usa la capacidad compartida de tabla: Título
 usa 240–520 px, persiste por navegador, vuelve a 320 px con doble clic, recibe
 espacio de Proyecto→Cliente→Fecha y no comprime Estados/Acciones. El límite de
 520 px cubre el inventario productivo consultado (40 nombres, máximo 56
-caracteres, 496 px estimados con padding y margen). Verificación focal: 57
-unitarios, 13 escenarios Playwright sin retries, build Nuxt, guards de acciones
-y controles, flow-map fresco y auditoría global con 272 covered, 37 partial,
-0 junk-only y 0 missing.
+caracteres, 496 px estimados con padding y margen). Verificación focal:
+unitarios de primitives/consumidores, 13 escenarios Playwright sin retries,
+build Nuxt, guards de acciones y controles, flow-map fresco y auditoría global
+sin `junk-only` ni faltantes.
 
 **2026-08-28 — Un solo aviso breve para las acciones del panel:**
 `BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
@@ -29,6 +30,7 @@ menús. Unitarias de los primitives y consumidores de Documentos, más Playwrigh
 en lista y galería, verifican ausencia de `title`, un solo tooltip legible,
 nombre accesible contextual y apertura del menú. El mapa está fresco y la
 auditoría registra 272 flujos cubiertos, 37 parciales, 0 `junk-only` y 0 faltantes.
+
 **2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
 Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al
 recibir foco. `ClientAutocomplete` conserva un único motor de consulta,
@@ -427,15 +429,16 @@ edición cubren éxito, error, falla y cambios concurrentes; flow-map fresco
 errores (96/100; ocho warnings preexistentes en los specs completos).
 
 **2026-08-25 — Títulos de Documentos legibles y columna ajustable:** la lista
-usa `BaseOverflowText` para dos líneas con elipsis final, mide el recorte real y
-sólo entonces agrega el nombre completo en `title` y **Ver completo/Contraer**;
-la misma expansión funciona en las tarjetas de celular/tableta sin abrir el
-documento. Se evaluó el recorte central y se mantuvo el final porque las dos
-líneas más la revelación condicional resuelven la identidad sin una segunda
-regla visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
+introdujo `BaseOverflowText` para una línea con elipsis final, medición de
+recorte y **Ver completo/Contraer**; la misma expansión funciona en las tarjetas
+de celular/tableta sin abrir el documento. El contrato vigente desde 2026-08-28
+publica un único aviso flotante sólo cuando confirma recorte y vuelve a medir al
+finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
+final porque la revelación explícita resuelve la identidad sin una segunda regla
+visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
 `BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
 viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
-default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (80),
+default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (56),
 y deja scroll interno al agotar mínimos. La API genérica quedó
 expuesta en `BaseResponsiveTable` y documentada en el styleguide. Sin backend ni
 schema. Cobertura focal: primitives/engine/Documentos, flow P2

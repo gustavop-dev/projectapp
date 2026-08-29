@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 import BaseOverflowText from '../../components/base/BaseOverflowText.vue'
@@ -9,6 +9,15 @@ const NuxtLinkStub = {
 }
 
 const wrappers = []
+const originalFontsDescriptor = Object.getOwnPropertyDescriptor(document, 'fonts')
+
+function restoreDocumentFonts() {
+  if (originalFontsDescriptor) {
+    Object.defineProperty(document, 'fonts', originalFontsDescriptor)
+    return
+  }
+  delete document.fonts
+}
 
 function mountText(props = {}) {
   const wrapper = mount(BaseOverflowText, {
@@ -42,6 +51,7 @@ describe('BaseOverflowText', () => {
   afterEach(() => {
     wrappers.splice(0).forEach(wrapper => wrapper.unmount())
     document.body.innerHTML = ''
+    restoreDocumentFonts()
   })
 
   it('constrains an unbroken real document name to the available width', () => {
@@ -54,7 +64,7 @@ describe('BaseOverflowText', () => {
     expect(content.classes()).not.toContain('break-words')
   })
 
-  it('omits disclosure for a complete title', async () => {
+  it('omits disclosure and hover noise for a complete title', async () => {
     const wrapper = mountText()
     await setOverflow(wrapper, false)
 
@@ -91,6 +101,32 @@ describe('BaseOverflowText', () => {
     expect(wrapper.get('[data-testid="document-title-toggle"]').text()).toContain('Contraer')
     expect(wrapper.get('[data-testid="document-title"]').attributes('title')).toBeUndefined()
     expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
+  })
+
+  it('remeasures clipping after document fonts finish loading', async () => {
+    let resolveFonts
+    const ready = new Promise((resolve) => { resolveFonts = resolve })
+    Object.defineProperty(document, 'fonts', {
+      configurable: true,
+      value: { ready },
+    })
+    const wrapper = mountText()
+    await nextTick()
+    await nextTick()
+
+    const el = wrapper.get('[data-testid="document-title"]').element
+    Object.defineProperties(el, {
+      clientWidth: { configurable: true, value: 240 },
+      scrollWidth: { configurable: true, value: 420 },
+      clientHeight: { configurable: true, value: 40 },
+      scrollHeight: { configurable: true, value: 40 },
+    })
+
+    resolveFonts()
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.get('[data-testid="document-title-toggle"]').text()).toContain('Ver completo')
   })
 
   it('publishes the document link while clipped', async () => {

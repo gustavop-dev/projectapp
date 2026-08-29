@@ -970,15 +970,17 @@ rewritten: annulment and business-date corrections append audit context, while
 only drafts remain mutable. When project ownership changes, historical threads
 stay with the original client and lose only their optional project scope.
 
-## 39. Clipping is measured state, and its primitive must own display
+## 39. Clipping is measured state, but full-value access must not depend on it
 
 A fixed `title` attribute only repeats short values and still leaves touch users
 without a path. Measure the rendered element after layout, text changes and
-container-width changes; publish one application-owned tooltip only while
+container-width changes, and again after `document.fonts.ready`; publish one application-owned tooltip only while
 `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping. That
 tooltip must portal outside overflow containers, flip/clamp within the viewport
 and be the sole notice—never pair it with a native `title`. The disclosure
-expands in the same row/card so it cannot require navigation.
+expands in the same row/card so it cannot require navigation. E2E setup must
+await font readiness without dispatching a compensating resize event that
+production never receives.
 
 Line clamping is a bundle of display, overflow and WebKit properties, not a
 decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another

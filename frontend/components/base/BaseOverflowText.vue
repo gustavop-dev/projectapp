@@ -71,6 +71,14 @@ function onWindowResize() {
   nextTick(measure)
 }
 
+async function measureAfterFontsReady() {
+  if (typeof document === 'undefined' || !document.fonts?.ready) return
+  await document.fonts.ready
+  if (!rootEl.value) return
+  await nextTick()
+  measure()
+}
+
 watch(() => [props.text, props.lines], async () => {
   expanded.value = false
   await nextTick()
@@ -82,6 +90,7 @@ onMounted(async () => {
   await nextTick()
   measure()
   observeText()
+  void measureAfterFontsReady()
   window.addEventListener('resize', onWindowResize)
 })
 

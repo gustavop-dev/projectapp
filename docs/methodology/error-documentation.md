@@ -54,23 +54,28 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   the table, were not controllable on touch and made actions show two notices.
 - **Root Cause**: `BaseOverflowText` and `BaseActionButton` each delegated part
   of the contract to the browser instead of sharing one overlay owner;
-  `BaseTooltip` remained absolutely positioned inside overflow containers.
+  `BaseTooltip` remained absolutely positioned inside overflow containers. The
+  first clipping measurement could also become stale after web fonts loaded.
 - **Resolution**: Give `BaseTooltip` an opt-in teleported placement mode that
   flips and clamps inside the viewport; use it conditionally from measured
   document titles and unconditionally from catalog actions; suppress the native
-  `BaseButton` title for those shared-tooltip owners. Keep **Ver completo** as
-  the explicit coarse-pointer path and preserve the generic persisted table
-  resize contract at the inventory-backed 520 px maximum.
+  `BaseButton` title for those shared-tooltip owners. Repeat the measurement
+  after `document.fonts.ready`, keep **Ver completo** as the explicit
+  coarse-pointer path and preserve the generic persisted table resize contract
+  at the inventory-backed 520 px maximum. The shared separator also publishes
+  its accessible label as a discoverability hint.
 - **Files Affected**: `BaseTooltip.vue`, `BaseOverflowText.vue`,
   `BaseActionButton.vue`, `BaseButton.vue`, `DocumentsTable.vue`, focused
   unit/E2E coverage and the document-title flow registry.
 - **Verification**: Unit coverage checks clipping, single-tooltip ownership,
   viewport placement and teardown; Playwright checks clipped/complete titles,
   the action notice, touch expansion, persisted/reset widths, the current
-  inventory boundary and fixed Estados/Acciones tracks.
+  inventory boundary, font-ready remeasurement and fixed Estados/Acciones
+  tracks.
 - **Lesson**: A browser `title` is not a fallback for an application tooltip.
   One primitive must own placement and semantics, and every hover path needs a
-  separate explicit touch path.
+  separate explicit touch path. Clipping must be rechecked after asynchronous
+  font layout changes rather than papered over with a synthetic resize in E2E.
 
 ### [ERR-037] Panel action buttons rendered two competing tooltips
 
@@ -100,6 +105,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Lesson**: Visual help and accessible naming are separate contracts. A
   tooltip-owning primitive must also own native-title suppression, including
   Vue's automatic attribute fallthrough.
+
 ### [ERR-036] El catálogo inicial dejaba un modal alto y vacío
 
 - **Date**: 2026-08-28
