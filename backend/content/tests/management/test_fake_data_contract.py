@@ -309,12 +309,14 @@ def test_collection_account_seed_uses_automatic_filing(seeded_documents):
             document.folder.name,
         ]
         expected_prefix = [
-            'Proyectos', document.project.name, 'Cuentas de cobro',
+            document.project.name, 'Cuentas de cobro',
             str(document.issue_date.year),
             f'{document.issue_date.month:02d} - '
         ]
-        assert path[:4] == expected_prefix[:4]
-        assert path[4].startswith(expected_prefix[4])
+        assert path[:3] == expected_prefix[:3]
+        assert path[3].startswith(expected_prefix[3])
+        root = document.folder.get_ancestors()[0]
+        assert root.managed_project_id == document.project_id
         assert document.folder.system_key
 
 
