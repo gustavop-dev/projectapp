@@ -23,6 +23,11 @@ from content.models import (
     ProposalViewEvent,
 )
 from content.tests.constants import EXPECTED_DEFAULT_SECTION_COUNT
+from content.tests.proposal_traceability import (
+    TRACEABILITY_ITEM_ID,
+    create_traced_proposal_sections,
+    technical_document,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -1372,6 +1377,29 @@ class TestUpdateProposalFromJSON:
         assert response.status_code == 200
         sections = {s['section_type']: s for s in response.data['sections']}
         assert sections['technical_document']['content_json']['purpose'] == 'Después'
+
+    def test_rejects_untraced_technical_document_atomically(self, admin_client, proposal):
+        original_title = proposal.title
+        technical_section = create_traced_proposal_sections(proposal)
+        payload = self._minimal_payload()
+        payload['title'] = 'Title that must roll back'
+        payload['client_name'] = proposal.client_name
+        payload['sections']['general']['clientName'] = proposal.client_name
+        payload['sections']['technicalDocument'] = technical_document([])
+
+        response = admin_client.put(
+            self._url(proposal.id), payload, format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['code'] == 'technical_item_coverage_incomplete'
+        assert 'Inicio de sesión' in response.data['error']
+        assert 'linked_item_ids' in response.data['hint']
+        proposal.refresh_from_db()
+        technical_section.refresh_from_db()
+        assert proposal.title == original_title
+        stored_requirement = technical_section.content_json['epics'][0]['requirements'][0]
+        assert stored_requirement['linked_item_ids'] == [TRACEABILITY_ITEM_ID]
 
     def test_update_from_json_succeeds_for_expired_proposal_when_expires_at_unchanged(
         self, admin_client, expired_proposal,
