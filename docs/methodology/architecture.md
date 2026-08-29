@@ -259,7 +259,7 @@ erDiagram
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
 | **EmailLog** | Universal outbound trace + composed email history | proposal_fk, template_key, recipient, audience, status (including skipped), error_message, metadata (JSONField), delivery_id, delivery_role (primary/copy), snapshot (PROTECT) |
 | **EmailDeliverySnapshot** | Immutable evidence captured before SMTP and shared by one primary delivery plus BCC attempts | delivery_id, template/family/classification, subject/from, body (OneToOne/PROTECT), MIME and attachment byte totals, attachment count, captured_at, optional resend_of lineage |
-| **EmailAttachmentSnapshot / EmailLinkSnapshot** | Exact sent files plus user-facing links | attachment file/filename/MIME/size/SHA-256/order/format/business kind, optional protected Document provenance and historical type; link URL/label/content-vs-template group/order |
+| **EmailAttachmentSnapshot / EmailLinkSnapshot** | Exact sent files plus user-facing links | attachment file/filename/MIME/size/SHA-256/order/format/business kind, optional protected Document provenance and historical type; link URL/SHA-256 fingerprint/label/content-vs-template group/order. The full URL remains evidence while `(snapshot, url_sha256)` provides MySQL-safe uniqueness. |
 | **EmailCopyRecipient** | Separate administrable BCC audience for every outbound email | email (unique), is_active, families (JSON list), created_at, updated_at |
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |

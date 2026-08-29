@@ -340,6 +340,16 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   Attachment payloads are decoded from the rendered MIME, hashed and stored as
   independent media files; a capture/storage/provenance mismatch raises and
   prevents transport. Primary and copy logs reference the same snapshot.
+- `EmailLinkSnapshot.url` keeps the exact URL up to 2048 characters, but database
+  uniqueness uses the fixed 64-character `url_sha256` with `snapshot`. Indexing
+  the full URL under MySQL `utf8mb4` can exceed InnoDB's 3072-byte key limit.
+  The model save path owns fingerprinting, so the snapshot writer must not bypass
+  it with `bulk_create`.
+- Migration `content.0223_email_delivery_snapshots` contains a MySQL-only recovery
+  guard for its known non-transactional partial-apply state. It removes the three
+  snapshot tables and `EmailLog.snapshot_id` only when every artifact is empty;
+  any retained snapshot or reference aborts before cleanup. Migration `0228`
+  backfills fingerprints before adding the short unique constraint.
 - `EmailLog.delivery_id` groups primary and copy attempts;
   `delivery_role=primary|copy` keeps dashboards, cooldowns, contact counts and
   retry endpoints from treating internal copies as new primary sends. Every

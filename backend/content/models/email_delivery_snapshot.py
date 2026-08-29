@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from pathlib import Path
 
@@ -143,6 +144,7 @@ class EmailLinkSnapshot(models.Model):
         related_name='links',
     )
     url = models.URLField(max_length=2048)
+    url_sha256 = models.CharField(max_length=64, editable=False)
     label = models.CharField(max_length=500, blank=True, default='')
     group = models.CharField(
         max_length=10,
@@ -155,10 +157,17 @@ class EmailLinkSnapshot(models.Model):
         ordering = ['position', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['snapshot', 'url'],
-                name='uniq_email_snapshot_link',
+                fields=['snapshot', 'url_sha256'],
+                name='uniq_email_snapshot_link_hash',
             ),
         ]
+
+    def save(self, *args, **kwargs):
+        self.url_sha256 = hashlib.sha256(self.url.encode('utf-8')).hexdigest()
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None:
+            kwargs['update_fields'] = set(update_fields) | {'url_sha256'}
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.url
