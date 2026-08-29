@@ -403,7 +403,8 @@ describe('useProposalTracking', () => {
       global.fetch = jest.fn(() => new Promise((resolve) => {
         resolveFetch = resolve;
       }));
-      navigator.sendBeacon = jest.fn().mockReturnValue(true);
+      const mockBeacon = jest.fn().mockReturnValue(true);
+      navigator.sendBeacon = mockBeacon;
       const { proposalUuid, currentPanel } = createRefs('uuid-inflight-hidden');
       const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
 
@@ -488,13 +489,17 @@ describe('useProposalTracking', () => {
       });
       document.dispatchEvent(new Event('visibilitychange'));
 
-      expect(mockBeacon).toHaveBeenCalled();
+      expect(mockBeacon).toHaveBeenCalledWith(
+        '/api/proposals/uuid-vis/track/',
+        expect.any(Blob),
+      );
     });
 
     it('pauses periodic tracking after the page becomes hidden', async () => {
       let now = 0;
       jest.spyOn(performance, 'now').mockImplementation(() => now);
-      navigator.sendBeacon = jest.fn().mockReturnValue(true);
+      const mockBeacon = jest.fn().mockReturnValue(true);
+      navigator.sendBeacon = mockBeacon;
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const panel = { section_type: 'greeting', title: 'Hello' };
       const { proposalUuid, currentPanel } = createRefs('uuid-hidden-pause', panel);
@@ -507,6 +512,10 @@ describe('useProposalTracking', () => {
 
       jest.advanceTimersByTime(90_000);
       await Promise.resolve();
+      expect(mockBeacon).toHaveBeenCalledWith(
+        '/api/proposals/uuid-hidden-pause/track/',
+        expect.any(Blob),
+      );
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
