@@ -55,6 +55,17 @@ toca propuestas históricas. El editor impide borrar el grupo completo, no su
 contenido. Backend, unitarios frontend y ambos E2E focales están verdes; el mapa
 está fresco y los flows público/admin siguen cubiertos sin junk-only.
 
+**2026-08-28 — Indicadores de Proyectos e Ingresos listos para integrar:** un
+`BaseIndicatorCard` compartido reserva siempre rótulo, cifra y apoyo, por lo que
+la presencia de explicación ya no cambia la altura. Cada tarjeta visible tiene
+ayuda y acción explícita. Proyectos ordena los estados no nulos según el ciclo y
+separa pendientes operativos; Ingresos conserva cuatro preguntas priorizadas en
+ancho expandido. En 412/835 ambos encabezados se convierten en exactamente dos
+resúmenes con drawers que preservan estados en cero y el detalle completo. Sus
+acciones aplican los filtros existentes y la primera fila permanece en la
+pantalla inicial. La cobertura focal incluye unitarios, acciones y geometría en
+los cinco anchos canónicos; el flow map queda versionado con el contrato.
+
 **2026-08-28 — Hotfix del fallback SPA listo para integrar:** el panel de
 producción seguía respondiendo 200, pero el `200.html` generado tras la
 actualización Nuxt/i18n era sólo un meta refresh hacia `/en-us/200.html`; Django

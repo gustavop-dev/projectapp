@@ -218,7 +218,7 @@ test.describe('Admin Panel Projects — space link and assign flow', () => {
       document_ids: [],
     });
     await expect(page.getByTestId('project-assign-unlinked-1')).toHaveCount(0);
-    await expect(page.getByTestId('panel-projects-stat-unlinked')).toContainText('0');
+    await expect(page.getByTestId('panel-projects-stat-unlinked')).toHaveCount(0);
   });
 
   test('creating a project for a client with loose records offers the assign modal', {

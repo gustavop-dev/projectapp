@@ -604,3 +604,10 @@ The canonical counts, commands and exceptions are maintained in
     specific business behavior or promising unsupported compliance targets.
     Default-config snapshots and active drafts receive the new group; sent,
     inactive and otherwise historical proposal snapshots remain unchanged.
+27. **Indicator headers preserve content priority**: KPI cards use a fixed
+    label/value/reserved-support structure, consistent help and an explicit
+    action. Expanded views keep meaningful non-zero indicators in business
+    order and separate lifecycle from operational questions. Compact project
+    and income headers collapse to two actionable summaries whose drawers retain
+    the full detail, including zero-valued states, so the first list row remains
+    visible in the initial 412×915 viewport.
