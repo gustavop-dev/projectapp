@@ -1452,3 +1452,17 @@ Remembering order is a separate navigation contract. Resolve it predictably as
 explicit URL, then active saved view, then validated browser preference, then
 the product default. Persist only the small allow-listed token, never the whole
 reactive filter object.
+
+## 61. Search copy and query semantics are one public contract
+
+A placeholder that names client, project, subject and content is not decorative
+copy: it defines what the operator can reasonably expect the server to search.
+When REST and MCP share a query service, a missing relation in that predicate
+creates the same silent false negative in both interfaces even if the navigation
+picker still finds the entity locally.
+
+Keep the searchable entity inventory in the shared read boundary and mirror it
+in public tool descriptions. Pin relational matches with backend tests that also
+inspect the returned facets; add a browser assertion that the existing search
+control sends the same query. This proves both halves of the contract without
+duplicating business filtering in Vue.
