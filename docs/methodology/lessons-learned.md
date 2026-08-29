@@ -975,13 +975,17 @@ rewritten: annulment and business-date corrections append audit context, while
 only drafts remain mutable. When project ownership changes, historical threads
 stay with the original client and lose only their optional project scope.
 
-## 39. Clipping is measured state, and its primitive must own display
+## 39. Clipping is measured state, but full-value access must not depend on it
 
-A fixed `title` attribute only repeats short values and still leaves touch users
-without a path. Measure the rendered element after layout, text changes and
-container-width changes; publish the complete native hint and disclosure only
-while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
-The disclosure expands in the same row/card so it cannot require navigation.
+Overflow can change after the first layout pass when a web font finishes
+loading. Keep the complete collapsed value available through the native `title`
+hint without waiting for measurement; use measured state only to decide whether
+the in-place touch disclosure is necessary. Measure after layout, text changes,
+container-width changes and `document.fonts.ready`, comparing
+`scrollWidth/clientWidth` or `scrollHeight/clientHeight`. The disclosure expands
+in the same row/card so it cannot require navigation. E2E setup must await font
+readiness without dispatching a compensating resize event that production never
+receives.
 
 Line clamping is a bundle of display, overflow and WebKit properties, not a
 decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another
@@ -1328,3 +1332,17 @@ only the recipient is editable. When old rows lack evidence, use explicit
 `legacy_partial`/`legacy_unknown` states—never substitute the current Document.
 Keep the live Document relation for navigation and deletion protection, while
 the attachment filename, type name, hash and bytes remain historical fields.
+
+## 55. KPI density and KPI geometry are separate contracts
+
+Equal card heights require a stable internal grid, not copy of equal length.
+Reserve label, value and optional support rows in the shared primitive so missing
+support text cannot shrink one card. Keep help as its own sibling control and
+make the primary surface a button only when it performs an explicit action.
+
+That geometric fix does not solve a header with too many questions. Expanded
+layouts can show non-zero details in business order and group different question
+families separately. Compact layouts should summarize by question family and
+put the lossless detail in a focus-managed drawer. A summary total must combine
+like units: for heterogeneous operational facts, count active categories rather
+than adding clients, records and review rows into a misleading grand total.

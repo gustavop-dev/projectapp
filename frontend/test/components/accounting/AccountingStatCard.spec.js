@@ -9,18 +9,27 @@ function mountCard(props = {}) {
 
 describe('AccountingStatCard', () => {
   it('renders label and value', () => {
+    // Falla si el wrapper deja de entregar la pregunta o el monto al indicador base.
     const wrapper = mountCard();
 
-    expect(wrapper.text()).toContain('Ingresos del mes');
-    expect(wrapper.text()).toContain('$1.500.000 COP');
+    expect(wrapper.get('[data-testid="indicator-label"]').text()).toBe('Ingresos del mes');
+    expect(wrapper.get('[data-testid="accounting-stat-value"]').text()).toBe('$1.500.000 COP');
   });
 
-  it('renders the sub line only when provided', () => {
-    const withSub = mountCard({ sub: '12 registros' });
-    expect(withSub.text()).toContain('12 registros');
+  it('forwards sub copy to the visible support row', () => {
+    // Falla si el contexto de registros deja de aparecer debajo del monto.
+    const wrapper = mountCard({ sub: '12 registros' });
 
-    const withoutSub = mountCard();
-    expect(withoutSub.findAll('p')).toHaveLength(2);
+    expect(wrapper.get('[data-testid="indicator-support"]').text()).toBe('12 registros');
+  });
+
+  it('keeps the reserved sub line when no copy is provided', () => {
+    // Falla si la tarjeta sin apoyo pierde la fila que iguala su altura.
+    const wrapper = mountCard();
+
+    expect(wrapper.get('[data-testid="indicator-support"]').element.textContent).toBe('\u00a0');
+    expect(wrapper.get('[data-testid="indicator-support"]').attributes('aria-hidden'))
+      .toBe('true');
   });
 
   it('uses the default tone class when no tone is given', () => {
@@ -44,21 +53,40 @@ describe('AccountingStatCard', () => {
     );
   });
 
-  it('stays a plain div when not clickable', () => {
+  it('stays informational when not clickable', () => {
+    // Falla si una tarjeta informativa adquiere una acción engañosa por defecto.
     const wrapper = mountCard();
 
-    expect(wrapper.element.tagName).toBe('DIV');
-    expect(wrapper.find('button').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Ver estadísticas de Ingresos del mes"]').exists()).toBe(false);
+    expect(wrapper.get('article').attributes('aria-label')).toBeUndefined();
   });
 
-  it('renders a button that emits click when clickable', async () => {
+  it('renders an accessible button that emits click when clickable', async () => {
+    // Falla si los consumidores existentes con clickable dejan de abrir sus estadísticas.
     const wrapper = mountCard({ clickable: true });
+    const button = wrapper.get('[aria-label="Ver estadísticas de Ingresos del mes"]');
 
-    expect(wrapper.element.tagName).toBe('BUTTON');
-    expect(wrapper.attributes('type')).toBe('button');
-    expect(wrapper.attributes('aria-label')).toBe('Ver estadísticas de Ingresos del mes');
+    expect(button.element.tagName).toBe('BUTTON');
+    expect(button.attributes('type')).toBe('button');
 
-    await wrapper.trigger('click');
-    expect(wrapper.emitted('click')).toHaveLength(1);
+    await button.trigger('click');
+
+    expect(wrapper.emitted('click')).toEqual([[]]);
+  });
+
+  it('uses the explicit action label instead of the compatibility fallback', async () => {
+    // Falla si una acción declarada muestra una intención distinta a la configurada por la pantalla.
+    const wrapper = mountCard({
+      clickable: true,
+      action: 'filter',
+      actionLabel: 'Filtrar ingresos del mes',
+    });
+    const button = wrapper.get('[aria-label="Filtrar ingresos del mes"]');
+
+    expect(button.element.tagName).toBe('BUTTON');
+
+    await button.trigger('click');
+
+    expect(wrapper.emitted('click')).toEqual([[]]);
   });
 });

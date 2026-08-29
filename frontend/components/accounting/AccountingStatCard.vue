@@ -1,34 +1,6 @@
-<template>
-  <component
-    :is="clickable ? 'button' : 'div'"
-    :type="clickable ? 'button' : undefined"
-    class="bg-surface rounded-xl border border-border-muted shadow-sm p-4 sm:p-5"
-    :class="
-      clickable
-        ? 'relative block w-full text-left cursor-pointer transition-shadow duration-base motion-reduce:transition-none hover:shadow-raised hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring'
-        : ''
-    "
-    :aria-label="clickable ? `Ver estadísticas de ${label}` : undefined"
-    @click="clickable && emit('click')"
-  >
-    <ChartBarIcon
-      v-if="clickable"
-      class="absolute top-3 right-3 w-4 h-4 text-text-subtle"
-      aria-hidden="true"
-    />
-    <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
-      {{ label }}
-    </p>
-    <p class="text-2xl font-semibold" :class="toneClass" data-testid="accounting-stat-value">
-      {{ value }}
-    </p>
-    <p v-if="sub" class="text-xs text-text-muted mt-1">{{ sub }}</p>
-  </component>
-</template>
-
 <script setup>
 import { computed } from 'vue';
-import { ChartBarIcon } from '@heroicons/vue/24/outline';
+import BaseIndicatorCard from '~/components/base/BaseIndicatorCard.vue';
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -39,19 +11,37 @@ const props = defineProps({
     default: 'default',
     validator: (v) => ['default', 'success', 'warning', 'danger', 'brand'].includes(v),
   },
-  /** Renders the card as a button with a stats affordance; emits `click`. */
+  /** Compatibility flag for existing consumers. Prefer action + actionLabel. */
   clickable: { type: Boolean, default: false },
+  action: { type: String, default: '' },
+  actionLabel: { type: String, default: '' },
+  helpLabel: { type: String, default: '' },
+  helpTestId: { type: String, default: '' },
+  helpPosition: { type: String, default: 'left' },
 });
 
 const emit = defineEmits(['click']);
-
-const TONE_CLASSES = {
-  default: 'text-text-default',
-  success: 'text-success-strong',
-  warning: 'text-warning-strong',
-  danger: 'text-danger-strong',
-  brand: 'text-text-brand',
-};
-
-const toneClass = computed(() => TONE_CLASSES[props.tone] || TONE_CLASSES.default);
+const resolvedAction = computed(() => props.action || (props.clickable ? 'stats' : ''));
+const resolvedActionLabel = computed(() => (
+  props.actionLabel || (props.clickable ? `Ver estadísticas de ${props.label}` : '')
+));
 </script>
+
+<template>
+  <BaseIndicatorCard
+    :label="label"
+    :value="value"
+    :support="sub"
+    :tone="tone"
+    :action="resolvedAction"
+    :action-label="resolvedActionLabel"
+    :help-label="helpLabel"
+    :help-test-id="helpTestId"
+    :help-position="helpPosition"
+    @activate="emit('click')"
+  >
+    <template v-if="$slots.help" #help>
+      <slot name="help" />
+    </template>
+  </BaseIndicatorCard>
+</template>

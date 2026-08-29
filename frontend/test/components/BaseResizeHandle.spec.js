@@ -23,6 +23,7 @@ describe('BaseResizeHandle', () => {
     expect(handle.attributes('aria-valuenow')).toBe('320')
     expect(handle.attributes('aria-valuemin')).toBe('240')
     expect(handle.attributes('aria-valuemax')).toBe('520')
+    expect(handle.attributes('title')).toBe('Ajustar el ancho de la columna Título')
   })
 
   it('captures the pointer during a drag', async () => {
