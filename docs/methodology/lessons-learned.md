@@ -1311,7 +1311,7 @@ rows, one list-owned scrollbar, a stationary modal, visible review content and
 the full-screen compact contract; a screenshot of an open dropdown proves none
 of those boundaries.
 
-## 53. KPI density and KPI geometry are separate contracts
+## 54. KPI density and KPI geometry are separate contracts
 
 Equal card heights require a stable internal grid, not copy of equal length.
 Reserve label, value and optional support rows in the shared primitive so missing
@@ -1324,3 +1324,20 @@ families separately. Compact layouts should summarize by question family and
 put the lossless detail in a focus-managed drawer. A summary total must combine
 like units: for heterogeneous operational facts, count active categories rather
 than adding clients, records and review rows into a misleading grand total.
+
+## 55. A thread filter is a correlated event question, not independent joins
+
+A conversation can contain many messages, so applying channel, direction and
+status as separate relation joins answers the wrong question: one email can
+satisfy channel while an unrelated incoming WhatsApp satisfies direction. Build
+one message predicate and apply it through one correlated `Exists`; use OR for
+multiple values inside a dimension and AND across dimensions. REST, MCP and
+facet counts must consume that same read service or they will disagree while
+each appears locally correct.
+
+URL and saved-view state add a separate reactivity boundary. Vue reactive arrays
+are proxies and cannot be passed blindly to `structuredClone`; normalize them to
+plain, validated values before snapshotting, comparing, writing route queries or
+saving a view. A real-browser direct-link case is essential here because a unit
+mock can miss the browser's `DataCloneError` and leave the route rendered but
+non-interactive.

@@ -1491,6 +1491,7 @@ class SavedFilterTab(models.Model):
     # choice the serializer 400s each attempt.
     VIEW_ACCOUNTING_CARDS = 'accounting_cards'
     VIEW_ACCOUNTING_COLLECTIONS = 'accounting_collections'
+    VIEW_COMMUNICATION = 'communication'
     VIEW_CHOICES = [
         (VIEW_PROPOSAL, 'Proposal'),
         (VIEW_CLIENT, 'Client'),
@@ -1507,6 +1508,7 @@ class SavedFilterTab(models.Model):
         (VIEW_ACCOUNTING_HISTORY_CHANGES, 'Accounting History — Changes'),
         (VIEW_ACCOUNTING_CARDS, 'Accounting Cards'),
         (VIEW_ACCOUNTING_COLLECTIONS, 'Accounting Collections'),
+        (VIEW_COMMUNICATION, 'Communication'),
     ]
 
     MAX_TABS_PER_VIEW = 12

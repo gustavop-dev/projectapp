@@ -1065,7 +1065,7 @@ The legacy `Project.status` remains a compatibility mirror, while new panel and
 platform writes cannot mutate it directly. Hosting failure produces a manual
 suggestion only; no timer automatically moves Suspendido to Dado de baja.
 
-### Client Communication → Manual Send Fact → Reply Context
+### Client Communication Scope → Manual Fact → Reply Context
 
 ```mermaid
 flowchart LR
@@ -1079,12 +1079,22 @@ flowchart LR
     Sent --> Void["Annul with reason"]
 ```
 
-Phase 1 is deliberately a registry, not a transport. A manual source records the
+The registry is deliberately not a transport. A manual source records the
 operator's assertion that a message was sent; it never impersonates an SMTP or
-WhatsApp delivery receipt. A later email phase must enter through
-`EmailDeliveryGateway` and atomically associate the existing `EmailLog` seam.
-Historical conversations keep their original client: when a project changes
-owner, its threads are detached from the project rather than reassigned.
+WhatsApp delivery receipt. This is the chosen workflow, so the interface does
+not present automatic delivery as a pending phase. Historical conversations
+keep their original client: when a project changes owner, its threads are
+detached from the project rather than reassigned.
+
+Read navigation has one shared boundary. The panel sends its project/client
+selection, multi-value filters and order to `communication_query_service`; the
+REST view returns both rows and facets, while the MCP scalar inputs are normalized
+through the same parser. Filters within one dimension are OR and dimensions are
+AND. Channel, direction, message status and date are correlated against one
+message instead of being satisfied by unrelated messages in the same thread.
+The list URL owns that state and `thread=<id>` opens the selected conversation in
+a workspace modal, preserving the list when the modal closes or browser Back is
+used.
 
 ### Modal-Owned Selector Surfaces
 

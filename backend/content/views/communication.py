@@ -1,7 +1,5 @@
 from django.core.paginator import Paginator
-from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
-from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -20,33 +18,7 @@ from content.serializers.communication import (
     CommunicationVoidSerializer,
 )
 from content.services import communication_service
-
-
-def _message_queryset():
-    return (
-        CommunicationMessage.objects
-        .select_related('created_by', 'reply_to')
-        .prefetch_related('documents', 'date_corrections__corrected_by')
-    )
-
-
-def _thread_queryset():
-    return (
-        CommunicationThread.objects
-        .select_related('client__user', 'project')
-        .annotate(
-            messages_count=Count('messages', distinct=True),
-            draft_count=Count(
-                'messages',
-                filter=Q(
-                    messages__status=CommunicationMessage.Status.DRAFT,
-                    messages__voided_at__isnull=True,
-                ),
-                distinct=True,
-            ),
-        )
-        .prefetch_related(Prefetch('messages', queryset=_message_queryset()))
-    )
+from content.services import communication_query_service
 
 
 def _business_error(exc):
@@ -76,22 +48,6 @@ def _positive_int(value, *, field, default=None, maximum=None):
     return parsed, None
 
 
-def _parse_date_filter(raw_value, *, field, end=False):
-    if not raw_value:
-        return None, None
-    parsed_datetime = parse_datetime(raw_value)
-    if parsed_datetime:
-        return parsed_datetime, None
-    parsed_date = parse_date(raw_value)
-    if parsed_date:
-        lookup = 'messages__occurred_at__date__lte' if end else 'messages__occurred_at__date__gte'
-        return (lookup, parsed_date), None
-    return None, Response(
-        {field: 'Usa una fecha ISO válida.'},
-        status=status.HTTP_400_BAD_REQUEST,
-    )
-
-
 @api_view(['GET', 'POST'])
 @permission_classes([IsAdminUser])
 def communication_threads(request):
@@ -106,72 +62,22 @@ def communication_threads(request):
             )
         except communication_service.CommunicationError as exc:
             return _business_error(exc)
-        thread = get_object_or_404(_thread_queryset(), pk=thread.pk)
+        thread = get_object_or_404(
+            communication_query_service.thread_queryset(), pk=thread.pk,
+        )
         return Response(
             CommunicationThreadDetailSerializer(thread).data,
             status=status.HTTP_201_CREATED,
         )
 
-    queryset = _thread_queryset()
-    for field in ('client', 'project'):
-        raw_value = request.query_params.get(field)
-        if raw_value:
-            parsed, error = _positive_int(raw_value, field=field)
-            if error:
-                return error
-            queryset = queryset.filter(**{f'{field}_id': parsed})
+    try:
+        filters = communication_query_service.parse_filters(request.query_params)
+    except communication_query_service.CommunicationFilterError as exc:
+        return Response(exc.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    thread_status = request.query_params.get('status')
-    if thread_status:
-        valid_statuses = {choice for choice, _ in CommunicationThread.Status.choices}
-        if thread_status not in valid_statuses:
-            return Response(
-                {'status': 'Estado de hilo inválido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        queryset = queryset.filter(status=thread_status)
-
-    for field, choices in (
-        ('channel', CommunicationMessage.Channel.choices),
-        ('direction', CommunicationMessage.Direction.choices),
-        ('message_status', CommunicationMessage.Status.choices),
-    ):
-        raw_value = request.query_params.get(field)
-        if not raw_value:
-            continue
-        valid_values = {choice for choice, _ in choices}
-        if raw_value not in valid_values:
-            return Response(
-                {field: 'Valor de filtro inválido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        model_field = 'status' if field == 'message_status' else field
-        queryset = queryset.filter(**{f'messages__{model_field}': raw_value})
-
-    for field, end in (('date_from', False), ('date_to', True)):
-        parsed, error = _parse_date_filter(
-            request.query_params.get(field), field=field, end=end,
-        )
-        if error:
-            return error
-        if parsed:
-            if isinstance(parsed, tuple):
-                queryset = queryset.filter(**{parsed[0]: parsed[1]})
-            else:
-                lookup = 'messages__occurred_at__lte' if end else 'messages__occurred_at__gte'
-                queryset = queryset.filter(**{lookup: parsed})
-
-    query = request.query_params.get('q', '').strip()
-    if query:
-        queryset = queryset.filter(
-            Q(title__icontains=query)
-            | Q(client__company_name__icontains=query)
-            | Q(client__user__first_name__icontains=query)
-            | Q(client__user__last_name__icontains=query)
-            | Q(client__user__email__icontains=query)
-            | Q(messages__subject__icontains=query)
-            | Q(messages__content__icontains=query)
-        )
+    queryset = communication_query_service.apply_filters(
+        communication_query_service.thread_queryset(), filters,
+    )
 
     page_number, error = _positive_int(
         request.query_params.get('page'), field='page', default=1,
@@ -187,7 +93,7 @@ def communication_threads(request):
     if error:
         return error
     paginator = Paginator(
-        queryset.distinct().order_by('-last_activity_at', '-id'),
+        communication_query_service.order_threads(queryset, filters.order),
         page_size,
     )
     page = paginator.get_page(page_number)
@@ -196,13 +102,16 @@ def communication_threads(request):
         'count': paginator.count,
         'page': page.number,
         'num_pages': paginator.num_pages,
+        'facets': communication_query_service.build_facets(filters),
     })
 
 
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def communication_thread_detail(request, thread_id):
-    thread = get_object_or_404(_thread_queryset(), pk=thread_id)
+    thread = get_object_or_404(
+        communication_query_service.thread_queryset(), pk=thread_id,
+    )
     if request.method == 'PATCH':
         serializer = CommunicationThreadWriteSerializer(
             thread, data=request.data, partial=True,
@@ -216,7 +125,9 @@ def communication_thread_detail(request, thread_id):
             )
         except communication_service.CommunicationError as exc:
             return _business_error(exc)
-        thread = get_object_or_404(_thread_queryset(), pk=thread_id)
+        thread = get_object_or_404(
+            communication_query_service.thread_queryset(), pk=thread_id,
+        )
     return Response(CommunicationThreadDetailSerializer(thread).data)
 
 
@@ -229,7 +140,9 @@ def close_communication_thread(request, thread_id):
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
     return Response(CommunicationThreadDetailSerializer(
-        get_object_or_404(_thread_queryset(), pk=thread_id),
+        get_object_or_404(
+            communication_query_service.thread_queryset(), pk=thread_id,
+        ),
     ).data)
 
 
@@ -242,7 +155,9 @@ def reopen_communication_thread(request, thread_id):
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
     return Response(CommunicationThreadDetailSerializer(
-        get_object_or_404(_thread_queryset(), pk=thread_id),
+        get_object_or_404(
+            communication_query_service.thread_queryset(), pk=thread_id,
+        ),
     ).data)
 
 
@@ -266,7 +181,9 @@ def communication_thread_messages(request, thread_id):
         )
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
-    message = get_object_or_404(_message_queryset(), pk=message.pk)
+    message = get_object_or_404(
+        communication_query_service.message_queryset(), pk=message.pk,
+    )
     return Response(
         CommunicationMessageSerializer(message).data,
         status=status.HTTP_201_CREATED,
@@ -277,7 +194,9 @@ def communication_thread_messages(request, thread_id):
 @permission_classes([IsAdminUser])
 def communication_message_detail(request, message_id):
     message = get_object_or_404(
-        _message_queryset().select_related('thread__client__user'),
+        communication_query_service.message_queryset().select_related(
+            'thread__client__user',
+        ),
         pk=message_id,
     )
     try:
@@ -299,7 +218,9 @@ def communication_message_detail(request, message_id):
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
     return Response(CommunicationMessageSerializer(
-        get_object_or_404(_message_queryset(), pk=message.pk),
+        get_object_or_404(
+            communication_query_service.message_queryset(), pk=message.pk,
+        ),
     ).data)
 
 
@@ -320,7 +241,9 @@ def mark_communication_message_sent(request, message_id):
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
     return Response(CommunicationMessageSerializer(
-        get_object_or_404(_message_queryset(), pk=message.pk),
+        get_object_or_404(
+            communication_query_service.message_queryset(), pk=message.pk,
+        ),
     ).data)
 
 
@@ -339,7 +262,9 @@ def void_communication_message(request, message_id):
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
     return Response(CommunicationMessageSerializer(
-        get_object_or_404(_message_queryset(), pk=message.pk),
+        get_object_or_404(
+            communication_query_service.message_queryset(), pk=message.pk,
+        ),
     ).data)
 
 
@@ -358,7 +283,9 @@ def correct_communication_message_date(request, message_id):
     except communication_service.CommunicationError as exc:
         return _business_error(exc)
     return Response(CommunicationMessageSerializer(
-        get_object_or_404(_message_queryset(), pk=message.pk),
+        get_object_or_404(
+            communication_query_service.message_queryset(), pk=message.pk,
+        ),
     ).data)
 
 
@@ -366,7 +293,9 @@ def correct_communication_message_date(request, message_id):
 @permission_classes([IsAdminUser])
 def document_communication_usage(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
-    messages = _message_queryset().filter(documents=document).select_related(
+    messages = communication_query_service.message_queryset().filter(
+        documents=document,
+    ).select_related(
         'thread__client__user', 'thread__project',
     )
     rows = []

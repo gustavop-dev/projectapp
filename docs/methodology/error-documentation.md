@@ -720,3 +720,21 @@ contracts, not conventions repeated in individual commands.
   geometría/contenido en 412, 835, 1195, 1440 y 2560 px.
 - **Lesson**: Reservar altura corrige alineación; reducir preguntas visibles
   corrige prioridad. Son contratos distintos y ambos deben verificarse.
+
+### [ERR-036] Una vista guardada intentaba clonar proxies reactivos
+
+- **Date**: 2026-08-29
+- **Context**: Al abrir directamente Comunicaciones con filtros en la URL, la
+  página podía dibujarse pero el estado de filtros dejaba de sincronizarse y el
+  flujo Playwright terminaba antes de operar la lista.
+- **Root Cause**: `snapshot()` pasaba arrays reactivos de Vue directamente a
+  `structuredClone`. El navegador rechaza esos proxies con `DataCloneError`.
+- **Resolution**: Convertir el estado a valores planos, validados y ordenados con
+  `normalizeStoredFilters` antes de compararlo, guardarlo o escribir el query.
+- **Files Affected**: `frontend/composables/useCommunicationFilters.js` y el flujo
+  E2E de Comunicaciones.
+- **Verification**: Los cinco outcomes del flujo y las cinco geometrías
+  responsive pasan con entrada directa, cambio de filtros, vista guardada y
+  apertura/cierre del detalle.
+- **Lesson**: Los snapshots persistibles deben cruzar explícitamente de estado
+  reactivo a datos planos; clonar un proxy no es una serialización.
