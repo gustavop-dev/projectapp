@@ -1333,6 +1333,23 @@ only the recipient is editable. When old rows lack evidence, use explicit
 Keep the live Document relation for navigation and deletion protection, while
 the attachment filename, type name, hash and bytes remain historical fields.
 
+## 54. A generated document is an artifact, not another editable projection
+
+When a system both generates and sends a PDF, regenerating it later is not an
+archive: templates, source data and fonts may have changed. Render once before
+the outbound boundary, persist those exact bytes with source/version/hash, and
+attach that same byte sequence. Generation failure must stop the send before
+any lifecycle transition; delivery failure may retain the prepared artifact and
+mark the operational problem without rewriting it.
+
+Location is another derived fact. Use stable server-owned folder keys for
+project/client/type/year/month identity, not display-name matching, and create
+the path idempotently inside the business transaction. Protect that structure
+at every mutation surface (REST, MCP and drag/drop), while leaving orthogonal
+administrative observations editable. For legacy data, a dry-run-first backfill
+should touch only records still lacking a destination, preserve manual choices
+and refuse to invent the business date that defines the archive.
+
 ## 55. KPI density and KPI geometry are separate contracts
 
 Equal card heights require a stable internal grid, not copy of equal length.
@@ -1346,3 +1363,20 @@ families separately. Compact layouts should summarize by question family and
 put the lossless detail in a focus-managed drawer. A summary total must combine
 like units: for heterogeneous operational facts, count active categories rather
 than adding clients, records and review rows into a misleading grand total.
+
+## 56. A thread filter is a correlated event question, not independent joins
+
+A conversation can contain many messages, so applying channel, direction and
+status as separate relation joins answers the wrong question: one email can
+satisfy channel while an unrelated incoming WhatsApp satisfies direction. Build
+one message predicate and apply it through one correlated `Exists`; use OR for
+multiple values inside a dimension and AND across dimensions. REST, MCP and
+facet counts must consume that same read service or they will disagree while
+each appears locally correct.
+
+URL and saved-view state add a separate reactivity boundary. Vue reactive arrays
+are proxies and cannot be passed blindly to `structuredClone`; normalize them to
+plain, validated values before snapshotting, comparing, writing route queries or
+saving a view. A real-browser direct-link case is essential here because a unit
+mock can miss the browser's `DataCloneError` and leave the route rendered but
+non-interactive.

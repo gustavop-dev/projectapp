@@ -137,6 +137,39 @@ def test_handle_first_run_sets_platform_onboarding_timestamp(
     assert proposal_with_deliverable.platform_onboarding_completed_at is not None
 
 
+@pytest.mark.django_db
+def test_handle_moves_proposal_snapshots_to_accepted_project(
+    proposal_with_deliverable, admin_user,
+):
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    with (
+        patch(
+            'content.services.generated_document_filing_service.move_proposal_snapshots_to_project',
+        ) as move_snapshots,
+        patch(
+            'accounts.services.proposal_platform_onboarding.sync_technical_requirements_for_deliverable',
+            return_value={'ok': True, 'detail': 'synced'},
+        ),
+        patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation',
+            return_value=True,
+        ),
+    ):
+        handle_proposal_accepted_for_platform(
+            proposal_with_deliverable,
+            source='admin_panel',
+            acting_user=admin_user,
+        )
+
+    move_snapshots.assert_called_once_with(
+        proposal_with_deliverable,
+        proposal_with_deliverable.deliverable.project,
+        acting_user=admin_user,
+    )
+
+
 # -- _acting_user_for_sync helpers -------------------------------------------
 
 

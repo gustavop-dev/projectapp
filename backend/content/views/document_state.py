@@ -55,6 +55,18 @@ def _state_error(exc, http_status=status.HTTP_400_BAD_REQUEST):
     )
 
 
+def _generated_snapshot_state_error(document):
+    if not document.is_generated_snapshot:
+        return None
+    return Response(
+        {
+            'detail': 'El estado de esta versión lo administra su envío por correo.',
+            'code': 'generated_snapshot_read_only',
+        },
+        status=status.HTTP_409_CONFLICT,
+    )
+
+
 def _catalog_queryset(include_retired=False):
     queryset = (
         DocumentState.objects.select_related('group', 'merged_into')
@@ -342,6 +354,9 @@ def merge_document_state(request, state_id):
 @permission_classes([IsAdminUser])
 def open_document_state(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
+    generated = _generated_snapshot_state_error(document)
+    if generated:
+        return generated
     serializer = OpenDocumentStateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -365,8 +380,13 @@ def open_document_state(request, document_id):
 @permission_classes([IsAdminUser])
 def close_document_state(request, document_id, episode_id):
     episode = get_object_or_404(
-        DocumentStateEpisode, pk=episode_id, document_id=document_id,
+        DocumentStateEpisode.objects.select_related('document'),
+        pk=episode_id,
+        document_id=document_id,
     )
+    generated = _generated_snapshot_state_error(episode.document)
+    if generated:
+        return generated
     serializer = CloseDocumentStateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -386,8 +406,13 @@ def close_document_state(request, document_id, episode_id):
 @permission_classes([IsAdminUser])
 def correct_document_state_opening(request, document_id, episode_id):
     episode = get_object_or_404(
-        DocumentStateEpisode, pk=episode_id, document_id=document_id,
+        DocumentStateEpisode.objects.select_related('document'),
+        pk=episode_id,
+        document_id=document_id,
     )
+    generated = _generated_snapshot_state_error(episode.document)
+    if generated:
+        return generated
     serializer = CorrectEpisodeOpeningSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

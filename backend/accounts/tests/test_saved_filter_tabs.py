@@ -136,6 +136,31 @@ def test_post_accepts_the_accounting_cards_view(api_client, admin_a, admin_a_hea
     assert resp.json()['view'] == 'accounting_cards'
 
 
+def test_post_accepts_communication_view_with_multi_value_filters(
+    api_client, admin_a, admin_a_headers,
+):
+    payload = {
+        'view': SavedFilterTab.VIEW_COMMUNICATION,
+        'name': 'Borradores y enviados',
+        'filters': {
+            'by': 'client',
+            'client': '7',
+            'message_status': ['draft', 'sent'],
+        },
+    }
+
+    response = api_client.post(
+        '/api/accounts/saved-filter-tabs/',
+        payload,
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert response.status_code == 201
+    assert response.json()['view'] == SavedFilterTab.VIEW_COMMUNICATION
+    assert response.json()['filters']['message_status'] == ['draft', 'sent']
+
+
 def test_post_creates_tab(api_client, admin_a, admin_a_headers):
     payload = {'view': 'proposal', 'name': 'Activos', 'filters': {'statuses': ['active']}}
     resp = api_client.post(

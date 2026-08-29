@@ -127,6 +127,24 @@ class TestDocumentsMcpFolders:
         response = _call(api_client, token, 'create_folder', {'name': '   '})
         assert response.data['result']['isError'] is True
 
+    def test_create_folder_rejects_system_managed_parent(
+        self, api_client, documents_connector,
+    ):
+        parent = DocumentFolder.objects.create(
+            name='Proyectos', system_key='generated:test:projects',
+        )
+        _, token = documents_connector
+
+        response = _call(
+            api_client,
+            token,
+            'create_folder',
+            {'name': 'Manual', 'parent_id': parent.pk},
+        )
+
+        assert response.data['result']['isError'] is True
+        assert not DocumentFolder.objects.filter(name='Manual').exists()
+
     def test_rename_folder_changes_name_keeps_slug(self, api_client, documents_connector):
         folder = DocumentFolder.objects.create(name='Viejo')
         original_slug = folder.slug

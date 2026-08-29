@@ -957,18 +957,20 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `GET /api/content/documents/document-folders/`, `PATCH /api/content/documents/document-folders/<id>/update/`
-- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment.
+- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Manual folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment. Generated branches remain navigable through project/client, document type, issue year and issue month, but their structure and contents are system-owned.
 - **Steps:**
   1. Admin loads `/panel/documents` — sidebar shows root folders only (a chevron marks folders that contain subfolders).
   2. Admin clicks a root folder → table shows that folder's subfolder rows on top, then its documents; a breadcrumb `Todos › <Folder>` appears above the table.
   3. Admin clicks a subfolder row → navigates into it; breadcrumb grows (`Todos › <Folder> › <Subfolder>`).
   4. Admin clicks a breadcrumb segment (or "Todos") → navigates back to that level.
   5. Admin drags a subfolder row onto another folder → the dragged folder is re-parented (`PATCH parent`).
+  6. Admin navigates `Proyectos → <Proyecto> → Cuentas de cobro → <Año> → <Mes>` and finds issued accounts ordered by their canonical title.
 - **Branches:**
   - [Branch A — Only subfolders] A folder with subfolders but no documents still renders the subfolder rows (no empty state).
   - [Branch B — Cycle prevented] Dropping a folder onto itself or one of its descendants is rejected client-side and by the backend serializer.
   - [Branch C — Drop on "Sin carpeta"] Dragging a subfolder onto "Sin carpeta" promotes it to a root folder (`parent = null`).
   - [Branch D — Search active] While a search query is active, subfolder rows are hidden and the search applies to documents only.
+  - [Branch E — Generated hierarchy] A folder with `system_key` hides rename, move, archive, delete and drag affordances; the API and Documents MCP reject those mutations and manual document drops.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folder-hierarchy.spec.js`
 
@@ -4361,24 +4363,26 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/communications`
-- **API:** `GET/POST /api/communications/threads/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`
-- **Description:** El administrador conserva el recorrido de una conversación sin convertirla en documento. Un hilo pertenece a un cliente, puede apuntar a un proyecto y contiene mensajes entrantes o salientes con canal, fecha, estado y referencias a documentos existentes. En esta primera fase la plataforma registra; no envía realmente por correo ni WhatsApp.
+- **API:** `GET/POST /api/communications/threads/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`, `/api/accounts/saved-filter-tabs/`
+- **Description:** El administrador recorre el registro manual de conversaciones por proyecto, por cliente o por la entrada explícita «Sin proyecto». Puede combinar filtros, guardar recortes propios y abrir el detalle en un modal de trabajo sin perder la lista. Cada hilo conserva mensajes entrantes o salientes con canal, fecha, estado y referencias a documentos existentes.
 - **Steps:**
-  1. El administrador abre Comunicaciones y consulta los hilos filtrables.
-  2. Selecciona un hilo y lee los mensajes en orden temporal junto con canal, dirección y estado.
-  3. Escribe o pega el texto exacto de una comunicación.
-  4. Registra una salida como borrador o enviada, o una entrada como respuesta recibida.
-  5. La línea de tiempo se vuelve a consultar y muestra el nuevo registro.
+  1. El administrador entra a Comunicaciones desde el panel y navega por proyectos o clientes, con conteos que incluyen sus hilos.
+  2. Elige «Sin proyecto» cuando necesita consultar conversaciones todavía no asociadas a uno.
+  3. Combina varios valores dentro de un filtro y, si reutiliza ese recorte, lo guarda con nombre como vista propia.
+  4. Selecciona un hilo; el detalle se abre sobre la lista y muestra la línea de tiempo, sus estados y documentos referenciados.
+  5. Escribe o pega el texto exacto y registra una salida como borrador o enviada, o una entrada como recibida.
+  6. Cierra el detalle o vuelve atrás y recupera el mismo contexto de navegación y filtros.
 - **Branches:**
-  - [Branch A — Consulta] La línea de tiempo muestra juntos lo enviado, lo recibido y los documentos referenciados.
-  - [Branch B — Registro exitoso] Un mensaje saliente queda con estado `sent` y fecha explícita.
-  - [Branch C — Error de negocio] La API rechaza el registro y el panel conserva el texto, mostrando la razón.
-  - [Branch D — Fallo de carga] El listado no está disponible y el panel muestra un estado de error visible.
-  - [Branch E — Alcance de canal] El aviso superior aclara que copiar/enviar ocurre fuera de la plataforma en esta fase.
+  - [Branch A — Display] La navegación muestra proyectos, clientes y «Sin proyecto»; el modal presenta juntos lo enviado, lo recibido y los documentos referenciados.
+  - [Branch B — Recorte guardado] La selección por cliente y los estados múltiples se guardan y se restauran como una vista propia.
+  - [Branch C — Registro exitoso] Un mensaje saliente queda con estado `sent` y fecha explícita.
+  - [Branch D — Error de negocio] La API rechaza el registro y el panel conserva el texto, mostrando la razón.
+  - [Branch E — Fallo de carga] El listado no está disponible y el panel mantiene un reintento visible.
+  - [Branch F — Alcance de canal] El aviso describe el registro manual vigente y puede cerrarse después de leído, sin prometer una fase posterior.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-client-communications.spec.js`
 - **Unit Tests:** `test/stores/communications.test.js`
-- **Backend Tests:** `content/tests/views/test_communication_views.py`
+- **Backend Tests:** `content/tests/views/test_communication_views.py`, `content/tests/views/test_communication_filters.py`
 
 ### FLOW: `admin-mini-crm-clients`
 
@@ -5628,7 +5632,7 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/:id/edit`
-- **Description:** Edita contenido, asociación cliente/proyecto, visibilidad en el portal y presentación de un documento. La entrada desde el gestor conserva carpeta, filtros, búsqueda, archivo, vista y página en un `from` interno validado; las salidas explícitas restauran ese contexto, mientras una entrada directa o no confiable vuelve a la raíz. La cabecera reserva el ancho de las acciones, limita el título a dos líneas y mantiene visibilidad/cliente sin empujar los controles; debajo muestra los estados concurrentes con su duración. **Acciones** contiene las salidas PDF y queda separado de **Cancelar/Guardar**. La asociación guardada ofrece backlinks y conserva el `client_name` heredado cuando no existe relación. La barra de Markdown permite copiar o pegar contenido. `doc-client-note-open` conserva los mensajes para el cliente, guarda esa metadata directamente y administra observaciones normalizadas enlazables con **Solucionar bug**. Nada de esta metadata aparece en el PDF ni en el portal del cliente.
+- **Description:** Edita contenido, asociación cliente/proyecto, visibilidad en el portal y presentación de un documento manual. La entrada desde el gestor conserva carpeta, filtros, búsqueda, archivo, vista y página en un `from` interno validado; las salidas explícitas restauran ese contexto, mientras una entrada directa o no confiable vuelve a la raíz. La cabecera reserva el ancho de las acciones, limita el título a dos líneas y mantiene visibilidad/cliente sin empujar los controles; debajo muestra los estados concurrentes con su duración. **Acciones** contiene las salidas PDF y queda separado de **Cancelar/Guardar**. La asociación guardada ofrece backlinks y conserva el `client_name` heredado cuando no existe relación. La barra de Markdown permite copiar o pegar contenido. `doc-client-note-open` conserva los mensajes para el cliente, guarda esa metadata directamente y administra observaciones normalizadas enlazables con **Solucionar bug**. Una versión PDF generada al enviar una propuesta abre en esta misma ruta como registro inmutable: título, asociación, carpeta, mensajes y workflow no se editan; se descarga exactamente el archivo guardado y las observaciones privadas sí siguen disponibles. Nada de esta metadata aparece en el PDF ni en el portal del cliente.
 - **Steps:**
   1. Admin llega desde el gestor a `/panel/documents/:id/edit` con su origen canónico en `from`; `GET /api/documents/:id/detail/` carga el documento.
   2. El formulario aparece precargado con título, contenido, visibilidad, asociación, configuración visual, episodios vigentes y notas privadas.
@@ -5639,6 +5643,7 @@ Two transitions that were previously bundled into other flows now have their own
   7. Admin modifica o guarda por separado cualquier otro dato necesario.
 - **Branches:**
   - [Display — lectura] Una cuenta de cobro emitida permite consultar y copiar todas sus notas, pero no crearlas, modificarlas ni eliminarlas.
+  - [Display — versión generada] Una propuesta archivada muestra el aviso de inmutabilidad, reemplaza el editor Markdown por el panel del PDF guardado y deja una sola descarga. Sus mensajes quedan bloqueados, pero las observaciones privadas se pueden crear, editar, resolver o eliminar.
   - [Display — volver] **Volver a documentos** y las demás salidas explícitas restauran la lista con su contexto y foco; el guard interviene si hay cambios sin guardar. Back del navegador conserva su semántica nativa y un `from` directo, externo o de otro módulo cae a la raíz localizada.
   - [Success — PDF] Preview y descarga usan la configuración guardada; **Acciones** permite descargar PDF Amigable o Profesional.
   - [Success — visibilidad] El interruptor persiste `is_client_visible` sin modificar el ciclo de trabajo.
@@ -5976,7 +5981,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-blog-overdue-detection` | admin | P2 | — | 0 |
 | `admin-blog-publish-mode` | admin | P2 | display,success | 1 |
 | `admin-calculator-followup-alert` | admin | P2 | — | 0 |
-| `admin-client-communications` | admin | P1 | display,success,error,failure | 4 |
+| `admin-client-communications` | admin | P1 | display,success,error,failure | 5 |
 | `admin-client-create-standalone` | admin | P2 | success,error | 1 |
 | `admin-client-delete-orphan` | admin | P2 | display,success | 1 |
 | `admin-client-delete-protected` | admin | P2 | error | 1 |
@@ -7107,9 +7112,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Route:** `/panel/documents`
-- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
+- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. Los documentos manuales muestran episodios de workflow; las cuentas de cobro muestran en su lugar el estado comercial derivado (**Borrador, Emitida, Enviada, Envío fallido, Pagada o Anulada**). Una cuenta ya emitida sólo ofrece consulta, una descarga de su PDF contable y archivar/restaurar: no ofrece renombrar, mover, duplicar ni eliminar. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
 - **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → enfocar o posar el cursor sobre las acciones y ver un solo aviso `Acciones` → abrir el menú de la fila/tarjeta → cambiar entre activos, archivados y todos.
-- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
+- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; una cuenta emitida conserva el mismo estado comercial y las mismas acciones restringidas en tabla y tarjeta; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 

@@ -405,16 +405,33 @@ by migration `content.0210_communications_registry` own threads, ordered message
 references and append-only date corrections. `communication_service.py` is the
 only write owner; DRF function-based views remain thin and staff-only.
 
-Phase 1 is transport-neutral: `source=manual` means an operator recorded the
-fact, while `source=platform_email` plus the optional one-to-one `email_log`
-field is reserved for a later `EmailDeliveryGateway` integration. “Respondido”
-is derived from a non-void reply and is not an additional mutable database
-status. Delivered/received messages are corrected or annulled, never edited.
+The operating model is transport-neutral: `source=manual` means an operator
+recorded the fact. `source=platform_email` and the optional one-to-one
+`email_log` remain persistence seams, not a product commitment to automatic
+delivery. “Respondido” is derived from a non-void reply and is not an additional
+mutable database status. Delivered/received messages are corrected or annulled,
+never edited.
 
 The Nuxt surface is `/panel/communications`; its Options-API Pinia store uses
 `request_http` (session + CSRF), not `usePlatformApi`. Documents are referenced
 by ID and expose reverse usage through
 `GET /api/documents/<id>/communications/`.
+
+`communication_query_service.py` is the single read contract for REST and MCP.
+It parses scalar legacy parameters plus comma-separated/repeated values, applies
+OR inside `status`, `channel`, `direction` and `message_status`, and AND across
+dimensions. Message dimensions share one correlated `Exists`, so their values
+must match the same message. `project=none` addresses unscoped threads; `order`
+accepts `recent`, `oldest` or `title`. The REST response also includes
+self-excluding option counts plus project/client navigation counts, including
+nested thread totals.
+
+The panel URL is canonical for selection, filters, order and the `thread` detail
+modal. `CommunicationNavigation` is resizable on landscape widths and moves to
+the shared drawer below that breakpoint. `CommunicationFilterPanel` consumes
+searchable `BaseFilterDropdown` instances with multi-selection and counts.
+Named cuts reuse `SavedFilterTab` with the `communication` view choice; migration
+`accounts.0056_add_communication_saved_filter_view` adds only that catalog value.
 
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 
@@ -565,6 +582,27 @@ confirmed by the operator or another integration.
   Domain-specific `_log_email` calls enrich that row through the shared delivery
   trace instead of creating a duplicate.
 - **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
+- **Generated-document paths are keyed, not name-matched** —
+  `generated_document_filing_service` builds each level from a stable nullable
+  `DocumentFolder.system_key`, then reconciles parent, name, owner and archive
+  flags inside a transaction. Human-readable project/client names may change;
+  identity and concurrency safety do not depend on them.
+- **One render, one retained proposal version** — proposal send/resend/multi-send
+  calls `proposal_snapshot_service` before SMTP. It locks source proposals,
+  allocates `source_version`, renders all PDFs before writing any Document,
+  stores a SHA-256 plus `generated_file`, and passes those in-memory bytes to
+  `ProposalEmailService`. A generated file, rather than the nullable source FK,
+  is the immutable marker so deleting a proposal cannot make its archive editable.
+- **Generated branches are server-owned** — REST serializers/views, folder
+  endpoints and the Documents MCP reject manual targets or structural mutations
+  with an explicit conflict. The list sorts a selected generated folder by
+  case-insensitive title; collection accounts expose a derived lifecycle/email
+  state instead of workflow episodes.
+- **Backfill deployment order** — apply schema migrations first, preview with
+  `python manage.py backfill_collection_account_filing`, review its paths, then
+  run the same command with `--apply`. It only considers folderless collection
+  accounts, preserves manual classification and skips missing issue dates. Never
+  run either migrations or this data-writing command from a session worktree.
 
 ### Frontend Patterns
 

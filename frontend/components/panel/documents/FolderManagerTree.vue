@@ -17,6 +17,7 @@
           :style="{ marginLeft: `${depth * 18}px` }"
         >
           <div
+            v-if="!folder.is_system_managed"
             class="folder-tree-handle flex-shrink-0 w-4 flex items-center justify-center
                    text-text-subtle cursor-grab active:cursor-grabbing"
             title="Arrastrar para reordenar"
@@ -43,7 +44,7 @@
             {{ folder.document_count }} doc
           </span>
 
-          <div class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div v-if="!folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <BaseButton
               variant="ghost"
               icon-only
@@ -124,7 +125,9 @@ function rowClass(folder) {
 function onReorderEnd() {
   emit('reorder', {
     parentId: props.parentId,
-    orderedIds: localSiblings.value.map((f) => f.id),
+    orderedIds: localSiblings.value
+      .filter((folder) => !folder.is_system_managed)
+      .map((folder) => folder.id),
   });
 }
 </script>

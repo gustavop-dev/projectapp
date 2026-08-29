@@ -39,7 +39,7 @@
       <button
         type="button"
         class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
-        :class="activeTabId === 'all'
+        :class="String(activeTabId) === 'all'
           ? 'border-emerald-600 text-text-brand'
           : 'border-transparent text-text-muted hover:text-text-default'"
         @click="$emit('select', 'all')"
@@ -80,7 +80,7 @@
               type="button"
               :data-testid="`filter-tabs-tab-${tab.id}`"
               class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap cursor-grab active:cursor-grabbing"
-              :class="activeTabId === tab.id
+              :class="String(activeTabId) === String(tab.id)
                 ? 'border-emerald-600 text-text-brand'
                 : 'border-transparent text-text-muted hover:text-text-default'"
               aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight"
@@ -303,7 +303,7 @@ import BaseControlGate from './BaseControlGate.vue';
 
 const props = defineProps({
   tabs: { type: Array, default: () => [] },
-  activeTabId: { type: String, default: 'all' },
+  activeTabId: { type: [String, Number], default: 'all' },
   isTabLimitReached: { type: Boolean, default: false },
   // Optional per-tab match count, keyed by tab id, so a quick filter can show
   // how many rows it would leave without being applied. Views that pass

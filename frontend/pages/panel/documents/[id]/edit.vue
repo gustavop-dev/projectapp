@@ -33,8 +33,17 @@
             {{ headerClientLabel || 'Sin cliente' }}
           </span>
         </p>
+        <BaseBadge
+          v-if="documentStore.currentDocument?.display_state"
+          class="mt-2"
+          :variant="documentStore.currentDocument.display_state.variant"
+          size="sm"
+          data-testid="doc-derived-state"
+        >
+          {{ documentStore.currentDocument.display_state.label }}
+        </BaseBadge>
         <DocumentStateList
-          v-if="documentStore.currentDocument && !isCollectionAccount"
+          v-else-if="documentStore.currentDocument && !isCollectionAccount"
           class="mt-2"
           :episodes="workflowEpisodes"
           :max-visible="4"
@@ -225,6 +234,17 @@
         Contabilidad → Cuentas de cobro.
       </BaseAlert>
 
+      <BaseAlert
+        v-if="generatedSnapshot"
+        variant="info"
+        class="panel-landscape:col-span-2"
+        data-testid="doc-generated-snapshot-alert"
+      >
+        Versión {{ documentStore.currentDocument.source_version }} archivada al enviar
+        la propuesta. El PDF, el nombre y la carpeta son de sólo lectura; las
+        observaciones y el historial siguen disponibles.
+      </BaseAlert>
+
       <!-- El botón Guardar habilitado se lee como "puedes guardar"; esto se
            lee como "te falta guardar", y nombra qué falta. -->
       <UnsavedChangesNotice
@@ -232,8 +252,8 @@
         class="panel-landscape:col-span-2"
         :title="unsavedTitle"
         :detail="unsavedDetail"
-        :message="lockedCuenta
-          ? 'Esta cuenta de cobro está emitida: estos cambios no se pueden guardar y se pierden al salir.'
+        :message="readOnlyDocument
+          ? 'Esta versión es de sólo lectura: estos cambios no se pueden guardar y se pierden al salir.'
           : 'Si sales de esta página, se pierden. Guardar los deja registrados.'"
         :can-save="canSaveNow"
         :saving="documentStore.isUpdating"
@@ -268,6 +288,7 @@
                 v-model="form.title"
                 type="text"
                 required
+                :readonly="readOnlyDocument"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
@@ -286,15 +307,15 @@
                   type="button"
                   variant="secondary"
                   size="sm"
-                  :icon-only="!lockedCuenta"
-                  :aria-label="lockedCuenta ? undefined : notesActionLabel"
-                  :title="lockedCuenta ? undefined : notesActionLabel"
+                  :icon-only="!readOnlyDocument"
+                  :aria-label="notesActionLabel"
+                  :title="notesActionLabel"
                   :disabled="lockedCuenta && !hasNotes"
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
                 >
                   <BaseActionIcon action="notes" />
-                  <span v-if="lockedCuenta">Ver notas</span>
+                  <span v-if="readOnlyDocument">Notas</span>
                 </BaseButton>
               </div>
             </div>
@@ -313,6 +334,8 @@
               <ClientAutocomplete
                 v-model="form.client"
                 :initial-label="clientDisplayName"
+                :disabled="readOnlyDocument"
+                :disabled-reason="readOnlyReason"
                 test-id="doc-client-autocomplete"
                 @select="onClientSelect"
                 @create-new="onCreateNewClient"
@@ -384,6 +407,7 @@
                 :client-profile-id="form.client"
                 :client-label="clientDisplayName"
                 :allow-no-client="true"
+                :disabled="readOnlyDocument"
                 testid="doc-project-select"
                 @select="onProjectSelect"
               />
@@ -400,10 +424,10 @@
               </BaseBadge>
             </div>
             <DocumentStateSelector
-              v-if="!isCollectionAccount"
+              v-if="!isCollectionAccount && !generatedSnapshot"
               :document-id="route.params.id"
               :episodes="workflowEpisodes"
-              :disabled="lockedCuenta"
+              :disabled="readOnlyDocument"
               @changed="refreshWorkflow"
               @history="showStateHistory = true"
             />
@@ -420,19 +444,26 @@
               </span>
               <BaseToggle
                 v-model="form.is_client_visible"
-                :disabled="lockedCuenta"
-                disabled-reason="Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar su visibilidad."
+                :disabled="readOnlyDocument"
+                :disabled-reason="readOnlyReason"
               />
             </label>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
               <select
                 v-model="form.folder_id"
+                :disabled="readOnlyDocument"
+                :title="readOnlyDocument ? readOnlyReason : undefined"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option :value="null">Sin carpeta</option>
-                <option v-for="folder in folderStore.activeFolders" :key="folder.id" :value="folder.id">
+                <option
+                  v-for="folder in folderStore.activeFolders"
+                  :key="folder.id"
+                  :value="folder.id"
+                  :disabled="folder.is_system_managed && folder.id !== form.folder_id"
+                >
                   {{ folder.name }}
                 </option>
               </select>
@@ -447,6 +478,8 @@
               <label class="block text-sm font-medium text-text-default mb-1">Idioma</label>
               <select
                 v-model="form.language"
+                :disabled="readOnlyDocument"
+                :title="readOnlyDocument ? readOnlyReason : undefined"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
@@ -461,7 +494,11 @@
                 class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
                 :data-testid="option.testId"
               >
-                <BaseToggle v-model="form[option.key]" />
+                <BaseToggle
+                  v-model="form[option.key]"
+                  :disabled="readOnlyDocument"
+                  :disabled-reason="readOnlyReason"
+                />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
               <!-- Traduce las casillas a páginas: sin esto, saber qué trae el
@@ -484,6 +521,19 @@
       </aside>
 
       <section
+        v-if="generatedSnapshot"
+        class="bg-surface rounded-xl shadow-sm border border-border-muted p-6 flex min-w-0 flex-col justify-center"
+        data-testid="doc-generated-snapshot-panel"
+      >
+        <p class="text-sm font-semibold text-text-default">PDF inmutable archivado</p>
+        <p class="mt-2 text-sm text-text-muted">
+          Esta vista conserva la versión exacta que se adjuntó al correo. Usa
+          «Acciones» para descargarla; no se vuelve a generar desde la propuesta actual.
+        </p>
+      </section>
+
+      <section
+        v-else
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                flex flex-col min-w-0"
       >
@@ -579,6 +629,7 @@
       :custom-notes="form.client_custom_notes"
       :notes="normalizedNotes"
       :readonly="lockedCuenta"
+      :immutable-content="generatedSnapshot"
       :saving="documentStore.isUpdating"
       @submit="saveClientNote"
       @workflow-changed="refreshWorkflow"
@@ -588,6 +639,7 @@
       v-if="!isCollectionAccount"
       v-model="showStateHistory"
       :document-id="route.params.id"
+      :readonly="generatedSnapshot"
       @changed="refreshWorkflow"
     />
 
@@ -689,6 +741,17 @@ const returnLabel = computed(() => documentReturnLabel({
 const loadError = ref(false);
 // Requisito 6: an issued cuenta is a fact — read-only here, forever.
 const lockedCuenta = ref(false);
+const generatedSnapshot = ref(false);
+const readOnlyDocument = computed(() => lockedCuenta.value || generatedSnapshot.value);
+const readOnlyReason = computed(() => {
+  if (generatedSnapshot.value) {
+    return 'Esta versión archivada es de sólo lectura; las observaciones y el historial siguen disponibles.';
+  }
+  if (lockedCuenta.value) {
+    return 'Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar sus datos.';
+  }
+  return '';
+});
 const clientDisplayName = ref('');
 // El nombre libre heredado sigue existiendo (lo lee el PDF); se muestra como
 // referencia mientras el documento no tenga cliente relacional.
@@ -787,14 +850,17 @@ const {
   save: handleSave,
   // Una cuenta de cobro emitida no se guarda: el backend contesta 400
   // collection_account_locked. Ofrecer "Guardar y salir" ahí sería mentir.
-  canSave: () => !lockedCuenta.value,
-  blockedReason: 'Esta cuenta de cobro ya fue emitida y no se puede modificar.',
+  canSave: () => !readOnlyDocument.value,
+  blockedReason: 'Este documento es de sólo lectura y no se puede modificar.',
   reload: reloadDocument,
 });
 
 const saveBlockReasons = computed(() => [
   lockedCuenta.value
     ? 'Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para modificarla.'
+    : '',
+  generatedSnapshot.value
+    ? 'Esta versión conserva el PDF exacto enviado y no se puede modificar.'
     : '',
   !hasChanges.value ? 'No hay cambios por guardar.' : '',
 ].filter(Boolean));
@@ -812,9 +878,10 @@ const hasNotes = computed(() => [
   || form.client_custom_notes.length > 0
   || normalizedNotes.value.length > 0);
 
-const notesActionLabel = computed(() => (
-  hasNotes.value ? 'Editar notas' : 'Agregar notas'
-));
+const notesActionLabel = computed(() => {
+  if (readOnlyDocument.value) return 'Ver notas';
+  return hasNotes.value ? 'Editar notas' : 'Agregar notas';
+});
 
 const notesDirty = computed(() => NOTE_FIELDS.some((field) => isFieldDirty(field)));
 
@@ -847,6 +914,11 @@ function notifySaveError(result, title = 'No se pudo guardar el documento') {
   if (result.code === 'collection_account_locked') {
     lockedCuenta.value = true;
     notify.error({ title: 'Documento emitido', detail: result.message });
+    return;
+  }
+  if (result.code === 'generated_snapshot_read_only') {
+    generatedSnapshot.value = true;
+    notify.error({ title: 'Versión archivada', detail: result.message });
     return;
   }
   const fieldDetail = result.fieldErrors
@@ -1024,6 +1096,7 @@ async function reloadDocument() {
       result.data.document_type_code === 'collection_account'
       && result.data.commercial_status !== 'draft'
     );
+    generatedSnapshot.value = Boolean(result.data.is_generated_snapshot);
     commitBaseline();
   } else {
     loadError.value = true;
@@ -1082,10 +1155,18 @@ async function handleSave() {
   return false;
 }
 
-const downloadItems = computed(() => [
-  { action: 'download', label: 'Descargar PDF · Amigable', onClick: () => handleDownloadPdf('friendly') },
-  { action: 'download', label: 'Descargar PDF · Profesional', onClick: () => handleDownloadPdf('professional') },
-]);
+const downloadItems = computed(() => {
+  if (generatedSnapshot.value) {
+    return [{ action: 'download', label: 'Descargar versión archivada', onClick: () => handleDownloadPdf() }];
+  }
+  if (lockedCuenta.value) {
+    return [{ action: 'download', label: 'Descargar cuenta de cobro', onClick: () => handleDownloadPdf() }];
+  }
+  return [
+    { action: 'download', label: 'Descargar PDF · Amigable', onClick: () => handleDownloadPdf('friendly') },
+    { action: 'download', label: 'Descargar PDF · Profesional', onClick: () => handleDownloadPdf('professional') },
+  ];
+});
 
 async function handleDownloadPdf(template = null) {
   // El archivo lo arma el servidor con lo guardado: con cambios en pantalla

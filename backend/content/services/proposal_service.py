@@ -3787,7 +3787,7 @@ class ProposalService:
         proposal.save(update_fields=updates)
 
     @staticmethod
-    def send_proposal(proposal):
+    def send_proposal(proposal, *, acting_user=None):
         """
         Mark proposal as sent and schedule the Huey reminder tasks.
 
@@ -3807,6 +3807,15 @@ class ProposalService:
         """
         ProposalService._require_valid_client_email(proposal)
 
+        from content.services.proposal_snapshot_service import (
+            finalize_proposal_snapshots,
+            prepare_proposal_snapshots,
+        )
+
+        prepared = prepare_proposal_snapshots(
+            [proposal], acting_user=acting_user,
+        )
+
         now = timezone.now()
         proposal.status = 'sent'
         proposal.sent_at = now
@@ -3820,12 +3829,17 @@ class ProposalService:
 
         proposal.save(update_fields=update_fields)
 
-        delivery = ProposalService._send_initial_email(proposal)
+        delivery = ProposalService._send_initial_email(
+            proposal, snapshot=prepared[0],
+        )
+        finalize_proposal_snapshots(
+            prepared, delivery, acting_user=acting_user,
+        )
         ProposalService._schedule_email_tasks(proposal)
         return delivery
 
     @staticmethod
-    def resend_proposal(proposal):
+    def resend_proposal(proposal, *, acting_user=None):
         """
         Re-send a proposal keeping the existing expires_at.
 
@@ -3843,6 +3857,15 @@ class ProposalService:
         """
         ProposalService._require_valid_client_email(proposal)
 
+        from content.services.proposal_snapshot_service import (
+            finalize_proposal_snapshots,
+            prepare_proposal_snapshots,
+        )
+
+        prepared = prepare_proposal_snapshots(
+            [proposal], acting_user=acting_user,
+        )
+
         now = timezone.now()
         proposal.status = 'sent'
         proposal.sent_at = now
@@ -3852,12 +3875,17 @@ class ProposalService:
             'status', 'sent_at', 'reminder_sent_at', 'urgency_email_sent_at',
         ])
 
-        delivery = ProposalService._send_initial_email(proposal)
+        delivery = ProposalService._send_initial_email(
+            proposal, snapshot=prepared[0],
+        )
+        finalize_proposal_snapshots(
+            prepared, delivery, acting_user=acting_user,
+        )
         ProposalService._schedule_email_tasks(proposal)
         return delivery
 
     @staticmethod
-    def _send_initial_email(proposal):
+    def _send_initial_email(proposal, snapshot=None):
         """
         Send the proposal link email to the client.
 
@@ -3870,7 +3898,9 @@ class ProposalService:
             GENERIC_SEND_FAILURE_DETAIL,
         )
         try:
-            return ProposalEmailService.send_proposal_to_client(proposal)
+            return ProposalEmailService.send_proposal_to_client(
+                proposal, snapshot=snapshot,
+            )
         except Exception as exc:
             logger.exception(
                 'Failed to send initial email for proposal %s',
@@ -3954,7 +3984,7 @@ class ProposalService:
         return proposal.is_expired
 
     @staticmethod
-    def send_multi_proposals(proposals):
+    def send_multi_proposals(proposals, *, acting_user=None):
         """Send a single email referencing several proposals from the same client.
 
         Side effects per proposal (mirrors send/resend single):
@@ -3993,6 +4023,15 @@ class ProposalService:
                 'Todas las propuestas deben pertenecer al mismo cliente.',
                 code='multiple_clients',
             )
+
+        from content.services.proposal_snapshot_service import (
+            finalize_proposal_snapshots,
+            prepare_proposal_snapshots,
+        )
+
+        prepared = prepare_proposal_snapshots(
+            proposals, acting_user=acting_user,
+        )
 
         Status = BusinessProposal.Status
         now = timezone.now()
@@ -4050,12 +4089,18 @@ class ProposalService:
         )
 
         try:
-            delivery = ProposalEmailService.send_multi_proposal_to_client(proposals)
+            delivery = ProposalEmailService.send_multi_proposal_to_client(
+                proposals, snapshots=prepared,
+            )
         except Exception as exc:
             logger.exception(
                 'Failed to send multi-proposal email for client %s', client_id,
             )
             delivery = _delivery(False, 'unexpected_error', str(exc)[:500])
+
+        finalize_proposal_snapshots(
+            prepared, delivery, acting_user=acting_user,
+        )
 
         for proposal in proposals:
             ProposalService._schedule_email_tasks(proposal)

@@ -3,7 +3,8 @@ import json
 import logging
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Exists, OuterRef, Prefetch, Q
+from django.db.models.functions import Lower
 from django.db.models.deletion import ProtectedError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -15,7 +16,15 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from content.api_errors import error_response
-from content.models import Document, DocumentNote, DocumentStateEpisode
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    DocumentFolder,
+    DocumentNote,
+    DocumentStateEpisode,
+    EmailLog,
+    EmailLogTarget,
+)
 from content.serializers.document import (
     DocumentListSerializer,
     DocumentDetailSerializer,
@@ -105,8 +114,21 @@ def list_documents(request):
             {'scope': 'El estado solicitado no es válido. Usa active, archived o all.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    delivered_targets = EmailLogTarget.objects.filter(
+        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+        object_id=OuterRef('pk'),
+    ).exclude(email_log__status=EmailLog.Status.FAILED)
+    failed_targets = EmailLogTarget.objects.filter(
+        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+        object_id=OuterRef('pk'),
+        email_log__status=EmailLog.Status.FAILED,
+    )
     documents = (
         apply_archive_scope(Document.objects.all(), scope)
+        .annotate(
+            _has_delivered_collection_email=Exists(delivered_targets),
+            _has_failed_collection_email=Exists(failed_targets),
+        )
         .prefetch_related(
             'tags',
             Prefetch(
@@ -118,15 +140,23 @@ def list_documents(request):
                 to_attr='prefetched_active_state_episodes',
             ),
         )
-        .select_related('folder', 'project', 'client_user__profile')
+        .select_related(
+            'document_type', 'folder', 'project', 'client_user__profile',
+        )
     )
 
+    selected_system_folder = False
     folder_param = request.query_params.get('folder')
     if folder_param == 'none':
         documents = documents.filter(folder__isnull=True)
     elif folder_param not in (None, '', 'all'):
         try:
-            documents = documents.filter(folder_id=int(folder_param))
+            folder_id = int(folder_param)
+            documents = documents.filter(folder_id=folder_id)
+            selected_system_folder = DocumentFolder.objects.filter(
+                pk=folder_id,
+                system_key__isnull=False,
+            ).exists()
         except (TypeError, ValueError):
             return Response(
                 {'folder': 'El identificador de carpeta no es válido.'},
@@ -234,7 +264,10 @@ def list_documents(request):
                 state__group__selection_mode='exclusive',
                 closed_at__isnull=True,
             ).values('document_id')
-            documents = documents.exclude(pk__in=classified_ids)
+            documents = (
+                documents.exclude(pk__in=classified_ids)
+                .exclude(document_type__code=COLLECTION_ACCOUNT)
+            )
         else:
             return Response(
                 {'preset': 'La consulta predefinida no es válida.'},
@@ -253,15 +286,38 @@ def list_documents(request):
         # aplica: las filas activas tienen `archived_at` en NULL y el orden
         # mentiría; ahí manda el `-created_at` del modelo.
         documents = documents.order_by(archived_order_field(request), '-created_at')
+    elif selected_system_folder:
+        documents = documents.order_by(Lower('title'), 'pk')
 
     serializer = DocumentListSerializer(documents, many=True)
     return Response(serializer.data)
+
+
+def _system_managed_folder_target_error(raw_folder_id):
+    if raw_folder_id in (None, '', 'null'):
+        return None
+    try:
+        folder = DocumentFolder.objects.filter(pk=int(raw_folder_id)).first()
+    except (TypeError, ValueError):
+        return None
+    if folder is None or not folder.is_system_managed:
+        return None
+    return error_response(
+        'Esta carpeta pertenece al archivado automático y sólo recibe '
+        'documentos generados por el sistema.',
+        code='system_managed_folder',
+        hint='Elige una carpeta manual o deja el documento sin carpeta.',
+        status=status.HTTP_409_CONFLICT,
+    )
 
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def create_document(request):
     """Create a document from direct JSON input."""
+    managed = _system_managed_folder_target_error(request.data.get('folder_id'))
+    if managed:
+        return managed
     serializer = DocumentCreateUpdateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -284,6 +340,9 @@ def create_document(request):
 @permission_classes([IsAdminUser])
 def create_document_from_markdown(request):
     """Create a document from markdown text."""
+    managed = _system_managed_folder_target_error(request.data.get('folder_id'))
+    if managed:
+        return managed
     serializer = DocumentFromMarkdownSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -333,6 +392,10 @@ def upload_document_markdown(request):
             {'file': 'No se adjuntó ningún archivo.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    managed = _system_managed_folder_target_error(request.data.get('folder_id'))
+    if managed:
+        return managed
 
     # Read file content
     try:
@@ -492,14 +555,32 @@ def _locked_collection_account_error(document):
     )
 
 
+def _generated_snapshot_read_only_error(document):
+    if not document.is_generated_snapshot:
+        return None
+    return error_response(
+        'Esta versión fue generada por el sistema y conserva exactamente el '
+        'PDF enviado al cliente.',
+        code='generated_snapshot_read_only',
+        hint='Puedes descargarla, archivarla y agregar observaciones, pero no modificarla.',
+        status=status.HTTP_409_CONFLICT,
+    )
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_document(request, document_id):
     """Update a document."""
     document = get_object_or_404(Document, pk=document_id)
+    generated = _generated_snapshot_read_only_error(document)
+    if generated:
+        return generated
     locked = _locked_collection_account_error(document)
     if locked:
         return locked
+    managed = _system_managed_folder_target_error(request.data.get('folder_id'))
+    if managed:
+        return managed
     serializer = DocumentCreateUpdateSerializer(
         document, data=request.data, partial=True,
     )
@@ -526,6 +607,9 @@ def delete_document(request, document_id):
     eliminar sigue disponible para la limpieza final.
     """
     document = get_object_or_404(Document, pk=document_id)
+    generated = _generated_snapshot_read_only_error(document)
+    if generated:
+        return generated
     locked = _locked_collection_account_error(document)
     if locked:
         return locked
@@ -665,6 +749,9 @@ def duplicate_document(request, document_id):
     en las dos vistas del panel.
     """
     document = get_object_or_404(Document, pk=document_id)
+    generated = _generated_snapshot_read_only_error(document)
+    if generated:
+        return generated
     if document.document_type and document.document_type.code == COLLECTION_ACCOUNT:
         return Response(
             {'detail': 'Las cuentas de cobro no se pueden duplicar desde el panel.'},
@@ -720,6 +807,45 @@ def download_document_pdf(request, document_id):
     antes de llegar acá.
     """
     document = get_object_or_404(Document, pk=document_id)
+
+    if document.generated_file:
+        try:
+            with document.generated_file.open('rb') as stored_pdf:
+                pdf_bytes = stored_pdf.read()
+        except (OSError, ValueError):
+            logger.exception(
+                'Stored generated document %s could not be read', document.pk,
+            )
+            return Response(
+                {'detail': 'El PDF archivado no está disponible.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        filename = f'{safe_slug(document.title)}.pdf'
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = content_disposition_header(
+            not request.query_params.get('inline'),
+            filename,
+        )
+        return response
+
+    if is_collection_account(document):
+        from content.services.collection_account_pdf_service import (
+            CollectionAccountPdfService,
+        )
+
+        pdf_bytes = CollectionAccountPdfService.generate(document)
+        if not pdf_bytes:
+            return Response(
+                {'detail': 'No se pudo generar el PDF.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        filename = f'{safe_slug(document.public_number or document.title)}.pdf'
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = content_disposition_header(
+            not request.query_params.get('inline'),
+            filename,
+        )
+        return response
 
     # `resolve_blocks` y no `content_json['blocks']`: un documento cuyo writer
     # se saltó el parseo sigue teniendo el markdown, y ése es el contenido real.

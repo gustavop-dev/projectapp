@@ -36,7 +36,10 @@ describe('communications store', () => {
 
   it('loads a filtered page of threads', async () => {
     get_request.mockResolvedValueOnce({
-      data: { results: [thread()], count: 1, page: 1, num_pages: 1 },
+      data: {
+        results: [thread()], count: 1, page: 1, num_pages: 1,
+        facets: { total: 1, projects: [{ id: 19, count: 1 }] },
+      },
     });
     const store = useCommunicationsStore();
 
@@ -47,6 +50,50 @@ describe('communications store', () => {
     );
     expect(result.success).toBe(true);
     expect(store.threads).toHaveLength(1);
+    expect(store.facets.projects).toEqual([{ id: 19, count: 1 }]);
+  });
+
+  it('serializes multi-value filters as comma-separated query values', async () => {
+    get_request.mockResolvedValueOnce({
+      data: { results: [], count: 0, page: 1, num_pages: 1 },
+    });
+    const store = useCommunicationsStore();
+
+    await store.fetchThreads({ status: ['open', 'closed'], channel: ['email'] });
+
+    expect(get_request).toHaveBeenCalledWith(
+      'communications/threads/?status=open%2Cclosed&channel=email',
+    );
+  });
+
+  it('keeps the newest result when saved-view requests overlap', async () => {
+    let resolveFirst;
+    get_request
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce({
+        data: {
+          results: [thread({ id: 8, title: 'Vista guardada' })],
+          count: 1,
+          page: 1,
+          num_pages: 1,
+        },
+      });
+    const store = useCommunicationsStore();
+
+    const initialRequest = store.fetchThreads({});
+    await store.fetchThreads({ client: 17 });
+    resolveFirst({
+      data: {
+        results: [thread({ id: 3, title: 'Todos' })],
+        count: 1,
+        page: 1,
+        num_pages: 1,
+      },
+    });
+    await initialRequest;
+
+    expect(store.threads).toEqual([expect.objectContaining({ id: 8 })]);
+    expect(store.isLoading).toBe(false);
   });
 
   it('creates a thread as the current conversation', async () => {
@@ -126,7 +173,7 @@ describe('communications store', () => {
     expect(result.success).toBe(true);
   });
 
-  it('normalizes a business-rule error for the panel', async () => {
+  it('keeps a thread-load error separate from the list state', async () => {
     get_request.mockRejectedValueOnce({
       response: { status: 400, data: { detail: 'El hilo está cerrado.' } },
     });
@@ -136,7 +183,8 @@ describe('communications store', () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toBe('El hilo está cerrado.');
-    expect(store.error).toBe('El hilo está cerrado.');
+    expect(store.threadError).toBe('El hilo está cerrado.');
+    expect(store.error).toBeNull();
   });
 
   it('loads the reverse communication usage of a document', async () => {

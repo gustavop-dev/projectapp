@@ -47,6 +47,22 @@ const issuedCollectionAccount = {
   ],
 };
 
+const generatedProposalSnapshot = {
+  ...mockDocument,
+  title: '2026-08-14 · Propuesta comercial · Portal Nube · v02',
+  document_type_code: 'commercial_proposal',
+  is_generated_snapshot: true,
+  source_proposal_id: 77,
+  source_version: 2,
+  folder: 45,
+  folder_name: '08 - Agosto',
+  client_email_subject: 'Propuesta enviada',
+  active_states: [],
+  notes: [
+    { id: 31, title: 'Seguimiento', content: 'Confirmar recepción.', status: 'open', order: 0 },
+  ],
+};
+
 async function mockResponsiveHeaderApi(page) {
   await mockApi(page, async ({ apiPath }) => {
     if (apiPath === 'auth/check/') return authCheck;
@@ -272,7 +288,9 @@ test.describe('Admin Document Edit', () => {
       }
       return null;
     });
-    await page.goto('/panel/documents');
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText(mockDocument.title, { exact: true }).first())
+      .toBeVisible({ timeout: 30000 });
     await page.getByTestId('document-open-1').click();
 
     await expect(page.getByRole('textbox', { name: /^Título$/i })).toHaveValue('Contrato de Servicios');
@@ -409,11 +427,13 @@ test.describe('Admin Document Edit', () => {
       }
       return null;
     });
-    await page.goto('/panel/documents');
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText(issuedCollectionAccount.title, { exact: true }).first())
+      .toBeVisible({ timeout: 30000 });
     await page.getByTestId('document-open-1').click();
 
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveText('Ver notas');
+    await expect(noteButton).toHaveAccessibleName('Ver notas');
     await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
     await expect(page.getByTestId('client-note-subject')).toBeDisabled();
@@ -422,6 +442,34 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByTestId('document-observation-edit-21')).toHaveCount(0);
     await expect(page.getByTestId('client-note-submit')).toHaveCount(0);
     await expect(page.getByTestId('client-note-add-custom')).toHaveCount(0);
+  });
+
+  test('a generated proposal version is immutable while observations remain editable', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; this test
+    // follows the real list → generated snapshot editor interaction)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([generatedProposalSnapshot]) };
+      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(generatedProposalSnapshot) };
+      if (
+        apiPath === 'document-folders/' || apiPath === 'document-tags/'
+        || apiPath === 'document-states/' || apiPath === 'document-state-groups/'
+      ) return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      return null;
+    });
+    await page.goto('/panel/documents');
+    await page.getByTestId('document-open-1').click();
+
+    await expect(page.getByTestId('doc-generated-snapshot-alert')).toContainText('Versión 2');
+    await expect(page.getByTestId('doc-generated-snapshot-panel')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /^Título$/i })).toHaveAttribute('readonly');
+    await page.getByTestId('doc-document-actions-trigger').click();
+    await expect(page.getByRole('menuitem', { name: /Descargar/ })).toHaveCount(1);
+    await page.getByTestId('doc-client-note-open').click();
+    await expect(page.getByTestId('client-note-subject')).toBeDisabled();
+    await expect(page.getByTestId('document-observation-edit-31')).toBeVisible();
   });
 
   test('copies an observation from an issued collection account', {

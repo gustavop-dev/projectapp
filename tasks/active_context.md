@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-08-29 — Comunicaciones alineadas con el Gestor Documental:** el módulo
+conserva una sola lista amplia y traslada el detalle del hilo a un modal de
+trabajo direccionable por `thread=<id>`. A la izquierda incorpora navegación
+ajustable por Proyectos/Clientes, conteos agregados, búsqueda y un corte explícito
+**Sin proyecto**; por debajo del perfil landscape la misma navegación usa el
+drawer compartido. Los selectores nativos se reemplazaron por filtros buscables
+con conteos y selección múltiple; la URL conserva el corte y `SavedFilterTab`
+guarda/restaura vistas propias con el nuevo catálogo `communication`. REST y MCP
+convergen en `communication_query_service.py`, que aplica OR dentro de cada
+dimensión, AND entre dimensiones y correlaciona filtros de mensaje sobre el
+mismo registro. El aviso describe sólo el registro manual vigente, se puede
+cerrar y reabrir desde ayuda. PA-89 queda cerrado: Comunicaciones ya es un módulo
+propio, no una subsección de Documentos. Pasan 6 pruebas backend, 25 unitarias,
+5 outcomes E2E, los 5 perfiles responsive, build y auditoría de flows.
+
 **2026-08-28 — Historial probatorio de correos listo para integrar:** el gateway
 central captura antes del SMTP un snapshot obligatorio con cuerpo, enlaces,
 tamaño total y bytes/hash/tipo/tamaño de cada adjunto. Los logs primarios y BCC
@@ -70,6 +85,37 @@ actualiza configuraciones por defecto y borradores activos, preserva ids y no
 toca propuestas históricas. El editor impide borrar el grupo completo, no su
 contenido. Backend, unitarios frontend y ambos E2E focales están verdes; el mapa
 está fresco y los flows público/admin siguen cubiertos sin junk-only.
+
+**2026-08-28 — Documentos generados se archivan solos:** al emitir una cuenta
+de cobro, el backend crea o reutiliza una jerarquía protegida basada en la fecha
+de emisión de Bogotá: **Proyectos / {proyecto} / Cuentas de cobro / año / mes**.
+La mayoría histórica que aún no tiene proyecto cae de forma permisiva en
+**Clientes / {cliente} / Sin proyecto**; si tampoco se puede identificar al
+cliente usa **Sin clasificar**. Anular una emitida la mueve bajo **Anuladas** sin
+duplicarla, y anular un borrador usa **Sin emitir / Anuladas**. Reintentar el
+correo conserva el mismo documento; una sustitución posterior a la anulación
+nace como otra cuenta con otro consecutivo. El nombre queda
+`fecha · consecutivo · concepto`, el estado visible se deriva del ciclo
+comercial y del historial real de correo, y estas cuentas dejan de contaminar
+el preset Por clasificar. Las carpetas automáticas tienen `system_key`: el panel,
+REST y MCP permiten navegar, pero no renombrar, mover, reordenar, archivar ni
+inyectar documentos manuales en ellas.
+
+El alcance transversal incluye propuestas comerciales: cada envío o reenvío
+genera primero el PDF, persiste exactamente esos bytes como versión inmutable
+`vNN`, adjunta esa misma versión al correo y la archiva por cliente/proyecto,
+año y mes. Un fallo de render no cambia el borrador ni envía; un fallo de correo
+conserva la versión con señal de corrección. Cuando la aceptación crea el
+proyecto, todas las versiones previas se mueven a su rama. En la UI el contenido,
+carpeta y estados de estas versiones son de sólo lectura, mientras las
+observaciones administrativas siguen editables. La migración `content.0223`
+añade identidad de carpeta y origen/archivo de snapshot. Después de migrar,
+producción debe previsualizar y luego aplicar
+`python manage.py backfill_collection_account_filing --apply`; la orden sólo
+toca cuentas sin carpeta y nunca inventa fechas. Verificación focal: 25 pruebas
+de servicios/backfill, 16 de API, 3 de onboarding/MCP, 1 contrato de fake data,
+13 unitarias y 3 E2E, más regresiones específicas de envío/reenvío y build de
+producción.
 
 **2026-08-28 — Indicadores de Proyectos e Ingresos listos para integrar:** un
 `BaseIndicatorCard` compartido reserva siempre rótulo, cifra y apoyo, por lo que
@@ -422,7 +468,7 @@ aplicó la migración ni se alteraron datos productivos.
 
 **2026-08-25 — iconos de acción del panel unificados:** las 51 páginas bajo `/panel` y sus componentes alcanzables resuelven 84 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables; el módulo concurrente de Comunicaciones adoptó el catálogo al integrarse. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 273 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 261 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
 
-**2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
+**2026-08-25 — Registro de comunicaciones con clientes:** la decisión
 de producto es un módulo Comunicaciones propio que reutiliza el Django app
 `content`, clientes, proyectos, Documentos y primitivas del panel sin deformar
 `Document` en una conversación. La migración
@@ -434,8 +480,9 @@ responsive, borradores, registro manual de enviado/recibido, Respondido derivado
 cierre/reapertura, anulación y corrección de fecha. Clientes, Proyectos y
 Documentos enlazan al registro; al cambiar el dueño de un proyecto sus hilos
 históricos se desvinculan en vez de cambiar de cliente. Fake data y cobertura
-focal backend/unit/E2E acompañan el flujo. Envío real, plantillas/importación e
-integraciones quedan por fases en
+focal backend/unit/E2E acompañan el flujo. El registro manual es la operación
+elegida; plantillas, importaciones o integraciones necesitarían requerimientos
+independientes. La decisión queda en
 `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
 
 **2026-08-25 — Notas de documentos con guardado directo desde el modal:** en

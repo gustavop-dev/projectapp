@@ -2,3 +2,4 @@
 
 MARKDOWN = 'markdown'
 COLLECTION_ACCOUNT = 'collection_account'
+COMMERCIAL_PROPOSAL = 'commercial_proposal'

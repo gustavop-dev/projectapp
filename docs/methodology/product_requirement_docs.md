@@ -269,6 +269,32 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   colored document tags were consolidated into additive workflow states instead of
   leaving two overlapping user-facing systems; legacy tag assignments are expanded
   into open episodes with an explicitly unknown opening time during migration.
+- **Generated-document filing**: an issued collection account is filed from its
+  Bogotá issue date under `Proyectos / {project} / Cuentas de cobro / YYYY /
+  MM - Mes`. Without a project it uses `Clientes / {client} / Sin proyecto`;
+  without an identifiable client it uses `Sin clasificar`. Missing levels are
+  created idempotently. Cancellation moves the same record to `Anuladas`; a
+  never-issued cancellation uses `Sin emitir / Anuladas`. Retrying delivery
+  keeps the same document; issuing a replacement after cancellation creates a
+  new account/number while the annulled original remains in its branch.
+- System-owned folders carry a stable `system_key`. They remain navigable but
+  cannot be renamed, moved, reordered, archived or targeted by manual document
+  creation through the panel, REST or MCP. Issued accounts and generated PDF
+  snapshots cannot be dragged out of their canonical branch.
+- Account titles follow `YYYY-MM-DD · public number · concept`. Their visible
+  state is derived from the commercial lifecycle plus real email delivery
+  history, so draft/issued/sent/send-failed/paid/cancelled never depend on a
+  loose manual workflow episode and never appear in Por clasificar.
+- Every initial proposal send, resend and multi-send stores the exact PDF bytes
+  attached to the email as an immutable `vNN` Document snapshot, named
+  `YYYY-MM-DD · Propuesta comercial · title · vNN` and filed under the parallel
+  `Propuestas comerciales / YYYY / MM - Month` hierarchy. Observations remain
+  editable; source data, folder and workflow state do not. Acceptance moves all
+  retained versions to the created project.
+- Historical folderless collection accounts are handled by the dry-run-first
+  `backfill_collection_account_filing` command. Applying it uses the same live
+  rule, preserves manually classified records and skips rows whose issue date
+  cannot be established.
   - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
   - Folder mutations from `FolderManagerModal` re-fetch both the documents list and the folder store so the sidebar count and order reflect the change without a page reload.
 - **Context-preserving navigation**: the list URL is the canonical representation of
@@ -294,9 +320,21 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **State semantics**: outgoing messages are draft or sent; incoming messages are
   received. “Respondido” is derived from a valid opposite-direction reply and
   does not overwrite the stored send fact.
-- **Manual-channel boundary**: phase 1 records what the operator copied/sent via
-  WhatsApp or email; it does not claim that ProjectApp delivered it. Real email
-  delivery through `EmailDeliveryGateway` remains a later phase.
+- **Document-manager navigation**: the module has a resizable side panel that
+  switches between projects and clients, includes aggregate counts and keeps
+  threads without a project reachable through an explicit **Sin proyecto**
+  entry. On compact screens the same navigation moves into the shared drawer.
+- **Canonical cuts**: navigation, searchable multi-value filters and ordering
+  live in the URL. A thread opens in a workspace modal addressed by
+  `thread=<id>`, so closing it or using browser Back restores the exact list.
+  Frequent combinations can be named and restored through the accounting saved
+  filter mechanism.
+- **Manual-channel boundary**: recording what the operator sent or received via
+  WhatsApp or email is the chosen operating model, not a provisional phase. The
+  product never claims that ProjectApp delivered it, and the interface does not
+  promise a future automatic-delivery capability.
+- The explanatory notice describes that current manual workflow, can be closed
+  after it is understood and remains reachable from contextual help.
 - **References, never copies**: messages link existing `Document` rows through a
   protected join. Document detail exposes reverse usage, and a referenced
   document cannot be deleted accidentally.
