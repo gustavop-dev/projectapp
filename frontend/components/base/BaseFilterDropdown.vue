@@ -53,6 +53,7 @@
               :value="option.value"
               :checked="modelValue.includes(option.value)"
               :disabled="option.disabled"
+              :title="option.disabled ? 'No hay hilos disponibles con esta combinación de filtros.' : undefined"
               class="h-4 w-4 rounded border-input-border accent-primary focus:ring-focus-ring/30"
               @change="toggle(option.value)"
             >

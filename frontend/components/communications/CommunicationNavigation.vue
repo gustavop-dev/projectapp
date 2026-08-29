@@ -26,6 +26,7 @@
     <nav class="min-h-0 flex-1 overflow-y-auto p-2" :aria-label="navigationLabel">
       <ul class="space-y-1">
         <li>
+          <!-- design-tokens: allow-raw-button — selectable navigation row, not a standalone action. -->
           <button
             type="button"
             class="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors"
@@ -40,6 +41,7 @@
         </li>
 
         <li v-if="showWithoutProject">
+          <!-- design-tokens: allow-raw-button — selectable navigation row, not a standalone action. -->
           <button
             type="button"
             class="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors"
@@ -55,6 +57,7 @@
 
         <li v-if="visibleEntries.length" class="my-1 border-t border-border-muted" aria-hidden="true" />
         <li v-for="entry in visibleEntries" :key="entry.id">
+          <!-- design-tokens: allow-raw-button — selectable navigation row, not a standalone action. -->
           <button
             type="button"
             class="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors"
