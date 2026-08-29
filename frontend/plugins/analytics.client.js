@@ -17,7 +17,13 @@
 
 // Same private-route set used by app.vue (showNavbar/showWhatsApp). `includes`
 // is robust to optional locale prefixes (e.g. /en-us/... never matches these).
-const PRIVATE_SEGMENTS = ['/panel', '/platform', '/proposal', '/diagnostic']
+const PRIVATE_SEGMENTS = [
+  '/panel',
+  '/platform',
+  '/proposal',
+  '/diagnostic',
+  '/additional-modules/share',
+]
 
 const isPublicRoute = (path) =>
   !PRIVATE_SEGMENTS.some((segment) => path.includes(segment))

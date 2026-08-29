@@ -7,6 +7,9 @@ from django.core.management.base import BaseCommand
 from accounts.models import UserProfile
 from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 from content.models import (
+    AdditionalModule,
+    AdditionalModuleShareLink,
+    AdditionalModuleShareView,
     EmailCopyRecipient,
     EmailLog,
     LinkedInPost,
@@ -20,7 +23,10 @@ from content.models import (
 
 
 class Command(BaseCommand):
-    help = 'Create representative Email, QR, Linktree, LinkedIn and MCP history.'
+    help = (
+        'Create representative Email, QR, Linktree, LinkedIn, additional-module '
+        'sharing and MCP history.'
+    )
 
     def add_arguments(self, parser):
         add_seed_arguments(parser, count_default=60)
@@ -186,9 +192,69 @@ class Command(BaseCommand):
             email='copies-paused@example.test',
             defaults={'is_active': False},
         )
+
+        modules = list(
+            AdditionalModule.objects.filter(
+                is_active=True,
+                category__is_active=True,
+            ).order_by('category__order', 'order', 'pk')
+        )
+        share_target = 0
+        if modules:
+            AdditionalModuleShareLink.objects.filter(
+                recipient_label__startswith='[Demo] Catálogo',
+            ).delete()
+            share_specs = (
+                ('Selección breve', 'es', 3, 0, True),
+                ('Selección consultada', 'es', 6, 1, True),
+                ('Catálogo completo', 'es', len(modules), 2, True),
+                ('Selection in English', 'en', 4, 1, True),
+                ('Enlace retirado', 'es', 3, 0, False),
+            )
+            for index, (label, language, module_count, view_count, is_active) in enumerate(share_specs):
+                link = AdditionalModuleShareLink.objects.create(
+                    uuid=context.uuid(f'additional-modules-share-{index}'),
+                    recipient_label=f'[Demo] Catálogo — {label}',
+                    client=clients[index % len(clients)] if clients else None,
+                    language=language,
+                    is_active=is_active,
+                    revoked_at=(
+                        context.anchor_now - timedelta(days=2)
+                        if not is_active else None
+                    ),
+                )
+                selected = modules if module_count >= len(modules) else modules[:module_count]
+                link.selected_modules.set(selected)
+
+                viewed_at_values = []
+                for view_index in range(view_count):
+                    event = AdditionalModuleShareView.objects.create(
+                        share_link=link,
+                        session_id=f'demo-session-{index}-{view_index}',
+                        ip_address='192.0.2.10',
+                        user_agent='ProjectApp representative dataset',
+                    )
+                    viewed_at = context.anchor_now - timedelta(
+                        days=5 - index,
+                        hours=view_index,
+                    )
+                    AdditionalModuleShareView.objects.filter(pk=event.pk).update(
+                        viewed_at=viewed_at,
+                    )
+                    viewed_at_values.append(viewed_at)
+
+                if viewed_at_values:
+                    AdditionalModuleShareLink.objects.filter(pk=link.pk).update(
+                        view_count=len(viewed_at_values),
+                        first_viewed_at=min(viewed_at_values),
+                        last_viewed_at=max(viewed_at_values),
+                    )
+                share_target += 1
+
         ViewMapSettings.load()
 
         self.stdout.write(self.style.SUCCESS(
             f'Auxiliary modules ready: {linktree_target} linktrees, {qr_target} QR '
-            f'cards, {linkedin_target} LinkedIn posts, {count} email/MCP rows.',
+            f'cards, {linkedin_target} LinkedIn posts, {share_target} catalog '
+            f'shares, {count} email/MCP rows.',
         ))

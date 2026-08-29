@@ -1,0 +1,10 @@
+{
+  "id": "admin-additional-modules-share",
+  "name": "Admin Share Additional Modules Selection",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin selects relevant modules, validates the recipient, generates a public link, and reviews or revokes tracked links.",
+  "expectedSpecs": 4,
+  "outcomes": ["success", "error", "failure", "display"]
+}

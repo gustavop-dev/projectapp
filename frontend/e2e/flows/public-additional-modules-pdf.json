@@ -1,0 +1,10 @@
+{
+  "id": "public-additional-modules-pdf",
+  "name": "Public Additional Modules PDF",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Visitor downloads the catalog or shared-selection PDF and receives the server's unavailable response when that selection is no longer valid.",
+  "expectedSpecs": 2,
+  "outcomes": ["success", "failure"]
+}

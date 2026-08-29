@@ -165,6 +165,32 @@ export const viewCatalogSections = [
     ],
   },
   {
+    id: 'public-additional-modules',
+    label: 'Catálogo público de módulos',
+    description: 'Catálogo completo y selecciones de módulos adicionales compartidas con prospectos.',
+    views: [
+      {
+        label: 'Catálogo público de módulos adicionales',
+        url: '/additional-modules',
+        group: 'Módulos adicionales',
+        file: 'frontend/pages/additional-modules/index.vue',
+        reference: 'índice público indexable con detalle en modal y descarga PDF',
+        audience: 'public',
+        viewType: 'list',
+      },
+      {
+        label: 'Selección pública de módulos adicionales',
+        url: '/additional-modules/share/:uuid',
+        group: 'Módulos adicionales',
+        file: 'frontend/pages/additional-modules/share/[uuid].vue',
+        reference: 'selección privada por enlace con seguimiento y descarga PDF',
+        audience: 'public',
+        viewType: 'detail',
+        notes: 'No se indexa y no expone destinatario, cliente ni métricas de seguimiento.',
+      },
+    ],
+  },
+  {
     id: 'public-proposals',
     label: 'Propuestas publicas',
     description: 'Vistas que ve el cliente al abrir una propuesta compartida.',
@@ -229,6 +255,15 @@ export const viewCatalogSections = [
         audience: 'admin',
         viewType: 'config',
         notes: 'Incluye pestaña de Configuración (modo y filtros por defecto).',
+      },
+      {
+        label: 'Catálogo de módulos adicionales',
+        url: '/panel/additional-modules',
+        group: 'Módulos adicionales',
+        file: 'frontend/pages/panel/additional-modules/index.vue',
+        reference: 'administración, orden, selección, enlaces y PDF del catálogo comercial',
+        audience: 'admin',
+        viewType: 'list',
       },
       {
         label: 'Listado de propuestas',

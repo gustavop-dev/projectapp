@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-28 — catálogo adicional:** un enlace comercial debe fijar
+> qué módulos se eligieron, no duplicar su contenido. Así la selección permanece
+> estable mientras las correcciones editoriales llegan a todos los clientes. La
+> migración semilla crea el inventario una sola vez; los enlaces nunca heredan
+> precios ni datos de una propuesta, y las URLs seleccionadas usan `noindex`
+> aunque el catálogo canónico sí sirva para captación.
+
 ---
 
 ## 1. Architecture Patterns
