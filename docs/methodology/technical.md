@@ -569,9 +569,11 @@ confirmed by the operator or another integration.
   unhandled so the table wrapper can still pan horizontally. Loose icon rows are
   a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
-  `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
-  consumer classes may style typography but must not override its display/clamp
-  state. `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
+  `BaseOverflowText` for a measurement-independent full native hint while
+  collapsed plus clipping-only in-place touch disclosure. The primitive
+  remeasures after `document.fonts.ready`; consumer classes may style typography
+  but must not override its display/clamp state.
+  `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only
   bounded money/date/number fields stay nowrap. `BaseResponsiveTable` and

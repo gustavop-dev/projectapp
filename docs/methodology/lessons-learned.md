@@ -970,13 +970,17 @@ rewritten: annulment and business-date corrections append audit context, while
 only drafts remain mutable. When project ownership changes, historical threads
 stay with the original client and lose only their optional project scope.
 
-## 39. Clipping is measured state, and its primitive must own display
+## 39. Clipping is measured state, but full-value access must not depend on it
 
-A fixed `title` attribute only repeats short values and still leaves touch users
-without a path. Measure the rendered element after layout, text changes and
-container-width changes; publish the complete native hint and disclosure only
-while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
-The disclosure expands in the same row/card so it cannot require navigation.
+Overflow can change after the first layout pass when a web font finishes
+loading. Keep the complete collapsed value available through the native `title`
+hint without waiting for measurement; use measured state only to decide whether
+the in-place touch disclosure is necessary. Measure after layout, text changes,
+container-width changes and `document.fonts.ready`, comparing
+`scrollWidth/clientWidth` or `scrollHeight/clientHeight`. The disclosure expands
+in the same row/card so it cannot require navigation. E2E setup must await font
+readiness without dispatching a compensating resize event that production never
+receives.
 
 Line clamping is a bundle of display, overflow and WebKit properties, not a
 decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another

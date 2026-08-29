@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-28 — Títulos largos de Documentos revelables y columna ampliada:**
+el nombre completo ya no depende de que la medición de overflow termine a
+tiempo: mientras está contraído siempre se expone en el hover nativo, y el
+control táctil **Ver completo/Contraer** se recalcula también cuando finaliza la
+carga de fuentes web. En lista, Título conserva 320 px iniciales pero ahora puede
+ajustarse entre 240 y 800 px; el separador tiene una zona de interacción más
+amplia, indicador más visible y ayuda nativa, sin ceder los tracks fijos de
+Estados o Acciones. La prueba E2E dejó de emitir el resize artificial que
+ocultaba la carrera real. Verificación: 23 unitarias focales, 11 escenarios
+Playwright, design-token gate, flow-map fresh (272 cubiertos, 37 parciales,
+0 junk-only, 0 faltantes) y build Nuxt aprobados. Sin cambios de backend ni
+esquema.
+
 **2026-08-28 — Un solo aviso breve para las acciones del panel:**
 `BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
 la etiqueta corta del catálogo (**Acciones**) y el `aria-label` conserva el
@@ -14,6 +27,7 @@ menús. Unitarias de los primitives y consumidores de Documentos, más Playwrigh
 en lista y galería, verifican ausencia de `title`, un solo tooltip legible,
 nombre accesible contextual y apertura del menú. El mapa está fresco y la
 auditoría registra 272 flujos cubiertos, 37 parciales, 0 `junk-only` y 0 faltantes.
+
 **2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
 Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al
 recibir foco. `ClientAutocomplete` conserva un único motor de consulta,
@@ -412,12 +426,13 @@ edición cubren éxito, error, falla y cambios concurrentes; flow-map fresco
 errores (96/100; ocho warnings preexistentes en los specs completos).
 
 **2026-08-25 — Títulos de Documentos legibles y columna ajustable:** la lista
-usa `BaseOverflowText` para dos líneas con elipsis final, mide el recorte real y
-sólo entonces agrega el nombre completo en `title` y **Ver completo/Contraer**;
-la misma expansión funciona en las tarjetas de celular/tableta sin abrir el
-documento. Se evaluó el recorte central y se mantuvo el final porque las dos
-líneas más la revelación condicional resuelven la identidad sin una segunda
-regla visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
+introdujo `BaseOverflowText` para una línea con elipsis final, medición de
+recorte y **Ver completo/Contraer**; la misma expansión funciona en las tarjetas
+de celular/tableta sin abrir el documento. El contrato vigente desde 2026-08-28
+mantiene el nombre completo en `title` mientras está contraído y vuelve a medir
+al finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
+final porque la revelación explícita resuelve la identidad sin una segunda regla
+visual. Título parte en 320 px y se ajusta entre 240/800 mediante el mismo
 `BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
 viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
 default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (80),

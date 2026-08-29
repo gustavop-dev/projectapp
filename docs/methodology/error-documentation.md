@@ -45,6 +45,34 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-038] La elipsis del título podía quedar sin una vía de revelación
+
+- **Date**: 2026-08-28
+- **Context**: En `/panel/documents`, algunos nombres largos terminaban en
+  elipsis pero no mostraban el valor completo al pasar el mouse ni el control
+  **Ver completo**. La columna también se detenía en 520 px aunque todavía había
+  espacio útil disponible mediante scroll interno.
+- **Root Cause**: El `title` nativo dependía del mismo estado de overflow medido
+  durante el primer layout. Una fuente web que terminaba de cargar después podía
+  cambiar la geometría sin disparar otra medición. El E2E esperaba las fuentes y
+  luego emitía un `resize` artificial, ocultando esa carrera. Además, el máximo
+  local de 520 px y un indicador de 2 px hacían el ajuste poco útil y difícil de
+  descubrir.
+- **Resolution**: El valor completo se publica siempre en el hint nativo mientras
+  el texto está contraído; la medición que gobierna el disclosure táctil se repite
+  tras `document.fonts.ready`. Título admite ahora 240–800 px y su separador tiene
+  una zona activa, indicador y hint más claros, sin alterar las columnas fijas.
+- **Files Affected**: `frontend/components/base/BaseOverflowText.vue`,
+  `frontend/components/base/BaseResizeHandle.vue`,
+  `frontend/components/panel/documents/DocumentsTable.vue` y cobertura focal.
+- **Verification**: 23 unit tests reproducen la carga tardía de fuentes y el
+  contrato 240–800; 11 escenarios Playwright pasan esperando fuentes sin
+  fabricar un evento de resize. El design-token gate, flow freshness, coverage
+  audit y build Nuxt también aprueban.
+- **Lesson**: La accesibilidad al valor completo no debe depender de una medición
+  temporal; los tests no deben introducir eventos correctivos que el navegador
+  real no garantiza.
+
 ### [ERR-037] Panel action buttons rendered two competing tooltips
 
 - **Date**: 2026-08-28
@@ -73,6 +101,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Lesson**: Visual help and accessible naming are separate contracts. A
   tooltip-owning primitive must also own native-title suppression, including
   Vue's automatic attribute fallthrough.
+
 ### [ERR-036] El catálogo inicial dejaba un modal alto y vacío
 
 - **Date**: 2026-08-28
