@@ -300,10 +300,27 @@ class DocumentFolderAdmin(admin.ModelAdmin):
     archivadas. `parent` sigue editable a propósito (mover carpetas desde el
     admin es legítimo); el comando audit_archive_integrity detecta el drift.
     """
-    list_display = ('name', 'parent', 'order', 'is_archived', 'archived_at')
-    list_filter = ('is_archived',)
+    list_display = (
+        'name', 'folder_kind', 'managed_project', 'parent', 'order',
+        'is_archived', 'archived_at',
+    )
+    list_filter = ('is_archived', 'managed_project')
     search_fields = ('name',)
-    readonly_fields = ('is_archived', 'archived_at', 'archived_via_folder')
+    readonly_fields = (
+        'managed_project', 'is_archived', 'archived_at',
+        'archived_via_folder',
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if obj and obj.managed_project_id:
+            fields.extend(('name', 'parent', 'project', 'client_user', 'order'))
+        return tuple(dict.fromkeys(fields))
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.managed_project_id:
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 class ProjectAppAdminSite(admin.AdminSite):

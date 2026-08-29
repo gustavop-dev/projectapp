@@ -510,7 +510,11 @@ class Command(BaseCommand):
         #    forma de comprobar que restaurar algo de dentro reabre la cadena.
         nested_parent = next(
             (
-                f for f in DocumentFolder.objects.filter(is_archived=False, parent__isnull=True)
+                f for f in DocumentFolder.objects.filter(
+                    is_archived=False,
+                    parent__isnull=True,
+                    managed_project__isnull=True,
+                )
                 if DocumentFolder.objects.filter(parent=f, is_archived=False).exists()
                 and f.pk != getattr(target, 'pk', None)
             ),

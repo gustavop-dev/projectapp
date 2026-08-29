@@ -90,23 +90,6 @@ MCP_MODEL_CONTRACTS = {
             ),
         ),
         _contract(
-            'content.DocumentFolder',
-            read_only='id',
-            read_write='name parent',
-            excluded=(
-                _excluded(_AUDIT_INTERNAL, 'slug created_at updated_at')
-                | _excluded(_PANEL_ONLY, 'order project client_user')
-                | _excluded(
-                    _AUTOMATION_STATE,
-                    'system_key',
-                )
-                | _excluded(
-                    'El archivado de carpetas se administra en el panel.',
-                    'is_archived archived_at archived_via_folder',
-                )
-            ),
-        ),
-        _contract(
             'content.DocumentState',
             read_only=(
                 'id name description color group system_key catalog '
@@ -115,7 +98,20 @@ MCP_MODEL_CONTRACTS = {
             excluded=_excluded(
                 'El catálogo de estados se administra en el panel; MCP aplica estados activos.',
                 'normalized_name slug order is_active merged_into created_by '
-                'updated_by created_at updated_at incompatibilities',
+                'updated_by created_at updated_at incompatibilities '
+                'show_in_document_manager',
+            ),
+        ),
+        _contract(
+            'content.DocumentFolder',
+            read_only='id slug managed_project created_at updated_at',
+            read_write='name parent project client_user order',
+            excluded=(
+                _excluded(_AUTOMATION_STATE, 'system_key')
+                | _excluded(
+                    'El archivado de carpetas es una cascada reservada al panel.',
+                    'is_archived archived_at archived_via_folder',
+                )
             ),
         ),
         _contract(

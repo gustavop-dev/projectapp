@@ -20,6 +20,7 @@ from content.models import (
     AccountingChangeLog,
     CommunicationThread,
     Document,
+    DocumentFolder,
     HostingRecord,
     IncomeRecord,
 )
@@ -104,6 +105,18 @@ def linked_sets(project):
         .select_related('client__user')
         .order_by('id')
     )
+    try:
+        managed_root = project.document_root_folder
+    except DocumentFolder.DoesNotExist:
+        managed_folders = []
+    else:
+        managed_ids = {managed_root.pk, *managed_root.get_descendant_ids()}
+        managed_folders = list(
+            DocumentFolder.objects.filter(
+                pk__in=managed_ids,
+                project=project,
+            ).order_by('id')
+        )
     return {
         'hostings': hostings,
         'incomes': incomes,
@@ -120,6 +133,7 @@ def linked_sets(project):
         # never follows a project to a different owner; it loses only the
         # project scope and remains reachable from that original client.
         'communication_threads': communication_threads,
+        'managed_folders': managed_folders,
         # Contracts and other non-cuenta documents document the project and
         # travel with it implicitly; they are reported, never rewritten.
         'other_documents_count': (
@@ -192,6 +206,10 @@ def change_client_preview(project, new_profile):
             {'id': thread.pk, 'title': thread.title}
             for thread in sets['communication_threads']
         ],
+        'project_folders_following': [
+            {'id': folder.pk, 'name': folder.name}
+            for folder in sets['managed_folders']
+        ],
         'other_documents_count': sets['other_documents_count'],
         'hosting_ids': [record.pk for record in sets['hostings']],
         'income_ids': [record.pk for record in sets['incomes']],
@@ -205,6 +223,7 @@ def change_client_preview(project, new_profile):
             'drafts': len(sets['draft_following']) + len(sets['draft_detaching']),
             'issued': len(sets['issued_accounts']),
             'communications': len(sets['communication_threads']),
+            'project_folders': len(sets['managed_folders']),
         },
     }
 
@@ -292,7 +311,14 @@ def change_client_apply(project, new_profile, mode, user):
     project.save(update_fields=['client', 'updated_at'])
     _log_diff(EntityType.PROJECT, project, old_project_values, user)
 
-    moved = {'hostings': 0, 'incomes': 0, 'draft_accounts': 0}
+    moved = {
+        'hostings': 0,
+        'incomes': 0,
+        'draft_accounts': 0,
+        # The Project post-save synchronization already moved this managed
+        # tree when project.save() above completed.
+        'project_folders': len(sets['managed_folders']),
+    }
     detached = {'hostings': 0, 'incomes': 0, 'draft_accounts': 0}
     skipped = {
         'issued_accounts': len(sets['issued_accounts']),

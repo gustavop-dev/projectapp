@@ -65,6 +65,18 @@ def initialize_project_workflow(sender, instance, created, raw=False, **kwargs):
         initialize_project_state(instance, state)
 
 
+@receiver(post_save, sender=Project)
+def synchronize_project_document_folder(sender, instance, raw=False, **kwargs):
+    """Guarantee and synchronize the managed Documents root for every project."""
+    if raw:
+        return
+    from content.services.project_document_folder_service import (
+        ensure_project_folder,
+    )
+
+    ensure_project_folder(instance)
+
+
 def _touches_snapshot(update_fields, snapshot_fields):
     """True when a save() touches at least one snapshot-relevant field.
 

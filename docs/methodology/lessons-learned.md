@@ -1296,6 +1296,7 @@ when `$attrs` can still fall through automatically: the owning primitive must
 filter `title` deliberately while preserving `aria-*`, `data-*` and link
 semantics. Test the rendered attribute and the visible `role="tooltip"`
 separately; each protects a different half of the contract.
+
 ## 53. A primary selection catalog is modal content, not a dropdown
 
 Fixing a dropdown's clipping can expose a second problem: reserving enough room
@@ -1318,7 +1319,25 @@ rows, one list-owned scrollbar, a stationary modal, visible review content and
 the full-screen compact contract; a screenshot of an open dropdown proves none
 of those boundaries.
 
-## 54. A generated document is an artifact, not another editable projection
+## 54. Semantic association and lifecycle ownership need separate fields
+
+A folder may point at a project without being the project's system-owned root.
+Reusing the ordinary `project` relation for both meanings makes every descendant
+look immutable and leaves no reliable way to distinguish a hand-made hierarchy
+from the canonical entry point. Keep semantic inheritance on `project`/`client`
+and represent lifecycle ownership with a separate one-to-one relation whose
+invariants are enforced in the database and every mutation surface.
+
+Historical name matching is evidence, not authorization. A safe reconciliation
+first emits a stable inventory with proposed actions, impacts and conflicts; a
+human decides every pending row; apply revalidates both the plan digest and the
+database fingerprint inside one transaction. This makes ambiguous client/project
+names visible before documents move and prevents an approved proposal from being
+silently applied to a later database state. Preserve an inverse snapshot even when
+the write is atomic: rollback of data classification is an operational procedure,
+not just a transaction primitive.
+
+## 55. A generated document is an artifact, not another editable projection
 
 When a system both generates and sends a PDF, regenerating it later is not an
 archive: templates, source data and fonts may have changed. Render once before
@@ -1335,7 +1354,7 @@ administrative observations editable. For legacy data, a dry-run-first backfill
 should touch only records still lacking a destination, preserve manual choices
 and refuse to invent the business date that defines the archive.
 
-## 55. KPI density and KPI geometry are separate contracts
+## 56. KPI density and KPI geometry are separate contracts
 
 Equal card heights require a stable internal grid, not copy of equal length.
 Reserve label, value and optional support rows in the shared primitive so missing

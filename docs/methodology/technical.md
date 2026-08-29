@@ -385,6 +385,30 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   a second `operating` meaning. Legacy `archived` remains unclassified and
   review-required; deploy applies migrations, never a session worktree.
 
+### Project-owned document roots and reviewed reconciliation
+
+- Migration `content.0222_project_document_folders` adds the nullable one-to-one
+  `DocumentFolder.managed_project`, database checks for managed-root invariants,
+  and `DocumentState.show_in_document_manager`. Existing development, active and
+  evolving project states are seeded visible; later catalog entries are configured
+  in the state manager instead of being hard-coded into the folder UI.
+- `ProjectDocumentFolderService` is the only owner of automatic root creation and
+  synchronization. The `Project` post-save signal delegates to it; it is atomic,
+  idempotent and creates the four standard children only when the managed root is
+  first provisioned. Descendants retain normal user-controlled hierarchy.
+- Managed roots cannot be renamed, moved, archived, deleted or reordered through
+  REST, MCP or Django admin. On project deletion the nullable ownership link is
+  cleared, deliberately preserving the former root and all content as a personal
+  hierarchy.
+- Production reconciliation is always two-step and review-gated:
+  `python manage.py reconcile_project_folders --plan <artifact.json>` performs no
+  writes and emits the JSON artifact plus a Markdown proposal. After every pending
+  action is marked `approve` or `skip`, run
+  `python manage.py reconcile_project_folders --apply-reviewed <artifact.json> --confirm <sha256> --inverse-out <snapshot.json>`.
+  Apply aborts if the database fingerprint or digest changed, if decisions remain
+  pending, or if conflicts exist. Never manufacture an approval artifact or apply
+  a proposal that was not reviewed against the named folders and impacts.
+
 ### Communications are a separate domain with shared infrastructure
 
 The client communications registry lives in the existing `content` Django app

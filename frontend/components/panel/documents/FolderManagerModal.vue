@@ -18,7 +18,7 @@
               </div>
               <div>
                 <h3 class="text-base font-semibold text-text-default">Gestionar carpetas</h3>
-                <p class="text-xs text-text-muted mt-0.5">Crea subcarpetas, edita, elimina o reordena arrastrando</p>
+                <p class="text-xs text-text-muted mt-0.5">Las raíces de proyecto son automáticas; sus subcarpetas y las propias se gestionan aquí</p>
               </div>
             </div>
         <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" title="Cerrar" @click="close">

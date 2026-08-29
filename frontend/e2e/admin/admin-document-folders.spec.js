@@ -20,6 +20,30 @@ const authCheck = {
 
 const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', parent: null, order: 0, document_count: 1 };
 const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', parent: null, order: 0, document_count: 0 };
+const PROJECT_KORE = {
+  id: 21,
+  name: 'Kore Health',
+  slug: 'kore-health',
+  parent: null,
+  order: 0,
+  document_count: 2,
+  children_count: 1,
+  active_document_count: 2,
+  active_children_count: 1,
+  folder_kind: 'project',
+  managed_project: 41,
+  is_project_visible: true,
+  managed_project_state: { name: 'Activo', system_key: 'active' },
+};
+const PROJECT_PAUSED = {
+  ...PROJECT_KORE,
+  id: 22,
+  name: 'Candle',
+  slug: 'candle',
+  managed_project: 42,
+  is_project_visible: false,
+  managed_project_state: { name: 'Suspendido', system_key: 'paused' },
+};
 
 const DOC_IN_FOLDER = {
   id: 1, title: 'Factura ACME', status: 'published',
@@ -34,6 +58,14 @@ const DOC_ORPHAN = {
 
 function jsonOk(body) {
   return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
+}
+
+async function openDocuments(page) {
+  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('link', { name: 'Gestor Documental', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Gestor Documental', exact: true }),
+  ).toBeVisible({ timeout: 25_000 });
 }
 
 test.describe('Admin Document Folders', () => {
@@ -141,5 +173,86 @@ test.describe('Admin Document Folders', () => {
     await expect(parentSelect).toBeVisible();
 
     await expect(parentSelect.locator('option:checked')).toHaveText('Cuentas de cobro');
+  });
+
+  test('sidebar separates automatic project roots from manual folders', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') {
+        return jsonOk([PROJECT_KORE, FOLDER_CONTRATOS]);
+      }
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+
+    const projects = page.getByTestId('project-folder-section');
+    const folders = page.getByTestId('manual-folder-section');
+    await expect(projects).toContainText('Kore Health');
+    await expect(projects).toContainText('Activo');
+    await expect(folders).toContainText('Contratos');
+    await expect(projects.getByTestId('folder-edit')).toHaveCount(0);
+    await expect(projects.getByTestId('folder-archive')).toHaveCount(0);
+    await expect(projects.getByTestId('folder-delete')).toHaveCount(0);
+  });
+
+  test('configured project-state filter hides excluded roots by default', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') {
+        return jsonOk([PROJECT_KORE, PROJECT_PAUSED]);
+      }
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+
+    const projects = page.getByTestId('project-folder-section');
+    await expect(projects).toContainText('Kore Health');
+    await expect(projects).not.toContainText('Candle');
+    await expect(projects).toContainText('1 fuera del filtro de estados');
+  });
+
+  test('Ver todos restores access to projects outside the default filter', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') {
+        return jsonOk([PROJECT_KORE, PROJECT_PAUSED]);
+      }
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+    await page.getByTestId('project-folders-toggle').click();
+
+    await expect(page.getByTestId('project-folder-section')).toContainText('Candle');
+    await expect(page.getByTestId('project-folder-22')).toContainText('Suspendido');
+  });
+
+  test('project root remains available as a parent for manual subfolders', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk([PROJECT_KORE]);
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+    await page.getByTestId('project-folder-21').click();
+    await page.getByRole('button', { name: 'Nueva carpeta' }).click();
+
+    const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
+    await expect(parentSelect.locator('option:checked')).toHaveText('Kore Health');
   });
 });
