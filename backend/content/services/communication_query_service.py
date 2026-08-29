@@ -224,6 +224,7 @@ def apply_filters(queryset, filters, *, exclude=frozenset()):
             _communication_text_match=Exists(matching_text),
         ).filter(
             Q(title__icontains=query)
+            | Q(project__name__icontains=query)
             | Q(client__company_name__icontains=query)
             | Q(client__user__first_name__icontains=query)
             | Q(client__user__last_name__icontains=query)

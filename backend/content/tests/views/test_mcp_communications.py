@@ -117,6 +117,22 @@ def test_tool_list_exposes_minimum_communications_surface(
     ]
 
 
+def test_tool_list_describes_project_text_search(
+    api_client, communications_connector,
+):
+    _, token = communications_connector
+
+    response = api_client.post(
+        f'/api/mcp/communications/{token}/', rpc('tools/list'), format='json',
+    )
+
+    list_tool = next(
+        tool for tool in response.data['result']['tools']
+        if tool['name'] == 'list_threads'
+    )
+    assert 'proyecto' in list_tool['inputSchema']['properties']['q']['description']
+
+
 def test_create_thread_requires_client(
     api_client, communications_connector, mcp_superuser,
 ):
@@ -181,6 +197,39 @@ def test_list_threads_filters_by_client(
     )
 
     assert [row['title'] for row in payload(response)['results']] == ['Primero']
+
+
+def test_list_threads_searches_project_name(
+    api_client, communications_connector, mcp_superuser,
+):
+    client = make_client('project-search-mcp@example.com')
+    matching_project = Project.objects.create(
+        name='Portal Boreal MCP', client=client.user,
+    )
+    other_project = Project.objects.create(
+        name='Tienda Austral MCP', client=client.user,
+    )
+    communication_service.create_thread(
+        actor=mcp_superuser,
+        client=client,
+        project=matching_project,
+        title='Revisión MCP',
+    )
+    communication_service.create_thread(
+        actor=mcp_superuser,
+        client=client,
+        project=other_project,
+        title='Revisión MCP',
+    )
+    _, token = communications_connector
+
+    response = call_tool(
+        api_client, token, 'list_threads', {'q': 'boreal'},
+    )
+
+    assert [row['project_name'] for row in payload(response)['results']] == [
+        'Portal Boreal MCP',
+    ]
 
 
 def test_incoming_message_is_recorded_as_received(
