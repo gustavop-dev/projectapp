@@ -957,18 +957,20 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `GET /api/content/documents/document-folders/`, `PATCH /api/content/documents/document-folders/<id>/update/`
-- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment.
+- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Manual folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment. Generated branches remain navigable through project/client, document type, issue year and issue month, but their structure and contents are system-owned.
 - **Steps:**
   1. Admin loads `/panel/documents` — sidebar shows root folders only (a chevron marks folders that contain subfolders).
   2. Admin clicks a root folder → table shows that folder's subfolder rows on top, then its documents; a breadcrumb `Todos › <Folder>` appears above the table.
   3. Admin clicks a subfolder row → navigates into it; breadcrumb grows (`Todos › <Folder> › <Subfolder>`).
   4. Admin clicks a breadcrumb segment (or "Todos") → navigates back to that level.
   5. Admin drags a subfolder row onto another folder → the dragged folder is re-parented (`PATCH parent`).
+  6. Admin navigates `Proyectos → <Proyecto> → Cuentas de cobro → <Año> → <Mes>` and finds issued accounts ordered by their canonical title.
 - **Branches:**
   - [Branch A — Only subfolders] A folder with subfolders but no documents still renders the subfolder rows (no empty state).
   - [Branch B — Cycle prevented] Dropping a folder onto itself or one of its descendants is rejected client-side and by the backend serializer.
   - [Branch C — Drop on "Sin carpeta"] Dragging a subfolder onto "Sin carpeta" promotes it to a root folder (`parent = null`).
   - [Branch D — Search active] While a search query is active, subfolder rows are hidden and the search applies to documents only.
+  - [Branch E — Generated hierarchy] A folder with `system_key` hides rename, move, archive, delete and drag affordances; the API and Documents MCP reject those mutations and manual document drops.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folder-hierarchy.spec.js`
 
@@ -5628,7 +5630,7 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/:id/edit`
-- **Description:** Edita contenido, asociación cliente/proyecto, visibilidad en el portal y presentación de un documento. La entrada desde el gestor conserva carpeta, filtros, búsqueda, archivo, vista y página en un `from` interno validado; las salidas explícitas restauran ese contexto, mientras una entrada directa o no confiable vuelve a la raíz. La cabecera reserva el ancho de las acciones, limita el título a dos líneas y mantiene visibilidad/cliente sin empujar los controles; debajo muestra los estados concurrentes con su duración. **Acciones** contiene las salidas PDF y queda separado de **Cancelar/Guardar**. La asociación guardada ofrece backlinks y conserva el `client_name` heredado cuando no existe relación. La barra de Markdown permite copiar o pegar contenido. `doc-client-note-open` conserva los mensajes para el cliente, guarda esa metadata directamente y administra observaciones normalizadas enlazables con **Solucionar bug**. Nada de esta metadata aparece en el PDF ni en el portal del cliente.
+- **Description:** Edita contenido, asociación cliente/proyecto, visibilidad en el portal y presentación de un documento manual. La entrada desde el gestor conserva carpeta, filtros, búsqueda, archivo, vista y página en un `from` interno validado; las salidas explícitas restauran ese contexto, mientras una entrada directa o no confiable vuelve a la raíz. La cabecera reserva el ancho de las acciones, limita el título a dos líneas y mantiene visibilidad/cliente sin empujar los controles; debajo muestra los estados concurrentes con su duración. **Acciones** contiene las salidas PDF y queda separado de **Cancelar/Guardar**. La asociación guardada ofrece backlinks y conserva el `client_name` heredado cuando no existe relación. La barra de Markdown permite copiar o pegar contenido. `doc-client-note-open` conserva los mensajes para el cliente, guarda esa metadata directamente y administra observaciones normalizadas enlazables con **Solucionar bug**. Una versión PDF generada al enviar una propuesta abre en esta misma ruta como registro inmutable: título, asociación, carpeta, mensajes y workflow no se editan; se descarga exactamente el archivo guardado y las observaciones privadas sí siguen disponibles. Nada de esta metadata aparece en el PDF ni en el portal del cliente.
 - **Steps:**
   1. Admin llega desde el gestor a `/panel/documents/:id/edit` con su origen canónico en `from`; `GET /api/documents/:id/detail/` carga el documento.
   2. El formulario aparece precargado con título, contenido, visibilidad, asociación, configuración visual, episodios vigentes y notas privadas.
@@ -5639,6 +5641,7 @@ Two transitions that were previously bundled into other flows now have their own
   7. Admin modifica o guarda por separado cualquier otro dato necesario.
 - **Branches:**
   - [Display — lectura] Una cuenta de cobro emitida permite consultar y copiar todas sus notas, pero no crearlas, modificarlas ni eliminarlas.
+  - [Display — versión generada] Una propuesta archivada muestra el aviso de inmutabilidad, reemplaza el editor Markdown por el panel del PDF guardado y deja una sola descarga. Sus mensajes quedan bloqueados, pero las observaciones privadas se pueden crear, editar, resolver o eliminar.
   - [Display — volver] **Volver a documentos** y las demás salidas explícitas restauran la lista con su contexto y foco; el guard interviene si hay cambios sin guardar. Back del navegador conserva su semántica nativa y un `from` directo, externo o de otro módulo cae a la raíz localizada.
   - [Success — PDF] Preview y descarga usan la configuración guardada; **Acciones** permite descargar PDF Amigable o Profesional.
   - [Success — visibilidad] El interruptor persiste `is_client_visible` sin modificar el ciclo de trabajo.
@@ -7150,9 +7153,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Route:** `/panel/documents`
-- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
+- **Description:** El gestor usa el orden fijo título → estados → creado/fecha/archivado → cliente → proyecto → acciones. Los documentos manuales muestran episodios de workflow; las cuentas de cobro muestran en su lugar el estado comercial derivado (**Borrador, Emitida, Enviada, Envío fallido, Pagada o Anulada**). Una cuenta ya emitida sólo ofrece consulta, una descarga de su PDF contable y archivar/restaurar: no ofrece renombrar, mover, duplicar ni eliminar. El ciclo aparece primero y las señales después; **Solucionar bug** se distingue como acción pendiente y un desborde se resume en `+N`. En 412 px y 835 px el árbol de carpetas pasa a un drawer con foco contenido y la tarjeta conserva título/estados como información principal, seguida por fecha, cliente y proyecto. Desde 1195 px vuelve la estructura de dos zonas; Estados permanece como segunda columna, mientras Cliente/Proyecto se agrupan bajo Título hasta `panel-desktop` (1280 px). Acciones siempre ocupa el extremo final. Su botón conserva `Acciones de <título>` como nombre accesible, no emite `title` nativo y muestra un único aviso breve `Acciones`. En 2560 px el contenido completo queda centrado con un máximo de 1400 px.
 - **Steps:** entrar desde la navegación del panel → leer un documento real → abrir o usar el árbol de carpetas → enfocar o posar el cursor sobre las acciones y ver un solo aviso `Acciones` → abrir el menú de la fila/tarjeta → cambiar entre activos, archivados y todos.
-- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
+- **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; una cuenta emitida conserva el mismo estado comercial y las mismas acciones restringidas en tabla y tarjeta; por debajo de 1280 px sólo cliente y proyecto se agrupan dentro de la celda principal, mientras estado sigue visible; en táctil el botón abre el menú sin depender del aviso y mantiene su nombre accesible contextual; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
 
@@ -7162,10 +7165,10 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos y el navegador siempre recibe el nombre completo como ayuda mientras está contraído; si la medición confirma recorte, aparece además **Ver completo** para expandirlo con corte seguro incluso cuando no contiene espacios. La medición se repite cuando terminan de cargar las fuentes web. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija visible y etiquetada del encabezado **Título** ajusta el ancho entre 240 y 800 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
+- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, incluso después de cargar las fuentes web, un único aviso flotante de la aplicación muestra el nombre completo y **Ver completo** permite expandirlo por foco, toque o clic con corte seguro incluso cuando no contiene espacios. El aviso usa el mismo `BaseTooltip` de las acciones de fila, se mantiene dentro del viewport y no convive con un `title` nativo duplicado. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija visible y etiquetada del encabezado **Título** ajusta el ancho entre 240 y el máximo de inventario de 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
 - **Steps:**
   1. Admin abre **Gestor Documental** y consulta el listado.
-  2. Pasa el mouse por cualquier título contraído y consulta su nombre completo; uno recortado —con espacios o con guiones bajos— muestra además **Ver completo**.
+  2. Un título recortado —con espacios o con guiones bajos— muestra un solo aviso flotante y **Ver completo**; uno que cabe no agrega información repetida.
   3. Pulsa **Ver completo** en la tabla o tarjeta y el título se despliega sin abrir el documento.
   4. Comprueba que la carpeta aparece debajo del título y que títulos, carpeta y metadatos permanecen dentro de la fila o tarjeta.
   5. En la tabla, arrastra la manija de **Título** o la opera con teclado para elegir el ancho.
@@ -7173,13 +7176,13 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   7. Hace doble clic en la manija para recuperar el ancho predeterminado.
 - **Branches:**
   - [Display — contención] Los nombres reales largos, incluidos los escritos sin espacios, permanecen dentro de su celda o tarjeta en celular, tableta y escritorio; nunca invaden Cliente ni otro contenido.
-  - [Display — recorte] La ayuda nativa no depende de la medición; el control de expansión sólo existe cuando se confirma recorte, incluso si aparece después de cargar fuentes web.
+  - [Display — recorte] El aviso flotante y el control de expansión sólo existen cuando la medición del texto confirma recorte, incluida la remedición tras cargar fuentes web; el control de acciones reutiliza el mismo aviso sin sumar un `title` nativo.
   - [Display — metadatos] Carpeta aparece primero en el renglón inferior; Cliente, Proyecto y Estado siguen allí cuando el perfil compacto los oculta como columnas. Sin carpeta, la tabla de escritorio conserva altura natural.
   - [Success — consulta] **Ver completo** expande el nombre en el mismo contexto con `overflow-wrap:anywhere`, y **Contraer** recupera la línea truncada.
   - [Success — reparto] Proyecto, Cliente y Fecha ceden espacio en ese orden; Estados y Acciones conservan su ancho.
-  - [Success — límite] Tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
+  - [Success — límite] El máximo de 520 px cubre el nombre más largo del inventario productivo vigente; tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
-- **Coverage:** ✅ Covered (ayuda completa fiable, carga tardía de fuentes, nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, ajuste 240–800, arrastre persistente, columnas fijas y restablecimiento).
+- **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
 
 ### FLOW: `admin-outbound-email-history-body`

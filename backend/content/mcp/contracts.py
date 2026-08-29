@@ -76,6 +76,7 @@ MCP_MODEL_CONTRACTS = {
                 | _excluded(
                     _COMMERCIAL_DOCUMENT,
                     'document_type deliverable issuer hosting_record income_record '
+                    'source_proposal source_version generated_file '
                     'public_number issue_date due_date city currency subtotal '
                     'discount_total tax_total total notes terms_and_conditions '
                     'template_version metadata commercial_status requires_signature '
@@ -84,6 +85,23 @@ MCP_MODEL_CONTRACTS = {
                 | _excluded(_PANEL_ONLY, 'cover_type template_style')
                 | _excluded(
                     'Los documentos archivados quedan fuera de circulación para el MCP.',
+                    'is_archived archived_at archived_via_folder',
+                )
+            ),
+        ),
+        _contract(
+            'content.DocumentFolder',
+            read_only='id',
+            read_write='name parent',
+            excluded=(
+                _excluded(_AUDIT_INTERNAL, 'slug created_at updated_at')
+                | _excluded(_PANEL_ONLY, 'order project client_user')
+                | _excluded(
+                    _AUTOMATION_STATE,
+                    'system_key',
+                )
+                | _excluded(
+                    'El archivado de carpetas se administra en el panel.',
                     'is_archived archived_at archived_via_folder',
                 )
             ),

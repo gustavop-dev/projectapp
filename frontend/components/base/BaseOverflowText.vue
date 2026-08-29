@@ -5,6 +5,7 @@ import {
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '~/components/base/BaseButton.vue'
 import BaseRowLink from '~/components/base/BaseRowLink.vue'
+import BaseTooltip from '~/components/base/BaseTooltip.vue'
 
 const props = defineProps({
   text: { type: String, default: '' },
@@ -32,12 +33,7 @@ const clampClass = computed(() => {
     : 'block w-full min-w-0 max-w-full truncate'
 })
 
-// The complete value is always available while the text is collapsed. Waiting
-// for the overflow measurement made the browser hint disappear when a web font
-// finished loading after the first layout pass.
-const tooltip = computed(() => (
-  !expanded.value && props.text ? props.text : undefined
-))
+const tooltipEnabled = computed(() => hasOverflow.value && !expanded.value)
 
 function element() {
   return rootEl.value?.querySelector?.('[data-overflow-content]') || null
@@ -106,17 +102,31 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="rootEl" class="flex w-full min-w-0 max-w-full flex-col items-start gap-1">
-    <BaseRowLink
-      :id="contentId"
-      :to="to"
-      :stretch="stretch"
-      :title="tooltip"
-      :data-testid="testId || undefined"
-      data-overflow-content
-      :class="[clampClass, contentClasses]"
+    <BaseTooltip
+      :text="text"
+      :disabled="!tooltipEnabled"
+      :toggle-on-click="false"
+      floating
+      position="top"
+      width="max-w-lg"
+      min-width="min-w-0"
+      root-class="block w-full min-w-0 max-w-full"
+      trigger-class="block w-full min-w-0 max-w-full"
     >
-      {{ text }}
-    </BaseRowLink>
+      <template #trigger="{ tooltipId }">
+        <BaseRowLink
+          :id="contentId"
+          :to="to"
+          :stretch="stretch"
+          :aria-describedby="tooltipEnabled ? tooltipId : undefined"
+          :data-testid="testId || undefined"
+          data-overflow-content
+          :class="[clampClass, contentClasses]"
+        >
+          {{ text }}
+        </BaseRowLink>
+      </template>
+    </BaseTooltip>
     <BaseButton
       v-if="expandable && hasOverflow"
       variant="link"

@@ -553,6 +553,27 @@ confirmed by the operator or another integration.
   Domain-specific `_log_email` calls enrich that row through the shared delivery
   trace instead of creating a duplicate.
 - **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
+- **Generated-document paths are keyed, not name-matched** —
+  `generated_document_filing_service` builds each level from a stable nullable
+  `DocumentFolder.system_key`, then reconciles parent, name, owner and archive
+  flags inside a transaction. Human-readable project/client names may change;
+  identity and concurrency safety do not depend on them.
+- **One render, one retained proposal version** — proposal send/resend/multi-send
+  calls `proposal_snapshot_service` before SMTP. It locks source proposals,
+  allocates `source_version`, renders all PDFs before writing any Document,
+  stores a SHA-256 plus `generated_file`, and passes those in-memory bytes to
+  `ProposalEmailService`. A generated file, rather than the nullable source FK,
+  is the immutable marker so deleting a proposal cannot make its archive editable.
+- **Generated branches are server-owned** — REST serializers/views, folder
+  endpoints and the Documents MCP reject manual targets or structural mutations
+  with an explicit conflict. The list sorts a selected generated folder by
+  case-insensitive title; collection accounts expose a derived lifecycle/email
+  state instead of workflow episodes.
+- **Backfill deployment order** — apply schema migrations first, preview with
+  `python manage.py backfill_collection_account_filing`, review its paths, then
+  run the same command with `--apply`. It only considers folderless collection
+  accounts, preserves manual classification and skips missing issue dates. Never
+  run either migrations or this data-writing command from a session worktree.
 
 ### Frontend Patterns
 
@@ -587,10 +608,13 @@ confirmed by the operator or another integration.
   unhandled so the table wrapper can still pan horizontally. Loose icon rows are
   a separate migration decision and remain `inline-end` until consolidated.
 - **Measured overflow, intrinsic containment and table widths** — use
-  `BaseOverflowText` for a measurement-independent full native hint while
-  collapsed plus clipping-only in-place touch disclosure. The primitive
-  remeasures after `document.fonts.ready`; consumer classes may style typography
-  but must not override its display/clamp state.
+  `BaseOverflowText` for one clipped-only floating `BaseTooltip` plus in-place
+  touch disclosure; consumer classes may style typography but must not override
+  its display/clamp state. The primitive remeasures after
+  `document.fonts.ready`. Floating tooltips
+  teleport to `body`, flip/clamp to the viewport and update on scroll/resize.
+  `BaseActionButton` consumes the same primitive and suppresses
+  `BaseButton.nativeTitle` to avoid duplicate notices.
   `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
   `atomic`: user/API strings default to `min-w-0` + bounded width +
   `overflow-wrap:anywhere`, truncation requires another full-value path, and only
@@ -600,7 +624,9 @@ confirmed by the operator or another integration.
   stable `columnWidthsKey`, then delegate pointer/keyboard/reset behavior to
   `BaseResizeHandle` and allocation/persistence to `useResizableTableColumns`.
   Fixed tracks never donate; ordered flexible tracks reach their minima before
-  internal table scroll.
+  internal table scroll. Documentos keeps its content-backed Título range at
+  240–520 px (320 px default); the 520 px cap covers the current 56-character
+  production boundary with cell padding and safety.
 - **Composables** — 70 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useResizableTableColumns`, `usePanelViewportProfile`, etc.)
 - **Component architecture** — 377 `.vue` components (387 files) under `frontend/components/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages

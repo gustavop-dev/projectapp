@@ -293,6 +293,31 @@ def test_collection_account_seed_matches_income_total(seeded_documents):
     ).exclude(total=F('income_record__total_amount')).exists()
 
 
+def test_collection_account_seed_uses_automatic_filing(seeded_documents):
+    accounts = list(
+        Document.objects.filter(collection_account__isnull=False)
+        .select_related('folder', 'project')
+        .order_by('pk')
+    )
+
+    for document in accounts:
+        if document.commercial_status == Document.CommercialStatus.DRAFT:
+            assert document.folder_id is None
+            continue
+        path = [
+            *(folder.name for folder in document.folder.get_ancestors()),
+            document.folder.name,
+        ]
+        expected_prefix = [
+            'Proyectos', document.project.name, 'Cuentas de cobro',
+            str(document.issue_date.year),
+            f'{document.issue_date.month:02d} - '
+        ]
+        assert path[:4] == expected_prefix[:4]
+        assert path[4].startswith(expected_prefix[4])
+        assert document.folder.system_key
+
+
 def test_document_seed_honors_a_small_volume_target():
     run_command(
         'create_fake_documents', '--count', '2',

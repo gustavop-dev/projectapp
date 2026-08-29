@@ -1,7 +1,14 @@
 from rest_framework import serializers
 
 from accounts.models import Project, UserProfile
-from content.models import Document, DocumentFolder, DocumentTag
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    DocumentFolder,
+    DocumentTag,
+    EmailLog,
+    EmailLogTarget,
+)
 from content.serializers.document_state import (
     DocumentNoteSerializer,
     DocumentStateEpisodeSerializer,
@@ -12,6 +19,7 @@ from content.services.document_archive_service import (
 from content.services.document_notes import (
     DocumentNotesValidationError, normalize_client_custom_notes,
 )
+from content.services.document_type_codes import COLLECTION_ACCOUNT
 
 
 class ClientCustomNotesField(serializers.JSONField):
@@ -155,7 +163,56 @@ class ClientProjectReadMixin:
         return getattr(obj.client_user, 'profile', None)
 
 
-class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer):
+class GeneratedDocumentReadMixin:
+    """Derived status and immutable-source metadata for document readers."""
+
+    def get_display_state(self, obj):
+        document_type = getattr(obj, 'document_type', None)
+        if getattr(document_type, 'code', None) != COLLECTION_ACCOUNT:
+            return None
+
+        states = {
+            Document.CommercialStatus.DRAFT: {
+                'key': 'draft', 'label': 'Borrador', 'variant': 'neutral',
+            },
+            Document.CommercialStatus.PAID: {
+                'key': 'paid', 'label': 'Pagada', 'variant': 'success',
+            },
+            Document.CommercialStatus.CANCELLED: {
+                'key': 'cancelled', 'label': 'Anulada', 'variant': 'danger',
+            },
+        }
+        if obj.commercial_status in states:
+            return states[obj.commercial_status]
+
+        delivered = getattr(obj, '_has_delivered_collection_email', None)
+        failed = getattr(obj, '_has_failed_collection_email', None)
+        if delivered is None or failed is None:
+            targets = EmailLogTarget.objects.filter(
+                entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+                object_id=obj.pk,
+            )
+            delivered = targets.exclude(email_log__status=EmailLog.Status.FAILED).exists()
+            failed = targets.filter(email_log__status=EmailLog.Status.FAILED).exists()
+        if delivered:
+            return {'key': 'sent', 'label': 'Enviada', 'variant': 'success'}
+        if failed:
+            return {
+                'key': 'send_failed',
+                'label': 'Envío fallido',
+                'variant': 'danger',
+            }
+        return {'key': 'issued', 'label': 'Emitida', 'variant': 'info'}
+
+    def get_is_generated_snapshot(self, obj):
+        return obj.is_generated_snapshot
+
+
+class DocumentListSerializer(
+    GeneratedDocumentReadMixin,
+    ClientProjectReadMixin,
+    serializers.ModelSerializer,
+):
     """Lightweight serializer for document lists."""
 
     folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
@@ -170,6 +227,9 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
         source='document_type.code', read_only=True, default=None,
     )
     active_states = serializers.SerializerMethodField()
+    display_state = serializers.SerializerMethodField()
+    is_generated_snapshot = serializers.SerializerMethodField()
+    source_proposal_id = serializers.IntegerField(read_only=True)
 
     EXCERPT_MAX_CHARS = 500
 
@@ -180,6 +240,8 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
             'client_name', 'client', 'client_display_name',
             'project', 'project_name',
             'document_type_code', 'commercial_status',
+            'display_state', 'is_generated_snapshot',
+            'source_proposal_id', 'source_version',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_details', 'active_states',
@@ -192,6 +254,11 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
         return _archived_cause(obj)
 
     def get_active_states(self, obj):
+        if (
+            getattr(getattr(obj, 'document_type', None), 'code', None)
+            == COLLECTION_ACCOUNT
+        ):
+            return []
         episodes = getattr(obj, 'prefetched_active_state_episodes', None)
         if episodes is None:
             episodes = (
@@ -225,7 +292,11 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
         return cut
 
 
-class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializer):
+class DocumentDetailSerializer(
+    GeneratedDocumentReadMixin,
+    ClientProjectReadMixin,
+    serializers.ModelSerializer,
+):
     """Full serializer for document detail view."""
 
     folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
@@ -243,6 +314,9 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
     archived_cause = serializers.SerializerMethodField()
     active_states = serializers.SerializerMethodField()
     notes = serializers.SerializerMethodField()
+    display_state = serializers.SerializerMethodField()
+    is_generated_snapshot = serializers.SerializerMethodField()
+    source_proposal_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Document
@@ -254,6 +328,8 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             'client_whatsapp_message', 'client_custom_notes',
             'project', 'project_name',
             'document_type_code', 'commercial_status',
+            'display_state', 'is_generated_snapshot',
+            'source_proposal_id', 'source_version',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',
@@ -327,6 +403,13 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
         """
         adopt = attrs.pop('adopt_folder_client', False)
         if 'folder' in attrs:
+            if attrs['folder'] and attrs['folder'].is_system_managed:
+                raise serializers.ValidationError({
+                    'folder_id': (
+                        'Esta carpeta pertenece al archivado automático y sólo '
+                        'recibe documentos generados por el sistema.'
+                    ),
+                })
             try:
                 ensure_active_target(
                     attrs['folder'],
@@ -396,6 +479,11 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
 
     def validate_folder_id(self, value):
         """Un documento nuevo nace activo: su carpeta tiene que estarlo también."""
+        if value and value.is_system_managed:
+            raise serializers.ValidationError(
+                'Esta carpeta pertenece al archivado automático y sólo '
+                'recibe documentos generados por el sistema.'
+            )
         try:
             ensure_active_target(value)
         except DocumentArchiveError as exc:

@@ -39,6 +39,19 @@ const associatedDocuments = [
   },
 ];
 
+const issuedCollectionAccount = {
+  id: 3,
+  title: '2026-08-14 · PA-2026-0042 · Soporte mensual',
+  status: 'draft',
+  document_type_code: 'collection_account',
+  commercial_status: 'issued',
+  display_state: { key: 'sent', label: 'Enviada', variant: 'success' },
+  active_states: [],
+  client_name: 'Nube SAS',
+  project_name: 'Portal Nube',
+  created_at: '2026-08-14T15:00:00Z',
+};
+
 test.describe('Admin Document List', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
@@ -149,6 +162,31 @@ test.describe('Admin Document List', () => {
     await expect(page.getByRole('button', { name: /Editar contenido/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Renombrar/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Eliminar/i })).toBeVisible();
+  });
+
+  test('an issued collection account shows its commercial state and read-only actions', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the documented list entry;
+    // this test exercises the generated document's real row actions)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText(issuedCollectionAccount.title, { exact: true }).first())
+      .toBeVisible({ timeout: 30000 });
+    await expect(page.getByText('Enviada', { exact: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: /^Acciones de / }).click();
+    await expect(page.getByRole('button', { name: /Ver cuenta de cobro/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Descargar cuenta de cobro/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Renombrar|Mover|Duplicar|Eliminar/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Descargar/i })).toHaveCount(1);
   });
 
   test('edit action from the actions modal navigates to the editor', {

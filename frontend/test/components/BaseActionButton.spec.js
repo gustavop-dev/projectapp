@@ -2,19 +2,28 @@ import { mount } from '@vue/test-utils'
 import BaseActionButton from '../../components/base/BaseActionButton.vue'
 import BaseActionIcon from '../../components/base/BaseActionIcon.vue'
 
-const factory = (props = {}, attrs = {}) => mount(BaseActionButton, {
-  props: { action: 'copy', ...props },
-  attrs,
-  attachTo: document.body,
-  global: {
-    stubs: {
-      NuxtLink: { template: '<a><slot /></a>' },
+const wrappers = []
+
+const factory = (props = {}, attrs = {}) => {
+  const wrapper = mount(BaseActionButton, {
+    props: { action: 'copy', ...props },
+    attrs,
+    attachTo: document.body,
+    global: {
+      stubs: {
+        NuxtLink: { template: '<a><slot /></a>' },
+      },
     },
-  },
-})
+  })
+  wrappers.push(wrapper)
+  return wrapper
+}
 
 describe('BaseActionButton', () => {
-  afterEach(() => { document.body.innerHTML = '' })
+  afterEach(() => {
+    wrappers.splice(0).forEach(wrapper => wrapper.unmount())
+    document.body.innerHTML = ''
+  })
 
   it('uses the catalog label for its accessible name', () => {
     const wrapper = factory()
@@ -39,12 +48,15 @@ describe('BaseActionButton', () => {
   it('shows the short catalog label in the application tooltip', async () => {
     const wrapper = factory({ action: 'more', label: 'Acciones de Contrato de Servicios' })
 
-    await wrapper.get('button').trigger('focusin')
+    await wrapper.get('[data-base-tooltip-trigger]')
+      .trigger('pointerenter', { pointerType: 'mouse' })
 
-    const tooltip = wrapper.get('[role="tooltip"]')
-    expect(tooltip.text()).toContain('Acciones')
-    expect(tooltip.text()).not.toContain('Contrato de Servicios')
-    expect(tooltip.classes()).toEqual(expect.arrayContaining(['w-max', 'max-w-xs']))
+    const hints = document.body.querySelectorAll('[role="tooltip"]')
+    expect(hints).toHaveLength(1)
+    expect(hints[0].textContent).toContain('Acciones')
+    expect(hints[0].textContent).not.toContain('Contrato de Servicios')
+    expect(hints[0].classList).toContain('w-max')
+    expect(hints[0].classList).toContain('max-w-xs')
   })
 
   it('prefers an explicit application tooltip', async () => {
@@ -52,7 +64,8 @@ describe('BaseActionButton', () => {
 
     await wrapper.get('button').trigger('focusin')
 
-    expect(wrapper.get('[role="tooltip"]').text()).toContain('Copiar enlace')
+    expect(document.body.querySelector('[role="tooltip"]').textContent)
+      .toContain('Copiar enlace')
   })
 
   it('forwards button behavior and consumer attributes', async () => {
@@ -88,8 +101,10 @@ describe('BaseActionButton', () => {
 
     expect(proxy.attributes('tabindex')).toBe('0')
     expect(proxy.attributes('aria-label')).toContain('Ya estás en la primera página.')
+    expect(wrapper.get('button').attributes('title')).toBeUndefined()
     await proxy.trigger('click')
-    expect(wrapper.get('[role="tooltip"]').text()).toContain('Ya estás en la primera página.')
+    expect(document.body.querySelector('[role="tooltip"]').textContent)
+      .toContain('Ya estás en la primera página.')
   })
 
   it('shows the existing spinner instead of a second action glyph while loading', () => {

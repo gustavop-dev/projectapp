@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Navigate nested document folders: root-only sidebar, subfolder rows inside the table, breadcrumb navigation above the table, and drag-to-nest re-parenting of folders.",
+  "description": "Navigate nested document folders: root-only sidebar, subfolder rows inside the table, breadcrumb navigation above the table, and drag-to-nest re-parenting of manual folders. System-managed branches created for generated documents remain navigable through project/type/year/month but hide edit, archive, delete, drag and manual-drop affordances.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

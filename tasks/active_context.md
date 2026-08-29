@@ -14,18 +14,21 @@ almacenan ni muestran precios; MCP queda fuera de esta primera versión. Pasan
 38 pruebas backend, 10 unitarias y 21 E2E, además de migraciones/checks, gates de
 flujos/calidad/responsividad y el build Nuxt de producción.
 
-**2026-08-28 — Títulos largos de Documentos revelables y columna ampliada:**
-el nombre completo ya no depende de que la medición de overflow termine a
-tiempo: mientras está contraído siempre se expone en el hover nativo, y el
-control táctil **Ver completo/Contraer** se recalcula también cuando finaliza la
-carga de fuentes web. En lista, Título conserva 320 px iniciales pero ahora puede
-ajustarse entre 240 y 800 px; el separador tiene una zona de interacción más
-amplia, indicador más visible y ayuda nativa, sin ceder los tracks fijos de
-Estados o Acciones. La prueba E2E dejó de emitir el resize artificial que
-ocultaba la carrera real. Verificación: 23 unitarias focales, 11 escenarios
-Playwright, design-token gate, flow-map fresh (272 cubiertos, 37 parciales,
-0 junk-only, 0 faltantes) y build Nuxt aprobados. Sin cambios de backend ni
-esquema.
+**2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
+`BaseOverflowText` mide el recorte real y publica el nombre completo mediante un
+`BaseTooltip` flotante sólo cuando hace falta; el mismo primitive sirve las
+acciones de fila y `BaseButton` ya no agrega un `title` nativo competidor. El
+overlay se teletransporta fuera de la tabla, se voltea/limita al viewport y se
+reubica con scroll o resize; la medición se repite al terminar de cargar las
+fuentes web. **Ver completo/Contraer** conserva la alternativa táctil. El
+separador visible y etiquetado usa la capacidad compartida de tabla: Título
+usa 240–520 px, persiste por navegador, vuelve a 320 px con doble clic, recibe
+espacio de Proyecto→Cliente→Fecha y no comprime Estados/Acciones. El límite de
+520 px cubre el inventario productivo consultado (40 nombres, máximo 56
+caracteres, 496 px estimados con padding y margen). Verificación focal:
+unitarios de primitives/consumidores, 13 escenarios Playwright sin retries,
+build Nuxt, guards de acciones y controles, flow-map fresco y auditoría global
+sin `junk-only` ni faltantes.
 
 **2026-08-28 — Un solo aviso breve para las acciones del panel:**
 `BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
@@ -66,6 +69,37 @@ actualiza configuraciones por defecto y borradores activos, preserva ids y no
 toca propuestas históricas. El editor impide borrar el grupo completo, no su
 contenido. Backend, unitarios frontend y ambos E2E focales están verdes; el mapa
 está fresco y los flows público/admin siguen cubiertos sin junk-only.
+
+**2026-08-28 — Documentos generados se archivan solos:** al emitir una cuenta
+de cobro, el backend crea o reutiliza una jerarquía protegida basada en la fecha
+de emisión de Bogotá: **Proyectos / {proyecto} / Cuentas de cobro / año / mes**.
+La mayoría histórica que aún no tiene proyecto cae de forma permisiva en
+**Clientes / {cliente} / Sin proyecto**; si tampoco se puede identificar al
+cliente usa **Sin clasificar**. Anular una emitida la mueve bajo **Anuladas** sin
+duplicarla, y anular un borrador usa **Sin emitir / Anuladas**. Reintentar el
+correo conserva el mismo documento; una sustitución posterior a la anulación
+nace como otra cuenta con otro consecutivo. El nombre queda
+`fecha · consecutivo · concepto`, el estado visible se deriva del ciclo
+comercial y del historial real de correo, y estas cuentas dejan de contaminar
+el preset Por clasificar. Las carpetas automáticas tienen `system_key`: el panel,
+REST y MCP permiten navegar, pero no renombrar, mover, reordenar, archivar ni
+inyectar documentos manuales en ellas.
+
+El alcance transversal incluye propuestas comerciales: cada envío o reenvío
+genera primero el PDF, persiste exactamente esos bytes como versión inmutable
+`vNN`, adjunta esa misma versión al correo y la archiva por cliente/proyecto,
+año y mes. Un fallo de render no cambia el borrador ni envía; un fallo de correo
+conserva la versión con señal de corrección. Cuando la aceptación crea el
+proyecto, todas las versiones previas se mueven a su rama. En la UI el contenido,
+carpeta y estados de estas versiones son de sólo lectura, mientras las
+observaciones administrativas siguen editables. La migración `content.0223`
+añade identidad de carpeta y origen/archivo de snapshot. Después de migrar,
+producción debe previsualizar y luego aplicar
+`python manage.py backfill_collection_account_filing --apply`; la orden sólo
+toca cuentas sin carpeta y nunca inventa fechas. Verificación focal: 25 pruebas
+de servicios/backfill, 16 de API, 3 de onboarding/MCP, 1 contrato de fake data,
+13 unitarias y 3 E2E, más regresiones específicas de envío/reenvío y build de
+producción.
 
 **2026-08-28 — Indicadores de Proyectos e Ingresos listos para integrar:** un
 `BaseIndicatorCard` compartido reserva siempre rótulo, cifra y apoyo, por lo que
@@ -452,13 +486,13 @@ errores (96/100; ocho warnings preexistentes en los specs completos).
 introdujo `BaseOverflowText` para una línea con elipsis final, medición de
 recorte y **Ver completo/Contraer**; la misma expansión funciona en las tarjetas
 de celular/tableta sin abrir el documento. El contrato vigente desde 2026-08-28
-mantiene el nombre completo en `title` mientras está contraído y vuelve a medir
-al finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
+publica un único aviso flotante sólo cuando confirma recorte y vuelve a medir al
+finalizar la carga de fuentes. Se evaluó el recorte central y se mantuvo el
 final porque la revelación explícita resuelve la identidad sin una segunda regla
-visual. Título parte en 320 px y se ajusta entre 240/800 mediante el mismo
+visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
 `BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
 viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
-default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (80),
+default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (56),
 y deja scroll interno al agotar mínimos. La API genérica quedó
 expuesta en `BaseResponsiveTable` y documentada en el styleguide. Sin backend ni
 schema. Cobertura focal: primitives/engine/Documentos, flow P2

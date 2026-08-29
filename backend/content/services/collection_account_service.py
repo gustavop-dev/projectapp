@@ -21,6 +21,10 @@ from content.models import (
     IssuerProfile,
 )
 from content.services.document_type_codes import COLLECTION_ACCOUNT
+from content.services.generated_document_filing_service import (
+    file_collection_account,
+)
+from content.utils import today_bogota
 
 
 class CollectionAccountError(Exception):
@@ -107,7 +111,7 @@ def commercial_is_overdue(document):
         due = parse_date(due)
         if due is None:
             return False
-    return due < timezone.now().date()
+    return due < today_bogota()
 
 
 def recalculate_document_totals(document):
@@ -132,8 +136,8 @@ def recalculate_document_totals(document):
 
 @transaction.atomic
 def allocate_public_number(issuer):
-    """Thread-safe next public_number for issuer and current UTC year."""
-    year = timezone.now().year
+    """Thread-safe next public_number for issuer and current Bogotá year."""
+    year = today_bogota().year
     seq, _ = DocumentNumberSequence.objects.select_for_update().get_or_create(
         issuer=issuer,
         year=year,
@@ -246,7 +250,7 @@ def issue_collection_account(
             ext, client_user, project=document.project if document.project_id else None,
         )
 
-    today = timezone.now().date()
+    today = today_bogota()
     document.issue_date = today
     document.issuer = issuer
     if not document.city:
@@ -274,6 +278,7 @@ def issue_collection_account(
     old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.ISSUED
     document.updated_by = acting_user
+    file_collection_account(document)
     document.save()
     ext.save()
     _log_status_transition(document, old_values, acting_user)
@@ -326,6 +331,7 @@ def mark_collection_account_cancelled(document, *, acting_user=None):
     if not is_collection_account(document):
         raise CollectionAccountError('Document is not a collection account.')
     if document.commercial_status == Document.CommercialStatus.CANCELLED:
+        file_collection_account(document)
         return document
     if document.commercial_status == Document.CommercialStatus.PAID:
         raise CollectionAccountError('Paid documents cannot be cancelled.')
@@ -337,6 +343,7 @@ def mark_collection_account_cancelled(document, *, acting_user=None):
     old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.CANCELLED
     document.updated_by = acting_user
+    file_collection_account(document)
     document.save(update_fields=['commercial_status', 'updated_by', 'updated_at'])
     _log_status_transition(document, old_values, acting_user)
     return document

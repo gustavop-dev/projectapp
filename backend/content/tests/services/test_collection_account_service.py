@@ -290,7 +290,7 @@ def test_issue_collection_account_preserves_due_date_for_fixed_date_term(issuer,
     assert doc.due_date.isoformat() == '2026-12-31'
 
 
-@freeze_time('2026-04-01')
+@freeze_time('2026-04-01 12:00:00')
 def test_issue_collection_account_sets_due_from_payment_term_days_after_issue(issuer, project, client_user):
     doc = _ca_document(project=project, client_user=client_user)
     DocumentCollectionAccount.objects.create(
@@ -305,7 +305,7 @@ def test_issue_collection_account_sets_due_from_payment_term_days_after_issue(is
     assert doc.due_date.isoformat() == '2026-04-08'
 
 
-@freeze_time('2026-04-01')
+@freeze_time('2026-04-01 12:00:00')
 def test_issue_collection_account_leaves_no_due_date_for_zero_day_term(
     issuer, project, client_user,
 ):
@@ -324,7 +324,7 @@ def test_issue_collection_account_leaves_no_due_date_for_zero_day_term(
     assert doc.due_date is None
 
 
-@freeze_time('2026-04-01')
+@freeze_time('2026-04-01 12:00:00')
 def test_zero_day_collection_account_never_turns_overdue(
     issuer, project, client_user,
 ):
@@ -343,7 +343,7 @@ def test_zero_day_collection_account_never_turns_overdue(
         assert commercial_is_overdue(doc) is False
 
 
-@freeze_time('2026-05-10')
+@freeze_time('2026-05-10 12:00:00')
 def test_issue_collection_account_leaves_no_due_date_for_against_delivery_term(
     issuer, project, client_user,
 ):

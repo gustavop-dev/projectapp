@@ -20,6 +20,16 @@ class DocumentFolder(models.Model):
 
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
+    system_key = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+        help_text=(
+            'Stable identifier for folders whose structure is managed by the system.'
+        ),
+    )
     parent = models.ForeignKey(
         'self',
         on_delete=models.PROTECT,
@@ -68,6 +78,10 @@ class DocumentFolder(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_system_managed(self):
+        return bool(self.system_key)
 
     def save(self, *args, **kwargs):
         if not self.slug:
