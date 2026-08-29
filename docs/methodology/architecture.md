@@ -461,6 +461,17 @@ fork with layout. Incomes and Collection Accounts use the same leading menu in
 their classic and grouped tables. Long modal flows declare a semantic `kind`,
 and all compact badges use the atomic `BaseBadge` contract.
 
+Indicator headers share `BaseIndicatorCard`, whose three-row grid reserves
+label, value and one optional support line even when the last row is empty.
+Help is a separate sibling control and actionable cards expose one semantic
+main button, avoiding nested interactive elements. Projects uses this shell for
+catalog-ordered non-zero lifecycle cards and a separate operational group on
+expanded layouts; below the landscape breakpoint one **Estados** summary and one
+**Pendientes** summary open drawers with the complete facts. Incomes applies the
+same compact pattern as **Resultado anual** plus **Detalle operativo**, while its
+expanded branch keeps four business-ranked cards. Both branches reuse the same
+filter functions, so layout changes presentation without forking behavior.
+
 `BaseDrawer` is the shared transient second zone for compact panel views: it
 teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll
 and supports left/right/bottom placement. `BaseModal` keeps the Phase 1 semantic
@@ -471,8 +482,8 @@ only provide scrollable bodies and sticky actions where their workflow needs it.
 
 | Viewport | Layout role | Documentos | Clientes | Proyectos |
 |----------|-------------|------------|----------|-----------|
-| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | One-column cards + secondary-KPI disclosure |
-| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two-column cards |
+| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | Two indicator summaries + one-column cards |
+| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two indicator summaries + two-column cards |
 | 1195×835 | Landscape tablet | Two zones + prioritized table | Visible two-level filters | Sortable table |
 | 1440×900 | Laptop | Full desktop information | Full desktop information | Full desktop information |
 | 2560×1440 | Large monitor | 1400 px centered cap | 1400 px centered cap | 1400 px centered cap |
