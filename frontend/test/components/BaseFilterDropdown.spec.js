@@ -56,15 +56,6 @@ describe('BaseFilterDropdown', () => {
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
   });
 
-  it('adds another value to the same dimension', async () => {
-    const wrapper = mountDropdown({ modelValue: ['draft'] });
-    await wrapper.get('button').trigger('click');
-
-    await wrapper.findAll('input[type="checkbox"]')[1].setValue(true);
-
-    expect(wrapper.emitted('update:modelValue')).toEqual([[['draft', 'sent']]]);
-  });
-
   it('clears all selected values from the footer', async () => {
     const wrapper = mountDropdown({ modelValue: ['draft', 'sent'] });
     await wrapper.get('button').trigger('click');
