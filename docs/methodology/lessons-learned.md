@@ -1329,3 +1329,17 @@ names visible before documents move and prevents an approved proposal from being
 silently applied to a later database state. Preserve an inverse snapshot even when
 the write is atomic: rollback of data classification is an operational procedure,
 not just a transaction primitive.
+
+## 55. KPI density and KPI geometry are separate contracts
+
+Equal card heights require a stable internal grid, not copy of equal length.
+Reserve label, value and optional support rows in the shared primitive so missing
+support text cannot shrink one card. Keep help as its own sibling control and
+make the primary surface a button only when it performs an explicit action.
+
+That geometric fix does not solve a header with too many questions. Expanded
+layouts can show non-zero details in business order and group different question
+families separately. Compact layouts should summarize by question family and
+put the lossless detail in a focus-managed drawer. A summary total must combine
+like units: for heterogeneous operational facts, count active categories rather
+than adding clients, records and review rows into a misleading grand total.
