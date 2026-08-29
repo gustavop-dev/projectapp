@@ -6,8 +6,8 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin registra y consulta hilos manuales de comunicación por cliente y proyecto. Cada hilo presenta mensajes entrantes y salientes en orden temporal, distingue borrador/enviado/recibido, referencia documentos existentes y deja explícito que WhatsApp y correo todavía se envían fuera de la plataforma. La primera fase cubre consulta, alta manual, error de negocio y fallo de carga; el envío real queda fuera del alcance.",
-  "expectedSpecs": 4,
+  "description": "Admin navega los hilos por proyecto, cliente o sin proyecto, combina filtros de una misma dimensión y guarda recortes propios. La lista mantiene el contexto mientras el detalle se abre en un modal de trabajo; cada hilo conserva el registro manual bidireccional, sus estados y los documentos referenciados.",
+  "expectedSpecs": 5,
   "outcomes": [
     "display",
     "success",

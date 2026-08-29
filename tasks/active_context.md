@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-08-29 — Comunicaciones alineadas con el Gestor Documental:** el módulo
+conserva una sola lista amplia y traslada el detalle del hilo a un modal de
+trabajo direccionable por `thread=<id>`. A la izquierda incorpora navegación
+ajustable por Proyectos/Clientes, conteos agregados, búsqueda y un corte explícito
+**Sin proyecto**; por debajo del perfil landscape la misma navegación usa el
+drawer compartido. Los selectores nativos se reemplazaron por filtros buscables
+con conteos y selección múltiple; la URL conserva el corte y `SavedFilterTab`
+guarda/restaura vistas propias con el nuevo catálogo `communication`. REST y MCP
+convergen en `communication_query_service.py`, que aplica OR dentro de cada
+dimensión, AND entre dimensiones y correlaciona filtros de mensaje sobre el
+mismo registro. El aviso describe sólo el registro manual vigente, se puede
+cerrar y reabrir desde ayuda. PA-89 queda cerrado: Comunicaciones ya es un módulo
+propio, no una subsección de Documentos. Pasan 6 pruebas backend, 25 unitarias,
+5 outcomes E2E, los 5 perfiles responsive, build y auditoría de flows.
+
 **2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
 `BaseOverflowText` mide el recorte real y publica el nombre completo mediante un
 `BaseTooltip` flotante sólo cuando hace falta; el mismo primitive sirve las
@@ -439,7 +454,7 @@ aplicó la migración ni se alteraron datos productivos.
 
 **2026-08-25 — iconos de acción del panel unificados:** las 51 páginas bajo `/panel` y sus componentes alcanzables resuelven 84 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables; el módulo concurrente de Comunicaciones adoptó el catálogo al integrarse. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 273 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 261 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
 
-**2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
+**2026-08-25 — Registro de comunicaciones con clientes:** la decisión
 de producto es un módulo Comunicaciones propio que reutiliza el Django app
 `content`, clientes, proyectos, Documentos y primitivas del panel sin deformar
 `Document` en una conversación. La migración
@@ -451,8 +466,9 @@ responsive, borradores, registro manual de enviado/recibido, Respondido derivado
 cierre/reapertura, anulación y corrección de fecha. Clientes, Proyectos y
 Documentos enlazan al registro; al cambiar el dueño de un proyecto sus hilos
 históricos se desvinculan en vez de cambiar de cliente. Fake data y cobertura
-focal backend/unit/E2E acompañan el flujo. Envío real, plantillas/importación e
-integraciones quedan por fases en
+focal backend/unit/E2E acompañan el flujo. El registro manual es la operación
+elegida; plantillas, importaciones o integraciones necesitarían requerimientos
+independientes. La decisión queda en
 `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
 
 **2026-08-25 — Notas de documentos con guardado directo desde el modal:** en

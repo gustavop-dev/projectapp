@@ -386,16 +386,33 @@ by migration `content.0210_communications_registry` own threads, ordered message
 references and append-only date corrections. `communication_service.py` is the
 only write owner; DRF function-based views remain thin and staff-only.
 
-Phase 1 is transport-neutral: `source=manual` means an operator recorded the
-fact, while `source=platform_email` plus the optional one-to-one `email_log`
-field is reserved for a later `EmailDeliveryGateway` integration. “Respondido”
-is derived from a non-void reply and is not an additional mutable database
-status. Delivered/received messages are corrected or annulled, never edited.
+The operating model is transport-neutral: `source=manual` means an operator
+recorded the fact. `source=platform_email` and the optional one-to-one
+`email_log` remain persistence seams, not a product commitment to automatic
+delivery. “Respondido” is derived from a non-void reply and is not an additional
+mutable database status. Delivered/received messages are corrected or annulled,
+never edited.
 
 The Nuxt surface is `/panel/communications`; its Options-API Pinia store uses
 `request_http` (session + CSRF), not `usePlatformApi`. Documents are referenced
 by ID and expose reverse usage through
 `GET /api/documents/<id>/communications/`.
+
+`communication_query_service.py` is the single read contract for REST and MCP.
+It parses scalar legacy parameters plus comma-separated/repeated values, applies
+OR inside `status`, `channel`, `direction` and `message_status`, and AND across
+dimensions. Message dimensions share one correlated `Exists`, so their values
+must match the same message. `project=none` addresses unscoped threads; `order`
+accepts `recent`, `oldest` or `title`. The REST response also includes
+self-excluding option counts plus project/client navigation counts, including
+nested thread totals.
+
+The panel URL is canonical for selection, filters, order and the `thread` detail
+modal. `CommunicationNavigation` is resizable on landscape widths and moves to
+the shared drawer below that breakpoint. `CommunicationFilterPanel` consumes
+searchable `BaseFilterDropdown` instances with multi-selection and counts.
+Named cuts reuse `SavedFilterTab` with the `communication` view choice; migration
+`accounts.0056_add_communication_saved_filter_view` adds only that catalog value.
 
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 

@@ -85,6 +85,13 @@ inactividad responden 404 para no revelar conectores.
 Usar dos clientes, un proyecto de cada cliente, un documento markdown de cada
 cliente y un superusuario. Conservar los IDs que devuelve cada paso.
 
+`list_threads` y el endpoint del panel comparten
+`communication_query_service.py`. Los argumentos escalares del conector se
+normalizan como una selección de un valor y conservan su contrato; el REST puede
+enviar valores repetidos o separados por coma para la selección múltiple del
+panel. En ambos caminos, canal, dirección, estado del mensaje y fechas deben
+coincidir en un mismo mensaje, no en mensajes distintos del mismo hilo.
+
 ### 1. `list_threads`
 
 Lectura exitosa:
