@@ -1,5 +1,10 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-08-29 — engagement real:** el tiempo de lectura de una
+> propuesta sólo se acumula mientras la página está visible. Ocultarla cierra y
+> envía una única muestra; volver a verla abre un segmento nuevo. Una pestaña
+> abandonada no puede seguir inflando actividad ni generando heartbeats.
+
 > **Entregado — 2026-08-28:** el historial universal conserva antes del SMTP
 > cuerpo, enlaces y bytes exactos de cada adjunto, con nombre, tipo, tamaño y
 > peso total del envío. Permite filtrar, descargar, previsualizar PDF y reenviar

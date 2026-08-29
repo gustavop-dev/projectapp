@@ -2,6 +2,12 @@
 
 ## Current State
 
+**2026-08-29 — Tracking de propuestas corregido:** el composable ya no cuenta
+tiempo ni emite heartbeats mientras la pestaña está oculta. El cierre usa un
+único beacon, la visibilidad abre un segmento nuevo y un guard evita POSTs
+solapados o borrado de eventos añadidos durante un request lento. El contrato
+backend permanece intacto y las 38 pruebas focales pasan.
+
 **2026-08-28 — Catálogo comercial de módulos adicionales listo para integrar:**
 los 17 módulos genéricos de PA-09 más Landing Page forman un inventario inicial
 de 18, agrupado en cinco categorías administrables e independiente de las
