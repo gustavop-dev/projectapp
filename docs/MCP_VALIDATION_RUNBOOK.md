@@ -33,6 +33,10 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 - `UserProfile.document_navigation_mode` es una preferencia de presentación del
   panel y permanece clasificada como perfil/plataforma: no altera ni se expone
   en las herramientas MCP de clientes o Documentos.
+- `Project.document_manager_enabled` controla si el proyecto tiene espacio en
+  el catálogo del panel. El MCP de Documentos puede seguir referenciando los
+  proyectos existentes con su contrato previo, pero no lee ni cambia ese flag,
+  no adopta carpetas históricas y no provisiona raíces por esa vía.
 - `mark_message_sent` registra un hecho externo. No envía correo ni WhatsApp.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 

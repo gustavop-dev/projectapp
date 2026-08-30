@@ -267,14 +267,21 @@ flowchart LR
     ProposalDate --> ProposalDoc[Proposal snapshot Document]
 
     Sidebar[Documents sidebar] --> Readiness[project-readiness API]
-    Readiness --> Catalog[Project state visibility]
+    Readiness --> Catalog[Project document_manager_enabled]
+    Catalog --> Lifecycle[active / archived catalog bucket]
     Readiness --> RootInventory[Managed-root inventory]
+    Client[Client] -->|client_user| ClientRoot[Reviewed client root]
+    Unassigned[Unassigned root] -->|no project, no client| Sidebar
 ```
 
 `Document.project` describes business ownership; `Document.folder` describes
-where the record is stored. The sidebar deliberately lists the managed root,
-so a project assignment alone cannot create a row. Historical data enters this
-hierarchy only through the reviewed reconciliation manifest. Generated filing
+where the record is stored. The entity sidebar lists the complete enabled
+project/client catalogs even when an entity has no root or content; the managed
+root remains the physical boundary for filing. Project lifecycle only chooses
+the active/archived catalog group and never archives content. A reviewed client
+root stays top-level with `client_user`; a root with neither project nor client
+is the only kind shown under Carpetas sin asignar. Historical data enters these
+relations only through the reviewed reconciliation manifest. Generated filing
 reuses the two keyed first-level categories and reparents any legacy keyed
 branch before removing its now-empty parallel wrappers.
 

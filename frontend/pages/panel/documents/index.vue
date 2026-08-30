@@ -72,7 +72,6 @@
         :folders="sidebarFolders"
         :active-id="documentStore.activeFolderId"
         :archive-scope="effectiveScope"
-        :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
         :unfiled-count="sidebarUnfiledCount"
         :navigation-mode="navigationMode"
@@ -434,7 +433,6 @@
         :folders="sidebarFolders"
         :active-id="documentStore.activeFolderId"
         :archive-scope="effectiveScope"
-        :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
         :unfiled-count="sidebarUnfiledCount"
         :navigation-mode="navigationMode"
@@ -565,6 +563,10 @@ import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { documentOriginWithFocus } from '~/utils/documentReturnNavigation';
 import {
+  manualFolderFilters,
+  navigationEntityFilters,
+} from '~/utils/documentNavigationFilters';
+import {
   FOLDER_PANEL_MAX, FOLDER_PANEL_MIN, useFolderPanelWidth,
 } from '~/composables/useFolderPanelWidth';
 
@@ -677,16 +679,6 @@ const navigationRootValue = computed(() => (
 const treeScope = computed(() => treeScopeFor(effectiveScope.value));
 
 const sidebarFolders = computed(() => folderStore.scopedRootFolders(treeScope.value));
-
-// Los tres modos, no dos: con 'all' el listado mezcla los dos estados y las
-// filas de carpeta ya sumaban ambos, así que un total de sólo activos decía
-// menos que la suma de sus propias carpetas.
-const sidebarTotalCount = computed(() => {
-  const { active, archived } = documentStore.counts.documents;
-  if (effectiveScope.value === 'archived') return archived;
-  if (effectiveScope.value === 'all') return active + archived;
-  return active;
-});
 
 const sidebarUnfiledCount = computed(() => {
   const { unfiled_active: unfiledActive, unfiled_archived: unfiledArchived } = documentStore.counts.documents;
@@ -1053,21 +1045,25 @@ async function handleNavigationModeChange(mode) {
       title: 'No se pudo guardar el modo de navegación',
       detail: result.message,
     });
+    return;
   }
-}
 
-function navigationEntityFilters(value) {
-  const selected = value === 'all' ? null : value;
-  const folder = selected == null
-    ? (documentStore.archiveScope === 'archived' ? 'root' : 'all')
-    : 'root';
-  return navigationMode.value === 'project'
-    ? { folder, project: selected }
-    : { folder, client: selected };
+  const selected = mode === 'project'
+    ? documentStore.activeProjectId
+    : documentStore.activeClientId;
+  await documentStore.setFilters(navigationEntityFilters(
+    mode,
+    selected ?? 'all',
+    documentStore.archiveScope,
+  ));
 }
 
 function handleSelectNavigationEntity(value) {
-  const filters = navigationEntityFilters(value);
+  const filters = navigationEntityFilters(
+    navigationMode.value,
+    value,
+    documentStore.archiveScope,
+  );
   if (isSearching.value) return exitSearchAndNavigate(filters);
   return documentStore.setFilters(filters);
 }
@@ -1079,16 +1075,17 @@ function selectNavigationEntityFromDrawer(value) {
 }
 
 function handleSelectFolder(id) {
+  const filters = manualFolderFilters(id);
   if (isSearching.value) {
     // Elegir una carpeta en plena búsqueda es navegación: se sale de la
     // búsqueda hacia esa carpeta. Antes el filtro cambiaba por debajo y la
     // vista seguía mostrando los resultados, como si el clic no hiciera nada.
-    exitSearchAndNavigate({ folder: id });
+    exitSearchAndNavigate(filters);
     return;
   }
   // Navegar entre carpetas NO toca el estado: el control de la barra dice qué
   // se está viendo y cambiarlo por debajo lo volvería mentiroso.
-  documentStore.setFilters({ folder: id });
+  documentStore.setFilters(filters);
 }
 
 function selectFolderFromDrawer(id) {

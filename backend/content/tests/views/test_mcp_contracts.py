@@ -10,6 +10,7 @@ from content.views.mcp_blog import TOOLS_BY_SLUG
 
 CONNECTOR_SLUGS = tuple(MCP_MODEL_CONTRACTS)
 TOOL_NAME = re.compile(r'^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$')
+pytestmark = pytest.mark.django_db
 
 
 def _current_fields(model_label):
@@ -80,6 +81,18 @@ def _tool_contract_problems(slug):
 
 def test_registry_and_field_contracts_cover_the_same_connectors():
     assert set(TOOLS_BY_SLUG) == set(MCP_MODEL_CONTRACTS)
+
+
+def test_documents_contract_excludes_project_inclusion_control():
+    project_contract = next(
+        contract
+        for contract in MCP_MODEL_CONTRACTS['documents']
+        if contract.model_label == 'accounts.Project'
+    )
+
+    reason = project_contract.excluded['document_manager_enabled']
+
+    assert 'panel' in reason
 
 
 @pytest.mark.parametrize('slug', CONNECTOR_SLUGS)

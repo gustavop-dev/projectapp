@@ -119,6 +119,7 @@ const navigationPayload = {
       managed_root_id: PROJECT_ROOT.id,
       state: { name: 'Activo', system_key: 'active', show_in_document_manager: true },
       is_visible: true,
+      catalog_bucket: 'active',
       counts: {
         active: { folders: 6, documents: 1 },
         archived: { folders: 2, documents: 1 },
@@ -131,9 +132,24 @@ const navigationPayload = {
       client_display_name: 'Cliente Pausa',
       managed_root_id: 22,
       state: { name: 'Suspendido', system_key: 'paused', show_in_document_manager: false },
-      is_visible: false,
+      is_visible: true,
+      catalog_bucket: 'archived',
       counts: {
         active: { folders: 1, documents: 1 },
+        archived: { folders: 0, documents: 0 },
+      },
+    },
+    {
+      id: 43,
+      name: 'Proyecto sin documentos',
+      client: 9,
+      client_display_name: 'Cliente Nuevo',
+      managed_root_id: null,
+      state: { name: 'En desarrollo', system_key: 'development' },
+      is_visible: true,
+      catalog_bucket: 'active',
+      counts: {
+        active: { folders: 0, documents: 0 },
         archived: { folders: 0, documents: 0 },
       },
     },
@@ -143,9 +159,20 @@ const navigationPayload = {
       id: 7,
       name: 'Cliente Atlas SAS',
       is_inactive: false,
+      catalog_bucket: 'active',
       counts: {
         active: { folders: 6, documents: 1 },
         archived: { folders: 2, documents: 1 },
+      },
+    },
+    {
+      id: 8,
+      name: 'Cliente histórico',
+      is_inactive: true,
+      catalog_bucket: 'archived',
+      counts: {
+        active: { folders: 0, documents: 0 },
+        archived: { folders: 0, documents: 0 },
       },
     },
   ],
@@ -254,23 +281,42 @@ test.describe('Admin document project/client navigation', () => {
       .toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('documents-navigation-project-41'))
       .toHaveAttribute('aria-label', 'Proyecto Atlas, 6 carpetas, 1 documentos');
+    await expect(page.getByTestId('documents-navigation-project-43'))
+      .toHaveAttribute('aria-label', 'Proyecto sin documentos, 0 carpetas, 0 documentos');
     await expect(page.getByTestId('documents-navigation-unassigned'))
       .toContainText('Sin proyecto');
     await expect(page.getByTestId('manual-folder-section'))
       .toContainText('Archivo interno');
   });
 
-  test('reveals projects excluded by lifecycle state', {
-    tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:success'],
+  test('groups paused projects as archived without hiding them', {
+    tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupNavigationApi(page);
-    await openDocuments(page);
+    await openDocumentsFromPanel(page);
 
-    await expect(page.getByText('Proyecto en pausa', { exact: true })).toHaveCount(0);
-    await page.getByTestId('project-folders-toggle').click();
-
+    await expect(page.getByTestId('documents-navigation-archived-group'))
+      .toContainText('Proyectos archivados');
     await expect(page.getByTestId('documents-navigation-project-42'))
       .toContainText('Proyecto en pausa');
+  });
+
+  test('manual folder selection clears a previously selected project', {
+    tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const api = await setupNavigationApi(page);
+    await openDocuments(page);
+
+    await page.getByTestId('documents-navigation-project-41').click();
+    await expect(page).toHaveURL(/project=41/);
+    await page.getByRole('button', { name: /^Archivo interno —/ }).click();
+
+    await expect(page).toHaveURL(/folder=31/);
+    await expect(page).not.toHaveURL(/project=/);
+    await expect(page).not.toHaveURL(/client=/);
+    await expect.poll(() => api.documentRequests.at(-1)).toContain('folder=31');
+    expect(api.documentRequests.at(-1)).not.toContain('project=');
+    expect(api.documentRequests.at(-1)).not.toContain('client=');
   });
 
   test('filters documents by selected client', {

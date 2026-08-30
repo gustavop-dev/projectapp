@@ -13,7 +13,7 @@ Endpoints
 ---------
 - ``GET   /api/projects/``                        listing with scope, counts, meta
 - ``POST  /api/projects/create/``                 PA-38 minimum create
-- ``PATCH /api/projects/<id>/update/``            name/description only
+- ``PATCH /api/projects/<id>/update/``            name/description/document inclusion
 - ``POST  /api/projects/<id>/state-transitions/preview/`` consequences
 - ``POST  /api/projects/<id>/state-transitions/`` apply confirmed transition
 - ``GET   /api/projects/<id>/state-history/``     dated lifecycle history

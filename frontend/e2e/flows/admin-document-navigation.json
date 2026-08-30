@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin recorre el gestor documental por proyecto o por cliente con el mismo interruptor de Comunicaciones. Cada eje muestra sólo entidades con carpetas o documentos, inventarios separados de carpetas/documentos que incluyen subcarpetas, una entrada permanente Sin proyecto/Sin cliente y acceso a entidades fuera del filtro de estados. La selección acota el listado, el modo elegido se guarda por cuenta y la sección Carpetas propias permanece independiente. Un fallo de las facetas conserva operables las carpetas propias y ofrece reintento.",
+  "description": "Admin recorre el gestor documental por proyecto o por cliente con el mismo interruptor de Comunicaciones. Cada eje muestra el catálogo completo, incluso entidades con inventario cero; separa Proyectos archivados y Clientes inactivos sin confundir el ciclo de vida con el archivado documental. La selección acota el listado y limpia el eje incompatible, mientras una carpeta manual limpia proyecto y cliente. El modo elegido se guarda por cuenta y la sección Carpetas sin asignar contiene sólo raíces sin proyecto ni cliente. Un fallo de las facetas conserva operables esas carpetas y ofrece reintento.",
   "expectedSpecs": 1,
   "outcomes": [
     "display",

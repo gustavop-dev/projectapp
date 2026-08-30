@@ -66,6 +66,34 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-045] El catálogo documental mezclaba adopción histórica con visibilidad
+
+- **Date**: 2026-08-30
+- **Context**: Tras incorporar Proyectos y Clientes al Gestor Documental,
+  algunas entidades aparecían duplicadas como carpetas manuales, otras no
+  aparecían y seleccionar después una carpeta podía conservar filtros previos.
+  Vástago parecía vacío aunque su raíz histórica conservaba 9 carpetas y 53
+  documentos en producción.
+- **Root Cause**: La migración de esquema no adoptó las raíces existentes. El
+  catálogo se reducía a entidades con contenido ya relacionado, la visibilidad
+  dependía de metadata editable del estado y una señal podía provisionar una
+  raíz histórica al guardar un proyecto. En el navegador, proyecto, cliente y
+  carpeta manual no se trataban como ejes excluyentes.
+- **Resolution**: Cada proyecto tiene una inclusión explícita e independiente
+  del ciclo de vida; el catálogo lista todas las entidades habilitadas y agrupa
+  por efecto operativo. Sólo un proyecto nuevo obtiene raíz automáticamente.
+  La adopción histórica usa un manifiesto v3 con exclusiones, asignaciones de
+  cliente, huella completa, respaldo obligatorio y snapshot inverso. Las
+  selecciones limpian siempre los otros ejes, y Carpetas muestra únicamente
+  raíces realmente no asignadas. PRUEBA se excluye y Candle se presenta como
+  proyecto archivado sin archivar sus documentos.
+- **Files Affected**: modelos/serializadores/señales de proyectos, servicios y
+  comando de conciliación documental, sidebar/filtros de Documentos, pruebas,
+  mapa de flujos y runbook de producción.
+- **Verification**: pruebas focales de servicios, endpoints, manifiesto y UI;
+  la mutación de datos productivos queda separada tras despliegue, respaldo y
+  revisión humana del plan.
+
 ### [ERR-044] Los avisos de creación competían con las acciones y no identificaban su campo
 
 - **Date**: 2026-08-29

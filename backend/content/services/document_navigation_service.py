@@ -12,6 +12,7 @@ from django.db.models import Count, F
 from accounts.models import Project, UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import Document, DocumentFolder
+from content.services.project_document_folder_service import project_catalog_bucket
 
 
 def _empty_counts():
@@ -44,6 +45,7 @@ def _state_payload(project):
         'name': state.name,
         'system_key': state.system_key,
         'color': state.color,
+        'operational_effect': state.operational_effect,
         'show_in_document_manager': state.show_in_document_manager,
     }
 
@@ -52,17 +54,8 @@ def build_document_navigation():
     """Return project/client facets using a constant number of database queries."""
     document_rows = _grouped_rows(Document)
     folder_rows = _grouped_rows(DocumentFolder)
-    all_rows = document_rows + folder_rows
-
-    project_ids = {row['project_id'] for row in all_rows if row['project_id']}
-    raw_client_ids = {
-        row['client_profile_id']
-        for row in all_rows
-        if row['client_profile_id']
-    }
-
     projects = list(
-        Project.objects.filter(pk__in=project_ids)
+        Project.objects.filter(document_manager_enabled=True)
         .select_related(
             'client__profile__user',
             'current_state',
@@ -72,7 +65,6 @@ def build_document_navigation():
     clients = list(
         UserProfile.objects.clients()
         .select_related('user')
-        .filter(pk__in=raw_client_ids)
     )
     valid_client_ids = {profile.pk for profile in clients}
 
@@ -134,7 +126,11 @@ def build_document_navigation():
             ),
             'managed_root_id': root.pk if root else None,
             'state': state,
-            'is_visible': bool(state and state['show_in_document_manager']),
+            'document_manager_enabled': True,
+            'catalog_bucket': project_catalog_bucket(project),
+            # Compatibility for consumers predating catalog_bucket: every row
+            # returned by this endpoint is visible somewhere in the catalog.
+            'is_visible': True,
             'counts': project_counts[project.pk],
         })
 
@@ -143,6 +139,9 @@ def build_document_navigation():
             'id': profile.pk,
             'name': build_client_display_name(profile),
             'is_inactive': profile.is_inactive_client,
+            'catalog_bucket': (
+                'archived' if profile.is_inactive_client else 'active'
+            ),
             'counts': client_counts[profile.pk],
         }
         for profile in clients

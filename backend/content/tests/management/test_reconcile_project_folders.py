@@ -1,7 +1,9 @@
-"""The project-folder migration is review-first and drift-safe."""
+"""The document reconciliation is review-first, explicit and drift-safe."""
 import hashlib
 import json
+from copy import deepcopy
 from datetime import date
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -10,10 +12,16 @@ from django.core.management.base import CommandError
 
 from accounts.models import Project, UserProfile
 from content.management.commands.reconcile_project_folders import (
+    MANIFEST_VERSION,
     build_manifest,
     database_snapshot,
 )
-from content.models import Document, DocumentFolder
+from content.models import (
+    Document,
+    DocumentFolder,
+    DocumentState,
+    DocumentStateGroup,
+)
 from content.services.document_type_utils import get_collection_account_document_type
 
 
@@ -27,7 +35,7 @@ def make_project(email, name, *, first='', last='', company=''):
         first_name=first,
         last_name=last,
     )
-    UserProfile.objects.create(
+    profile = UserProfile.objects.create(
         user=user,
         role=UserProfile.ROLE_CLIENT,
         company_name=company,
@@ -36,7 +44,7 @@ def make_project(email, name, *, first='', last='', company=''):
     root = project.document_root_folder
     root.children.all().delete()
     root.delete()
-    return project
+    return project, profile
 
 
 def reviewed_file(path, manifest, approved_types=()):
@@ -48,8 +56,20 @@ def reviewed_file(path, manifest, approved_types=()):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def apply_reviewed(path, digest, tmp_path):
+    inverse = tmp_path / f'{path.stem}.inverse.json'
+    call_command(
+        'reconcile_project_folders',
+        apply_reviewed=str(path),
+        confirm=digest,
+        backup_reference='backup:test-verified',
+        inverse_out=str(inverse),
+    )
+    return inverse
+
+
 def reviewed_kore_adoption(tmp_path, *, include_document):
-    project = make_project(
+    project, profile = make_project(
         'german-apply@example.com', 'Kore Health',
         first='Germán', last='Franco',
     )
@@ -68,10 +88,13 @@ def reviewed_kore_adoption(tmp_path, *, include_document):
     reviewed = tmp_path / 'reviewed.json'
     digest = reviewed_file(
         reviewed,
-        build_manifest(),
-        approved_types=('convert', 'nest_client_folder'),
+        build_manifest(client_root_assignments={client_folder.id: profile.id}),
+        approved_types=('convert', 'assign_client_folder'),
     )
-    return project, project_folder, client_folder, document, reviewed, digest
+    return (
+        project, profile, project_folder, client_folder, document,
+        reviewed, digest,
+    )
 
 
 def make_folderless_account(project):
@@ -85,9 +108,9 @@ def make_folderless_account(project):
     )
 
 
-def test_manifest_proposes_current_conversion_and_client_nesting_rules():
+def test_manifest_proposes_project_conversion_and_client_assignment():
     make_project('gm@example.com', 'G&M', company='G&M')
-    make_project(
+    _project, german_profile = make_project(
         'german@example.com', 'Kore Health',
         first='Germán', last='Franco',
     )
@@ -95,33 +118,95 @@ def test_manifest_proposes_current_conversion_and_client_nesting_rules():
     kore = DocumentFolder.objects.create(name='Kore - Diseño')
     german = DocumentFolder.objects.create(name='Germán Franco')
 
-    manifest = build_manifest()
+    manifest = build_manifest(
+        client_root_assignments={german.id: german_profile.id},
+    )
 
     by_folder = {
         action.get('folder_id'): action for action in manifest['actions']
     }
     assert by_folder[gm.id]['type'] == 'convert'
     assert by_folder[kore.id]['type'] == 'convert'
-    assert by_folder[german.id]['type'] == 'nest_client_folder'
+    assert by_folder[german.id]['type'] == 'assign_client_folder'
+    assert by_folder[german.id]['project_id'] is None
     assert manifest['missing_expected_names'] == ['Proyegabs']
 
 
-def test_plan_command_keeps_database_unchanged(tmp_path):
-    """Falla si generar la propuesta modifica proyectos, carpetas o documentos."""
-    make_project('vastago@example.com', 'Vastago')
-    DocumentFolder.objects.create(name='Vastago Project')
-    output = tmp_path / 'project-folders.json'
+def test_plan_command_keeps_database_unchanged_and_records_directives(tmp_path):
+    prueba, _profile = make_project('prueba@example.com', 'PRUEBA')
+    client_project, client_profile = make_project(
+        'carlos@example.com', 'Otro proyecto', first='Carlos',
+    )
+    client_root = DocumentFolder.objects.create(name='Carlos')
+    output = tmp_path / 'document-reconciliation.json'
     before = database_snapshot()
 
-    call_command('reconcile_project_folders', plan=str(output))
+    call_command(
+        'reconcile_project_folders',
+        plan=str(output),
+        exclude_project=[prueba.id],
+        assign_client_root=[f'{client_root.id}:{client_profile.id}'],
+    )
 
     assert database_snapshot() == before
-    assert output.exists()
+    manifest = json.loads(output.read_text(encoding='utf-8'))
+    assert manifest['planning_directives'] == {
+        'excluded_project_ids': [prueba.id],
+        'enabled_project_ids': [],
+        'client_root_assignments': [{
+            'folder_id': client_root.id,
+            'client_profile_id': client_profile.id,
+        }],
+    }
+    assert client_project.document_manager_enabled is True
     assert output.with_suffix('.md').exists()
 
 
+def test_plan_rejects_a_source_that_changes_while_it_is_generated():
+    make_project('moving-plan@example.com', 'Moving plan')
+    initial = database_snapshot()
+    changed = deepcopy(initial)
+    changed['projects'][0]['name'] = 'Changed during planning'
+
+    with patch(
+        'content.management.commands.reconcile_project_folders.database_snapshot',
+        side_effect=[initial, changed],
+    ):
+        with pytest.raises(CommandError, match='mientras se generaba el plan'):
+            build_manifest()
+
+
+def test_manifest_excludes_prueba_and_groups_candle_as_archived():
+    prueba, _ = make_project('exclude@example.com', 'PRUEBA')
+    candle, _ = make_project('candle@example.com', 'Candle')
+    paused = DocumentState.objects.get(
+        catalog=DocumentStateGroup.Catalog.PROJECTS,
+        operational_effect=DocumentState.OperationalEffect.PAUSED,
+    )
+    candle.current_state = paused
+    candle.status = Project.STATUS_PAUSED
+    candle.save(update_fields=['current_state', 'status', 'updated_at'])
+
+    manifest = build_manifest(excluded_project_ids=[prueba.id])
+
+    configuration = next(
+        row for row in manifest['actions']
+        if row['type'] == 'configure_project' and row['project_id'] == prueba.id
+    )
+    candle_root = next(
+        row for row in manifest['actions']
+        if row['type'] == 'create' and row['project_id'] == candle.id
+    )
+    assert configuration['document_manager_enabled'] is False
+    assert not any(
+        row['type'] == 'create' and row['project_id'] == prueba.id
+        for row in manifest['actions']
+    )
+    assert candle_root['catalog_bucket'] == 'archived'
+
+
 def test_manifest_proposes_a_reviewed_path_for_a_folderless_project_account():
-    project = make_project('mimittos@example.com', 'Mimittos')
+    project, _ = make_project('mimittos@example.com', 'Mimittos')
     document = make_folderless_account(project)
 
     manifest = build_manifest()
@@ -130,7 +215,7 @@ def test_manifest_proposes_a_reviewed_path_for_a_folderless_project_account():
         row for row in manifest['actions']
         if row.get('document_id') == document.id
     )
-    assert manifest['version'] == 2
+    assert manifest['version'] == MANIFEST_VERSION
     assert action['type'] == 'file_document'
     assert action['decision'] == 'pending'
     assert action['target_path'] == (
@@ -139,7 +224,7 @@ def test_manifest_proposes_a_reviewed_path_for_a_folderless_project_account():
 
 
 def test_apply_files_only_the_reviewed_project_document(tmp_path):
-    project = make_project('mimittos-apply@example.com', 'Mimittos')
+    project, _ = make_project('mimittos-apply@example.com', 'Mimittos')
     document = make_folderless_account(project)
     original_title = document.title
     reviewed = tmp_path / 'mimittos-reviewed.json'
@@ -149,11 +234,7 @@ def test_apply_files_only_the_reviewed_project_document(tmp_path):
         approved_types=('create', 'file_document'),
     )
 
-    call_command(
-        'reconcile_project_folders',
-        apply_reviewed=str(reviewed),
-        confirm=digest,
-    )
+    inverse_path = apply_reviewed(reviewed, digest, tmp_path)
 
     document.refresh_from_db()
     assert document.title == original_title
@@ -162,14 +243,19 @@ def test_apply_files_only_the_reviewed_project_document(tmp_path):
         *(folder.name for folder in document.folder.get_ancestors()),
         document.folder.name,
     ] == ['Mimittos', 'Cuentas de cobro', '2026', '08 - Agosto']
-    inverse = json.loads(reviewed.with_suffix('.inverse.json').read_text())
-    filed = next(row for row in inverse['changes'] if row['type'] == 'filed_document')
+    inverse = json.loads(inverse_path.read_text(encoding='utf-8'))
+    assert inverse['status'] == 'applied'
+    assert inverse['backup_reference'] == 'backup:test-verified'
+    assert inverse['before']
+    filed = next(
+        row for row in inverse['changes'] if row['type'] == 'filed_document'
+    )
     assert filed['document_id'] == document.id
     assert filed['folder_id'] is None
 
 
 def test_manifest_flags_a_project_document_inside_an_unrelated_tree():
-    project = make_project('outside@example.com', 'Outside')
+    project, _ = make_project('outside@example.com', 'Outside')
     folder = DocumentFolder.objects.create(name='Clasificación manual')
     document = Document.objects.create(
         title='Ubicación elegida por operador',
@@ -188,37 +274,31 @@ def test_manifest_flags_a_project_document_inside_an_unrelated_tree():
     assert 'no se moverá por inferencia' in action['reason']
 
 
-def test_apply_adopts_reviewed_folder_relationships(tmp_path):
-    """Falla si la conversión aprobada no crea la jerarquía de proyecto."""
-    project, project_folder, client_folder, _, reviewed, digest = (
-        reviewed_kore_adoption(tmp_path, include_document=False)
-    )
+def test_apply_adopts_project_and_client_roots_without_nesting_them(tmp_path):
+    (
+        project, profile, project_folder, client_folder, _document,
+        reviewed, digest,
+    ) = reviewed_kore_adoption(tmp_path, include_document=False)
 
-    call_command(
-        'reconcile_project_folders',
-        apply_reviewed=str(reviewed),
-        confirm=digest,
-    )
+    inverse = apply_reviewed(reviewed, digest, tmp_path)
 
     project_folder.refresh_from_db()
     client_folder.refresh_from_db()
     assert project_folder.managed_project_id == project.id
     assert project_folder.name == 'Kore Health'
-    assert client_folder.parent_id == project_folder.id
-    assert reviewed.with_suffix('.inverse.json').exists()
+    assert client_folder.parent_id is None
+    assert client_folder.project_id is None
+    assert client_folder.client_user_id == profile.user_id
+    assert inverse.exists()
 
 
-def test_apply_preserves_document_location_and_content(tmp_path):
-    """Falla si adoptar una carpeta mueve o altera el documento existente."""
-    project, _, client_folder, document, reviewed, digest = reviewed_kore_adoption(
-        tmp_path, include_document=True,
-    )
+def test_apply_preserves_client_document_location_and_content(tmp_path):
+    (
+        _project, profile, _project_folder, client_folder, document,
+        reviewed, digest,
+    ) = reviewed_kore_adoption(tmp_path, include_document=True)
 
-    call_command(
-        'reconcile_project_folders',
-        apply_reviewed=str(reviewed),
-        confirm=digest,
-    )
+    apply_reviewed(reviewed, digest, tmp_path)
 
     document.refresh_from_db()
     assert document.folder_id == client_folder.id
@@ -226,16 +306,14 @@ def test_apply_preserves_document_location_and_content(tmp_path):
     assert document.content_json == {
         'meta': {'title': 'Acta'}, 'blocks': [{'type': 'text'}],
     }
-    assert document.project_id == project.id
-    assert document.client_user_id == project.client_id
+    assert document.project_id is None
+    assert document.client_user_id == profile.user_id
 
 
 def test_apply_rejects_incomplete_review(tmp_path):
-    """Falla si una revisión incompleta deja una conversión parcial."""
     make_project('pending@example.com', 'Pending')
-    manifest = build_manifest()
     reviewed = tmp_path / 'pending.json'
-    reviewed.write_text(json.dumps(manifest), encoding='utf-8')
+    reviewed.write_text(json.dumps(build_manifest()), encoding='utf-8')
     digest = hashlib.sha256(reviewed.read_bytes()).hexdigest()
     before = database_snapshot()
 
@@ -244,37 +322,79 @@ def test_apply_rejects_incomplete_review(tmp_path):
             'reconcile_project_folders',
             apply_reviewed=str(reviewed),
             confirm=digest,
+            backup_reference='backup:test',
+            inverse_out=str(tmp_path / 'pending.inverse.json'),
         )
+
     assert database_snapshot() == before
 
 
-def test_apply_rejects_database_drift(tmp_path):
-    """Falla si el rechazo por drift deja cambios parciales en la jerarquía."""
-    make_project('drift@example.com', 'Drift')
+def test_apply_rejects_folder_and_client_drift(tmp_path):
+    _project, profile = make_project('drift@example.com', 'Drift')
     folder = DocumentFolder.objects.create(name='Drift Project')
     manifest = build_manifest()
     reviewed = tmp_path / 'drift.json'
     digest = reviewed_file(reviewed, manifest)
     folder.name = 'Changed after review'
     folder.save(update_fields=['name', 'updated_at'])
+    profile.company_name = 'Changed client identity'
+    profile.save(update_fields=['company_name', 'updated_at'])
     before = database_snapshot()
 
     with pytest.raises(CommandError, match='cambiaron desde el plan'):
+        apply_reviewed(reviewed, digest, tmp_path)
+
+    assert database_snapshot() == before
+
+
+def test_apply_requires_a_verified_backup_reference(tmp_path):
+    make_project('backup@example.com', 'Backup')
+    reviewed = tmp_path / 'backup.json'
+    digest = reviewed_file(reviewed, build_manifest())
+
+    with pytest.raises(CommandError, match='backup-reference'):
         call_command(
             'reconcile_project_folders',
             apply_reviewed=str(reviewed),
             confirm=digest,
+            inverse_out=str(tmp_path / 'backup.inverse.json'),
         )
-    assert database_snapshot() == before
+
+
+def test_apply_prepares_the_full_inverse_before_entering_the_transaction(
+    tmp_path,
+):
+    make_project('prepared@example.com', 'Prepared')
+    reviewed = tmp_path / 'prepared.json'
+    digest = reviewed_file(reviewed, build_manifest())
+    inverse = tmp_path / 'prepared.inverse.json'
+
+    with patch(
+        'content.management.commands.reconcile_project_folders.apply_manifest',
+        side_effect=CommandError('simulated apply failure'),
+    ), pytest.raises(CommandError, match='simulated apply failure'):
+        call_command(
+            'reconcile_project_folders',
+            apply_reviewed=str(reviewed),
+            confirm=digest,
+            backup_reference='backup:verified',
+            inverse_out=str(inverse),
+        )
+
+    artifact = json.loads(inverse.read_text(encoding='utf-8'))
+    expected = json.loads(
+        json.dumps(database_snapshot(), default=lambda value: value.isoformat())
+    )
+    assert artifact['status'] == 'prepared'
+    assert artifact['backup_reference'] == 'backup:verified'
+    assert artifact['before'] == expected
 
 
 def test_apply_rejects_confirm_hash_mismatch_without_mutating_database(tmp_path):
-    """Falla si un SHA de confirmación inválido alcanza a aplicar el manifiesto."""
     make_project('hash@example.com', 'Hash')
     DocumentFolder.objects.create(name='Hash Project')
-    manifest = build_manifest()
     reviewed = tmp_path / 'hash.json'
-    reviewed_file(reviewed, manifest, approved_types=('convert',))
+    reviewed_file(reviewed, build_manifest(), approved_types=('convert',))
     before = database_snapshot()
 
     with pytest.raises(CommandError, match='Confirmación inválida'):
@@ -282,13 +402,15 @@ def test_apply_rejects_confirm_hash_mismatch_without_mutating_database(tmp_path)
             'reconcile_project_folders',
             apply_reviewed=str(reviewed),
             confirm='0' * 64,
+            backup_reference='backup:test',
+            inverse_out=str(tmp_path / 'hash.inverse.json'),
         )
 
     assert database_snapshot() == before
 
 
 def test_manifest_flags_a_second_project_root_instead_of_guessing():
-    project = make_project('duplicate@example.com', 'Kore Health')
+    project, _ = make_project('duplicate@example.com', 'Kore Health')
     managed_root = DocumentFolder.objects.create(
         name=project.name,
         project=project,

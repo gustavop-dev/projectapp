@@ -66,15 +66,22 @@ def initialize_project_workflow(sender, instance, created, raw=False, **kwargs):
 
 
 @receiver(post_save, sender=Project)
-def synchronize_project_document_folder(sender, instance, raw=False, **kwargs):
-    """Guarantee and synchronize the managed Documents root for every project."""
+def synchronize_project_document_folder(
+    sender, instance, created, raw=False, **kwargs,
+):
+    """Provision new projects; historical roots require reviewed adoption."""
     if raw:
         return
     from content.services.project_document_folder_service import (
         ensure_project_folder,
+        synchronize_existing_project_folder,
     )
 
-    ensure_project_folder(instance)
+    if created:
+        if instance.document_manager_enabled:
+            ensure_project_folder(instance)
+        return
+    synchronize_existing_project_folder(instance)
 
 
 def _touches_snapshot(update_fields, snapshot_fields):

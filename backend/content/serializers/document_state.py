@@ -79,7 +79,8 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
             'historical_episode_count', 'created_at', 'updated_at',
         )
         read_only_fields = (
-            'slug', 'system_key', 'merged_into', 'created_at', 'updated_at',
+            'slug', 'system_key', 'show_in_document_manager', 'merged_into',
+            'created_at', 'updated_at',
         )
 
     def validate_name(self, value):

@@ -308,7 +308,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'id', 'name', 'description', 'status', 'status_label',
-            'current_state', 'state_review_required', 'progress',
+            'current_state', 'state_review_required',
+            'document_manager_enabled', 'progress',
             'start_date', 'estimated_end_date',
             'client_id', 'client_name', 'client_email', 'client_company',
             'proposal_id', 'proposal_title',
@@ -506,6 +507,7 @@ class CreateProjectSerializer(serializers.Serializer):
     start_date = serializers.DateField(required=False, allow_null=True)
     estimated_end_date = serializers.DateField(required=False, allow_null=True)
     hosting_start_date = serializers.DateField(required=False, allow_null=True)
+    document_manager_enabled = serializers.BooleanField(default=True)
 
     def validate_client_id(self, value):
         try:
@@ -542,6 +544,7 @@ class UpdateProjectSerializer(serializers.Serializer):
     repository_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     admin_username = serializers.CharField(required=False, allow_blank=True, max_length=150)
     admin_password = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    document_manager_enabled = serializers.BooleanField(required=False)
 
 
 # =========================================================================

@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-08-30 — conciliación segura del Gestor Documental lista para integrar:**
+el catálogo ya no depende de que una entidad tenga contenido: lista todos los
+proyectos habilitados y clientes, con grupos activos/archivados derivados del
+efecto operativo. PRUEBA queda excluido mediante el nuevo flag por proyecto;
+Candle permanece habilitado pero aparece en Proyectos archivados sin alterar el
+estado de sus documentos. Las raíces de proyecto/cliente desaparecen de
+Carpetas sin asignar y cambiar de eje limpia proyecto, cliente y carpeta
+incompatibles. Sólo proyectos nuevos provisionan raíz automáticamente; Vástago,
+G&M, Xpandia, Kore, Tenndalux, Mimittos y el resto histórico se adoptan mediante
+un manifiesto v3 revisado, protegido con huella de proyectos/clientes/carpetas/
+documentos, respaldo obligatorio y snapshot inverso. El runbook fija las
+asignaciones conocidas de Carlos/Gustavo y conserva Familia/Temporal como
+huérfanas. Producción no fue mutada: el paso posterior es desplegar, respaldar,
+generar el plan, revisar cada acción y recién entonces aplicarlo.
+
 **2026-08-30 — Asunto de Comunicaciones reducido al título:** la tabla y las
 tarjetas compactas ya no repiten el cuerpo del último mensaje debajo del título
 del hilo. El índice conserva cliente/proyecto, canal, estado, cantidad, fecha y

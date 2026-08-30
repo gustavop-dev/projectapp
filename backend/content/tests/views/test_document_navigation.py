@@ -46,17 +46,17 @@ def make_client(email, *, company='', inactive=False):
     return profile
 
 
-def make_project_state(*, visible):
+def make_project_state(*, effect):
     group = DocumentStateGroup.objects.create(
         catalog=DocumentStateGroup.Catalog.PROJECTS,
-        name=f"Estado {'visible' if visible else 'oculto'}",
+        name=f'Estado {effect}',
     )
     return DocumentState.objects.create(
         catalog=DocumentStateGroup.Catalog.PROJECTS,
         group=group,
-        name=f"Estado {'visible' if visible else 'oculto'}",
+        name=f'Estado {effect}',
         color=DocumentState.Color.GRAY,
-        show_in_document_manager=visible,
+        operational_effect=effect,
     )
 
 
@@ -75,8 +75,12 @@ def make_navigation_entry(email, *, document_type):
 def navigation_setup(db, markdown_doc_type):
     acme = make_client('acme@test.com', company='ACME')
     legacy = make_client('legacy@test.com', company='Legacy', inactive=True)
-    visible_state = make_project_state(visible=True)
-    hidden_state = make_project_state(visible=False)
+    visible_state = make_project_state(
+        effect=DocumentState.OperationalEffect.DEVELOPMENT,
+    )
+    hidden_state = make_project_state(
+        effect=DocumentState.OperationalEffect.PAUSED,
+    )
     alpha = Project.objects.create(
         name='Alpha', client=acme.user, current_state=visible_state,
     )
@@ -159,6 +163,7 @@ def test_navigation_counts_each_nested_item_once(
     }
     assert alpha['managed_root_id'] == navigation_setup['root'].id
     assert alpha['is_visible'] is True
+    assert alpha['catalog_bucket'] == 'active'
 
 
 def test_navigation_counts_client_only_documents_as_project_unassigned(
@@ -185,16 +190,18 @@ def test_navigation_includes_inactive_clients_with_content(
     legacy = find_entry(data['clients'], navigation_setup['legacy'].id)
     assert legacy['name'] == 'Legacy'
     assert legacy['is_inactive'] is True
+    assert legacy['catalog_bucket'] == 'archived'
     assert legacy['counts']['active'] == {'folders': 5, 'documents': 2}
 
 
-def test_navigation_includes_hidden_projects_with_content(
+def test_navigation_groups_paused_projects_as_archived_without_hiding_them(
     admin_client, navigation_setup,
 ):
     data = admin_client.get(reverse('document-navigation')).json()
 
     hidden = find_entry(data['projects'], navigation_setup['hidden'].id)
-    assert hidden['is_visible'] is False
+    assert hidden['is_visible'] is True
+    assert hidden['catalog_bucket'] == 'archived'
     assert hidden['counts']['active'] == {'folders': 5, 'documents': 1}
 
 
@@ -220,13 +227,17 @@ def test_navigation_query_count_does_not_scale_with_facet_entries(
     assert len(grown) == len(baseline)
 
 
-def test_navigation_omits_clients_without_content(
+def test_navigation_includes_clients_without_content(
     admin_client, navigation_setup,
 ):
     empty_client = make_client('empty@test.com', company='Empty')
     data = admin_client.get(reverse('document-navigation')).json()
 
-    assert empty_client.id not in {entry['id'] for entry in data['clients']}
+    entry = find_entry(data['clients'], empty_client.id)
+    assert entry['counts'] == {
+        'active': {'folders': 0, 'documents': 0},
+        'archived': {'folders': 0, 'documents': 0},
+    }
 
 
 def test_navigation_counts_automatic_project_roots(
@@ -242,6 +253,37 @@ def test_navigation_counts_automatic_project_roots(
     assert client_entry['counts']['active'] == {'folders': 5, 'documents': 0}
     empty_entry = find_entry(data['projects'], empty_project.id)
     assert empty_entry['counts']['active'] == {'folders': 5, 'documents': 0}
+
+
+def test_navigation_includes_an_enabled_historical_project_without_a_root(
+    admin_client, navigation_setup,
+):
+    historical_client = make_client('vastago@test.com', company='Vástago')
+    historical = Project.objects.create(
+        name='Vástago', client=historical_client.user,
+    )
+    historical.document_root_folder.children.all().delete()
+    historical.document_root_folder.delete()
+
+    data = admin_client.get(reverse('document-navigation')).json()
+
+    entry = find_entry(data['projects'], historical.id)
+    assert entry['managed_root_id'] is None
+    assert entry['counts']['active'] == {'folders': 0, 'documents': 0}
+
+
+def test_navigation_excludes_projects_disabled_for_documents(
+    admin_client, navigation_setup,
+):
+    excluded_client = make_client('prueba@test.com', company='PRUEBA')
+    excluded = Project.objects.create(
+        name='PRUEBA', client=excluded_client.user,
+        document_manager_enabled=False,
+    )
+
+    data = admin_client.get(reverse('document-navigation')).json()
+
+    assert excluded.id not in {entry['id'] for entry in data['projects']}
 
 
 def test_navigation_requires_admin_auth(api_client):

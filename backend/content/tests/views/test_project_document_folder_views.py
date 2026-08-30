@@ -21,7 +21,7 @@ def project():
     return Project.objects.create(name='Vastago', client=user)
 
 
-def test_list_marks_project_root_with_state_visibility(admin_client, project):
+def test_list_marks_an_enabled_managed_project_root(admin_client, project):
     response = admin_client.get(reverse('list-document-folders'))
 
     root = next(item for item in response.data if item['managed_project'] == project.id)
@@ -43,15 +43,18 @@ def test_readiness_reports_projects_whose_roots_need_reconciliation(
     assert response.data == {
         'status': 'reconciliation_required',
         'project_count': 1,
-        'visible_project_count': 1,
+        'enabled_project_count': 1,
+        'disabled_project_count': 0,
+        'active_project_count': 1,
+        'archived_project_count': 0,
         'managed_root_count': 0,
-        'visible_managed_root_count': 0,
+        'active_managed_root_count': 0,
         'missing_root_count': 1,
-        'missing_visible_root_count': 1,
+        'missing_active_root_count': 1,
     }
 
 
-def test_readiness_uses_state_configuration_instead_of_its_name(
+def test_readiness_does_not_use_the_obsolete_state_visibility_flag(
     admin_client, project,
 ):
     state = project.current_state
@@ -62,10 +65,26 @@ def test_readiness_uses_state_configuration_instead_of_its_name(
     response = admin_client.get(reverse('project-folder-readiness'))
 
     assert response.status_code == 200
-    assert response.data['status'] == 'state_filter_empty'
+    assert response.data['status'] == 'ready'
     assert response.data['project_count'] == 1
-    assert response.data['visible_project_count'] == 0
+    assert response.data['active_project_count'] == 1
     assert response.data['managed_root_count'] == 1
+
+
+def test_readiness_distinguishes_projects_explicitly_excluded_from_documents(
+    admin_client, project,
+):
+    project.document_manager_enabled = False
+    project.save(update_fields=['document_manager_enabled', 'updated_at'])
+
+    response = admin_client.get(reverse('project-folder-readiness'))
+
+    assert response.status_code == 200
+    assert response.data['status'] == 'no_enabled_projects'
+    assert response.data['project_count'] == 1
+    assert response.data['enabled_project_count'] == 0
+    assert response.data['disabled_project_count'] == 1
+    assert response.data['missing_root_count'] == 0
 
 
 def test_readiness_distinguishes_a_real_empty_project_catalog(
