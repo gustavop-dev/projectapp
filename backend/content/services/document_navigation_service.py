@@ -10,9 +10,9 @@ from collections import defaultdict
 from django.db.models import Count, F
 
 from accounts.models import Project, UserProfile
+from accounts.services.project_catalog_service import project_catalog_bucket
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import Document, DocumentFolder
-from content.services.project_document_folder_service import project_catalog_bucket
 
 
 def _empty_counts():
@@ -40,8 +40,7 @@ def _state_payload(project):
     state = project.current_state
     if state is None:
         return None
-    # Kept for compatibility with older consumers. Project inclusion is owned by
-    # Project.document_manager_enabled; lifecycle only selects the catalog bucket.
+    # Lifecycle selects the catalog bucket; it never hides the project.
     return {
         'id': state.pk,
         'name': state.name,
@@ -57,7 +56,7 @@ def build_document_navigation():
     document_rows = _grouped_rows(Document)
     folder_rows = _grouped_rows(DocumentFolder)
     projects = list(
-        Project.objects.filter(document_manager_enabled=True)
+        Project.objects.all()
         .select_related(
             'client__profile__user',
             'current_state',
@@ -128,7 +127,6 @@ def build_document_navigation():
             ),
             'managed_root_id': root.pk if root else None,
             'state': state,
-            'document_manager_enabled': True,
             'catalog_bucket': project_catalog_bucket(project),
             # Compatibility for consumers predating catalog_bucket: every row
             # returned by this endpoint is visible somewhere in the catalog.

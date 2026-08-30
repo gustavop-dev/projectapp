@@ -78,8 +78,7 @@ def synchronize_project_document_folder(
     )
 
     if created:
-        if instance.document_manager_enabled:
-            ensure_project_folder(instance)
+        ensure_project_folder(instance)
         return
     synchronize_existing_project_folder(instance)
 

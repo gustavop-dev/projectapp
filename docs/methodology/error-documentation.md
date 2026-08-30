@@ -71,27 +71,44 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-046] Los tooltips breves de acciones se partían letra por letra
+
+- **Date**: 2026-08-30
+- **Context**: Los rótulos de los iconos de acción aparecían como una columna
+  vertical y dejaban de ser legibles.
+- **Root Cause**: El tooltip compartido combinaba ancho intrínseco con
+  `overflow-wrap:anywhere`; ese permiso de corte también reducía el ancho
+  mínimo calculado para textos breves.
+- **Resolution**: `BaseTooltip` conserva el wrap seguro como política por
+  defecto y expone `contentClass`. `BaseActionButton` selecciona una sola línea
+  horizontal para sus rótulos breves, manteniendo el ancho máximo y el clamp al
+  viewport.
+- **Verification**: prueba unitaria de clases y escenario Playwright que comprueba
+  `white-space: nowrap`, geometría horizontal y contención en viewport.
+
 ### [ERR-045] El catálogo documental mezclaba adopción histórica con visibilidad
 
 - **Date**: 2026-08-30
 - **Context**: Tras incorporar Proyectos y Clientes al Gestor Documental,
   algunas entidades aparecían duplicadas como carpetas manuales, otras no
   aparecían y seleccionar después una carpeta podía conservar filtros previos.
-  Vástago parecía vacío aunque su raíz histórica conservaba 9 carpetas y 53
+  Vástago parecía vacío aunque sus raíces históricas conservaban 10 carpetas y 58
   documentos en producción.
 - **Root Cause**: La migración de esquema no adoptó las raíces existentes. El
   catálogo se reducía a entidades con contenido ya relacionado, la visibilidad
   dependía de metadata editable del estado y una señal podía provisionar una
   raíz histórica al guardar un proyecto. En el navegador, proyecto, cliente y
   carpeta manual no se trataban como ejes excluyentes.
-- **Resolution**: Cada proyecto tiene una inclusión explícita e independiente
-  del ciclo de vida; el catálogo lista todas las entidades habilitadas y agrupa
-  por efecto operativo. Sólo un proyecto nuevo obtiene raíz automáticamente.
-  La adopción histórica usa un manifiesto v3 con exclusiones, asignaciones de
+- **Resolution**: Todo `Project` pertenece al mismo catálogo de Documentos y
+  Comunicaciones; no existe un opt-out por módulo. El ciclo sólo decide el grupo
+  activo/archivado. `DocumentFolder.managed_project` identifica la única raíz
+  canónica. La adopción histórica usa un manifiesto v4 con conversiones,
+  anidamientos explícitos (Carlos→Vástago y Germán→Kore), asignaciones de
   cliente, huella completa, respaldo obligatorio y snapshot inverso. Las
-  selecciones limpian siempre los otros ejes, y Carpetas muestra únicamente
-  raíces realmente no asignadas. PRUEBA se excluye y Candle se presenta como
-  proyecto archivado sin archivar sus documentos.
+  selecciones limpian siempre los otros ejes, y Carpetas propias muestra sólo
+  raíces sin proyecto ni cliente. PRUEBA permanece visible para pruebas y Candle
+  se presenta archivado por ciclo sin archivar sus documentos. El aviso técnico
+  PA-108 se retiró del sidebar.
 - **Files Affected**: modelos/serializadores/señales de proyectos, servicios y
   comando de conciliación documental, sidebar/filtros de Documentos, pruebas,
   mapa de flujos y runbook de producción.
@@ -154,18 +171,18 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   raíces `managed_project`. El sidebar lee esa raíz, no `Document.project`.
   Además, el filing generado conservaba un árbol físico paralelo que podía
   volver a dividir ambas relaciones. El filtro por nombres de estado no era la
-  causa: siete proyectos pasaban el booleano vigente del catálogo.
+  causa: siete proyectos pasaban el opt-out temporal que entonces existía.
 - **Resolution**: Unificar el filing bajo la raíz gestionada, compartir claves
   estables para Cuentas de cobro/Propuestas, ampliar el manifiesto revisado para
   documentos elegibles y conflictos, impedir que el backfill cree raíces sin
-  revisión, y exponer un diagnóstico que diferencia conciliación, filtro, vacío
-  real y falla de consulta. Ninguna carpeta de producción se convierte durante
-  el deploy ni desde el panel.
+  revisión, y conservar un diagnóstico interno que diferencia conciliación de
+  un vacío real. Ninguna carpeta de producción se convierte durante el deploy ni
+  desde el panel. ERR-045 retiró después el opt-out y el aviso técnico del
+  sidebar.
 - **Files Affected**: servicios y comando de carpetas/filing, endpoint de
-  readiness, store/sidebar de Documentos, pruebas y registro E2E.
+  readiness, pruebas y registro E2E histórico.
 - **Verification**: slices backend de servicio, comando, vistas, backfill y
-  snapshots; 7 unitarias de frontend; 3 outcomes Playwright; flow audit con
-  cero `junk-only` y cero faltantes.
+  snapshots; la cobertura vigente del catálogo vive en los flows de navegación.
 - **Lesson**: Una migración de esquema aplicada no demuestra que una migración
   de datos revisable haya ocurrido. Los vacíos operativos deben informar qué
   relación falta en lugar de parecer un estado normal.

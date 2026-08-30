@@ -277,22 +277,24 @@ flowchart LR
     AccountDate --> AccountDoc[Collection account Document]
     ProposalDate --> ProposalDoc[Proposal snapshot Document]
 
-    Sidebar[Documents sidebar] --> Readiness[project-readiness API]
-    Readiness --> Catalog[Project document_manager_enabled]
+    Sidebar[Documents / Communications] --> Catalog[All Project rows]
     Catalog --> Lifecycle[active / archived catalog bucket]
-    Readiness --> RootInventory[Managed-root inventory]
+    Root -->|unique managed_project marker| RootIdentity[Canonical identity]
+    LegacyBranch[Explicitly mapped legacy root] -->|reviewed nesting| Root
     Client[Client] -->|client_user| ClientRoot[Reviewed client root]
-    Unassigned[Unassigned root] -->|no project, no client| Sidebar
+    Own[Own root] -->|no project, no client| Sidebar
 ```
 
 `Document.project` describes business ownership; `Document.folder` describes
-where the record is stored. The entity sidebar lists the complete enabled
-project/client catalogs even when an entity has no root or content; the managed
+where the record is stored. The entity sidebars list the complete canonical
+project catalog even when a project has no root, documents or communications;
+the managed
 root remains the physical boundary for filing. Project lifecycle only chooses
 the active/archived catalog group and never archives content. A reviewed client
-root stays top-level with `client_user`; a root with neither project nor client
-is the only kind shown under Carpetas sin asignar. Historical data enters these
-relations only through the reviewed reconciliation manifest. Generated filing
+root stays top-level with `client_user`; a reviewed related branch may be nested
+under its canonical project root. A root with neither project nor client is the
+only kind shown under Carpetas propias. Historical data enters these relations
+only through the reviewed reconciliation manifest. Generated filing
 reuses the two keyed first-level categories and reparents any legacy keyed
 branch before removing its now-empty parallel wrappers.
 

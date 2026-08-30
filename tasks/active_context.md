@@ -2,21 +2,22 @@
 
 ## Current State
 
-**2026-08-30 — conciliación segura del Gestor Documental lista para integrar:**
-el catálogo ya no depende de que una entidad tenga contenido: lista todos los
-proyectos habilitados y clientes, con grupos activos/archivados derivados del
-efecto operativo. PRUEBA queda excluido mediante el nuevo flag por proyecto;
-Candle permanece habilitado pero aparece como Suspendido en Proyectos
-archivados sin alterar el estado de sus documentos. Las raíces de
-proyecto/cliente desaparecen de Carpetas sin asignar y cambiar de eje limpia
-proyecto, cliente y carpeta
-incompatibles. Sólo proyectos nuevos provisionan raíz automáticamente; Vástago,
-G&M, Xpandia, Kore, Tenndalux, Mimittos y el resto histórico se adoptan mediante
-un manifiesto v3 revisado, protegido con huella de proyectos/clientes/carpetas/
-documentos, respaldo obligatorio y snapshot inverso. El runbook fija las
-asignaciones conocidas de Carlos/Gustavo y conserva Familia/Temporal como
-huérfanas. Producción no fue mutada: el paso posterior es desplegar, respaldar,
-generar el plan, revisar cada acción y recién entonces aplicarlo.
+**2026-08-30 — catálogo y carpetas de proyecto unificados, listos para
+integrar:** Documentos y Comunicaciones enumeran todos los proyectos canónicos,
+incluidos los que aún no tienen contenido. El efecto operativo decide únicamente
+si cada entrada aparece en Proyectos activos o archivados: PRUEBA permanece en
+activos para pruebas y Candle aparece en archivados por estar Suspendido. Se
+eliminó `Project.document_manager_enabled`; la relación única
+`DocumentFolder.managed_project` identifica la raíz canónica y evita que una
+carpeta de proyecto se duplique bajo **Carpetas propias**. El manifiesto v4 puede
+promover las raíces conocidas de G&M, Vástago, Xpandia, Kore y Tenndalux, crear
+las de Mimittos, PRUEBA y Candle, y anidar Carlos bajo Vástago y Germán bajo Kore
+sin duplicar sus árboles. Las raíces de Gustavo, Aarón y Littigio se asignan a
+sus clientes; ProjectApp y Requirement Estimates permanecen propias y los casos
+ambiguos siguen intactos. El aviso técnico de PA-108 desapareció de la interfaz
+y los tooltips breves de acciones conservan una línea horizontal dentro del
+viewport. Producción no fue mutada: tras desplegar se debe respaldar, generar y
+revisar el plan, y sólo entonces aplicar el artefacto aprobado.
 
 **2026-08-30 — Configuraciones de Comunicaciones listas para integrar:** el acceso
 quedó junto a Nuevo hilo y abre una superficie interna con preferencias personales
@@ -66,16 +67,15 @@ absoluta. Pendientes operativos y los dos resúmenes de 412/835 conservan el
 layout apilado. Pasan 19 unitarias, la interacción de ayuda y las geometrías de
 1195/1440/2560; el flow-map permanece fresco.
 
-**2026-08-29 — Gestor Documental navegable por proyecto o cliente:** Documentos
-reutiliza el interruptor segmentado de Comunicaciones sobre la lista lateral y
-recuerda la elección por cuenta. Ambos modos incluyen sólo entidades con
-contenido, inventarios separados de carpetas/documentos que cuentan todo el
-subárbol, estados de proyecto ocultables con acceso explícito y destinos
-permanentes **Sin proyecto/Sin cliente**. La selección filtra el listado y queda
-reproducible con `by`, `project` o `client` en la URL. **Carpetas propias** sigue
-siendo un eje independiente aun cuando fallen las facetas. Backend, preferencia,
-store, composable, componente, build y los flujos E2E focales quedan cubiertos;
-la migración se aplicará únicamente durante deploy.
+**2026-08-29 — Gestor Documental navegable por proyecto o cliente (actualizado
+2026-08-30):** Documentos reutiliza el interruptor segmentado de Comunicaciones
+sobre la lista lateral y recuerda la elección por cuenta. Ambos modos enumeran
+el catálogo completo aunque una entidad todavía tenga cero contenido; los
+inventarios separados de carpetas/documentos cuentan todo el subárbol y los
+proyectos se agrupan como activos/archivados sin ocultarlos. La selección filtra
+el listado y queda reproducible con `by`, `project` o `client` en la URL.
+**Carpetas propias** contiene únicamente raíces que no pertenecen a un proyecto
+ni a un cliente y sigue disponible aun cuando fallen las facetas.
 
 **2026-08-29 — Formularios de creación del panel listos para integrar:** Nuevo
 proyecto ya se lee como un bloque: nombre, cliente, estado y descripción ocupan
@@ -104,20 +104,13 @@ calcula todos los conteos sin contaminarlos con el filtro activo. Pasan 20
 pruebas backend, 32 unitarias frontend, los 8 escenarios E2E del flujo P1, el
 build Nuxt y la auditoría de 355 flujos (0 missing, 0 junk-only).
 
-**2026-08-29 — Conciliación de carpetas de proyecto lista para integrar:** el
-diagnóstico confirmó ocho proyectos, siete visibles y cero raíces gestionadas;
-la migración de esquema sí estaba aplicada y el filtro no dependía de nombres
-obsoletos. El filing automático ahora reutiliza Cuentas de cobro/Propuestas bajo
-la única raíz de cada proyecto y retira wrappers legados vacíos. El manifiesto
-PA-108 v2 propone por separado convertir/crear raíces y ubicar sólo documentos
-sin carpeta con ruta inequívoca; los que ya están en otro árbol quedan como
-conflicto, y ni el filing en vivo ni el backfill general pueden crear una raíz
-histórica sin revisión. El panel distingue conciliación pendiente, catálogo
-vacío, filtro de estados vacío y
-falla diagnóstica, con acciones hacia Proyectos/Estados y sin ocultar resultados
-parciales. Backend, 7 unitarias y los 3 outcomes E2E focales pasan; el flow-map
-declara 356 flows, con cero faltantes y cero `junk-only`. Producción sigue sin
-mutarse: tras el deploy corresponde generar, revisar y aplicar el artefacto.
+**2026-08-29 — Conciliación de carpetas de proyecto (supersedida el
+2026-08-30):** el filing automático reutiliza Cuentas de cobro/Propuestas bajo
+la única raíz de cada proyecto y retira wrappers legados vacíos. La alerta
+técnica de conciliación y el opt-out por proyecto fueron retirados de la UX; el
+catálogo completo y el manifiesto v4 descritos al inicio de este archivo son el
+contrato vigente. Producción sigue sin mutarse: tras el deploy corresponde
+respaldar, generar, revisar y aplicar únicamente el artefacto aprobado.
 
 **2026-08-29 — Píldoras de estado indivisibles en Documentos:** los filtros de
 Consultas y Estados conservan icono y texto en una sola línea; cuando falta
@@ -186,22 +179,16 @@ intenta sólo después del éxito principal y sigue siendo administrable. Backen
 unitarios, build, 7 E2E focales, freshness y flow audit están
 verdes; fake-data refresh se omitió por el guardrail absoluto de producción.
 
-**2026-08-28 — Carpetas automáticas de proyecto listas para integrar:** el gestor
-documental separa Proyectos de Carpetas y asigna a cada proyecto nuevo una raíz
-protegida que sigue su nombre. La visibilidad del primer bloque se configura en
-el catálogo de estados (En desarrollo, Activo y En evolución arrancan visibles),
-con Ver todos para conservar acceso a suspendidos o retirados. La plantilla
-inicial incluye Cuentas de cobro, Propuestas, Entregables y QA; todo descendiente
-hereda proyecto/cliente salvo asociación explícita. REST, MCP, admin y restricciones
-de base impiden alterar el primer nivel automático, mientras borrar el proyecto
-conserva la jerarquía como carpeta manual. La migración histórica **no se aplicó**:
-`reconcile_project_folders --plan` genera JSON + propuesta Markdown y sólo
-`--apply-reviewed` con todas las decisiones, fingerprint y SHA vigentes puede
-convertir, crear o anidar; además escribe un snapshot inverso. Pendiente tras
-deploy: generar el plan sobre producción, revisar el emparejamiento completo con
-el operador y aplicar únicamente el artefacto confirmado. Las slices backend
-afectadas, 47 pruebas unitarias del sidebar y 19 E2E están verdes; también pasan
-Django/schema checks, build Nuxt y el mapa de 343 flows con 0 missing/junk-only.
+**2026-08-28 — Carpetas automáticas de proyecto (actualizado 2026-08-30):** el
+gestor asigna a cada proyecto una única raíz protegida que sigue su nombre. La
+relación `managed_project` es el marcador canónico; no existe un segundo booleano
+de visibilidad. El ciclo de vida sólo agrupa la navegación entre activos y
+archivados. La plantilla inicial incluye Cuentas de cobro, Propuestas,
+Entregables y QA; todo descendiente hereda proyecto/cliente salvo asociación
+explícita. REST, MCP, admin y restricciones de base impiden alterar el primer
+nivel automático, mientras borrar el proyecto conserva la jerarquía como carpeta
+manual. La adopción histórica se realiza exclusivamente mediante el manifiesto
+v4 revisado, con fingerprint, respaldo y snapshot inverso.
 
 **2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
 `BaseOverflowText` mide el recorte real y publica el nombre completo mediante un
@@ -220,17 +207,13 @@ build Nuxt, guards de acciones y controles, flow-map fresco y auditoría global
 sin `junk-only` ni faltantes.
 
 **2026-08-28 — Un solo aviso breve para las acciones del panel:**
-`BaseActionButton` separa ya las dos audiencias del texto: el tooltip visual usa
-la etiqueta corta del catálogo (**Acciones**) y el `aria-label` conserva el
-contexto de fila (**Acciones de Contrato de Servicios**). El primitive es el
-único dueño del aviso y pide a `BaseButton` filtrar el `title` nativo, incluidos
-los atributos que Vue reenvía por fallthrough; el resto de `aria-*`, `data-*` y
-semántica de enlace se conserva. La corrección alcanza automáticamente todos los
-botones de acción compartidos del panel y no cambia el clic/tap que abre sus
-menús. Unitarias de los primitives y consumidores de Documentos, más Playwright
-en lista y galería, verifican ausencia de `title`, un solo tooltip legible,
-nombre accesible contextual y apertura del menú. El mapa está fresco y la
-auditoría registra 272 flujos cubiertos, 37 parciales, 0 `junk-only` y 0 faltantes.
+`BaseActionButton` separa las dos audiencias del texto: el tooltip visual usa la
+etiqueta corta del catálogo (**Acciones**) y el `aria-label` conserva el contexto
+de fila (**Acciones de Contrato de Servicios**). El primitive es el único dueño
+del aviso, su texto breve usa `white-space: nowrap` y la capa flotante mantiene
+el ancho dentro del viewport; los tooltips descriptivos largos conservan el
+ajuste multilínea de `BaseTooltip`. `BaseButton` filtra el `title` nativo sin
+perder el resto de `aria-*`, `data-*` ni la semántica de enlace.
 
 **2026-08-28 — Catálogo permanente para asignar cliente en masa:** el modal de
 Ingresos/Hostings ya no reserva altura para un autocomplete que sólo aparecía al

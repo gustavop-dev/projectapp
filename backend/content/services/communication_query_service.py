@@ -13,6 +13,7 @@ from django.db.models.functions import Lower
 from django.utils.dateparse import parse_date, parse_datetime
 
 from accounts.models import Project, UserProfile
+from accounts.services.project_catalog_service import project_catalog_bucket
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import CommunicationMessage, CommunicationThread
 
@@ -346,13 +347,8 @@ def build_facets(filters):
         for row in navigation_threads.values('client_id').annotate(count=Count('id'))
     }
 
-    project_ids = {pk for pk in project_counts if pk is not None}
-    if filters.project_id is not None:
-        project_ids.add(filters.project_id)
-    projects = (
-        Project.objects.select_related('client__profile')
-        .filter(pk__in=project_ids)
-        .in_bulk()
+    projects = list(
+        Project.objects.select_related('client__profile', 'current_state').all()
     )
 
     client_ids = set(client_counts)
@@ -360,20 +356,32 @@ def build_facets(filters):
         client_ids.add(filters.client_id)
     clients = UserProfile.objects.clients().filter(pk__in=client_ids).in_bulk()
 
-    project_rows = [
-        {
-            'id': project_id,
-            'name': projects[project_id].name if project_id in projects else 'Proyecto no disponible',
-            'client_id': (
-                projects[project_id].client.profile.id
-                if project_id in projects and hasattr(projects[project_id].client, 'profile')
-                else None
+    project_rows = []
+    project_ids = set()
+    for project in projects:
+        project_ids.add(project.pk)
+        profile = getattr(project.client, 'profile', None)
+        project_rows.append({
+            'id': project.pk,
+            'name': project.name,
+            'client_id': profile.pk if profile else None,
+            'client_name': (
+                build_client_display_name(profile) if profile else project.client.email
             ),
-            'count': project_counts.get(project_id, 0),
-            'unavailable': project_id not in projects,
-        }
-        for project_id in project_ids
-    ]
+            'catalog_bucket': project_catalog_bucket(project),
+            'count': project_counts.get(project.pk, 0),
+            'unavailable': False,
+        })
+    if filters.project_id is not None and filters.project_id not in project_ids:
+        project_rows.append({
+            'id': filters.project_id,
+            'name': 'Proyecto no disponible',
+            'client_id': None,
+            'client_name': '',
+            'catalog_bucket': 'active',
+            'count': 0,
+            'unavailable': True,
+        })
     project_rows.sort(key=lambda row: row['name'].casefold())
 
     client_rows = [

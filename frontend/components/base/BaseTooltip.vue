@@ -31,7 +31,7 @@
           ref="tooltipEl"
           role="tooltip"
           :class="[
-            'pointer-events-none px-3 py-2 text-sm rounded-lg shadow-raised whitespace-normal [overflow-wrap:anywhere]',
+            'pointer-events-none px-3 py-2 text-sm rounded-lg shadow-raised',
             floating
               ? 'fixed z-[70] max-w-[calc(100vw-1rem)]'
               : 'absolute z-10 break-words',
@@ -39,6 +39,7 @@
             textColor,
             width,
             minWidth,
+            contentClass,
             floating ? '' : positionClasses,
           ]"
           :style="floating ? floatingStyle : undefined"
@@ -100,6 +101,10 @@ const props = defineProps({
   minWidth: {
     type: String,
     default: 'min-w-[260px] sm:min-w-[420px] lg:min-w-[560px]',
+  },
+  contentClass: {
+    type: String,
+    default: 'whitespace-normal [overflow-wrap:anywhere]',
   },
   text: { type: String, default: '' },
   rootClass: { type: [String, Array, Object], default: 'inline-block' },

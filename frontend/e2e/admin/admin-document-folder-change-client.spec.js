@@ -84,9 +84,6 @@ function baseRoutes(apiPath) {
     return json({ navigation_mode: 'project' });
   }
   if (apiPath === 'documents/navigation/') return json(navigationPayload);
-  if (apiPath === 'document-folders/project-readiness/') {
-    return json({ status: 'ready', project_count: 0, enabled_project_count: 0 });
-  }
   if (apiPath === 'documents/') return json([]);
   if (apiPath === 'document-folders/') return json([folder]);
   if (apiPath === 'document-tags/') return json([]);

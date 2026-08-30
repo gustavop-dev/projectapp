@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from accounts.models import Project, UserProfile
-from content.models import DocumentFolder
+from content.models import DocumentFolder, DocumentState, DocumentStateGroup
 
 
 pytestmark = pytest.mark.django_db
@@ -21,7 +21,7 @@ def project():
     return Project.objects.create(name='Vastago', client=user)
 
 
-def test_list_marks_an_enabled_managed_project_root(admin_client, project):
+def test_list_marks_a_managed_project_root(admin_client, project):
     response = admin_client.get(reverse('list-document-folders'))
 
     root = next(item for item in response.data if item['managed_project'] == project.id)
@@ -71,19 +71,44 @@ def test_readiness_does_not_use_the_obsolete_state_visibility_flag(
     assert response.data['managed_root_count'] == 1
 
 
-def test_readiness_distinguishes_projects_explicitly_excluded_from_documents(
+def test_readiness_counts_suspended_projects_without_excluding_them(
     admin_client, project,
 ):
-    project.document_manager_enabled = False
-    project.save(update_fields=['document_manager_enabled', 'updated_at'])
+    """Falla si un proyecto suspendido deja de clasificarse como archivado."""
+    suspended = DocumentState.objects.get(
+        catalog=DocumentStateGroup.Catalog.PROJECTS,
+        system_key=Project.STATUS_SUSPENDED,
+    )
+    project.current_state = suspended
+    project.status = Project.STATUS_SUSPENDED
+    project.save(update_fields=['current_state', 'status', 'updated_at'])
 
     response = admin_client.get(reverse('project-folder-readiness'))
 
     assert response.status_code == 200
-    assert response.data['status'] == 'no_enabled_projects'
+    assert response.data['status'] == 'ready'
+    assert response.data['active_project_count'] == 0
+    assert response.data['archived_project_count'] == 1
+
+
+def test_readiness_reports_suspended_projects_as_eligible(
+    admin_client, project,
+):
+    """Falla si una suspensión excluye el proyecto de la conciliación."""
+    suspended = DocumentState.objects.get(
+        catalog=DocumentStateGroup.Catalog.PROJECTS,
+        system_key=Project.STATUS_SUSPENDED,
+    )
+    project.current_state = suspended
+    project.status = Project.STATUS_SUSPENDED
+    project.save(update_fields=['current_state', 'status', 'updated_at'])
+
+    response = admin_client.get(reverse('project-folder-readiness'))
+
+    assert response.status_code == 200
     assert response.data['project_count'] == 1
-    assert response.data['enabled_project_count'] == 0
-    assert response.data['disabled_project_count'] == 1
+    assert response.data['enabled_project_count'] == 1
+    assert response.data['disabled_project_count'] == 0
     assert response.data['missing_root_count'] == 0
 
 

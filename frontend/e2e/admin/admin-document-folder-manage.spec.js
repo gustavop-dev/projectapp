@@ -76,9 +76,6 @@ function baseRoutes(apiPath, folders) {
   if (apiPath === 'documents/navigation/') {
     return { status: 200, contentType: 'application/json', body: JSON.stringify(navigationPayload) };
   }
-  if (apiPath === 'document-folders/project-readiness/') {
-    return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ready', project_count: 1, enabled_project_count: 1 }) };
-  }
   if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
   if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify(folders) };
   if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };

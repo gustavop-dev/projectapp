@@ -611,7 +611,9 @@ function openThreadForm() {
     if (project && !project.unavailable) {
       threadForm.project = Number(project.id);
       threadForm.client = Number(project.client_id);
-      threadForm.clientLabel = selectedClientEntry(project.client_id)?.name || '';
+      threadForm.clientLabel = selectedClientEntry(project.client_id)?.name
+        || project.client_name
+        || '';
     }
   }
   threadFormOpen.value = true;

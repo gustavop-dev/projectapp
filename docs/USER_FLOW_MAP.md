@@ -4364,7 +4364,7 @@ Two transitions that were previously bundled into other flows now have their own
 - **Priority:** P1
 - **Routes:** `/panel/communications`
 - **API:** `GET/POST /api/communications/threads/`, `POST /api/communications/threads/tab-counts/`, `GET /api/communications/threads/:id/`, `POST /api/communications/threads/:id/messages/`, `GET/PATCH /api/accounts/panel-preferences/communications/`, `POST /api/accounts/panel-preferences/communications/reset/`, `/api/accounts/saved-filter-tabs/`, `POST /api/accounts/saved-filter-tabs/reset/`
-- **Description:** El administrador abre «Configuraciones» junto a «Nuevo hilo» y administra preferencias personales de navegación, orden, paginación, canal inicial, ayuda y ancho, persistidas por cuenta entre dispositivos. También identifica y busca varios hilos mediante resúmenes compactos de título y metadata, sin contenido del mensaje ni desplazamiento horizontal, navega por proyecto, cliente o «Sin proyecto», aplica filtros prediseñados con conteos completos, combina criterios y guarda recortes propios diferenciados. La tira se puede restablecer sin borrar las vistas propias; el contenido completo permanece en el detalle modal y cada hilo conserva mensajes entrantes o salientes con canal, fecha, estado y documentos referenciados.
+- **Description:** El administrador abre «Configuraciones» junto a «Nuevo hilo» y administra preferencias personales de navegación, orden, paginación, canal inicial, ayuda y ancho, persistidas por cuenta entre dispositivos. La navegación enumera todos los proyectos aunque tengan cero hilos, conserva PRUEBA entre los activos y ubica Candle en «Proyectos archivados» por su ciclo. También identifica y busca varios hilos mediante resúmenes compactos de título y metadata, sin contenido del mensaje ni desplazamiento horizontal, navega por proyecto, cliente o «Sin proyecto», aplica filtros prediseñados con conteos completos, combina criterios y guarda recortes propios diferenciados. La tira se puede restablecer sin borrar las vistas propias; el contenido completo permanece en el detalle modal y cada hilo conserva mensajes entrantes o salientes con canal, fecha, estado y documentos referenciados.
 - **Steps:**
   1. El administrador entra a Comunicaciones desde el panel y navega por proyectos o clientes en un panel ajustable, con conteos que incluyen sus hilos.
   2. Encuentra «Configuraciones» inmediatamente al lado de «Nuevo hilo» y abre una pantalla interna que sustituye temporalmente el listado sin perder su contexto.
@@ -4381,7 +4381,7 @@ Two transitions that were previously bundled into other flows now have their own
   13. Escribe o pega el texto exacto y registra una salida como borrador o enviada, o una entrada como recibida; los mensajes nuevos parten del canal personal y las respuestas conservan el canal original.
   14. Cierra el detalle o vuelve atrás y recupera el mismo contexto de navegación y filtros.
 - **Branches:**
-  - [Branch A — Display] La navegación muestra proyectos, clientes y «Sin proyecto»; el modal presenta juntos lo enviado, lo recibido y los documentos referenciados.
+  - [Branch A — Display] La navegación muestra el catálogo completo de proyectos y clientes, incluidos proyectos con conteo cero, PRUEBA activo, Candle archivado y «Sin proyecto»; el modal presenta juntos lo enviado, lo recibido y los documentos referenciados.
   - [Branch B — Resumen compacto] En viewport angosto aparecen varias tarjetas identificables sólo por el título y la metadata operativa, sin contenido del mensaje ni desplazamiento horizontal interno.
   - [Branch C — Orden persistente] El criterio elegido se guarda en la cuenta, queda activo y vuelve a aplicarse en una visita posterior sin parámetro explícito en la URL.
   - [Branch D — Conteos prediseñados] Todos los filtros de fábrica muestran su conteo, incluido cero.
@@ -6073,7 +6073,6 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-observation-delete` | admin | P1 | display,success,failure | 1 |
 | `admin-document-pdf-download` | admin | P2 | success,failure,display | 1 |
 | `admin-document-pdf-preview` | admin | P2 | display | 1 |
-| `admin-document-project-readiness` | admin | P2 | display,success,failure | 3 |
 | `admin-document-rename` | admin | P2 | success,failure | 1 |
 | `admin-document-send-email` | admin | P1 | success,failure | 1 |
 | `admin-document-state-filters` | admin | P1 | display,success,failure | 1 |
@@ -7086,23 +7085,6 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Cobertura:** ✅ display/success/failure.
 - **E2E:** `e2e/admin/admin-document-state-workflow.spec.js`
 
-### FLOW: `admin-document-project-readiness`
-
-- **Module:** admin
-- **Role:** superuser admin
-- **Priority:** P2
-- **Routes:** `/panel` → `/panel/documents`; actions lead to `/panel/projects`
-- **Description:** La sección Proyectos del Gestor Documental consulta un diagnóstico independiente del árbol. Si faltan carpetas gestionadas, informa cuántas requieren la conciliación revisada sin convertirlas automáticamente. Si todos los proyectos están explícitamente excluidos del Gestor Documental, enlaza a Proyectos para revisarlos. Una falla del diagnóstico se muestra como error y no como un vacío normal.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
-
-| Interacción | Outcome | Inicio → pasos → resultado |
-|---|---|---|
-| Consultar una sección con raíces pendientes | display | Panel → Gestor Documental → se informa el número exacto pendiente y siguen visibles las raíces ya conciliadas. |
-| Revisar un catálogo explícitamente excluido | success | Panel → Gestor Documental → Revisar proyectos → módulo de proyectos. |
-| Fallar la consulta de diagnóstico | failure | Panel → Gestor Documental → respuesta 5xx → aviso de que no se pudo determinar la causa; nunca se presenta como ausencia real de proyectos. |
-| Validación de entrada | error n/a | Es una consulta de solo lectura sin campos editables; permisos y sesión pertenecen a los flows de autenticación del panel. |
-
 ### FLOW: `admin-document-observation-delete`
 
 - **Módulo:** admin
@@ -7219,7 +7201,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Priority:** P1
 - **Route:** `/panel/documents`
 - **API:** `GET /api/documents/navigation/`, `GET/PATCH /api/accounts/panel-preferences/documents/`, `GET /api/documents/`, `GET /api/document-folders/`
-- **Description:** El administrador recorre el gestor por proyecto o por cliente con el mismo interruptor y en la misma posición que Comunicaciones. El catálogo incluye todas las entidades habilitadas aunque tengan cero contenido y separa los proyectos fuera de operación en «Proyectos archivados» y los clientes inactivos en su propio grupo, sin archivar sus documentos. Cada entrada muestra por separado cuántas carpetas y documentos tiene en el ámbito activo, archivado o combinado. «Sin proyecto» y «Sin cliente» permanecen visibles incluso con cero elementos. La preferencia se guarda por cuenta, mientras `?by=` permite compartir una visita sin cambiar esa memoria. «Carpetas sin asignar» contiene exclusivamente raíces sin proyecto ni cliente.
+- **Description:** El administrador recorre el gestor por proyecto o por cliente con el mismo interruptor y en la misma posición que Comunicaciones. El catálogo incluye todos los proyectos canónicos aunque tengan cero contenido —incluido PRUEBA— y separa por ciclo los proyectos fuera de operación en «Proyectos archivados», donde aparece Candle, sin archivar sus documentos. Cada entrada muestra por separado cuántas carpetas y documentos tiene en el ámbito activo, archivado o combinado. «Sin proyecto» y «Sin cliente» permanecen visibles incluso con cero elementos. La preferencia se guarda por cuenta, mientras `?by=` permite compartir una visita sin cambiar esa memoria. «Carpetas propias» contiene exclusivamente raíces sin proyecto ni cliente; la conciliación es una tarea operativa interna y no genera avisos técnicos en esta navegación.
 - **Steps:**
   1. El administrador entra al Gestor Documental y encuentra el interruptor Proyectos/Clientes encima de la navegación lateral.
   2. Recorre proyectos activos y el grupo abierto de proyectos archivados; ambos incluyen registros con inventario cero.
@@ -7231,7 +7213,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Branch A — Display] Cada entidad declara conteos separados de carpetas y documentos; clientes inactivos y proyectos no operativos siguen alcanzables en grupos secundarios, incluso con cero contenido.
   - [Branch B — Sin asignar] Las entradas «Sin proyecto»/«Sin cliente» existen permanentemente y filtran los registros sin esa asociación.
   - [Branch C — Memoria] Un cambio desde el interruptor hace `PATCH`; una visita posterior hidrata el modo mediante `GET`. Un `?by=` explícito sólo gobierna esa visita.
-  - [Branch D — Carpetas sin asignar] La sección manual no cambia al alternar el eje, excluye raíces que ya tengan proyecto o cliente y sigue navegable si falla la carga de facetas.
+  - [Branch D — Carpetas propias] La sección manual no cambia al alternar el eje, excluye raíces que ya tengan proyecto o cliente y sigue navegable si falla la carga de facetas.
   - [Branch E — Ejes excluyentes] Elegir proyecto limpia cliente, elegir cliente limpia proyecto y entrar a una carpeta manual limpia ambos; nunca se envían intersecciones accidentales.
   - [Branch F — Fallo recuperable] Un 5xx de `/documents/navigation/` muestra una explicación con «Reintentar» sin bloquear el resto del gestor.
 - **Coverage:** ✅ Covered
@@ -7245,7 +7227,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, incluso después de cargar las fuentes web, un único aviso flotante de la aplicación muestra el nombre completo y **Ver completo** permite expandirlo por foco, toque o clic con corte seguro incluso cuando no contiene espacios. El aviso usa el mismo `BaseTooltip` de las acciones de fila, se mantiene dentro del viewport y no convive con un `title` nativo duplicado. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija visible y etiquetada del encabezado **Título** ajusta el ancho entre 240 y el máximo de inventario de 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
+- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. En tabla y tarjetas, el título queda contenido en una línea con puntos suspensivos; si se recorta, incluso después de cargar las fuentes web, un único aviso flotante de la aplicación muestra el nombre completo y **Ver completo** permite expandirlo por foco, toque o clic con corte seguro incluso cuando no contiene espacios. El aviso usa el mismo `BaseTooltip` de las acciones de fila, se mantiene dentro del viewport y no convive con un `title` nativo duplicado. Los avisos breves de acciones usan una sola línea horizontal y también permanecen contenidos en el viewport; los textos descriptivos largos conservan su ajuste multilínea. La carpeta y los demás distintivos quedan ordenados debajo del título, sin reservar una línea vacía en las filas de escritorio que no tienen carpeta. En la tabla, la manija visible y etiquetada del encabezado **Título** ajusta el ancho entre 240 y el máximo de inventario de 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
 - **Steps:**
   1. Admin abre **Gestor Documental** y consulta el listado.
   2. Un título recortado —con espacios o con guiones bajos— muestra un solo aviso flotante y **Ver completo**; uno que cabe no agrega información repetida.
@@ -7256,7 +7238,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   7. Hace doble clic en la manija para recuperar el ancho predeterminado.
 - **Branches:**
   - [Display — contención] Los nombres reales largos, incluidos los escritos sin espacios, permanecen dentro de su celda o tarjeta en celular, tableta y escritorio; nunca invaden Cliente ni otro contenido.
-  - [Display — recorte] El aviso flotante y el control de expansión sólo existen cuando la medición del texto confirma recorte, incluida la remedición tras cargar fuentes web; el control de acciones reutiliza el mismo aviso sin sumar un `title` nativo.
+  - [Display — recorte] El aviso flotante y el control de expansión sólo existen cuando la medición del texto confirma recorte, incluida la remedición tras cargar fuentes web; el control de acciones reutiliza el mismo aviso sin sumar un `title` nativo y su etiqueta breve se lee horizontalmente dentro del viewport.
   - [Display — metadatos] Carpeta aparece primero en el renglón inferior; Cliente, Proyecto y Estado siguen allí cuando el perfil compacto los oculta como columnas. Sin carpeta, la tabla de escritorio conserva altura natural.
   - [Success — consulta] **Ver completo** expande el nombre en el mismo contexto con `overflow-wrap:anywhere`, y **Contraer** recupera la línea truncada.
   - [Success — reparto] Proyecto, Cliente y Fecha ceden espacio en ese orden; Estados y Acciones conservan su ancho.
@@ -7349,7 +7331,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Priority:** P1
 - **Routes:** `/panel/projects/statuses`
 - **API:** `GET|POST /api/project-states/`, `PATCH /api/project-states/<id>/`, `POST /api/project-states/<id>/retire/`, `POST /api/project-states/<id>/merge/`
-- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. La inclusión en el Gestor Documental pertenece a cada proyecto; el efecto operativo sólo agrupa un proyecto habilitado entre activos o archivados, sin archivar sus documentos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
+- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. Todo proyecto permanece en Documentos y Comunicaciones; el efecto operativo sólo lo agrupa entre activos o archivados, sin archivar sus documentos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
 - **Interaction matrix:**
 
 | Interaction | Outcome | Start → end state |

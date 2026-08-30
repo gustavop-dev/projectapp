@@ -255,7 +255,7 @@ def test_navigation_counts_automatic_project_roots(
     assert empty_entry['counts']['active'] == {'folders': 5, 'documents': 0}
 
 
-def test_navigation_includes_an_enabled_historical_project_without_a_root(
+def test_navigation_includes_a_historical_project_without_a_root(
     admin_client, navigation_setup,
 ):
     historical_client = make_client('vastago@test.com', company='Vástago')
@@ -272,18 +272,17 @@ def test_navigation_includes_an_enabled_historical_project_without_a_root(
     assert entry['counts']['active'] == {'folders': 0, 'documents': 0}
 
 
-def test_navigation_excludes_projects_disabled_for_documents(
+def test_navigation_includes_prueba_without_any_opt_out(
     admin_client, navigation_setup,
 ):
-    excluded_client = make_client('prueba@test.com', company='PRUEBA')
-    excluded = Project.objects.create(
-        name='PRUEBA', client=excluded_client.user,
-        document_manager_enabled=False,
-    )
+    prueba_client = make_client('prueba@test.com', company='PRUEBA')
+    prueba = Project.objects.create(name='PRUEBA', client=prueba_client.user)
 
     data = admin_client.get(reverse('document-navigation')).json()
 
-    assert excluded.id not in {entry['id'] for entry in data['projects']}
+    entry = find_entry(data['projects'], prueba.id)
+    assert entry['name'] == 'PRUEBA'
+    assert entry['counts']['active'] == {'folders': 5, 'documents': 0}
 
 
 def test_navigation_requires_admin_auth(api_client):

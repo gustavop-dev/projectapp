@@ -253,6 +253,11 @@ test.describe('Admin Document Title Column Resize', () => {
     await expect(tooltip).toBeVisible();
     await expect(tooltip).toHaveText('Acciones');
     await expectInsideViewport(page, tooltip);
+    await expect.poll(() => tooltip.evaluate((element) => (
+      getComputedStyle(element).whiteSpace
+    ))).toBe('nowrap');
+    const tooltipBox = await tooltip.boundingBox();
+    expect(tooltipBox.width).toBeGreaterThan(tooltipBox.height);
   });
 
   test('offers the same full-name control for an unbroken clipped title', {

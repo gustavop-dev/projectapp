@@ -10,11 +10,19 @@ This file captures important patterns, preferences, and project intelligence tha
 > **Lección 2026-08-30 — catálogo, ubicación y archivo son dimensiones
 > distintas:** una migración de esquema no equivale a adoptar datos históricos,
 > y una entidad sin contenido todavía pertenece al catálogo. La inclusión del
-> proyecto debe ser explícita; su grupo activo/archivado se deriva del efecto
-> operativo, sin archivar documentos. La ubicación física sólo cambia mediante
-> un manifiesto revisado, respaldado y protegido contra drift. En la interfaz,
-> proyecto, cliente y carpeta sin asignar son filtros mutuamente excluyentes:
+> proyecto es canónica y compartida por módulos; su grupo activo/archivado se
+> deriva del efecto operativo, sin archivar documentos. La raíz se identifica
+> con la relación única `managed_project`, no con otro booleano. La ubicación
+> física sólo cambia mediante un manifiesto revisado, respaldado y protegido
+> contra drift; una rama histórica relacionada sólo se anida con una directiva
+> explícita. En la interfaz, proyecto, cliente y carpeta propia son filtros mutuamente excluyentes:
 > cambiar de eje debe limpiar los otros, no acumular una intersección invisible.
+
+> **Lección 2026-08-30 — wrap según semántica del tooltip:** una explicación
+> extensa necesita cortes seguros, pero un rótulo breve de acción necesita una
+> sola línea. El primitive debe ofrecer una política por defecto y dejar que el
+> consumidor elija; aplicar `overflow-wrap:anywhere` indiscriminadamente puede
+> convertir el ancho intrínseco en una columna de letras.
 
 > **Lección 2026-08-30 — preferencias vs. filtros:** la preferencia personal
 > aporta el fallback de una visita limpia; una URL o vista guardada debe seguir
@@ -46,8 +54,9 @@ This file captures important patterns, preferences, and project intelligence tha
 > `Document.project` no sustituye la ubicación estructural que el sidebar
 > representa. Si la raíz gestionada es la fuente de verdad, todo filing
 > automático debe colgar de ella y toda adopción histórica debe atravesar el
-> mismo manifiesto revisado. Un endpoint pequeño de readiness convierte un cero
-> ambiguo en cuatro estados operables sin acoplarse a nombres editables.
+> mismo manifiesto revisado. Un endpoint pequeño de readiness puede conservar el
+> diagnóstico operativo sin convertir detalles de migración en un aviso para el
+> usuario final.
 
 > **Lección 2026-08-29 — telemetría visible:** un tab abierto no equivale a
 > atención. Todo heartbeat de engagement debe obedecer Page Visibility, cerrar

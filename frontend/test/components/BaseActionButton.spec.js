@@ -51,12 +51,11 @@ describe('BaseActionButton', () => {
     await wrapper.get('[data-base-tooltip-trigger]')
       .trigger('pointerenter', { pointerType: 'mouse' })
 
+    // Falla si el tooltip vuelve a usar el rótulo contextual largo en vez del catálogo breve.
     const hints = document.body.querySelectorAll('[role="tooltip"]')
     expect(hints).toHaveLength(1)
-    expect(hints[0].textContent).toContain('Acciones')
+    expect(hints[0].textContent).toBe('Acciones')
     expect(hints[0].textContent).not.toContain('Contrato de Servicios')
-    expect(hints[0].classList).toContain('w-max')
-    expect(hints[0].classList).toContain('max-w-xs')
   })
 
   it('prefers an explicit application tooltip', async () => {

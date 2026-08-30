@@ -7,6 +7,7 @@ import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_CLIENT_COMMUNICATIONS } from '../helpers/flow-tags.js';
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js';
+import { viewportUse } from '../helpers/viewports.js';
 
 const authCheck = {
   status: 200,
@@ -133,13 +134,44 @@ function communicationFacets(projectName = 'Portal de clientes') {
     total: 5,
     navigation_total: 5,
     without_project_count: 1,
-    projects: [{
-      id: 19,
-      name: projectName,
-      client_id: 7,
-      count: 4,
-      unavailable: false,
-    }],
+    projects: [
+      {
+        id: 19,
+        name: projectName,
+        client_id: 7,
+        client_name: 'Ana Proyecto',
+        catalog_bucket: 'active',
+        count: 4,
+        unavailable: false,
+      },
+      {
+        id: 20,
+        name: 'Kore',
+        client_id: 7,
+        client_name: 'Ana Proyecto',
+        catalog_bucket: 'active',
+        count: 0,
+        unavailable: false,
+      },
+      {
+        id: 21,
+        name: 'PRUEBA',
+        client_id: 7,
+        client_name: 'Ana Proyecto',
+        catalog_bucket: 'active',
+        count: 0,
+        unavailable: false,
+      },
+      {
+        id: 22,
+        name: 'Candle',
+        client_id: 7,
+        client_name: 'Ana Proyecto',
+        catalog_bucket: 'archived',
+        count: 0,
+        unavailable: false,
+      },
+    ],
     clients: [{
       id: 7,
       name: 'Ana Proyecto',
@@ -490,7 +522,32 @@ test.describe('Admin Client Communications', () => {
     });
   });
 
-  test('shows the bidirectional timeline and referenced documents', {
+  test.describe('desktop project catalog', () => {
+    test.use(viewportUse('desktop'));
+
+    test('shows the complete project catalog', {
+      tag: [
+        ...ADMIN_CLIENT_COMMUNICATIONS,
+        '@role:admin',
+        '@outcome:display',
+        '@responsive:communications',
+      ],
+    }, async ({ page }) => {
+      // Regression: the desktop catalog must not hide zero-content or archived projects.
+      await setupCommunicationsApi(page);
+      await enterCommunicationsThroughPanel(page);
+
+      const navigation = page.getByTestId('communications-navigation-panel');
+      await expect(navigation).toContainText('Portal de clientes');
+      await expect(page.getByTestId('communications-navigation-project-20')).toContainText('Kore');
+      await expect(page.getByTestId('communications-navigation-project-21')).toContainText('PRUEBA');
+      await expect(page.getByTestId('communications-navigation-archived-group'))
+        .toContainText('Candle');
+      await expect(navigation).toContainText('Sin proyecto');
+    });
+  });
+
+  test('explains the manual channel scope', {
     tag: [
       ...ADMIN_CLIENT_COMMUNICATIONS,
       '@role:admin',
@@ -501,18 +558,22 @@ test.describe('Admin Client Communications', () => {
     await setupCommunicationsApi(page);
     await enterCommunicationsThroughPanel(page);
 
-    await expect(page.getByTestId('communications-channel-scope'))
-      .toContainText('conserva el registro manual');
-    await expect(page.getByTestId('communications-channel-scope'))
-      .not.toContainText(/fase posterior|envío automático/i);
+    const scope = page.getByTestId('communications-channel-scope');
+    await expect(scope).toContainText('conserva el registro manual');
+    await expect(scope).not.toContainText(/fase posterior|envío automático/i);
+  });
 
-    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
-      await expect(page.getByTestId('communications-navigation-drawer-trigger')).toBeVisible();
-    } else {
-      const navigation = page.getByTestId('communications-navigation-panel');
-      await expect(navigation).toContainText('Portal de clientes');
-      await expect(navigation).toContainText('Sin proyecto');
-    }
+  test('shows the bidirectional timeline and referenced documents', {
+    tag: [
+      ...ADMIN_CLIENT_COMMUNICATIONS,
+      '@role:admin',
+      '@outcome:display',
+      '@responsive:communications',
+    ],
+  }, async ({ page }) => {
+    // Regression: thread details must preserve message direction, replies, and document references.
+    await setupCommunicationsApi(page);
+    await enterCommunicationsThroughPanel(page);
     await openMainThread(page);
 
     const timeline = page.getByTestId('communication-timeline');

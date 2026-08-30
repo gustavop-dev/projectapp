@@ -135,13 +135,59 @@ def test_project_name_search_scopes_the_list_contract(admin_client, admin_user):
     assert [row['project_name'] for row in response.data['results']] == ['Portal Boreal']
     assert response.data['facets']['total'] == 1
     assert response.data['facets']['navigation_total'] == 1
-    assert response.data['facets']['projects'] == [{
-        'id': matching_project.id,
-        'name': 'Portal Boreal',
+    assert response.data['facets']['projects'] == [
+        {
+            'id': matching_project.id,
+            'name': 'Portal Boreal',
+            'client_id': client.id,
+            'client_name': 'Estela',
+            'catalog_bucket': 'active',
+            'count': 1,
+            'unavailable': False,
+        },
+        {
+            'id': other_project.id,
+            'name': 'Tienda Austral',
+            'client_id': client.id,
+            'client_name': 'Estela',
+            'catalog_bucket': 'active',
+            'count': 0,
+            'unavailable': False,
+        },
+    ]
+
+
+def test_project_facets_return_complete_lifecycle_catalog(
+    admin_client,
+):
+    client = make_client('complete-catalog@example.com', 'Germán')
+    active = Project.objects.create(name='Kore', client=client.user)
+    archived = Project.objects.create(
+        name='Candle', client=client.user, status=Project.STATUS_SUSPENDED,
+    )
+
+    response = admin_client.get(reverse('communication-threads'))
+
+    assert response.status_code == 200
+    rows = {row['id']: row for row in response.data['facets']['projects']}
+    assert rows[active.id] == {
+        'id': active.id,
+        'name': 'Kore',
         'client_id': client.id,
-        'count': 1,
+        'client_name': 'Germán',
+        'catalog_bucket': 'active',
+        'count': 0,
         'unavailable': False,
-    }]
+    }
+    assert rows[archived.id] == {
+        'id': archived.id,
+        'name': 'Candle',
+        'client_id': client.id,
+        'client_name': 'Germán',
+        'catalog_bucket': 'archived',
+        'count': 0,
+        'unavailable': False,
+    }
 
 
 def test_facets_exclude_their_own_dimension(admin_client, admin_user):

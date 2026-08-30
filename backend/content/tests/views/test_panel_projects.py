@@ -168,7 +168,8 @@ CREATE_URL = '/api/projects/create/'
 
 
 class TestCreatePanelProject:
-    def test_the_minimal_payload_creates_a_development_project(self, admin_client):
+    def test_minimal_payload_returns_a_development_project(self, admin_client):
+        """Falla si el alta mínima deja de responder su contrato de proyecto."""
         owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
 
         response = admin_client.post(CREATE_URL, {
@@ -183,12 +184,22 @@ class TestCreatePanelProject:
         assert response.data['description'] == ''
         assert response.data['hostings_count'] == 0
         assert response.data['incomes_count'] == 0
-        assert response.data['document_manager_enabled'] is True
-        assert response.data['client']['profile_id'] == owner.pk
+
+    def test_minimal_payload_creates_a_managed_document_root(self, admin_client):
+        """Falla si un proyecto nuevo no recibe su única raíz documental."""
+        owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': owner.pk,
+        }, format='json')
+
+        assert response.status_code == 201, response.data
         project = Project.objects.get(pk=response.data['id'])
         assert project.client_id == owner.user_id
+        assert project.document_root_folder.managed_project_id == project.id
 
-    def test_a_project_can_be_created_outside_the_document_manager(
+    def test_the_obsolete_document_opt_out_cannot_exclude_a_project(
         self, admin_client,
     ):
         owner = make_client('excluded@example.com')
@@ -201,8 +212,8 @@ class TestCreatePanelProject:
 
         assert response.status_code == 201, response.data
         project = Project.objects.get(pk=response.data['id'])
-        assert response.data['document_manager_enabled'] is False
-        assert not hasattr(project, 'document_root_folder')
+        assert 'document_manager_enabled' not in response.data
+        assert project.document_root_folder.managed_project_id == project.id
 
     def test_the_create_response_reports_the_clients_backlog(self, admin_client):
         """The inline-create flow (crear al vuelo from an accounting picker)
@@ -309,7 +320,7 @@ class TestUpdatePanelProject:
         project.refresh_from_db()
         assert project.description == 'App de gestión'
 
-    def test_document_manager_visibility_can_change_without_deleting_content(
+    def test_the_obsolete_document_opt_out_cannot_hide_existing_content(
         self, admin_client,
     ):
         owner = make_client('documents@example.com')
@@ -324,7 +335,7 @@ class TestUpdatePanelProject:
 
         assert response.status_code == 200, response.data
         project.refresh_from_db()
-        assert project.document_manager_enabled is False
+        assert 'document_manager_enabled' not in response.data
         assert project.document_root_folder.id == root_id
 
     def test_status_change_requires_the_transition_flow(self, admin_client):

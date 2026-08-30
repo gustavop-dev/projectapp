@@ -46,7 +46,6 @@ const RECORD = {
     system_key: 'suspended',
     operational_effect: 'suspended',
   },
-  document_manager_enabled: false,
   client: { profile_id: 7, name: 'Deivis Ríos', company: 'Vástago' },
 };
 
@@ -172,7 +171,6 @@ describe('ProjectFormModal', () => {
       name: 'Kore',
       client_profile_id: 7,
       description: '',
-      document_manager_enabled: true,
       state_id: 10,
     });
   });
@@ -200,17 +198,22 @@ describe('ProjectFormModal', () => {
     expect(wrapper.findComponent(ClientAutocompleteStub).props('allowCreate')).toBe(true);
   });
 
-  it('editing hydrates the form and never sends the client', async () => {
+  it('hydrates the edit form from the project record', async () => {
     const wrapper = mountModal({ record: RECORD });
     await flushPromises();
 
+    // Falla si abrir una edición deja valores del formulario anterior.
     expect(wrapper.find('[data-testid="project-form-name"]').element.value).toBe('Vástago');
     expect(wrapper.find('[data-testid="project-form-client-readonly"]').text())
       .toContain('Deivis Ríos');
     expect(wrapper.findComponent(ClientAutocompleteStub).exists()).toBe(false);
-    expect(wrapper.get('[data-testid="project-form-document-manager"]')
-      .attributes('aria-pressed')).toBe('false');
+  });
 
+  it('omits the client from an edit payload', async () => {
+    const wrapper = mountModal({ record: RECORD });
+    await flushPromises();
+
+    // Falla si una actualización vuelve a enviar un cliente que el backend rechaza.
     await wrapper.find('[data-testid="project-form-name"]').setValue('Vástago App');
     await wrapper.find('form').trigger('submit');
 
@@ -218,20 +221,17 @@ describe('ProjectFormModal', () => {
     expect(payload).toEqual({
       name: 'Vástago App',
       description: 'App de gestión',
-      document_manager_enabled: false,
     });
     expect(payload).not.toHaveProperty('client_profile_id');
   });
 
-  it('lets an operator enable a historical project without changing its content', async () => {
+  it('omits the obsolete document-manager control', async () => {
     const wrapper = mountModal({ record: RECORD });
     await flushPromises();
 
-    await wrapper.get('[data-testid="project-form-document-manager"]').trigger('click');
-    await wrapper.find('form').trigger('submit');
-
-    expect(wrapper.emitted('submit')[0][0].document_manager_enabled).toBe(true);
-    expect(wrapper.text()).toContain('nunca elimina carpetas ni archivos');
+    // Falla si el formulario vuelve a ofrecer una regla de inclusión ya eliminada.
+    expect(wrapper.get('[data-testid="project-form-name"]').element.value).toBe('Vástago');
+    expect(wrapper.find('[data-testid="project-form-document-manager"]').exists()).toBe(false);
   });
 
   it('warns about a same-name project for the same client without blocking', async () => {
@@ -281,23 +281,24 @@ describe('ProjectFormModal', () => {
     expect(payload.name).toBe('Vástago');
   });
 
-  it('the edit form offers the guided change-client entry, the create form does not', async () => {
-    const editing = mountModal({ record: RECORD });
+  it('emits the guided client-change request from an edit', async () => {
+    const wrapper = mountModal({ record: RECORD });
     await flushPromises();
 
-    await editing
+    // Falla si el acceso guiado deja de comunicar la intención a la página.
+    await wrapper
       .find('[data-testid="project-form-change-client"]')
       .trigger('click');
 
-    // The field itself stays immutable: the button only asks the page to
-    // open the guided cascade.
-    expect(editing.emitted('change-client')).toHaveLength(1);
-    expect(editing.emitted('submit')).toBeUndefined();
+    expect(wrapper.emitted('change-client')).toEqual([[]]);
+  });
 
-    const creating = mountModal();
+  it('omits the guided client-change entry from a new project', async () => {
+    const wrapper = mountModal();
     await flushPromises();
-    expect(
-      creating.find('[data-testid="project-form-change-client"]').exists(),
-    ).toBe(false);
+
+    // Falla si un proyecto nuevo recibe una acción reservada para cambios con impacto.
+    expect(wrapper.get('[data-testid="project-form-name"]').element.value).toBe('');
+    expect(wrapper.find('[data-testid="project-form-change-client"]').exists()).toBe(false);
   });
 });

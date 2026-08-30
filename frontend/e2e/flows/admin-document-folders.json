@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Organize admin documents through the independent Carpetas sin asignar section. Only operator-created roots with no project and no client appear there; assigned client roots and system-managed project roots stay in their entity catalogs. Unassigned roots keep navigation, recursive inventory, rename, archive, delete and reorder behavior regardless of whether entity navigation is grouped by project or client. Managed project roots remain valid parents in the folder manager. The 'Nueva carpeta' form's 'Dentro de:' selector defaults to the currently active unassigned folder. Project/client grouping is covered separately by admin-document-navigation; document state filtering remains an independent axis covered by admin-document-state-filters.",
+  "description": "Organize admin documents through the independent Carpetas propias section. Only operator-created roots with no project and no client appear there; assigned client roots and system-managed project roots stay in their entity catalogs. Own roots keep navigation, recursive inventory, rename, archive, delete and reorder behavior regardless of whether entity navigation is grouped by project or client. Managed project roots remain valid parents in the folder manager. The 'Nueva carpeta' form's 'Dentro de:' selector defaults to the currently active own folder. Project/client grouping is covered separately by admin-document-navigation; document state filtering remains an independent axis covered by admin-document-state-filters.",
   "expectedSpecs": 1,
   "outcomes": [
     "display",

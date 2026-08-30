@@ -83,16 +83,15 @@ def test_registry_and_field_contracts_cover_the_same_connectors():
     assert set(TOOLS_BY_SLUG) == set(MCP_MODEL_CONTRACTS)
 
 
-def test_documents_contract_excludes_project_inclusion_control():
+def test_project_has_no_module_specific_catalog_opt_out():
     project_contract = next(
         contract
         for contract in MCP_MODEL_CONTRACTS['documents']
         if contract.model_label == 'accounts.Project'
     )
 
-    reason = project_contract.excluded['document_manager_enabled']
-
-    assert 'panel' in reason
+    assert 'document_manager_enabled' not in _current_fields('accounts.Project')
+    assert 'document_manager_enabled' not in project_contract.classified_fields
 
 
 @pytest.mark.parametrize('slug', CONNECTOR_SLUGS)
