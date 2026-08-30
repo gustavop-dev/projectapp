@@ -8,7 +8,10 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DOCUMENT_FOLDERS } from '../helpers/flow-tags.js';
+import {
+  ADMIN_DOCUMENT_FOLDERS,
+  ADMIN_DOCUMENT_PROJECT_READINESS,
+} from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
 
@@ -254,5 +257,85 @@ test.describe('Admin Document Folders', () => {
 
     const parentSelect = page.getByTestId('folder-manager-parent');
     await expect(parentSelect.locator('option:checked')).toHaveText('Kore Health');
+  });
+
+  test('pending reconciliation explains the missing managed roots', {
+    tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/project-readiness/') {
+        return jsonOk({
+          status: 'reconciliation_required',
+          project_count: 8,
+          visible_project_count: 7,
+          managed_root_count: 1,
+          visible_managed_root_count: 1,
+          missing_root_count: 7,
+          missing_visible_root_count: 6,
+        });
+      }
+      if (apiPath === 'document-folders/') return jsonOk([PROJECT_KORE]);
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+
+    const warning = page.getByTestId('project-reconciliation-required');
+    await expect(warning).toContainText('Faltan las carpetas gestionadas de 7 proyectos');
+    await expect(page.getByTestId('project-folder-section')).toContainText('Kore Health');
+  });
+
+  test('empty project-state filter links to state administration', {
+    tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/project-readiness/') {
+        return jsonOk({
+          status: 'state_filter_empty',
+          project_count: 8,
+          visible_project_count: 0,
+          managed_root_count: 8,
+          visible_managed_root_count: 0,
+          missing_root_count: 0,
+          missing_visible_root_count: 0,
+        });
+      }
+      if (apiPath === 'document-folders/') return jsonOk([PROJECT_PAUSED]);
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+    await page.getByTestId('project-state-filter-action').click();
+
+    await expect(page).toHaveURL(/\/panel\/projects\/statuses\/?$/);
+  });
+
+  test('readiness request failure is not presented as a normal empty state', {
+    tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/project-readiness/') {
+        return {
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'temporarily unavailable' }),
+        };
+      }
+      if (apiPath === 'document-folders/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await openDocuments(page);
+
+    await expect(page.getByTestId('project-readiness-error')).toContainText(
+      'No se pudo comprobar por qué la sección de proyectos está vacía',
+    );
+    await expect(page.getByTestId('project-empty-fallback')).toHaveCount(0);
   });
 });

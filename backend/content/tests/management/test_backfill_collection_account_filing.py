@@ -2,7 +2,7 @@ from datetime import date
 from io import StringIO
 
 import pytest
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 
@@ -32,12 +32,15 @@ def client_user():
     return user
 
 
-def make_historical_account(client_user, *, folder=None, issue_date=date(2026, 7, 9)):
+def make_historical_account(
+    client_user, *, folder=None, issue_date=date(2026, 7, 9), project=None,
+):
     document = Document.objects.create(
         title='Cuenta antigua',
         document_type=get_collection_account_document_type(),
         commercial_status=Document.CommercialStatus.ISSUED,
         client_user=client_user,
+        project=project,
         issue_date=issue_date,
         public_number='PA-ROJAS-004',
         folder=folder,
@@ -104,3 +107,23 @@ def test_backfill_skips_missing_issue_date(client_user):
 
     assert document.folder_id is None
     assert 'sin fecha de emisión' in output.getvalue()
+
+
+def test_backfill_defers_project_accounts_to_reviewed_reconciliation(client_user):
+    project = Project.objects.create(name='Mimittos', client=client_user)
+    root = project.document_root_folder
+    root.children.all().delete()
+    root.delete()
+    document = make_historical_account(client_user, project=project)
+    output = StringIO()
+
+    call_command(
+        'backfill_collection_account_filing',
+        '--apply',
+        stdout=output,
+    )
+    document.refresh_from_db()
+
+    assert document.folder_id is None
+    assert not DocumentFolder.objects.filter(managed_project=project).exists()
+    assert 'reconcile_project_folders' in output.getvalue()

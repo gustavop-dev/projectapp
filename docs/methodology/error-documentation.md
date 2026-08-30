@@ -60,7 +60,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-042] Los avisos de creación competían con las acciones y no identificaban su campo
+### [ERR-043] Los avisos de creación competían con las acciones y no identificaban su campo
 
 - **Date**: 2026-08-29
 - **Context**: El modal Nuevo proyecto agrupaba nombre y cliente como una lista
@@ -80,6 +80,33 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: primitivas `BaseFormField`/inputs,
   `ClientAutocomplete`, `ProjectFormModal`, páginas de Proyectos y modales de
   creación de Clientes, Tareas, Documentos, Contabilidad y contenido del panel.
+
+### [ERR-042] Proyectos estaba vacío aunque los documentos tenían proyecto
+
+- **Date**: 2026-08-29
+- **Context**: El Gestor Documental mostraba cero carpetas y documentos en
+  Proyectos, mientras Carpetas contenía 39 raíces y el listado incluía
+  documentos con proyecto asignado.
+- **Root Cause**: La migración de esquema estaba aplicada, pero la conciliación
+  de datos PA-108 nunca se ejecutó: producción tenía ocho proyectos y cero
+  raíces `managed_project`. El sidebar lee esa raíz, no `Document.project`.
+  Además, el filing generado conservaba un árbol físico paralelo que podía
+  volver a dividir ambas relaciones. El filtro por nombres de estado no era la
+  causa: siete proyectos pasaban el booleano vigente del catálogo.
+- **Resolution**: Unificar el filing bajo la raíz gestionada, compartir claves
+  estables para Cuentas de cobro/Propuestas, ampliar el manifiesto revisado para
+  documentos elegibles y conflictos, impedir que el backfill cree raíces sin
+  revisión, y exponer un diagnóstico que diferencia conciliación, filtro, vacío
+  real y falla de consulta. Ninguna carpeta de producción se convierte durante
+  el deploy ni desde el panel.
+- **Files Affected**: servicios y comando de carpetas/filing, endpoint de
+  readiness, store/sidebar de Documentos, pruebas y registro E2E.
+- **Verification**: slices backend de servicio, comando, vistas, backfill y
+  snapshots; 7 unitarias de frontend; 3 outcomes Playwright; flow audit con
+  cero `junk-only` y cero faltantes.
+- **Lesson**: Una migración de esquema aplicada no demuestra que una migración
+  de datos revisable haya ocurrido. Los vacíos operativos deben informar qué
+  relación falta en lugar de parecer un estado normal.
 
 ### [ERR-041] Django wrapped the MySQL snapshot recovery in a transaction
 

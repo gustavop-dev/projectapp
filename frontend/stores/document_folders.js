@@ -17,6 +17,8 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
     isLoading: false,
     isUpdating: false,
     error: null,
+    projectReadiness: null,
+    projectReadinessError: null,
   }),
 
   getters: {
@@ -179,6 +181,26 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
   },
 
   actions: {
+    /**
+     * Explica si la sección de proyectos está lista o si falta conciliarla.
+     *
+     * El error vive separado del árbol: una falla diagnóstica no debe ocultar
+     * carpetas que sí llegaron ni convertir toda la navegación en un error.
+     */
+    async fetchProjectReadiness() {
+      this.projectReadinessError = null;
+      try {
+        const response = await get_request('document-folders/project-readiness/');
+        this.projectReadiness = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.projectReadiness = null;
+        this.projectReadinessError = 'fetch_project_readiness_failed';
+        console.error('Error fetching project folder readiness:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
     /**
      * Trae las carpetas de los dos estados; `{ scope }` acota si hace falta.
      *
