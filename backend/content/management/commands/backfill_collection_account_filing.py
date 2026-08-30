@@ -3,7 +3,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from content.models import Document
+from content.models import Document, DocumentFolder
 from content.services import accounting_service
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.generated_document_filing_service import (
@@ -42,10 +42,27 @@ class Command(BaseCommand):
             .prefetch_related('items')
             .order_by('pk')
         )
+        reconciled_project_ids = set(
+            DocumentFolder.objects.filter(
+                managed_project__isnull=False,
+                parent__isnull=True,
+                is_archived=False,
+            ).values_list('managed_project_id', flat=True)
+        )
 
         eligible = []
         skipped = []
         for document in documents:
+            if (
+                document.project_id
+                and document.project_id not in reconciled_project_ids
+            ):
+                skipped.append(document)
+                self.stdout.write(
+                    f'SKIP #{document.pk}: el proyecto no tiene una raíz '
+                    'gestionada; revísalo con reconcile_project_folders.'
+                )
+                continue
             cancelled = (
                 document.commercial_status == Document.CommercialStatus.CANCELLED
             )

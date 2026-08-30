@@ -1,6 +1,7 @@
 """The project-folder migration is review-first and drift-safe."""
 import hashlib
 import json
+from datetime import date
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -13,6 +14,7 @@ from content.management.commands.reconcile_project_folders import (
     database_snapshot,
 )
 from content.models import Document, DocumentFolder
+from content.services.document_type_utils import get_collection_account_document_type
 
 
 pytestmark = pytest.mark.django_db
@@ -72,6 +74,17 @@ def reviewed_kore_adoption(tmp_path, *, include_document):
     return project, project_folder, client_folder, document, reviewed, digest
 
 
+def make_folderless_account(project):
+    return Document.objects.create(
+        title='Cuenta histórica de Mimittos',
+        document_type=get_collection_account_document_type(),
+        commercial_status=Document.CommercialStatus.ISSUED,
+        issue_date=date(2026, 8, 14),
+        project=project,
+        client_user=project.client,
+    )
+
+
 def test_manifest_proposes_current_conversion_and_client_nesting_rules():
     make_project('gm@example.com', 'G&M', company='G&M')
     make_project(
@@ -105,6 +118,74 @@ def test_plan_command_keeps_database_unchanged(tmp_path):
     assert database_snapshot() == before
     assert output.exists()
     assert output.with_suffix('.md').exists()
+
+
+def test_manifest_proposes_a_reviewed_path_for_a_folderless_project_account():
+    project = make_project('mimittos@example.com', 'Mimittos')
+    document = make_folderless_account(project)
+
+    manifest = build_manifest()
+
+    action = next(
+        row for row in manifest['actions']
+        if row.get('document_id') == document.id
+    )
+    assert manifest['version'] == 2
+    assert action['type'] == 'file_document'
+    assert action['decision'] == 'pending'
+    assert action['target_path'] == (
+        'Proyectos / Mimittos / Cuentas de cobro / 2026 / 08 - Agosto'
+    )
+
+
+def test_apply_files_only_the_reviewed_project_document(tmp_path):
+    project = make_project('mimittos-apply@example.com', 'Mimittos')
+    document = make_folderless_account(project)
+    original_title = document.title
+    reviewed = tmp_path / 'mimittos-reviewed.json'
+    digest = reviewed_file(
+        reviewed,
+        build_manifest(),
+        approved_types=('create', 'file_document'),
+    )
+
+    call_command(
+        'reconcile_project_folders',
+        apply_reviewed=str(reviewed),
+        confirm=digest,
+    )
+
+    document.refresh_from_db()
+    assert document.title == original_title
+    assert document.project_id == project.id
+    assert [
+        *(folder.name for folder in document.folder.get_ancestors()),
+        document.folder.name,
+    ] == ['Mimittos', 'Cuentas de cobro', '2026', '08 - Agosto']
+    inverse = json.loads(reviewed.with_suffix('.inverse.json').read_text())
+    filed = next(row for row in inverse['changes'] if row['type'] == 'filed_document')
+    assert filed['document_id'] == document.id
+    assert filed['folder_id'] is None
+
+
+def test_manifest_flags_a_project_document_inside_an_unrelated_tree():
+    project = make_project('outside@example.com', 'Outside')
+    folder = DocumentFolder.objects.create(name='Clasificación manual')
+    document = Document.objects.create(
+        title='Ubicación elegida por operador',
+        project=project,
+        client_user=project.client,
+        folder=folder,
+    )
+
+    manifest = build_manifest()
+
+    action = next(
+        row for row in manifest['actions']
+        if row.get('document_id') == document.id
+    )
+    assert action['type'] == 'document_conflict'
+    assert 'no se moverá por inferencia' in action['reason']
 
 
 def test_apply_adopts_reviewed_folder_relationships(tmp_path):

@@ -18,6 +18,10 @@ from content.services.document_type_codes import (
     COLLECTION_ACCOUNT,
     COMMERCIAL_PROPOSAL,
 )
+from content.services.project_document_folder_service import (
+    project_category_system_key,
+    require_project_folder,
+)
 
 
 MONTH_NAMES_ES = (
@@ -39,6 +43,11 @@ MONTH_NAMES_ES = (
 DOCUMENT_KIND_LABELS = {
     COLLECTION_ACCOUNT: ('Cuentas de cobro', 10),
     COMMERCIAL_PROPOSAL: ('Propuestas comerciales', 20),
+}
+
+PROJECT_DOCUMENT_KIND_LABELS = {
+    COLLECTION_ACCOUNT: ('Cuentas de cobro', 10),
+    COMMERCIAL_PROPOSAL: ('Propuestas', 20),
 }
 
 
@@ -96,15 +105,6 @@ def build_generated_folder_path(
 
     if project is not None:
         owner_key = f'generated:project:{project.pk}'
-        levels.extend((
-            FolderLevel('generated:projects', 'Proyectos', order=10),
-            FolderLevel(
-                owner_key,
-                _folder_name(project.name, f'Proyecto {project.pk}'),
-                project=project,
-                client_user=effective_client,
-            ),
-        ))
     elif effective_client is not None:
         owner_key = f'generated:client:{effective_client.pk}:unassigned'
         levels.extend((
@@ -126,8 +126,15 @@ def build_generated_folder_path(
             FolderLevel(owner_key, 'Sin clasificar', order=30),
         )
 
-    kind_label, kind_order = DOCUMENT_KIND_LABELS[document_kind]
-    kind_key = f'{owner_key}:{document_kind}'
+    kind_catalog = (
+        PROJECT_DOCUMENT_KIND_LABELS
+        if project is not None else DOCUMENT_KIND_LABELS
+    )
+    kind_label, kind_order = kind_catalog[document_kind]
+    kind_key = (
+        project_category_system_key(project.pk, document_kind)
+        if project is not None else f'{owner_key}:{document_kind}'
+    )
     levels.append(FolderLevel(
         kind_key,
         kind_label,
@@ -183,9 +190,13 @@ def build_generated_folder_path(
 
 def describe_generated_folder_path(*args, **kwargs):
     """Human-readable path used by previews and dry-run commands."""
-    return ' / '.join(
-        level.name for level in build_generated_folder_path(*args, **kwargs)
+    levels = build_generated_folder_path(*args, **kwargs)
+    project = kwargs.get('project')
+    prefix = (
+        ('Proyectos', _folder_name(project.name, f'Proyecto {project.pk}'))
+        if project is not None else ()
     )
+    return ' / '.join((*prefix, *(level.name for level in levels)))
 
 
 def _ensure_level(level, parent):
@@ -223,10 +234,32 @@ def _ensure_level(level, parent):
 
 @transaction.atomic
 def ensure_generated_folder_path(*args, **kwargs):
-    parent = None
+    project = kwargs.get('project')
+    parent = require_project_folder(project) if project is not None else None
     for level in build_generated_folder_path(*args, **kwargs):
         parent = _ensure_level(level, parent)
+    if project is not None:
+        _remove_empty_legacy_project_containers(project)
     return parent
+
+
+def _remove_empty_legacy_project_containers(project):
+    """Retire the obsolete parallel project wrappers after their last move."""
+    legacy_project = DocumentFolder.objects.filter(
+        system_key=f'generated:project:{project.pk}',
+    ).first()
+    if legacy_project is not None and not (
+        legacy_project.children.exists() or legacy_project.documents.exists()
+    ):
+        legacy_project.delete()
+
+    legacy_root = DocumentFolder.objects.filter(
+        system_key='generated:projects',
+    ).first()
+    if legacy_root is not None and not (
+        legacy_root.children.exists() or legacy_root.documents.exists()
+    ):
+        legacy_root.delete()
 
 
 def collection_account_concept(document):
