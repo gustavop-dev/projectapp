@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-30 — Catálogo de módulos adicionales ampliado y listo para integrar:**
+el inventario crece de 18 a 23 módulos con CRM, agendamiento, membresías,
+autoservicio del cliente y fidelización/referidos, usando las cinco categorías y
+el esquema bilingüe existentes. Panel, catálogo público y enlaces compartidos
+permiten cambiar explícitamente entre español e inglés; estos últimos parten del
+idioma elegido por el autor. Tarjetas, lista y acordeón comparten el mismo
+detalle, y la preferencia se recuerda por separado para panel y público. Los PDF
+usan el idioma activo, omiten precios y pueden llevar un destinatario/cliente
+opcional desde el panel; el dato se escapa y no se persiste en esa descarga. Los
+nueve flows afectados quedan cubiertos en success/display/failure según
+corresponde, sin brechas ni `junk-only` del módulo.
+
 **2026-08-29 — Gestor Documental navegable por proyecto o cliente:** Documentos
 reutiliza el interruptor segmentado de Comunicaciones sobre la lista lateral y
 recuerda la elección por cuenta. Ambos modos incluyen sólo entidades con

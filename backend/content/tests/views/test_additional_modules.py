@@ -385,6 +385,42 @@ def test_admin_pdf_respects_selected_modules(catalog, staff_client):
     assert all(currency not in text for currency in ('$', 'COP', 'USD'))
 
 
+def test_admin_pdf_prints_optional_recipient(catalog, staff_client):
+    """Render the optional client label on the PDF cover."""
+    _commerce, _experience, landing, _pwa = catalog
+
+    response = staff_client.post(
+        '/api/additional-modules/admin/pdf/',
+        {
+            'language': 'es',
+            'module_ids': [landing.id],
+            'recipient_label': 'Acme & Asociados',
+        },
+        format='json',
+    )
+
+    text = '\n'.join(
+        page.extract_text() or ''
+        for page in PdfReader(BytesIO(response.content)).pages
+    )
+    assert 'PREPARADO PARA' in text
+    assert 'Acme & Asociados' in text
+
+
+def test_public_share_catalog_accepts_viewer_language(catalog, staff_client):
+    _commerce, _experience, landing, _pwa = catalog
+    share = create_share(staff_client.user, [landing], language='es')
+
+    response = APIClient().get(
+        f'/api/additional-modules/public/shares/{share.uuid}/?lang=en',
+    )
+
+    assert response.status_code == 200
+    assert response.data['language'] == 'en'
+    assert response.data['categories'][0]['modules'][0]['name'] == landing.name_en
+    assert response.data['canonical_path'] == '/en-us/additional-modules'
+
+
 def test_public_share_pdf_uses_the_fixed_module_selection(catalog, staff_client):
     """Falla si el PDF público ignora la selección fija del enlace."""
     _commerce, _experience, landing, _pwa = catalog
@@ -401,7 +437,40 @@ def test_public_share_pdf_uses_the_fixed_module_selection(catalog, staff_client)
     assert response.status_code == 200
     assert response['Content-Type'] == 'application/pdf'
     assert response.content == b'%PDF-public-share'
-    build_pdf.assert_called_once_with(language='es', module_ids=[landing.id])
+    build_pdf.assert_called_once_with(
+        language='es',
+        module_ids=[landing.id],
+        recipient_label='Cliente demo',
+    )
+
+
+def test_public_share_pdf_accepts_viewer_language(catalog, staff_client):
+    """Use the viewer-selected language for a shared PDF response."""
+    _commerce, _experience, landing, _pwa = catalog
+    share = create_share(
+        staff_client.user,
+        [landing],
+        language='es',
+        recipient_label='Acme',
+    )
+
+    with patch(
+        'content.views.additional_modules.AdditionalModulePdfService.build',
+        return_value=b'%PDF-public-share',
+    ) as build_pdf:
+        response = APIClient().get(
+            f'/api/additional-modules/public/shares/{share.uuid}/pdf/?lang=en',
+        )
+
+    assert response.status_code == 200
+    assert response['Content-Disposition'] == (
+        'attachment; filename="additional-modules-catalog.pdf"'
+    )
+    build_pdf.assert_called_once_with(
+        language='en',
+        module_ids=[landing.id],
+        recipient_label='Acme',
+    )
 
 
 def test_unknown_share_returns_not_found(catalog):
@@ -691,6 +760,17 @@ class TestAdditionalModuleCatalogPublicErrors:
         assert response.status_code == 410
         assert response.data['code'] == 'catalog_link_unavailable'
         assert response.data['detail'] == 'No hay módulos activos para generar el PDF.'
+
+    def test_public_share_rejects_unknown_language(self, catalog, staff_client):
+        _commerce, _experience, landing, _pwa = catalog
+        share = create_share(staff_client.user, [landing])
+
+        response = APIClient().get(
+            f'/api/additional-modules/public/shares/{share.uuid}/?lang=fr',
+        )
+
+        assert response.status_code == 400
+        assert response.data['lang'] == ['Usa es o en.']
 
     def test_tracking_rejects_invalid_session_identifier(self, catalog, staff_client):
         """Falla si el seguimiento acepta una sesión con formato inválido."""

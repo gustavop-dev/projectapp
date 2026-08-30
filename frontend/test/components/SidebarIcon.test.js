@@ -18,6 +18,13 @@ describe('SidebarIcon', () => {
     expect(wrapper.findAll('path').length).toBe(2);
   });
 
+  it('renders a dedicated puzzle path for additional modules', () => {
+    const wrapper = mountIcon('puzzle');
+
+    expect(wrapper.findAll('path')).toHaveLength(1);
+    expect(wrapper.find('circle[r="10"]').exists()).toBe(false);
+  });
+
   it('renders the fallback circle for an unrecognized icon name', () => {
     const wrapper = mountIcon('not-a-real-icon');
 

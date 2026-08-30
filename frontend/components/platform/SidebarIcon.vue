@@ -162,6 +162,11 @@
       <line x1="12" y1="22.08" x2="12" y2="12" />
     </template>
 
+    <!-- Puzzle / Additional modules -->
+    <template v-else-if="name === 'puzzle'">
+      <path d="M8.5 3H5a2 2 0 00-2 2v3.5a2.5 2.5 0 010 5V19a2 2 0 002 2h5.5a2.5 2.5 0 015 0H19a2 2 0 002-2v-3.5a2.5 2.5 0 010-5V5a2 2 0 00-2-2h-3.5a2.5 2.5 0 00-5 0h-2z" />
+    </template>
+
     <!-- Send / Proposals -->
     <template v-else-if="name === 'send'">
       <line x1="22" y1="2" x2="11" y2="13" />

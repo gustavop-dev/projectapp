@@ -4,7 +4,7 @@
   "module": "public",
   "roles": ["guest"],
   "priority": "P2",
-  "description": "Visitor downloads the catalog or shared-selection PDF and receives the server's unavailable response when that selection is no longer valid.",
+  "description": "Visitor downloads the full or shared-selection PDF in the active language and receives the server's unavailable response when that selection is no longer valid.",
   "expectedSpecs": 2,
   "outcomes": ["success", "failure"]
 }

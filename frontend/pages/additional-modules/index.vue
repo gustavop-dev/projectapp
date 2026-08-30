@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const { locale, t } = useI18n()
 const runtimeConfig = useRuntimeConfig()
+const switchLocalePath = useSwitchLocalePath()
 const isEnglish = computed(() => locale.value.startsWith('en'))
 const language = computed(() => (isEnglish.value ? 'en' : 'es'))
 const catalog = ref(null)
@@ -33,14 +34,17 @@ const { data: initialCatalog } = await useAsyncData(
 
 if (initialCatalog.value) catalog.value = initialCatalog.value
 
-onMounted(async () => {
+async function loadCatalog() {
   try {
     catalog.value = await $fetch(`/api/additional-modules/public/?lang=${language.value}`)
     liveError.value = false
   } catch {
     liveError.value = !catalog.value || catalog.value.unavailable === true
   }
-})
+}
+
+onMounted(loadCatalog)
+watch(language, loadCatalog)
 
 const canonicalPath = computed(() => (
   isEnglish.value ? '/en-us/additional-modules' : '/es-co/additional-modules'
@@ -109,11 +113,13 @@ const pdfUrl = computed(() => `/api/additional-modules/public/pdf/?lang=${langua
 
 async function retry() {
   liveError.value = false
-  try {
-    catalog.value = await $fetch(`/api/additional-modules/public/?lang=${language.value}`)
-  } catch {
-    liveError.value = true
-  }
+  await loadCatalog()
+}
+
+async function changeLanguage(nextLanguage) {
+  if (nextLanguage === language.value) return
+  const path = switchLocalePath(nextLanguage === 'en' ? 'en-us' : 'es-co')
+  if (path) await navigateTo(path)
 }
 </script>
 
@@ -128,6 +134,8 @@ async function retry() {
       :categories="catalog?.categories || []"
       :total-modules="catalog?.total_modules || 0"
       :download-url="pdfUrl"
+      :language="language"
+      @change-language="changeLanguage"
     />
   </section>
 </template>

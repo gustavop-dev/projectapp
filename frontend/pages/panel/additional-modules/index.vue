@@ -2,13 +2,19 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { get_request } from '~/stores/services/request_http'
 import { useAdditionalModulesStore } from '~/stores/additional_modules'
+import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
 import { usePanelNotify } from '~/composables/usePanelNotify'
+import AdditionalModulesAdminModuleActions from '~/components/AdditionalModules/AdminModuleActions.vue'
+import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
+import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] })
 
 const { locale, t } = useI18n()
+const switchLocalePath = useSwitchLocalePath()
 const store = useAdditionalModulesStore()
 const notify = usePanelNotify()
+const { viewMode } = useAdditionalModulesViewMode('panel')
 
 const moduleFormOpen = ref(false)
 const editingModule = ref(null)
@@ -27,8 +33,10 @@ const clients = ref([])
 const detailOpen = ref(false)
 const detailModule = ref(null)
 const detailOpener = ref(null)
+const expandedModuleId = ref(null)
 
 const isEnglish = computed(() => locale.value.startsWith('en'))
+const language = computed(() => (isEnglish.value ? 'en' : 'es'))
 const orderedCategories = computed(() => [...store.categories].sort((a, b) => a.order - b.order))
 const groupedModules = computed(() => orderedCategories.value.map((category) => ({
   ...category,
@@ -36,6 +44,19 @@ const groupedModules = computed(() => orderedCategories.value.map((category) => 
 })).filter((category) => category.modules.length > 0))
 
 const localized = (value, field) => value?.[`${field}_${isEnglish.value ? 'en' : 'es'}`] || ''
+const localizedModule = (module) => ({
+  ...module,
+  name: localized(module, 'name'),
+  summary: localized(module, 'summary'),
+  what_is: localized(module, 'what_is'),
+  purpose: localized(module, 'purpose'),
+  problems_solved: module?.[`problems_solved_${language.value}`] || [],
+  integrations: module?.[`integrations_${language.value}`] || [],
+  implementation_requirements: module?.[`implementation_requirements_${language.value}`] || [],
+})
+const localizedDetailModule = computed(() => (
+  detailModule.value ? localizedModule(detailModule.value) : null
+))
 
 function humanError(errors, fallbackKey = 'additionalModules.saveError') {
   if (!errors) return t(fallbackKey)
@@ -184,6 +205,16 @@ function openDetail(module, event) {
   detailOpen.value = true
 }
 
+function toggleAccordion(moduleId) {
+  expandedModuleId.value = expandedModuleId.value === moduleId ? null : moduleId
+}
+
+async function changeLanguage(nextLanguage) {
+  if (nextLanguage === language.value) return
+  const path = switchLocalePath(nextLanguage === 'en' ? 'en-us' : 'es-co')
+  if (path) await navigateTo(path)
+}
+
 async function closeDetail() {
   detailOpen.value = false
   detailModule.value = null
@@ -232,6 +263,12 @@ async function closeDetail() {
     />
 
     <div v-else class="space-y-10">
+      <AdditionalModulesCatalogControls
+        v-model="viewMode"
+        :language="language"
+        @change-language="changeLanguage"
+      />
+
       <nav class="flex gap-2 overflow-x-auto pb-2 panel-portrait:flex-wrap" :aria-label="t('additionalModules.title')">
         <a
           v-for="category in groupedModules"
@@ -252,7 +289,7 @@ async function closeDetail() {
           <BaseBadge v-if="!category.is_active" variant="neutral">{{ t('additionalModules.retired') }}</BaseBadge>
           <span class="ml-auto text-sm text-text-muted">{{ category.modules.length }}</span>
         </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div v-if="viewMode === 'cards'" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           <article
             v-for="module in category.modules"
             :key="module.id"
@@ -268,16 +305,99 @@ async function closeDetail() {
             </div>
             <h3 class="mt-4 text-lg font-medium leading-6 text-text-brand">{{ localized(module, 'name') }}</h3>
             <p class="mt-2 flex-1 text-sm leading-6 text-text-muted">{{ localized(module, 'summary') }}</p>
-            <div class="mt-5 flex flex-wrap gap-2">
-              <BaseButton variant="ghost" size="sm" @click="openDetail(module, $event)">{{ t('additionalModules.viewDetails') }}</BaseButton>
-              <BaseButton variant="secondary" size="sm" @click="openEditModule(module)">{{ t('additionalModules.edit') }}</BaseButton>
-              <BaseButton
-                :variant="module.is_active ? 'danger-ghost' : 'secondary'"
-                size="sm"
-                @click="changeModuleStatus(module)"
-              >
-                {{ module.is_active ? t('additionalModules.retire') : t('additionalModules.restore') }}
-              </BaseButton>
+            <AdditionalModulesAdminModuleActions
+              class="mt-5"
+              :module="module"
+              @detail="openDetail(module, $event)"
+              @edit="openEditModule(module)"
+              @status="changeModuleStatus(module)"
+            />
+          </article>
+        </div>
+
+        <div
+          v-else-if="viewMode === 'list'"
+          class="space-y-3"
+          :data-testid="`additional-admin-list-${category.slug}`"
+        >
+          <article
+            v-for="module in category.modules"
+            :key="module.id"
+            class="flex min-w-0 flex-col gap-4 rounded-xl border border-border-default bg-surface p-4 shadow-card panel-portrait:flex-row panel-portrait:items-center"
+            :class="!module.is_active ? 'opacity-70' : ''"
+            :data-testid="`additional-admin-module-${module.id}`"
+          >
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-xl" aria-hidden="true">
+              {{ module.icon || '＋' }}
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="break-words text-lg font-medium text-text-brand">{{ localized(module, 'name') }}</h3>
+                <BaseBadge :variant="module.is_active ? 'success' : 'neutral'">
+                  {{ module.is_active ? t('additionalModules.active') : t('additionalModules.retired') }}
+                </BaseBadge>
+              </div>
+              <p class="mt-1 break-words text-sm leading-6 text-text-muted">{{ localized(module, 'summary') }}</p>
+            </div>
+            <AdditionalModulesAdminModuleActions
+              class="shrink-0"
+              :module="module"
+              @detail="openDetail(module, $event)"
+              @edit="openEditModule(module)"
+              @status="changeModuleStatus(module)"
+            />
+          </article>
+        </div>
+
+        <div
+          v-else
+          class="space-y-3"
+          :data-testid="`additional-admin-accordion-${category.slug}`"
+        >
+          <article
+            v-for="module in category.modules"
+            :key="module.id"
+            class="overflow-hidden rounded-xl border border-border-default bg-surface shadow-card"
+            :class="!module.is_active ? 'opacity-70' : ''"
+            :data-testid="`additional-admin-module-${module.id}`"
+          >
+            <!-- design-tokens: allow-raw-button — disclosure header owns aria-expanded. -->
+            <button
+              type="button"
+              class="flex min-h-16 w-full min-w-0 items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-surface-raised focus:ring-2 focus:ring-inset focus:ring-focus-ring/40"
+              :aria-expanded="expandedModuleId === module.id"
+              :aria-controls="`additional-admin-accordion-panel-${module.id}`"
+              :data-testid="`additional-admin-accordion-trigger-${module.id}`"
+              @click="toggleAccordion(module.id)"
+            >
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-xl" aria-hidden="true">
+                {{ module.icon || '＋' }}
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="flex flex-wrap items-center gap-2">
+                  <span class="break-words text-lg font-medium text-text-brand">{{ localized(module, 'name') }}</span>
+                  <BaseBadge :variant="module.is_active ? 'success' : 'neutral'">
+                    {{ module.is_active ? t('additionalModules.active') : t('additionalModules.retired') }}
+                  </BaseBadge>
+                </span>
+                <span class="mt-1 block break-words text-sm leading-6 text-text-muted">{{ localized(module, 'summary') }}</span>
+              </span>
+              <span class="shrink-0 text-xl text-text-brand" aria-hidden="true">
+                {{ expandedModuleId === module.id ? '−' : '+' }}
+              </span>
+            </button>
+            <div
+              v-show="expandedModuleId === module.id"
+              :id="`additional-admin-accordion-panel-${module.id}`"
+              class="space-y-5 border-t border-border-default p-4 sm:p-6"
+            >
+              <AdditionalModulesModuleDetails :module="localizedModule(module)" />
+              <AdditionalModulesAdminModuleActions
+                :module="module"
+                @detail="openDetail(module, $event)"
+                @edit="openEditModule(module)"
+                @status="changeModuleStatus(module)"
+              />
             </div>
           </article>
         </div>
@@ -329,12 +449,12 @@ async function closeDetail() {
     />
 
     <BaseModal v-model="detailOpen" kind="detail" padding="none" @close="closeDetail">
-      <div v-if="detailModule" class="flex min-h-0 flex-col">
+      <div v-if="localizedDetailModule" class="flex min-h-0 flex-col">
         <header class="flex items-start justify-between gap-4 border-b border-border-default px-5 py-5 sm:px-7">
           <div>
-            <span class="text-2xl" aria-hidden="true">{{ detailModule.icon }}</span>
-            <h2 class="mt-2 text-2xl font-light text-text-brand">{{ localized(detailModule, 'name') }}</h2>
-            <p class="mt-2 text-sm leading-6 text-text-muted">{{ localized(detailModule, 'summary') }}</p>
+            <span class="text-2xl" aria-hidden="true">{{ localizedDetailModule.icon }}</span>
+            <h2 class="mt-2 text-2xl font-light text-text-brand">{{ localizedDetailModule.name }}</h2>
+            <p class="mt-2 text-sm leading-6 text-text-muted">{{ localizedDetailModule.summary }}</p>
           </div>
           <BaseActionButton
             action="close"
@@ -342,15 +462,8 @@ async function closeDetail() {
             @click="closeDetail"
           />
         </header>
-        <div class="grid gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-7">
-          <BaseCard><h3 class="font-medium text-text-brand">{{ t('additionalModules.whatIs') }}</h3><p class="mt-2 text-sm leading-6 text-text-muted">{{ localized(detailModule, 'what_is') }}</p></BaseCard>
-          <BaseCard><h3 class="font-medium text-text-brand">{{ t('additionalModules.purpose') }}</h3><p class="mt-2 text-sm leading-6 text-text-muted">{{ localized(detailModule, 'purpose') }}</p></BaseCard>
-          <BaseCard v-for="field in ['problems_solved', 'integrations', 'implementation_requirements']" :key="field" :class="field === 'implementation_requirements' ? 'sm:col-span-2' : ''">
-            <h3 class="font-medium text-text-brand">{{ t(`additionalModules.${field === 'problems_solved' ? 'problemsSolved' : field === 'integrations' ? 'integrations' : 'requirements'}`) }}</h3>
-            <ul class="mt-2 space-y-2 text-sm leading-6 text-text-muted">
-              <li v-for="item in detailModule[`${field}_${isEnglish ? 'en' : 'es'}`]" :key="item" class="flex gap-2"><span aria-hidden="true">•</span><span>{{ item }}</span></li>
-            </ul>
-          </BaseCard>
+        <div class="overflow-y-auto p-5 sm:p-7">
+          <AdditionalModulesModuleDetails :module="localizedDetailModule" />
         </div>
       </div>
     </BaseModal>

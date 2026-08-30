@@ -7,6 +7,12 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-30 — idioma y presentación son preferencias distintas:**
+> el locale gobierna los datos que entrega el servidor y la vista sólo gobierna
+> cómo se recorren. Un enlace compartido puede proponer el idioma inicial sin
+> bloquear al lector; tarjetas/lista/acordeón deben consumir el mismo detalle y
+> persistirse por ámbito para que el panel no altere la experiencia pública.
+
 > **Lección 2026-08-29 — el error pertenece al campo:** un formulario no debe
 > resumir junto al CTA lo que puede señalar exactamente en el control. La misma
 > fuente del mensaje debe gobernar borde, relación ARIA y limpieza al editar;
@@ -1502,3 +1508,16 @@ Remembering order is a separate navigation contract. Resolve it predictably as
 explicit URL, then active saved view, then validated browser preference, then
 the product default. Persist only the small allow-listed token, never the whole
 reactive filter object.
+
+## 63. Bilingual content and presentation mode are orthogonal state
+
+The active locale chooses the server projection and the PDF language; it must
+not be inferred from whether the content arrived through the canonical catalog
+or a shared link. A share can supply an author-selected default while still
+letting the reader request the other locale from the same immutable selection.
+
+Cards, list and accordion are projections over one detail contract, not three
+content stores. Persist only an allow-listed mode and namespace it by surface so
+an operator's dense panel preference cannot surprise a public visitor. For
+Nuxt E2E, treat an enabled interactive control as the hydration boundary before
+clicking links that rely on client-side routing.

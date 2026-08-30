@@ -70,9 +70,16 @@ def _pdf_response(pdf_bytes, language):
     return response
 
 
-def _language_from_query(request):
-    language = request.query_params.get('lang', 'es')
+def _language_from_query(request, *, default='es'):
+    language = request.query_params.get('lang', default)
     return language if language in ('es', 'en') else None
+
+
+def _invalid_language_response():
+    return Response(
+        {'lang': ['Usa es o en.']},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 def _active_share_or_response(share_uuid):
@@ -312,6 +319,7 @@ def admin_catalog_pdf(request):
     pdf_bytes = AdditionalModulePdfService.build(
         language=language,
         module_ids=module_ids,
+        recipient_label=serializer.validated_data['recipient_label'],
     )
     return _pdf_response(pdf_bytes, language)
 
@@ -322,10 +330,7 @@ def admin_catalog_pdf(request):
 def public_catalog(request):
     language = _language_from_query(request)
     if language is None:
-        return Response(
-            {'lang': ['Usa es o en.']},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return _invalid_language_response()
     payload = serialize_public_catalog(language=language)
     payload.update({
         'is_shared': False,
@@ -344,10 +349,7 @@ def public_catalog(request):
 def public_catalog_pdf(request):
     language = _language_from_query(request)
     if language is None:
-        return Response(
-            {'lang': ['Usa es o en.']},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return _invalid_language_response()
     try:
         pdf_bytes = AdditionalModulePdfService.build(language=language)
     except ValueError as exc:
@@ -363,8 +365,11 @@ def public_share_catalog(request, share_uuid):
     if unavailable:
         return unavailable
     share_link, module_ids = resolved
+    language = _language_from_query(request, default=share_link.language)
+    if language is None:
+        return _invalid_language_response()
     payload = serialize_public_catalog(
-        language=share_link.language,
+        language=language,
         module_ids=module_ids,
     )
     payload.update({
@@ -372,7 +377,7 @@ def public_share_catalog(request, share_uuid):
         'share_uuid': str(share_link.uuid),
         'canonical_path': (
             '/en-us/additional-modules'
-            if share_link.language == 'en'
+            if language == 'en'
             else '/es-co/additional-modules'
         ),
     })
@@ -413,8 +418,12 @@ def public_share_catalog_pdf(request, share_uuid):
     if unavailable:
         return unavailable
     share_link, module_ids = resolved
+    language = _language_from_query(request, default=share_link.language)
+    if language is None:
+        return _invalid_language_response()
     pdf_bytes = AdditionalModulePdfService.build(
-        language=share_link.language,
+        language=language,
         module_ids=module_ids,
+        recipient_label=share_link.recipient_label,
     )
-    return _pdf_response(pdf_bytes, share_link.language)
+    return _pdf_response(pdf_bytes, language)

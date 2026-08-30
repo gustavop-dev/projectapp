@@ -25,11 +25,15 @@
 > tipo, tamaño y procedencia documental. `EmailLog.snapshot` y la relación
 > protegida con `Document` permiten navegar y auditar la entrega en ambos sentidos.
 
-> **Estado 2026-08-28 — implementado:** el dominio `AdditionalModule` separa
-> categorías, módulos, enlaces compartidos y aperturas únicas por sesión. El
-> panel usa sesión/CSRF; el índice público y los enlaces seleccionados usan
-> contratos REST de sólo lectura, con tracking first-party y generación PDF en
-> el backend. Esta primera versión no expone el catálogo mediante MCP.
+> **Ampliación 2026-08-30:** el dominio `AdditionalModule` mantiene categorías,
+> módulos, enlaces compartidos y aperturas únicas por sesión. El parámetro
+> `lang` selecciona la proyección ES/EN en catálogo y PDF; un enlace compartido
+> usa su idioma de autor como valor inicial, pero admite cambio local del lector.
+> `useAdditionalModulesViewMode` conserva tarjetas/lista/acordeón en claves de
+> navegador separadas para panel y público. `AdditionalModulePdfService` recibe
+> un destinatario efímero, lo escapa y no lo persiste; los enlaces sí reutilizan
+> el destinatario ya guardado. La migración `content.0229` incorpora cinco
+> módulos al esquema existente, sin ampliar modelos ni exponer MCP.
 
 ## 1. System Overview
 
