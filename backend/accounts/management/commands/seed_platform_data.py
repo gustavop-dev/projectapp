@@ -341,7 +341,7 @@ class Command(BaseCommand):
             name='App Móvil Inventarios',
             description='Aplicación móvil para gestión de inventario en tiempo real con lector de códigos de barras y sincronización con ERP.',
             client=client_user,
-            status=Project.STATUS_PAUSED,
+            status=Project.STATUS_SUSPENDED,
             progress=15,
             start_date=today - timedelta(days=10),
             estimated_end_date=today + timedelta(days=120),

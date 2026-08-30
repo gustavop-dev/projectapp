@@ -31,7 +31,7 @@ def migrated_legacy_projects():
     )
     Project.objects.bulk_create([
         Project(name='Operando', client=client, status=Project.STATUS_ACTIVE),
-        Project(name='En pausa', client=client, status=Project.STATUS_PAUSED),
+        Project(name='En pausa', client=client, status='paused'),
         Project(name='Cerrado bien', client=client, status=Project.STATUS_COMPLETED),
         Project(name='Archivo ambiguo', client=client, status=Project.STATUS_ARCHIVED),
     ])
