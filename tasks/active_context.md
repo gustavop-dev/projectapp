@@ -23,6 +23,14 @@ queda verde con 7 pruebas unitarias, los 13 escenarios E2E de Comunicaciones y
 el guard de tokens; el escenario modificado pasó en el primer intento. El mapa
 está fresco y la auditoría conserva 0 `junk-only` y 0 faltantes.
 
+**2026-08-30 — Tarjetas compactas del ciclo de proyectos listas:** los estados
+no nulos de `/panel/projects` usan una fila horizontal de 72–80 px: nombre a la
+izquierda, conteo y filtro a la derecha y ayuda en un track propio de 48 px. La
+línea de apoyo ausente ya no reserva altura y el `?` deja de depender de posición
+absoluta. Pendientes operativos y los dos resúmenes de 412/835 conservan el
+layout apilado. Pasan 19 unitarias, la interacción de ayuda y las geometrías de
+1195/1440/2560; el flow-map permanece fresco.
+
 **2026-08-29 — Gestor Documental navegable por proyecto o cliente:** Documentos
 reutiliza el interruptor segmentado de Comunicaciones sobre la lista lateral y
 recuerda la elección por cuenta. Ambos modos incluyen sólo entidades con

@@ -185,6 +185,12 @@ authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 - State filters and header counts come from the live catalog. **Clientes sin
   proyecto** remains literal: a client with no `Project` row, regardless of the
   lifecycle state of projects owned by other clients.
+- From the landscape profile onward, each non-zero lifecycle state is a compact
+  horizontal card no taller than 80 px: state identity stays left, count and
+  filter affordance stay right, and contextual help owns a separate 44 px target
+  inside the card boundary. Missing support copy reserves no blank row. Compact
+  screens retain the two drawer-backed summaries, and operational pending cards
+  retain their support line.
 
 #### Project Schedule Tracking (Cronograma)
 

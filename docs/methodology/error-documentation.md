@@ -931,6 +931,25 @@ contracts, not conventions repeated in individual commands.
   entidad nombrada ahí debe aparecer en el predicado compartido y en una
   regresión observable.
 
+### [ERR-038] La ayuda invadía las tarjetas del ciclo de proyectos
+
+- **Date**: 2026-08-30
+- **Context**: En los perfiles expandidos, cada estado mostraba apenas nombre,
+  conteo y acciones dentro de una tarjeta de hasta 9.5 rem. El botón `?`,
+  posicionado de forma absoluta, podía verse superpuesto o salido de la tarjeta.
+- **Root Cause**: El único layout de `BaseIndicatorCard` reservaba tres filas,
+  incluida una línea de apoyo vacía, y ubicaba ayuda y acción fuera del flujo.
+- **Resolution**: Añadir el layout opt-in `compact-horizontal`: una fila de
+  72–80 px para estado y conteo/filtro, más una columna propia de 48 px para la
+  ayuda. Proyectos lo usa sólo en los estados del ciclo; Pendientes y los
+  resúmenes compactos conservan el layout apilado.
+- **Files Affected**: primitive y wrapper de indicadores, página de Proyectos,
+  pruebas unitarias/E2E y contrato documentado del flow.
+- **Verification**: 19 unitarias; ayuda sin activar el filtro; geometría sin
+  solapamiento en 1195, 1440 y 2560 px; flow-map fresco.
+- **Lesson**: Un target táctil hermano no debe flotar sobre contenido variable.
+  Cuando la ayuda forma parte estable de una tarjeta, necesita un track propio.
+
 ### [ERR-045] El flujo del catálogo actuaba antes de hidratar Nuxt
 
 - **Date**: 2026-08-30
