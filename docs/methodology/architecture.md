@@ -302,7 +302,7 @@ branch before removing its now-empty parallel wrappers.
 | **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
 | **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, **email_verified, email_verified_at**, is_active |
 | **VerificationCode** | OTP codes (login + email validation) | user_fk, code, purpose, expires_at, is_used |
-| **SavedFilterTab** | Persisted admin filter tabs | user_fk, scope, name, filters_json, order |
+| **SavedFilterTab** | Persisted admin filter tabs | user_fk, view, name, filters, base_filters, order |
 | **Project** | Client project in platform with a real lifecycle | client_fk, name, description, current_state FK, state_review_required, compatibility status mirror (development/active/paused/suspended/completed/decommissioned; archived only for legacy review), progress, dates, payment/hosting snapshots and operational URLs/credentials |
 | **ProjectPhase** | Execution phase of a project (from an accepted proposal) | project_fk, business_proposal_fk (unique per project), order, hosting_start_date, hosting_activated_at |
 | **ProjectScopeItem** | Scope grouping mirrored from proposal FR groups | phase_fk, title, description, kind, order, archived. Chain: Project → ProjectPhase → ProjectScopeItem → Requirement |
@@ -1151,8 +1151,9 @@ detached from the project rather than reassigned.
 Read navigation has one shared boundary. The panel sends its project/client
 selection, multi-value filters and order to `communication_query_service`; the
 REST view returns both rows and facets, while the MCP scalar inputs are normalized
-through the same parser. Filters within one dimension are OR and dimensions are
-AND. Channel, direction, message status and date are correlated against one
+through the same parser. Its text query covers thread title, client, project name,
+message subject and content. Filters within one dimension are OR and dimensions
+are AND. Channel, direction, message status and date are correlated against one
 message instead of being satisfied by unrelated messages in the same thread.
 The list URL owns that state and `thread=<id>` opens the selected conversation in
 a workspace modal, preserving the list when the modal closes or browser Back is
