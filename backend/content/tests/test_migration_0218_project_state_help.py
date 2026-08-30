@@ -61,7 +61,7 @@ def test_data_migration_fills_custom_state_help_from_its_effect():
         description='',
         color=DocumentState.Color.YELLOW,
         group=group,
-        operational_effect=DocumentState.OperationalEffect.PAUSED,
+        operational_effect='paused',
     )
 
     run_data_migration()

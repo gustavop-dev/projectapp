@@ -48,14 +48,14 @@ const mockProjects = [
     id: 2,
     name: 'Mobile App MVP',
     description: 'React Native mobile application',
-    status: 'paused',
-    status_label: 'Pausado',
+    status: 'suspended',
+    status_label: 'Suspendido',
     current_state: {
       id: 3,
-      name: 'Pausado',
-      system_key: 'paused',
-      operational_effect: 'paused',
-      color: 'yellow',
+      name: 'Suspendido',
+      system_key: 'suspended',
+      operational_effect: 'suspended',
+      color: 'orange',
     },
     progress: 20,
     client_id: 9002,
@@ -119,7 +119,7 @@ test.describe('Platform Project List — Admin', () => {
       page.getByTestId('project-row-1').getByText('Activo', { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByTestId('project-row-2').getByText('Pausado', { exact: true }),
+      page.getByTestId('project-row-2').getByText('Suspendido', { exact: true }),
     ).toBeVisible();
     // Merged from the deleted 'shows Nuevo proyecto button for admin' test
     // (same route/mocks, redundant standalone test).
@@ -134,7 +134,7 @@ test.describe('Platform Project List — Admin', () => {
 
     await expect(page.getByRole('button', { name: 'Todos', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Activo', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Pausado', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Suspendido', exact: true })).toBeVisible();
 
     await expect(page.getByText('E-commerce Platform')).toBeVisible();
     await expect(page.getByText('Mobile App MVP')).toBeVisible();

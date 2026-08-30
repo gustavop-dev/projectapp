@@ -9,7 +9,6 @@ const stateStore = useProjectStateStore();
 const operationalEffects = [
   { value: 'development', label: 'En construcción' },
   { value: 'operating', label: 'Operando y cobrable' },
-  { value: 'paused', label: 'Pausa reversible' },
   { value: 'suspended', label: 'Suspendido por servicio' },
   { value: 'completed', label: 'Cierre correcto' },
   { value: 'decommissioned', label: 'Baja definitiva' },

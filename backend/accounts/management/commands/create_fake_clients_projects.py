@@ -33,7 +33,6 @@ PROJECT_LIFECYCLE_KEYS = (
     'development',
     'active',
     'evolving',
-    'paused',
     'suspended',
     'completed',
     'decommissioned',

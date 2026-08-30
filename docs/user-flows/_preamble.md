@@ -199,14 +199,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/platform/projects`
 - **API:** `GET /api/accounts/projects/`, `POST /api/accounts/projects/`
-- **Description:** Project listing with status filters and role-based views.
+- **Description:** Project listing with catalog-derived state filters and role-based views.
 - **Steps:**
   1. User navigates to `/platform/projects`.
   2. API fetches projects (admin: all; client: own projects only).
   3. Project cards render in a grid with name, client, status badge, progress bar, and dates.
   4. User clicks a project card → navigates to `/platform/projects/:id`.
 - **Branches:**
-  - [Branch A — Admin filters] Admin sees status filter tabs (Todos/Activos/Pausados/Completados/Archivados) → filters refetch from API with `?status=` param.
+  - [Branch A — Admin filters] Admin sees Todos plus the states present in the returned projects (including Suspendido when applicable) and filters the loaded rows by canonical state id.
   - [Branch B — Admin create] Admin clicks "Nuevo proyecto" → create project modal opens (see `platform-admin-project-create`).
   - [Branch C — Empty state] No projects → empty state message renders.
   - [Branch D — Client view] Client sees only their assigned projects without create button.
