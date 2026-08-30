@@ -5981,7 +5981,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
-| `admin-additional-modules-catalog` | admin | P1 | display,failure | 2 |
+| `admin-additional-modules-catalog` | admin | P1 | success,display,failure | 5 |
 | `admin-additional-modules-manage` | admin | P1 | success,error,failure | 4 |
 | `admin-additional-modules-pdf` | admin | P2 | success,failure | 2 |
 | `admin-additional-modules-reorder` | admin | P2 | success,failure | 2 |
@@ -6291,10 +6291,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-view-paste-rendering` | proposal | P2 | display | 1 |
 | `proposal-welcome-back` | proposal | P2 | success,display | 1 |
 | `public-about-us` | public | P3 | — | 0 |
-| `public-additional-modules-catalog` | public | P1 | display,failure | 2 |
+| `public-additional-modules-catalog` | public | P1 | success,display,failure | 5 |
 | `public-additional-modules-detail` | public | P1 | success | 1 |
 | `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
-| `public-additional-modules-share` | public | P1 | display,failure | 2 |
+| `public-additional-modules-share` | public | P1 | success,display,failure | 3 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
@@ -7128,8 +7128,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P1
 - **Route:** `/panel/additional-modules`
-- **Interaction:** Navigate from the panel sidebar, read the grouped catalog and retry a failed initial request.
-- **Outcomes:** `display`, `failure`
+- **Interaction:** Navigate from the panel sidebar, switch Spanish/English content, choose card/list/accordion presentation and retry a failed initial request. The chosen presentation is remembered for the panel surface.
+- **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** `frontend/pages/panel/additional-modules/index.vue`, `GET /api/additional-modules/admin/`
 
 ### FLOW: `admin-additional-modules-manage`
@@ -7148,7 +7148,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** admin
 - **Priority:** P2
 - **Route:** `/panel/additional-modules`
-- **Interaction:** Select catalog modules and download the generated PDF without prices.
+- **Interaction:** Select catalog modules, document language and an optional client recipient, then download the personalized PDF without prices.
 - **Outcomes:** `success`, `failure`
 - **Evidence:** PDF selection modal and `POST /api/additional-modules/admin/pdf/`.
 
@@ -7411,8 +7411,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P1
 - **Route:** `/:locale/additional-modules`
-- **Interaction:** Follow the footer link and read active modules grouped in the live catalog order; retry a failed live request.
-- **Outcomes:** `display`, `failure`
+- **Interaction:** Follow the footer link, read active modules in Spanish or English, choose card/list/accordion presentation and retry a failed live request. The chosen presentation is remembered separately from the panel.
+- **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** public catalog page/component and `GET /api/additional-modules/public/`.
 
 ### FLOW: `public-additional-modules-detail`
@@ -7431,7 +7431,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P2
 - **Routes:** canonical catalog and shared selection
-- **Interaction:** Download the full or selected no-price PDF; unavailable shares return 410.
+- **Interaction:** Download the full or selected no-price PDF in the active catalog language; unavailable shares return 410.
 - **Outcomes:** `success`, `failure`
 - **Evidence:** public PDF endpoints and the shared/catalog download control.
 
@@ -7441,6 +7441,6 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P1
 - **Route:** `/:locale/additional-modules/share/:uuid`
-- **Interaction:** Open a prepared selection, record one first-party browser session and read only selected live modules; revoked/empty selections show an unavailable state.
-- **Outcomes:** `display`, `failure`
+- **Interaction:** Open a prepared selection, record one first-party browser session, read only selected live modules and switch between Spanish and English; revoked/empty selections show an unavailable state.
+- **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** share page, public share and tracking endpoints.

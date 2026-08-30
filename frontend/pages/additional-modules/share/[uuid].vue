@@ -1,14 +1,17 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const route = useRoute()
 const { locale, t } = useI18n()
+const switchLocalePath = useSwitchLocalePath()
 const catalog = ref(null)
 const isLoading = ref(true)
 const errorState = ref('')
 
 const shareUuid = computed(() => String(route.params.uuid || ''))
-const endpoint = computed(() => `/api/additional-modules/public/shares/${shareUuid.value}/`)
+const language = computed(() => (locale.value.startsWith('en') ? 'en' : 'es'))
+const shareEndpoint = computed(() => `/api/additional-modules/public/shares/${shareUuid.value}/`)
+const catalogEndpoint = computed(() => `${shareEndpoint.value}?lang=${language.value}`)
 
 function sessionId() {
   const key = `additional-modules-share-session:${shareUuid.value}`
@@ -24,7 +27,7 @@ async function loadCatalog() {
   isLoading.value = true
   errorState.value = ''
   try {
-    catalog.value = await $fetch(endpoint.value)
+    catalog.value = await $fetch(catalogEndpoint.value)
   } catch (error) {
     errorState.value = error?.status === 410 || error?.statusCode === 410
       ? 'gone'
@@ -37,11 +40,13 @@ async function loadCatalog() {
 onMounted(async () => {
   await loadCatalog()
   if (!catalog.value) return
-  $fetch(`${endpoint.value}track/`, {
+  $fetch(`${shareEndpoint.value}track/`, {
     method: 'POST',
     body: { session_id: sessionId() },
   }).catch(() => {})
 })
+
+watch(language, loadCatalog)
 
 const canonicalPath = computed(() => (
   catalog.value?.canonical_path
@@ -70,8 +75,14 @@ useHead(() => ({
 }))
 
 const pdfUrl = computed(() => (
-  `/api/additional-modules/public/shares/${shareUuid.value}/pdf/`
+  `/api/additional-modules/public/shares/${shareUuid.value}/pdf/?lang=${language.value}`
 ))
+
+async function changeLanguage(nextLanguage) {
+  if (nextLanguage === language.value) return
+  const path = switchLocalePath(nextLanguage === 'en' ? 'en-us' : 'es-co')
+  if (path) await navigateTo(path)
+}
 </script>
 
 <template>
@@ -93,7 +104,9 @@ const pdfUrl = computed(() => (
       :categories="catalog?.categories || []"
       :total-modules="catalog?.total_modules || 0"
       :download-url="pdfUrl"
+      :language="language"
       is-shared
+      @change-language="changeLanguage"
     />
   </section>
 </template>

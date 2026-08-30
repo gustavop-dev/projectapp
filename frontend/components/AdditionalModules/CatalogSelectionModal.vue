@@ -13,10 +13,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const selectedIds = ref([])
 const localError = ref('')
 const copied = ref(false)
+const autoRecipientLabel = ref('')
 const form = reactive({ recipient_label: '', client_id: '', language: 'es' })
 
 const activeModules = computed(() => props.modules.filter((module) => (
@@ -39,10 +40,25 @@ watch(() => props.modelValue, (open) => {
   selectedIds.value = props.mode === 'pdf' ? activeModules.value.map((module) => module.id) : []
   form.recipient_label = ''
   form.client_id = ''
-  form.language = 'es'
+  form.language = locale.value.startsWith('en') ? 'en' : 'es'
   localError.value = ''
   copied.value = false
+  autoRecipientLabel.value = ''
 })
+
+const localized = (value, field) => value?.[`${field}_${form.language}`] || ''
+
+function selectClient(clientId) {
+  const canAutofill = !form.recipient_label.trim()
+    || form.recipient_label === autoRecipientLabel.value
+  form.client_id = clientId
+  const selected = props.clients.find((client) => String(client.id) === String(clientId))
+  const label = selected
+    ? [selected.name, selected.company].filter(Boolean).join(' · ') || selected.email
+    : ''
+  if (canAutofill) form.recipient_label = label
+  autoRecipientLabel.value = label
+}
 
 function categorySelected(category) {
   return category.modules.every((module) => selectedIds.value.includes(module.id))
@@ -79,6 +95,7 @@ function submit() {
   } : {
     language: form.language,
     module_ids: selectedIds.value,
+    recipient_label: form.recipient_label.trim(),
   })
 }
 
@@ -142,7 +159,7 @@ async function copyGeneratedUrl() {
                   :model-value="categorySelected(category)"
                   @update:model-value="toggleCategory(category, $event)"
                 >
-                  <span class="font-medium">{{ category.name_es }}</span>
+                  <span class="font-medium">{{ localized(category, 'name') }}</span>
                 </BaseCheckbox>
               </div>
               <div class="grid gap-2 p-4 sm:grid-cols-2">
@@ -153,7 +170,7 @@ async function copyGeneratedUrl() {
                   :value="module.id"
                   :data-testid="`additional-select-module-${module.id}`"
                 >
-                  <span class="flex gap-2"><span aria-hidden="true">{{ module.icon }}</span>{{ module.name_es }}</span>
+                  <span class="flex gap-2"><span aria-hidden="true">{{ module.icon }}</span>{{ localized(module, 'name') }}</span>
                 </BaseCheckbox>
               </div>
             </section>
@@ -161,19 +178,24 @@ async function copyGeneratedUrl() {
 
           <aside class="space-y-4 border-t border-border-default bg-surface-raised px-5 py-5 lg:border-l lg:border-t-0 sm:px-7">
             <BaseFormField
-              v-if="mode === 'share'"
               :label="t('additionalModules.recipientLabel')"
               for="additional-share-recipient"
-              required
+              :required="mode === 'share'"
+              :hint="mode === 'pdf' ? t('additionalModules.pdfRecipientHelp') : ''"
             >
               <BaseInput id="additional-share-recipient" v-model="form.recipient_label" data-testid="additional-share-recipient" />
             </BaseFormField>
             <BaseFormField
-              v-if="mode === 'share'"
               :label="t('additionalModules.optionalClient')"
               for="additional-share-client"
             >
-              <BaseSelect id="additional-share-client" v-model="form.client_id" :options="clientOptions" />
+              <BaseSelect
+                id="additional-share-client"
+                data-testid="additional-share-client"
+                :model-value="form.client_id"
+                :options="clientOptions"
+                @update:model-value="selectClient"
+              />
             </BaseFormField>
             <BaseFormField :label="t('additionalModules.language')" for="additional-share-language">
               <BaseSegmented

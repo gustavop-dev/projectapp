@@ -51,6 +51,10 @@ function mountCatalog(props = {}) {
 }
 
 describe('AdditionalModulesCatalogView', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   it('renders the one-screen category index without prices', () => {
     const wrapper = mountCatalog()
 
@@ -93,5 +97,36 @@ describe('AdditionalModulesCatalogView', () => {
 
     expect(wrapper.text()).toContain('additionalModules.emptyTitle')
     expect(wrapper.find('[data-testid^="additional-module-card-"]').exists()).toBe(false)
+  })
+
+  it('shows compact rows after selecting list view', async () => {
+    const wrapper = mountCatalog()
+
+    await wrapper.get('[data-testid="additional-view-list"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="additional-module-list-electronic-invoicing"]').text())
+      .toContain('Facturación electrónica')
+    expect(wrapper.find('[data-testid="additional-module-card-electronic-invoicing"]').exists())
+      .toBe(false)
+  })
+
+  it('reveals module content from the accordion trigger', async () => {
+    const wrapper = mountCatalog()
+    await wrapper.get('[data-testid="additional-view-accordion"]').trigger('click')
+    const trigger = wrapper.get('[data-testid="additional-module-accordion-trigger-electronic-invoicing"]')
+
+    await trigger.trigger('click')
+
+    expect(trigger.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('[data-testid="additional-module-accordion-electronic-invoicing"]').text())
+      .toContain('Credenciales del proveedor')
+  })
+
+  it('requests the selected catalog language', async () => {
+    const wrapper = mountCatalog({ language: 'es' })
+
+    await wrapper.get('[data-testid="additional-language-en"]').trigger('click')
+
+    expect(wrapper.emitted('change-language')).toEqual([['en']])
   })
 })

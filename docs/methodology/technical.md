@@ -19,12 +19,15 @@
 > endpoints administradores `no-store`, el PDF usa el visor compartido y el
 > reenvío sólo admite cambiar destinatario mientras reutiliza la copia archivada.
 
-> **Estado 2026-08-28 — implementado:** el catálogo adicional reutiliza DRF
-> FBV, servicios de dominio, ReportLab, el cliente HTTP del panel y componentes
-> base. La página canónica es indexable y prerenderizada; cada enlace
-> seleccionado lleva `noindex`, selección inmutable y contenido vivo. Los
-> errores JSON de descargas PDF se decodifican aun cuando Axios los entrega como
-> `Blob`, para conservar mensajes accionables.
+> **Actualización 2026-08-30:** el catálogo adicional reutiliza DRF FBV,
+> servicios de dominio, ReportLab, el cliente HTTP del panel y componentes base.
+> Catálogo y PDF aceptan `lang=es|en`; una descarga administrativa admite
+> `recipient_label` opcional (máximo 255 caracteres) y lo usa sólo durante el
+> render. La preferencia de presentación se limita a `cards`, `list` o
+> `accordion` y vive en `projectapp-additional-modules-view-mode-panel` o
+> `projectapp-additional-modules-view-mode-public`. La página canónica sigue
+> indexable/prerenderizada, los enlaces seleccionados siguen en `noindex` y los
+> errores JSON de PDF se recuperan aunque Axios los entregue como `Blob`.
 
 ## 1. Technology Stack
 
