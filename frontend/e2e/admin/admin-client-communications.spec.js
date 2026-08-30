@@ -64,6 +64,10 @@ const incomingMessage = {
   documents: [],
 };
 
+const compactListMessage = `Confirmamos que el alcance incluye la revisión de accesibilidad,
+  las pruebas de aceptación y el acompañamiento de salida para todo el equipo responsable,
+  con una secuencia adicional que sólo corresponde leer dentro del hilo.`;
+
 function listThread(overrides = {}) {
   return {
     id: 41,
@@ -104,30 +108,50 @@ function secondThread() {
   });
 }
 
+function additionalThread(id, title, overrides = {}) {
+  return listThread({
+    id,
+    title,
+    project_id: id + 100,
+    project_name: `Proyecto ${id}`,
+    messages_count: 1,
+    channels: ['email'],
+    latest_message: {
+      id: id + 800,
+      direction: 'outgoing',
+      status: 'sent',
+      content: `Seguimiento breve del hilo ${id}.`,
+      occurred_at: '2026-08-23T14:00:00Z',
+    },
+    last_activity_at: '2026-08-23T14:00:00Z',
+    ...overrides,
+  });
+}
+
 function communicationFacets(projectName = 'Portal de clientes') {
   return {
-    total: 2,
-    navigation_total: 2,
+    total: 5,
+    navigation_total: 5,
     without_project_count: 1,
     projects: [{
       id: 19,
       name: projectName,
       client_id: 7,
-      count: 1,
+      count: 4,
       unavailable: false,
     }],
     clients: [{
       id: 7,
       name: 'Ana Proyecto',
-      count: 2,
+      count: 5,
       unavailable: false,
     }],
     filters: {
-      status: { open: 2, closed: 0 },
-      channel: { email: 1, whatsapp: 1 },
-      direction: { outgoing: 1, incoming: 1 },
-      message_status: { draft: 0, sent: 1, received: 1, failed: 0 },
-      reply_status: { answered: 1, unanswered: 0 },
+      status: { open: 5, closed: 0 },
+      channel: { email: 4, whatsapp: 1 },
+      direction: { outgoing: 4, incoming: 1 },
+      message_status: { draft: 1, sent: 3, received: 1, failed: 0 },
+      reply_status: { answered: 1, unanswered: 3 },
     },
   };
 }
@@ -202,11 +226,17 @@ async function setupCommunicationsApi(page, {
             listThread({
               project_name: projectName,
               messages_count: state.thread.messages.length,
-              latest_message: state.thread.messages.at(-1),
+              latest_message: {
+                ...state.thread.messages.at(-1),
+                content: compactListMessage,
+              },
             }),
             secondThread(),
+            additionalThread(43, 'Seguimiento de implementación', { draft_count: 1 }),
+            additionalThread(44, 'Revisión de contenidos'),
+            additionalThread(45, 'Cierre de publicación'),
           ],
-          count: 2,
+          count: 5,
           page: 1,
           num_pages: 1,
           facets: communicationFacets(projectName),
@@ -216,17 +246,17 @@ async function setupCommunicationsApi(page, {
 
     if (apiPath === 'communications/threads/tab-counts/' && method === 'POST') {
       const knownCounts = {
-        all: 2,
-        'draft-pending': 0,
+        all: 5,
+        'draft-pending': 1,
         'sent-unanswered': 0,
-        open: 2,
+        open: 5,
         closed: 0,
-        'channel-email': 1,
+        'channel-email': 4,
         'channel-whatsapp': 1,
       };
       const counts = Object.fromEntries(
         route.request().postDataJSON().tabs.map((tab) => [
-          String(tab.id), knownCounts[String(tab.id)] ?? 2,
+          String(tab.id), knownCounts[String(tab.id)] ?? 5,
         ]),
       );
       return {
@@ -378,11 +408,11 @@ async function expectFactoryFilterCounts(page) {
   if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
     const filterSelect = page.getByTestId('filter-tabs-select');
     const expectedLabels = [
-      'Borradores pendientes (0)',
+      'Borradores pendientes (1)',
       'Enviados sin respuesta (0)',
-      'Abiertos (2)',
+      'Abiertos (5)',
       'Cerrados (0)',
-      'Correo (1)',
+      'Correo (4)',
       'WhatsApp (1)',
     ];
     for (const label of expectedLabels) await expect(filterSelect).toContainText(label);
@@ -390,12 +420,12 @@ async function expectFactoryFilterCounts(page) {
   }
 
   const expectedCounts = {
-    all: 2,
-    'draft-pending': 0,
+    all: 5,
+    'draft-pending': 1,
     'sent-unanswered': 0,
-    open: 2,
+    open: 5,
     closed: 0,
-    'channel-email': 1,
+    'channel-email': 4,
     'channel-whatsapp': 1,
   };
   for (const [id, count] of Object.entries(expectedCounts)) {
@@ -455,6 +485,96 @@ test.describe('Admin Client Communications', () => {
     await page.getByRole('button', { name: 'Cerrar detalle del hilo' }).click();
     await expect(page).not.toHaveURL(/(?:\?|&)thread=/);
     await expect(page.getByTestId('communication-thread-row-41')).toBeVisible();
+  });
+
+  test('summarizes compact thread cards without horizontal scrolling', {
+    tag: [
+      ...ADMIN_CLIENT_COMMUNICATIONS,
+      '@role:admin',
+      '@outcome:display',
+      '@responsive:communications',
+    ],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display — this scenario validates the initial compact list density and clipping contract)
+    // quality: allow-deep-link (communications navigation is covered separately; this scenario isolates the responsive list render)
+    await page.setViewportSize({ width: 412, height: 915 });
+    await setupCommunicationsApi(page);
+    await gotoCommunications(page);
+
+    const list = page.getByTestId('communication-thread-list');
+    const cards = list.locator('[data-testid^="communication-thread-row-"]');
+    const mainCard = page.getByTestId('communication-thread-row-41');
+    const excerpt = page.getByTestId('communication-thread-excerpt-41');
+
+    await expect(cards).toHaveCount(5);
+    await expect(mainCard).toContainText('Aprobación de alcance');
+    await expect(mainCard).toContainText('Ana Proyecto · Portal de clientes');
+    await expect(mainCard).toContainText('WhatsApp');
+    await expect(mainCard).toContainText('2 mensajes');
+    await expect(page.getByTestId('communication-thread-row-43')).toContainText('1 borrador');
+    await expect(excerpt).toContainText('Cliente: Confirmamos que el alcance');
+    await expect(excerpt).not.toContainText(compactListMessage);
+    await expect(page.getByText('Hilo', { exact: true })).toHaveCount(0);
+
+    const excerptLayout = await excerpt.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        height: element.getBoundingClientRect().height,
+        lineHeight: Number.parseFloat(style.lineHeight),
+        overflow: style.overflow,
+        whiteSpace: style.whiteSpace,
+      };
+    });
+    expect(excerptLayout.height).toBeLessThanOrEqual(excerptLayout.lineHeight + 1);
+    expect(excerptLayout.overflow).toBe('hidden');
+    expect(excerptLayout.whiteSpace).toBe('nowrap');
+    await expect.poll(() => list.evaluate((element) => getComputedStyle(element).overflowX))
+      .toBe('hidden');
+    const pageOverflow = await page.evaluate(() => (
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
+      - document.documentElement.clientWidth
+    ));
+    expect(pageOverflow).toBeLessThanOrEqual(1);
+
+    const visibleCards = await cards.evaluateAll((elements) => elements.filter((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    }).length);
+    expect(visibleCards).toBeGreaterThan(1);
+  });
+
+  test('restores the selected order on a later visit', {
+    tag: [
+      ...ADMIN_CLIENT_COMMUNICATIONS,
+      '@role:admin',
+      '@outcome:success',
+      '@responsive:communications',
+    ],
+  }, async ({ page }) => {
+    const listRequests = [];
+    await setupCommunicationsApi(page, {
+      onListRequest: (url) => listRequests.push(url),
+    });
+    await gotoCommunications(page);
+
+    const oldestOrder = page.getByTestId('communications-order-oldest');
+    await oldestOrder.click();
+    await expect(oldestOrder).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/order=oldest/);
+    await expect.poll(() => listRequests.some((url) => url.includes('order=oldest'))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (
+      window.localStorage.getItem('panel.communications.order')
+    ))).toBe('oldest');
+
+    const laterVisitRequestIndex = listRequests.length;
+    await gotoCommunications(page);
+
+    await expect(page.getByTestId('communications-order-oldest'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('communications-order-control')).toContainText('Orden:');
+    await expect.poll(() => listRequests
+      .slice(laterVisitRequestIndex)
+      .some((url) => url.includes('order=oldest'))).toBe(true);
   });
 
   test('shows every factory filter count', {

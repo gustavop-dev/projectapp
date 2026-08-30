@@ -97,9 +97,12 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Consultar el historial y sus estados.',
   ]),
   communications: module('communications', [
+    'frontend/components/communications/',
+    'frontend/composables/useCommunicationFilters.js',
     'frontend/pages/panel/communications/',
   ], [
-    'Buscar y seleccionar un hilo sin perder el contexto del cliente.',
+    'Identificar varios hilos compactos sin desplazamiento horizontal.',
+    'Cambiar el orden, volver al listado y conservar el criterio activo.',
     'Leer mensajes entrantes y salientes con estado, fecha y adjuntos.',
     'Registrar un mensaje y completar las acciones de auditoría.',
   ]),

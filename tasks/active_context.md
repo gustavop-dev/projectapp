@@ -55,6 +55,16 @@ parciales. Backend, 7 unitarias y los 3 outcomes E2E focales pasan; el flow-map
 declara 356 flows, con cero faltantes y cero `junk-only`. Producción sigue sin
 mutarse: tras el deploy corresponde generar, revisar y aplicar el artefacto.
 
+**2026-08-29 — Listado compacto de Comunicaciones listo para integrar:** por
+debajo de landscape cada hilo es una tarjeta de índice con asunto,
+cliente/proyecto, canal, estado, cantidad, fecha y borradores; el último mensaje
+se normaliza y corta a una sola línea de máximo 120 caracteres. No hay scroll
+horizontal ni rótulo **Hilo** repetido; landscape+ conserva la tabla con
+**Asunto** y el detalle sigue siendo el único lector completo. El orden visible
+se persiste bajo `panel.communications.order` con precedencia URL → vista
+guardada → navegador → recientes. Pasan 15 pruebas Jest y 7 E2E; el flow-map
+está fresco y `admin-client-communications` cubre display/success/error/failure.
+
 **2026-08-29 — Píldoras de estado indivisibles en Documentos:** los filtros de
 Consultas y Estados conservan icono y texto en una sola línea; cuando falta
 espacio, el contenedor reubica la píldora completa en la fila siguiente sin

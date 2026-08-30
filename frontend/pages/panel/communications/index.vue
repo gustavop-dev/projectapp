@@ -67,30 +67,35 @@
         aria-label="Buscar comunicaciones"
         data-testid="communications-search"
       />
-      <BaseButton
-        :variant="isFilterPanelOpen || activeFilterCount ? 'primary' : 'secondary'"
-        size="md"
-        data-testid="communications-filter-toggle"
-        :aria-expanded="isFilterPanelOpen"
-        @click="isFilterPanelOpen = !isFilterPanelOpen"
-      >
-        <BaseActionIcon action="filter" />
-        Filtros<span v-if="activeFilterCount"> ({{ activeFilterCount }})</span>
-      </BaseButton>
-      <BaseSegmented
-        :model-value="currentFilters.order"
-        :options="ORDER_OPTIONS"
-        size="sm"
-        aria-label="Orden de los hilos"
-        @update:model-value="setOrder"
-      />
-      <BaseActionButton
-        action="refresh"
-        label="Actualizar hilos"
-        size="md"
-        :loading="store.isLoading"
-        @click="reloadThreadsAndCounts"
-      />
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <BaseButton
+          :variant="isFilterPanelOpen || activeFilterCount ? 'primary' : 'secondary'"
+          size="md"
+          data-testid="communications-filter-toggle"
+          :aria-expanded="isFilterPanelOpen"
+          @click="isFilterPanelOpen = !isFilterPanelOpen"
+        >
+          <BaseActionIcon action="filter" />
+          Filtros<span v-if="activeFilterCount"> ({{ activeFilterCount }})</span>
+        </BaseButton>
+        <div class="flex min-w-0 flex-wrap items-center gap-2" data-testid="communications-order-control">
+          <span class="hidden text-xs font-medium text-text-subtle panel-portrait:inline">Orden:</span>
+          <BaseSegmented
+            :model-value="currentFilters.order"
+            :options="ORDER_OPTIONS"
+            size="sm"
+            aria-label="Orden de los hilos"
+            @update:model-value="setOrder"
+          />
+        </div>
+        <BaseActionButton
+          action="refresh"
+          label="Actualizar hilos"
+          size="md"
+          :loading="store.isLoading"
+          @click="reloadThreadsAndCounts"
+        />
+      </div>
     </div>
 
     <CommunicationFilterPanel
@@ -182,6 +187,7 @@
           :loading="store.isLoading"
           :search-query="currentFilters.q"
           :href-for="threadHref"
+          :compact="isPanelStacked"
           @open="openThreadFromRow"
           @link-activate="markLinkActivation"
         />

@@ -66,7 +66,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-043] Los avisos de creación competían con las acciones y no identificaban su campo
+### [ERR-044] Los avisos de creación competían con las acciones y no identificaban su campo
 
 - **Date**: 2026-08-29
 - **Context**: El modal Nuevo proyecto agrupaba nombre y cliente como una lista
@@ -86,6 +86,27 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: primitivas `BaseFormField`/inputs,
   `ClientAutocomplete`, `ProjectFormModal`, páginas de Proyectos y modales de
   creación de Clientes, Tareas, Documentos, Contabilidad y contenido del panel.
+
+### [ERR-043] Thread cards duplicated the complete latest message
+
+- **Date**: 2026-08-29
+- **Context**: `/panel/communications` rendered the latest message inside every
+  list row, allowing long content to dominate the viewport and require an inner
+  horizontal scroll before the operator could choose a thread.
+- **Root Cause**: The generic responsive table remained the only list
+  projection below landscape, and its scroll container combined a truncating
+  identity cell with an unbounded two-line message body. The repeated **Hilo**
+  label also spent compact height without distinguishing records.
+- **Resolution**: Added a dedicated compact card projection with identity
+  metadata, a normalized one-line/120-character excerpt, bounded overflow and
+  no redundant label. Desktop now names the identity column **Asunto**; complete
+  content remains exclusively in the workspace detail. The selected order is
+  validated and persisted with URL/saved-view precedence.
+- **Files Affected**: communications list component/page/filter composable,
+  focused Jest and Playwright coverage, responsive and E2E flow registries.
+- **Verification**: 15 focused unit tests and all 7 registered communications
+  E2E scenarios pass; the 412×915 case proves multiple visible cards, one-line
+  clipping and zero page overflow.
 
 ### [ERR-042] Proyectos estaba vacío aunque los documentos tenían proyecto
 

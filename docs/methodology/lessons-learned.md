@@ -1484,3 +1484,21 @@ in public tool descriptions. Pin relational matches with backend tests that also
 inspect the returned facets; add a browser assertion that the existing search
 control sends the same query. This proves both halves of the contract without
 duplicating business filtering in Vue.
+
+## 62. A list card is an index, not a second detail view
+
+List identity and detail evidence have different jobs. A thread index should
+answer whether to open the record through title, ownership, scope, state,
+channel, count, recency and pending work. Copying the complete latest message
+into that index destroys density and introduces nested reading interactions.
+
+If a preview materially helps recognition, normalize its whitespace, cap the
+data before rendering, clip it to one line and expose no tooltip containing the
+rest. Keep the complete body on the routed detail surface. When the responsive
+structure differs, let the owning page decide the breakpoint once and pass that
+capability to the list component; this avoids duplicate media-query state.
+
+Remembering order is a separate navigation contract. Resolve it predictably as
+explicit URL, then active saved view, then validated browser preference, then
+the product default. Persist only the small allow-listed token, never the whole
+reactive filter object.
