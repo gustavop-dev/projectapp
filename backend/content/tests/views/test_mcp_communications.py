@@ -117,6 +117,24 @@ def test_tool_list_exposes_minimum_communications_surface(
     ]
 
 
+def test_list_threads_schema_exposes_reply_status(
+    api_client, communications_connector,
+):
+    _, token = communications_connector
+
+    response = api_client.post(
+        f'/api/mcp/communications/{token}/', rpc('tools/list'), format='json',
+    )
+
+    list_threads_tool = next(
+        tool for tool in response.data['result']['tools']
+        if tool['name'] == 'list_threads'
+    )
+    assert list_threads_tool['inputSchema']['properties']['reply_status']['enum'] == [
+        'answered', 'unanswered',
+    ]
+
+
 def test_tool_list_describes_project_text_search(
     api_client, communications_connector,
 ):
@@ -197,6 +215,56 @@ def test_list_threads_filters_by_client(
     )
 
     assert [row['title'] for row in payload(response)['results']] == ['Primero']
+
+
+def test_list_threads_filters_sent_messages_without_reply(
+    api_client, communications_connector, mcp_superuser,
+):
+    client = make_client('unanswered-mcp@example.com')
+    pending = communication_service.create_thread(
+        actor=mcp_superuser, client=client, title='Pendiente',
+    )
+    answered = communication_service.create_thread(
+        actor=mcp_superuser, client=client, title='Respondido',
+    )
+    communication_service.create_message(
+        thread=pending,
+        actor=mcp_superuser,
+        channel='whatsapp',
+        direction='outgoing',
+        status='sent',
+        subject='',
+        content='¿Confirmas?',
+        occurred_at=OCCURRED_AT,
+    )
+    sent = communication_service.create_message(
+        thread=answered,
+        actor=mcp_superuser,
+        channel='whatsapp',
+        direction='outgoing',
+        status='sent',
+        subject='',
+        content='¿Confirmas?',
+        occurred_at=OCCURRED_AT,
+    )
+    communication_service.create_message(
+        thread=answered,
+        actor=mcp_superuser,
+        channel='whatsapp',
+        direction='incoming',
+        status='received',
+        subject='',
+        content='Confirmado.',
+        occurred_at=OCCURRED_AT,
+        reply_to=sent,
+    )
+    _, token = communications_connector
+
+    response = call_tool(
+        api_client, token, 'list_threads', {'reply_status': 'unanswered'},
+    )
+
+    assert [row['title'] for row in payload(response)['results']] == ['Pendiente']
 
 
 def test_list_threads_searches_project_name(

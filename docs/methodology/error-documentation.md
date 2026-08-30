@@ -7,6 +7,12 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Revisión 2026-08-29 — filtros prediseñados de Comunicaciones:** no se abrió
+> un incidente de producción. La implementación evita tres regresiones conocidas
+> del patrón: los ceros no se omiten, el conteo de una pestaña no hereda el corte
+> activo y restablecer los builtins no elimina las vistas propias. Una respuesta
+> anulada tampoco convierte un envío en respondido.
+
 > **Resuelto 2026-08-29:** una propuesta abierta en una pestaña oculta seguía
 > enviando snapshots cada 30 segundos y contabilizando tiempo no atendido. El
 > tracker ahora finaliza una vez al ocultarse, pausa el intervalo, evita flushes

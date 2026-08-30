@@ -3,8 +3,8 @@
     <section class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6">
       <h2 class="text-lg font-bold text-text-default mb-1">Pestañas de filtros guardados</h2>
       <p class="text-sm text-text-muted mb-5">
-        Restaura las pestañas predefinidas de esta vista. Al restablecer se
-        eliminan tus pestañas personalizadas.
+        Restaura las pestañas predefinidas de esta vista a su orden y
+        visibilidad de fábrica. Tus pestañas propias se conservan.
       </p>
       <div class="space-y-2">
         <div
@@ -63,8 +63,8 @@ const resettingView = ref(null);
 
 const resetConfirmMessage = computed(() =>
   pendingResetView.value
-    ? `Se eliminarán tus pestañas personalizadas de "${pendingResetView.value.label}" ` +
-      'y se restaurarán las predefinidas. Esta acción no se puede deshacer.'
+    ? `Se restaurarán el orden y la visibilidad de fábrica de "${pendingResetView.value.label}". ` +
+      'Tus pestañas propias se conservarán.'
     : '',
 );
 

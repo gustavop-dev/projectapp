@@ -27,7 +27,7 @@ function emptyFacets() {
     projects: [],
     clients: [],
     filters: {
-      status: {}, channel: {}, direction: {}, message_status: {},
+      status: {}, channel: {}, direction: {}, message_status: {}, reply_status: {},
     },
   };
 }
@@ -99,6 +99,21 @@ export const useCommunicationsStore = defineStore('communications', {
         return this._failure(error, 'No se pudieron cargar las comunicaciones.');
       } finally {
         if (requestId === this.threadsRequestId) this.isLoading = false;
+      }
+    },
+
+    async fetchTabCounts(tabs) {
+      try {
+        const response = await create_request(
+          'communications/threads/tab-counts/', { tabs },
+        );
+        return { success: true, counts: response.data?.counts || {} };
+      } catch (error) {
+        return {
+          success: false,
+          counts: {},
+          ...normalizeApiError(error, 'No se pudieron cargar los conteos.'),
+        };
       }
     },
 

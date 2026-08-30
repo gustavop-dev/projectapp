@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-29 — Filtros prediseñados de Comunicaciones listos para integrar:**
+la tira compartida incorpora seis recortes de fábrica, encabezados por
+**Borradores pendientes**, con conteos de dataset completo incluso en cero. El
+nuevo criterio `reply_status` permite que **Enviados sin respuesta** encuentre
+sólo hilos abiertos con una salida enviada sin respuesta no anulada. Los
+prediseñados y las vistas propias conviven con origen visible, reordenamiento y
+el desborde responsivo de `BaseFilterTabs`; el activo nunca desaparece. La
+configuración restablece únicamente orden/visibilidad de fábrica y conserva las
+vistas propias, incluso en instalaciones que ya las tenían antes de sembrar los
+builtins. REST, MCP y facetas usan un solo query service, y un endpoint acotado
+calcula todos los conteos sin contaminarlos con el filtro activo. Pasan 20
+pruebas backend, 32 unitarias frontend, los 8 escenarios E2E del flujo P1, el
+build Nuxt y la auditoría de 355 flujos (0 missing, 0 junk-only).
+
 **2026-08-29 — Conciliación de carpetas de proyecto lista para integrar:** el
 diagnóstico confirmó ocho proyectos, siete visibles y cero raíces gestionadas;
 la migración de esquema sí estaba aplicada y el filtro no dependía de nombres
