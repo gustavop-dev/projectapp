@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-29 — Formularios de creación del panel listos para integrar:** Nuevo
+proyecto ya se lee como un bloque: nombre, cliente, estado y descripción ocupan
+el mismo ancho; En desarrollo aparece seleccionado sin texto contradictorio; la
+ayuda del cliente es breve y Crear cliente permanece visible dentro del selector.
+Los errores del intento o del API viven bajo su campo, marcan el control y se
+limpian al corregirlo; el footer contiene únicamente Cancelar/Guardar. La
+convención transversal usa asterisco sólo en obligatorios y elimina
+“(opcional)”. `BaseFormField`, controles base y `ClientAutocomplete` llevan el
+mismo comportamiento a creación de Clientes, Tareas, Documentos, Contabilidad
+y contenido. No hay cambios backend ni de esquema. Las slices unitarias y cuatro
+escenarios Playwright pasan; `admin-panel-projects` cubre display/success/error,
+el mapa está fresco y la auditoría global informa 0 missing y 0 junk-only.
+
 **2026-08-29 — Filtros prediseñados de Comunicaciones listos para integrar:**
 la tira compartida incorpora seis recortes de fábrica, encabezados por
 **Borradores pendientes**, con conteos de dataset completo incluso en cero. El

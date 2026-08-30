@@ -1,5 +1,12 @@
 # Architecture — ProjectApp
 
+> **Contrato de formularios 2026-08-29:** las superficies de creación del panel
+> componen `BaseFormField` + control base + `BaseModalActions`. El campo es dueño
+> de su ayuda, error y relación ARIA; el modal sólo coordina payload y errores
+> del store. La creación de clientes sigue siendo una capacidad explícita del
+> selector compartido, no una salida descubierta después del fallo. No cambia
+> el contrato REST ni el modelo de datos.
+
 > **Engagement 2026-08-29:** el navegador es dueño del ciclo visible/oculto del
 > tracker. `visibilitychange` delimita segmentos de atención; `sendBeacon`
 > entrega el cierre y el POST periódico queda reservado a una página visible.

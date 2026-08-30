@@ -13,10 +13,14 @@
         :type="isCatalog ? 'search' : 'text'"
         :placeholder="placeholder"
         :disabled="disabled"
+        :required="required"
         :title="disabled && disabledReason ? disabledReason : undefined"
         :data-testid="testId"
         autocomplete="off"
-        class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+        :class="[
+          'w-full pl-9 pr-9 py-2.5 border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none',
+          error ? 'border-danger-strong' : 'border-input-border',
+        ]"
         @input="onInput"
         @focus="onFocus"
         @keydown.down.prevent="onArrowDown"
@@ -29,6 +33,8 @@
         :aria-busy="isSearching || isLoadingMore"
         :aria-autocomplete="isCatalog ? undefined : 'list'"
         :aria-haspopup="isCatalog ? undefined : 'listbox'"
+        :aria-invalid="error ? 'true' : undefined"
+        :aria-describedby="errorDescribedBy || undefined"
       />
       <!-- In catalog mode this clears only the filter; selecting a client and
            filtering the visible catalog are deliberately independent acts. -->
@@ -102,7 +108,7 @@
 </template>
 
 <script setup>
-import { computed, ref, useId, watch } from 'vue';
+import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import {
   MagnifyingGlassIcon,
@@ -119,10 +125,9 @@ import { useProposalClientsStore } from '~/stores/proposal_clients';
  * the `select` event so it can auto-fill snapshot fields (email, phone,
  * company) on the proposal form.
  *
- * If the user types a name with no matching client, the dropdown shows a
- * "Crear nuevo" footer that emits `create-new` with the typed value — the
- * parent decides whether to open a modal, fall through to the inline
- * fields, or call the store's `createClient` directly.
+ * Consumers that support inline creation opt in with `allowCreate`. The
+ * dropdown then keeps a visible "Crear nuevo" action even when matching
+ * clients exist, so the escape hatch is discoverable before an error.
  */
 
 const props = defineProps({
@@ -147,6 +152,11 @@ const props = defineProps({
   active: { type: Boolean, default: true },
   /** Browser-local preference key. Empty means A-Z without persistence. */
   sortStorageKey: { type: String, default: '' },
+  allowCreate: { type: Boolean, default: false },
+  required: { type: Boolean, default: false },
+  requiredMessage: { type: String, default: 'Elige un cliente de la lista.' },
+  error: { type: Boolean, default: false },
+  errorDescribedBy: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   disabledReason: { type: String, default: '' },
 });
@@ -175,6 +185,16 @@ function persistCatalogSort(direction) {
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
+watch(
+  () => [props.required, props.modelValue],
+  async () => {
+    await nextTick();
+    inputRef.value?.setCustomValidity(
+      props.required && !props.modelValue ? props.requiredMessage : '',
+    );
+  },
+  { immediate: true },
+);
 const listboxId = `${useId()}-listbox`;
 const inputText = ref(props.initialLabel || '');
 // El nombre del cliente que está REALMENTE enlazado, separado de lo que se
@@ -206,6 +226,7 @@ const resultsProps = computed(() => ({
   loadMoreError: loadMoreError.value,
   presentation: props.presentation,
   sortDirection: sortDirection.value,
+  allowCreate: props.allowCreate,
 }));
 
 // -------------------------------------------------------------------
@@ -389,7 +410,12 @@ const onEnter = () => {
   if (!isOpen.value) return;
   if (highlightIndex.value >= 0 && results.value[highlightIndex.value]) {
     selectClient(results.value[highlightIndex.value]);
-  } else if (hasSearched.value && results.value.length === 0 && inputText.value.trim()) {
+  } else if (
+    props.allowCreate
+    && hasSearched.value
+    && results.value.length === 0
+    && inputText.value.trim()
+  ) {
     emitCreateNew();
   }
 };

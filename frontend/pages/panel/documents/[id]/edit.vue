@@ -337,6 +337,7 @@
                 :disabled="readOnlyDocument"
                 :disabled-reason="readOnlyReason"
                 test-id="doc-client-autocomplete"
+                allow-create
                 @select="onClientSelect"
                 @create-new="onCreateNewClient"
               />

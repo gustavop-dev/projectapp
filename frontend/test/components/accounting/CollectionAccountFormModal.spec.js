@@ -177,7 +177,9 @@ function mountModal(props = {}) {
           // The hint is rendered like the real component does: it is where a
           // field says what happens to what you type in it.
           template:
-            '<div><label v-if="label">{{ label }}</label><slot /><p v-if="hint">{{ hint }}</p></div>',
+            '<div :data-invalid="error ? true : undefined"><label v-if="label">{{ label }}</label>'
+            + '<slot :error-id="error ? `${label}-error` : undefined" :invalid="Boolean(error)" />'
+            + '<p v-if="error" role="alert">{{ error }}</p><p v-else-if="hint">{{ hint }}</p></div>',
         },
         BaseInput: {
           props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength', 'title'],
@@ -645,7 +647,7 @@ describe('CollectionAccountFormModal', () => {
         .toContain('Mostrando 25 de 30');
     });
 
-    it('warns and blocks the preview when the income belongs to another client', async () => {
+    it('marks the income when it belongs to another client', async () => {
       mockIncomes([otherClientIncome]);
       const wrapper = mountModal();
       await flushPromises();
@@ -659,9 +661,14 @@ describe('CollectionAccountFormModal', () => {
 
       expect(wrapper.find('[data-testid="collection-form-income-conflict"]').text())
         .toContain('Este ingreso es de Torrios SAS, no de Acme Soluciones');
-      expect(
-        wrapper.find('[data-testid="collection-form-preview"]').attributes('disabled'),
-      ).toBeDefined();
+      expect(wrapper.find('[data-testid="collection-form-preview"]').element.disabled)
+        .toBe(false);
+      await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+      expect(wrapper.text()).toContain('Resuelve el conflicto con el cliente del ingreso.');
+      expect(create_request).not.toHaveBeenCalledWith(
+        'accounting/collection-accounts/preview/',
+        expect.anything(),
+      );
 
       await wrapper.find('[data-testid="collection-form-use-income-client"]').trigger('click');
       await flushPromises();
@@ -694,16 +701,22 @@ describe('CollectionAccountFormModal', () => {
     ).toBe('901234567');
   });
 
-  it('lists every missing prerequisite beside the preview control', async () => {
+  it('puts every missing prerequisite beside its field after preview is attempted', async () => {
     const wrapper = mountModal();
     await flushPromises();
 
-    const reasons = wrapper.get('[data-testid="collection-form-preview-gate-reasons"]');
-    expect(reasons.text()).toContain('Selecciona un cliente.');
-    expect(reasons.text()).toContain('Selecciona un ingreso vinculado.');
-    expect(reasons.text()).toContain('Ingresa un valor mayor a cero.');
-    expect(reasons.text()).toContain('Escribe el concepto del servicio.');
-    expect(reasons.findAll('li')).toHaveLength(4);
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="collection-form-preview"]').element.disabled).toBe(false);
+
+    await wrapper.get('[data-testid="collection-form-preview"]').trigger('submit');
+
+    expect(wrapper.text()).toContain('Elige o crea un cliente.');
+    expect(wrapper.text()).toContain('Selecciona un ingreso vinculado.');
+    expect(wrapper.text()).toContain('Ingresa un valor mayor a cero.');
+    expect(wrapper.text()).toContain('Escribe el concepto del servicio.');
+    expect(wrapper.find('[data-testid="collection-form-preview-gate-reasons"]').exists())
+      .toBe(false);
+    expect(create_request).not.toHaveBeenCalled();
   });
 
   it('warns immediately when the selected client has no real email', async () => {
@@ -714,8 +727,8 @@ describe('CollectionAccountFormModal', () => {
 
     expect(wrapper.get('[data-testid="collection-form-client-email-warning"]').text())
       .toContain('Este cliente no tiene correo.');
-    expect(wrapper.get('[data-testid="collection-form-preview-gate-reasons"]').text())
-      .toContain('Agrega y guarda un correo real');
+    await wrapper.get('[data-testid="collection-form-preview"]').trigger('submit');
+    expect(wrapper.text()).toContain('Agrega y guarda el correo del cliente.');
     expect(wrapper.get('[data-testid="collection-form-customer-email"]').element.disabled)
       .toBe(true);
   });
@@ -746,8 +759,7 @@ describe('CollectionAccountFormModal', () => {
       .toBe('Detalle que debe sobrevivir');
     expect(wrapper.get('[data-testid="collection-form-notes"]').element.value)
       .toBe('Nota que debe sobrevivir');
-    expect(wrapper.get('[data-testid="collection-form-preview"]').element.disabled)
-      .toBe(false);
+    expect(wrapper.get('[data-testid="collection-form-preview"]').element.disabled).toBe(false);
   });
 
   it('keeps the email repair open when validation or the API rejects it', async () => {
@@ -785,10 +797,10 @@ describe('CollectionAccountFormModal', () => {
       .find(button => button.text().includes('Fecha fija'));
     await fixed.trigger('click');
 
-    expect(wrapper.get('[data-testid="collection-form-preview-gate-reasons"]').text())
-      .toContain('Selecciona la fecha fija de pago.');
+    await wrapper.get('[data-testid="collection-form-preview"]').trigger('submit');
+    expect(wrapper.text()).toContain('Selecciona la fecha fija de pago.');
     expect(wrapper.get('[data-testid="collection-form-preview"]').element.disabled)
-      .toBe(true);
+      .toBe(false);
   });
 
   it('omits the consecutivo from the payload while it matches the suggestion', async () => {

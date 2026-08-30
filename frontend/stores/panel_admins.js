@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 
 export const usePanelAdminsStore = defineStore('panel_admins', {
   state: () => ({
@@ -38,10 +39,8 @@ export const usePanelAdminsStore = defineStore('panel_admins', {
         this.admins.unshift(response.data);
         return { success: true, data: response.data };
       } catch (error) {
-        const detail = error.response?.data?.detail
-          || error.response?.data?.email?.[0]
-          || 'Error al crear administrador.';
-        return { success: false, error: detail };
+        const normalized = normalizeApiError(error, 'Error al crear administrador.');
+        return { success: false, error: normalized.message, ...normalized };
       }
     },
 

@@ -27,8 +27,10 @@ describe('BaseInput', () => {
 
   it('applies error styles when error prop is true', () => {
     const wrapper = mount(BaseInput, { props: { modelValue: '', error: true } })
-    const cls = wrapper.find('input').attributes('class') || ''
+    const input = wrapper.find('input')
+    const cls = input.attributes('class') || ''
     expect(cls).toContain('border-danger-strong')
+    expect(input.attributes('aria-invalid')).toBe('true')
   })
 
   it('respects size="sm" with smaller padding/text', () => {

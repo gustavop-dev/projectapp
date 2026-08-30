@@ -21,7 +21,7 @@
             <FieldInput v-model="step.title" label="Título" />
           </div>
           <FieldInput v-model="step.description" label="Descripción" class="mt-1" />
-          <FieldInput v-model="step.clientAction" label="Acción del cliente (opcional)" class="mt-1" />
+          <FieldInput v-model="step.clientAction" label="Acción del cliente" class="mt-1" />
         </div>
       </template>
     </draggable>

@@ -67,7 +67,7 @@ export default {
   clearSelection: 'Limpiar selección',
   selectedCount: '{count} seleccionados',
   recipientLabel: 'Nombre del destinatario o conversación',
-  optionalClient: 'Cliente existente (opcional)',
+  optionalClient: 'Cliente existente',
   noClient: 'Sin cliente asociado',
   language: 'Idioma',
   generate: 'Generar enlace',

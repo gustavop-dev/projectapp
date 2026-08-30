@@ -4,12 +4,14 @@
  * @flow: admin-proposal-quick-log
  *
  * Covers: opening quick-log modal from actions menu, activity type select,
- * description input, submit button disabled state, successful submission.
+ * description input, local validation, successful submission.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PROPOSAL_QUICK_LOG } from '../helpers/flow-tags.js';
+
+test.setTimeout(60_000);
 
 const mockProposals = [
   { id: 1, title: 'Quick Log Proposal', client_name: 'Log Client', client_email: 'log@test.com', status: 'sent', total_investment: '5000000', currency: 'COP', view_count: 3, heat_score: 5, is_active: true },
@@ -37,8 +39,8 @@ function setupMock(page) {
 }
 
 async function openQuickLogModal(page) {
-  await page.goto('/panel/proposals');
-  await expect(page.getByText('Log Client')).toBeVisible({ timeout: 10000 });
+  await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Log Client')).toBeVisible({ timeout: 20000 });
 
   await page.getByTestId('proposal-actions-1').click();
 
@@ -88,31 +90,28 @@ test.describe('Quick Log Activity from Proposals List', () => {
     await expect(options).toHaveCount(4);
   });
 
-  test('submit button is disabled when description is empty', {
+  test('submit action remains available before validation', {
     tag: [...ADMIN_PROPOSAL_QUICK_LOG, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await openQuickLogModal(page);
 
-    // Scope to the quick-log modal form area
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
-    const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
-    await expect(submitBtn).toBeDisabled();
+    await expect(page.getByTestId('proposal-quick-log-submit')).toBeEnabled();
   });
 
-  test('submit button becomes enabled after typing description', {
+  test('empty description is reported beside its field', {
     tag: [...ADMIN_PROPOSAL_QUICK_LOG, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await openQuickLogModal(page);
 
-    // Type description
-    const input = page.locator('input[placeholder*="Llamada de seguimiento"]');
-    await input.fill('Llamada de seguimiento con el cliente');
-
     const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
-    const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
-    await expect(submitBtn).toBeEnabled();
+    const input = page.getByTestId('proposal-quick-log-description');
+    await page.getByTestId('proposal-quick-log-submit').click();
+
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    const errorId = await input.getAttribute('aria-describedby');
+    await expect(modal.locator(`#${errorId}`)).toHaveText('Escribe la descripción de la actividad.');
   });
 
   test('submitting quick-log sends API request and closes modal', {

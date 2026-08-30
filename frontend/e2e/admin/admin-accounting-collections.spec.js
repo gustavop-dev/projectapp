@@ -580,6 +580,14 @@ async function gotoCollections(page, expectedRowId = 1) {
   await expect(page.getByTestId(`accounting-row-${expectedRowId}`)).toBeVisible();
 }
 
+async function expectDescribedError(page, testId, message) {
+  const control = page.getByTestId(testId);
+  await expect(control).toHaveAttribute('aria-invalid', 'true');
+  const errorId = await control.getAttribute('aria-describedby');
+  expect(errorId).toBeTruthy();
+  await expect(page.locator(`[id="${errorId}"]`)).toHaveText(message);
+}
+
 async function chooseCollectionAction(page, rowId, actionId) {
   await page.getByTestId(`collection-actions-${rowId}`).click();
   const action = page.getByTestId(`collection-${actionId}-${rowId}`);
@@ -1084,7 +1092,7 @@ test.describe('Admin Accounting Collections', () => {
     expect(createCall.body.notes).toBe('Cobrar antes del 15');
   });
 
-  test('a client without email exposes every preview blocker', {
+  test('preview blockers are reported beside their fields', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
@@ -1099,11 +1107,31 @@ test.describe('Admin Accounting Collections', () => {
 
     await expect(page.getByTestId('collection-form-client-email-warning'))
       .toContainText('Este cliente no tiene correo');
-    const reasons = page.getByTestId('collection-form-preview-gate-reasons');
-    await expect(reasons).toContainText('Selecciona un ingreso vinculado.');
-    await expect(reasons).toContainText('Ingresa un valor mayor a cero.');
-    await expect(reasons).toContainText('Escribe el concepto del servicio.');
-    await expect(reasons).toContainText('Agrega y guarda un correo real');
+    const preview = page.getByTestId('collection-form-preview');
+    await expect(preview).toBeEnabled();
+    await preview.click();
+
+    await expectDescribedError(
+      page,
+      'collection-form-client',
+      'Agrega y guarda el correo del cliente.',
+    );
+    await expectDescribedError(
+      page,
+      'collection-form-income',
+      'Selecciona un ingreso vinculado.',
+    );
+    await expectDescribedError(
+      page,
+      'collection-form-amount',
+      'Ingresa un valor mayor a cero.',
+    );
+    await expectDescribedError(
+      page,
+      'collection-form-concept',
+      'Escribe el concepto del servicio.',
+    );
+    await expect(page.getByTestId('collection-form-preview-gate-reasons')).toHaveCount(0);
 
     await page.getByTestId('collection-form-client-email-repair').fill('correo inválido');
     await page.getByTestId('collection-form-client-email-save').click();
@@ -1326,7 +1354,8 @@ test.describe('Admin Accounting Collections', () => {
   test('an income of another client is refused before the preview is spent', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
-    await mockApi(page, buildHandler({ calls: [] }));
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
     await gotoCollections(page);
 
     await page.getByTestId('collection-create-button').click();
@@ -1344,7 +1373,17 @@ test.describe('Admin Accounting Collections', () => {
 
     await expect(page.getByTestId('collection-form-income-conflict'))
       .toContainText('Este ingreso es de Torrios SAS, no de Acme Soluciones');
-    await expect(page.getByTestId('collection-form-preview')).toBeDisabled();
+    const preview = page.getByTestId('collection-form-preview');
+    await expect(preview).toBeEnabled();
+    await preview.click();
+    await expectDescribedError(
+      page,
+      'collection-form-income',
+      'Resuelve el conflicto con el cliente del ingreso.',
+    );
+    expect(calls.filter((call) => (
+      call.apiPath === 'accounting/collection-accounts/preview/'
+    ))).toHaveLength(0);
 
     // Adopting the income's client settles it and unblocks the step.
     await page.getByTestId('collection-form-use-income-client').click();

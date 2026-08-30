@@ -12,14 +12,20 @@ const emit = defineEmits(['update:modelValue', 'save', 'status'])
 const { t } = useI18n()
 const editingId = ref(null)
 const formOpen = ref(false)
-const localError = ref('')
+const fieldErrors = reactive({ slug: '', name_es: '', name_en: '' })
 const form = reactive({ slug: '', name_es: '', name_en: '' })
+
+function clearFieldErrors() {
+  fieldErrors.slug = ''
+  fieldErrors.name_es = ''
+  fieldErrors.name_en = ''
+}
 
 watch(() => props.modelValue, (open) => {
   if (!open) return
   formOpen.value = false
   editingId.value = null
-  localError.value = ''
+  clearFieldErrors()
 })
 
 function openCreate() {
@@ -28,7 +34,7 @@ function openCreate() {
   form.name_es = ''
   form.name_en = ''
   formOpen.value = true
-  localError.value = ''
+  clearFieldErrors()
 }
 
 function openEdit(category) {
@@ -37,14 +43,15 @@ function openEdit(category) {
   form.name_es = category.name_es
   form.name_en = category.name_en
   formOpen.value = true
-  localError.value = ''
+  clearFieldErrors()
 }
 
 function submit() {
-  if (!form.slug.trim() || !form.name_es.trim() || !form.name_en.trim()) {
-    localError.value = t('additionalModules.requiredFields')
-    return
-  }
+  clearFieldErrors()
+  if (!form.slug.trim()) fieldErrors.slug = `Completa ${String(t('additionalModules.slug')).toLocaleLowerCase()}.`
+  if (!form.name_es.trim()) fieldErrors.name_es = `Completa ${String(t('additionalModules.categoryNameEs')).toLocaleLowerCase()}.`
+  if (!form.name_en.trim()) fieldErrors.name_en = `Completa ${String(t('additionalModules.categoryNameEn')).toLocaleLowerCase()}.`
+  if (Object.values(fieldErrors).some(Boolean)) return
   emit('save', {
     id: editingId.value,
     payload: {
@@ -58,7 +65,7 @@ function submit() {
 function closeForm() {
   formOpen.value = false
   editingId.value = null
-  localError.value = ''
+  clearFieldErrors()
 }
 
 defineExpose({ closeForm })
@@ -94,23 +101,23 @@ defineExpose({ closeForm })
             {{ editingId ? t('additionalModules.editCategory') : t('additionalModules.addCategory') }}
           </h3>
           <div class="grid gap-4 sm:grid-cols-3">
-            <BaseFormField :label="t('additionalModules.slug')" for="additional-category-slug" required>
-              <BaseInput id="additional-category-slug" v-model="form.slug" />
+            <BaseFormField :label="t('additionalModules.slug')" for="additional-category-slug" required :error="fieldErrors.slug">
+              <BaseInput id="additional-category-slug" v-model="form.slug" :error="!!fieldErrors.slug" data-testid="additional-category-slug" @update:model-value="fieldErrors.slug = ''" />
             </BaseFormField>
-            <BaseFormField :label="t('additionalModules.categoryNameEs')" for="additional-category-name-es" required>
-              <BaseInput id="additional-category-name-es" v-model="form.name_es" />
+            <BaseFormField :label="t('additionalModules.categoryNameEs')" for="additional-category-name-es" required :error="fieldErrors.name_es">
+              <BaseInput id="additional-category-name-es" v-model="form.name_es" :error="!!fieldErrors.name_es" data-testid="additional-category-name-es" @update:model-value="fieldErrors.name_es = ''" />
             </BaseFormField>
-            <BaseFormField :label="t('additionalModules.categoryNameEn')" for="additional-category-name-en" required>
-              <BaseInput id="additional-category-name-en" v-model="form.name_en" />
+            <BaseFormField :label="t('additionalModules.categoryNameEn')" for="additional-category-name-en" required :error="fieldErrors.name_en">
+              <BaseInput id="additional-category-name-en" v-model="form.name_en" :error="!!fieldErrors.name_en" data-testid="additional-category-name-en" @update:model-value="fieldErrors.name_en = ''" />
             </BaseFormField>
           </div>
-          <BaseAlert v-if="localError || errorMessage" class="mt-4" variant="danger">
-            {{ localError || errorMessage }}
+          <BaseAlert v-if="errorMessage" class="mt-4" variant="danger">
+            {{ errorMessage }}
           </BaseAlert>
-          <div class="mt-4 flex justify-end gap-2">
+          <BaseModalActions class="-mx-4 -mb-4 mt-4">
             <BaseButton type="button" variant="ghost" size="sm" @click="closeForm">{{ t('additionalModules.cancel') }}</BaseButton>
             <BaseButton type="submit" size="sm" :loading="saving">{{ t('additionalModules.save') }}</BaseButton>
-          </div>
+          </BaseModalActions>
         </form>
 
         <ul class="space-y-3" data-testid="additional-category-list">

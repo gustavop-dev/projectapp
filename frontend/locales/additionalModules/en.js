@@ -67,7 +67,7 @@ export default {
   clearSelection: 'Clear selection',
   selectedCount: '{count} selected',
   recipientLabel: 'Recipient or conversation name',
-  optionalClient: 'Existing client (optional)',
+  optionalClient: 'Existing client',
   noClient: 'No linked client',
   language: 'Language',
   generate: 'Create link',

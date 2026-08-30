@@ -39,7 +39,7 @@
           </label>
           <span class="text-xs text-text-subtle">o usa una URL externa abajo</span>
         </div>
-        <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full mt-3 px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="URL externa de imagen (opcional)" />
+        <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full mt-3 px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="URL externa de imagen" />
       </div>
 
       <!-- Español -->

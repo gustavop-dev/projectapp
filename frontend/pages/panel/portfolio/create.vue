@@ -7,9 +7,11 @@
 
     <!-- Tab toggle -->
     <div class="flex gap-1 mb-6 bg-surface-raised rounded-xl p-1 max-w-xs">
+      <!-- design-tokens: allow-raw-button — segmented mode control -->
       <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'manual' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default']" @click="mode = 'manual'">
         Manual
       </button>
+      <!-- design-tokens: allow-raw-button — segmented mode control -->
       <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'json' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default']" @click="mode = 'json'">
         Importar JSON
       </button>
@@ -64,7 +66,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Imagen de portada (URL)</label>
-          <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://... (opcional)" />
+          <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://..." />
         </div>
       </div>
 

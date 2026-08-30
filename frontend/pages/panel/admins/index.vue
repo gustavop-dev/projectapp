@@ -9,7 +9,7 @@
         variant="primary"
         size="md"
         class="w-fit"
-        @click="showCreateModal = true"
+        @click="openCreateModal"
       >
         <BaseActionIcon action="create" />
         Agregar Administrador
@@ -25,6 +25,7 @@
       alcanza, no hace falta colapsar en un selector.
     -->
     <div class="flex flex-wrap gap-2 mb-5">
+      <!-- design-tokens: allow-raw-button — selectable filter chip -->
       <button
         v-for="f in filters"
         :key="f.value"
@@ -101,78 +102,81 @@
     </div>
 
     <!-- Create modal -->
-    <Teleport to="body">
-      <div
-        v-if="showCreateModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        @click.self="closeModal"
-      >
-        <div role="dialog" aria-modal="true" aria-label="Agregar Administrador" class="bg-surface rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
-          <h2 class="text-lg font-semibold text-text-default mb-4">Agregar Administrador</h2>
-          <p class="text-sm text-text-muted mb-6">
-            Se le enviará un email con credenciales temporales para acceder a la plataforma.
-          </p>
-
-          <form @submit.prevent="handleCreate">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-text-default mb-1">Email</label>
-                <input
-                  v-model="form.email"
-                  type="email"
-                  required
-                  class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-lg text-sm placeholder:text-text-subtle
-                         focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-                  placeholder="admin@ejemplo.com"
-                />
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-sm font-medium text-text-default mb-1">Nombre</label>
-                  <input
-                    v-model="form.first_name"
-                    type="text"
-                    required
-                    class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-lg text-sm placeholder:text-text-subtle
-                           focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-                    placeholder="Nombre"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-text-default mb-1">Apellido</label>
-                  <input
-                    v-model="form.last_name"
-                    type="text"
-                    required
-                    class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-lg text-sm placeholder:text-text-subtle
-                           focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-                    placeholder="Apellido"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Error message -->
-            <p v-if="createError" class="mt-3 text-sm text-danger-strong">{{ createError }}</p>
-
-            <div class="flex justify-end gap-3 mt-6">
-              <BaseButton variant="ghost" size="md" type="button" @click="closeModal">
-                Cancelar
-              </BaseButton>
-              <BaseButton
-                type="submit"
-                variant="primary"
-                size="md"
-                :loading="creating"
-                :disabled="creating"
-              >
-                {{ creating ? 'Creando...' : 'Crear Administrador' }}
-              </BaseButton>
-            </div>
-          </form>
-        </div>
+    <BaseModal
+      :model-value="showCreateModal"
+      kind="form"
+      title-id="admins-create-title"
+      @close="closeModal"
+    >
+      <div class="px-6 pb-2 pt-6">
+        <h2 id="admins-create-title" class="text-lg font-semibold text-text-default">
+          Agregar administrador
+        </h2>
+        <p class="mt-1 text-sm text-text-muted">
+          Enviaremos credenciales temporales al correo indicado.
+        </p>
       </div>
-    </Teleport>
+
+      <form novalidate @submit.prevent="handleCreate">
+        <div class="space-y-4 px-6 py-4">
+          <BaseFormField
+            v-slot="{ invalid, errorId }"
+            label="Email"
+            required
+            :error="createFieldErrors.email"
+          >
+            <BaseInput
+              v-model="form.email"
+              type="email"
+              placeholder="admin@ejemplo.com"
+              :error="invalid"
+              :aria-describedby="errorId"
+              @update:model-value="clearCreateFieldError('email')"
+            />
+          </BaseFormField>
+          <BaseFormRow>
+            <BaseFormField
+              v-slot="{ invalid, errorId }"
+              label="Nombre"
+              required
+              :error="createFieldErrors.first_name"
+            >
+              <BaseInput
+                v-model="form.first_name"
+                placeholder="Nombre"
+                :error="invalid"
+                :aria-describedby="errorId"
+                @update:model-value="clearCreateFieldError('first_name')"
+              />
+            </BaseFormField>
+            <BaseFormField
+              v-slot="{ invalid, errorId }"
+              label="Apellido"
+              required
+              :error="createFieldErrors.last_name"
+            >
+              <BaseInput
+                v-model="form.last_name"
+                placeholder="Apellido"
+                :error="invalid"
+                :aria-describedby="errorId"
+                @update:model-value="clearCreateFieldError('last_name')"
+              />
+            </BaseFormField>
+          </BaseFormRow>
+          <BaseAlert v-if="createError" variant="danger">{{ createError }}</BaseAlert>
+        </div>
+
+        <BaseModalActions>
+          <BaseButton variant="ghost" size="md" type="button" @click="closeModal">
+            Cancelar
+          </BaseButton>
+          <BaseButton type="submit" variant="primary" size="md" :loading="creating">
+            {{ creating ? 'Creando...' : 'Crear administrador' }}
+          </BaseButton>
+        </BaseModalActions>
+      </form>
+    </BaseModal>
   </div>
 </template>
 
@@ -190,6 +194,7 @@ const activeFilter = ref('all');
 const showCreateModal = ref(false);
 const creating = ref(false);
 const createError = ref('');
+const createFieldErrors = ref({});
 const resendingId = ref(null);
 const loggingInId = ref(null);
 const notify = usePanelNotify();
@@ -237,11 +242,32 @@ function closeModal() {
   showCreateModal.value = false;
   form.value = { email: '', first_name: '', last_name: '' };
   createError.value = '';
+  createFieldErrors.value = {};
+}
+
+function openCreateModal() {
+  form.value = { email: '', first_name: '', last_name: '' };
+  createError.value = '';
+  createFieldErrors.value = {};
+  showCreateModal.value = true;
+}
+
+function clearCreateFieldError(field) {
+  const nextErrors = { ...createFieldErrors.value };
+  delete nextErrors[field];
+  createFieldErrors.value = nextErrors;
 }
 
 async function handleCreate() {
-  creating.value = true;
   createError.value = '';
+  createFieldErrors.value = {
+    ...(!form.value.email.trim() ? { email: 'Escribe el correo del administrador.' } : {}),
+    ...(!form.value.first_name.trim() ? { first_name: 'Escribe el nombre.' } : {}),
+    ...(!form.value.last_name.trim() ? { last_name: 'Escribe el apellido.' } : {}),
+  };
+  if (Object.keys(createFieldErrors.value).length) return;
+
+  creating.value = true;
 
   const result = await adminStore.createAdmin(form.value);
   creating.value = false;
@@ -250,7 +276,8 @@ async function handleCreate() {
     closeModal();
     notify.success('Administrador creado. Se envió la invitación por email.');
   } else {
-    createError.value = result.error;
+    createFieldErrors.value = result.fieldErrors || {};
+    if (!Object.keys(createFieldErrors.value).length) createError.value = result.error;
   }
 }
 

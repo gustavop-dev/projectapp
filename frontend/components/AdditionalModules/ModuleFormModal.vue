@@ -12,7 +12,33 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'save'])
 const { t } = useI18n()
 const languageTab = ref('es')
-const localError = ref('')
+
+const requiredFieldMessages = {
+  category: 'Selecciona una categoría.',
+  slug: 'Escribe el identificador del módulo.',
+  name_es: 'Escribe el nombre en español.',
+  name_en: 'Escribe el nombre en inglés.',
+  summary_es: 'Escribe el resumen en español.',
+  summary_en: 'Escribe el resumen en inglés.',
+  what_is_es: 'Explica qué es el módulo en español.',
+  what_is_en: 'Explica qué es el módulo en inglés.',
+  purpose_es: 'Explica para qué sirve en español.',
+  purpose_en: 'Explica para qué sirve en inglés.',
+  problems_solved_es: 'Agrega al menos un problema en español.',
+  problems_solved_en: 'Agrega al menos un problema en inglés.',
+  integrations_es: 'Agrega al menos una integración en español.',
+  integrations_en: 'Agrega al menos una integración en inglés.',
+  implementation_requirements_es: 'Agrega al menos un requisito en español.',
+  implementation_requirements_en: 'Agrega al menos un requisito en inglés.',
+}
+const listFields = new Set([
+  'problems_solved_es', 'problems_solved_en',
+  'integrations_es', 'integrations_en',
+  'implementation_requirements_es', 'implementation_requirements_en',
+])
+const fieldErrors = reactive(Object.fromEntries(
+  Object.keys(requiredFieldMessages).map((field) => [field, '']),
+))
 
 const form = reactive({
   category: '',
@@ -37,6 +63,14 @@ const form = reactive({
 const listText = (value) => (Array.isArray(value) ? value.join('\n') : '')
 const parseLines = (value) => value.split('\n').map((item) => item.trim()).filter(Boolean)
 
+function clearFieldErrors() {
+  for (const field of Object.keys(fieldErrors)) fieldErrors[field] = ''
+}
+
+function clearFieldError(field) {
+  fieldErrors[field] = ''
+}
+
 function resetForm() {
   const module = props.module
   form.category = module?.category || props.categories.find((item) => item.is_active)?.id || ''
@@ -51,7 +85,7 @@ function resetForm() {
     form[`${field}_en`] = listText(module?.[`${field}_en`])
   }
   languageTab.value = 'es'
-  localError.value = ''
+  clearFieldErrors()
 }
 
 watch(() => props.modelValue, (open) => {
@@ -63,28 +97,19 @@ function close() {
 }
 
 function submit() {
-  const required = [
-    form.category,
-    form.slug,
-    form.name_es,
-    form.name_en,
-    form.summary_es,
-    form.summary_en,
-    form.what_is_es,
-    form.what_is_en,
-    form.purpose_es,
-    form.purpose_en,
-  ]
-  const listFields = [
-    'problems_solved_es', 'problems_solved_en',
-    'integrations_es', 'integrations_en',
-    'implementation_requirements_es', 'implementation_requirements_en',
-  ]
-  if (required.some((value) => !String(value).trim()) || listFields.some((field) => parseLines(form[field]).length === 0)) {
-    localError.value = t('additionalModules.requiredFields')
+  clearFieldErrors()
+  for (const [field, message] of Object.entries(requiredFieldMessages)) {
+    const missing = listFields.has(field)
+      ? parseLines(form[field]).length === 0
+      : !String(form[field]).trim()
+    if (missing) fieldErrors[field] = message
+  }
+  const missingFields = Object.keys(fieldErrors).filter((field) => fieldErrors[field])
+  if (missingFields.length) {
+    if (missingFields.some((field) => field.endsWith('_en'))) languageTab.value = 'en'
+    else languageTab.value = 'es'
     return
   }
-  localError.value = ''
   emit('save', {
     category: Number(form.category),
     slug: form.slug.trim(),
@@ -132,16 +157,18 @@ function submit() {
 
       <div class="space-y-5 overflow-y-auto px-5 py-5 sm:px-7">
         <div class="grid gap-4 sm:grid-cols-[1fr_1fr_7rem]">
-          <BaseFormField :label="t('additionalModules.category')" for="additional-module-category" required>
+          <BaseFormField :label="t('additionalModules.category')" for="additional-module-category" required :error="fieldErrors.category">
             <BaseSelect
               id="additional-module-category"
               v-model="form.category"
               :options="categories.map((category) => ({ value: category.id, label: category.name_es }))"
+              :error="!!fieldErrors.category"
               data-testid="additional-module-category"
+              @update:model-value="clearFieldError('category')"
             />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.slug')" for="additional-module-slug" required>
-            <BaseInput id="additional-module-slug" v-model="form.slug" data-testid="additional-module-slug" />
+          <BaseFormField :label="t('additionalModules.slug')" for="additional-module-slug" required :error="fieldErrors.slug">
+            <BaseInput id="additional-module-slug" v-model="form.slug" :error="!!fieldErrors.slug" data-testid="additional-module-slug" @update:model-value="clearFieldError('slug')" />
           </BaseFormField>
           <BaseFormField :label="t('additionalModules.icon')" for="additional-module-icon">
             <BaseInput id="additional-module-icon" v-model="form.icon" data-testid="additional-module-icon" />
@@ -158,68 +185,68 @@ function submit() {
         />
 
         <div v-show="languageTab === 'es'" class="space-y-4">
-          <BaseFormField :label="t('additionalModules.name')" for="additional-module-name-es" required>
-            <BaseInput id="additional-module-name-es" v-model="form.name_es" data-testid="additional-module-name-es" />
+          <BaseFormField :label="t('additionalModules.name')" for="additional-module-name-es" required :error="fieldErrors.name_es">
+            <BaseInput id="additional-module-name-es" v-model="form.name_es" :error="!!fieldErrors.name_es" data-testid="additional-module-name-es" @update:model-value="clearFieldError('name_es')" />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.summary')" for="additional-module-summary-es" required>
-            <BaseTextarea id="additional-module-summary-es" v-model="form.summary_es" rows="2" />
+          <BaseFormField :label="t('additionalModules.summary')" for="additional-module-summary-es" required :error="fieldErrors.summary_es">
+            <BaseTextarea id="additional-module-summary-es" v-model="form.summary_es" rows="2" :error="!!fieldErrors.summary_es" data-testid="additional-module-summary-es" @update:model-value="clearFieldError('summary_es')" />
           </BaseFormField>
           <div class="grid gap-4 sm:grid-cols-2">
-            <BaseFormField :label="t('additionalModules.whatIsField')" for="additional-module-what-es" required>
-              <BaseTextarea id="additional-module-what-es" v-model="form.what_is_es" rows="5" />
+            <BaseFormField :label="t('additionalModules.whatIsField')" for="additional-module-what-es" required :error="fieldErrors.what_is_es">
+              <BaseTextarea id="additional-module-what-es" v-model="form.what_is_es" rows="5" :error="!!fieldErrors.what_is_es" data-testid="additional-module-what-es" @update:model-value="clearFieldError('what_is_es')" />
             </BaseFormField>
-            <BaseFormField :label="t('additionalModules.purposeField')" for="additional-module-purpose-es" required>
-              <BaseTextarea id="additional-module-purpose-es" v-model="form.purpose_es" rows="5" />
+            <BaseFormField :label="t('additionalModules.purposeField')" for="additional-module-purpose-es" required :error="fieldErrors.purpose_es">
+              <BaseTextarea id="additional-module-purpose-es" v-model="form.purpose_es" rows="5" :error="!!fieldErrors.purpose_es" data-testid="additional-module-purpose-es" @update:model-value="clearFieldError('purpose_es')" />
             </BaseFormField>
           </div>
-          <BaseFormField :label="t('additionalModules.problemsField')" for="additional-module-problems-es" required>
-            <BaseTextarea id="additional-module-problems-es" v-model="form.problems_solved_es" rows="4" />
+          <BaseFormField :label="t('additionalModules.problemsField')" for="additional-module-problems-es" required :error="fieldErrors.problems_solved_es">
+            <BaseTextarea id="additional-module-problems-es" v-model="form.problems_solved_es" rows="4" :error="!!fieldErrors.problems_solved_es" data-testid="additional-module-problems-es" @update:model-value="clearFieldError('problems_solved_es')" />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.integrationsField')" for="additional-module-integrations-es" required>
-            <BaseTextarea id="additional-module-integrations-es" v-model="form.integrations_es" rows="4" />
+          <BaseFormField :label="t('additionalModules.integrationsField')" for="additional-module-integrations-es" required :error="fieldErrors.integrations_es">
+            <BaseTextarea id="additional-module-integrations-es" v-model="form.integrations_es" rows="4" :error="!!fieldErrors.integrations_es" data-testid="additional-module-integrations-es" @update:model-value="clearFieldError('integrations_es')" />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.requirementsField')" for="additional-module-requirements-es" required>
-            <BaseTextarea id="additional-module-requirements-es" v-model="form.implementation_requirements_es" rows="4" />
+          <BaseFormField :label="t('additionalModules.requirementsField')" for="additional-module-requirements-es" required :error="fieldErrors.implementation_requirements_es">
+            <BaseTextarea id="additional-module-requirements-es" v-model="form.implementation_requirements_es" rows="4" :error="!!fieldErrors.implementation_requirements_es" data-testid="additional-module-requirements-es" @update:model-value="clearFieldError('implementation_requirements_es')" />
           </BaseFormField>
         </div>
 
         <div v-show="languageTab === 'en'" class="space-y-4">
-          <BaseFormField :label="t('additionalModules.name')" for="additional-module-name-en" required>
-            <BaseInput id="additional-module-name-en" v-model="form.name_en" />
+          <BaseFormField :label="t('additionalModules.name')" for="additional-module-name-en" required :error="fieldErrors.name_en">
+            <BaseInput id="additional-module-name-en" v-model="form.name_en" :error="!!fieldErrors.name_en" data-testid="additional-module-name-en" @update:model-value="clearFieldError('name_en')" />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.summary')" for="additional-module-summary-en" required>
-            <BaseTextarea id="additional-module-summary-en" v-model="form.summary_en" rows="2" />
+          <BaseFormField :label="t('additionalModules.summary')" for="additional-module-summary-en" required :error="fieldErrors.summary_en">
+            <BaseTextarea id="additional-module-summary-en" v-model="form.summary_en" rows="2" :error="!!fieldErrors.summary_en" data-testid="additional-module-summary-en" @update:model-value="clearFieldError('summary_en')" />
           </BaseFormField>
           <div class="grid gap-4 sm:grid-cols-2">
-            <BaseFormField :label="t('additionalModules.whatIsField')" for="additional-module-what-en" required>
-              <BaseTextarea id="additional-module-what-en" v-model="form.what_is_en" rows="5" />
+            <BaseFormField :label="t('additionalModules.whatIsField')" for="additional-module-what-en" required :error="fieldErrors.what_is_en">
+              <BaseTextarea id="additional-module-what-en" v-model="form.what_is_en" rows="5" :error="!!fieldErrors.what_is_en" data-testid="additional-module-what-en" @update:model-value="clearFieldError('what_is_en')" />
             </BaseFormField>
-            <BaseFormField :label="t('additionalModules.purposeField')" for="additional-module-purpose-en" required>
-              <BaseTextarea id="additional-module-purpose-en" v-model="form.purpose_en" rows="5" />
+            <BaseFormField :label="t('additionalModules.purposeField')" for="additional-module-purpose-en" required :error="fieldErrors.purpose_en">
+              <BaseTextarea id="additional-module-purpose-en" v-model="form.purpose_en" rows="5" :error="!!fieldErrors.purpose_en" data-testid="additional-module-purpose-en" @update:model-value="clearFieldError('purpose_en')" />
             </BaseFormField>
           </div>
-          <BaseFormField :label="t('additionalModules.problemsField')" for="additional-module-problems-en" required>
-            <BaseTextarea id="additional-module-problems-en" v-model="form.problems_solved_en" rows="4" />
+          <BaseFormField :label="t('additionalModules.problemsField')" for="additional-module-problems-en" required :error="fieldErrors.problems_solved_en">
+            <BaseTextarea id="additional-module-problems-en" v-model="form.problems_solved_en" rows="4" :error="!!fieldErrors.problems_solved_en" data-testid="additional-module-problems-en" @update:model-value="clearFieldError('problems_solved_en')" />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.integrationsField')" for="additional-module-integrations-en" required>
-            <BaseTextarea id="additional-module-integrations-en" v-model="form.integrations_en" rows="4" />
+          <BaseFormField :label="t('additionalModules.integrationsField')" for="additional-module-integrations-en" required :error="fieldErrors.integrations_en">
+            <BaseTextarea id="additional-module-integrations-en" v-model="form.integrations_en" rows="4" :error="!!fieldErrors.integrations_en" data-testid="additional-module-integrations-en" @update:model-value="clearFieldError('integrations_en')" />
           </BaseFormField>
-          <BaseFormField :label="t('additionalModules.requirementsField')" for="additional-module-requirements-en" required>
-            <BaseTextarea id="additional-module-requirements-en" v-model="form.implementation_requirements_en" rows="4" />
+          <BaseFormField :label="t('additionalModules.requirementsField')" for="additional-module-requirements-en" required :error="fieldErrors.implementation_requirements_en">
+            <BaseTextarea id="additional-module-requirements-en" v-model="form.implementation_requirements_en" rows="4" :error="!!fieldErrors.implementation_requirements_en" data-testid="additional-module-requirements-en" @update:model-value="clearFieldError('implementation_requirements_en')" />
           </BaseFormField>
         </div>
 
-        <BaseAlert v-if="localError || errorMessage" variant="danger">
-          {{ localError || errorMessage }}
+        <BaseAlert v-if="errorMessage" variant="danger">
+          {{ errorMessage }}
         </BaseAlert>
       </div>
 
-      <footer class="flex flex-wrap justify-end gap-2 border-t border-border-default px-5 py-4 sm:px-7">
+      <BaseModalActions>
         <BaseButton type="button" variant="ghost" @click="close">{{ t('additionalModules.cancel') }}</BaseButton>
         <BaseButton type="submit" :loading="saving" data-testid="additional-module-save">
           {{ t('additionalModules.save') }}
         </BaseButton>
-      </footer>
+      </BaseModalActions>
     </form>
   </BaseModal>
 </template>

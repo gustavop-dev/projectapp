@@ -72,7 +72,7 @@ describe('ClientAutocomplete', () => {
       ],
     });
 
-    const wrapper = mountAutocomplete();
+    const wrapper = mountAutocomplete({ modelValue: null, allowCreate: true });
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('ana');
     await flushPromises();
@@ -90,7 +90,7 @@ describe('ClientAutocomplete', () => {
       data: [],
     });
 
-    const wrapper = mountAutocomplete();
+    const wrapper = mountAutocomplete({ modelValue: null, allowCreate: true });
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('Nombre Nuevo');
     await flushPromises();
@@ -100,6 +100,38 @@ describe('ClientAutocomplete', () => {
     await wrapper.get('[data-testid="client-autocomplete-create-new"]').trigger('click');
 
     expect(wrapper.emitted('create-new')).toEqual([['Nombre Nuevo']]);
+  });
+
+  it('hides client creation when the consumer does not support it', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
+
+    const wrapper = mountAutocomplete();
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('Nombre Nuevo');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="client-autocomplete-create-new"]').exists()).toBe(false);
+  });
+
+  it('requires a committed client instead of accepting unmatched text', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
+    const wrapper = mountAutocomplete({
+      modelValue: null,
+      required: true,
+      requiredMessage: 'Elige o crea un cliente.',
+    });
+    await nextTick();
+
+    const input = wrapper.get('[data-testid="client-autocomplete-input"]');
+    await input.setValue('Cliente sin elegir');
+    await flushPromises();
+
+    expect(input.element.checkValidity()).toBe(false);
+    expect(input.element.validationMessage).toBe('Elige o crea un cliente.');
+
+    await wrapper.setProps({ modelValue: 77 });
+    await nextTick();
+    expect(input.element.checkValidity()).toBe(true);
   });
 
   it('warns before selection when a client has no real email', async () => {
@@ -119,6 +151,24 @@ describe('ClientAutocomplete', () => {
     expect(wrapper.text()).toContain('Sin correo');
     expect(wrapper.text()).toContain('Correo pendiente');
     expect(wrapper.text()).toContain('habrá que agregarlo para enviar');
+  });
+
+  it('keeps the create-new action visible when matching clients exist', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({
+      success: true,
+      data: [
+        { id: 302, name: 'Kore SAS', email: 'hola@kore.co', phone: '', company: 'Kore', is_email_placeholder: false },
+      ],
+    });
+
+    const wrapper = mountAutocomplete({ modelValue: null, allowCreate: true });
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('Kore');
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="client-autocomplete-option-302"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="client-autocomplete-create-new"]').text())
+      .toContain('Crear nuevo cliente "Kore"');
   });
 
   it('selects the highlighted option when enter is pressed', async () => {
@@ -176,7 +226,11 @@ describe('ClientAutocomplete', () => {
       ],
     });
 
-    const wrapper = mountAutocomplete({ modelValue: 42, initialLabel: 'Cliente Actual' });
+    const wrapper = mountAutocomplete({
+      modelValue: 42,
+      initialLabel: 'Cliente Actual',
+      allowCreate: true,
+    });
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('otro');
     await flushPromises();
@@ -205,7 +259,11 @@ describe('ClientAutocomplete', () => {
   it('keeps the typed name when create-new is chosen over a committed client', async () => {
     mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
 
-    const wrapper = mountAutocomplete({ modelValue: 42, initialLabel: 'Cliente Actual' });
+    const wrapper = mountAutocomplete({
+      modelValue: 42,
+      initialLabel: 'Cliente Actual',
+      allowCreate: true,
+    });
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('Cliente Nuevo');
     await flushPromises();
@@ -233,7 +291,7 @@ describe('ClientAutocomplete', () => {
 
   it('offers client creation when the initial catalog is empty', async () => {
     mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
-    const wrapper = mountAutocomplete();
+    const wrapper = mountAutocomplete({ modelValue: null, allowCreate: true });
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').trigger('focus');
     await flushPromises();
@@ -245,7 +303,7 @@ describe('ClientAutocomplete', () => {
 
   it('ignores cancelled search results without opening options', async () => {
     mockStore.searchClients.mockResolvedValueOnce({ cancelled: true });
-    const wrapper = mountAutocomplete();
+    const wrapper = mountAutocomplete({ modelValue: null, allowCreate: true });
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').trigger('focus');
     await flushPromises();
@@ -399,7 +457,7 @@ describe('ClientAutocomplete', () => {
       data: [],
     });
 
-    const wrapper = mountAutocomplete();
+    const wrapper = mountAutocomplete({ modelValue: null, allowCreate: true });
     const input = wrapper.get('[data-testid="client-autocomplete-input"]');
 
     await input.setValue('Cliente Nuevo');
@@ -548,6 +606,7 @@ describe('ClientAutocomplete', () => {
       modelValue: null,
       presentation: 'catalog',
       active: true,
+      allowCreate: true,
       sortStorageKey: 'panel.test.client-order',
     };
 

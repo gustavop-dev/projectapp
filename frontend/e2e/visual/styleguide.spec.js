@@ -193,8 +193,8 @@ test.describe('styleguide form rows', () => {
     const atomicRow = page.getByTestId('sg-row-atomic');
     const fallbackRow = page.getByTestId('sg-row-wrapped-fallback');
 
-    const nitLabel = atomicRow.getByText('C.C. / NIT (opcional)', { exact: true });
-    const billingCodeLabel = atomicRow.getByText('Código de facturación (opcional)', { exact: true });
+    const nitLabel = atomicRow.getByText('C.C. / NIT', { exact: true });
+    const billingCodeLabel = atomicRow.getByText('Código de facturación', { exact: true });
     await expect(nitLabel).toHaveCSS('white-space', 'nowrap');
     await expect(billingCodeLabel).toHaveCSS('white-space', 'nowrap');
 
