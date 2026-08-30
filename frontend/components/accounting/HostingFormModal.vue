@@ -222,6 +222,7 @@ function onSubmit() {
       <BaseFormField
         label="Cliente"
         :required="!isEdit"
+        required-message="Elige o crea un cliente."
         hint="Cliente al que pertenece el hosting."
       >
         <ClientAutocomplete

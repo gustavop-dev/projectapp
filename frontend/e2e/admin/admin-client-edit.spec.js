@@ -152,8 +152,8 @@ test.describe('Admin Client Edit Modal', () => {
     await page.getByTestId('client-edit-301').click();
     await expect(page.getByTestId('clients-edit-nit')).toBeVisible({ timeout: 5_000 });
 
-    const nitLabelLocator = page.getByText('C.C. / NIT (opcional)', { exact: true });
-    const codeLabelLocator = page.getByText('Código de facturación (opcional)', { exact: true });
+    const nitLabelLocator = page.getByText('C.C. / NIT', { exact: true });
+    const codeLabelLocator = page.getByText('Código de facturación', { exact: true });
     const nitLabel = await nitLabelLocator.boundingBox();
     const codeLabel = await codeLabelLocator.boundingBox();
     expect(await nitLabelLocator.evaluate((label) => getComputedStyle(label).whiteSpace))
