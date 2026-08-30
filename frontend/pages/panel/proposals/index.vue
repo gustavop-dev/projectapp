@@ -483,6 +483,7 @@
                   v-model="quickLogMessage"
                   :error="!!quickLogError"
                   placeholder="Ej: Llamada de seguimiento, cliente interesado"
+                  data-testid="proposal-quick-log-description"
                   @update:model-value="quickLogError = ''"
                   @keyup.enter="confirmQuickLog"
                 />
@@ -495,6 +496,7 @@
               variant="primary"
               size="md"
               :loading="isQuickLogging"
+              data-testid="proposal-quick-log-submit"
               @click="confirmQuickLog"
             >
               {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
