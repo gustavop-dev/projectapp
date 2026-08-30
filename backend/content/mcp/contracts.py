@@ -430,6 +430,15 @@ MCP_MODEL_CONTRACTS = {
     ),
     'communications': (
         _contract(
+            'accounts.CommunicationPanelPreference',
+            excluded=_excluded(
+                'Preferencia personal de interfaz; el MCP opera el registro '
+                'conversacional y no la configuración visual de cada cuenta.',
+                'id user navigation_mode thread_order page_size default_channel '
+                'show_manual_help navigation_width updated_at',
+            ),
+        ),
+        _contract(
             'content.CommunicationThread',
             read_only=(
                 'id status last_activity_at closed_at created_at updated_at'

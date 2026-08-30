@@ -3,6 +3,7 @@ import string
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.functions import NullIf
 from django.utils import timezone
@@ -216,6 +217,91 @@ _AuthUser = get_user_model()
 _AuthUser.add_to_class('role', property(_user_role))
 _AuthUser.add_to_class('is_client_role', property(_user_is_client_role))
 _AuthUser.add_to_class('is_admin_role', property(_user_is_admin_role))
+
+
+class CommunicationPanelPreference(models.Model):
+    """Per-account defaults for the Communications panel."""
+
+    NAVIGATION_PROJECT = 'project'
+    NAVIGATION_CLIENT = 'client'
+    NAVIGATION_CHOICES = [
+        (NAVIGATION_PROJECT, 'Proyectos'),
+        (NAVIGATION_CLIENT, 'Clientes'),
+    ]
+
+    ORDER_RECENT = 'recent'
+    ORDER_OLDEST = 'oldest'
+    ORDER_TITLE = 'title'
+    ORDER_CHOICES = [
+        (ORDER_RECENT, 'Recientes'),
+        (ORDER_OLDEST, 'Antiguos'),
+        (ORDER_TITLE, 'Título'),
+    ]
+
+    CHANNEL_WHATSAPP = 'whatsapp'
+    CHANNEL_EMAIL = 'email'
+    CHANNEL_CHOICES = [
+        (CHANNEL_WHATSAPP, 'WhatsApp'),
+        (CHANNEL_EMAIL, 'Correo'),
+    ]
+
+    PAGE_SIZE_CHOICES = [(10, '10'), (20, '20'), (50, '50')]
+    NAVIGATION_WIDTH_MIN = 240
+    NAVIGATION_WIDTH_MAX = 400
+    NAVIGATION_WIDTH_DEFAULT = 288
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='communication_panel_preference',
+    )
+    navigation_mode = models.CharField(
+        max_length=10,
+        choices=NAVIGATION_CHOICES,
+        default=NAVIGATION_PROJECT,
+    )
+    thread_order = models.CharField(
+        max_length=10,
+        choices=ORDER_CHOICES,
+        default=ORDER_RECENT,
+    )
+    page_size = models.PositiveSmallIntegerField(
+        choices=PAGE_SIZE_CHOICES,
+        default=20,
+    )
+    default_channel = models.CharField(
+        max_length=10,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_WHATSAPP,
+    )
+    show_manual_help = models.BooleanField(default=True)
+    navigation_width = models.PositiveSmallIntegerField(
+        default=NAVIGATION_WIDTH_DEFAULT,
+        validators=[
+            MinValueValidator(NAVIGATION_WIDTH_MIN),
+            MaxValueValidator(NAVIGATION_WIDTH_MAX),
+        ],
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def defaults(cls):
+        return {
+            'navigation_mode': cls.NAVIGATION_PROJECT,
+            'thread_order': cls.ORDER_RECENT,
+            'page_size': 20,
+            'default_channel': cls.CHANNEL_WHATSAPP,
+            'show_manual_help': True,
+            'navigation_width': cls.NAVIGATION_WIDTH_DEFAULT,
+        }
+
+    def reset(self):
+        for field, value in self.defaults().items():
+            setattr(self, field, value)
+        self.save(update_fields=[*self.defaults(), 'updated_at'])
+
+    def __str__(self):
+        return f'{self.user_id}/communications'
 
 
 class VerificationCode(models.Model):

@@ -6,6 +6,27 @@ import {
   patch_request,
 } from './services/request_http';
 import { normalizeApiError } from './services/normalize_api_error';
+import {
+  COMMUNICATION_PREFERENCE_DEFAULTS,
+  clearLegacyCommunicationPreferences,
+  normalizeCommunicationPreferences,
+  readLegacyCommunicationPreferences,
+} from '~/constants/communicationPreferences';
+
+const preferenceLoadPromises = new WeakMap();
+const preferenceWriteQueues = new WeakMap();
+
+
+function enqueuePreferenceWrite(store, operation) {
+  const previous = preferenceWriteQueues.get(store) || Promise.resolve();
+  const queued = previous.catch(() => undefined).then(operation);
+  preferenceWriteQueues.set(store, queued);
+  return queued.finally(() => {
+    if (preferenceWriteQueues.get(store) === queued) {
+      preferenceWriteQueues.delete(store);
+    }
+  });
+}
 
 
 function queryString(filters = {}) {
@@ -47,6 +68,12 @@ export const useCommunicationsStore = defineStore('communications', {
     error: null,
     threadError: null,
     threadsRequestId: 0,
+    preferences: { ...COMMUNICATION_PREFERENCE_DEFAULTS },
+    preferenceReady: false,
+    isPreferenceLoading: false,
+    isPreferenceSaving: false,
+    preferenceError: null,
+    preferenceRequestId: 0,
   }),
 
   getters: {
@@ -56,6 +83,131 @@ export const useCommunicationsStore = defineStore('communications', {
   },
 
   actions: {
+    async fetchPreferences() {
+      const pending = preferenceLoadPromises.get(this);
+      if (pending) return pending;
+
+      const operation = (async () => {
+        this.isPreferenceLoading = true;
+        this.preferenceError = null;
+        try {
+          const response = await get_request('accounts/panel-preferences/communications/');
+          let preferences = normalizeCommunicationPreferences(response.data);
+          let legacyImportFailed = false;
+
+          if (response.data?.legacy_import_allowed && typeof window !== 'undefined') {
+            const legacy = readLegacyCommunicationPreferences(window.localStorage);
+            if (Object.keys(legacy).length) {
+              try {
+                const imported = await patch_request(
+                  'accounts/panel-preferences/communications/',
+                  legacy,
+                );
+                preferences = normalizeCommunicationPreferences(imported.data);
+                clearLegacyCommunicationPreferences(window.localStorage);
+              } catch (error) {
+                legacyImportFailed = true;
+                preferences = normalizeCommunicationPreferences({
+                  ...preferences,
+                  ...legacy,
+                });
+                this.preferenceError = normalizeApiError(
+                  error,
+                  'No se pudieron sincronizar tus preferencias anteriores.',
+                ).message;
+              }
+            }
+          }
+
+          this.preferences = preferences;
+          return { success: true, data: preferences, legacyImportFailed };
+        } catch (error) {
+          const legacy = typeof window === 'undefined'
+            ? {}
+            : readLegacyCommunicationPreferences(window.localStorage);
+          this.preferences = normalizeCommunicationPreferences({
+            ...COMMUNICATION_PREFERENCE_DEFAULTS,
+            ...legacy,
+          });
+          const normalized = normalizeApiError(
+            error,
+            'No se pudieron recuperar tus preferencias de comunicaciones.',
+          );
+          this.preferenceError = normalized.message;
+          return { success: false, ...normalized };
+        } finally {
+          this.preferenceReady = true;
+          this.isPreferenceLoading = false;
+        }
+      })();
+
+      preferenceLoadPromises.set(this, operation);
+      try {
+        return await operation;
+      } finally {
+        if (preferenceLoadPromises.get(this) === operation) {
+          preferenceLoadPromises.delete(this);
+        }
+      }
+    },
+
+    async updatePreferences(payload) {
+      const requestId = ++this.preferenceRequestId;
+      const safePayload = { ...payload };
+      this.isPreferenceSaving = true;
+      return enqueuePreferenceWrite(this, async () => {
+        try {
+          const pendingLoad = preferenceLoadPromises.get(this);
+          if (pendingLoad) await pendingLoad;
+          this.preferenceError = null;
+          const response = await patch_request(
+            'accounts/panel-preferences/communications/',
+            safePayload,
+          );
+          const preferences = normalizeCommunicationPreferences(response.data);
+          this.preferences = preferences;
+          return { success: true, data: preferences };
+        } catch (error) {
+          const normalized = normalizeApiError(
+            error,
+            'No se pudieron guardar las preferencias.',
+          );
+          this.preferenceError = normalized.message;
+          return { success: false, ...normalized };
+        } finally {
+          if (requestId === this.preferenceRequestId) this.isPreferenceSaving = false;
+        }
+      });
+    },
+
+    async resetPreferences() {
+      const requestId = ++this.preferenceRequestId;
+      this.isPreferenceSaving = true;
+      return enqueuePreferenceWrite(this, async () => {
+        try {
+          const pendingLoad = preferenceLoadPromises.get(this);
+          if (pendingLoad) await pendingLoad;
+          this.preferenceError = null;
+          const response = await create_request(
+            'accounts/panel-preferences/communications/reset/',
+            {},
+          );
+          const preferences = normalizeCommunicationPreferences(response.data);
+          this.preferences = preferences;
+          return { success: true, data: preferences };
+        } catch (error) {
+          const normalized = normalizeApiError(
+            error,
+            'No se pudieron restablecer las preferencias.',
+          );
+          this.preferenceError = normalized.message;
+          return { success: false, ...normalized };
+        } finally {
+          if (requestId === this.preferenceRequestId) this.isPreferenceSaving = false;
+        }
+      });
+    },
+
     _replaceThread(thread) {
       this.threads = this.threads.map((item) => (
         item.id === thread.id ? { ...item, ...thread } : item

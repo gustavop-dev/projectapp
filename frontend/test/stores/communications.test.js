@@ -14,6 +14,11 @@ import {
   get_request,
   patch_request,
 } from '../../stores/services/request_http';
+import {
+  COMMUNICATION_NOTICE_STORAGE_KEY,
+  COMMUNICATION_ORDER_STORAGE_KEY,
+  COMMUNICATION_PANEL_STORAGE_KEY,
+} from '../../constants/communicationPreferences';
 
 
 const thread = (overrides = {}) => ({
@@ -29,10 +34,91 @@ describe('communications store', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     jest.clearAllMocks();
+    window.localStorage.clear();
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => jest.restoreAllMocks());
+
+  it('loads server-backed communication preferences', async () => {
+    get_request.mockResolvedValueOnce({
+      data: {
+        navigation_mode: 'client', thread_order: 'title', page_size: 50,
+        default_channel: 'email', show_manual_help: false, navigation_width: 400,
+        legacy_import_allowed: false,
+      },
+    });
+    const store = useCommunicationsStore();
+
+    const result = await store.fetchPreferences();
+
+    expect(result.success).toBe(true);
+    expect(store.preferences).toEqual({
+      navigation_mode: 'client', thread_order: 'title', page_size: 50,
+      default_channel: 'email', show_manual_help: false, navigation_width: 400,
+    });
+  });
+
+  it('imports legacy preferences for a new server record', async () => {
+    window.localStorage.setItem(COMMUNICATION_ORDER_STORAGE_KEY, 'oldest');
+    window.localStorage.setItem(COMMUNICATION_PANEL_STORAGE_KEY, '350');
+    window.localStorage.setItem(COMMUNICATION_NOTICE_STORAGE_KEY, 'dismissed');
+    get_request.mockResolvedValueOnce({
+      data: { legacy_import_allowed: true },
+    });
+    patch_request.mockResolvedValueOnce({
+      data: {
+        thread_order: 'oldest', navigation_width: 350, show_manual_help: false,
+      },
+    });
+    const store = useCommunicationsStore();
+
+    await store.fetchPreferences();
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'accounts/panel-preferences/communications/',
+      { thread_order: 'oldest', navigation_width: 350, show_manual_help: false },
+    );
+    expect(window.localStorage.getItem(COMMUNICATION_ORDER_STORAGE_KEY)).toBeNull();
+  });
+
+  it('falls back without blocking when preference loading fails', async () => {
+    get_request.mockRejectedValueOnce({ response: { status: 503, data: {} } });
+    const store = useCommunicationsStore();
+
+    const result = await store.fetchPreferences();
+
+    expect(result.success).toBe(false);
+    expect(store.preferenceReady).toBe(true);
+    expect(store.preferences.page_size).toBe(20);
+  });
+
+  it('updates only the supplied communication preference', async () => {
+    patch_request.mockResolvedValueOnce({
+      data: { ...useCommunicationsStore().preferences, default_channel: 'email' },
+    });
+    const store = useCommunicationsStore();
+
+    const result = await store.updatePreferences({ default_channel: 'email' });
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'accounts/panel-preferences/communications/',
+      { default_channel: 'email' },
+    );
+    expect(result.data.default_channel).toBe('email');
+  });
+
+  it('restores communication preference defaults', async () => {
+    const store = useCommunicationsStore();
+    create_request.mockResolvedValueOnce({ data: { ...store.preferences } });
+
+    const result = await store.resetPreferences();
+
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/panel-preferences/communications/reset/', {},
+    );
+    expect(result.success).toBe(true);
+  });
 
   it('loads a filtered page of threads', async () => {
     get_request.mockResolvedValueOnce({

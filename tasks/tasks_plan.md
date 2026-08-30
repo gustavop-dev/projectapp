@@ -6,6 +6,12 @@
 > archivado por ciclo de vida. La adopción histórica se entrega como manifiesto
 > revisable con respaldo, huella e inverso; no se modificó producción.
 
+> **Listo para integrar — 2026-08-30:** Comunicaciones incorpora un centro
+> personal de Configuraciones junto a Nuevo hilo, persistencia por cuenta,
+> migración única de preferencias locales, guard de cambios y restablecimientos
+> independientes. Verificación: 15 pruebas backend, 42 unitarias frontend, 13 E2E,
+> build de producción, checks de contrato y auditoría del flujo en verde.
+
 > **Ampliación lista para integrar — 2026-08-30:** Módulos adicionales suma
 > cinco opciones al catálogo existente, incorpora selector ES/EN en panel,
 > público y enlaces compartidos, ofrece tarjetas/lista/acordeón y genera PDF en

@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin identifica y busca varios hilos mediante tarjetas compactas de título y metadata, sin contenido del mensaje ni desplazamiento horizontal; conserva el orden elegido entre visitas y navega por proyecto, cliente o sin proyecto. Aplica filtros prediseñados con conteos completos, guarda recortes propios diferenciados y puede restablecer los de fábrica sin perder sus vistas. El aviso manual conserva su cierre y el contenido completo permanece en el detalle modal, con registro bidireccional, estados y documentos referenciados.",
+  "description": "Admin abre Configuraciones junto a Nuevo hilo y administra preferencias personales de navegación, orden, paginación, canal inicial, ayuda y ancho, persistidas por cuenta entre dispositivos. También identifica y busca hilos mediante tarjetas compactas de título y metadata, sin contenido del mensaje ni desplazamiento horizontal, aplica filtros prediseñados con conteos, conserva vistas propias al restablecer las de fábrica y registra mensajes bidireccionales con estados y documentos referenciados.",
   "expectedSpecs": 13,
   "outcomes": [
     "display",

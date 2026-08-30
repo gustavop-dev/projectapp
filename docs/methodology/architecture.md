@@ -1,5 +1,11 @@
 # Architecture — ProjectApp
 
+> **Comunicaciones 2026-08-30 — implementado:**
+> `CommunicationPanelPreference` es la fuente por administrador de los defaults
+> visuales y del compositor. La URL y las vistas guardadas conservan precedencia;
+> el store tolera una falla de este recurso sin bloquear el listado y sólo importa
+> una vez los valores locales legados. Hilos, mensajes y MCP no cambian.
+
 > **Contrato de formularios 2026-08-29:** las superficies de creación del panel
 > componen `BaseFormField` + control base + `BaseModalActions`. El campo es dueño
 > de su ayuda, error y relación ARIA; el modal sólo coordina payload y errores
@@ -11,8 +17,9 @@
 > projections over the same thread DTO: a comparison table at landscape+ and a
 > compact card index below it. `CommunicationThreadTable` owns both projections,
 > renders the thread title as the sole **Asunto** content and leaves every message
-> body in the workspace modal. Browser-local order preference augments the
-> canonical URL without changing REST, models or schema.
+> body in the workspace modal. The former browser-local order value is now a
+> one-time migration input for the account preference; the canonical URL keeps
+> precedence over that default.
 
 > **Engagement 2026-08-29:** el navegador es dueño del ciclo visible/oculto del
 > tracker. `visibilitychange` delimita segmentos de atención; `sendBeacon`

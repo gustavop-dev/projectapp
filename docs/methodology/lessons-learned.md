@@ -16,6 +16,12 @@ This file captures important patterns, preferences, and project intelligence tha
 > proyecto, cliente y carpeta sin asignar son filtros mutuamente excluyentes:
 > cambiar de eje debe limpiar los otros, no acumular una intersección invisible.
 
+> **Lección 2026-08-30 — preferencias vs. filtros:** la preferencia personal
+> aporta el fallback de una visita limpia; una URL o vista guardada debe seguir
+> reproduciendo exactamente el recorte explícito y ganar precedencia. Migrar una
+> clave local sólo al crear el perfil evita que un navegador viejo sobrescriba
+> preferencias ya sincronizadas desde otro dispositivo.
+
 > **Lección 2026-08-30 — idioma y presentación son preferencias distintas:**
 > el locale gobierna los datos que entrega el servidor y la vista sólo gobierna
 > cómo se recorren. Un enlace compartido puede proponer el idioma inicial sin

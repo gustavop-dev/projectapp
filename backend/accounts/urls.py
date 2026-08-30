@@ -24,7 +24,11 @@ from accounts.views_saved_filter_tabs import (
     saved_filter_tabs_reorder,
     saved_filter_tabs_reset,
 )
-from accounts.views_panel_preferences import document_panel_preferences
+from accounts.views_panel_preferences import (
+    communication_panel_preferences,
+    document_panel_preferences,
+    reset_communication_panel_preferences,
+)
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
@@ -129,6 +133,16 @@ urlpatterns = [
         'panel-preferences/documents/',
         document_panel_preferences,
         name='document-panel-preferences',
+    ),
+    path(
+        'panel-preferences/communications/',
+        communication_panel_preferences,
+        name='communication-panel-preferences',
+    ),
+    path(
+        'panel-preferences/communications/reset/',
+        reset_communication_panel_preferences,
+        name='reset-communication-panel-preferences',
     ),
 
     # Super admin — platform admin management

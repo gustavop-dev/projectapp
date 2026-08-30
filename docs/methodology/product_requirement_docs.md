@@ -1,5 +1,11 @@
 # Product Requirements Document — ProjectApp
 
+> **Entregado — 2026-08-30:** Comunicaciones ubica **Configuraciones** junto a
+> **Nuevo hilo** y reúne en una superficie propia las preferencias personales de
+> agrupación, orden, cantidad por página, ancho lateral, canal inicial y ayuda.
+> Las preferencias se guardan por cuenta, admiten restablecimiento y no alteran
+> el registro manual ni los contratos de hilos y mensajes.
+
 > **Corrección 2026-08-29 — formularios de creación del panel:** el modal de
 > proyecto presenta controles de ancho uniforme, estado inicial visible en
 > **En desarrollo**, creación de cliente accesible desde el selector y una fila
@@ -424,8 +430,8 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   Frequent combinations can be named and restored through the accounting saved
   filter mechanism. Global text search covers the thread title, readable client,
   project name, message subject and message content through the shared REST/MCP
-  query service. Order resolution is explicit URL → active saved view → browser
-  preference (`panel.communications.order`) → recent.
+  query service. Order resolution is explicit URL → active saved view → account
+  preference → recent.
 - **Manual-channel boundary**: recording what the operator sent or received via
   WhatsApp or email is the chosen operating model, not a provisional phase. The
   product never claims that ProjectApp delivered it, and the interface does not

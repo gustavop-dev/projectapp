@@ -106,6 +106,10 @@ coincidir en un mismo mensaje, no en mensajes distintos del mismo hilo. El
 argumento `q` busca por título del hilo, cliente, nombre de proyecto, asunto o
 contenido del mensaje en ambos caminos.
 
+`CommunicationPanelPreference` queda excluido deliberadamente del conector:
+sus campos personalizan la interfaz de una cuenta y no forman parte del registro
+conversacional que MCP consulta o modifica.
+
 ### 1. `list_threads`
 
 Lectura exitosa:
