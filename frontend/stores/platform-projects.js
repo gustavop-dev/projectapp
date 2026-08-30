@@ -17,9 +17,6 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
     activeProjects: (state) => state.projects.filter(
       (p) => p.current_state?.operational_effect === 'operating',
     ),
-    pausedProjects: (state) => state.projects.filter(
-      (p) => p.current_state?.operational_effect === 'paused',
-    ),
     suspendedProjects: (state) => state.projects.filter(
       (p) => p.current_state?.operational_effect === 'suspended',
     ),

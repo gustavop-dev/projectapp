@@ -38,7 +38,6 @@ class ProjectStateError(ValueError):
 LEGACY_STATUS_BY_EFFECT = {
     DocumentState.OperationalEffect.DEVELOPMENT: Project.STATUS_DEVELOPMENT,
     DocumentState.OperationalEffect.OPERATING: Project.STATUS_ACTIVE,
-    DocumentState.OperationalEffect.PAUSED: Project.STATUS_PAUSED,
     DocumentState.OperationalEffect.SUSPENDED: Project.STATUS_SUSPENDED,
     DocumentState.OperationalEffect.COMPLETED: Project.STATUS_COMPLETED,
     DocumentState.OperationalEffect.DECOMMISSIONED: (

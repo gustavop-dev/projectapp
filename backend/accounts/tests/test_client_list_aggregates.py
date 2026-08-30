@@ -65,7 +65,11 @@ def test_client_list_no_subscription_returns_nulls(authed):
 def test_client_list_project_counts(authed):
     client = _make_client('two_projects@e.co')
     Project.objects.create(name='Active', client=client, status=Project.STATUS_ACTIVE)
-    Project.objects.create(name='Paused', client=client, status=Project.STATUS_PAUSED)
+    Project.objects.create(
+        name='Suspended',
+        client=client,
+        status=Project.STATUS_SUSPENDED,
+    )
     Project.objects.create(name='Archived', client=client, status=Project.STATUS_ARCHIVED)
     resp = authed.get('/api/accounts/clients/')
     row = next(r for r in resp.json() if r['user_id'] == client.id)

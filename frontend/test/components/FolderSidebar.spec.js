@@ -93,7 +93,7 @@ const hiddenProjectFolder = {
   name: 'Candle',
   folder_kind: 'project',
   is_project_visible: false,
-  managed_project_state: { name: 'Pausado', system_key: 'paused' },
+  managed_project_state: { name: 'Suspendido', system_key: 'suspended' },
   document_count: 1,
   children_count: 0,
 };
@@ -127,7 +127,7 @@ const navigationFacets = {
       id: 92,
       name: 'Candle',
       is_visible: false,
-      state: { name: 'Pausado' },
+      state: { name: 'Suspendido' },
       counts: {
         active: { folders: 1, documents: 2 },
         archived: { folders: 0, documents: 0 },

@@ -35,9 +35,9 @@ const PROJECTS = [
   {
     id: 12,
     name: 'Vástago',
-    status: 'paused',
-    status_label: 'Pausado',
-    current_state: { id: 3, name: 'Pausado', operational_effect: 'paused', color: 'yellow' },
+    status: 'suspended',
+    status_label: 'Suspendido',
+    current_state: { id: 4, name: 'Suspendido', operational_effect: 'suspended', color: 'orange' },
   },
 ];
 
@@ -228,7 +228,7 @@ describe('ProjectSelect', () => {
 
   describe('autoSelectSingle (PA-51: proposing is pre-filling)', () => {
     it('pre-selects the only available project of the client', async () => {
-      // PROJECTS has one operating project and one paused project.
+      // PROJECTS has one operating project and one suspended project.
       const wrapper = mountSelect({ autoSelectSingle: true });
       await flushPromises();
 
@@ -270,9 +270,9 @@ describe('ProjectSelect', () => {
             {
               id: 12,
               name: 'Vástago',
-              status: 'paused',
-              status_label: 'Pausado',
-              current_state: { id: 3, name: 'Pausado', operational_effect: 'paused' },
+              status: 'suspended',
+              status_label: 'Suspendido',
+              current_state: { id: 4, name: 'Suspendido', operational_effect: 'suspended' },
             },
           ],
         },
@@ -357,7 +357,7 @@ describe('ProjectSelect', () => {
         client_profile_id: 7, client_display_name: 'Deivis Ríos',
       },
       {
-        id: 12, name: 'Vástago', status: 'paused', status_label: 'Pausado',
+        id: 12, name: 'Vástago', status: 'suspended', status_label: 'Suspendido',
         client_profile_id: 9, client_display_name: 'Ana Pérez',
       },
     ];

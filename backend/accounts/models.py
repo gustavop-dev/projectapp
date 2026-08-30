@@ -383,7 +383,6 @@ class Project(models.Model):
 
     STATUS_DEVELOPMENT = 'development'
     STATUS_ACTIVE = 'active'
-    STATUS_PAUSED = 'paused'
     STATUS_SUSPENDED = 'suspended'
     STATUS_COMPLETED = 'completed'
     STATUS_DECOMMISSIONED = 'decommissioned'
@@ -391,7 +390,6 @@ class Project(models.Model):
     STATUS_CHOICES = [
         (STATUS_DEVELOPMENT, 'En desarrollo'),
         (STATUS_ACTIVE, 'Activo'),
-        (STATUS_PAUSED, 'Pausado'),
         (STATUS_SUSPENDED, 'Suspendido'),
         (STATUS_COMPLETED, 'Completado'),
         (STATUS_DECOMMISSIONED, 'Dado de baja'),

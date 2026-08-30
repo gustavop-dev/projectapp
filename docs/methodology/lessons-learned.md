@@ -84,6 +84,11 @@ This file captures important patterns, preferences, and project intelligence tha
 - Two catalog states may intentionally share one operational effect. **Activo** and
   **En evolución** remain distinct reporting meanings but both preserve operation
   and billing, avoiding a combinatorial multi-state model for this bounded case.
+- Removing an operational project state is a data migration, not only a choices
+  edit: migrate the canonical state, compatibility mirror and every historical
+  episode together, record the merge fact, and apply the target state's financial
+  consequences. The former **Pausado** meaning was therefore consolidated into
+  **Suspendido**, which is now the only reversible stop.
 - Financially consequential transitions use preview + token + atomic revalidation.
   This prevents a confirmation made against stale income/payment data from applying.
 - Ambiguous migrated rows fail closed for money and stay explicitly reviewable; a
