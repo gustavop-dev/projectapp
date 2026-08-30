@@ -40,9 +40,9 @@
                 />
               </BaseFormField>
               <BaseFormField label="Dentro de">
-                <BaseSelect v-model="newParent">
-                  <option :value="null">Ninguna (carpeta raíz)</option>
-                  <option v-for="opt in createOptions" :key="opt.id" :value="opt.id">
+                <BaseSelect v-model="newParent" data-testid="folder-manager-parent">
+                  <option value="">Ninguna (carpeta raíz)</option>
+                  <option v-for="opt in createOptions" :key="opt.id" :value="String(opt.id)">
                     {{ opt.label }}
                   </option>
                 </BaseSelect>
@@ -160,7 +160,7 @@ const emit = defineEmits([
 
 const folderStore = useDocumentFolderStore();
 const newName = ref('');
-const newParent = ref(null);
+const newParent = ref('');
 const editingFolder = ref(null);
 const showFolderForm = ref(false);
 const deletingFolder = ref(null);
@@ -177,7 +177,7 @@ watch(() => props.modelValue, async (open) => {
     editingFolder.value = null;
     showFolderForm.value = false;
     newName.value = '';
-    newParent.value = props.initialParent ?? null;
+    newParent.value = props.initialParent == null ? '' : String(props.initialParent);
     await folderStore.fetchFolders();
   }
 });
@@ -217,16 +217,17 @@ async function handleCreate() {
   errorMsg.value = '';
   // Crear dentro de una carpeta con dueño hereda su asociación: es el mismo
   // default que propone el formulario completo, no una atadura.
-  const parent = newParent.value ? folderStore.folderById(newParent.value) : null;
+  const parentId = newParent.value === '' ? null : Number(newParent.value);
+  const parent = parentId == null ? null : folderStore.folderById(parentId);
   const result = await folderStore.createFolder({
     name,
-    parent: newParent.value,
+    parent: parentId,
     client: parent?.client ?? null,
     project: parent?.project ?? null,
   });
   if (result.success) {
     newName.value = '';
-    newParent.value = props.initialParent ?? null;
+    newParent.value = props.initialParent == null ? '' : String(props.initialParent);
     emit('changed');
   } else {
     newNameError.value = Array.isArray(result.errors?.name)

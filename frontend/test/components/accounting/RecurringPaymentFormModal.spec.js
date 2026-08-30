@@ -165,7 +165,7 @@ describe('RecurringPaymentFormModal', () => {
     const wrapper = mountModal();
 
     expect(wrapper.text()).toContain(
-      'Opcional: con periodicidad mensual basta el día de cobro.',
+      'Con periodicidad mensual basta el día de cobro.',
     );
 
     await frequencySelect(wrapper).setValue('annual');

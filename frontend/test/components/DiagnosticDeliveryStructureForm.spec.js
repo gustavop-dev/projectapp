@@ -19,7 +19,7 @@ describe('WebAppDiagnostic admin DeliveryStructureForm', () => {
     const wrapper = mountForm()
     expect(wrapper.findAll('input')[1].element.value).toBe('Estructura')
     expect(wrapper.findAll('[placeholder="Título del bloque"]')).toHaveLength(2)
-    expect(wrapper.findAll('[placeholder="Ejemplo (opcional)"]')[0].element.value).toBe('Ver anexo')
+    expect(wrapper.findAll('[placeholder="Ejemplo"]')[0].element.value).toBe('Ver anexo')
   })
 
   it('emits the updated model when editing a block title', async () => {

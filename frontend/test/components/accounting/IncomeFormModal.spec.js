@@ -727,8 +727,11 @@ describe('IncomeFormModal', () => {
       await wrapper.find('[data-testid="income-form-period-end"]').setValue('2026-09-01');
       await wrapper.find('form').trigger('submit');
 
-      expect(wrapper.get('[data-testid="form-field-error"]').text())
-        .toContain('posterior a la de inicio');
+      expectDescribedError(
+        wrapper,
+        'income-form-period-end',
+        'La fecha de fin debe ser posterior a la de inicio.',
+      );
       expect(wrapper.emitted('submit')).toBeUndefined();
     });
   });
@@ -1159,8 +1162,9 @@ describe('IncomeFormModal', () => {
       await wrapper.find('form').trigger('submit');
 
       expect(wrapper.emitted('submit')).toBeUndefined();
-      expect(wrapper.find('[data-testid="form-field-error"]').text())
-        .toBe('Elige la línea de negocio del ingreso.');
+      const originError = wrapper.findAll('[role="alert"]')
+        .find((node) => node.text() === 'Elige la línea de negocio del ingreso.');
+      expect(originError).toBeDefined();
 
       await segmentedButton(wrapper, 'Diagnóstico').trigger('click');
       await wrapper.find('form').trigger('submit');

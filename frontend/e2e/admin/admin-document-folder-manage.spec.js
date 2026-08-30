@@ -62,7 +62,7 @@ test.describe('Admin Document Folder Manage', () => {
     });
     await openFolderManager(page);
 
-    await page.getByPlaceholder('Nombre de la nueva carpeta...').fill('Propuestas 2026');
+    await page.getByTestId('folder-manager-new-name').fill('Propuestas 2026');
     await page.getByRole('button', { name: 'Crear', exact: true }).click();
 
     await expect.poll(() => createBody).not.toBeNull();

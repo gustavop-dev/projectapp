@@ -45,6 +45,9 @@ test.describe('Admin Kanban Tasks', () => {
       if (apiPath === 'tasks/' && method === 'GET') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(tasksState) };
       }
+      if (apiPath === 'tasks/assignees/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
       if (apiPath === 'tasks/create/' && method === 'POST') {
         const payload = route.request().postDataJSON();
         const created = {
