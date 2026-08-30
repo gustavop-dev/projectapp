@@ -369,7 +369,9 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   live in the URL. A thread opens in a workspace modal addressed by
   `thread=<id>`, so closing it or using browser Back restores the exact list.
   Frequent combinations can be named and restored through the accounting saved
-  filter mechanism.
+  filter mechanism. Global text search covers the thread title, readable client,
+  project name, message subject and message content through the shared REST/MCP
+  query service.
 - **Manual-channel boundary**: recording what the operator sent or received via
   WhatsApp or email is the chosen operating model, not a provisional phase. The
   product never claims that ProjectApp delivered it, and the interface does not

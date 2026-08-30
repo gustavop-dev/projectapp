@@ -478,7 +478,8 @@ It parses scalar legacy parameters plus comma-separated/repeated values, applies
 OR inside `status`, `channel`, `direction` and `message_status`, and AND across
 dimensions. Message dimensions share one correlated `Exists`, so their values
 must match the same message. `project=none` addresses unscoped threads; `order`
-accepts `recent`, `oldest` or `title`. The REST response also includes
+accepts `recent`, `oldest` or `title`. Text search matches thread title, client,
+project name, message subject or message content. The REST response also includes
 self-excluding option counts plus project/client navigation counts, including
 nested thread totals.
 

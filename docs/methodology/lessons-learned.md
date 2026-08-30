@@ -1455,3 +1455,17 @@ let its absence mean optional, and remove default explanations when the default
 is already visibly selected. Inline creation is part of a selector's capability
 contract, so it must remain discoverable before the empty or error state and be
 opted into only by consumers that can complete the creation flow.
+
+## 61. Search copy and query semantics are one public contract
+
+A placeholder that names client, project, subject and content is not decorative
+copy: it defines what the operator can reasonably expect the server to search.
+When REST and MCP share a query service, a missing relation in that predicate
+creates the same silent false negative in both interfaces even if the navigation
+picker still finds the entity locally.
+
+Keep the searchable entity inventory in the shared read boundary and mirror it
+in public tool descriptions. Pin relational matches with backend tests that also
+inspect the returned facets; add a browser assertion that the existing search
+control sends the same query. This proves both halves of the contract without
+duplicating business filtering in Vue.
