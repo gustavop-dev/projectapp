@@ -23,6 +23,9 @@ export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   order: 'recent',
 });
 
+export const COMMUNICATION_ORDER_STORAGE_KEY = 'panel.communications.order';
+const COMMUNICATION_ORDER_VALUES = Object.freeze(['recent', 'oldest', 'title']);
+
 const ARRAY_KEYS = ['status', 'channel', 'direction', 'message_status', 'reply_status'];
 const FILTER_KEYS = Object.keys(COMMUNICATION_FILTER_DEFAULTS);
 const URL_KEYS = [...FILTER_KEYS, 'page', 'tab'];
@@ -35,6 +38,44 @@ function values(value) {
   const raw = scalar(value);
   if (raw === undefined || raw === null || raw === '') return [];
   return String(raw).split(',').map((token) => token.trim()).filter(Boolean);
+}
+
+function isCommunicationOrder(value) {
+  return COMMUNICATION_ORDER_VALUES.includes(value);
+}
+
+export function normalizeCommunicationOrder(value) {
+  return isCommunicationOrder(value) ? value : COMMUNICATION_FILTER_DEFAULTS.order;
+}
+
+export function resolveCommunicationOrder({ queryOrder, savedOrder, storedOrder } = {}) {
+  if (queryOrder !== undefined && queryOrder !== null && queryOrder !== '') {
+    return normalizeCommunicationOrder(queryOrder);
+  }
+  if (isCommunicationOrder(savedOrder)) return savedOrder;
+  if (isCommunicationOrder(storedOrder)) return storedOrder;
+  return COMMUNICATION_FILTER_DEFAULTS.order;
+}
+
+function readStoredOrder() {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    return window.localStorage.getItem(COMMUNICATION_ORDER_STORAGE_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredOrder(order) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      COMMUNICATION_ORDER_STORAGE_KEY,
+      normalizeCommunicationOrder(order),
+    );
+  } catch {
+    // Storage may be unavailable in privacy-restricted browser contexts.
+  }
 }
 
 function normalizeStoredFilters(stored = {}) {
@@ -54,8 +95,7 @@ function normalizeStoredFilters(stored = {}) {
   normalized.q = String(normalized.q || '');
   normalized.date_from = String(normalized.date_from || '');
   normalized.date_to = String(normalized.date_to || '');
-  normalized.order = ['recent', 'oldest', 'title'].includes(normalized.order)
-    ? normalized.order : 'recent';
+  normalized.order = normalizeCommunicationOrder(normalized.order);
   return normalized;
 }
 
@@ -139,6 +179,7 @@ export function useCommunicationFilters() {
   let applyingExternalState = false;
   let pendingRouteSignature = '';
   let searchTimer = null;
+  let orderPreferenceReady = false;
 
   const placeholderByKey = computed(() => new Map(
     tabs.savedTabs.value
@@ -241,6 +282,9 @@ export function useCommunicationFilters() {
     { deep: true },
   );
   watch([page, activeTabId], replaceUrl);
+  watch(() => currentFilters.order, (order) => {
+    if (orderPreferenceReady) writeStoredOrder(order);
+  });
 
   watch(
     () => route.query,
@@ -264,18 +308,33 @@ export function useCommunicationFilters() {
 
   onMounted(async () => {
     await tabs.loadTabs();
-    if (String(activeTabId.value) === 'all') return;
-    if (COMMUNICATION_BUILTIN_BY_ID.has(String(activeTabId.value))) return;
-    const tab = tabs.savedTabs.value.find(
-      (candidate) => !candidate.builtin_key
-        && String(candidate.id) === String(activeTabId.value),
-    );
-    if (!tab) {
-      activeTabId.value = 'all';
-      return;
+    const queryOrder = scalar(route.query.order);
+    let savedOrder;
+
+    if (String(activeTabId.value) !== 'all') {
+      const builtin = COMMUNICATION_BUILTIN_BY_ID.get(String(activeTabId.value));
+      if (!builtin) {
+        const tab = tabs.savedTabs.value.find(
+          (candidate) => !candidate.builtin_key
+            && String(candidate.id) === String(activeTabId.value),
+        );
+        if (!tab) {
+          activeTabId.value = 'all';
+        } else {
+          savedOrder = normalizeStoredFilters(tab.filters).order;
+          if (!hasExplicitFilterState) applySnapshot(tab.filters);
+          activeTabId.value = tab.id;
+        }
+      }
     }
-    if (!hasExplicitFilterState) applySnapshot(tab.filters);
-    activeTabId.value = tab.id;
+
+    currentFilters.order = resolveCommunicationOrder({
+      queryOrder,
+      savedOrder,
+      storedOrder: readStoredOrder(),
+    });
+    orderPreferenceReady = true;
+    writeStoredOrder(currentFilters.order);
   });
 
   if (getCurrentScope()) {
@@ -310,7 +369,7 @@ export function useCommunicationFilters() {
   }
 
   function setOrder(order) {
-    currentFilters.order = order;
+    currentFilters.order = normalizeCommunicationOrder(order);
     page.value = 1;
   }
 

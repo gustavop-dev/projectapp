@@ -8,6 +8,13 @@
 > obligatorios y omite “(opcional)” en el resto de etiquetas. El mismo contrato
 > se aplica a los demás modales de creación alcanzables del panel.
 
+> **Entregado — 2026-08-29:** el listado de Comunicaciones vuelve a funcionar
+> como índice: por debajo de landscape muestra tarjetas compactas identificadas
+> por asunto, cliente/proyecto, canal, estado, cantidad, fecha y borradores. El
+> último mensaje queda como extracto normalizado de una línea y máximo 120
+> caracteres, sin desplazamiento horizontal; el contenido completo sigue
+> perteneciendo al detalle. El orden activo se ve y se recuerda entre visitas.
+
 > **Corrección 2026-08-29 — engagement real:** el tiempo de lectura de una
 > propuesta sólo se acumula mientras la página está visible. Ocultarla cierra y
 > envía una única muestra; volver a verla abre un segmento nuevo. Una pestaña
@@ -381,6 +388,12 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   switches between projects and clients, includes aggregate counts and keeps
   threads without a project reachable through an explicit **Sin proyecto**
   entry. On compact screens the same navigation moves into the shared drawer.
+- **List, not duplicate detail**: below the landscape breakpoint each thread is
+  a compact summary card; landscape and larger profiles retain the comparative
+  table with **Asunto** as its identity column. An optional latest-message
+  excerpt is whitespace-normalized, capped at 120 characters and clipped to one
+  line. The list never exposes the complete message or an inner horizontal
+  scrollbar.
 - **Canonical cuts**: navigation, searchable multi-value filters and ordering
   live in the URL. A thread opens in a workspace modal addressed by
   `thread=<id>`, so closing it or using browser Back restores the exact list.
@@ -393,7 +406,8 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   Frequent combinations can be named and restored through the accounting saved
   filter mechanism. Global text search covers the thread title, readable client,
   project name, message subject and message content through the shared REST/MCP
-  query service.
+  query service. Order resolution is explicit URL → active saved view → browser
+  preference (`panel.communications.order`) → recent.
 - **Manual-channel boundary**: recording what the operator sent or received via
   WhatsApp or email is the chosen operating model, not a provisional phase. The
   product never claims that ProjectApp delivered it, and the interface does not
