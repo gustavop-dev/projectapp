@@ -47,6 +47,32 @@ describe('useDocumentFolderStore', () => {
     expect(store.error).toBe('fetch_folders_failed')
   })
 
+  it('fetchProjectReadiness stores the diagnostic', async () => {
+    const readiness = {
+      status: 'reconciliation_required',
+      project_count: 8,
+      missing_root_count: 8,
+    }
+    get_request.mockResolvedValueOnce({ data: readiness })
+
+    const result = await store.fetchProjectReadiness()
+
+    expect(get_request).toHaveBeenCalledWith('document-folders/project-readiness/')
+    expect(result.success).toBe(true)
+    expect(store.projectReadiness).toEqual(readiness)
+  })
+
+  it('fetchProjectReadiness keeps a diagnostic failure separate', async () => {
+    store.folders = [{ id: 1, name: 'Kore Health' }]
+    get_request.mockRejectedValueOnce({ response: { data: { detail: 'x' } } })
+
+    const result = await store.fetchProjectReadiness()
+
+    expect(result.success).toBe(false)
+    expect(store.projectReadinessError).toBe('fetch_project_readiness_failed')
+    expect(store.folders).toEqual([{ id: 1, name: 'Kore Health' }])
+  })
+
   it('createFolder appends and keeps sort order', async () => {
     store.folders = [{ id: 1, name: 'Alpha', order: 0 }]
     create_request.mockResolvedValueOnce({ data: { id: 2, name: 'Zeta', order: 0 } })

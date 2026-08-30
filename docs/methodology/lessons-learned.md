@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-29 — una relación canónica y un vacío diagnosticable:**
+> `Document.project` no sustituye la ubicación estructural que el sidebar
+> representa. Si la raíz gestionada es la fuente de verdad, todo filing
+> automático debe colgar de ella y toda adopción histórica debe atravesar el
+> mismo manifiesto revisado. Un endpoint pequeño de readiness convierte un cero
+> ambiguo en cuatro estados operables sin acoplarse a nombres editables.
+
 > **Lección 2026-08-29 — telemetría visible:** un tab abierto no equivale a
 > atención. Todo heartbeat de engagement debe obedecer Page Visibility, cerrar
 > una sola vez al ocultarse y protegerse contra requests concurrentes; de lo

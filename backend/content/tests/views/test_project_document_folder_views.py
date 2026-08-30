@@ -30,6 +30,63 @@ def test_list_marks_project_root_with_state_visibility(admin_client, project):
     assert root['is_project_visible'] is True
 
 
+def test_readiness_reports_projects_whose_roots_need_reconciliation(
+    admin_client, project,
+):
+    root = project.document_root_folder
+    root.children.all().delete()
+    root.delete()
+
+    response = admin_client.get(reverse('project-folder-readiness'))
+
+    assert response.status_code == 200
+    assert response.data == {
+        'status': 'reconciliation_required',
+        'project_count': 1,
+        'visible_project_count': 1,
+        'managed_root_count': 0,
+        'visible_managed_root_count': 0,
+        'missing_root_count': 1,
+        'missing_visible_root_count': 1,
+    }
+
+
+def test_readiness_uses_state_configuration_instead_of_its_name(
+    admin_client, project,
+):
+    state = project.current_state
+    state.name = 'Nombre cambiado después de PA-94'
+    state.show_in_document_manager = False
+    state.save(update_fields=['name', 'show_in_document_manager', 'updated_at'])
+
+    response = admin_client.get(reverse('project-folder-readiness'))
+
+    assert response.status_code == 200
+    assert response.data['status'] == 'state_filter_empty'
+    assert response.data['project_count'] == 1
+    assert response.data['visible_project_count'] == 0
+    assert response.data['managed_root_count'] == 1
+
+
+def test_readiness_distinguishes_a_real_empty_project_catalog(
+    admin_client, project,
+):
+    project.delete()
+
+    response = admin_client.get(reverse('project-folder-readiness'))
+
+    assert response.status_code == 200
+    assert response.data['status'] == 'no_projects'
+    assert response.data['project_count'] == 0
+    assert response.data['missing_root_count'] == 0
+
+
+def test_readiness_requires_an_admin(api_client):
+    response = api_client.get(reverse('project-folder-readiness'))
+
+    assert response.status_code in {401, 403}
+
+
 def test_child_created_under_project_inherits_association(admin_client, project):
     root = project.document_root_folder
 

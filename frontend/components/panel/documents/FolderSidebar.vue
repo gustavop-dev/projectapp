@@ -99,10 +99,72 @@
               {{ showAllProjects ? 'Ver vigentes' : 'Ver todos' }}
             </button>
           </div>
-          <p v-if="!visibleProjectFolders.length" class="px-3 py-2 text-xs text-text-subtle">
+          <div
+            v-if="projectReadinessError"
+            class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
+            data-testid="project-readiness-error"
+          >
+            <p>No se pudo comprobar por qué la sección de proyectos está vacía.</p>
+            <NuxtLink
+              to="/panel/projects"
+              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+            >
+              Revisar proyectos
+            </NuxtLink>
+          </div>
+          <div
+            v-else-if="projectReadiness?.status === 'reconciliation_required'"
+            class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
+            data-testid="project-reconciliation-required"
+          >
+            <p>
+              {{ reconciliationMessage }} Revisa y aplica la conciliación PA-108 antes de convertir carpetas.
+            </p>
+            <NuxtLink
+              to="/panel/projects"
+              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+              data-testid="project-reconciliation-action"
+            >
+              Revisar proyectos
+            </NuxtLink>
+          </div>
+          <div
+            v-else-if="!visibleProjectFolders.length && projectReadiness?.status === 'no_projects'"
+            class="px-3 py-2 text-xs text-text-subtle"
+            data-testid="project-empty-no-projects"
+          >
+            <p>No hay proyectos creados todavía.</p>
+            <NuxtLink
+              to="/panel/projects"
+              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+            >
+              Crear o revisar proyectos
+            </NuxtLink>
+          </div>
+          <div
+            v-else-if="!visibleProjectFolders.length && projectReadiness?.status === 'state_filter_empty'"
+            class="mx-2 my-1 rounded-lg border border-info-strong/30 bg-info-soft px-3 py-2 text-xs text-text-default"
+            data-testid="project-state-filter-empty"
+          >
+            <p>
+              Hay {{ projectReadiness.project_count }} proyectos, pero ningún estado está habilitado para mostrarlos aquí.
+            </p>
+            <NuxtLink
+              to="/panel/projects/statuses"
+              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+              data-testid="project-state-filter-action"
+            >
+              Administrar estados
+            </NuxtLink>
+          </div>
+          <p
+            v-else-if="!visibleProjectFolders.length"
+            class="px-3 py-2 text-xs text-text-subtle"
+            data-testid="project-empty-fallback"
+          >
             No hay proyectos en este filtro.
           </p>
-          <ul v-else class="mt-1 space-y-1" role="list">
+          <ul v-if="visibleProjectFolders.length" class="mt-1 space-y-1" role="list">
             <li v-for="folder in visibleProjectFolders" :key="folder.id">
               <div
                 class="flex items-center rounded-lg transition-all"
@@ -362,6 +424,8 @@ const props = defineProps({
   // mandos del mismo eje que se comportan distinto vuelven a mentir.
   scopeLocked: { type: Boolean, default: false },
   touchMode: { type: Boolean, default: false },
+  projectReadiness: { type: Object, default: null },
+  projectReadinessError: { type: String, default: null },
 });
 
 const emit = defineEmits([
@@ -393,6 +457,12 @@ const visibleProjectFolders = computed(() => (
 const filteredOutProjectCount = computed(
   () => projectFolders.value.filter((folder) => !folder.is_project_visible).length,
 );
+
+const reconciliationMessage = computed(() => {
+  const missing = props.projectReadiness?.missing_root_count || 0;
+  if (missing === 1) return 'Falta la carpeta gestionada de 1 proyecto.';
+  return `Faltan las carpetas gestionadas de ${missing} proyectos.`;
+});
 
 watch(manualFolders, (v) => {
   localFolders.value = [...v];

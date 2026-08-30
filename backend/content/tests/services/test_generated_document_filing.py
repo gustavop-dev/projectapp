@@ -21,12 +21,16 @@ from content.services.collection_account_service import (
 from content.services.accounting_service import assign_project_to_documents
 from content.services.generated_document_filing_service import (
     build_generated_folder_path,
+    ensure_generated_folder_path,
     file_collection_account,
     file_proposal_snapshot,
 )
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import (
     get_collection_account_document_type,
+)
+from content.services.project_document_folder_service import (
+    ProjectFolderReconciliationRequired,
 )
 
 pytestmark = pytest.mark.django_db
@@ -105,12 +109,34 @@ def test_issue_files_under_project_month(issuer, project, client_user):
     document.refresh_from_db()
 
     assert folder_path(document) == [
-        'Proyectos',
         'Portal Acme',
         'Cuentas de cobro',
         '2026',
         '08 - Agosto',
     ]
+    assert document.folder.get_ancestors()[0] == project.document_root_folder
+    assert not DocumentFolder.objects.filter(system_key='generated:projects').exists()
+
+
+def test_project_filing_requires_a_reviewed_managed_root(project, client_user):
+    root = project.document_root_folder
+    root.children.all().delete()
+    root.delete()
+    folder_count = DocumentFolder.objects.count()
+
+    with pytest.raises(
+        ProjectFolderReconciliationRequired,
+        match='conciliación PA-108',
+    ):
+        ensure_generated_folder_path(
+            COLLECTION_ACCOUNT,
+            business_date=date(2026, 8, 14),
+            project=project,
+            client_user=client_user,
+        )
+
+    assert DocumentFolder.objects.count() == folder_count
+    assert not DocumentFolder.objects.filter(managed_project=project).exists()
 
 
 @freeze_time('2026-08-14 15:00:00')
@@ -168,6 +194,39 @@ def test_repeated_filing_repairs_managed_folder(issuer, project, client_user):
         month_folder.archived_at,
         month_folder.archived_via_folder_id,
     ) == ('08 - Agosto', False, None, None)
+
+
+@freeze_time('2026-08-14 15:00:00')
+def test_filing_reparents_a_legacy_project_branch(
+    issuer, project, client_user,
+):
+    root = project.document_root_folder
+    root.children.all().delete()
+    legacy_root = DocumentFolder.objects.create(
+        name='Proyectos', system_key='generated:projects',
+    )
+    legacy_project = DocumentFolder.objects.create(
+        name=project.name,
+        system_key=f'generated:project:{project.id}',
+        parent=legacy_root,
+        project=project,
+        client_user=client_user,
+    )
+    category = DocumentFolder.objects.create(
+        name='Cuentas de cobro',
+        system_key=f'generated:project:{project.id}:collection_account',
+        parent=legacy_project,
+        project=project,
+        client_user=client_user,
+    )
+    document = make_account(client_user=client_user, project=project)
+
+    issue_collection_account(document, issuer=issuer)
+
+    category.refresh_from_db()
+    assert category.parent_id == root.id
+    assert not DocumentFolder.objects.filter(pk=legacy_project.id).exists()
+    assert not DocumentFolder.objects.filter(pk=legacy_root.id).exists()
 
 
 def test_generated_path_rejects_unknown_document_kind():
