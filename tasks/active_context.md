@@ -18,6 +18,18 @@ asignaciones conocidas de Carlos/Gustavo y conserva Familia/Temporal como
 huérfanas. Producción no fue mutada: el paso posterior es desplegar, respaldar,
 generar el plan, revisar cada acción y recién entonces aplicarlo.
 
+**2026-08-30 — Catálogo de módulos adicionales ampliado y listo para integrar:**
+el inventario crece de 18 a 23 módulos con CRM, agendamiento, membresías,
+autoservicio del cliente y fidelización/referidos, usando las cinco categorías y
+el esquema bilingüe existentes. Panel, catálogo público y enlaces compartidos
+permiten cambiar explícitamente entre español e inglés; estos últimos parten del
+idioma elegido por el autor. Tarjetas, lista y acordeón comparten el mismo
+detalle, y la preferencia se recuerda por separado para panel y público. Los PDF
+usan el idioma activo, omiten precios y pueden llevar un destinatario/cliente
+opcional desde el panel; el dato se escapa y no se persiste en esa descarga. Los
+nueve flows afectados quedan cubiertos en success/display/failure según
+corresponde, sin brechas ni `junk-only` del módulo.
+
 **2026-08-30 — Pausado consolidado en Suspendido para Proyectos:** el ciclo
 administrable queda con seis estados semilla y una sola detención reversible.
 `paused` deja de ser una opción de modelo, efecto operativo, selector, filtro o

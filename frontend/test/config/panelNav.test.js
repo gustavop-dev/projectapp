@@ -44,6 +44,14 @@ describe('getPanelNavSections', () => {
     ]));
   });
 
+  it('gives additional modules a dedicated puzzle icon', () => {
+    const commercial = getPanelNavSections(identityLocalePath)
+      .find((section) => section.id === 'commercial');
+    const modules = commercial.items.find((item) => item.label === 'Módulos adicionales');
+
+    expect(modules.icon).toBe('puzzle');
+  });
+
   describe('Plataforma section', () => {
     it('lives after Contabilidad so the hostings breadcrumb keeps resolving there', () => {
       const sections = getPanelNavSections(identityLocalePath);

@@ -27,12 +27,15 @@
 > `content.0225` habilita `carlos18bp@gmail.com` en la copia BCC configurable y
 > ésta sólo se intenta después de que el envío principal fue aceptado.
 
-> **Estado 2026-08-28 — implementado:** el catálogo comercial de módulos
-> adicionales es un dominio administrable y bilingüe, separado de las
-> propuestas. Publica un índice canónico completo y enlaces revocables con una
-> selección fija, contenido vivo, PDF y seguimiento de aperturas, siempre sin
-> precios ni personalización por proyecto. El inventario inicial contiene 18
-> módulos en cinco categorías, incluida Landing Page.
+> **Ampliación 2026-08-30 — implementada:** el catálogo comercial de módulos
+> adicionales conserva su dominio administrable y bilingüe separado de las
+> propuestas, y crece de 18 a 23 opciones con CRM, agendamiento, membresías,
+> autoservicio del cliente y fidelización/referidos. Panel, catálogo público y
+> enlaces compartidos exponen un selector ES/EN y permiten leer el mismo
+> contenido como tarjetas, lista o acordeón; cada ámbito recuerda su vista por
+> separado. El PDF sigue sin precios, usa el idioma activo y, desde el panel,
+> puede dirigirse opcionalmente a un cliente o destinatario sin convertir esa
+> personalización puntual en datos de proyecto.
 
 ## 1. Overview
 

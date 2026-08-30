@@ -4,7 +4,7 @@
   "module": "admin",
   "roles": ["admin"],
   "priority": "P2",
-  "description": "Admin downloads a PDF for the selected modules and gets a visible failure message if generation fails.",
+  "description": "Admin selects modules, language and an optional client recipient, downloads the personalized PDF, and gets a visible failure message if generation fails.",
   "expectedSpecs": 2,
   "outcomes": ["success", "failure"]
 }

@@ -22,11 +22,11 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 > del SMTP. Los registros previos conservan honestamente su estado parcial o
 > desconocido y nunca ofrecen un archivo regenerado como si fuera el original.
 
-> **Revisión 2026-08-28 — catálogo adicional:** no se abrió un incidente. La
-> implementación cerró los riesgos previstos: la semilla usa migraciones nuevas,
-> el prerender sólo contiene el catálogo canónico, las aperturas se deduplican
-> por enlace/sesión y el contrato público omite datos internos. Además, los
-> errores JSON de PDF se recuperan desde respuestas `Blob` en el frontend.
+> **Revisión 2026-08-30 — catálogo adicional:** no se abrió un incidente. La
+> ampliación conserva semilla por migración nueva, proyección bilingüe validada,
+> PDF sin precios y preferencias locales acotadas. Los flujos esperan la
+> hidratación de Nuxt y calientan rutas localizadas para no confundir una carga
+> inicial lenta con una navegación rota.
 
 ---
 
@@ -977,3 +977,19 @@ contracts, not conventions repeated in individual commands.
   solapamiento en 1195, 1440 y 2560 px; flow-map fresco.
 - **Lesson**: Un target táctil hermano no debe flotar sobre contenido variable.
   Cuando la ayuda forma parte estable de una tarjeta, necesita un track propio.
+
+### [ERR-045] El flujo del catálogo actuaba antes de hidratar Nuxt
+
+- **Date**: 2026-08-30
+- **Context**: La entrada al catálogo desde el footer podía hacer click sobre el
+  HTML ya pintado antes de que Nuxt instalara sus listeners; en frío, el primer
+  import de una ruta administrativa también excedía el tiempo esperado.
+- **Root Cause**: El flujo confundía contenido SSR visible con una aplicación ya
+  interactiva y el warmup preparaba rutas sin el prefijo de locale vigente.
+- **Resolution**: Esperar que el selector de idioma esté habilitado antes de
+  navegar desde el footer y calentar las rutas administrativas localizadas.
+- **Files Affected**: E2E público de módulos adicionales y `global-setup.js`.
+- **Verification**: Los casos focales de navegación, lista y selector de idioma
+  pasan sin resultados inesperados ni flaky retries.
+- **Lesson**: En Nuxt, visible no implica hidratado; el readiness debe observar
+  un control interactivo y el warmup debe usar la URL canónica real.

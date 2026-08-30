@@ -4,7 +4,7 @@
   "module": "admin",
   "roles": ["admin"],
   "priority": "P1",
-  "description": "Admin navigates from the panel sidebar to the commercial catalog, sees the grouped module data, and can retry a failed catalog load.",
-  "expectedSpecs": 2,
-  "outcomes": ["display", "failure"]
+  "description": "Admin navigates from the panel sidebar, switches the bilingual catalog between Spanish and English, uses card, list or accordion mode, and can retry a failed catalog load.",
+  "expectedSpecs": 5,
+  "outcomes": ["success", "display", "failure"]
 }
