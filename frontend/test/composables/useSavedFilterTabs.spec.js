@@ -114,6 +114,32 @@ describe('saveTab', () => {
     expect(result).toBeNull();
     expect(create_request).not.toHaveBeenCalled();
   });
+
+  it('no cuenta placeholders de fábrica dentro del límite local', async () => {
+    get_request.mockResolvedValueOnce({
+      data: [
+        ...Array.from({ length: 6 }, (_, i) => ({
+          id: i + 1,
+          view: 'communication',
+          name: `factory${i}`,
+          builtin_key: `builtin-${i}`,
+          order: i,
+        })),
+        ...Array.from({ length: 11 }, (_, i) => ({
+          id: i + 20,
+          view: 'communication',
+          name: `own${i}`,
+          builtin_key: '',
+          order: i + 6,
+        })),
+      ],
+    });
+    const tabs = useSavedFilterTabs('communication');
+
+    await tabs.loadTabs();
+
+    expect(tabs.isTabLimitReached.value).toBe(false);
+  });
 });
 
 describe('updateTabFilters', () => {

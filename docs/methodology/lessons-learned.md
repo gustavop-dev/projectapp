@@ -13,6 +13,14 @@ This file captures important patterns, preferences, and project intelligence tha
 > el footer conserva sólo acciones y, si hiciera falta, un conteo sin repetir
 > nombres. “Opcional” no se escribe cuando el asterisco ya define la convención.
 
+> **Lección 2026-08-29 — factory tabs y vistas propias:** compartir una tira no
+> significa compartir propiedad. Las definiciones de fábrica viven en código y
+> sus filas persistidas guardan sólo orden/visibilidad; las vistas propias son
+> datos del usuario. Sembrar y restablecer debe desplazar/renumerar, nunca borrar,
+> estas últimas. Los conteos se calculan en una consulta separada sobre el dataset
+> completo para que el filtro activo no se convierta en un filtro implícito de
+> todos los demás.
+
 > **Lección 2026-08-29 — una relación canónica y un vacío diagnosticable:**
 > `Document.project` no sustituye la ubicación estructural que el sidebar
 > representa. Si la raíz gestionada es la fuente de verdad, todo filing
