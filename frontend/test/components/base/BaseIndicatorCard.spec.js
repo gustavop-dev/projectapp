@@ -57,6 +57,36 @@ describe('BaseIndicatorCard', () => {
     expect(support.attributes('aria-hidden')).toBe('true')
   })
 
+  it('removes the empty support row from the compact horizontal layout', () => {
+    // Falla si la variante corta vuelve a reservar altura para contenido inexistente.
+    const wrapper = mountCard({ layout: 'compact-horizontal' })
+
+    expect(wrapper.get('article').attributes('data-layout')).toBe('compact-horizontal')
+    expect(wrapper.find('[data-testid="indicator-support"]').exists()).toBe(false)
+  })
+
+  it('keeps compact help outside the filtering button', async () => {
+    // Falla si la ayuda vuelve a superponerse o queda anidada dentro de la acción principal.
+    const wrapper = mountCard(
+      {
+        layout: 'compact-horizontal',
+        action: 'filter',
+        actionLabel: 'Filtrar por estado activo',
+        helpLabel: 'Ayuda sobre Activo',
+        helpTestId: 'compact-state-help',
+      },
+      { help: '<p>El proyecto está operando.</p>' },
+    )
+    const action = wrapper.get('[aria-label="Filtrar por estado activo"]')
+    const help = wrapper.get('[data-testid="compact-state-help"]')
+
+    expect(action.element.contains(help.element)).toBe(false)
+
+    await help.trigger('click')
+
+    expect(wrapper.emitted('activate')).toBeUndefined()
+  })
+
   it('exposes an accessible action and emits activate when it is selected', async () => {
     // Falla si una tarjeta filtrable deja de ser accionable o de avisar al listado.
     const wrapper = mountCard({ action: 'filter', actionLabel: 'Filtrar ingresos líquidos' })

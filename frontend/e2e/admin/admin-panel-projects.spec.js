@@ -512,6 +512,21 @@ test.describe('Admin Panel Projects', () => {
     await expect(getProjectResult(page, 2)).toHaveCount(0);
   });
 
+  test('state help opens without applying the lifecycle filter', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoProjects(page);
+
+    await page.getByTestId('project-stat-state-help-2').click();
+
+    await expect(page.getByTestId('project-stat-state-help-2-content'))
+      .toContainText('Está entregado y operando.');
+    await expect(page.getByTestId('projects-state-filter')).toHaveValue('all');
+    await expect(getProjectResult(page, 1)).toBeVisible();
+    await expect(getProjectResult(page, 2)).toBeVisible();
+  });
+
   test('non-zero state cards preserve the catalog order', {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
