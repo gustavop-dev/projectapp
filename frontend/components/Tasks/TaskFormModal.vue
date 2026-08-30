@@ -1,103 +1,65 @@
 <template>
-  <Teleport to="body">
-    <Transition name="fade-modal">
-      <div
-        v-if="modelValue"
-        class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-        @click.self="close"
-      >
-        <div class="bg-surface rounded-2xl shadow-2xl max-w-lg w-full max-h-[calc(100vh-2rem)] flex flex-col" data-testid="task-form-modal">
+  <BaseModal
+    :model-value="modelValue"
+    kind="form"
+    title-id="task-form-title"
+    @close="close"
+  >
+        <div class="flex min-h-0 flex-col" data-testid="task-form-modal">
           <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border-default">
-            <h3 class="text-lg font-semibold text-text-default">
+            <h3 id="task-form-title" class="text-lg font-semibold text-text-default">
               {{ isEditing ? 'Edit task' : 'New task' }}
             </h3>
             <BaseActionButton action="close" label="Cerrar formulario de tarea" @click="close" />
           </div>
 
-          <form class="flex flex-col flex-1 min-h-0" @submit.prevent="handleSubmit">
+          <form class="flex flex-col flex-1 min-h-0" novalidate @submit.prevent="handleSubmit">
             <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <div>
-              <label class="block text-xs text-text-muted mb-1">Title</label>
-              <input
-                v-model="form.title"
-                required
-                type="text"
-                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
-                data-testid="task-title-input"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs text-text-muted mb-1">Description</label>
-              <textarea
-                v-model="form.description"
-                rows="3"
-                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
-              ></textarea>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Status</label>
-                <select
-                  v-model="form.status"
-                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
-                >
-                  <option value="todo">TO DO</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="done">Done</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Priority</label>
-                <select
-                  v-model="form.priority"
-                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
-                  data-testid="task-priority-select"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs text-text-muted mb-1">Tablero</label>
-              <select
-                v-model="form.board_type"
-                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
-              >
-                <option value="standard">Sin periodicidad</option>
-                <option value="weekly">Semanal</option>
-                <option value="monthly">Mensual</option>
-                <option value="macro">Macro-tarea</option>
-              </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Due date</label>
-                <input
-                  v-model="form.due_date"
-                  type="date"
-                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
+            <BaseFormField
+              label="Title"
+              required
+              :error="titleError"
+            >
+              <template #default="{ errorId, invalid }">
+                <BaseInput
+                  v-model="form.title"
+                  :error="invalid"
+                  :aria-describedby="errorId"
+                  data-testid="task-title-input"
+                  @update:model-value="titleError = ''"
                 />
-              </div>
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Assigned to</label>
-                <select
-                  v-model="form.assignee_id"
-                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
-                >
-                  <option value="">Unassigned</option>
-                  <option v-for="user in assignees" :key="user.id" :value="user.id">
-                    {{ user.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
+              </template>
+            </BaseFormField>
+
+            <BaseFormField label="Description">
+              <BaseTextarea v-model="form.description" rows="3" />
+            </BaseFormField>
+
+            <BaseFormRow>
+              <BaseFormField label="Status">
+                <BaseSelect v-model="form.status" :options="statusOptions" />
+              </BaseFormField>
+              <BaseFormField label="Priority">
+                <BaseSelect
+                  v-model="form.priority"
+                  :options="priorityOptions"
+                  data-testid="task-priority-select"
+                />
+              </BaseFormField>
+            </BaseFormRow>
+
+            <BaseFormField label="Tablero">
+              <BaseSelect v-model="form.board_type" :options="boardOptions" />
+            </BaseFormField>
+
+            <BaseFormRow>
+              <BaseFormField label="Due date">
+                <BaseInput v-model="form.due_date" type="date" />
+              </BaseFormField>
+              <BaseFormField label="Assigned to">
+                <BaseSelect v-model="form.assignee_id" :options="assigneeOptions" />
+              </BaseFormField>
+            </BaseFormRow>
 
             <!-- Alertas manuales (solo en edición) -->
             <div v-if="isEditing" class="pt-1">
@@ -154,7 +116,7 @@
                   />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <label class="block text-xs text-text-muted mb-1">Nota <span class="text-text-subtle">(opcional)</span></label>
+                  <label class="block text-xs text-text-muted mb-1">Nota</label>
                   <input
                     v-model="newAlert.note"
                     type="text"
@@ -246,11 +208,12 @@
                 <BaseButton variant="link" size="sm" @click="showArchiveForm = true">Archivar tarea</BaseButton>
               </div>
               <div v-else class="space-y-2 p-3 rounded-lg bg-warning-soft border border-warning-strong/30">
-                <label class="block text-xs font-medium text-warning-strong">Motivo del archivo <span class="text-text-subtle">(opcional)</span></label>
+                <label class="block text-xs font-medium text-warning-strong">Motivo del archivo</label>
                 <textarea
                   v-model="archiveReason"
                   rows="2"
                   placeholder="Ej: Descartada por cambio de prioridades…"
+                  data-testid="task-archive-reason"
                   class="w-full px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:ring-2 focus:ring-focus-ring/30"
                 ></textarea>
                 <div class="flex gap-2">
@@ -260,47 +223,47 @@
               </div>
             </div>
 
-            </div>
-
-            <div class="flex items-center justify-between gap-2 px-6 py-4 border-t border-border-default bg-surface">
+            <div
+              v-if="isEditing"
+              class="flex flex-wrap justify-end gap-2 border-t border-border-muted pt-4"
+            >
               <BaseButton
-                v-if="isEditing"
+                type="button"
                 variant="danger"
                 :disabled="busy"
                 @click="handleDelete"
               >
                 Eliminar
               </BaseButton>
-              <span v-else></span>
-              <div class="flex gap-2">
-                <BaseButton
-                  v-if="isEditing"
-                  variant="secondary"
-                  :disabled="busy"
-                  data-testid="task-duplicate-btn"
-                  @click="handleDuplicate"
-                >
-                  Duplicar
-                </BaseButton>
-                <BaseButton variant="ghost" @click="close">
+              <BaseButton
+                type="button"
+                variant="secondary"
+                :disabled="busy"
+                data-testid="task-duplicate-btn"
+                @click="handleDuplicate"
+              >
+                Duplicar
+              </BaseButton>
+            </div>
+
+            </div>
+
+            <BaseModalActions>
+                <BaseButton type="button" variant="ghost" @click="close">
                   Cancelar
                 </BaseButton>
                 <BaseButton
                   type="submit"
                   variant="primary"
                   :loading="busy"
-                  :disabled="!form.title.trim()"
                   data-testid="task-submit-btn"
                 >
                   {{ isEditing ? 'Guardar' : 'Crear' }}
                 </BaseButton>
-              </div>
-            </div>
+            </BaseModalActions>
           </form>
         </div>
-      </div>
-    </Transition>
-  </Teleport>
+  </BaseModal>
 </template>
 
 <script setup>
@@ -325,6 +288,29 @@ const notify = usePanelNotify();
 const isEditing = computed(() => Boolean(props.task?.id));
 const alerts = computed(() => store.taskAlerts[props.task?.id] ?? []);
 const comments = computed(() => store.comments[props.task?.id] ?? []);
+const titleError = ref('');
+
+const statusOptions = [
+  { value: 'todo', label: 'TO DO' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'done', label: 'Done' },
+];
+const priorityOptions = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+];
+const boardOptions = [
+  { value: 'standard', label: 'Sin periodicidad' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'monthly', label: 'Mensual' },
+  { value: 'macro', label: 'Macro-tarea' },
+];
+const assigneeOptions = computed(() => [
+  { value: '', label: 'Unassigned' },
+  ...props.assignees.map((user) => ({ value: user.id, label: user.name })),
+]);
 
 const form = ref(buildForm(props.task, props.defaultStatus));
 
@@ -370,6 +356,7 @@ watch(
       newComment.value = '';
       showArchiveForm.value = false;
       archiveReason.value = '';
+      titleError.value = '';
       if (props.task?.id) {
         store.fetchTaskAlerts(props.task.id);
         store.fetchTaskComments(props.task.id);
@@ -391,6 +378,11 @@ function close() {
 }
 
 function handleSubmit() {
+  if (!form.value.title.trim()) {
+    titleError.value = 'Escribe el título de la tarea.';
+    return;
+  }
+
   const payload = {
     title: form.value.title.trim(),
     description: form.value.description,

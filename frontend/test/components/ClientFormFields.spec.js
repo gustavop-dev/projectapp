@@ -33,7 +33,7 @@ describe('ClientFormFields', () => {
     expect(rendered).toEqual(FIELDS.map((field) => `clients-new-${field}`));
   });
 
-  it('requires only the name and marks the rest optional', () => {
+  it('uses the required marker only on the name', () => {
     const wrapper = mountFields();
 
     expect(
@@ -49,8 +49,9 @@ describe('ClientFormFields', () => {
     // "C.C. / NIT": the field takes cédulas as much as NITs, and the label
     // has to say so — most clients are personas naturales.
     ['Email', 'Teléfono', 'Empresa', 'C.C. / NIT', 'Código de facturación'].forEach((label) => {
-      expect(text).toContain(`${label} (opcional)`);
+      expect(text).toContain(label);
     });
+    expect(text).not.toContain('(opcional)');
   });
 
   it('emits the whole form back when a field changes', async () => {
@@ -77,8 +78,8 @@ describe('ClientFormFields', () => {
     const labels = wrapper.findAll('label');
 
     const billingLabels = labels.filter((label) => [
-      'C.C. / NIT (opcional)',
-      'Código de facturación (opcional)',
+      'C.C. / NIT',
+      'Código de facturación',
     ].includes(label.text().trim()));
 
     expect(billingLabels).toHaveLength(2);

@@ -60,12 +60,19 @@
 
     <!-- Create modal -->
     <BaseModal v-model="formModal.open" kind="form" padding="md">
-      <form data-testid="linktree-form" @submit.prevent="onSubmit">
-        <h3 class="text-lg font-bold text-text-default mb-4">Nuevo linktree</h3>
+      <form novalidate data-testid="linktree-form" @submit.prevent="onSubmit">
+        <div class="space-y-4 px-6 py-5">
+          <h3 class="text-lg font-bold text-text-default">Nuevo linktree</h3>
 
-        <div class="space-y-4">
-          <BaseFormField label="Nombre interno" for="linktree-name" required :error="formErrors.name">
-            <BaseInput id="linktree-name" v-model="formModal.name" data-testid="linktree-name-input" />
+          <BaseFormField v-slot="{ invalid, errorId }" label="Nombre interno" for="linktree-name" required :error="formErrors.name">
+            <BaseInput
+              id="linktree-name"
+              v-model="formModal.name"
+              data-testid="linktree-name-input"
+              :error="invalid"
+              :aria-describedby="errorId"
+              @update:model-value="formErrors.name = ''"
+            />
           </BaseFormField>
 
           <BaseFormField
@@ -74,12 +81,16 @@
             required
             hint="La URL pública queda como /lk/@handle — minúsculas, números, punto, guion y guion bajo."
             :error="formErrors.handle"
+            v-slot="{ invalid, errorId }"
           >
             <BaseInput
               id="linktree-handle"
               v-model="formModal.handle"
               placeholder="@mi_handle"
               data-testid="linktree-handle-input"
+              :error="invalid"
+              :aria-describedby="errorId"
+              @update:model-value="formErrors.handle = ''"
             />
           </BaseFormField>
 
@@ -95,12 +106,12 @@
           </BaseFormField>
         </div>
 
-        <div class="flex items-center justify-end gap-2 mt-6">
+        <BaseModalActions>
           <BaseButton type="button" variant="ghost" size="sm" @click="formModal.open = false">Cancelar</BaseButton>
           <BaseButton type="submit" variant="primary" size="sm" :loading="store.isUpdating" data-testid="linktree-save">
             Crear y editar
           </BaseButton>
-        </div>
+        </BaseModalActions>
       </form>
     </BaseModal>
 
@@ -207,6 +218,9 @@ async function onToggleActive(tree, value) {
 async function onSubmit() {
   formErrors.name = '';
   formErrors.handle = '';
+  if (!formModal.name.trim()) formErrors.name = 'Escribe el nombre interno.';
+  if (!formModal.handle.trim()) formErrors.handle = 'Escribe el handle.';
+  if (formErrors.name || formErrors.handle) return;
   const result = await store.createLinktree({
     name: formModal.name,
     handle: formModal.handle,

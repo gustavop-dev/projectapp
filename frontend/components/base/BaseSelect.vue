@@ -24,6 +24,7 @@ const normalize = (opt) =>
     :value="modelValue"
     :disabled="disabled"
     :title="disabled && disabledReason ? disabledReason : undefined"
+    :aria-invalid="error ? 'true' : undefined"
     :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md, error ? INPUT_FIELD_ERROR : '']"
     @change="$emit('update:modelValue', $event.target.value)"
   >

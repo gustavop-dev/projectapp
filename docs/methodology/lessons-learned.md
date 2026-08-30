@@ -7,6 +7,12 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-29 — el error pertenece al campo:** un formulario no debe
+> resumir junto al CTA lo que puede señalar exactamente en el control. La misma
+> fuente del mensaje debe gobernar borde, relación ARIA y limpieza al editar;
+> el footer conserva sólo acciones y, si hiciera falta, un conteo sin repetir
+> nombres. “Opcional” no se escribe cuando el asterisco ya define la convención.
+
 > **Lección 2026-08-29 — factory tabs y vistas propias:** compartir una tira no
 > significa compartir propiedad. Las definiciones de fábrica viven en código y
 > sus filas persistidas guardan sólo orden/visibilidad; las vistas propias son
@@ -1450,7 +1456,36 @@ history loss. If that recovery itself issues DDL, its `RunPython` must also set
 `atomic=False`; otherwise Django opens `transaction.atomic()` around the
 operation and MySQL rejects the cleanup before its safety checks can help.
 
-## 60. A list card is an index, not a second detail view
+## 60. Validation is field state, not footer content
+
+An actionable validation message has one owner: the field that can resolve it.
+That owner must render the copy, expose it as an alert, mark the actual control
+invalid and clear the relationship when the value changes. A disabled submit
+plus a distant list hides the first useful interaction and duplicates content;
+submitting an incomplete form can instead reveal every local correction while
+leaving the action row stable.
+
+The same economy applies to labels and help. Choose one required-field marker,
+let its absence mean optional, and remove default explanations when the default
+is already visibly selected. Inline creation is part of a selector's capability
+contract, so it must remain discoverable before the empty or error state and be
+opted into only by consumers that can complete the creation flow.
+
+## 61. Search copy and query semantics are one public contract
+
+A placeholder that names client, project, subject and content is not decorative
+copy: it defines what the operator can reasonably expect the server to search.
+When REST and MCP share a query service, a missing relation in that predicate
+creates the same silent false negative in both interfaces even if the navigation
+picker still finds the entity locally.
+
+Keep the searchable entity inventory in the shared read boundary and mirror it
+in public tool descriptions. Pin relational matches with backend tests that also
+inspect the returned facets; add a browser assertion that the existing search
+control sends the same query. This proves both halves of the contract without
+duplicating business filtering in Vue.
+
+## 62. A list card is an index, not a second detail view
 
 List identity and detail evidence have different jobs. A thread index should
 answer whether to open the record through title, ownership, scope, state,
@@ -1467,17 +1502,3 @@ Remembering order is a separate navigation contract. Resolve it predictably as
 explicit URL, then active saved view, then validated browser preference, then
 the product default. Persist only the small allow-listed token, never the whole
 reactive filter object.
-
-## 61. Search copy and query semantics are one public contract
-
-A placeholder that names client, project, subject and content is not decorative
-copy: it defines what the operator can reasonably expect the server to search.
-When REST and MCP share a query service, a missing relation in that predicate
-creates the same silent false negative in both interfaces even if the navigation
-picker still finds the entity locally.
-
-Keep the searchable entity inventory in the shared read boundary and mirror it
-in public tool descriptions. Pin relational matches with backend tests that also
-inspect the returned facets; add a browser assertion that the existing search
-control sends the same query. This proves both halves of the contract without
-duplicating business filtering in Vue.

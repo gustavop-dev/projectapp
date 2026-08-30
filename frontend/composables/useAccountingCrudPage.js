@@ -37,6 +37,9 @@ const HIGHLIGHT_MS = 2500;
  * - resetPageOn  `currentFilters` from useAccountingFilters. Narrowing the
  *     working set sends the reader back to page 1; mutating a row must not.
  *     Pages that omit it fall back to the old rows-based trigger.
+ * - suppressFieldErrorNotification  leaves serializer field errors beside
+ *     their controls when the caller renders `result.fieldErrors`; general
+ *     failures still use the panel notification host.
  */
 export function useAccountingCrudPage({
   entity,
@@ -52,6 +55,7 @@ export function useAccountingCrudPage({
   resetFilters = null,
   isFilterPanelOpen = null,
   resetPageOn = null,
+  suppressFieldErrorNotification = false,
 }) {
   const notify = usePanelNotify();
   const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
@@ -198,7 +202,7 @@ export function useAccountingCrudPage({
       });
       markMutated(flashId ?? result.data?.id);
       if (onAfterMutation) await onAfterMutation();
-    } else {
+    } else if (!(suppressFieldErrorNotification && result.fieldErrors)) {
       notify.error({ title: errorTitle, detail: result.message || '' });
     }
     return result;

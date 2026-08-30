@@ -34,7 +34,9 @@ describe('BaseTextarea', () => {
 
   it('applies error styling when error prop is true', () => {
     const wrapper = mount(BaseTextarea, { props: { modelValue: '', error: true } })
-    expect(wrapper.find('textarea').attributes('class')).toContain('border-danger-strong')
+    const textarea = wrapper.find('textarea')
+    expect(textarea.attributes('class')).toContain('border-danger-strong')
+    expect(textarea.attributes('aria-invalid')).toBe('true')
   })
 
   it('respects size="sm" with smaller padding/text', () => {

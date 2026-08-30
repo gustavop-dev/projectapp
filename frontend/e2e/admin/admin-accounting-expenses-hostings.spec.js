@@ -408,23 +408,11 @@ test.describe('Admin Accounting Hostings — errores de creación', () => {
     });
   });
 
-  test('a hosting rejected by the backend surfaces the error and keeps the modal', {
+  test('missing hosting client is reported beside its field', {
     tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const calls = [];
-    await mockApi(page, async (ctx) => {
-      if (ctx.apiPath === 'accounting/hostings/create/' && ctx.method === 'POST') {
-        calls.push({ apiPath: ctx.apiPath, method: ctx.method });
-        return {
-          status: 400,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            client: ['Todo hosting nuevo debe tener un cliente asignado.'],
-          }),
-        };
-      }
-      return buildHandler({ calls: [] })(ctx);
-    });
+    await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('heading', { name: 'Hostings', exact: true }),
@@ -435,15 +423,14 @@ test.describe('Admin Accounting Hostings — errores de creación', () => {
     await page.getByTestId('hosting-form-monthly').fill('38333');
     await page.getByTestId('hosting-form-submit').click();
 
-    // Assert the backend's actual reason, not just the generic title — catches
-    // the operator losing the "why" if the server message stops reaching the
-    // toast (e.g. useAccountingCrudPage rendering an empty `detail`).
-    const alert = page.getByRole('alert');
-    await expect(alert).toContainText('No se pudo guardar');
-    await expect(alert).toContainText('Todo hosting nuevo debe tener un cliente asignado.');
-    // The modal stays open so the operator can fix it instead of retyping.
-    await expect(page.getByRole('heading', { name: 'Nuevo hosting' })).toBeVisible();
-    expect(calls).toHaveLength(1);
+    const client = page.getByTestId('hosting-form-client');
+    await expect(client).toHaveAttribute('aria-invalid', 'true');
+    const errorId = await client.getAttribute('aria-describedby');
+    expect(errorId).toBeTruthy();
+    await expect(page.locator(`[id="${errorId}"]`)).toHaveText('Elige o crea un cliente.');
+    expect(calls.filter((call) => (
+      call.apiPath === 'accounting/hostings/create/'
+    ))).toHaveLength(0);
   });
 });
 

@@ -336,10 +336,10 @@ const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definiti
               help-testid="sg-row-help"
               data-testid="sg-row-atomic"
             >
-              <BaseFormField label="C.C. / NIT (opcional)">
+              <BaseFormField label="C.C. / NIT">
                 <BaseInput v-model="sampleRowA" data-testid="sg-row-one-a" />
               </BaseFormField>
-              <BaseFormField label="Código de facturación (opcional)">
+              <BaseFormField label="Código de facturación">
                 <BaseInput v-model="sampleRowB" data-testid="sg-row-one-b" />
               </BaseFormField>
             </BaseFormRow>

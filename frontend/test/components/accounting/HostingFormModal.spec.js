@@ -1,6 +1,9 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import HostingFormModal from '../../../components/accounting/HostingFormModal.vue';
+import { useProposalClientsStore } from '../../../stores/proposal_clients';
+import BaseFormField from '../../../components/base/BaseFormField.vue';
+import BaseInput from '../../../components/base/BaseInput.vue';
 
 jest.mock('../../../stores/services/request_http', () => ({
   get_request: jest.fn(),
@@ -48,11 +51,13 @@ const LEGACY_RECORD = {
 };
 
 function mountModal(props = {}) {
-  setActivePinia(createPinia());
+  const pinia = createPinia();
+  setActivePinia(pinia);
   return mount(HostingFormModal, {
     props: { open: true, saving: false, ...props },
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia],
+      components: { BaseFormField, BaseInput },
       stubs: {
         ClientAutocomplete: ClientAutocompleteStub,
         Teleport: { template: '<div><slot /></div>' },
@@ -61,16 +66,6 @@ function mountModal(props = {}) {
           props: ['modelValue', 'size'],
           emits: ['close'],
           template: '<div v-if="modelValue"><slot /></div>',
-        },
-        BaseFormField: {
-          props: ['label', 'hint', 'required'],
-          template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
-        },
-        BaseInput: {
-          props: ['modelValue', 'type', 'placeholder'],
-          emits: ['update:modelValue'],
-          template:
-            '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
           props: ['modelValue'],
@@ -106,9 +101,22 @@ function mountModal(props = {}) {
 }
 
 describe('HostingFormModal', () => {
+  function expectDescribedError(wrapper, testId, message) {
+    const control = wrapper.get(`[data-testid="${testId}"]`);
+    const errorId = control.attributes('aria-describedby');
+    const error = wrapper.findAll('[role="alert"]')
+      .find((node) => node.attributes('id') === errorId);
+    expect(control.attributes('aria-invalid')).toBe('true');
+    expect(error.exists()).toBe(true);
+    expect(error.text()).toBe(message);
+  }
   beforeEach(() => {
     jest.clearAllMocks();
     get_request.mockResolvedValue({ data: [CLIENT] });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('sends the client alongside the billing snapshot', async () => {
@@ -234,6 +242,40 @@ describe('HostingFormModal', () => {
     await wrapper.find('[data-testid="hosting-form-monthly"]').setValue('38333');
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('submit')[0][0].client).toBe(12);
+  });
+
+  // Falla si el alta rápida intenta enviar un cliente sin nombre o no explica el campo incompleto.
+  it('rejects an empty inline hosting client name', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+    wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', '');
+    await flushPromises();
+
+    await wrapper.get('[data-testid="hosting-form-inline-client-save"]').trigger('click');
+
+    expect(create_request).toHaveBeenCalledTimes(0);
+    expectDescribedError(wrapper, 'hosting-form-inline-client-name', 'Escribe el nombre del cliente.');
+  });
+
+  // Falla si el rechazo de correo del servidor se vuelve un aviso general en lugar de marcar su control.
+  it('places inline hosting email rejection on its control', async () => {
+    const wrapper = mountModal();
+    jest.spyOn(useProposalClientsStore(), 'createClient').mockResolvedValue({
+      success: false,
+      errors: { email: ['Ese correo ya existe.'] },
+    });
+    await flushPromises();
+    wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', 'Senses Candles');
+    await flushPromises();
+
+    await wrapper.get('[data-testid="hosting-form-inline-client-save"]').trigger('click');
+    await flushPromises();
+
+    const emailControl = wrapper.get('[data-testid="hosting-form-inline-client-email"]');
+    const emailError = wrapper.get(`#${emailControl.attributes('aria-describedby')}`);
+    expect(emailControl.attributes('aria-invalid')).toBe('true');
+    expect(emailError.attributes('role')).toBe('alert');
+    expect(emailError.text()).toBe('Ese correo ya existe.');
   });
 
   it('pre-fills the only project on create but never on edit (PA-51)', async () => {

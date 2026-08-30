@@ -67,14 +67,21 @@
 
     <!-- Create / edit modal -->
     <BaseModal v-model="formModal.open" kind="form" padding="md">
-      <form data-testid="qr-card-form" @submit.prevent="onSubmit">
-        <h3 class="text-lg font-bold text-text-default mb-4">
-          {{ formModal.editingId ? 'Editar tarjeta' : 'Nueva tarjeta' }}
-        </h3>
+      <form novalidate data-testid="qr-card-form" @submit.prevent="onSubmit">
+        <div class="space-y-4 px-6 py-5">
+          <h3 class="text-lg font-bold text-text-default">
+            {{ formModal.editingId ? 'Editar tarjeta' : 'Nueva tarjeta' }}
+          </h3>
 
-        <div class="space-y-4">
-          <BaseFormField label="Nombre" for="qr-card-name" required :error="formErrors.name">
-            <BaseInput id="qr-card-name" v-model="formModal.name" data-testid="qr-card-name-input" />
+          <BaseFormField v-slot="{ invalid, errorId }" label="Nombre" for="qr-card-name" required :error="formErrors.name">
+            <BaseInput
+              id="qr-card-name"
+              v-model="formModal.name"
+              data-testid="qr-card-name-input"
+              :error="invalid"
+              :aria-describedby="errorId"
+              @update:model-value="formErrors.name = ''"
+            />
           </BaseFormField>
 
           <BaseFormField label="Tipo de destino" for="qr-card-destination-type">
@@ -93,7 +100,6 @@
             v-if="formModal.destinationType === 'url'"
             label="Link de destino"
             for="qr-card-destination"
-            hint="Opcional — podés dejarlo vacío y completarlo después."
             :error="formErrors.destination_url"
           >
             <BaseInput
@@ -120,12 +126,12 @@
           </BaseFormField>
         </div>
 
-        <div class="flex items-center justify-end gap-2 mt-6">
+        <BaseModalActions>
           <BaseButton type="button" variant="ghost" size="sm" @click="formModal.open = false">Cancelar</BaseButton>
           <BaseButton type="submit" variant="primary" size="sm" :loading="store.isUpdating" data-testid="qr-card-save">
             Guardar
           </BaseButton>
-        </div>
+        </BaseModalActions>
       </form>
     </BaseModal>
 
@@ -275,6 +281,10 @@ async function onSubmit() {
   formErrors.name = '';
   formErrors.destination_url = '';
   formErrors.linktree = '';
+  if (!formModal.name.trim()) {
+    formErrors.name = 'Escribe el nombre de la tarjeta.';
+    return;
+  }
   const payload = {
     name: formModal.name,
     destination_url: formModal.destinationUrl,

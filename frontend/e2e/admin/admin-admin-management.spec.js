@@ -79,7 +79,7 @@ test.describe('Admin User Management', () => {
 
     await page.getByRole('button', { name: /Agregar Administrador/i }).click();
     const dialog = page.getByRole('dialog', { name: 'Agregar Administrador' });
-    await expect(dialog).toContainText('Se le enviará un email con credenciales temporales', { timeout: 5000 });
+    await expect(dialog).toContainText('Enviaremos credenciales temporales al correo indicado.', { timeout: 5000 });
   });
 
   test('shows empty state when no admins exist', {

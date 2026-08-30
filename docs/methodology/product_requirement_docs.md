@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-08-29 — formularios de creación del panel:** el modal de
+> proyecto presenta controles de ancho uniforme, estado inicial visible en
+> **En desarrollo**, creación de cliente accesible desde el selector y una fila
+> final reservada a Cancelar/Guardar. Los errores requeridos o del API viven
+> bajo su campo y lo marcan inválido; el panel usa asterisco sólo para
+> obligatorios y omite “(opcional)” en el resto de etiquetas. El mismo contrato
+> se aplica a los demás modales de creación alcanzables del panel.
+
 > **Entregado — 2026-08-29:** el listado de Comunicaciones vuelve a funcionar
 > como índice: por debajo de landscape muestra tarjetas compactas identificadas
 > por asunto, cliente/proyecto, canal, estado, cantidad, fecha y borradores. El

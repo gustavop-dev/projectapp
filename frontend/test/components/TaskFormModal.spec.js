@@ -26,6 +26,12 @@ jest.mock('../../stores/tasks', () => ({
 import { mount } from '@vue/test-utils';
 import TaskFormModal from '../../components/Tasks/TaskFormModal.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
+import BaseFormField from '../../components/base/BaseFormField.vue';
+import BaseInput from '../../components/base/BaseInput.vue';
+import BaseModal from '../../components/base/BaseModal.vue';
+import BaseModalActions from '../../components/base/BaseModalActions.vue';
+import BaseSelect from '../../components/base/BaseSelect.vue';
+import BaseTextarea from '../../components/base/BaseTextarea.vue';
 
 async function flushPromises() {
   await Promise.resolve();
@@ -52,8 +58,17 @@ function mountModal(props = {}) {
     },
     global: {
       // Nuxt auto-imports base components in the app; jest does not.
-      components: { BaseButton },
+      components: {
+        BaseButton,
+        BaseFormField,
+        BaseInput,
+        BaseModal,
+        BaseModalActions,
+        BaseSelect,
+        BaseTextarea,
+      },
       stubs: {
+        NuxtLink: { template: '<a><slot /></a>' },
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
       },
@@ -136,10 +151,17 @@ describe('TaskFormModal', () => {
       expect(wrapper.find('[data-testid="task-title-input"]').element.value).toBe('');
     });
 
-    it('disables the submit button when the title is empty', () => {
+    it('keeps submit available and explains the missing title beside its field', async () => {
       const wrapper = mountModal();
 
-      expect(wrapper.find('[data-testid="task-submit-btn"]').element.disabled).toBe(true);
+      const submit = wrapper.find('[data-testid="task-submit-btn"]');
+      expect(submit.element.disabled).toBe(false);
+
+      await wrapper.find('form').trigger('submit');
+
+      expect(wrapper.text()).toContain('Escribe el título de la tarea.');
+      expect(wrapper.find('[data-testid="task-title-input"]').attributes('aria-invalid')).toBe('true');
+      expect(wrapper.emitted('submit')).toBeUndefined();
     });
   });
 
@@ -215,7 +237,7 @@ describe('TaskFormModal', () => {
     it('emits archive with the task and trimmed reason when Confirmar archivo is clicked', async () => {
       const wrapper = mountModal({ task: baseTask });
       await wrapper.findAll('button').find((btn) => btn.text().includes('Archivar tarea')).trigger('click');
-      await wrapper.find('textarea[placeholder]').setValue('  Ya no es necesaria  ');
+      await wrapper.get('[data-testid="task-archive-reason"]').setValue('  Ya no es necesaria  ');
       await wrapper.findAll('button').find((btn) => btn.text().includes('Confirmar archivo')).trigger('click');
 
       expect(wrapper.emitted('archive')[0][0]).toEqual(baseTask);

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import BaseActionIcon from '~/components/base/BaseActionIcon.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
+import ClientAutocompleteCreateAction from '~/components/ui/ClientAutocompleteCreateAction.vue';
 
 const props = defineProps({
   results: { type: Array, default: () => [] },
@@ -15,6 +16,7 @@ const props = defineProps({
   loadMoreError: { type: String, default: '' },
   presentation: { type: String, default: 'floating' },
   sortDirection: { type: String, default: 'asc' },
+  allowCreate: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -167,6 +169,14 @@ function onCatalogScroll(event) {
             </BaseButton>
           </div>
         </div>
+        <div v-if="allowCreate" role="row" class="border-t border-border-muted p-2">
+          <div role="gridcell">
+            <ClientAutocompleteCreateAction
+              :input-text="inputText"
+              @create="emit('create-new')"
+            />
+          </div>
+        </div>
       </template>
 
       <div
@@ -175,24 +185,16 @@ function onCatalogScroll(event) {
         class="px-4 py-3 text-sm text-text-muted"
       >
         <div role="gridcell">
-          <p class="mb-2">
+          <p :class="allowCreate ? 'mb-2' : ''">
             {{ inputText.trim()
               ? `No se encontraron clientes con "${inputText}".`
               : 'No hay clientes registrados.' }}
           </p>
-          <BaseButton
-            variant="ghost"
-            size="sm"
-            textPolicy="wrap"
-            class="w-full !justify-start !bg-primary-soft text-left !text-text-brand hover:opacity-90"
-            data-testid="client-autocomplete-create-new"
-            @click="emit('create-new')"
-          >
-            <BaseActionIcon action="create" />
-            <span>{{ inputText.trim()
-              ? `Crear nuevo cliente "${inputText.trim()}"`
-              : 'Crear un cliente' }}</span>
-          </BaseButton>
+          <ClientAutocompleteCreateAction
+            v-if="allowCreate"
+            :input-text="inputText"
+            @create="emit('create-new')"
+          />
         </div>
       </div>
 
@@ -283,27 +285,25 @@ function onCatalogScroll(event) {
           Reintentar
         </BaseButton>
       </div>
+      <div v-if="allowCreate" class="border-t border-border-muted p-2">
+        <ClientAutocompleteCreateAction
+          :input-text="inputText"
+          @create="emit('create-new')"
+        />
+      </div>
     </template>
 
     <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-text-muted">
-      <p class="mb-2">
+      <p :class="allowCreate ? 'mb-2' : ''">
         {{ inputText.trim()
           ? `No se encontraron clientes con "${inputText}".`
           : 'No hay clientes registrados.' }}
       </p>
-      <BaseButton
-        variant="ghost"
-        size="sm"
-        textPolicy="wrap"
-        class="w-full !justify-start !bg-primary-soft text-left !text-text-brand hover:opacity-90"
-        data-testid="client-autocomplete-create-new"
-        @click="emit('create-new')"
-      >
-        <BaseActionIcon action="create" />
-        <span>{{ inputText.trim()
-          ? `Crear nuevo cliente "${inputText.trim()}"`
-          : 'Crear un cliente' }}</span>
-      </BaseButton>
+      <ClientAutocompleteCreateAction
+        v-if="allowCreate"
+        :input-text="inputText"
+        @create="emit('create-new')"
+      />
     </div>
 
     <div v-else class="px-4 py-3 text-center text-sm text-text-subtle">

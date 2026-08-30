@@ -25,6 +25,10 @@ import FolderFormModal from '../../components/panel/documents/FolderFormModal.vu
 import BaseModal from '../../components/base/BaseModal.vue';
 import BaseInput from '../../components/base/BaseInput.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
+import BaseAlert from '../../components/base/BaseAlert.vue';
+import BaseFormField from '../../components/base/BaseFormField.vue';
+import BaseModalActions from '../../components/base/BaseModalActions.vue';
+import BaseSelect from '../../components/base/BaseSelect.vue';
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
@@ -44,8 +48,17 @@ function mountModal(props = {}) {
   return mount(FolderFormModal, {
     props: { modelValue: true, ...props },
     global: {
-      components: { BaseModal, BaseInput, BaseButton },
+      components: {
+        BaseAlert,
+        BaseButton,
+        BaseFormField,
+        BaseInput,
+        BaseModal,
+        BaseModalActions,
+        BaseSelect,
+      },
       stubs: {
+        NuxtLink: { template: '<a><slot /></a>' },
         Teleport: true,
         Transition: false,
         ClientAutocomplete: ClientAutocompleteStub,
@@ -80,7 +93,7 @@ describe('FolderFormModal', () => {
       clientField(wrapper).vm.$emit('select', { id: 7, name: 'Kore SAS' });
       await nextTick();
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
 
       expect(mockFolderStore.createFolder).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Kore', client: 7 }),
@@ -97,7 +110,7 @@ describe('FolderFormModal', () => {
       await nextTick();
       await nameInput(wrapper).setValue('Diseño');
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
 
       expect(mockFolderStore.createFolder).toHaveBeenCalledWith(
         expect.objectContaining({ client: 7, project: 4, parent: 3 }),
@@ -114,7 +127,7 @@ describe('FolderFormModal', () => {
       clientField(wrapper).vm.$emit('select', null);
       await nextTick();
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
 
       expect(mockFolderStore.createFolder).toHaveBeenCalledWith(
         expect.objectContaining({ client: null, project: null }),
@@ -124,7 +137,12 @@ describe('FolderFormModal', () => {
     it('refuses to save without a name', async () => {
       const wrapper = mountModal();
 
-      expect(saveButton(wrapper).element.disabled).toBe(true);
+      expect(saveButton(wrapper).element.disabled).toBe(false);
+      await wrapper.find('form').trigger('submit');
+
+      expect(wrapper.text()).toContain('Escribe el nombre de la carpeta.');
+      expect(nameInput(wrapper).attributes('aria-invalid')).toBe('true');
+      expect(mockFolderStore.createFolder).not.toHaveBeenCalled();
     });
   });
 
@@ -153,7 +171,7 @@ describe('FolderFormModal', () => {
       await nextTick();
       await nameInput(wrapper).setValue('Kore Health');
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
 
       expect(mockFolderStore.updateFolder).toHaveBeenCalledWith(
         5, expect.objectContaining({ name: 'Kore Health' }),
@@ -166,7 +184,7 @@ describe('FolderFormModal', () => {
       await nextTick();
       await nameInput(wrapper).setValue('Kore Health');
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
       await nextTick();
 
       // El payload guardado viaja con el evento: el caller refresca con él.
@@ -185,7 +203,7 @@ describe('FolderFormModal', () => {
       clientField(wrapper).vm.$emit('select', { id: 9, name: 'Ana' });
       await nextTick();
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
       await nextTick();
 
       expect(wrapper.emitted('change-client')).toBeTruthy();
@@ -195,7 +213,7 @@ describe('FolderFormModal', () => {
       });
     });
 
-    it('shows a plain failure without pretending it saved', async () => {
+    it('shows a backend name failure beside the name field', async () => {
       mockFolderStore.updateFolder.mockResolvedValue({
         success: false, errors: { name: ['Ya existe.'] },
       });
@@ -203,11 +221,12 @@ describe('FolderFormModal', () => {
       await nextTick();
       await nameInput(wrapper).setValue('Repetida');
 
-      await saveButton(wrapper).trigger('click');
+      await wrapper.find('form').trigger('submit');
       await nextTick();
 
-      expect(wrapper.find('[data-testid="folder-form-error"]').text())
-        .toContain('Ya existe.');
+      expect(wrapper.text()).toContain('Ya existe.');
+      expect(nameInput(wrapper).attributes('aria-invalid')).toBe('true');
+      expect(wrapper.find('[data-testid="folder-form-error"]').exists()).toBe(false);
       expect(wrapper.emitted('saved')).toBeFalsy();
     });
   });

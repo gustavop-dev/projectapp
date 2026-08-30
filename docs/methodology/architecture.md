@@ -1,5 +1,12 @@
 # Architecture — ProjectApp
 
+> **Contrato de formularios 2026-08-29:** las superficies de creación del panel
+> componen `BaseFormField` + control base + `BaseModalActions`. El campo es dueño
+> de su ayuda, error y relación ARIA; el modal sólo coordina payload y errores
+> del store. La creación de clientes sigue siendo una capacidad explícita del
+> selector compartido, no una salida descubierta después del fallo. No cambia
+> el contrato REST ni el modelo de datos.
+
 > **Comunicaciones 2026-08-29:** `/panel/communications` has two list
 > projections over the same thread DTO: a comparison table at landscape+ and a
 > compact card index below it. `CommunicationThreadTable` owns both projections,

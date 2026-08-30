@@ -335,6 +335,61 @@ test.describe('Admin Panel Projects', () => {
       await expect(getProjectResult(page, 1)).toContainText('Activo');
       await expect(getProjectResult(page, 2)).toHaveCount(0);
     });
+
+    test('keeps project validation beside the incomplete fields and the footer clean', {
+      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:error', '@responsive:projects'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await gotoProjects(page);
+
+      await page.getByTestId('projects-new-button').click();
+      await page.getByTestId('project-form-submit').click();
+
+      const name = page.getByTestId('project-form-name');
+      const client = page.getByTestId('project-form-client');
+      await expect(name).toHaveAttribute('aria-invalid', 'true');
+      await expect(client).toHaveAttribute('aria-invalid', 'true');
+      await expect(page.getByText('Escribe el nombre del proyecto.', { exact: true })).toBeVisible();
+      await expect(page.getByText('Elige o crea un cliente.', { exact: true })).toBeVisible();
+
+      const actions = page.getByTestId('base-modal-actions');
+      await expect(actions.getByRole('button')).toHaveCount(2);
+      await expect(actions.getByRole('alert')).toHaveCount(0);
+      expect(calls).toHaveLength(0);
+    });
+  });
+
+  test.describe('portrait creation form', () => {
+    test.use(viewportUse('portrait'));
+
+    test('reads as one full-width block and exposes inline client creation', {
+      tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await gotoProjects(page);
+
+      await page.getByTestId('projects-new-button').click();
+      const name = page.getByTestId('project-form-name');
+      const client = page.getByTestId('project-form-client');
+      const state = page.getByTestId('project-form-status');
+
+      await expect(state).toHaveValue('1');
+      await expect(page.getByText('Cliente al que pertenece y se factura el proyecto.', { exact: true }))
+        .toBeVisible();
+      await expect(page.getByText(/si no (eliges|seleccionas) un estado/i)).toHaveCount(0);
+      await expect(page.getByText(/\(opcional\)/i)).toHaveCount(0);
+
+      const widths = await Promise.all([name, client, state].map(async (control) => (
+        Math.round((await control.boundingBox()).width)
+      )));
+      expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(2);
+
+      await client.fill('Germán');
+      await expect(page.getByTestId('client-autocomplete-option-5')).toBeVisible();
+      await expect(page.getByTestId('client-autocomplete-create-new'))
+        .toContainText('Crear nuevo cliente "Germán"');
+    });
   });
 
   test('search narrows the listing by project or client name', {
@@ -424,7 +479,7 @@ test.describe('Admin Panel Projects', () => {
     expect(calls).toHaveLength(1);
   });
 
-  test('a backend rejection surfaces the message and keeps the modal open', {
+  test('a backend field rejection stays beside its control and keeps the modal open', {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const calls = [];
@@ -437,9 +492,12 @@ test.describe('Admin Panel Projects', () => {
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('project-form-submit').click();
 
-    const alert = page.getByRole('alert');
-    await expect(alert).toContainText('No se pudo crear el proyecto');
-    await expect(alert).toContainText('Ese cliente no existe o no es un perfil de cliente.');
+    await expect(page.getByText(
+      'Ese cliente no existe o no es un perfil de cliente.',
+      { exact: true },
+    )).toBeVisible();
+    await expect(page.getByTestId('project-form-client')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('No se pudo crear el proyecto', { exact: true })).toHaveCount(0);
     await expect(page.getByTestId('project-form-name')).toBeVisible();
   });
 

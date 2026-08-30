@@ -17,12 +17,13 @@ const labels = {
   deleteMessage: () => 'Se eliminará el registro.',
 };
 
-function makePage(store) {
+function makePage(store, options = {}) {
   return useAccountingCrudPage({
     entity: 'incomes',
     store,
     labels,
     filteredRecords: computed(() => []),
+    ...options,
   });
 }
 
@@ -218,6 +219,44 @@ describe('useAccountingCrudPage — runMutation success copy', () => {
     expect(notify.notifications.value[0]).toMatchObject({
       title: 'Registro creado',
       detail: '',
+    });
+  });
+});
+
+describe('useAccountingCrudPage — field errors', () => {
+  const notify = usePanelNotify();
+
+  beforeEach(() => notify.clearAll());
+  afterEach(() => notify.clearAll());
+
+  it('leaves serializer field errors to the form when configured', async () => {
+    const result = {
+      success: false,
+      message: 'Elige un cliente válido.',
+      fieldErrors: { client_profile_id: 'Elige un cliente válido.' },
+    };
+    const store = { createRecord: jest.fn().mockResolvedValue(result) };
+    const page = makePage(store, { suppressFieldErrorNotification: true });
+
+    expect(await page.handleSubmit({})).toEqual(result);
+    expect(notify.notifications.value).toHaveLength(0);
+  });
+
+  it('still announces a general failure when field notifications are suppressed', async () => {
+    const store = {
+      createRecord: jest.fn().mockResolvedValue({
+        success: false,
+        message: 'Servicio no disponible.',
+        fieldErrors: null,
+      }),
+    };
+    const page = makePage(store, { suppressFieldErrorNotification: true });
+
+    await page.handleSubmit({});
+
+    expect(notify.notifications.value[0]).toMatchObject({
+      type: 'error',
+      detail: 'Servicio no disponible.',
     });
   });
 });

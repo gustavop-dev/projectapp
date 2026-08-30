@@ -461,7 +461,7 @@
         </BaseModalActions>
       </BaseModal>
 
-      <BaseModal v-model="quickLogOpen" kind="confirm">
+      <BaseModal v-model="quickLogOpen" kind="form">
         <template v-if="quickLogProposal">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
@@ -470,42 +470,37 @@
             </div>
             <p class="text-xs text-text-muted mb-4">{{ quickLogProposal.client_name }} — {{ quickLogProposal.title }}</p>
             <div class="space-y-3">
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Tipo de actividad</label>
-                <select v-model="quickLogType" class="w-full px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg text-input-text outline-none focus:ring-1 focus:ring-focus-ring/30">
+              <BaseFormField label="Tipo de actividad">
+                <BaseSelect v-model="quickLogType">
                   <option value="call">📞 Llamada</option>
                   <option value="meeting">🤝 Reunión</option>
                   <option value="followup">📩 Seguimiento</option>
                   <option value="note">📝 Nota</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Descripción</label>
-                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-input-border rounded-lg text-sm text-input-text placeholder:text-input-placeholder outline-none focus:ring-1 focus:ring-focus-ring/30" @keyup.enter="confirmQuickLog" />
-              </div>
+                </BaseSelect>
+              </BaseFormField>
+              <BaseFormField label="Descripción" required :error="quickLogError">
+                <BaseInput
+                  v-model="quickLogMessage"
+                  :error="!!quickLogError"
+                  placeholder="Ej: Llamada de seguimiento, cliente interesado"
+                  data-testid="proposal-quick-log-description"
+                  @update:model-value="quickLogError = ''"
+                  @keyup.enter="confirmQuickLog"
+                />
+              </BaseFormField>
             </div>
           </div>
           <BaseModalActions>
             <BaseButton variant="secondary" size="md" @click="quickLogProposal = null">Cancelar</BaseButton>
-            <BaseControlGate
-              :reasons="!quickLogMessage.trim() ? ['Escribe la descripción de la actividad.'] : []"
-              label="Registrar actividad no disponible"
-              align="end"
+            <BaseButton
+              variant="primary"
+              size="md"
+              :loading="isQuickLogging"
+              data-testid="proposal-quick-log-submit"
+              @click="confirmQuickLog"
             >
-              <template #default="{ describedBy }">
-                <BaseButton
-                  variant="primary"
-                  size="md"
-                  :loading="isQuickLogging"
-                  :disabled="!quickLogMessage.trim()"
-                  disabled-reason="Escribe la descripción de la actividad."
-                  :aria-describedby="describedBy"
-                  @click="confirmQuickLog"
-                >
-                  {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
-                </BaseButton>
-              </template>
-            </BaseControlGate>
+              {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
+            </BaseButton>
           </BaseModalActions>
         </template>
       </BaseModal>
@@ -595,6 +590,7 @@ const isSending = ref(false);
 const quickLogProposal = ref(null);
 const quickLogType = ref('call');
 const quickLogMessage = ref('');
+const quickLogError = ref('');
 const isQuickLogging = ref(false);
 const searchQuery = ref('');
 const showAlertForm = ref(false);
@@ -1366,10 +1362,15 @@ function openQuickLog(p) {
   quickLogProposal.value = p;
   quickLogType.value = 'call';
   quickLogMessage.value = '';
+  quickLogError.value = '';
 }
 
 async function confirmQuickLog() {
-  if (!quickLogProposal.value || !quickLogMessage.value.trim()) return;
+  if (!quickLogProposal.value) return;
+  if (!quickLogMessage.value.trim()) {
+    quickLogError.value = 'Escribe la descripción de la actividad.';
+    return;
+  }
   isQuickLogging.value = true;
   try {
     await proposalStore.logActivity(quickLogProposal.value.id, {

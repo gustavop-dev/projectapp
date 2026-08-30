@@ -4,7 +4,8 @@
     kind="form"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <div class="p-6 space-y-5" data-testid="folder-form-modal">
+    <form class="space-y-5" novalidate data-testid="folder-form-modal" @submit.prevent="submit">
+      <div class="space-y-5 p-6">
       <div>
         <h3 class="text-base font-semibold text-text-default">
           {{ isEdit ? `Editar "${folder.name}"` : 'Nueva carpeta' }}
@@ -16,56 +17,46 @@
         </p>
       </div>
 
-      <div class="space-y-1.5">
-        <label class="block text-xs font-medium text-text-muted" for="folder-form-name">
-          Nombre
-        </label>
+      <BaseFormField
+        label="Nombre"
+        for="folder-form-name"
+        required
+        :error="nameError"
+      >
         <BaseInput
           id="folder-form-name"
           v-model="form.name"
           type="text"
           placeholder="Nombre de la carpeta"
+          :error="!!nameError"
           data-testid="folder-form-name"
-          @keyup.enter="submit"
+          @update:model-value="nameError = ''"
         />
-      </div>
+      </BaseFormField>
 
-      <div class="space-y-1.5">
-        <label class="block text-xs font-medium text-text-muted" for="folder-form-parent">
-          Dentro de
-        </label>
-        <select
+      <BaseFormField label="Dentro de" for="folder-form-parent">
+        <BaseSelect
           id="folder-form-parent"
           v-model="form.parent"
           data-testid="folder-form-parent"
-          class="w-full px-2.5 py-2 border border-input-border rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
         >
           <option :value="null">Ninguna (carpeta raíz)</option>
           <option v-for="opt in parentOptions" :key="opt.id" :value="opt.id">
             {{ opt.label }}
           </option>
-        </select>
-      </div>
+        </BaseSelect>
+      </BaseFormField>
 
-      <div class="space-y-1.5">
-        <label class="block text-xs font-medium text-text-muted">Cliente</label>
+      <BaseFormField label="Cliente" :hint="inheritedNotice">
         <ClientAutocomplete
           :model-value="form.client"
           :initial-label="clientDisplayName"
           test-id="folder-form-client"
           @select="onClientSelect"
         />
-        <p
-          v-if="inheritedNotice"
-          class="text-xs text-text-subtle"
-          data-testid="folder-form-inherited-hint"
-        >
-          {{ inheritedNotice }}
-        </p>
-      </div>
+      </BaseFormField>
 
-      <div class="space-y-1.5">
-        <label class="block text-xs font-medium text-text-muted">Proyecto</label>
+      <BaseFormField label="Proyecto">
         <ProjectSelect
           v-model="form.project"
           :client-profile-id="form.client"
@@ -74,31 +65,27 @@
           testid="folder-form-project"
           @select="onProjectSelect"
         />
+      </BaseFormField>
+
+      <BaseAlert v-if="errorMsg" variant="danger" data-testid="folder-form-error">
+        {{ errorMsg }}
+      </BaseAlert>
       </div>
 
-      <p
-        v-if="errorMsg"
-        class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg"
-        data-testid="folder-form-error"
-      >
-        {{ errorMsg }}
-      </p>
-
-      <div class="flex justify-end gap-2 pt-1">
-        <BaseButton variant="ghost" data-testid="folder-form-cancel" @click="close">
+      <BaseModalActions>
+        <BaseButton type="button" variant="ghost" data-testid="folder-form-cancel" @click="close">
           Cancelar
         </BaseButton>
         <BaseButton
+          type="submit"
           variant="primary"
-          :disabled="!form.name.trim()"
           :loading="folderStore.isUpdating"
           data-testid="folder-form-save"
-          @click="submit"
         >
           {{ isEdit ? 'Guardar cambios' : 'Crear carpeta' }}
         </BaseButton>
-      </div>
-    </div>
+      </BaseModalActions>
+    </form>
   </BaseModal>
 </template>
 
@@ -143,6 +130,7 @@ const folderStore = useDocumentFolderStore();
 const form = reactive({ name: '', parent: null, client: null, project: null });
 const clientDisplayName = ref('');
 const errorMsg = ref('');
+const nameError = ref('');
 const inheritedClient = ref(null);
 
 const isEdit = computed(() => Boolean(props.folder));
@@ -165,6 +153,7 @@ const inheritedNotice = computed(() => (
 
 function reset() {
   errorMsg.value = '';
+  nameError.value = '';
   inheritedClient.value = null;
   if (isEdit.value) {
     form.name = props.folder.name || '';
@@ -201,7 +190,10 @@ function formatErr(errors) {
 
 async function submit() {
   const name = form.name.trim();
-  if (!name) return;
+  if (!name) {
+    nameError.value = 'Escribe el nombre de la carpeta.';
+    return;
+  }
   errorMsg.value = '';
   const payload = {
     name,
@@ -226,7 +218,10 @@ async function submit() {
     });
     return;
   }
-  errorMsg.value = formatErr(result.errors)
+  nameError.value = Array.isArray(result.errors?.name)
+    ? result.errors.name.join(' ')
+    : (result.errors?.name || '');
+  errorMsg.value = nameError.value ? '' : formatErr(result.errors)
     || (isEdit.value ? 'No se pudo guardar.' : 'No se pudo crear la carpeta.');
 }
 </script>

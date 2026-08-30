@@ -3,7 +3,7 @@
     <p class="text-xs text-text-muted">
       Detalle técnico: cómo se construye el sistema. Módulos del producto y requerimientos con <code class="text-[10px] bg-surface-raised px-1 rounded">epicKey</code> /
       <code class="text-[10px] bg-surface-raised px-1 rounded">flowKey</code> para enlazar después con el tablero en plataforma.
-      Opcional: <code class="text-[10px] bg-surface-raised px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos comerciales de la propuesta. Los ids legacy se normalizan automáticamente al guardar.
+      <code class="text-[10px] bg-surface-raised px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos comerciales de la propuesta. Los ids legacy se normalizan automáticamente al guardar.
     </p>
 
     <div
@@ -136,7 +136,7 @@
           <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar fila" size="sm" @click="doc.architecture.patterns.splice(i, 1)" />
         </div>
       </div>
-      <p class="text-xs text-text-muted">Diagramas / anexo (opcional)</p>
+      <p class="text-xs text-text-muted">Diagramas / anexo</p>
       <textarea
         v-model="doc.architecture.diagramNote"
         v-auto-resize
@@ -396,7 +396,7 @@
         data-testid="technical-section-toggle-environments"
         @click="toggleSection('environments')"
       >
-        <span class="text-sm font-semibold text-text-default">Ambientes (opcional)</span>
+        <span class="text-sm font-semibold text-text-default">Ambientes</span>
         <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.environments }} <BaseActionIcon :action="openSections.has('environments') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('environments')">

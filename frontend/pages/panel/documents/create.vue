@@ -99,6 +99,7 @@
                 v-model="form.client"
                 :initial-label="clientDisplayName"
                 test-id="doc-client-autocomplete"
+                allow-create
                 @select="onClientSelect"
                 @create-new="onCreateNewClient"
               />
@@ -217,6 +218,7 @@
                flex flex-col min-w-0"
       >
         <div class="flex gap-1 mb-5 bg-surface-raised rounded-xl p-1 w-full sm:w-fit">
+          <!-- design-tokens: allow-raw-button — segmented mode control -->
           <button
             v-for="tab in modeTabs"
             :key="tab.id"

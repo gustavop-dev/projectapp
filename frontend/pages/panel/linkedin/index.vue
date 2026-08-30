@@ -90,25 +90,31 @@
 
     <!-- Create / edit modal -->
     <BaseModal v-model="showModal" kind="form" padding="md">
-      <h2 class="text-lg font-semibold text-text-default mb-4">
-        {{ editingPost ? 'Editar post' : 'Nuevo post' }}
-      </h2>
+      <form novalidate @submit.prevent="savePost">
+        <div class="space-y-4 px-6 py-5">
+          <h2 class="text-lg font-semibold text-text-default">
+            {{ editingPost ? 'Editar post' : 'Nuevo post' }}
+          </h2>
 
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-text-default mb-1">Texto del post</label>
-          <textarea
-            v-model="form.commentary"
-            rows="6"
-            maxlength="3000"
-            class="w-full px-4 py-3 rounded-xl border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm leading-relaxed focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all resize-y"
-            placeholder="Escribe el contenido para LinkedIn (máx 3000 caracteres)"
-          />
-          <p class="text-xs text-text-subtle mt-1">{{ form.commentary.length }} / 3000</p>
-        </div>
+          <BaseFormField
+            v-slot="{ invalid, errorId }"
+            label="Texto del post"
+            required
+            :error="formError"
+          >
+            <BaseTextarea
+              v-model="form.commentary"
+              :rows="6"
+              maxlength="3000"
+              placeholder="Escribe el contenido para LinkedIn (máx. 3000 caracteres)"
+              :error="invalid"
+              :aria-describedby="errorId"
+              @update:model-value="formError = ''"
+            />
+            <p class="mt-1 text-xs text-text-subtle">{{ form.commentary.length }} / 3000</p>
+          </BaseFormField>
 
-        <div>
-          <label class="block text-sm font-medium text-text-default mb-1">Imagen (opcional)</label>
+          <BaseFormField label="Imagen">
           <input
             type="file"
             accept="image/*"
@@ -121,37 +127,37 @@
             alt="Imagen del post"
             class="mt-2 max-h-40 rounded-lg border border-border-default"
           />
-        </div>
+          </BaseFormField>
 
-        <div>
-          <label class="block text-sm font-medium text-text-default mb-1">Programar publicación (opcional)</label>
-          <input
+          <BaseFormField
+            label="Programar publicación"
+            hint="Si queda vacío, el post se guarda como borrador."
+          >
+          <BaseInput
             v-model="form.scheduledLocal"
             type="datetime-local"
-            class="px-4 py-2 rounded-xl border border-input-border bg-input-bg text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all"
           />
-          <p class="text-xs text-text-subtle mt-1">
-            Déjalo vacío para guardar como borrador y publicar manualmente.
-          </p>
+          </BaseFormField>
+
+          <BaseAlert v-if="formGeneralError" variant="danger">{{ formGeneralError }}</BaseAlert>
         </div>
 
-        <p v-if="formError" class="text-sm text-danger-strong">{{ formError }}</p>
-
-        <div class="flex flex-wrap justify-end gap-3 pt-2">
-          <BaseButton variant="ghost" @click="showModal = false">Cancelar</BaseButton>
+        <BaseModalActions>
+          <BaseButton type="button" variant="ghost" @click="showModal = false">Cancelar</BaseButton>
           <BaseButton
             v-if="editingPost"
+            type="button"
             variant="secondary"
             :loading="publishingId === editingPost.id"
             @click="askPublish(editingPost, true)"
           >
             Publicar ahora
           </BaseButton>
-          <BaseButton variant="primary" :loading="saving" @click="savePost">
+          <BaseButton type="submit" variant="primary" :loading="saving">
             {{ form.scheduledLocal ? 'Programar' : 'Guardar' }}
           </BaseButton>
-        </div>
-      </div>
+        </BaseModalActions>
+      </form>
     </BaseModal>
   </div>
 </template>
@@ -189,6 +195,7 @@ const form = reactive({ commentary: '', scheduledLocal: '' });
 const imageFile = ref(null);
 const imagePreview = ref('');
 const formError = ref('');
+const formGeneralError = ref('');
 const saving = ref(false);
 const publishingId = ref(null);
 const actionMsg = ref('');
@@ -270,6 +277,7 @@ function resetForm() {
   imageFile.value = null;
   imagePreview.value = '';
   formError.value = '';
+  formGeneralError.value = '';
 }
 
 function openCreate() {
@@ -317,8 +325,9 @@ function extractError(error) {
 
 async function savePost() {
   formError.value = '';
+  formGeneralError.value = '';
   if (!form.commentary.trim()) {
-    formError.value = 'El texto del post es obligatorio.';
+    formError.value = 'Escribe el texto del post.';
     return;
   }
   saving.value = true;
@@ -329,7 +338,11 @@ async function savePost() {
   saving.value = false;
 
   if (!result.success) {
-    formError.value = extractError(result.error);
+    const commentaryError = result.error?.commentary;
+    formError.value = Array.isArray(commentaryError)
+      ? commentaryError[0]
+      : (typeof commentaryError === 'string' ? commentaryError : '');
+    if (!formError.value) formGeneralError.value = extractError(result.error);
     return;
   }
   showModal.value = false;
