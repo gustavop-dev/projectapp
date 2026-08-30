@@ -14,6 +14,7 @@ from django.db.models import Count, F, Q
 from accounts.models import (
     BugReport,
     ChangeRequest,
+    CommunicationPanelPreference,
     Deliverable,
     Project,
     Requirement,
@@ -268,6 +269,32 @@ def test_platform_seed_reaches_the_per_list_volume_target():
     assert Deliverable.objects.filter(project=project).count() == 60
     assert ChangeRequest.objects.filter(project=project).count() == 60
     assert BugReport.objects.filter(project=project).count() == 60
+
+
+def test_platform_seed_configures_communication_preferences():
+    admin = get_user_model().objects.create_user(
+        username='preference-admin',
+        email='preference-admin@example.test',
+        is_staff=True,
+    )
+    CommunicationPanelPreference.objects.create(user=admin)
+
+    run_command(
+        'enrich_platform_data', '--count', '1', '--notifications', '1',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+
+    assert CommunicationPanelPreference.objects.filter(user=admin).values(
+        'navigation_mode', 'thread_order', 'page_size', 'default_channel',
+        'show_manual_help', 'navigation_width',
+    ).get() == {
+        'navigation_mode': CommunicationPanelPreference.NAVIGATION_CLIENT,
+        'thread_order': CommunicationPanelPreference.ORDER_TITLE,
+        'page_size': 50,
+        'default_channel': CommunicationPanelPreference.CHANNEL_EMAIL,
+        'show_manual_help': False,
+        'navigation_width': 336,
+    }
 
 
 def test_document_seed_links_every_document_to_client_project(seeded_documents):

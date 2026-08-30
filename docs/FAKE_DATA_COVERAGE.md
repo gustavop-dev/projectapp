@@ -83,6 +83,7 @@ Los valores son objetivos mínimos o perfiles deliberados, no repartos uniformes
 | Documentos | ≥60 | todos con cliente/proyecto; con y sin carpeta; 2 firmables |
 | Cuentas de cobro | 40 | creadas desde `IncomeRecord` por el servicio real; draft sin carpeta y issued/paid/overdue/cancelled bajo la jerarquía automática por proyecto, año y mes |
 | Hilos de comunicación | 60 | 12 de 1 mensaje, 36 de 3 y 12 de 12; 264 mensajes |
+| Preferencias de comunicaciones | 1 por admin demo | navegación por clientes, orden alfabético, 50 hilos, correo y ancho no predeterminados |
 | Linktrees / botones | 12 / 48 | activos/inactivos, personal/empresa |
 | Tarjetas QR | 30 | URL/Linktree, activas/inactivas y nombre extremo |
 | Publicaciones LinkedIn | 20 | draft/scheduled/published/failed |
