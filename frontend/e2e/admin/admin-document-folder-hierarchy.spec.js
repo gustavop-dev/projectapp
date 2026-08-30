@@ -111,9 +111,7 @@ test.describe('Admin Document Folder Hierarchy', () => {
   });
 
   function sidebar(page) {
-    return page.locator('aside', {
-      has: page.getByRole('heading', { name: 'Carpetas' }),
-    });
+    return page.getByTestId('manual-folder-section');
   }
 
   test('sidebar shows only root folders', {
