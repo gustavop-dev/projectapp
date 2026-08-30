@@ -33,7 +33,7 @@ def state(key):
     )
 
 
-def test_project_catalog_exposes_the_seven_seed_states(admin_client):
+def test_project_catalog_exposes_the_six_seed_states(admin_client):
     response = admin_client.get('/api/project-states/')
 
     assert response.status_code == 200
@@ -41,7 +41,6 @@ def test_project_catalog_exposes_the_seven_seed_states(admin_client):
         'development',
         'active',
         'evolving',
-        'paused',
         'suspended',
         'completed',
         'decommissioned',
@@ -58,7 +57,6 @@ def test_project_catalog_exposes_the_seven_seed_states(admin_client):
         'development': True,
         'active': True,
         'evolving': True,
-        'paused': False,
         'suspended': False,
         'completed': False,
         'decommissioned': False,
@@ -81,6 +79,20 @@ def test_user_can_create_a_project_state_with_an_operational_effect(
         'Opera con acompañamiento posterior a la entrega.'
     )
     assert response.data['operational_effect'] == 'operating'
+
+
+def test_user_cannot_create_a_project_state_with_removed_paused_effect(
+    admin_client,
+):
+    response = admin_client.post('/api/project-states/', {
+        'name': 'En espera',
+        'description': 'El proyecto espera una decisión antes de continuar.',
+        'color': 'yellow',
+        'operational_effect': 'paused',
+    }, format='json')
+
+    assert response.status_code == 400
+    assert 'operational_effect' in response.data
 
 
 def test_user_configures_project_folder_visibility(admin_client):
@@ -243,8 +255,8 @@ def test_listing_meta_counts_every_catalog_state(admin_client, project):
     }
     assert counts['development'] == 1
     assert set(counts) == {
-        'development', 'active', 'evolving', 'paused', 'suspended',
-        'completed', 'decommissioned',
+        'development', 'active', 'evolving', 'suspended', 'completed',
+        'decommissioned',
     }
     evolving = next(
         item for item in response.data['meta']['by_state']

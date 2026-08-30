@@ -73,19 +73,19 @@ class TestListPanelProjects:
         assert response.status_code == 200
         assert [row['name'] for row in response.data['results']] == ['Vastago']
 
-    def test_default_scope_hides_archived_but_keeps_paused_and_completed(
+    def test_default_scope_hides_archived_but_keeps_suspended_and_completed(
         self, admin_client,
     ):
         owner = make_client('deivis@example.com')
         make_project(owner, 'Activo')
-        make_project(owner, 'Pausado', status=Project.STATUS_PAUSED)
+        make_project(owner, 'Suspendido', status=Project.STATUS_SUSPENDED)
         make_project(owner, 'Completado', status=Project.STATUS_COMPLETED)
         make_project(owner, 'Viejo', status=Project.STATUS_ARCHIVED)
 
         response = admin_client.get(LIST_URL)
 
         names = [row['name'] for row in response.data['results']]
-        assert names == ['Activo', 'Completado', 'Pausado']
+        assert names == ['Activo', 'Completado', 'Suspendido']
 
     def test_scope_archived_returns_only_archived(self, admin_client):
         owner = make_client('deivis@example.com')
@@ -298,7 +298,7 @@ class TestUpdatePanelProject:
 
         response = admin_client.patch(
             f'/api/projects/{project.pk}/update/',
-            {'status': Project.STATUS_PAUSED},
+            {'status': Project.STATUS_SUSPENDED},
             format='json',
         )
 

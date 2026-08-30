@@ -78,7 +78,6 @@ class DocumentState(models.Model):
         NONE = '', 'Sin efecto automático'
         DEVELOPMENT = 'development', 'En desarrollo'
         OPERATING = 'operating', 'Operativo'
-        PAUSED = 'paused', 'Pausado'
         SUSPENDED = 'suspended', 'Cobros suspendidos'
         COMPLETED = 'completed', 'Cierre correcto'
         DECOMMISSIONED = 'decommissioned', 'Baja definitiva'
@@ -95,10 +94,6 @@ class DocumentState(models.Model):
         OperationalEffect.OPERATING: (
             'Mantiene habilitados la operación, los cobros y los avisos del '
             'proyecto.'
-        ),
-        OperationalEffect.PAUSED: (
-            'Pausa el trabajo, pero no suspende automáticamente los cobros ni '
-            'los avisos del servicio.'
         ),
         OperationalEffect.SUSPENDED: (
             'Detiene nuevos cobros y avisos, conserva la deuda ya causada y '

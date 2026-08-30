@@ -1985,7 +1985,7 @@ function statusClass(s) {
     expired: 'bg-warning-soft text-warning-strong',
     negotiating: 'bg-primary-soft text-text-brand',
     active: 'bg-success-soft text-success-strong',
-    paused: 'bg-warning-soft text-warning-strong',
+    suspended: 'bg-warning-soft text-warning-strong',
     completed: 'bg-primary-soft text-text-brand',
     archived: 'bg-surface-raised text-text-muted',
   };

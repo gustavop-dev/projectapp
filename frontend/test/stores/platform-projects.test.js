@@ -71,10 +71,9 @@ describe('usePlatformProjectsStore', () => {
       store.projects = [
         { ...SAMPLE_PROJECT, id: 1, current_state: { operational_effect: 'development' } },
         { ...SAMPLE_PROJECT, id: 2, current_state: { operational_effect: 'operating' } },
-        { ...SAMPLE_PROJECT, id: 3, current_state: { operational_effect: 'paused' } },
-        { ...SAMPLE_PROJECT, id: 4, current_state: { operational_effect: 'suspended' } },
-        { ...SAMPLE_PROJECT, id: 5, current_state: { operational_effect: 'completed' } },
-        { ...SAMPLE_PROJECT, id: 6, current_state: { operational_effect: 'decommissioned' } },
+        { ...SAMPLE_PROJECT, id: 3, current_state: { operational_effect: 'suspended' } },
+        { ...SAMPLE_PROJECT, id: 4, current_state: { operational_effect: 'completed' } },
+        { ...SAMPLE_PROJECT, id: 5, current_state: { operational_effect: 'decommissioned' } },
       ]
     })
 
@@ -84,10 +83,6 @@ describe('usePlatformProjectsStore', () => {
 
     it('activeProjects filters by lifecycle effect', () => {
       expect(store.activeProjects).toHaveLength(1)
-    })
-
-    it('pausedProjects filters by lifecycle effect', () => {
-      expect(store.pausedProjects).toHaveLength(1)
     })
 
     it('suspendedProjects filters by lifecycle effect', () => {
@@ -103,7 +98,7 @@ describe('usePlatformProjectsStore', () => {
     })
 
     it('projectCount returns total count', () => {
-      expect(store.projectCount).toBe(6)
+      expect(store.projectCount).toBe(5)
     })
   })
 

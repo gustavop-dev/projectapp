@@ -160,8 +160,8 @@ authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 
 - `/panel/projects` uses the shared PA-88 state catalog and history engine, scoped
   to `catalog='projects'`; it does not maintain a second status system.
-- The seven seeded meanings are **En desarrollo**, **Activo**, **En evolución**,
-  **Pausado**, **Suspendido**, **Completado** and **Dado de baja**. En evolución
+- The six seeded meanings are **En desarrollo**, **Activo**, **En evolución**,
+  **Suspendido**, **Completado** and **Dado de baja**. En evolución
   means that a delivered project remains in production while a next version or
   expansion is being developed. Names, descriptions and colors are administrable,
   while `operational_effect` remains the stable business meaning.
@@ -172,7 +172,7 @@ authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 - New projects begin En desarrollo. Later changes require a server preview and an
   impact token; direct enum writes and the legacy archive/unarchive endpoints do
   not bypass that flow.
-- Suspendido is reversible and stops new billing/reminders while retaining debt
+- Suspendido is the single reversible-stop state. It stops new billing/reminders while retaining debt
   already caused. A failed hosting payment may suggest this state, never apply it.
   Completado means a clean close. Dado de baja is definitive, cancels future
   service and requires an explicit keep/write-off decision for caused receivables;
