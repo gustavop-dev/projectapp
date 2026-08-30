@@ -69,6 +69,39 @@ async function expectNoViewportOverflow(page) {
   })).toBeLessThanOrEqual(1);
 }
 
+function rectanglesOverlap(first, second) {
+  return Math.min(first.x + first.width, second.x + second.width) > Math.max(first.x, second.x)
+    && Math.min(first.y + first.height, second.y + second.height) > Math.max(first.y, second.y);
+}
+
+async function expectCompactLifecycleCardGeometry(page) {
+  const card = page.getByTestId('panel-projects-stat-state-2');
+  const help = page.getByTestId('project-stat-state-help-2');
+  const label = card.getByTestId('indicator-label');
+  const value = card.getByTestId('accounting-stat-value');
+  const resultAction = card.getByTestId('indicator-result-action');
+
+  await expect(card).toHaveAttribute('data-layout', 'compact-horizontal');
+  await expect(help).toBeVisible();
+
+  const [cardBox, helpBox, labelBox, valueBox, resultActionBox] = await Promise.all([
+    card.boundingBox(),
+    help.boundingBox(),
+    label.boundingBox(),
+    value.boundingBox(),
+    resultAction.boundingBox(),
+  ]);
+
+  expect(cardBox.height).toBeLessThanOrEqual(80);
+  expect(helpBox.x).toBeGreaterThanOrEqual(cardBox.x);
+  expect(helpBox.y).toBeGreaterThanOrEqual(cardBox.y);
+  expect(helpBox.x + helpBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+  expect(helpBox.y + helpBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height);
+  expect(rectanglesOverlap(helpBox, labelBox)).toBe(false);
+  expect(rectanglesOverlap(helpBox, valueBox)).toBe(false);
+  expect(rectanglesOverlap(helpBox, resultActionBox)).toBe(false);
+}
+
 async function expectWidePageCap(page, testId, width) {
   if (width !== PANEL_VIEWPORTS.wide.width) return;
   const box = await page.getByTestId(testId).boundingBox();
@@ -438,6 +471,7 @@ for (const viewport of EXPANDED_PROJECT_VIEWPORTS) {
 
       const card = await cards.first().boundingBox();
       expect(Math.round(card.height)).toBeGreaterThan(0);
+      await expectCompactLifecycleCardGeometry(page);
       await expectNoViewportOverflow(page);
     });
   });
@@ -465,6 +499,7 @@ test.describe('Proyectos — contrato expandido de monitor', () => {
     const card = await cards.first().boundingBox();
     const pageBox = await page.getByTestId('projects-page').boundingBox();
     expect(Math.round(card.height)).toBeGreaterThan(0);
+    await expectCompactLifecycleCardGeometry(page);
     expect(pageBox.width).toBeLessThanOrEqual(1401);
     await expectNoViewportOverflow(page);
   });

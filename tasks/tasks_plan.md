@@ -6,6 +6,10 @@
 > independientes. Verificación: 15 pruebas backend, 42 unitarias frontend, 13 E2E,
 > build de producción, checks de contrato y auditoría del flujo en verde.
 
+> **Listo para integrar — 2026-08-30:** las tarjetas expandidas del ciclo de
+> proyectos son horizontales y compactas; el botón de ayuda ocupa un track
+> propio dentro de la tarjeta y ya no se superpone con el contenido.
+
 > **Listo para integrar — 2026-08-29:** Nuevo proyecto y los modales de creación
 > del panel comparten validación bajo el campo, anchos coherentes, textos breves,
 > una sola convención de obligatoriedad y una fila final sólo para acciones.
@@ -32,6 +36,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Projects — compact lifecycle cards | 🟡 Ready for merge | 2026-08-30. Expanded non-zero lifecycle states use `BaseIndicatorCard`'s opt-in horizontal layout: 72–80 px, no empty support row, inline count/filter and a dedicated 48 px help column. Pending cards and the 412/835 summaries retain the stacked contract. Nineteen unit tests, help/filter isolation and geometry at 1195/1440/2560 are green; the flow map is fresh. |
 | Documents — project/client navigation switch | 🟡 Ready for merge | 2026-08-29. The document manager reuses Communications' shared Project/Client segmented control, persists the choice per staff profile and exposes the selected mode through `by` in the URL. A constant-query backend facet service counts every directly associated folder and document once, yielding recursive active/archived inventories, content-only entity rows and permanent Sin proyecto/Sin cliente buckets. Hidden project states remain reachable with Ver todos, while Carpetas propias stays independent and usable through facet failures. Twelve focused backend cases, the MCP contract slice, 81 frontend-unit and 13 Playwright cases plus migration drift, flow registry and production build checks are green. |
 | Panel — creation-form validation and modal actions | 🟡 Ready for merge | 2026-08-29. Nuevo proyecto muestra nombre/cliente/estado/descripción como un bloque de ancho completo, conserva En desarrollo sin ayuda contradictoria y expone Crear cliente aun con coincidencias. Errores locales y del API quedan bajo su control con relación ARIA; Cancelar/Guardar quedan solos. `BaseFormField`, `ClientAutocomplete` y los modales de creación de Clientes, Tareas, Documentos, Contabilidad y contenido comparten el contrato; no hay cambio backend ni de esquema. Unitarias focales, cuatro escenarios Playwright, build y flow audit están verdes. |
 | Proposals — visibility-aware engagement tracking | 🟡 Ready for merge | 2026-08-29. Ocultar la página finaliza un único segmento por beacon y detiene el intervalo; volver a verla inicia otro segmento. Los flushes concurrentes se coalescen y un response sólo limpia las entradas que realmente envió. 38 pruebas focales verdes. |
