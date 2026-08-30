@@ -816,7 +816,6 @@ def project_list_view(request):
         start_date=data.get('start_date'),
         estimated_end_date=data.get('estimated_end_date'),
         hosting_start_date=data.get('hosting_start_date'),
-        document_manager_enabled=data.get('document_manager_enabled', True),
         payment_milestones=payment_milestones,
         hosting_tiers=hosting_tiers,
     )
@@ -922,7 +921,7 @@ def project_detail_view(request, project_id):
         'name', 'description', 'progress',
         'start_date', 'estimated_end_date',
         'production_url', 'staging_url', 'admin_url', 'repository_url',
-        'admin_username', 'document_manager_enabled',
+        'admin_username',
     )
     for field in simple_fields:
         if field in data:

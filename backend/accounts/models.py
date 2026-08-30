@@ -424,14 +424,6 @@ class Project(models.Model):
         db_index=True,
         help_text='True until a migrated legacy status is confirmed by a user.',
     )
-    document_manager_enabled = models.BooleanField(
-        default=True,
-        db_index=True,
-        help_text=(
-            'Whether this project has an entity space in the document manager. '
-            'Disabling it never deletes an existing folder or document.'
-        ),
-    )
     progress = models.PositiveIntegerField(
         default=0,
         help_text='Overall progress percentage (0-100).',

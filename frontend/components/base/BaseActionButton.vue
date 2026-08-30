@@ -42,6 +42,7 @@ const tooltipLabel = computed(() => (
     :position="tooltipPosition"
     width="w-max max-w-xs"
     min-width="min-w-0"
+    content-class="whitespace-nowrap [overflow-wrap:normal]"
     trigger-class=""
     :toggle-on-click="disabled"
     floating

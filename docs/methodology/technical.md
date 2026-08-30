@@ -452,13 +452,14 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Migration `content.0223_project_document_folders` adds the nullable one-to-one
   `DocumentFolder.managed_project`, database checks for managed-root invariants,
-  and legacy `DocumentState.show_in_document_manager` metadata. Migration
-  `accounts.0059_project_document_manager_enabled` adds the actual per-project
-  inclusion gate. Lifecycle effects classify enabled projects into active
-  (`development`/`operating`) or archived catalog groups; they do not hide or
-  archive document records.
+  and legacy `DocumentState.show_in_document_manager` metadata. The temporary
+  `accounts.0059_project_document_manager_enabled` opt-out is removed by
+  `accounts.0061_remove_project_document_manager_enabled`: every canonical
+  `Project` belongs to Documentos and Comunicaciones. Lifecycle effects classify
+  projects into active (`development`/`operating`) or archived catalog groups;
+  they do not hide or archive document records.
 - `ProjectDocumentFolderService` is the only owner of automatic root creation and
-  synchronization. A `Project` post-save provisions only a newly created enabled
+  synchronization. A `Project` post-save provisions every newly created
   project. Later saves synchronize an existing adopted root but never create a
   missing historical root. Explicit reconciliation is therefore the only bridge
   from legacy data to `managed_project`. Descendants retain normal hierarchy.
@@ -468,7 +469,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   hierarchy.
 - Production reconciliation is always plan/review/apply and is documented in
   `docs/runbooks/document-manager-production-reconciliation.md`. Planning accepts
-  repeatable `--exclude-project`, `--enable-project` and explicit
+  repeatable `--nest-project-root FOLDER_ID:PROJECT_ID` and
   `--assign-client-root FOLDER_ID:PROFILE_ID` directives but performs no writes.
   Applying additionally requires the exact reviewed SHA-256, a verified
   `--backup-reference` and a distinct `--inverse-out` path. The full inverse is
@@ -477,25 +478,26 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   documents changed, if any decision is pending, or if a conflicting ownership
   relation exists. Planning compares snapshots before and after proposal
   generation, so a concurrent edit cannot be blessed by a later fingerprint.
-- Manifest version 3 fingerprints the routing fields of every relevant entity and may
+- Manifest version 4 fingerprints the routing fields of every relevant entity and may
   include `file_document` actions only for folderless collection accounts whose
   project, client, issue state and canonical path are unambiguous. A document in
   another manual tree becomes `document_conflict` and can only be skipped. Apply
-  configures project inclusion first, creates/converts project roots, assigns
-  reviewed client roots without nesting them, then files approved documents. It
+  creates/converts project roots first, nests only explicitly mapped historical
+  branches under those roots, assigns reviewed client roots, then files approved
+  documents. It
   preserves titles/content and records the complete pre-apply snapshot plus
   individual changes.
 - Live generated-document filing requires that managed root to exist and never
   provisions it as a side effect. This prevents an account or proposal created
   during the migration window from bypassing the reviewed conversion.
-- `GET /api/document-folders/project-readiness/` is staff-only and derives four
-  statuses from project inclusion and managed roots: `ready`, `no_projects`,
-  `no_enabled_projects` and `reconciliation_required`. Active/archived counts use
-  immutable `operational_effect`; editable state names and legacy visibility are
-  intentionally absent from inclusion.
-- MCP document tools keep their existing project-id contract. They do not expose
-  or mutate `document_manager_enabled`; the flag belongs to the panel/reviewed
-  reconciliation boundary, so this change does not widen connector permissions.
+- `GET /api/document-folders/project-readiness/` remains staff-only and derives
+  `ready`, `no_projects` or `reconciliation_required` from all projects and their
+  managed roots. It is an operational diagnostic, not a sidebar flow.
+  Active/archived counts use immutable `operational_effect`; editable state names
+  and legacy visibility never control inclusion.
+- MCP document tools keep their existing project-id contract. They cannot adopt
+  historical roots or mutate the `managed_project` identity, so the canonical
+  catalog change does not widen connector permissions.
 
 ### Communications are a separate domain with shared infrastructure
 
@@ -525,7 +527,10 @@ their values must match the same message. `reply_status=unanswered` means a
 non-void outgoing sent message has no non-void reply; the factory cut also pins
 the thread to `status=open`. `project=none` addresses unscoped threads; `order`
 accepts `recent`, `oldest` or `title`. The REST response includes self-excluding
-option counts plus project/client navigation counts. The staff-only
+option counts plus project/client navigation counts. Project rows come from the
+complete canonical `Project` queryset rather than from thread IDs, carry honest
+zero counts and use the shared `project_catalog_bucket`; a selected deleted ID
+is the only synthetic unavailable row. The staff-only
 `POST /api/communications/threads/tab-counts/` evaluates bounded tab specs
 against the full dataset so every strip count remains honest under an active cut.
 Text search matches thread title, client, project name, message subject or
@@ -758,6 +763,10 @@ confirmed by the operator or another integration.
   `document_navigation.js` owns the persisted preference plus aggregate facets;
   `documents.js` continues to own transient list filters and
   `document_folders.js` continues to own the independent structural hierarchy.
+- **Brief action tooltips stay horizontal** — `BaseTooltip.contentClass` keeps
+  long explanatory hints wrapping by default, while `BaseActionButton` opts its
+  short catalog label into `whitespace-nowrap`; the floating positioner still
+  clamps the bounded bubble to the viewport.
 - **Disabled-control contract** — pass `disabledReason` for semantic locks and
   `loading` for transient work. If the operator can satisfy prerequisites, wrap
   the control in `BaseControlGate` with the complete reasons array so the same

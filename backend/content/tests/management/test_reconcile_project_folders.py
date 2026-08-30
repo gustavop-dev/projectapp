@@ -88,8 +88,8 @@ def reviewed_kore_adoption(tmp_path, *, include_document):
     reviewed = tmp_path / 'reviewed.json'
     digest = reviewed_file(
         reviewed,
-        build_manifest(client_root_assignments={client_folder.id: profile.id}),
-        approved_types=('convert', 'assign_client_folder'),
+        build_manifest(project_root_nestings={client_folder.id: project.id}),
+        approved_types=('convert', 'nest_project_root'),
     )
     return (
         project, profile, project_folder, client_folder, document,
@@ -108,9 +108,9 @@ def make_folderless_account(project):
     )
 
 
-def test_manifest_proposes_project_conversion_and_client_assignment():
+def test_manifest_proposes_project_root_nesting():
     make_project('gm@example.com', 'G&M', company='G&M')
-    _project, german_profile = make_project(
+    kore_project, _german_profile = make_project(
         'german@example.com', 'Kore Health',
         first='Germán', last='Franco',
     )
@@ -119,7 +119,7 @@ def test_manifest_proposes_project_conversion_and_client_assignment():
     german = DocumentFolder.objects.create(name='Germán Franco')
 
     manifest = build_manifest(
-        client_root_assignments={german.id: german_profile.id},
+        project_root_nestings={german.id: kore_project.id},
     )
 
     by_folder = {
@@ -127,39 +127,90 @@ def test_manifest_proposes_project_conversion_and_client_assignment():
     }
     assert by_folder[gm.id]['type'] == 'convert'
     assert by_folder[kore.id]['type'] == 'convert'
-    assert by_folder[german.id]['type'] == 'assign_client_folder'
-    assert by_folder[german.id]['project_id'] is None
+    assert by_folder[german.id]['type'] == 'nest_project_root'
+    assert by_folder[german.id]['project_id'] == kore_project.id
+    assert by_folder[german.id]['target_root_action_id'] == by_folder[kore.id]['id']
     assert manifest['missing_expected_names'] == ['Proyegabs']
 
 
-def test_plan_command_keeps_database_unchanged_and_records_directives(tmp_path):
-    prueba, _profile = make_project('prueba@example.com', 'PRUEBA')
-    client_project, client_profile = make_project(
-        'carlos@example.com', 'Otro proyecto', first='Carlos',
-    )
-    client_root = DocumentFolder.objects.create(name='Carlos')
+def test_plan_command_keeps_database_unchanged(tmp_path):
+    """Falla si generar un plan modifica las filas que debe revisar."""
+    make_project('prueba@example.com', 'PRUEBA')
     output = tmp_path / 'document-reconciliation.json'
     before = database_snapshot()
+
+    call_command('reconcile_project_folders', plan=str(output))
+
+    assert database_snapshot() == before
+
+
+def test_plan_command_records_project_root_nesting_directive(tmp_path):
+    """Falla si el plan pierde una instrucción explícita de anidamiento."""
+    nested_project, _nested_profile = make_project(
+        'carlos@example.com', 'Otro proyecto', first='Carlos',
+    )
+    nested_root = DocumentFolder.objects.create(name='Carlos')
+    output = tmp_path / 'document-reconciliation.json'
 
     call_command(
         'reconcile_project_folders',
         plan=str(output),
-        exclude_project=[prueba.id],
+        nest_project_root=[f'{nested_root.id}:{nested_project.id}'],
+    )
+
+    manifest = json.loads(output.read_text(encoding='utf-8'))
+    assert manifest['planning_directives']['project_root_nestings'] == [{
+        'folder_id': nested_root.id,
+        'project_id': nested_project.id,
+    }]
+
+
+def test_plan_command_records_client_root_assignment_directive(tmp_path):
+    """Falla si el plan pierde una asignación explícita de cliente."""
+    _client_project, client_profile = make_project(
+        'gustavo@example.com', 'Proyecto sin carpeta', first='Gustavo',
+    )
+    client_root = DocumentFolder.objects.create(name='Gustavo')
+    output = tmp_path / 'document-reconciliation.json'
+
+    call_command(
+        'reconcile_project_folders',
+        plan=str(output),
         assign_client_root=[f'{client_root.id}:{client_profile.id}'],
     )
 
-    assert database_snapshot() == before
     manifest = json.loads(output.read_text(encoding='utf-8'))
-    assert manifest['planning_directives'] == {
-        'excluded_project_ids': [prueba.id],
-        'enabled_project_ids': [],
-        'client_root_assignments': [{
-            'folder_id': client_root.id,
-            'client_profile_id': client_profile.id,
-        }],
-    }
-    assert client_project.document_manager_enabled is True
-    assert output.with_suffix('.md').exists()
+    assert manifest['planning_directives']['client_root_assignments'] == [{
+        'folder_id': client_root.id,
+        'client_profile_id': client_profile.id,
+    }]
+
+
+def test_plan_command_proposes_prueba_root(tmp_path):
+    """Falla si PRUEBA queda fuera del catálogo conciliable."""
+    prueba, _profile = make_project('prueba@example.com', 'PRUEBA')
+    output = tmp_path / 'document-reconciliation.json'
+
+    call_command('reconcile_project_folders', plan=str(output))
+
+    manifest = json.loads(output.read_text(encoding='utf-8'))
+    assert any(
+        action['type'] == 'create' and action['project_id'] == prueba.id
+        for action in manifest['actions']
+    )
+
+
+def test_plan_command_writes_a_markdown_review_sidecar(tmp_path):
+    """Falla si el plan deja de entregar el reporte legible de revisión."""
+    make_project('prueba@example.com', 'PRUEBA')
+    output = tmp_path / 'document-reconciliation.json'
+
+    call_command('reconcile_project_folders', plan=str(output))
+
+    report = output.with_suffix('.md')
+    assert report.read_text(encoding='utf-8').startswith(
+        '# Propuesta de conciliación del Gestor Documental\n'
+    )
 
 
 def test_plan_rejects_a_source_that_changes_while_it_is_generated():
@@ -176,8 +227,7 @@ def test_plan_rejects_a_source_that_changes_while_it_is_generated():
             build_manifest()
 
 
-def test_manifest_excludes_prueba_and_groups_candle_as_archived():
-    prueba, _ = make_project('exclude@example.com', 'PRUEBA')
+def test_manifest_groups_suspended_candle_as_archived():
     candle, _ = make_project('candle@example.com', 'Candle')
     suspended = DocumentState.objects.get(
         catalog=DocumentStateGroup.Catalog.PROJECTS,
@@ -187,20 +237,11 @@ def test_manifest_excludes_prueba_and_groups_candle_as_archived():
     candle.status = Project.STATUS_SUSPENDED
     candle.save(update_fields=['current_state', 'status', 'updated_at'])
 
-    manifest = build_manifest(excluded_project_ids=[prueba.id])
+    manifest = build_manifest()
 
-    configuration = next(
-        row for row in manifest['actions']
-        if row['type'] == 'configure_project' and row['project_id'] == prueba.id
-    )
     candle_root = next(
         row for row in manifest['actions']
         if row['type'] == 'create' and row['project_id'] == candle.id
-    )
-    assert configuration['document_manager_enabled'] is False
-    assert not any(
-        row['type'] == 'create' and row['project_id'] == prueba.id
-        for row in manifest['actions']
     )
     assert candle_root['catalog_bucket'] == 'archived'
 
@@ -274,7 +315,7 @@ def test_manifest_flags_a_project_document_inside_an_unrelated_tree():
     assert 'no se moverá por inferencia' in action['reason']
 
 
-def test_apply_adopts_project_and_client_roots_without_nesting_them(tmp_path):
+def test_apply_nests_legacy_root_under_adopted_project_root(tmp_path):
     (
         project, profile, project_folder, client_folder, _document,
         reviewed, digest,
@@ -286,8 +327,8 @@ def test_apply_adopts_project_and_client_roots_without_nesting_them(tmp_path):
     client_folder.refresh_from_db()
     assert project_folder.managed_project_id == project.id
     assert project_folder.name == 'Kore Health'
-    assert client_folder.parent_id is None
-    assert client_folder.project_id is None
+    assert client_folder.parent_id == project_folder.id
+    assert client_folder.project_id == project.id
     assert client_folder.client_user_id == profile.user_id
     assert inverse.exists()
 
@@ -306,7 +347,7 @@ def test_apply_preserves_client_document_location_and_content(tmp_path):
     assert document.content_json == {
         'meta': {'title': 'Acta'}, 'blocks': [{'type': 'text'}],
     }
-    assert document.project_id is None
+    assert document.project_id == _project.id
     assert document.client_user_id == profile.user_id
 
 

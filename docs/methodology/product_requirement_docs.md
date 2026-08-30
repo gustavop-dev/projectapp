@@ -244,7 +244,7 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Generic branded PDF documents separate from proposals
 - Above the folder list, the same segmented control as Communications switches
   entity navigation between **Projects** and **Clients**. Each mode lists the
-  complete enabled catalog, including entities with zero folders/documents, and
+  complete catalog, including entities with zero folders/documents, and
   its separate counters include the full descendant inventory exactly once.
   Projects whose operational effect is neither development nor operating appear
   under **Archived projects**; inactive clients appear under **Inactive clients**.
@@ -252,16 +252,16 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **Without project** and **Without client** are permanent destinations in their
   respective modes. Selecting an entity or unassigned bucket scopes the document
   list; the chosen grouping persists per staff account between visits.
-- **Unassigned folders** remains a separate, always reachable section. It contains
+- **Own folders** remains a separate, always reachable section. It contains
   only manual roots with neither project nor client. Assigning a root to either
   entity removes it from this section without moving its tree. Managed project
   roots remain valid structural parents but do not appear as editable manual
   folders. Opening a manual root clears both entity filters.
-- Every project owns at most one managed root and has an independent
-  `document_manager_enabled` gate. A newly enabled project may provision its
-  standard root at creation; ordinary edits to historical projects only
-  synchronize an already adopted root and never create a missing one. Disabling
-  the gate hides the entity space but never deletes or archives existing content.
+- Every project belongs to the Document and Communication catalogs and owns at
+  most one managed root, identified by `DocumentFolder.managed_project`. New
+  projects provision their standard root at creation; ordinary edits to
+  historical projects only synchronize an already adopted root and never create
+  a missing one. There is no per-module opt-out that can make the catalogs drift.
   Users may create arbitrary descendants but cannot rename, move, archive or
   delete the managed first level. Deleting a project preserves its former root
   and content as a manual folder instead of cascading document loss.
@@ -273,19 +273,20 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   `Proyectos / {project}` tree. Generated filing refuses to provision a missing
   historical root: that project must pass the reviewed reconciliation first.
 - Existing roots are reconciled only through a review artifact: a dry-run plan
-  records every proposed project conversion/creation, per-project enable/disable,
-  explicit client-root assignment, document filing, skip and conflict. Applying
+  records every proposed project conversion/creation, explicit nesting of a
+  related legacy root, client-root assignment, document filing, skip and
+  conflict. Applying
   requires every decision, the exact plan digest, a verified backup reference,
   an unchanged fingerprint of projects/clients/folders/documents and a separate
-  inverse snapshot path. A client root remains top-level and receives a client;
-  it is never nested beneath an inferred project. Folderless project documents
+  inverse snapshot path. A reviewed `nest_project_root` may place an explicitly
+  mapped legacy root under the one canonical project root; a client root remains
+  top-level and receives a client. Folderless project documents
   move only to an exact canonical path approved in the artifact; placed records
   with conflicts never move by inference.
-- `GET /api/document-folders/project-readiness/` distinguishes a real empty
-  catalog, an explicitly disabled catalog, roots pending reconciliation and a
-  diagnostic request failure. It also reports active/archived lifecycle counts
-  independently from document archival. The sidebar links corrective states to
-  Projects while keeping already reconciled roots visible.
+- `GET /api/document-folders/project-readiness/` remains a staff-only operational
+  diagnostic for an empty catalog or roots pending reconciliation. It reports
+  active/archived lifecycle counts independently from document archival, but the
+  sidebar no longer exposes PA-108 implementation warnings to end users.
 - Client visibility is an independent `is_client_visible` gate. The legacy
   draft/published field remains only during the expand/contract rollout and no
   longer represents the internal workflow.
@@ -411,7 +412,11 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **Document-manager navigation**: the module has a resizable side panel that
   switches between projects and clients, includes aggregate counts and keeps
   threads without a project reachable through an explicit **Sin proyecto**
-  entry. On compact screens the same navigation moves into the shared drawer.
+  entry. The project axis always lists the same canonical `Project` catalog as
+  Documents, including zero-thread projects; lifecycle effects group suspended,
+  completed, decommissioned or archived projects under **Proyectos archivados**
+  without excluding them. On compact screens the same navigation moves into the
+  shared drawer.
 - **List, not duplicate detail**: below the landscape breakpoint each thread is
   a compact summary card; landscape and larger profiles retain the comparative
   table with **Asunto** as its identity column. Both projections show only the

@@ -9,8 +9,10 @@ base de producción.
 
 - Ejecutar únicamente desde el clon desplegado de producción, nunca desde un
   worktree de sesión.
-- Desplegar primero la migración
-  `accounts.0059_project_document_manager_enabled` y el comando actualizado.
+- Desplegar primero el código y las migraciones hasta
+  `accounts.0061_remove_project_document_manager_enabled`. El catálogo deja de
+  tener un opt-out por módulo: todo `Project` debe aparecer en Documentos y
+  Comunicaciones.
 - Crear y verificar un respaldo de la base antes de aplicar. Conservar su ruta o
   identificador para `--backup-reference`.
 - No renombrar, mover, archivar ni editar carpetas o documentos entre la
@@ -22,7 +24,7 @@ base de producción.
 ## 1. Generar el plan de sólo lectura
 
 Los identificadores siguientes corresponden al inventario verificado el
-2026-08-29. Antes de usarlos, confirmar otra vez nombre, propietario, estado y
+2026-08-30. Antes de usarlos, confirmar otra vez nombre, propietario, estado y
 conteos en producción.
 
 ```bash
@@ -30,17 +32,12 @@ cd /home/ryzepeck/webapps/projectapp/backend
 source ../.venv/bin/activate
 python manage.py reconcile_project_folders \
   --plan /ruta/segura/document-manager-20260830.json \
-  --exclude-project 7 \
-  --enable-project 5 \
-  --enable-project 8 \
-  --enable-project 9 \
-  --enable-project 10 \
-  --enable-project 11 \
-  --enable-project 12 \
-  --enable-project 13 \
-  --assign-client-root 2:58 \
+  --nest-project-root 2:10 \
+  --nest-project-root 64:9 \
   --assign-client-root 3:36 \
-  --assign-client-root 61:36
+  --assign-client-root 61:36 \
+  --assign-client-root 58:52 \
+  --assign-client-root 80:61
 ```
 
 El comando escribe el JSON y un reporte Markdown contiguo, imprime su SHA-256 y
@@ -54,15 +51,18 @@ línea base, no autorización automática:
 | Destino | Proyecto/carpeta | Acción esperada | Línea base |
 |---|---|---|---|
 | Proyecto 8 | G&M / raíz 5 | Convertir | 4 carpetas, 13 documentos |
-| Proyecto 10 | Vástago / raíz 7 | Convertir | 9 carpetas, 53 documentos |
+| Proyecto 10 | Vástago / raíz 7 | Convertir | 9 carpetas, 55 documentos |
+| Proyecto 10 | Carlos / raíz 2 | Anidar bajo Vástago | 1 carpeta, 3 documentos |
 | Proyecto 11 | Xpandia / raíz 55 | Convertir | 4 carpetas, 6 documentos |
 | Proyecto 9 | Kore / raíz 65 | Convertir | 1 carpeta, 2 documentos |
+| Proyecto 9 | Germán Franco / raíz 64 | Anidar bajo Kore | 1 carpeta, 3 documentos |
 | Proyecto 12 | Tenndalux / raíz 78 | Convertir | 2 carpetas, 2 documentos |
 | Proyecto 5 | Mimittos | Crear raíz y revisar documento 120 | Documento sin carpeta |
 | Proyecto 13 | Candle | Crear/adoptar raíz; catálogo archivado | Suspendido tras migración de ciclo |
-| Proyecto 7 | PRUEBA | Excluir | No mover ni borrar contenido |
-| Cliente 58 | Carlos / raíz 2 | Asignar al cliente | Conservar raíz superior |
+| Proyecto 7 | PRUEBA | Crear raíz gestionada | Proyecto de pruebas visible y aislado |
 | Cliente 36 | Gustavo / raíces 3 y 61 | Asignar ambas al cliente | No anidar ni fusionar |
+| Cliente 52 | Aarón / raíz 58 | Asignar al cliente | No anidar ni fusionar |
+| Cliente 61 | Littigio / raíz 80 | Asignar al cliente | No anidar ni fusionar |
 
 Para cada acción con `decision: "pending"`:
 
@@ -73,10 +73,12 @@ Para cada acción con `decision: "pending"`:
 - confirmar que Candle haya quedado **Suspendido** tras la migración del ciclo,
   o en otro estado cuyo efecto no sea `development` ni `operating`; así aparece
   bajo **Proyectos archivados** sin archivar sus documentos;
-- confirmar que PRUEBA produzca `configure_project` con
-  `document_manager_enabled: false`;
-- dejar Familia, Temporal y cualquier otra raíz sin relación inequívoca como
-  carpeta sin asignar.
+- confirmar que PRUEBA produzca una acción `create` y permanezca en el catálogo
+  activo para pruebas;
+- confirmar que Carlos y Germán produzcan `nest_project_root` cuyo destino sea
+  la acción `convert` de Vástago y Kore respectivamente;
+- dejar ProjectApp, Requirement Estimates, Familia, Temporal y cualquier otra
+  raíz sin relación inequívoca como **Carpeta propia**.
 
 La aplicación rechaza un manifiesto con decisiones pendientes o con tipos no
 aplicables aprobados.
@@ -107,19 +109,22 @@ del plan, la aplicación se cancela sin conciliar datos.
 
 ## 4. Verificación posterior
 
-- Vástago conserva exactamente sus 9 carpetas y 53 documentos y su raíz queda
-  ligada al proyecto 10.
-- G&M, Xpandia, Kore y Tenndalux conservan sus conteos de línea base y tienen una
-  sola raíz gestionada cada uno.
+- Vástago conserva exactamente 10 carpetas y 58 documentos: la raíz 7 queda
+  gestionada por el proyecto 10 y Carlos (raíz 2) vive dentro de ella.
+- G&M conserva 4 carpetas/13 documentos, Xpandia 4/6, Kore 2/5 —incluida la
+  rama Germán Franco— y Tenndalux 2/2. Cada proyecto tiene una sola raíz
+  `managed_project`.
 - Mimittos tiene una raíz y el documento 120 queda en su ruta automática sólo
   si esa acción fue aprobada.
-- PRUEBA no aparece en el catálogo del Gestor Documental.
+- PRUEBA aparece en los catálogos activos de Documentos y Comunicaciones aunque
+  todavía no tenga contenido.
 - Candle aparece bajo **Proyectos archivados**; sus documentos permanecen
   activos salvo que ya estuvieran archivados por una operación independiente.
-- Carlos y Gustavo aparecen bajo Clientes; sus raíces permanecen superiores y
-  no se duplican como carpetas sin asignar.
+- Vástago y Kore también son accesibles por sus clientes; Carlos y Germán no se
+  duplican como raíces propias. Gustavo, Aarón y Littigio aparecen bajo Clientes
+  con las raíces explícitamente aprobadas.
 - Familia, Temporal y las demás raíces realmente huérfanas siguen visibles sólo
-  en **Carpetas sin asignar**.
+  en **Carpetas propias**.
 - Cambiar entre proyecto, cliente y carpeta manual limpia los otros dos filtros
   y nunca produce una intersección residual vacía.
 

@@ -456,7 +456,6 @@ test.describe('Admin Panel Projects', () => {
       client_profile_id: 5,
       description: '',
       state_id: 1,
-      document_manager_enabled: true,
     });
   });
 

@@ -46,15 +46,14 @@ class ProjectAdminForm(forms.ModelForm):
 class ProjectAdmin(admin.ModelAdmin):
     form = ProjectAdminForm
     list_display = (
-        'name', 'client', 'status', 'document_manager_enabled',
+        'name', 'client', 'status',
         'production_url', 'admin_url', 'updated_at',
     )
-    list_filter = ('status', 'document_manager_enabled')
+    list_filter = ('status',)
     search_fields = ('name', 'client__email', 'production_url', 'admin_url')
     fieldsets = (
         (None, {'fields': (
             'name', 'description', 'client', 'status', 'progress',
-            'document_manager_enabled',
         )}),
         ('Fechas', {'fields': ('start_date', 'estimated_end_date', 'hosting_start_date')}),
         ('Datos financieros', {

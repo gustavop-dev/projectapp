@@ -106,65 +106,6 @@
         </button>
       </li>
 
-      <li
-        v-if="navigationMode === 'project' && projectReadinessError"
-        class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
-        data-testid="project-readiness-error"
-      >
-        <p>No se pudo comprobar por qué la sección de proyectos está vacía.</p>
-        <NuxtLink
-          to="/panel/projects"
-          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-        >
-          Revisar proyectos
-        </NuxtLink>
-      </li>
-      <li
-        v-else-if="navigationMode === 'project' && projectReadiness?.status === 'reconciliation_required'"
-        class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
-        data-testid="project-reconciliation-required"
-      >
-        <p>
-          {{ reconciliationMessage }} Revisa y aplica la conciliación PA-108 antes de convertir carpetas.
-        </p>
-        <NuxtLink
-          to="/panel/projects"
-          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-          data-testid="project-reconciliation-action"
-        >
-          Revisar proyectos
-        </NuxtLink>
-      </li>
-      <li
-        v-else-if="navigationMode === 'project' && projectReadiness?.status === 'no_projects'"
-        class="px-3 py-2 text-xs text-text-subtle"
-        data-testid="project-empty-no-projects"
-      >
-        <p>No hay proyectos creados todavía.</p>
-        <NuxtLink
-          to="/panel/projects"
-          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-        >
-          Crear o revisar proyectos
-        </NuxtLink>
-      </li>
-      <li
-        v-else-if="navigationMode === 'project' && projectReadiness?.status === 'no_enabled_projects'"
-        class="mx-2 my-1 rounded-lg border border-info-strong/30 bg-info-soft px-3 py-2 text-xs text-text-default"
-        data-testid="project-empty-disabled"
-      >
-        <p>
-          Hay {{ projectReadiness.project_count }} proyectos, pero todos están excluidos del Gestor Documental.
-        </p>
-        <NuxtLink
-          to="/panel/projects"
-          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-          data-testid="project-empty-disabled-action"
-        >
-          Revisar proyectos
-        </NuxtLink>
-      </li>
-
       <li v-for="entry in activeNavigationEntries" :key="entry.id">
         <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
         <button
@@ -249,7 +190,7 @@
         Cargando {{ navigationMode === 'project' ? 'proyectos' : 'clientes' }}…
       </li>
       <li
-        v-else-if="!activeNavigationEntries.length && !archivedNavigationEntries.length && !hasProjectReadinessNotice"
+        v-else-if="!activeNavigationEntries.length && !archivedNavigationEntries.length"
         class="px-3 py-4 text-center text-xs text-text-subtle"
         :data-testid="navigationMode === 'project' ? 'project-empty-fallback' : undefined"
       >
@@ -272,7 +213,7 @@
       <li role="presentation">
         <details open data-testid="manual-folder-section">
           <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
-            <span>Carpetas sin asignar</span>
+            <span>Carpetas propias</span>
             <span class="font-normal normal-case text-text-subtle" data-testid="manual-folder-section-count">
               {{ sectionInventory(manualFolders) }}
             </span>
@@ -306,7 +247,7 @@
             </li>
           </ul>
           <p v-if="!manualFolders.length" class="px-3 py-2 text-xs text-text-subtle">
-            No hay carpetas sin asignar en este ámbito.
+            No hay carpetas propias en este ámbito.
           </p>
 
       <!-- Folder entries — draggable to reorder, also drop targets for documents -->
@@ -526,8 +467,6 @@ const props = defineProps({
   // mandos del mismo eje que se comportan distinto vuelven a mentir.
   scopeLocked: { type: Boolean, default: false },
   touchMode: { type: Boolean, default: false },
-  projectReadiness: { type: Object, default: null },
-  projectReadinessError: { type: String, default: null },
 });
 
 const emit = defineEmits([
@@ -603,23 +542,8 @@ const navigationUnassignedCounts = computed(() => navigationCounts(
   props.navigationFacets.unassigned?.[props.navigationMode],
 ));
 
-const hasProjectReadinessNotice = computed(() => (
-  props.navigationMode === 'project'
-  && (
-    Boolean(props.projectReadinessError)
-    || ['reconciliation_required', 'no_projects', 'no_enabled_projects']
-      .includes(props.projectReadiness?.status)
-  )
-));
-
 watch(() => props.navigationMode, () => {
   navigationSearch.value = '';
-});
-
-const reconciliationMessage = computed(() => {
-  const missing = props.projectReadiness?.missing_root_count || 0;
-  if (missing === 1) return 'Falta la carpeta gestionada de 1 proyecto.';
-  return `Faltan las carpetas gestionadas de ${missing} proyectos.`;
 });
 
 watch(manualFolders, (v) => {

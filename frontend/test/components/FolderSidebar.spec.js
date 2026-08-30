@@ -385,66 +385,14 @@ describe('FolderSidebar', () => {
       expect(wrapper.find('.folder-drag-handle').exists()).toBe(false);
     });
 
-    it('explains when project folders still need reconciliation', () => {
-      const wrapper = mountSidebar({
-        projectReadiness: {
-          status: 'reconciliation_required',
-          project_count: 8,
-          missing_root_count: 8,
-        },
-      });
+    it('does not expose reconciliation diagnostics in the navigation', () => {
+      const wrapper = mountSidebar();
 
-      expect(wrapper.get('[data-testid="project-reconciliation-required"]').text())
-        .toContain('Faltan las carpetas gestionadas de 8 proyectos');
-      expect(wrapper.get('[data-testid="project-reconciliation-action"]').attributes('href'))
-        .toBe('/panel/projects');
-      expect(wrapper.find('[data-testid="project-empty-fallback"]').exists()).toBe(false);
-    });
-
-    it('warns about partial reconciliation without hiding available projects', () => {
-      const wrapper = mountSidebar({
-        folders: [projectFolder],
-        projectReadiness: {
-          status: 'reconciliation_required',
-          project_count: 8,
-          missing_root_count: 3,
-        },
-      });
-
-      expect(wrapper.get('[data-testid="project-reconciliation-required"]').text())
-        .toContain('3 proyectos');
       expect(wrapper.get('[data-testid="documents-navigation-project-91"]').text())
         .toContain('Kore Health');
-    });
-
-    it('distinguishes a catalog with no projects', () => {
-      const wrapper = mountSidebar({
-        projectReadiness: { status: 'no_projects', project_count: 0 },
-      });
-
-      expect(wrapper.get('[data-testid="project-empty-no-projects"]').text())
-        .toContain('No hay proyectos creados todavía');
-    });
-
-    it('explains when every project is explicitly excluded', () => {
-      const wrapper = mountSidebar({
-        projectReadiness: { status: 'no_enabled_projects', project_count: 8 },
-      });
-
-      expect(wrapper.get('[data-testid="project-empty-disabled"]').text())
-        .toContain('todos están excluidos');
-      expect(wrapper.get('[data-testid="project-empty-disabled-action"]').attributes('href'))
-        .toBe('/panel/projects');
-    });
-
-    it('does not present a diagnostic request failure as a normal empty state', () => {
-      const wrapper = mountSidebar({
-        projectReadinessError: 'fetch_project_readiness_failed',
-      });
-
-      expect(wrapper.get('[data-testid="project-readiness-error"]').text())
-        .toContain('No se pudo comprobar');
-      expect(wrapper.find('[data-testid="project-empty-fallback"]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain('PA-108');
+      expect(wrapper.text()).not.toContain('Revisar proyectos');
+      expect(wrapper.text()).not.toContain('Faltan las carpetas gestionadas');
     });
   });
 
@@ -812,7 +760,7 @@ describe('FolderSidebar', () => {
       const wrapper = mountSidebar({ folders });
       const section = wrapper.get('[data-testid="manual-folder-section"]');
 
-      expect(section.text()).toContain('Carpetas sin asignar');
+      expect(section.text()).toContain('Carpetas propias');
       expect(section.text()).toContain('Sin dueño');
       expect(section.text()).not.toContain('Kore');
       expect(section.text()).not.toContain('Con proyecto');

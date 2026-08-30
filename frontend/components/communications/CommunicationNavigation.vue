@@ -54,7 +54,7 @@
         </li>
 
         <li v-if="visibleEntries.length" class="my-1 border-t border-border-muted" aria-hidden="true" />
-        <li v-for="entry in visibleEntries" :key="entry.id">
+        <li v-for="entry in activeEntries" :key="entry.id">
           <!-- design-tokens: allow-raw-button — selectable navigation row, not a standalone action. -->
           <button
             type="button"
@@ -72,6 +72,35 @@
             </span>
             <span class="shrink-0 text-xs tabular-nums text-text-subtle">{{ entry.count }}</span>
           </button>
+        </li>
+        <li v-if="archivedEntries.length" role="presentation">
+          <details open data-testid="communications-navigation-archived-group">
+            <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
+              <span>Proyectos archivados</span>
+              <span class="font-normal normal-case text-text-subtle">{{ archivedEntries.length }}</span>
+            </summary>
+            <ul class="mt-1 space-y-1" role="list">
+              <li v-for="entry in archivedEntries" :key="entry.id">
+                <!-- design-tokens: allow-raw-button — selectable navigation row, not a standalone action. -->
+                <button
+                  type="button"
+                  class="flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors"
+                  :class="entryClass(entry.id)"
+                  :aria-current="isSelected(entry.id) ? 'page' : undefined"
+                  :data-testid="`communications-navigation-${mode}-${entry.id}`"
+                  @click="$emit('select', entry.id)"
+                >
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate" :title="entry.name">{{ entry.name }}</span>
+                    <span v-if="entry.unavailable" class="block text-2xs text-warning-strong">
+                      No disponible; quita esta selección para continuar.
+                    </span>
+                  </span>
+                  <span class="shrink-0 text-xs tabular-nums text-text-subtle">{{ entry.count }}</span>
+                </button>
+              </li>
+            </ul>
+          </details>
         </li>
       </ul>
 
@@ -114,6 +143,14 @@ const visibleEntries = computed(() => {
   if (!query) return entries.value;
   return entries.value.filter((entry) => entry.name.toLocaleLowerCase('es').includes(query));
 });
+const activeEntries = computed(() => visibleEntries.value.filter((entry) => (
+  props.mode !== 'project' || entry.catalog_bucket !== 'archived'
+)));
+const archivedEntries = computed(() => (
+  props.mode === 'project'
+    ? visibleEntries.value.filter((entry) => entry.catalog_bucket === 'archived')
+    : []
+));
 const showWithoutProject = computed(() => (
   props.mode === 'project'
   && (
@@ -128,11 +165,11 @@ const showWithoutProject = computed(() => (
   )
 ));
 const navigationLabel = computed(() => (
-  props.mode === 'project' ? 'Proyectos con comunicaciones' : 'Clientes con comunicaciones'
+  props.mode === 'project' ? 'Proyectos' : 'Clientes con comunicaciones'
 ));
 const emptyLabel = computed(() => (
   props.mode === 'project'
-    ? 'No hay proyectos con comunicaciones en este recorte.'
+    ? 'No hay proyectos disponibles.'
     : 'No hay clientes con comunicaciones en este recorte.'
 ));
 

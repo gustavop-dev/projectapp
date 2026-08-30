@@ -10,6 +10,10 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from accounts.services.project_catalog_service import (
+    ACTIVE_PROJECT_EFFECTS,
+    project_catalog_bucket,
+)
 from content.models import DocumentFolder
 
 
@@ -19,9 +23,6 @@ PROJECT_FOLDER_TEMPLATE = (
     ('Entregables', None),
     ('QA', None),
 )
-
-ACTIVE_PROJECT_EFFECTS = frozenset({'development', 'operating'})
-
 
 class ProjectFolderReconciliationRequired(RuntimeError):
     """Raised when a historical project has not adopted a managed root yet."""
@@ -34,11 +35,6 @@ def project_category_system_key(project_id, document_kind):
 
 def require_project_folder(project):
     """Return the managed root without silently provisioning historical data."""
-    if not project.document_manager_enabled:
-        raise ProjectFolderReconciliationRequired(
-            f'El proyecto «{project.name}» no está habilitado en el '
-            'Gestor Documental.'
-        )
     root = DocumentFolder.objects.filter(
         managed_project=project,
         parent__isnull=True,
@@ -53,28 +49,12 @@ def require_project_folder(project):
     return root
 
 
-def project_catalog_bucket(project):
-    """Classify a project without coupling document archival to its lifecycle."""
-    state = getattr(project, 'current_state', None)
-    if state is not None:
-        return (
-            'active'
-            if state.operational_effect in ACTIVE_PROJECT_EFFECTS
-            else 'archived'
-        )
-    return (
-        'active'
-        if project.status in {project.STATUS_DEVELOPMENT, project.STATUS_ACTIVE}
-        else 'archived'
-    )
-
-
 def project_folder_readiness():
-    """Summarize reviewed-root adoption for enabled document spaces."""
+    """Summarize reviewed-root adoption for every canonical project."""
     from accounts.models import Project
 
     all_projects = Project.objects.all()
-    projects = all_projects.filter(document_manager_enabled=True)
+    projects = all_projects
     active_projects = projects.filter(
         Q(current_state__operational_effect__in=ACTIVE_PROJECT_EFFECTS)
         | Q(
@@ -84,7 +64,6 @@ def project_folder_readiness():
     )
     roots = DocumentFolder.objects.filter(
         managed_project__isnull=False,
-        managed_project__document_manager_enabled=True,
         parent__isnull=True,
         is_archived=False,
     )
@@ -114,8 +93,6 @@ def project_folder_readiness():
 
     if project_count == 0:
         readiness_status = 'no_projects'
-    elif enabled_project_count == 0:
-        readiness_status = 'no_enabled_projects'
     elif missing_root_count:
         readiness_status = 'reconciliation_required'
     else:
@@ -200,12 +177,6 @@ def ensure_project_folder(project):
     are created only with a genuinely new root, so adopting an existing tree
     during the reviewed migration never injects duplicate structure.
     """
-    if not project.document_manager_enabled:
-        raise ProjectFolderReconciliationRequired(
-            f'El proyecto «{project.name}» no está habilitado en el '
-            'Gestor Documental.'
-        )
-
     defaults = {
         'name': project.name,
         'parent': None,

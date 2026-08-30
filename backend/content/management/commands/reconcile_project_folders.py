@@ -18,6 +18,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from accounts.models import Project, UserProfile
+from accounts.services.project_catalog_service import project_catalog_bucket
 from accounts.services.proposal_client_service import build_client_display_name
 from content.management.commands.link_documents_from_folders import (
     name_keys,
@@ -29,13 +30,10 @@ from content.services.generated_document_filing_service import (
     describe_generated_folder_path,
     ensure_generated_folder_path,
 )
-from content.services.project_document_folder_service import (
-    ensure_project_folder,
-    project_catalog_bucket,
-)
+from content.services.project_document_folder_service import ensure_project_folder
 
 
-MANIFEST_VERSION = 3
+MANIFEST_VERSION = 4
 EXPECTED_PROJECTLIKE_ROOTS = ('Proyegabs',)
 
 
@@ -93,6 +91,30 @@ def _parse_client_root_assignments(values):
     return assignments
 
 
+def _parse_project_root_nestings(values):
+    nestings = {}
+    for value in values:
+        try:
+            folder_raw, project_raw = value.split(':', 1)
+            folder_id = int(folder_raw)
+            project_id = int(project_raw)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise CommandError(
+                '--nest-project-root usa el formato CARPETA:PROYECTO.'
+            ) from exc
+        if folder_id <= 0 or project_id <= 0:
+            raise CommandError(
+                '--nest-project-root requiere identificadores positivos.'
+            )
+        previous = nestings.get(folder_id)
+        if previous is not None and previous != project_id:
+            raise CommandError(
+                f'La carpeta {folder_id} tiene dos proyectos distintos.'
+            )
+        nestings[folder_id] = project_id
+    return nestings
+
+
 def database_snapshot():
     """Stable source state used to reject a stale reviewed plan."""
     return {
@@ -108,7 +130,6 @@ def database_snapshot():
                 'id', 'name', 'client_id', 'status', 'current_state_id',
                 'current_state__operational_effect',
                 'current_state__updated_at', 'updated_at',
-                'document_manager_enabled',
             )
         ),
         'folders': list(
@@ -264,20 +285,21 @@ def _generated_document_path(document):
 
 def build_manifest(
     *,
-    excluded_project_ids=(),
-    enabled_project_ids=(),
+    project_root_nestings=None,
     client_root_assignments=None,
 ):
-    excluded_project_ids = {int(value) for value in excluded_project_ids}
-    enabled_project_ids = {int(value) for value in enabled_project_ids}
+    project_root_nestings = {
+        int(folder_id): int(project_id)
+        for folder_id, project_id in (project_root_nestings or {}).items()
+    }
     client_root_assignments = {
         int(folder_id): int(profile_id)
         for folder_id, profile_id in (client_root_assignments or {}).items()
     }
-    overlap = excluded_project_ids & enabled_project_ids
+    overlap = set(project_root_nestings) & set(client_root_assignments)
     if overlap:
         raise CommandError(
-            'Un proyecto no puede habilitarse y excluirse a la vez: '
+            'Una carpeta no puede anidarse en un proyecto y asignarse a un cliente: '
             + ', '.join(str(value) for value in sorted(overlap))
         )
 
@@ -304,25 +326,14 @@ def build_manifest(
     }
 
     projects_by_id = {project.id: project for project in projects}
-    unknown_projects = (
-        excluded_project_ids | enabled_project_ids
-    ) - set(projects_by_id)
+    unknown_projects = set(project_root_nestings.values()) - set(projects_by_id)
     if unknown_projects:
         raise CommandError(
             'No existen los proyectos indicados: '
             + ', '.join(str(value) for value in sorted(unknown_projects))
         )
 
-    target_enabled = {
-        project.id: project.document_manager_enabled for project in projects
-    }
-    for project_id in excluded_project_ids:
-        target_enabled[project_id] = False
-    for project_id in enabled_project_ids:
-        target_enabled[project_id] = True
-    eligible_projects = [
-        project for project in projects if target_enabled[project.id]
-    ]
+    eligible_projects = projects
 
     profile_keys = defaultdict(set)
     profiles_by_id = {profile.id: profile for profile in profiles}
@@ -334,19 +345,38 @@ def build_manifest(
             for key in name_keys(source):
                 profile_keys[key].add(profile.id)
 
-    unknown_folders = set(client_root_assignments) - set(folders_by_id)
+    directed_folder_ids = set(client_root_assignments) | set(project_root_nestings)
+    unknown_folders = directed_folder_ids - set(folders_by_id)
     if unknown_folders:
         raise CommandError(
             'No existen las carpetas indicadas: '
             + ', '.join(str(value) for value in sorted(unknown_folders))
         )
-    non_root_folders = set(client_root_assignments) - {
+    non_root_folders = directed_folder_ids - {
         folder.id for folder in roots
     }
     if non_root_folders:
         raise CommandError(
-            'Las asignaciones de cliente sólo aceptan carpetas raíz: '
+            'Las directivas de conciliación sólo aceptan carpetas raíz: '
             + ', '.join(str(value) for value in sorted(non_root_folders))
+        )
+    managed_directives = {
+        folder_id for folder_id in directed_folder_ids
+        if folders_by_id[folder_id].managed_project_id is not None
+    }
+    if managed_directives:
+        raise CommandError(
+            'Las carpetas ya gestionadas no admiten directivas de conciliación: '
+            + ', '.join(str(value) for value in sorted(managed_directives))
+        )
+    archived_directives = {
+        folder_id for folder_id in directed_folder_ids
+        if folders_by_id[folder_id].is_archived
+    }
+    if archived_directives:
+        raise CommandError(
+            'Restaura estas carpetas antes de conciliarlas: '
+            + ', '.join(str(value) for value in sorted(archived_directives))
         )
     unknown_profiles = set(client_root_assignments.values()) - set(profiles_by_id)
     if unknown_profiles:
@@ -356,31 +386,12 @@ def build_manifest(
         )
 
     actions = []
-    for project in projects:
-        enabled = target_enabled[project.id]
-        if enabled == project.document_manager_enabled:
-            continue
-        actions.append({
-            'id': f'configure-project-{project.id}',
-            'type': 'configure_project',
-            'decision': 'pending',
-            'project_id': project.id,
-            'project_name': project.name,
-            'document_manager_enabled': enabled,
-            'reason': (
-                'Excluir del Gestor Documental sin borrar contenido.'
-                if not enabled
-                else 'Habilitar el espacio del proyecto en el Gestor Documental.'
-            ),
-        })
-
     proposed_project_ids = set()
     proposed_tree_roots = defaultdict(set)
     for root in roots:
         if root.managed_project_id:
-            if target_enabled.get(root.managed_project_id, False):
-                proposed_project_ids.add(root.managed_project_id)
-                proposed_tree_roots[root.managed_project_id].add(root.id)
+            proposed_project_ids.add(root.managed_project_id)
+            proposed_tree_roots[root.managed_project_id].add(root.id)
             actions.append({
                 'id': f'existing-{root.id}',
                 'type': 'existing',
@@ -389,6 +400,10 @@ def build_manifest(
                 'project_id': root.managed_project_id,
                 'reason': 'La raíz ya está administrada por el proyecto.',
             })
+            continue
+
+        if root.id in project_root_nestings:
+            # Added after the canonical managed root has been resolved.
             continue
 
         explicit_profile_id = client_root_assignments.get(root.id)
@@ -541,24 +556,36 @@ def build_manifest(
             'reason': 'El proyecto no tiene una raíz existente propuesta.',
         })
 
+    project_root_action = {
+        action['project_id']: action
+        for action in actions
+        if action['type'] in {'existing', 'convert', 'create'}
+    }
+    for folder_id, project_id in sorted(project_root_nestings.items()):
+        root = folders_by_id[folder_id]
+        project = projects_by_id[project_id]
+        target = project_root_action[project_id]
+        proposed_tree_roots[project_id].add(root.id)
+        actions.append({
+            'id': f'nest-project-root-{root.id}-{project.id}',
+            'type': 'nest_project_root',
+            'decision': 'pending',
+            'folder_id': root.id,
+            'folder_name': root.name,
+            'project_id': project.id,
+            'project_name': project.name,
+            'target_root_folder_id': target.get('folder_id'),
+            'target_root_action_id': target['id'],
+            'rule': 'explicit-reviewed-directive',
+            'impact': _impact(root, project, folders, documents),
+            'reason': (
+                f'Anidar la raíz {root.id} dentro de la raíz gestionada de '
+                f'{project.name}, conservando su nombre y contenido.'
+            ),
+        })
+
     for document in documents:
         if not document.project_id:
-            continue
-        if not target_enabled.get(document.project_id, False):
-            actions.append({
-                'id': f'document-disabled-project-{document.id}',
-                'type': 'document_disabled_project',
-                'decision': 'skip',
-                'document_id': document.id,
-                'document_title': document.title,
-                'folder_id': document.folder_id,
-                'project_id': document.project_id,
-                'project_name': document.project.name,
-                'reason': (
-                    'El proyecto quedará excluido del Gestor Documental; el '
-                    'documento se conserva sin mover.'
-                ),
-            })
             continue
         current_root_id = _root_id(document.folder_id, folders_by_id)
         if current_root_id in proposed_tree_roots[document.project_id]:
@@ -626,8 +653,13 @@ def build_manifest(
             'Ninguna acción pendiente permite aplicar el manifiesto.'
         ),
         'planning_directives': {
-            'excluded_project_ids': sorted(excluded_project_ids),
-            'enabled_project_ids': sorted(enabled_project_ids),
+            'project_root_nestings': [
+                {
+                    'folder_id': folder_id,
+                    'project_id': project_id,
+                }
+                for folder_id, project_id in sorted(project_root_nestings.items())
+            ],
             'client_root_assignments': [
                 {
                     'folder_id': folder_id,
@@ -692,7 +724,7 @@ def _validate_review(manifest):
         action['id'] for action in manifest.get('actions', [])
         if action.get('decision') == 'approve'
         and action.get('type') not in {
-            'configure_project', 'convert', 'create',
+            'convert', 'create', 'nest_project_root',
             'assign_client_folder', 'file_document',
         }
     ]
@@ -701,15 +733,37 @@ def _validate_review(manifest):
             'Estas filas son informativas y sólo admiten skip: '
             + ', '.join(invalid_approvals)
         )
-    invalid_configuration = [
+    invalid_nestings = [
         action['id'] for action in manifest.get('actions', [])
-        if action.get('type') == 'configure_project'
-        and not isinstance(action.get('document_manager_enabled'), bool)
+        if action.get('type') == 'nest_project_root'
+        and not isinstance(action.get('project_id'), int)
     ]
-    if invalid_configuration:
+    if invalid_nestings:
         raise CommandError(
-            'Configuraciones de proyecto inválidas: '
-            + ', '.join(invalid_configuration)
+            'Anidamientos de proyecto inválidos: '
+            + ', '.join(invalid_nestings)
+        )
+    actions_by_id = {
+        action.get('id'): action for action in manifest.get('actions', [])
+    }
+    missing_nesting_targets = [
+        action['id'] for action in manifest.get('actions', [])
+        if action.get('type') == 'nest_project_root'
+        and (
+            action.get('target_root_action_id') not in actions_by_id
+            or (
+                actions_by_id[action['target_root_action_id']].get('type')
+                in {'convert', 'create'}
+                and actions_by_id[action['target_root_action_id']].get('decision')
+                != 'approve'
+                and action.get('decision') == 'approve'
+            )
+        )
+    ]
+    if missing_nesting_targets:
+        raise CommandError(
+            'Cada anidamiento aprobado requiere aprobar su raíz de proyecto: '
+            + ', '.join(missing_nesting_targets)
         )
     invalid_client_assignments = [
         action['id'] for action in manifest.get('actions', [])
@@ -851,27 +905,12 @@ def apply_manifest(manifest):
             'Los proyectos, carpetas o documentos cambiaron desde el plan. '
             'Regenera y revisa un manifiesto nuevo.'
         )
-    inverse = {'version': 2, 'generated_at': timezone.now().isoformat(), 'changes': []}
+    inverse = {'version': 3, 'generated_at': timezone.now().isoformat(), 'changes': []}
 
     approved = [
         action for action in manifest['actions']
         if action['decision'] == 'approve'
     ]
-    for action in approved:
-        if action['type'] != 'configure_project':
-            continue
-        project = Project.objects.get(pk=action['project_id'])
-        enabled = action['document_manager_enabled']
-        if project.document_manager_enabled == enabled:
-            continue
-        inverse['changes'].append({
-            'type': 'configured_project',
-            'project_id': project.id,
-            'document_manager_enabled': project.document_manager_enabled,
-        })
-        project.document_manager_enabled = enabled
-        project.save(update_fields=['document_manager_enabled', 'updated_at'])
-
     for action in approved:
         if action['type'] not in {'convert', 'create'}:
             continue
@@ -903,6 +942,37 @@ def apply_manifest(manifest):
             'name', 'project', 'client_user', 'managed_project', 'updated_at',
         ])
         _associate_tree(root, project)
+
+    for action in approved:
+        if action['type'] != 'nest_project_root':
+            continue
+        _assert_no_conflicts(action)
+        project = Project.objects.get(pk=action['project_id'])
+        target_root = DocumentFolder.objects.filter(managed_project=project).first()
+        if target_root is None:
+            raise CommandError(
+                f'El proyecto {project.id} no tiene una raíz gestionada aprobada.'
+            )
+        folder = DocumentFolder.objects.get(pk=action['folder_id'])
+        if folder.parent_id is not None or folder.managed_project_id is not None:
+            raise CommandError(
+                f'La carpeta {folder.id} ya no es una raíz manual.'
+            )
+        if folder.id == target_root.id:
+            raise CommandError(
+                f'La carpeta {folder.id} ya es la raíz gestionada del proyecto.'
+            )
+        inverse['changes'].append({
+            'type': 'nested_project_root',
+            'folder_id': folder.id,
+            'parent_id': folder.parent_id,
+            'project_id': folder.project_id,
+            'client_user_id': folder.client_user_id,
+            'target_root_id': target_root.id,
+        })
+        _associate_tree(folder, project)
+        folder.parent = target_root
+        folder.save(update_fields=['parent', 'updated_at'])
 
     for action in approved:
         if action['type'] != 'assign_client_folder':
@@ -946,12 +1016,9 @@ class Command(BaseCommand):
             help='Identificador o ruta del respaldo verificado antes de aplicar.',
         )
         parser.add_argument(
-            '--exclude-project', action='append', type=int, default=[],
-            help='Proyecto que el plan propondrá excluir (repetible).',
-        )
-        parser.add_argument(
-            '--enable-project', action='append', type=int, default=[],
-            help='Proyecto que el plan propondrá habilitar (repetible).',
+            '--nest-project-root', action='append', default=[],
+            metavar='FOLDER_ID:PROJECT_ID',
+            help='Raíz histórica que se anidará en un proyecto (repetible).',
         )
         parser.add_argument(
             '--assign-client-root', action='append', default=[],
@@ -963,8 +1030,9 @@ class Command(BaseCommand):
         if options['plan']:
             output = Path(options['plan']).expanduser().resolve()
             manifest = build_manifest(
-                excluded_project_ids=options['exclude_project'],
-                enabled_project_ids=options['enable_project'],
+                project_root_nestings=_parse_project_root_nestings(
+                    options['nest_project_root'],
+                ),
                 client_root_assignments=_parse_client_root_assignments(
                     options['assign_client_root'],
                 ),
@@ -980,12 +1048,11 @@ class Command(BaseCommand):
             return
 
         if (
-            options['exclude_project']
-            or options['enable_project']
+            options['nest_project_root']
             or options['assign_client_root']
         ):
             raise CommandError(
-                'Las directivas de proyecto/cliente sólo se aceptan con --plan.'
+                'Las directivas de carpeta sólo se aceptan con --plan.'
             )
         if not options['backup_reference']:
             raise CommandError(
@@ -1013,7 +1080,7 @@ class Command(BaseCommand):
             )
         before = _json_snapshot(database_snapshot())
         prepared_inverse = {
-            'version': 2,
+            'version': 3,
             'status': 'prepared',
             'generated_at': timezone.now().isoformat(),
             'backup_reference': options['backup_reference'],

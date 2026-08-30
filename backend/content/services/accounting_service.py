@@ -129,7 +129,6 @@ TRACKED_FIELDS = {
         ('description', 'Descripción'),
         ('status', 'Estado'),
         ('client', 'Cliente'),
-        ('document_manager_enabled', 'Gestor documental'),
     ],
     EntityType.COLLECTION_ACCOUNT: [
         ('title', 'Título'),

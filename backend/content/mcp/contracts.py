@@ -69,8 +69,7 @@ MCP_MODEL_CONTRACTS = {
                 _excluded(
                     'Configuración operativa del proyecto reservada al panel; '
                     'el MCP de Documentos sólo referencia proyectos existentes.',
-                    'description status state_review_required '
-                    'document_manager_enabled progress start_date '
+                    'description status state_review_required progress start_date '
                     'estimated_end_date payment_milestones hosting_tiers '
                     'hosting_start_date production_url staging_url admin_url '
                     'repository_url admin_username',

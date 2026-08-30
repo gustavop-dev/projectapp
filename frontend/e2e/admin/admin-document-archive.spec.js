@@ -117,9 +117,6 @@ function baseRoutes({ apiPath, url }) {
     return json({ navigation_mode: 'project' });
   }
   if (apiPath === 'documents/navigation/') return json(navigationPayload());
-  if (apiPath === 'document-folders/project-readiness/') {
-    return json({ status: 'ready', project_count: 0, enabled_project_count: 0 });
-  }
   if (apiPath === 'documents/counts/') return json(counts);
   if (apiPath === 'documents/') {
     if (mixedScope) return json([...activeDocuments, ...archivedDocuments]);
@@ -525,7 +522,7 @@ test.describe('Admin Document Archive', () => {
     });
 
     await page.goto('/panel/documents');
-    // El inventario global vive en el catálogo, fuera de «Carpetas sin asignar».
+    // El inventario global vive en el catálogo, fuera de «Carpetas propias».
     const allDocuments = page.getByTestId('documents-navigation-all');
     await expect(allDocuments.getByLabel('1 documentos')).toBeVisible();
 
