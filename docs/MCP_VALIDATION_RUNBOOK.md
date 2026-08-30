@@ -114,6 +114,7 @@ Lectura exitosa:
   "channel": "email",
   "direction": "outgoing",
   "message_status": "draft",
+  "reply_status": "unanswered",
   "date_from": "2026-08-01",
   "date_to": "2026-08-31",
   "q": "Portal Boreal",
@@ -122,12 +123,14 @@ Lectura exitosa:
 }
 ```
 
-Verificar `results`, `count`, `page` y `num_pages`; cada fila debe incluir el
-cliente/proyecto, actividad, conteos y preview vigente. Repetir por separado con
+Verificar `results`, `count`, `page` y `num_pages`; cada fila debe incluir
+cliente/proyecto, actividad, conteos y preview vigente. `reply_status` acepta
+`answered` o `unanswered` y evalúa mensajes salientes enviados no anulados
+mediante su relación explícita de respuesta. Repetir por separado con
 `client_id`, con `project_id` y con `q` igual a una parte del nombre del proyecto
-para probar los tres cortes.
+para probar los cortes estructurados y la búsqueda legible.
 
-Errores: `status/channel/direction/message_status` fuera de catálogo, fecha no
+Errores: `status/channel/direction/message_status/reply_status` fuera de catálogo, fecha no
 ISO, página cero y IDs no enteros deben producir `isError=true`. Una página
 posterior al final puede normalizarse a la última página, como `Paginator`.
 

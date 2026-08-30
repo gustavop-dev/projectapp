@@ -52,10 +52,9 @@
             and that the distinction is invisible is the point.
           -->
           <span
-            v-if="tab.is_seeded || tab.builtin_key"
             class="text-[10px] uppercase tracking-wider text-text-subtle"
           >
-            De fábrica
+            {{ tab.is_seeded || tab.builtin_key ? 'De fábrica' : 'Propia' }}
           </span>
           <BaseActionButton
             action="move-up"

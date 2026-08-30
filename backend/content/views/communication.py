@@ -21,6 +21,9 @@ from content.services import communication_service
 from content.services import communication_query_service
 
 
+MAX_COMMUNICATION_TAB_COUNT_SPECS = 24
+
+
 def _business_error(exc):
     detail = exc.args[0] if exc.args else str(exc)
     if isinstance(detail, dict):
@@ -104,6 +107,55 @@ def communication_threads(request):
         'num_pages': paginator.num_pages,
         'facets': communication_query_service.build_facets(filters),
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def communication_thread_tab_counts(request):
+    """Return the full-dataset count for each predefined or saved filter tab."""
+    specs = request.data.get('tabs')
+    if not isinstance(specs, list):
+        return Response(
+            {'tabs': 'Debe ser una lista.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(specs) > MAX_COMMUNICATION_TAB_COUNT_SPECS:
+        return Response(
+            {'tabs': f'Máximo {MAX_COMMUNICATION_TAB_COUNT_SPECS} pestañas por consulta.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    counts = {}
+    for spec in specs:
+        tab_id = spec.get('id') if isinstance(spec, dict) else None
+        valid_id = (
+            isinstance(tab_id, int) and not isinstance(tab_id, bool)
+        ) or (
+            isinstance(tab_id, str) and bool(tab_id.strip())
+        )
+        if not valid_id:
+            return Response(
+                {'tabs': 'Cada pestaña debe tener un identificador.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        raw_filters = spec.get('filters', {})
+        if raw_filters is None:
+            raw_filters = {}
+        if not isinstance(raw_filters, dict):
+            return Response(
+                {'tabs': 'Los filtros de cada pestaña deben ser un objeto.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            filters = communication_query_service.parse_filters(raw_filters)
+        except communication_query_service.CommunicationFilterError as exc:
+            return Response(exc.errors, status=status.HTTP_400_BAD_REQUEST)
+        queryset = communication_query_service.apply_filters(
+            CommunicationThread.objects.all(), filters,
+        )
+        counts[str(tab_id)] = queryset.count()
+
+    return Response({'counts': counts})
 
 
 @api_view(['GET', 'PATCH'])

@@ -127,9 +127,29 @@ function communicationFacets(projectName = 'Portal de clientes') {
       channel: { email: 1, whatsapp: 1 },
       direction: { outgoing: 1, incoming: 1 },
       message_status: { draft: 0, sent: 1, received: 1, failed: 0 },
+      reply_status: { answered: 1, unanswered: 0 },
     },
   };
 }
+
+const factorySavedTabs = [
+  ['draft-pending', 'Borradores pendientes'],
+  ['sent-unanswered', 'Enviados sin respuesta'],
+  ['open', 'Abiertos'],
+  ['closed', 'Cerrados'],
+  ['channel-email', 'Correo'],
+  ['channel-whatsapp', 'WhatsApp'],
+].map(([builtinKey, name], index) => ({
+  id: 1001 + index,
+  view: 'communication',
+  name,
+  filters: {},
+  base_filters: {},
+  builtin_key: builtinKey,
+  order: index,
+  is_seeded: false,
+  is_hidden: false,
+}));
 
 async function setupCommunicationsApi(page, {
   listFailure = false,
@@ -137,6 +157,7 @@ async function setupCommunicationsApi(page, {
   onMessage = null,
   onListRequest = null,
   onSavedView = null,
+  initialSavedTabs = [],
   projectName = 'Portal de clientes',
 } = {}) {
   let shouldFailList = listFailure;
@@ -145,6 +166,20 @@ async function setupCommunicationsApi(page, {
       ...listThread({ project_name: projectName }),
       messages: [outgoingMessage, incomingMessage],
     },
+    savedTabs: [
+      ...factorySavedTabs.map((tab) => ({ ...tab })),
+      ...initialSavedTabs.map((tab, index) => ({
+        id: 901 + index,
+        view: 'communication',
+        filters: {},
+        base_filters: {},
+        builtin_key: '',
+        order: factorySavedTabs.length + index,
+        is_seeded: false,
+        is_hidden: false,
+        ...tab,
+      })),
+    ],
   };
 
   await mockApi(page, async ({ route, apiPath, method }) => {
@@ -179,21 +214,60 @@ async function setupCommunicationsApi(page, {
       };
     }
 
+    if (apiPath === 'communications/threads/tab-counts/' && method === 'POST') {
+      const knownCounts = {
+        all: 2,
+        'draft-pending': 0,
+        'sent-unanswered': 0,
+        open: 2,
+        closed: 0,
+        'channel-email': 1,
+        'channel-whatsapp': 1,
+      };
+      const counts = Object.fromEntries(
+        route.request().postDataJSON().tabs.map((tab) => [
+          String(tab.id), knownCounts[String(tab.id)] ?? 2,
+        ]),
+      );
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ counts }),
+      };
+    }
+
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
       if (method === 'POST' && apiPath === 'accounts/saved-filter-tabs/') {
         const payload = route.request().postDataJSON();
         if (onSavedView) onSavedView(payload);
+        const saved = {
+          id: 901,
+          ...payload,
+          base_filters: payload.filters,
+          builtin_key: '',
+          order: state.savedTabs.length,
+          is_seeded: false,
+          is_hidden: false,
+        };
+        state.savedTabs.push(saved);
         return {
           status: 201,
           contentType: 'application/json',
-          body: JSON.stringify({
-            id: 901,
-            ...payload,
-            base_filters: payload.filters,
-            builtin_key: '',
-            order: 0,
-            is_seeded: false,
-          }),
+          body: JSON.stringify(saved),
+        };
+      }
+      if (method === 'POST' && apiPath === 'accounts/saved-filter-tabs/reset/') {
+        const ownTabs = state.savedTabs.filter((tab) => !tab.builtin_key);
+        state.savedTabs = [
+          ...factorySavedTabs.map((tab) => ({ ...tab })),
+          ...ownTabs.map((tab, index) => ({
+            ...tab, order: factorySavedTabs.length + index,
+          })),
+        ];
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(state.savedTabs),
         };
       }
       if (method === 'PATCH') {
@@ -207,7 +281,7 @@ async function setupCommunicationsApi(page, {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([]),
+        body: JSON.stringify(state.savedTabs),
       };
     }
 
@@ -300,6 +374,35 @@ async function openMainThread(page) {
     .toBeVisible();
 }
 
+async function expectFactoryFilterCounts(page) {
+  if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+    const filterSelect = page.getByTestId('filter-tabs-select');
+    const expectedLabels = [
+      'Borradores pendientes (0)',
+      'Enviados sin respuesta (0)',
+      'Abiertos (2)',
+      'Cerrados (0)',
+      'Correo (1)',
+      'WhatsApp (1)',
+    ];
+    for (const label of expectedLabels) await expect(filterSelect).toContainText(label);
+    return;
+  }
+
+  const expectedCounts = {
+    all: 2,
+    'draft-pending': 0,
+    'sent-unanswered': 0,
+    open: 2,
+    closed: 0,
+    'channel-email': 1,
+    'channel-whatsapp': 1,
+  };
+  for (const [id, count] of Object.entries(expectedCounts)) {
+    await expect(page.getByTestId(`filter-tabs-count-${id}`)).toHaveText(`(${count})`);
+  }
+}
+
 test.describe('Admin Client Communications', () => {
   test.describe.configure({ timeout: 60_000 });
 
@@ -354,6 +457,75 @@ test.describe('Admin Client Communications', () => {
     await expect(page.getByTestId('communication-thread-row-41')).toBeVisible();
   });
 
+  test('shows every factory filter count', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupCommunicationsApi(page);
+    await enterCommunicationsThroughPanel(page);
+    await expectFactoryFilterCounts(page);
+  });
+
+  test('applies the unanswered factory cut', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const listRequests = [];
+    await setupCommunicationsApi(page, {
+      onListRequest: (url) => listRequests.push(url),
+    });
+    await gotoCommunications(page);
+
+    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+      await page.getByTestId('filter-tabs-select').selectOption('sent-unanswered');
+    } else {
+      await page.getByTestId('filter-tabs-tab-sent-unanswered').click();
+    }
+
+    await expect(page).toHaveURL(/status=open/);
+    await expect(page).toHaveURL(/direction=outgoing/);
+    await expect(page).toHaveURL(/message_status=sent/);
+    await expect(page).toHaveURL(/reply_status=unanswered/);
+    await expect.poll(() => listRequests.at(-1)).toContain('reply_status=unanswered');
+  });
+
+  test('preserves a saved view after factory reset', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupCommunicationsApi(page, {
+      initialSavedTabs: [{
+        name: 'Mi seguimiento',
+        filters: { channel: ['email'] },
+        base_filters: { channel: ['email'] },
+      }],
+    });
+    await gotoCommunications(page);
+
+    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+      await page.getByTestId('filter-tabs-select').selectOption('__config__');
+    } else {
+      await page.getByTestId('filter-tabs-config').click();
+    }
+    await expect(page.getByTestId('view-settings-panel'))
+      .toContainText('Tus pestañas propias se conservan.');
+    await page.getByTestId('view-settings-reset-tabs-communication').click();
+    await expect(page.getByRole('dialog')).toContainText('Tus pestañas propias se conservarán.');
+    const resetResponse = page.waitForResponse((response) => (
+      response.url().includes('/api/accounts/saved-filter-tabs/reset/')
+      && response.request().method() === 'POST'
+    ));
+    await page.getByTestId('confirm-modal-confirm').click();
+    await resetResponse;
+
+    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+      const filterSelect = page.getByTestId('filter-tabs-select');
+      await expect(filterSelect).toContainText('Mi seguimiento · Propia');
+      await filterSelect.selectOption('901');
+    } else {
+      await expect(page.getByTestId('filter-tabs-origin-901')).toHaveText('Propia');
+      await page.getByTestId('filter-tabs-tab-901').click();
+    }
+    await expect(page).toHaveURL(/channel=email/);
+  });
+
   test('navigates by client, combines message statuses and saves the view', {
     tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -395,8 +567,9 @@ test.describe('Admin Client Communications', () => {
       },
     });
     await expect(page.getByTestId('filter-tabs-tab-901')).toBeVisible();
+    await expect(page.getByTestId('filter-tabs-origin-901')).toHaveText('Propia');
 
-    await page.getByRole('button', { name: 'Todas', exact: true }).click();
+    await page.getByTestId('filter-tabs-all').click();
     await expect(page).not.toHaveURL(/client=7/);
     await page.getByTestId('filter-tabs-tab-901').click();
     await expect(page).toHaveURL(/client=7/);

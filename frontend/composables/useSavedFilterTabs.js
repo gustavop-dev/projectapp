@@ -84,7 +84,9 @@ export function useSavedFilterTabs(viewName) {
   const lastError = ref(null);
   const updateTimers = new Map();
 
-  const isTabLimitReached = computed(() => savedTabs.value.length >= MAX_TABS);
+  const isTabLimitReached = computed(() => (
+    savedTabs.value.filter((tab) => !tab.builtin_key).length >= MAX_TABS
+  ));
 
   async function loadTabs() {
     isLoading.value = true;
