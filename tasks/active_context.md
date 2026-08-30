@@ -61,8 +61,11 @@ convergen en `communication_query_service.py`, que aplica OR dentro de cada
 dimensión, AND entre dimensiones y correlaciona filtros de mensaje sobre el
 mismo registro. El aviso describe sólo el registro manual vigente, se puede
 cerrar y reabrir desde ayuda. PA-89 queda cerrado: Comunicaciones ya es un módulo
-propio, no una subsección de Documentos. Pasan 6 pruebas backend, 25 unitarias,
-5 outcomes E2E, los 5 perfiles responsive, build y auditoría de flows.
+propio, no una subsección de Documentos. El cierre de aceptación extiende la
+búsqueda global al nombre legible del proyecto en el mismo servicio REST/MCP y
+registra como outcomes E2E la persistencia del aviso y del ancho de navegación.
+Pasan 7 pruebas REST, 15 MCP, las 25 unitarias existentes y los 8 outcomes E2E;
+también permanecen verdes los 5 perfiles responsive, build y auditoría de flows.
 
 **2026-08-28 — Historial probatorio de correos listo para integrar:** el gateway
 central captura antes del SMTP un snapshot obligatorio con cuerpo, enlaces,

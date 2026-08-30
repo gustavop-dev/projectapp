@@ -98,7 +98,9 @@ cliente y un superusuario. Conservar los IDs que devuelve cada paso.
 normalizan como una selección de un valor y conservan su contrato; el REST puede
 enviar valores repetidos o separados por coma para la selección múltiple del
 panel. En ambos caminos, canal, dirección, estado del mensaje y fechas deben
-coincidir en un mismo mensaje, no en mensajes distintos del mismo hilo.
+coincidir en un mismo mensaje, no en mensajes distintos del mismo hilo. El
+argumento `q` busca por título del hilo, cliente, nombre de proyecto, asunto o
+contenido del mensaje en ambos caminos.
 
 ### 1. `list_threads`
 
@@ -114,7 +116,7 @@ Lectura exitosa:
   "message_status": "draft",
   "date_from": "2026-08-01",
   "date_to": "2026-08-31",
-  "q": "aprobación",
+  "q": "Portal Boreal",
   "page": 1,
   "page_size": 20
 }
@@ -122,7 +124,8 @@ Lectura exitosa:
 
 Verificar `results`, `count`, `page` y `num_pages`; cada fila debe incluir el
 cliente/proyecto, actividad, conteos y preview vigente. Repetir por separado con
-`client_id` y con `project_id` para probar ambos cortes.
+`client_id`, con `project_id` y con `q` igual a una parte del nombre del proyecto
+para probar los tres cortes.
 
 Errores: `status/channel/direction/message_status` fuera de catálogo, fecha no
 ISO, página cero y IDs no enteros deben producir `isError=true`. Una página
@@ -318,7 +321,7 @@ qué queda fuera del MCP.
 
 | Verificación | Resultado |
 |---|---|
-| Communications MCP | 13/13 tests verdes |
+| Communications MCP | 15/15 tests verdes |
 | Contrato de nueve conectores | 19/19 tests verdes |
 | Paridad de módulos existentes | 17/17 tests verdes |
 | Regresión compartida Propuestas/Contable + catálogos | 31/31 tests verdes |
