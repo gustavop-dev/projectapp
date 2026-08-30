@@ -228,10 +228,17 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 ### 3.5 Document System
 
 - Generic branded PDF documents separate from proposals
-- The folder panel separates two ownership models: **Projects** lists the
-  system-managed root of each visible project, while **Folders** lists roots
-  created by people. Both sections are independently collapsible and their
-  counters include all descendant folders and documents.
+- Above the folder list, the same segmented control as Communications switches
+  entity navigation between **Projects** and **Clients**. Each mode lists only
+  entities that own at least one folder or document, and its separate folder and
+  document counters include the full descendant inventory exactly once.
+- **Without project** and **Without client** are permanent destinations in their
+  respective modes. Selecting an entity or unassigned bucket scopes the document
+  list; the chosen grouping persists per staff account between visits.
+- **Own folders** remains a separate, always reachable section. It contains roots
+  created by people and does not change when the project/client mode changes.
+  System-managed project roots remain valid structural parents but do not appear
+  as editable own folders.
 - Every project owns at most one managed root. Creating or renaming a project
   creates or renames that root automatically; users may create arbitrary
   descendants but cannot rename, move, archive or delete the managed first

@@ -93,10 +93,14 @@ npm run dev                             # http://localhost:3000
 #### Documents navigation URL contract
 
 `useDocumentFilterQuery` synchronizes the list with these canonical query keys:
-`folder`, `scope`, `states`, `without_states`, `preset`, `client`, `project`, `q`,
+`folder`, `scope`, `states`, `without_states`, `preset`, `client`, `project`, `by`, `q`,
 `order`, `view`, `page` and `focus`; `tags` remains accepted only for legacy deep
 links during the workflow rollout. Defaults are omitted, ids are normalized, and
 interactive filter changes use `router.replace` so browser history represents meaningful list states.
+`by=project|client` makes a shared link reproduce the visible entity navigator;
+without that explicit override, `document_navigation.js` hydrates the account's
+server-side `UserProfile.document_navigation_mode` preference. The list accepts
+`project=none` and `client=none` as first-class unassigned scopes.
 Global search uses an effective all-documents scope without overwriting the scope
 that must be restored when the search is cleared or revisited.
 
@@ -694,6 +698,12 @@ confirmed by the operator or another integration.
   with an explicit conflict. The list sorts a selected generated folder by
   case-insensitive title; collection accounts expose a derived lifecycle/email
   state instead of workflow episodes.
+- **Document entity navigation is aggregation-only** —
+  `document_navigation_service` groups the canonical direct project/client foreign
+  keys of every folder and document in a constant query set. Counting each row once
+  naturally includes descendants without recursive queries. The response keeps
+  active/archived and project/client unassigned buckets separate; the panel's own
+  folder tree stays an independent structural axis.
 - **Backfill deployment order** — apply schema migrations first, preview with
   `python manage.py backfill_collection_account_filing`, review its paths, then
   run the same command with `--apply`. It only considers folderless collection
@@ -706,6 +716,11 @@ confirmed by the operator or another integration.
 ### Frontend Patterns
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
+- **Shared entity navigator** — `EntityNavigationModeSwitch` is the single
+  Project/Client segmented control used by Communications and Documents.
+  `document_navigation.js` owns the persisted preference plus aggregate facets;
+  `documents.js` continues to own transient list filters and
+  `document_folders.js` continues to own the independent structural hierarchy.
 - **Disabled-control contract** — pass `disabledReason` for semantic locks and
   `loading` for transient work. If the operator can satisfy prerequisites, wrap
   the control in `BaseControlGate` with the complete reasons array so the same

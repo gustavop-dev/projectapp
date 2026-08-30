@@ -4,7 +4,7 @@ import { DEFAULT_SCOPE, DOCUMENT_SCOPES } from '~/utils/archiveScope';
 
 const CONTROLLED_QUERY_KEYS = [
   'folder', 'scope', 'tags', 'states', 'without_states', 'preset',
-  'client', 'project', 'q', 'order', 'view', 'page', 'focus',
+  'client', 'project', 'by', 'q', 'order', 'view', 'page', 'focus',
 ];
 const DOCUMENT_STATE_PRESETS = new Set([
   'needs_fix', 'sent_not_closed', 'closed', 'unclassified',
@@ -41,6 +41,7 @@ function sameQueryValue(left, right) {
 export function useDocumentFilterQuery(documentStore, {
   searchQuery,
   viewMode,
+  navigationMode,
   currentPage,
   focusedDocumentId,
   onNavigate,
@@ -48,6 +49,7 @@ export function useDocumentFilterQuery(documentStore, {
   const route = useRoute();
   const router = useRouter();
   const isApplyingQuery = ref(false);
+  const navigationModeReady = ref(false);
 
   function parseFolder(raw) {
     const value = firstQueryValue(raw);
@@ -93,6 +95,11 @@ export function useDocumentFilterQuery(documentStore, {
     return firstQueryValue(raw) === 'grid' ? 'grid' : 'list';
   }
 
+  function parseNavigationMode(raw) {
+    const value = firstQueryValue(raw);
+    return value === 'project' || value === 'client' ? value : null;
+  }
+
   /**
    * Vuelca el query en todos los estados visibles. Devuelve un resumen para que
    * atrás/adelante sólo repida el fetch o la búsqueda cuando realmente hace
@@ -109,6 +116,7 @@ export function useDocumentFilterQuery(documentStore, {
       preset,
       client: parseAssociation(route.query.client),
       project: parseAssociation(route.query.project),
+      navigationMode: parseNavigationMode(route.query.by),
       search: parseSearch(route.query.q),
       order: parseOrder(route.query.order),
       view: parseView(route.query.view),
@@ -130,6 +138,9 @@ export function useDocumentFilterQuery(documentStore, {
       viewChanged: !!viewMode && viewMode.value !== nextState.view,
       pageChanged: !!currentPage && currentPage.value !== nextState.page,
       focusChanged: !!focusedDocumentId && focusedDocumentId.value !== nextState.focus,
+      modeChanged: !!navigationMode
+        && !!nextState.navigationMode
+        && navigationMode.value !== nextState.navigationMode,
     };
     summary.changed = Object.values(summary).some(Boolean);
 
@@ -142,11 +153,19 @@ export function useDocumentFilterQuery(documentStore, {
     documentStore.activeStatePreset = nextState.preset;
     documentStore.activeClientId = nextState.client;
     documentStore.activeProjectId = nextState.project;
+    if (navigationMode && nextState.navigationMode) {
+      navigationMode.value = nextState.navigationMode;
+    }
     documentStore.archivedOrder = nextState.order;
     if (searchQuery) searchQuery.value = nextState.search;
     if (viewMode) viewMode.value = nextState.view;
     if (currentPage) currentPage.value = nextState.page;
     if (focusedDocumentId) focusedDocumentId.value = nextState.focus;
+
+    // La preferencia de navegación se hidrata antes de esta primera aplicación.
+    // Hasta este punto el watcher no debe publicar ese valor sobre un `?by=`
+    // explícito: el enlace compartido gobierna la visita, no la memoria.
+    navigationModeReady.value = true;
 
     // Normaliza basura y defaults escritos a mano. Los watchers originados por
     // estas asignaciones convergen en el mismo query y no agregan historial.
@@ -186,6 +205,7 @@ export function useDocumentFilterQuery(documentStore, {
       : '';
     const client = documentStore.activeClientId;
     const project = documentStore.activeProjectId;
+    const by = navigationMode?.value;
     const search = searchQuery?.value?.trim() || '';
     const order = documentStore.archivedOrder;
     const view = viewMode?.value;
@@ -213,6 +233,10 @@ export function useDocumentFilterQuery(documentStore, {
     else query.client = String(client);
     if (project == null) delete query.project;
     else query.project = String(project);
+    if (navigationModeReady.value) {
+      if (by === 'project' || by === 'client') query.by = by;
+      else delete query.by;
+    }
     if (search) query.q = search;
     else delete query.q;
     if (order === 'oldest') query.order = 'oldest';
@@ -239,6 +263,7 @@ export function useDocumentFilterQuery(documentStore, {
     documentStore.activeStatePreset,
     documentStore.activeClientId,
     documentStore.activeProjectId,
+    navigationMode?.value,
     documentStore.archivedOrder,
     searchQuery?.value,
     viewMode?.value,

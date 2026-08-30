@@ -495,14 +495,15 @@ test.describe('Admin Document Archive', () => {
     await page.goto('/panel/documents');
     // El interruptor de modo vive en la cabecera, fuera de la lista: ésta se
     // ancla por testid y no por el texto «Archivados», que ya no está dentro.
-    const sidebar = page.getByTestId('folder-list');
-    await expect(sidebar.getByRole('button', { name: /^Todos/ })).toContainText('1');
+    const sidebar = page.getByTestId('manual-folder-section');
+    const allDocuments = sidebar.getByRole('button', { name: /^Todos los documentos/ });
+    await expect(allDocuments).toContainText('1');
 
     await page.getByRole('row', { name: /Contrato de Servicios/i })
       .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Archivar/).click();
 
-    await expect(sidebar.getByRole('button', { name: /^Todos/ })).toContainText('0');
+    await expect(allDocuments).toContainText('0');
     // El total de archivados acompaña al interruptor, en la cabecera.
     await expect(page.getByTestId('folder-archived-count')).toHaveText('2');
   });

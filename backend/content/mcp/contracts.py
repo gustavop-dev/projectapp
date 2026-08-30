@@ -159,7 +159,7 @@ MCP_MODEL_CONTRACTS = {
                     _PLATFORM_PROFILE,
                     'email_verified email_verified_at date_of_birth gender '
                     'education_level avatar avatar_url theme_color cover_image '
-                    'custom_cover_image profile_completed',
+                    'custom_cover_image profile_completed document_navigation_mode',
                 )
                 | _excluded(_AUDIT_INTERNAL, 'created_by')
             ),

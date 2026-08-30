@@ -51,6 +51,40 @@ describe('useDocumentFilterQuery', () => {
     expect(store.archiveScope).toBe('archived')
   })
 
+  it('lets an explicit ?by override the stored navigation mode for the visit', () => {
+    const navigationMode = ref('project')
+    mockRoute.query = { by: 'client' }
+
+    const { applyQueryToStore } = setupFilterQuery({ navigationMode })
+    applyQueryToStore()
+
+    expect(navigationMode.value).toBe('client')
+    expect(mockRoute.query.by).toBe('client')
+  })
+
+  it('does not publish the stored mode before applying an explicit ?by', async () => {
+    const navigationMode = ref('project')
+    mockRoute.query = { by: 'project' }
+    const { applyQueryToStore } = setupFilterQuery({ navigationMode })
+
+    // Simula la preferencia remota que termina de hidratarse antes del montaje.
+    navigationMode.value = 'client'
+    await nextTick()
+
+    expect(mockRoute.query.by).toBe('project')
+    applyQueryToStore()
+    expect(navigationMode.value).toBe('project')
+  })
+
+  it('publishes the stored navigation mode when the url has no override', () => {
+    const navigationMode = ref('client')
+
+    const { applyQueryToStore } = setupFilterQuery({ navigationMode })
+    applyQueryToStore()
+
+    expect(mockReplace).toHaveBeenCalledWith({ query: { by: 'client' } })
+  })
+
   it('keeps the pseudo folders as strings when applying the query', () => {
     mockRoute.query = { folder: 'none' }
 

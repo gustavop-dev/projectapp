@@ -1,14 +1,25 @@
 <template>
   <aside class="bg-surface rounded-xl shadow-sm border border-border-muted flex flex-col">
-    <div class="px-4 py-3 border-b border-border-muted flex items-center justify-between flex-shrink-0">
-      <h3 class="text-xs font-semibold text-text-muted uppercase tracking-wider">Carpetas</h3>
-      <button
-        type="button"
-        class="text-xs font-medium text-text-brand hover:text-text-brand"
-        @click="$emit('manage')"
-      >
-        Gestionar
-      </button>
+    <div class="shrink-0 border-b border-border-muted px-4 py-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted">Navegar por</h2>
+      <EntityNavigationModeSwitch
+        class="mt-3"
+        :model-value="navigationMode"
+        :disabled="navigationSaving"
+        aria-label="Agrupar documentos"
+        test-id-prefix="documents-mode"
+        @update:model-value="$emit('update:navigation-mode', $event)"
+      />
+    </div>
+
+    <div class="shrink-0 border-b border-border-muted p-3">
+      <BaseInput
+        v-model="navigationSearch"
+        size="sm"
+        :placeholder="navigationMode === 'project' ? 'Buscar proyecto...' : 'Buscar cliente...'"
+        :aria-label="navigationMode === 'project' ? 'Buscar proyecto' : 'Buscar cliente'"
+        data-testid="documents-navigation-search"
+      />
     </div>
 
     <!--
@@ -44,168 +55,185 @@
 
     <ul class="p-2 space-y-1 flex-1 overflow-y-auto" role="list" data-testid="folder-list">
       <li>
-        <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
+        <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
         <button
           type="button"
-          class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-          :class="[entryClass('all'), touchMode ? 'min-h-11' : '']"
-          :aria-current="ariaCurrent('all')"
-          @click="$emit('select', 'all')"
+          class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-all"
+          :class="[navigationEntryClass('all'), touchMode ? 'min-h-11' : 'min-h-10']"
+          :aria-current="navigationAriaCurrent('all')"
+          data-testid="documents-navigation-all"
+          @click="$emit('select-entity', 'all')"
         >
           <span>Todos</span>
-          <span class="text-xs text-text-subtle">{{ totalCount }}</span>
+          <span class="flex shrink-0 items-center gap-2 text-xs text-text-subtle">
+            <span class="flex items-center gap-0.5" :aria-label="`${navigationAllCounts.folders} carpetas`">
+              <!-- panel-action-icons: allow-status-glyph — identifies the adjacent folder inventory. -->
+              <FolderIcon class="h-3 w-3" aria-hidden="true" />
+              {{ navigationAllCounts.folders }}
+            </span>
+            <span class="flex items-center gap-0.5" :aria-label="`${navigationAllCounts.documents} documentos`">
+              <!-- panel-action-icons: allow-status-glyph — identifies the adjacent document inventory. -->
+              <DocumentTextIcon class="h-3 w-3" aria-hidden="true" />
+              {{ navigationAllCounts.documents }}
+            </span>
+          </span>
         </button>
       </li>
 
-      <!-- No folder — also a drop target -->
       <li>
-        <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
+        <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
         <button
           type="button"
-          class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-          :class="[entryClass('none'), dropZoneClass('none'), touchMode ? 'min-h-11' : '']"
-          :aria-current="ariaCurrent('none')"
-          @click="$emit('select', 'none')"
-          @dragover.prevent="dragOverId = 'none'"
-          @dragleave="dragOverId = null"
-          @drop.prevent="onDrop(null)"
+          class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-all"
+          :class="[navigationEntryClass('none'), touchMode ? 'min-h-11' : 'min-h-10']"
+          :aria-current="navigationAriaCurrent('none')"
+          data-testid="documents-navigation-unassigned"
+          @click="$emit('select-entity', 'none')"
         >
-          <span>Sin carpeta</span>
-          <BaseActionIcon v-if="isDragging" action="move" class="text-text-subtle" />
-          <span v-else class="text-xs text-text-subtle">{{ unfiledCount }}</span>
+          <span>{{ navigationMode === 'project' ? 'Sin proyecto' : 'Sin cliente' }}</span>
+          <span class="flex shrink-0 items-center gap-2 text-xs text-text-subtle">
+            <span class="flex items-center gap-0.5" :aria-label="`${navigationUnassignedCounts.folders} carpetas`">
+              <!-- panel-action-icons: allow-status-glyph — identifies the adjacent folder inventory. -->
+              <FolderIcon class="h-3 w-3" aria-hidden="true" />
+              {{ navigationUnassignedCounts.folders }}
+            </span>
+            <span class="flex items-center gap-0.5" :aria-label="`${navigationUnassignedCounts.documents} documentos`">
+              <!-- panel-action-icons: allow-status-glyph — identifies the adjacent document inventory. -->
+              <DocumentTextIcon class="h-3 w-3" aria-hidden="true" />
+              {{ navigationUnassignedCounts.documents }}
+            </span>
+          </span>
         </button>
       </li>
 
-      <li class="my-1 border-t border-border-muted"></li>
+      <li v-if="filteredOutNavigationCount" class="flex items-center justify-between gap-2 px-3 py-1.5">
+        <span class="text-2xs text-text-subtle">
+          {{ filteredOutNavigationCount }} fuera del filtro de estados
+        </span>
+        <button
+          type="button"
+          class="text-xs font-medium text-text-brand hover:text-text-default"
+          data-testid="project-folders-toggle"
+          @click="showAllProjects = !showAllProjects"
+        >
+          {{ showAllProjects ? 'Ver vigentes' : 'Ver todos' }}
+        </button>
+      </li>
 
-      <li role="presentation">
-        <details open data-testid="project-folder-section">
-          <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
-            <span>Proyectos</span>
-            <span class="font-normal normal-case text-text-subtle" data-testid="project-folder-section-count">
-              {{ sectionInventory(visibleProjectFolders) }}
+      <li
+        v-if="navigationMode === 'project' && projectReadinessError"
+        class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
+        data-testid="project-readiness-error"
+      >
+        <p>No se pudo comprobar por qué la sección de proyectos está vacía.</p>
+        <NuxtLink
+          to="/panel/projects"
+          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+        >
+          Revisar proyectos
+        </NuxtLink>
+      </li>
+      <li
+        v-else-if="navigationMode === 'project' && projectReadiness?.status === 'reconciliation_required'"
+        class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
+        data-testid="project-reconciliation-required"
+      >
+        <p>
+          {{ reconciliationMessage }} Revisa y aplica la conciliación PA-108 antes de convertir carpetas.
+        </p>
+        <NuxtLink
+          to="/panel/projects"
+          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+          data-testid="project-reconciliation-action"
+        >
+          Revisar proyectos
+        </NuxtLink>
+      </li>
+      <li
+        v-else-if="navigationMode === 'project' && projectReadiness?.status === 'no_projects'"
+        class="px-3 py-2 text-xs text-text-subtle"
+        data-testid="project-empty-no-projects"
+      >
+        <p>No hay proyectos creados todavía.</p>
+        <NuxtLink
+          to="/panel/projects"
+          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+        >
+          Crear o revisar proyectos
+        </NuxtLink>
+      </li>
+      <li
+        v-else-if="navigationMode === 'project' && projectReadiness?.status === 'state_filter_empty'"
+        class="mx-2 my-1 rounded-lg border border-info-strong/30 bg-info-soft px-3 py-2 text-xs text-text-default"
+        data-testid="project-state-filter-empty"
+      >
+        <p>
+          Hay {{ projectReadiness.project_count }} proyectos, pero ningún estado está habilitado para mostrarlos aquí.
+        </p>
+        <NuxtLink
+          to="/panel/projects/statuses"
+          class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
+          data-testid="project-state-filter-action"
+        >
+          Administrar estados
+        </NuxtLink>
+      </li>
+
+      <li v-for="entry in visibleNavigationEntries" :key="entry.id">
+        <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-all"
+          :class="[navigationEntryClass(entry.id), touchMode ? 'min-h-11' : 'min-h-10']"
+          :aria-current="navigationAriaCurrent(entry.id)"
+          :aria-label="navigationRowLabel(entry)"
+          :data-testid="`documents-navigation-${navigationMode}-${entry.id}`"
+          @click="$emit('select-entity', entry.id)"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="block truncate" :title="entry.name">{{ entry.name }}</span>
+            <span v-if="entry.unavailable" class="block text-2xs text-warning-strong">
+              No disponible; quita esta selección para continuar.
             </span>
-          </summary>
-          <div v-if="filteredOutProjectCount" class="flex items-center justify-between gap-2 px-3 py-1.5">
-            <span class="text-2xs text-text-subtle">
-              {{ filteredOutProjectCount }} fuera del filtro de estados
+            <span v-else-if="navigationEntrySubtitle(entry)" class="block truncate text-2xs text-text-subtle">
+              {{ navigationEntrySubtitle(entry) }}
             </span>
-            <button
-              type="button"
-              class="text-xs font-medium text-text-brand hover:text-text-default"
-              data-testid="project-folders-toggle"
-              @click="showAllProjects = !showAllProjects"
-            >
-              {{ showAllProjects ? 'Ver vigentes' : 'Ver todos' }}
-            </button>
-          </div>
-          <div
-            v-if="projectReadinessError"
-            class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
-            data-testid="project-readiness-error"
-          >
-            <p>No se pudo comprobar por qué la sección de proyectos está vacía.</p>
-            <NuxtLink
-              to="/panel/projects"
-              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-            >
-              Revisar proyectos
-            </NuxtLink>
-          </div>
-          <div
-            v-else-if="projectReadiness?.status === 'reconciliation_required'"
-            class="mx-2 my-1 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-text-default"
-            data-testid="project-reconciliation-required"
-          >
-            <p>
-              {{ reconciliationMessage }} Revisa y aplica la conciliación PA-108 antes de convertir carpetas.
-            </p>
-            <NuxtLink
-              to="/panel/projects"
-              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-              data-testid="project-reconciliation-action"
-            >
-              Revisar proyectos
-            </NuxtLink>
-          </div>
-          <div
-            v-else-if="!visibleProjectFolders.length && projectReadiness?.status === 'no_projects'"
-            class="px-3 py-2 text-xs text-text-subtle"
-            data-testid="project-empty-no-projects"
-          >
-            <p>No hay proyectos creados todavía.</p>
-            <NuxtLink
-              to="/panel/projects"
-              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-            >
-              Crear o revisar proyectos
-            </NuxtLink>
-          </div>
-          <div
-            v-else-if="!visibleProjectFolders.length && projectReadiness?.status === 'state_filter_empty'"
-            class="mx-2 my-1 rounded-lg border border-info-strong/30 bg-info-soft px-3 py-2 text-xs text-text-default"
-            data-testid="project-state-filter-empty"
-          >
-            <p>
-              Hay {{ projectReadiness.project_count }} proyectos, pero ningún estado está habilitado para mostrarlos aquí.
-            </p>
-            <NuxtLink
-              to="/panel/projects/statuses"
-              class="mt-1 inline-flex font-medium text-text-brand hover:text-text-default"
-              data-testid="project-state-filter-action"
-            >
-              Administrar estados
-            </NuxtLink>
-          </div>
-          <p
-            v-else-if="!visibleProjectFolders.length"
-            class="px-3 py-2 text-xs text-text-subtle"
-            data-testid="project-empty-fallback"
-          >
-            No hay proyectos en este filtro.
-          </p>
-          <ul v-if="visibleProjectFolders.length" class="mt-1 space-y-1" role="list">
-            <li v-for="folder in visibleProjectFolders" :key="folder.id">
-              <div
-                class="flex items-center rounded-lg transition-all"
-                :class="[entryClass(folder.id), dropZoneClass(folder.id)]"
-                @dragover.prevent="onFolderDragOver(folder.id)"
-                @dragleave="dragOverId = null"
-                @drop.prevent="onFolderDrop(folder.id)"
-              >
-                <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
-                <button
-                  type="button"
-                  class="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm"
-                  :class="touchMode ? 'min-h-11' : ''"
-                  :aria-current="ariaCurrent(folder.id)"
-                  :aria-label="projectRowLabel(folder)"
-                  :data-testid="`project-folder-${folder.id}`"
-                  @click="$emit('select', folder.id)"
-                >
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate font-medium" :title="folder.name">{{ folder.name }}</span>
-                    <span class="block truncate text-2xs text-text-subtle">
-                      {{ folder.managed_project_state?.name || 'Sin estado' }}
-                    </span>
-                  </span>
-                  <span
-                    v-if="rowCounts(folder).subs"
-                    class="flex flex-shrink-0 items-center gap-0.5 text-xs text-text-subtle"
-                    data-testid="folder-subfolder-count"
-                  >
-                    <BaseActionIcon action="folders" />
-                    {{ rowCounts(folder).subs }}
-                  </span>
-                  <span class="flex flex-shrink-0 items-center gap-0.5 text-xs text-text-subtle" data-testid="folder-document-count">
-                    <BaseActionIcon action="documents" />
-                    {{ rowCounts(folder).docs }}
-                  </span>
-                </button>
-              </div>
-            </li>
-          </ul>
-        </details>
+          </span>
+          <span class="flex shrink-0 items-center gap-2 text-xs text-text-subtle">
+            <span class="flex items-center gap-0.5">
+              <!-- panel-action-icons: allow-status-glyph — identifies the adjacent folder inventory. -->
+              <FolderIcon class="h-3 w-3" aria-hidden="true" />
+              {{ navigationCounts(entry.counts).folders }}
+            </span>
+            <span class="flex items-center gap-0.5">
+              <!-- panel-action-icons: allow-status-glyph — identifies the adjacent document inventory. -->
+              <DocumentTextIcon class="h-3 w-3" aria-hidden="true" />
+              {{ navigationCounts(entry.counts).documents }}
+            </span>
+          </span>
+        </button>
+      </li>
+
+      <li v-if="navigationLoading" class="px-3 py-4 text-center text-xs text-text-subtle">
+        Cargando {{ navigationMode === 'project' ? 'proyectos' : 'clientes' }}…
+      </li>
+      <li
+        v-else-if="!visibleNavigationEntries.length && !hasProjectReadinessNotice"
+        class="px-3 py-4 text-center text-xs text-text-subtle"
+        :data-testid="navigationMode === 'project' ? 'project-empty-fallback' : undefined"
+      >
+        {{ navigationSearch.trim() ? 'No hay coincidencias.' : `No hay ${navigationMode === 'project' ? 'proyectos' : 'clientes'} con contenido.` }}
+      </li>
+      <li v-if="navigationError" class="rounded-lg bg-danger-soft px-3 py-2 text-xs text-text-default">
+        <p>{{ navigationError }}</p>
+        <button
+          type="button"
+          class="mt-1 font-medium text-text-brand hover:text-text-default"
+          data-testid="documents-navigation-retry"
+          @click="$emit('retry-navigation')"
+        >
+          Reintentar
+        </button>
       </li>
 
       <li class="my-1 border-t border-border-muted"></li>
@@ -213,11 +241,52 @@
       <li role="presentation">
         <details open data-testid="manual-folder-section">
           <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
-            <span>Carpetas</span>
+            <span>Carpetas propias</span>
             <span class="font-normal normal-case text-text-subtle" data-testid="manual-folder-section-count">
               {{ sectionInventory(manualFolders) }}
             </span>
           </summary>
+          <div class="flex items-center justify-end px-3 py-1">
+            <button
+              type="button"
+              class="text-xs font-medium text-text-brand hover:text-text-default"
+              @click="$emit('manage')"
+            >
+              Gestionar
+            </button>
+          </div>
+          <ul class="space-y-1" role="list">
+            <li>
+              <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-all"
+                :class="[entryClass('all'), touchMode ? 'min-h-11' : '']"
+                :aria-current="ariaCurrent('all')"
+                @click="$emit('select', 'all')"
+              >
+                <span>Todos los documentos</span>
+                <span class="text-xs text-text-subtle">{{ totalCount }}</span>
+              </button>
+            </li>
+            <li>
+              <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-all"
+                :class="[entryClass('none'), dropZoneClass('none'), touchMode ? 'min-h-11' : '']"
+                :aria-current="ariaCurrent('none')"
+                @click="$emit('select', 'none')"
+                @dragover.prevent="dragOverId = 'none'"
+                @dragleave="dragOverId = null"
+                @drop.prevent="onDrop(null)"
+              >
+                <span>Sin carpeta</span>
+                <BaseActionIcon v-if="isDragging" action="move" class="text-text-subtle" />
+                <span v-else class="text-xs text-text-subtle">{{ unfiledCount }}</span>
+              </button>
+            </li>
+          </ul>
           <p v-if="!manualFolders.length" class="px-3 py-2 text-xs text-text-subtle">
             No hay carpetas propias en este ámbito.
           </p>
@@ -406,7 +475,9 @@
 import { computed, ref, watch } from 'vue';
 import { DocumentTextIcon, FolderIcon } from '@heroicons/vue/24/outline';
 import draggable from 'vuedraggable';
+import EntityNavigationModeSwitch from '~/components/panel/EntityNavigationModeSwitch.vue';
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue';
+import BaseInput from '~/components/base/BaseInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import { folderRowLabel, folderRowSummary, scopedCounts } from '~/utils/documentStatus';
 
@@ -417,6 +488,20 @@ const props = defineProps({
   totalCount: { type: Number, default: 0 },
   archivedCount: { type: Number, default: 0 },
   unfiledCount: { type: Number, default: 0 },
+  navigationMode: { type: String, default: 'project' },
+  navigationSelection: { type: [String, Number], default: 'all' },
+  navigationFacets: {
+    type: Object,
+    default: () => ({
+      totals: {},
+      unassigned: { project: {}, client: {} },
+      projects: [],
+      clients: [],
+    }),
+  },
+  navigationLoading: { type: Boolean, default: false },
+  navigationSaving: { type: Boolean, default: false },
+  navigationError: { type: String, default: '' },
   isDragging: { type: Boolean, default: false },
   draggingFolderId: { type: [String, Number], default: null },
   // La búsqueda recorre los dos estados, así que el interruptor queda inerte
@@ -430,7 +515,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'select', 'manage', 'folder-drop', 'edit', 'delete', 'archive', 'view-archived',
-  'toggle-archived',
+  'toggle-archived', 'update:navigation-mode', 'select-entity', 'retry-navigation',
 ]);
 
 const folderStore = useDocumentFolderStore();
@@ -438,25 +523,78 @@ const dragOverId = ref(null);
 const localFolders = ref([]);
 const isFolderDragging = ref(false);
 const showAllProjects = ref(false);
-
-const projectFolders = computed(() => props.folders
-  .filter((folder) => folder.folder_kind === 'project')
-  .sort((a, b) => a.name.localeCompare(b.name)));
+const navigationSearch = ref('');
 
 const manualFolders = computed(() => props.folders
   .filter((folder) => folder.folder_kind !== 'project'));
 
-const visibleProjectFolders = computed(() => (
-  showAllProjects.value
-    ? projectFolders.value
-    : projectFolders.value.filter(
-      (folder) => folder.is_project_visible || folder.id === props.activeId,
-    )
+const baseNavigationEntries = computed(() => (
+  props.navigationMode === 'project'
+    ? props.navigationFacets.projects || []
+    : props.navigationFacets.clients || []
 ));
 
-const filteredOutProjectCount = computed(
-  () => projectFolders.value.filter((folder) => !folder.is_project_visible).length,
-);
+const navigationEntries = computed(() => {
+  const rows = [...baseNavigationEntries.value];
+  const selected = props.navigationSelection;
+  if (
+    typeof selected === 'number'
+    && !rows.some((entry) => entry.id === selected)
+  ) {
+    rows.unshift({
+      id: selected,
+      name: `${props.navigationMode === 'project' ? 'Proyecto' : 'Cliente'} #${selected}`,
+      unavailable: true,
+      is_visible: true,
+      counts: {},
+    });
+  }
+  return rows;
+});
+
+const stateVisibleNavigationEntries = computed(() => {
+  if (props.navigationMode !== 'project' || showAllProjects.value) {
+    return navigationEntries.value;
+  }
+  return navigationEntries.value.filter(
+    (entry) => entry.is_visible || navigationIsSelected(entry.id),
+  );
+});
+
+const visibleNavigationEntries = computed(() => {
+  const query = navigationSearch.value.trim().toLocaleLowerCase('es');
+  if (!query) return stateVisibleNavigationEntries.value;
+  return stateVisibleNavigationEntries.value.filter(
+    (entry) => entry.name.toLocaleLowerCase('es').includes(query),
+  );
+});
+
+const filteredOutNavigationCount = computed(() => (
+  props.navigationMode === 'project'
+    ? navigationEntries.value.filter(
+      (entry) => !entry.is_visible && !navigationIsSelected(entry.id),
+    ).length
+    : 0
+));
+
+const navigationAllCounts = computed(() => navigationCounts(props.navigationFacets.totals));
+const navigationUnassignedCounts = computed(() => navigationCounts(
+  props.navigationFacets.unassigned?.[props.navigationMode],
+));
+
+const hasProjectReadinessNotice = computed(() => (
+  props.navigationMode === 'project'
+  && (
+    Boolean(props.projectReadinessError)
+    || ['reconciliation_required', 'no_projects', 'state_filter_empty']
+      .includes(props.projectReadiness?.status)
+  )
+));
+
+watch(() => props.navigationMode, () => {
+  navigationSearch.value = '';
+  showAllProjects.value = false;
+});
 
 const reconciliationMessage = computed(() => {
   const missing = props.projectReadiness?.missing_root_count || 0;
@@ -473,6 +611,50 @@ const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted';
 
 function entryClass(id) {
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;
+}
+
+function navigationIsSelected(id) {
+  return String(props.navigationSelection) === String(id);
+}
+
+function navigationEntryClass(id) {
+  return navigationIsSelected(id) ? ACTIVE_CLASS : INACTIVE_CLASS;
+}
+
+function navigationAriaCurrent(id) {
+  return navigationIsSelected(id) ? 'page' : undefined;
+}
+
+function navigationCounts(counts = {}) {
+  const active = counts?.active || {};
+  const archived = counts?.archived || {};
+  if (props.archiveScope === 'archived') {
+    return {
+      folders: archived.folders || 0,
+      documents: archived.documents || 0,
+    };
+  }
+  if (props.archiveScope === 'all') {
+    return {
+      folders: (active.folders || 0) + (archived.folders || 0),
+      documents: (active.documents || 0) + (archived.documents || 0),
+    };
+  }
+  return {
+    folders: active.folders || 0,
+    documents: active.documents || 0,
+  };
+}
+
+function navigationEntrySubtitle(entry) {
+  if (props.navigationMode === 'project') return entry.state?.name || 'Sin estado';
+  return entry.is_inactive ? 'Cliente inactivo' : '';
+}
+
+function navigationRowLabel(entry) {
+  const counts = navigationCounts(entry.counts);
+  const unavailable = entry.unavailable ? ', no disponible' : '';
+  return `${entry.name}${unavailable}, ${counts.folders} carpetas, ${counts.documents} documentos`;
 }
 
 // El resaltado de la fila de carpeta vive en el div contenedor (comparte la
@@ -498,11 +680,6 @@ function rowCounts(folder) {
 
 function rowLabel(folder) {
   return folderRowLabel(folder.name, rowCounts(folder));
-}
-
-function projectRowLabel(folder) {
-  const state = folder.managed_project_state?.name || 'Sin estado';
-  return `${rowLabel(folder)} — Proyecto, ${state}`;
 }
 
 function sectionInventory(folders) {

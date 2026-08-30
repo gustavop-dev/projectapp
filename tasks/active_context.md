@@ -2,6 +2,17 @@
 
 ## Current State
 
+**2026-08-29 — Gestor Documental navegable por proyecto o cliente:** Documentos
+reutiliza el interruptor segmentado de Comunicaciones sobre la lista lateral y
+recuerda la elección por cuenta. Ambos modos incluyen sólo entidades con
+contenido, inventarios separados de carpetas/documentos que cuentan todo el
+subárbol, estados de proyecto ocultables con acceso explícito y destinos
+permanentes **Sin proyecto/Sin cliente**. La selección filtra el listado y queda
+reproducible con `by`, `project` o `client` en la URL. **Carpetas propias** sigue
+siendo un eje independiente aun cuando fallen las facetas. Backend, preferencia,
+store, composable, componente, build y los flujos E2E focales quedan cubiertos;
+la migración se aplicará únicamente durante deploy.
+
 **2026-08-29 — Formularios de creación del panel listos para integrar:** Nuevo
 proyecto ya se lee como un bloque: nombre, cliente, estado y descripción ocupan
 el mismo ancho; En desarrollo aparece seleccionado sin texto contradictorio; la

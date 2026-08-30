@@ -302,7 +302,7 @@ test.describe('Admin Document Title Column Resize', () => {
 
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await expect(link).not.toHaveAttribute('title', LONG_TITLE);
-    await expect(page).toHaveURL(/\/panel\/documents\/?$/);
+    await expect(page).toHaveURL((url) => /\/panel\/documents\/?$/.test(url.pathname));
     const dimensions = await link.evaluate((element) => ({
       client: element.clientHeight,
       scroll: element.scrollHeight,

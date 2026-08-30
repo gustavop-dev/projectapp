@@ -82,7 +82,7 @@ const LISTINGS = [
     handler: handlers.documents,
     inertCell: 'doc-client-cell-1',
     titleLink: 'document-open-1',
-    hrefPattern: /\/panel\/documents\/1\/edit\?from=\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?panel\/documents\?focus=1$/,
+    hrefPattern: /\/panel\/documents\/1\/edit\?from=\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?panel\/documents\?by=project%26focus=1$/,
     detail: /\/panel\/documents\/1\/edit/,
   },
   {
