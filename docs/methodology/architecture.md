@@ -7,11 +7,11 @@
 > selector compartido, no una salida descubierta después del fallo. No cambia
 > el contrato REST ni el modelo de datos.
 
-> **Comunicaciones 2026-08-29:** `/panel/communications` has two list
+> **Comunicaciones 2026-08-30:** `/panel/communications` has two list
 > projections over the same thread DTO: a comparison table at landscape+ and a
 > compact card index below it. `CommunicationThreadTable` owns both projections,
-> bounds the optional message excerpt locally and leaves the workspace modal as
-> the only complete-content reader. Browser-local order preference augments the
+> renders the thread title as the sole **Asunto** content and leaves every message
+> body in the workspace modal. Browser-local order preference augments the
 > canonical URL without changing REST, models or schema.
 
 > **Engagement 2026-08-29:** el navegador es dueño del ciclo visible/oculto del
