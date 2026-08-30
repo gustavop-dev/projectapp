@@ -108,6 +108,15 @@ def make_folderless_account(project):
     )
 
 
+def make_unassigned_document(*, client_user=None, title='Documento histórico'):
+    return Document.objects.create(
+        title=title,
+        client_user=client_user,
+        client_name='Nombre histórico preservado',
+        content_markdown='# Contenido histórico',
+    )
+
+
 def test_manifest_proposes_project_root_nesting():
     make_project('gm@example.com', 'G&M', company='G&M')
     kore_project, _german_profile = make_project(
@@ -184,6 +193,128 @@ def test_plan_command_records_client_root_assignment_directive(tmp_path):
         'folder_id': client_root.id,
         'client_profile_id': client_profile.id,
     }]
+
+
+def test_plan_records_document_project_assignment_to_managed_root(tmp_path):
+    project, _profile = make_project('vastago@example.com', 'Vástago')
+    document = make_unassigned_document()
+    output = tmp_path / 'document-reconciliation.json'
+
+    call_command(
+        'reconcile_project_folders',
+        plan=str(output),
+        assign_document_project=[f'{document.id}:{project.id}'],
+    )
+
+    manifest = json.loads(output.read_text(encoding='utf-8'))
+    action = next(
+        row for row in manifest['actions']
+        if row.get('document_id') == document.id
+    )
+    assert manifest['version'] == 5
+    assert manifest['planning_directives']['document_project_assignments'] == [{
+        'document_id': document.id,
+        'project_id': project.id,
+    }]
+    assert action['type'] == 'assign_document_project'
+    assert action['target_strategy'] == 'project_root'
+    assert action['target_path'] == 'Proyectos / Vástago'
+
+
+def test_plan_rejects_conflicting_document_project_directives(tmp_path):
+    first, _first_profile = make_project('first@example.com', 'Primero')
+    second, _second_profile = make_project('second@example.com', 'Segundo')
+    document = make_unassigned_document()
+
+    with pytest.raises(CommandError, match='dos proyectos distintos'):
+        call_command(
+            'reconcile_project_folders',
+            plan=str(tmp_path / 'conflicting.json'),
+            assign_document_project=[
+                f'{document.id}:{first.id}',
+                f'{document.id}:{second.id}',
+            ],
+        )
+
+
+def test_apply_rejects_document_assignment_directive(tmp_path):
+    project, _profile = make_project('plan-only@example.com', 'Plan only')
+    document = make_unassigned_document()
+
+    with pytest.raises(CommandError, match='sólo se aceptan con --plan'):
+        call_command(
+            'reconcile_project_folders',
+            apply_reviewed=str(tmp_path / 'missing.json'),
+            assign_document_project=[f'{document.id}:{project.id}'],
+        )
+
+
+def test_plan_uses_canonical_path_for_assigned_collection_account():
+    project, _profile = make_project('tenndalux@example.com', 'Tenndalux')
+    document = Document.objects.create(
+        title='Cuenta histórica',
+        document_type=get_collection_account_document_type(),
+        commercial_status=Document.CommercialStatus.ISSUED,
+        issue_date=date(2026, 8, 14),
+        client_user=project.client,
+    )
+
+    manifest = build_manifest(
+        document_project_assignments={document.id: project.id},
+    )
+
+    action = next(
+        row for row in manifest['actions']
+        if row.get('document_id') == document.id
+    )
+    assert action['target_strategy'] == 'generated_path'
+    assert action['target_path'] == (
+        'Proyectos / Tenndalux / Cuentas de cobro / 2026 / 08 - Agosto'
+    )
+
+
+def test_plan_rejects_unknown_document_assignment():
+    project, _profile = make_project('known-project@example.com', 'Conocido')
+
+    with pytest.raises(CommandError, match='No existen los documentos'):
+        build_manifest(document_project_assignments={999999: project.id})
+
+
+def test_plan_rejects_unknown_project_assignment():
+    document = make_unassigned_document()
+
+    with pytest.raises(CommandError, match='No existen los proyectos'):
+        build_manifest(document_project_assignments={document.id: 999999})
+
+
+def test_plan_rejects_document_that_is_already_filed():
+    project, _profile = make_project('filed@example.com', 'Filed')
+    folder = DocumentFolder.objects.create(name='Ubicación manual')
+    document = make_unassigned_document()
+    document.folder = folder
+    document.save(update_fields=['folder', 'updated_at'])
+
+    with pytest.raises(CommandError, match='documentos sin carpeta'):
+        build_manifest(document_project_assignments={document.id: project.id})
+
+
+def test_plan_rejects_document_that_already_has_project():
+    project, _profile = make_project('linked@example.com', 'Linked')
+    document = make_unassigned_document(client_user=project.client)
+    document.project = project
+    document.save(update_fields=['project', 'updated_at'])
+
+    with pytest.raises(CommandError, match='documentos sin proyecto'):
+        build_manifest(document_project_assignments={document.id: project.id})
+
+
+def test_plan_rejects_document_from_another_client():
+    project, _profile = make_project('target@example.com', 'Target')
+    other, _other_profile = make_project('other@example.com', 'Other')
+    document = make_unassigned_document(client_user=other.client)
+
+    with pytest.raises(CommandError, match='pertenecen a otro cliente'):
+        build_manifest(document_project_assignments={document.id: project.id})
 
 
 def test_plan_command_proposes_prueba_root(tmp_path):
@@ -293,6 +424,97 @@ def test_apply_files_only_the_reviewed_project_document(tmp_path):
     )
     assert filed['document_id'] == document.id
     assert filed['folder_id'] is None
+
+
+def test_apply_assigns_plain_document_to_project_root_and_records_inverse(
+    tmp_path,
+):
+    project, _profile = make_project('vastago-apply@example.com', 'Vástago')
+    document = make_unassigned_document()
+    original_client_name = document.client_name
+    reviewed = tmp_path / 'vastago-reviewed.json'
+    digest = reviewed_file(
+        reviewed,
+        build_manifest(
+            document_project_assignments={document.id: project.id},
+        ),
+        approved_types=('create', 'assign_document_project'),
+    )
+
+    inverse_path = apply_reviewed(reviewed, digest, tmp_path)
+
+    document.refresh_from_db()
+    root = DocumentFolder.objects.get(managed_project=project)
+    assert document.folder_id == root.id
+    assert document.project_id == project.id
+    assert document.client_user_id == project.client_id
+    assert document.client_name == original_client_name
+    inverse = json.loads(inverse_path.read_text(encoding='utf-8'))
+    assignment = next(
+        row for row in inverse['changes']
+        if row['type'] == 'assigned_document_project'
+    )
+    assert assignment == {
+        'type': 'assigned_document_project',
+        'document_id': document.id,
+        'folder_id': None,
+        'project_id': None,
+        'client_user_id': None,
+        'created_folder_ids': [],
+    }
+
+
+def test_apply_assigns_collection_account_to_generated_project_path(tmp_path):
+    project, _profile = make_project('gm-apply@example.com', 'G&M')
+    document = Document.objects.create(
+        title='Cuenta sin asociación',
+        document_type=get_collection_account_document_type(),
+        commercial_status=Document.CommercialStatus.ISSUED,
+        issue_date=date(2026, 8, 2),
+    )
+    reviewed = tmp_path / 'gm-reviewed.json'
+    digest = reviewed_file(
+        reviewed,
+        build_manifest(
+            document_project_assignments={document.id: project.id},
+        ),
+        approved_types=('create', 'assign_document_project'),
+    )
+
+    inverse_path = apply_reviewed(reviewed, digest, tmp_path)
+
+    document.refresh_from_db()
+    assert document.project_id == project.id
+    assert document.client_user_id == project.client_id
+    assert [
+        *(folder.name for folder in document.folder.get_ancestors()),
+        document.folder.name,
+    ] == ['G&M', 'Cuentas de cobro', '2026', '08 - Agosto']
+    inverse = json.loads(inverse_path.read_text(encoding='utf-8'))
+    assignment = next(
+        row for row in inverse['changes']
+        if row['type'] == 'assigned_document_project'
+    )
+    assert assignment['created_folder_ids']
+
+
+def test_apply_requires_approved_root_for_document_assignment(tmp_path):
+    project, _profile = make_project('root-required@example.com', 'Sin raíz')
+    document = make_unassigned_document()
+    reviewed = tmp_path / 'root-required.json'
+    digest = reviewed_file(
+        reviewed,
+        build_manifest(
+            document_project_assignments={document.id: project.id},
+        ),
+        approved_types=('assign_document_project',),
+    )
+
+    with pytest.raises(CommandError, match='requiere aprobar su raíz'):
+        apply_reviewed(reviewed, digest, tmp_path)
+
+    document.refresh_from_db()
+    assert document.project_id is None
 
 
 def test_manifest_flags_a_project_document_inside_an_unrelated_tree():

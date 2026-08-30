@@ -71,6 +71,22 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-047] Los proyectos suspendidos ignoraban el control de archivados
+
+- **Date**: 2026-08-30
+- **Context**: Candle aparecía en el Gestor Documental al entrar aunque el
+  interruptor visible estuviera apagado; ese mismo interruptor controlaba en
+  realidad carpetas/documentos archivados, no el ciclo del proyecto.
+- **Root Cause**: El grupo no operativo se renderizaba siempre y la interfaz
+  presentaba un solo control para dos dimensiones independientes.
+- **Resolution**: El catálogo incorpora «Ver proyectos no activos», local a la
+  visita, apagado por defecto e inclusivo. «Ver archivados» conserva el scope de
+  contenido y se mueve junto a Carpetas propias. Ocultar el grupo restablece a
+  Todos si la selección dejaría de ser visible.
+- **Verification**: pruebas unitarias cubren ambos ejes y la posición; el flujo
+  E2E entra desde Panel, comprueba el default, revela Candle sin ocultar activos
+  y valida el restablecimiento.
+
 ### [ERR-046] Los tooltips breves de acciones se partían letra por letra
 
 - **Date**: 2026-08-30
@@ -80,9 +96,9 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   `overflow-wrap:anywhere`; ese permiso de corte también reducía el ancho
   mínimo calculado para textos breves.
 - **Resolution**: `BaseTooltip` conserva el wrap seguro como política por
-  defecto y expone `contentClass`. `BaseActionButton` selecciona una sola línea
-  horizontal para sus rótulos breves, manteniendo el ancho máximo y el clamp al
-  viewport.
+  defecto y expone `contentClass`. Las acciones de carpeta migraron al único
+  `BaseActionButton`, que selecciona una sola línea horizontal, teleporta al
+  viewport y desactiva el `title` nativo; eliminar ya no expone dos tooltips.
 - **Verification**: prueba unitaria de clases y escenario Playwright que comprueba
   `white-space: nowrap`, geometría horizontal y contención en viewport.
 
@@ -102,9 +118,10 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Resolution**: Todo `Project` pertenece al mismo catálogo de Documentos y
   Comunicaciones; no existe un opt-out por módulo. El ciclo sólo decide el grupo
   activo/archivado. `DocumentFolder.managed_project` identifica la única raíz
-  canónica. La adopción histórica usa un manifiesto v4 con conversiones,
-  anidamientos explícitos (Carlos→Vástago y Germán→Kore), asignaciones de
-  cliente, huella completa, respaldo obligatorio y snapshot inverso. Las
+  canónica. La adopción histórica usa un manifiesto v5 con conversiones,
+  anidamiento explícito de Germán→Kore y asignaciones revisadas de documentos
+  sueltos; Carlos y Gustavo permanecen intactos. Conserva huella completa,
+  respaldo obligatorio y snapshot inverso. Las
   selecciones limpian siempre los otros ejes, y Carpetas propias muestra sólo
   raíces sin proyecto ni cliente. PRUEBA permanece visible para pruebas y Candle
   se presenta archivado por ciclo sin archivar sus documentos. El aviso técnico

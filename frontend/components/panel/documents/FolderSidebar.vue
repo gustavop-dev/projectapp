@@ -22,34 +22,23 @@
       />
     </div>
 
-    <!--
-      Interruptor de modo, deliberadamente FUERA de la lista. Como pseudo-entrada
-      entre las carpetas, «Archivados» se leía como un destino más y el usuario no
-      tenía cómo saber que el archivo es el ámbito en que se ve TODO el panel:
-      volvía a «Todos», seguía viendo archivados y lo tomaba por documentos
-      perdidos. Un interruptor sí declara un modo.
-    -->
     <div
-      class="px-3 py-2.5 border-b border-border-muted flex items-center justify-between gap-2 flex-shrink-0 transition-colors"
-      :class="archivedMode ? 'bg-warning-soft' : ''"
+      v-if="navigationMode === 'project'"
+      class="flex shrink-0 items-center justify-between gap-2 border-b border-border-muted px-3 py-2.5 transition-colors"
+      :class="showInactiveProjects ? 'bg-warning-soft' : ''"
+      data-testid="inactive-projects-control"
     >
       <span class="flex items-center gap-2 min-w-0">
-        <svg class="w-3.5 h-3.5 flex-shrink-0 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-        </svg>
-        <span class="text-sm truncate" :class="archivedMode ? 'font-medium text-text-default' : 'text-text-muted'">
-          Ver archivados
+        <span class="text-sm truncate" :class="showInactiveProjects ? 'font-medium text-text-default' : 'text-text-muted'">
+          Ver proyectos no activos
         </span>
-        <span class="text-xs text-text-subtle flex-shrink-0" data-testid="folder-archived-count">{{ archivedCount }}</span>
       </span>
       <BaseToggle
-        :model-value="archivedMode"
-        :disabled="scopeLocked"
+        :model-value="showInactiveProjects"
         size="sm"
-        aria-label="Ver archivados"
-        disabled-reason="La búsqueda recorre activos y archivados."
-        data-testid="folder-archived-entry"
-        @update:model-value="$emit('toggle-archived', $event)"
+        aria-label="Ver proyectos no activos"
+        data-testid="inactive-projects-toggle"
+        @update:model-value="$emit('toggle-inactive-projects', $event)"
       />
     </div>
 
@@ -141,14 +130,14 @@
         </button>
       </li>
 
-      <li v-if="archivedNavigationEntries.length" role="presentation">
+      <li v-if="visibleArchivedNavigationEntries.length" role="presentation">
         <details open data-testid="documents-navigation-archived-group">
           <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
             <span>{{ navigationArchivedGroupLabel }}</span>
-            <span class="font-normal normal-case text-text-subtle">{{ archivedNavigationEntries.length }}</span>
+            <span class="font-normal normal-case text-text-subtle">{{ visibleArchivedNavigationEntries.length }}</span>
           </summary>
           <ul class="mt-1 space-y-1" role="list">
-            <li v-for="entry in archivedNavigationEntries" :key="entry.id">
+            <li v-for="entry in visibleArchivedNavigationEntries" :key="entry.id">
               <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
               <button
                 type="button"
@@ -190,7 +179,7 @@
         Cargando {{ navigationMode === 'project' ? 'proyectos' : 'clientes' }}…
       </li>
       <li
-        v-else-if="!activeNavigationEntries.length && !archivedNavigationEntries.length"
+        v-else-if="!activeNavigationEntries.length && !visibleArchivedNavigationEntries.length"
         class="px-3 py-4 text-center text-xs text-text-subtle"
         :data-testid="navigationMode === 'project' ? 'project-empty-fallback' : undefined"
       >
@@ -208,7 +197,30 @@
         </button>
       </li>
 
-      <li class="my-1 border-t border-border-muted"></li>
+      <li
+        class="flex items-center justify-between gap-2 border-y border-border-muted px-3 py-2.5 transition-colors"
+        :class="archivedMode ? 'bg-warning-soft' : ''"
+        data-testid="document-archive-control"
+      >
+        <span class="flex min-w-0 items-center gap-2">
+          <svg class="h-3.5 w-3.5 shrink-0 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+          <span class="truncate text-sm" :class="archivedMode ? 'font-medium text-text-default' : 'text-text-muted'">
+            Ver archivados
+          </span>
+          <span class="shrink-0 text-xs text-text-subtle" data-testid="folder-archived-count">{{ archivedCount }}</span>
+        </span>
+        <BaseToggle
+          :model-value="archivedMode"
+          :disabled="scopeLocked"
+          size="sm"
+          aria-label="Ver archivados"
+          disabled-reason="La búsqueda recorre activos y archivados."
+          data-testid="folder-archived-entry"
+          @update:model-value="$emit('toggle-archived', $event)"
+        />
+      </li>
 
       <li role="presentation">
         <details open data-testid="manual-folder-section">
@@ -354,64 +366,46 @@
                 <!-- Editar vive acá por lo mismo que archivar y eliminar: es
                      igual de frecuente, y hasta ahora era la única de las tres
                      que había que ir a buscar al modal de NUEVA carpeta. -->
-                <BaseTooltip position="top" width="max-w-xs" min-width="min-w-0">
-                  <template #trigger>
-                    <BaseButton
-                      variant="ghost"
-                      icon-only
-                      size="sm"
-                      :aria-label="`Editar carpeta ${folder.name}`"
-                      :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
-                      data-testid="folder-edit"
-                      @click="$emit('edit', folder)"
-                    >
-                      <BaseActionIcon action="edit" />
-                    </BaseButton>
-                  </template>
-                  Editar carpeta
-                </BaseTooltip>
+                <BaseActionButton
+                  action="edit"
+                  variant="ghost"
+                  size="sm"
+                  :label="`Editar carpeta ${folder.name}`"
+                  tooltip="Editar carpeta"
+                  :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
+                  data-testid="folder-edit"
+                  @click="$emit('edit', folder)"
+                />
 
                 <!-- Archivar vive acá y no sólo en el gestor de carpetas: es la
                      salida para una carpeta con contenido, que no se puede
                      eliminar. Por eso está siempre habilitado. -->
-                <BaseTooltip position="top" width="max-w-xs" min-width="min-w-0">
-                  <template #trigger>
-                    <BaseButton
-                      variant="ghost"
-                      icon-only
-                      size="sm"
-                      :aria-label="`Archivar carpeta ${folder.name}`"
-                      :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
-                      data-testid="folder-archive"
-                      @click="$emit('archive', folder)"
-                    >
-                      <BaseActionIcon action="archive" />
-                    </BaseButton>
-                  </template>
-                  Archivar carpeta
-                </BaseTooltip>
+                <BaseActionButton
+                  action="archive"
+                  variant="ghost"
+                  size="sm"
+                  :label="`Archivar carpeta ${folder.name}`"
+                  tooltip="Archivar carpeta"
+                  :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
+                  data-testid="folder-archive"
+                  @click="$emit('archive', folder)"
+                />
 
                 <!-- Eliminar sólo se ofrece cuando de verdad se puede: el
                      backend responde 409 con cualquier contenido, archivado
                      incluido, así que el conteo tiene que mirarlo todo. -->
-                <BaseTooltip position="top" width="max-w-xs" min-width="min-w-0">
-                  <template #trigger>
-                    <BaseButton
-                      variant="danger-ghost"
-                      icon-only
-                      size="sm"
-                      :disabled="hasContent(folder)"
-                      :disabled-reason="deleteTooltip(folder)"
-                      :aria-label="`Eliminar carpeta ${folder.name}`"
-                      :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
-                      data-testid="folder-delete"
-                      @click="$emit('delete', folder)"
-                    >
-                      <BaseActionIcon action="delete" />
-                    </BaseButton>
-                  </template>
-                  {{ deleteTooltip(folder) }}
-                </BaseTooltip>
+                <BaseActionButton
+                  action="delete"
+                  variant="danger-ghost"
+                  size="sm"
+                  :disabled="hasContent(folder)"
+                  :disabled-reason="deleteTooltip(folder)"
+                  :label="`Eliminar carpeta ${folder.name}`"
+                  :tooltip="deleteTooltip(folder)"
+                  :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
+                  data-testid="folder-delete"
+                  @click="$emit('delete', folder)"
+                />
               </div>
             </div>
           </li>
@@ -445,6 +439,7 @@ const props = defineProps({
   activeId: { type: [String, Number], default: 'all' },
   archiveScope: { type: String, default: 'active' },
   archivedCount: { type: Number, default: 0 },
+  showInactiveProjects: { type: Boolean, default: false },
   unfiledCount: { type: Number, default: 0 },
   navigationMode: { type: String, default: 'project' },
   navigationSelection: { type: [String, Number], default: 'all' },
@@ -471,7 +466,8 @@ const props = defineProps({
 
 const emit = defineEmits([
   'select', 'manage', 'folder-drop', 'edit', 'delete', 'archive', 'view-archived',
-  'toggle-archived', 'update:navigation-mode', 'select-entity', 'retry-navigation',
+  'toggle-archived', 'toggle-inactive-projects', 'update:navigation-mode',
+  'select-entity', 'retry-navigation',
 ]);
 
 const folderStore = useDocumentFolderStore();
@@ -533,6 +529,11 @@ const activeNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter((entry) => !isArchivedNavigationEntry(entry)));
 const archivedNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter(isArchivedNavigationEntry));
+const visibleArchivedNavigationEntries = computed(() => (
+  props.navigationMode === 'project' && !props.showInactiveProjects
+    ? []
+    : archivedNavigationEntries.value
+));
 const navigationArchivedGroupLabel = computed(() => (
   props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes inactivos'
 ));

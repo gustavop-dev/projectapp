@@ -2,22 +2,24 @@
 
 ## Current State
 
-**2026-08-30 — catálogo y carpetas de proyecto unificados, listos para
-integrar:** Documentos y Comunicaciones enumeran todos los proyectos canónicos,
-incluidos los que aún no tienen contenido. El efecto operativo decide únicamente
-si cada entrada aparece en Proyectos activos o archivados: PRUEBA permanece en
-activos para pruebas y Candle aparece en archivados por estar Suspendido. Se
+**2026-08-30 — catálogo, archivo y conciliación documental corregidos, listos
+para integrar:** Documentos y Comunicaciones enumeran todos los proyectos
+canónicos, incluidos los que aún no tienen contenido. En Documentos sólo el
+catálogo operativo aparece al entrar; «Ver proyectos no activos» revela Candle
+de forma inclusiva y vuelve a Todos al ocultar una selección no operativa.
+«Ver archivados» conserva el scope independiente de carpetas/documentos y vive
+junto a Carpetas propias. PRUEBA permanece operativo para pruebas. Se
 eliminó `Project.document_manager_enabled`; la relación única
 `DocumentFolder.managed_project` identifica la raíz canónica y evita que una
-carpeta de proyecto se duplique bajo **Carpetas propias**. El manifiesto v4 puede
+carpeta de proyecto se duplique bajo **Carpetas propias**. El manifiesto v5 puede
 promover las raíces conocidas de G&M, Vástago, Xpandia, Kore y Tenndalux, crear
-las de Mimittos, PRUEBA y Candle, y anidar Carlos bajo Vástago y Germán bajo Kore
-sin duplicar sus árboles. Las raíces de Gustavo, Aarón y Littigio se asignan a
-sus clientes; ProjectApp y Requirement Estimates permanecen propias y los casos
-ambiguos siguen intactos. El aviso técnico de PA-108 desapareció de la interfaz
-y los tooltips breves de acciones conservan una línea horizontal dentro del
-viewport. Producción no fue mutada: tras desplegar se debe respaldar, generar y
-revisar el plan, y sólo entonces aplicar el artefacto aprobado.
+las de Mimittos, PRUEBA y Candle y anidar Germán bajo Kore. También asocia de
+forma explícita los documentos 1–5/135/157 a Vástago, 154 a Tenndalux y 159 a
+G&M; 120 conserva Mimittos. Carlos, Gustavo, Aarón, Littigio, ProjectApp y
+Requirement Estimates permanecen propias. Los tooltips de acciones usan una
+sola burbuja horizontal y Actualizar recupera el contraste primario. Producción
+no fue mutada: tras desplegar se debe respaldar, generar y revisar el plan, y
+sólo entonces aplicar el artefacto aprobado.
 
 **2026-08-30 — Configuraciones de Comunicaciones listas para integrar:** el acceso
 quedó junto a Nuevo hilo y abre una superficie interna con preferencias personales
@@ -71,8 +73,9 @@ layout apilado. Pasan 19 unitarias, la interacción de ayuda y las geometrías d
 2026-08-30):** Documentos reutiliza el interruptor segmentado de Comunicaciones
 sobre la lista lateral y recuerda la elección por cuenta. Ambos modos enumeran
 el catálogo completo aunque una entidad todavía tenga cero contenido; los
-inventarios separados de carpetas/documentos cuentan todo el subárbol y los
-proyectos se agrupan como activos/archivados sin ocultarlos. La selección filtra
+inventarios separados de carpetas/documentos cuentan todo el subárbol. Los
+proyectos operativos se muestran por defecto y los no activos se revelan con un
+toggle independiente. La selección filtra
 el listado y queda reproducible con `by`, `project` o `client` en la URL.
 **Carpetas propias** contiene únicamente raíces que no pertenecen a un proyecto
 ni a un cliente y sigue disponible aun cuando fallen las facetas.
@@ -108,7 +111,7 @@ build Nuxt y la auditoría de 355 flujos (0 missing, 0 junk-only).
 2026-08-30):** el filing automático reutiliza Cuentas de cobro/Propuestas bajo
 la única raíz de cada proyecto y retira wrappers legados vacíos. La alerta
 técnica de conciliación y el opt-out por proyecto fueron retirados de la UX; el
-catálogo completo y el manifiesto v4 descritos al inicio de este archivo son el
+catálogo completo y el manifiesto v5 descritos al inicio de este archivo son el
 contrato vigente. Producción sigue sin mutarse: tras el deploy corresponde
 respaldar, generar, revisar y aplicar únicamente el artefacto aprobado.
 
@@ -188,7 +191,7 @@ Entregables y QA; todo descendiente hereda proyecto/cliente salvo asociación
 explícita. REST, MCP, admin y restricciones de base impiden alterar el primer
 nivel automático, mientras borrar el proyecto conserva la jerarquía como carpeta
 manual. La adopción histórica se realiza exclusivamente mediante el manifiesto
-v4 revisado, con fingerprint, respaldo y snapshot inverso.
+v5 revisado, con fingerprint, respaldo y snapshot inverso.
 
 **2026-08-28 — Títulos de Documentos legibles con un solo aviso:**
 `BaseOverflowText` mide el recorte real y publica el nombre completo mediante un

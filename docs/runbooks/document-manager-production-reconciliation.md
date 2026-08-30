@@ -9,10 +9,10 @@ base de producción.
 
 - Ejecutar únicamente desde el clon desplegado de producción, nunca desde un
   worktree de sesión.
-- Desplegar primero el código y las migraciones hasta
-  `accounts.0061_remove_project_document_manager_enabled`. El catálogo deja de
-  tener un opt-out por módulo: todo `Project` debe aparecer en Documentos y
-  Comunicaciones.
+- Desplegar primero el código que soporta el manifiesto v5. Producción ya debe
+  tener aplicadas al menos `accounts.0061` y `content.0230`; esta entrega no
+  agrega una migración de esquema. El vínculo `DocumentFolder.managed_project`
+  sigue siendo la marca única de raíz de proyecto.
 - Crear y verificar un respaldo de la base antes de aplicar. Conservar su ruta o
   identificador para `--backup-reference`.
 - No renombrar, mover, archivar ni editar carpetas o documentos entre la
@@ -32,12 +32,16 @@ cd /home/ryzepeck/webapps/projectapp/backend
 source ../.venv/bin/activate
 python manage.py reconcile_project_folders \
   --plan /ruta/segura/document-manager-20260830.json \
-  --nest-project-root 2:10 \
   --nest-project-root 64:9 \
-  --assign-client-root 3:36 \
-  --assign-client-root 61:36 \
-  --assign-client-root 58:52 \
-  --assign-client-root 80:61
+  --assign-document-project 1:10 \
+  --assign-document-project 2:10 \
+  --assign-document-project 3:10 \
+  --assign-document-project 4:10 \
+  --assign-document-project 5:10 \
+  --assign-document-project 135:10 \
+  --assign-document-project 157:10 \
+  --assign-document-project 154:12 \
+  --assign-document-project 159:8
 ```
 
 El comando escribe el JSON y un reporte Markdown contiguo, imprime su SHA-256 y
@@ -52,7 +56,6 @@ línea base, no autorización automática:
 |---|---|---|---|
 | Proyecto 8 | G&M / raíz 5 | Convertir | 4 carpetas, 13 documentos |
 | Proyecto 10 | Vástago / raíz 7 | Convertir | 9 carpetas, 55 documentos |
-| Proyecto 10 | Carlos / raíz 2 | Anidar bajo Vástago | 1 carpeta, 3 documentos |
 | Proyecto 11 | Xpandia / raíz 55 | Convertir | 4 carpetas, 6 documentos |
 | Proyecto 9 | Kore / raíz 65 | Convertir | 1 carpeta, 2 documentos |
 | Proyecto 9 | Germán Franco / raíz 64 | Anidar bajo Kore | 1 carpeta, 3 documentos |
@@ -60,9 +63,10 @@ línea base, no autorización automática:
 | Proyecto 5 | Mimittos | Crear raíz y revisar documento 120 | Documento sin carpeta |
 | Proyecto 13 | Candle | Crear/adoptar raíz; catálogo archivado | Suspendido tras migración de ciclo |
 | Proyecto 7 | PRUEBA | Crear raíz gestionada | Proyecto de pruebas visible y aislado |
-| Cliente 36 | Gustavo / raíces 3 y 61 | Asignar ambas al cliente | No anidar ni fusionar |
-| Cliente 52 | Aarón / raíz 58 | Asignar al cliente | No anidar ni fusionar |
-| Cliente 61 | Littigio / raíz 80 | Asignar al cliente | No anidar ni fusionar |
+| Proyecto 10 | Documentos 1–5 | Asociar y mover a la raíz Vástago | Markdown históricos sin carpeta/cliente |
+| Proyecto 10 | Documentos 135 y 157 | Asociar y ubicar en ruta canónica | Cuentas de cobro del cliente de Vástago |
+| Proyecto 12 | Documento 154 | Asociar y ubicar en ruta canónica | Cuenta de cobro del cliente de Tenndalux |
+| Proyecto 8 | Documento 159 | Asociar y ubicar en ruta canónica | Cuenta de cobro del cliente de G&M |
 
 Para cada acción con `decision: "pending"`:
 
@@ -75,10 +79,15 @@ Para cada acción con `decision: "pending"`:
   bajo **Proyectos archivados** sin archivar sus documentos;
 - confirmar que PRUEBA produzca una acción `create` y permanezca en el catálogo
   activo para pruebas;
-- confirmar que Carlos y Germán produzcan `nest_project_root` cuyo destino sea
-  la acción `convert` de Vástago y Kore respectivamente;
-- dejar ProjectApp, Requirement Estimates, Familia, Temporal y cualquier otra
-  raíz sin relación inequívoca como **Carpeta propia**.
+- confirmar que Germán produzca `nest_project_root` cuyo destino sea la acción
+  `convert` de Kore;
+- aprobar `assign_document_project` únicamente para los documentos 1–5, 135,
+  157, 154 y 159 y verificar su proyecto/cliente/ruta antes de hacerlo;
+- dejar Carlos y Gustavo sin cambios por ahora;
+- dejar Aarón, Littigio, ProjectApp, Requirement Estimates y cualquier otra
+  raíz sin relación inequívoca como **Carpeta propia**;
+- confirmar que el documento 120 ya conserve `project=5` y produzca
+  `file_document` hacia la ruta canónica de Mimittos.
 
 La aplicación rechaza un manifiesto con decisiones pendientes o con tipos no
 aplicables aprobados.
@@ -109,22 +118,26 @@ del plan, la aplicación se cancela sin conciliar datos.
 
 ## 4. Verificación posterior
 
-- Vástago conserva exactamente 10 carpetas y 58 documentos: la raíz 7 queda
-  gestionada por el proyecto 10 y Carlos (raíz 2) vive dentro de ella.
-- G&M conserva 4 carpetas/13 documentos, Xpandia 4/6, Kore 2/5 —incluida la
-  rama Germán Franco— y Tenndalux 2/2. Cada proyecto tiene una sola raíz
-  `managed_project`.
+- Existen exactamente ocho raíces activas con `managed_project`, una por cada
+  proyecto, y `project_folder_readiness()` informa `status=ready` y
+  `missing_root_count=0`.
+- Los conteos documentales por proyecto son: G&M 14, Vástago 62, Xpandia 6,
+  Kore 5 —incluida la rama Germán Franco—, Tenndalux 3, Mimittos 1, PRUEBA 0 y
+  Candle 0.
+- No queda ningún documento sin carpeta. Los documentos 1–5 viven directamente
+  en la raíz de Vástago; 120, 135, 157, 154 y 159 viven en sus rutas automáticas
+  de cuentas de cobro.
 - Mimittos tiene una raíz y el documento 120 queda en su ruta automática sólo
   si esa acción fue aprobada.
 - PRUEBA aparece en los catálogos activos de Documentos y Comunicaciones aunque
   todavía no tenga contenido.
 - Candle aparece bajo **Proyectos archivados**; sus documentos permanecen
   activos salvo que ya estuvieran archivados por una operación independiente.
-- Vástago y Kore también son accesibles por sus clientes; Carlos y Germán no se
-  duplican como raíces propias. Gustavo, Aarón y Littigio aparecen bajo Clientes
-  con las raíces explícitamente aprobadas.
-- Familia, Temporal y las demás raíces realmente huérfanas siguen visibles sólo
-  en **Carpetas propias**.
+- Las raíces 5, 7, 55, 65 y 78 ya no aparecen en **Carpetas propias**; se
+  presentan exclusivamente desde su proyecto. Germán Franco tampoco queda como
+  raíz propia porque vive bajo Kore.
+- Carlos, Gustavo, Aarón, Littigio, ProjectApp, Requirement Estimates y las
+  demás raíces todavía no conciliadas siguen visibles sólo en **Carpetas propias**.
 - Cambiar entre proyecto, cliente y carpeta manual limpia los otros dos filtros
   y nunca produce una intersección residual vacía.
 

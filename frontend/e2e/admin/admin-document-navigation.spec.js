@@ -289,16 +289,42 @@ test.describe('Admin document project/client navigation', () => {
       .toContainText('Archivo interno');
   });
 
-  test('groups suspended projects as archived without hiding them', {
+  test('reveals suspended projects only through the lifecycle toggle', {
     tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupNavigationApi(page);
     await openDocumentsFromPanel(page);
 
+    await expect(page.getByTestId('inactive-projects-toggle'))
+      .toHaveAttribute('aria-checked', 'false');
+    await expect(page.getByTestId('documents-navigation-project-42')).toHaveCount(0);
+    await expect(page.getByTestId('documents-navigation-project-41')).toBeVisible();
+
+    await page.getByTestId('inactive-projects-toggle').click();
+
     await expect(page.getByTestId('documents-navigation-archived-group'))
       .toContainText('Proyectos archivados');
     await expect(page.getByTestId('documents-navigation-project-42'))
       .toContainText('Proyecto suspendido');
+    await expect(page.getByTestId('documents-navigation-project-41')).toBeVisible();
+  });
+
+  test('returns to Todos when non-active projects are hidden', {
+    tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupNavigationApi(page);
+    await openDocuments(page);
+
+    await page.getByTestId('inactive-projects-toggle').click();
+    await page.getByTestId('documents-navigation-project-42').click();
+    await expect(page).toHaveURL(/project=42/);
+
+    await page.getByTestId('inactive-projects-toggle').click();
+
+    await expect(page).not.toHaveURL(/project=/);
+    await expect(page.getByTestId('documents-navigation-all'))
+      .toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('documents-navigation-project-42')).toHaveCount(0);
   });
 
   test('manual folder selection clears a previously selected project', {
