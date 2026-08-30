@@ -116,6 +116,7 @@ def ensure_fake_data_allowed(command_name: str) -> None:
 # maintenance rule into an executable check for every future model delivery.
 SEEDED_MODELS = {
     'accounts.BugReport', 'accounts.ChangeRequest', 'accounts.DataModelEntity',
+    'accounts.CommunicationPanelPreference',
     'accounts.Deliverable', 'accounts.HostingSubscription',
     'accounts.Notification', 'accounts.Payment', 'accounts.Project',
     'accounts.ProjectDataModelEntity', 'accounts.Requirement',

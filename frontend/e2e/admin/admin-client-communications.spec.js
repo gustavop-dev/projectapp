@@ -175,13 +175,24 @@ const factorySavedTabs = [
   is_hidden: false,
 }));
 
+const communicationPreferenceDefaults = {
+  navigation_mode: 'project',
+  thread_order: 'recent',
+  page_size: 20,
+  default_channel: 'whatsapp',
+  show_manual_help: true,
+  navigation_width: 288,
+};
+
 async function setupCommunicationsApi(page, {
   listFailure = false,
   messageFailure = false,
   onMessage = null,
   onListRequest = null,
+  onPreference = null,
   onSavedView = null,
   initialSavedTabs = [],
+  initialPreferences = {},
   projectName = 'Portal de clientes',
 } = {}) {
   let shouldFailList = listFailure;
@@ -189,6 +200,10 @@ async function setupCommunicationsApi(page, {
     thread: {
       ...listThread({ project_name: projectName }),
       messages: [outgoingMessage, incomingMessage],
+    },
+    preferences: {
+      ...communicationPreferenceDefaults,
+      ...initialPreferences,
     },
     savedTabs: [
       ...factorySavedTabs.map((tab) => ({ ...tab })),
@@ -208,6 +223,38 @@ async function setupCommunicationsApi(page, {
 
   await mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
+
+    if (apiPath === 'accounts/panel-preferences/communications/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...state.preferences, legacy_import_allowed: false }),
+      };
+    }
+
+    if (apiPath === 'accounts/panel-preferences/communications/' && method === 'PATCH') {
+      const payload = route.request().postDataJSON();
+      state.preferences = { ...state.preferences, ...payload };
+      if (onPreference) onPreference(payload, { ...state.preferences });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(state.preferences),
+      };
+    }
+
+    if (
+      apiPath === 'accounts/panel-preferences/communications/reset/'
+      && method === 'POST'
+    ) {
+      state.preferences = { ...communicationPreferenceDefaults };
+      if (onPreference) onPreference({ reset: true }, { ...state.preferences });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(state.preferences),
+      };
+    }
 
     if (apiPath === 'communications/threads/' && method === 'GET') {
       if (onListRequest) onListRequest(route.request().url());
@@ -540,8 +587,10 @@ test.describe('Admin Client Communications', () => {
     ],
   }, async ({ page }) => {
     const listRequests = [];
+    const preferenceUpdates = [];
     await setupCommunicationsApi(page, {
       onListRequest: (url) => listRequests.push(url),
+      onPreference: (payload) => preferenceUpdates.push(payload),
     });
     await gotoCommunications(page);
 
@@ -550,9 +599,7 @@ test.describe('Admin Client Communications', () => {
     await expect(oldestOrder).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(/order=oldest/);
     await expect.poll(() => listRequests.some((url) => url.includes('order=oldest'))).toBe(true);
-    await expect.poll(() => page.evaluate(() => (
-      window.localStorage.getItem('panel.communications.order')
-    ))).toBe('oldest');
+    await expect.poll(() => preferenceUpdates).toContainEqual({ thread_order: 'oldest' });
 
     const laterVisitRequestIndex = listRequests.length;
     await gotoCommunications(page);
@@ -607,11 +654,12 @@ test.describe('Admin Client Communications', () => {
     });
     await gotoCommunications(page);
 
-    if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
-      await page.getByTestId('filter-tabs-select').selectOption('__config__');
-    } else {
-      await page.getByTestId('filter-tabs-config').click();
-    }
+    await expect(page.locator(
+      '[data-testid="communications-settings"] + [data-testid="communications-new-thread"]',
+    )).toBeVisible();
+    await page.getByTestId('communications-settings').click();
+    await expect(page.getByTestId('communications-new-thread')).toBeDisabled();
+    await expect(page.getByTestId('filter-tabs-config')).toHaveCount(0);
     await expect(page.getByTestId('view-settings-panel'))
       .toContainText('Tus pestañas propias se conservan.');
     await page.getByTestId('view-settings-reset-tabs-communication').click();
@@ -622,6 +670,7 @@ test.describe('Admin Client Communications', () => {
     ));
     await page.getByTestId('confirm-modal-confirm').click();
     await resetResponse;
+    await page.getByTestId('communication-settings-back').click();
 
     if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
       const filterSelect = page.getByTestId('filter-tabs-select');
@@ -706,11 +755,16 @@ test.describe('Admin Client Communications', () => {
   test('keeps the manual notice dismissed until help reopens it', {
     tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    await setupCommunicationsApi(page);
+    const preferenceUpdates = [];
+    await setupCommunicationsApi(page, {
+      onPreference: (payload) => preferenceUpdates.push(payload),
+    });
     // quality: allow-deep-link (panel entry is covered by the timeline display outcome)
     await gotoCommunications(page);
 
     await page.getByRole('button', { name: 'Cerrar alerta' }).click();
+    await expect.poll(() => preferenceUpdates)
+      .toContainEqual({ show_manual_help: false });
     await expect(page.getByTestId('communications-channel-scope')).toHaveCount(0);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('communications-channel-scope')).toHaveCount(0);
@@ -723,8 +777,12 @@ test.describe('Admin Client Communications', () => {
     tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const longProjectName = 'Portal de clientes con seguimiento contractual ampliado';
+    const preferenceUpdates = [];
     await page.setViewportSize({ width: 1440, height: 900 });
-    await setupCommunicationsApi(page, { projectName: longProjectName });
+    await setupCommunicationsApi(page, {
+      projectName: longProjectName,
+      onPreference: (payload) => preferenceUpdates.push(payload),
+    });
     await gotoCommunications(page);
 
     const handle = page.getByTestId('communications-navigation-resize-handle');
@@ -734,30 +792,61 @@ test.describe('Admin Client Communications', () => {
     await expect(handle).toHaveAttribute('aria-valuenow', '288');
     await handle.press('End');
     await expect(handle).toHaveAttribute('aria-valuenow', '400');
+    await expect.poll(() => preferenceUpdates)
+      .toContainEqual({ navigation_width: 400 });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('communications-navigation-resize-handle'))
       .toHaveAttribute('aria-valuenow', '400');
   });
 
-  test('registers an outgoing WhatsApp message as sent', {
+  test('uses persisted settings for a new message', {
     tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let submittedPayload = null;
+    const listRequests = [];
+    const preferenceUpdates = [];
     await setupCommunicationsApi(page, {
       onMessage: (payload) => { submittedPayload = payload; },
+      onListRequest: (url) => listRequests.push(url),
+      onPreference: (payload) => preferenceUpdates.push(payload),
     });
     await gotoCommunications(page);
+
+    await page.getByTestId('communications-settings').click();
+    const settings = page.getByTestId('communication-settings-panel');
+    await settings.getByTestId('communication-settings-default-channel')
+      .getByRole('tab', { name: 'Correo' }).click();
+    await settings.getByTestId('communication-settings-page-size')
+      .getByRole('tab', { name: '50' }).click();
+    await settings.getByTestId('communication-settings-save').click();
+    await expect.poll(() => preferenceUpdates).toContainEqual({
+      default_channel: 'email',
+      page_size: 50,
+    });
+    await expect.poll(() => listRequests.some((url) => url.includes('page_size=50'))).toBe(true);
+
+    await gotoCommunications(page);
+    await page.getByTestId('communications-settings').click();
+    await expect(page.getByTestId('communication-settings-default-channel')
+      .getByRole('tab', { name: 'Correo' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('communication-settings-page-size')
+      .getByRole('tab', { name: '50' })).toHaveAttribute('aria-selected', 'true');
+    await page.getByTestId('communication-settings-back').click();
     await openMainThread(page);
 
+    await expect(page.getByTestId('communication-message-channel')).toHaveValue('email');
+    await page.getByTestId('communication-message-subject')
+      .fill('Inicio del trabajo');
     await page.getByTestId('communication-message-content')
       .fill('Confirmamos que el equipo inicia mañana.');
     await page.getByTestId('communication-register-sent').click();
 
     await expect.poll(() => submittedPayload).toMatchObject({
-      channel: 'whatsapp',
+      channel: 'email',
       direction: 'outgoing',
       status: 'sent',
+      subject: 'Inicio del trabajo',
       content: 'Confirmamos que el equipo inicia mañana.',
     });
     await expect(page.getByTestId('communication-timeline')

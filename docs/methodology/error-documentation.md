@@ -7,6 +7,11 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Prevención verificada 2026-08-30 — preferencias de Comunicaciones:** la carga
+> de preferencias no es una dependencia dura del listado; los defaults vigentes
+> siguen disponibles si la API falla, un guardado fallido conserva el borrador y
+> la navegación con cambios pendientes exige guardar, descartar o continuar.
+
 > **Revisión 2026-08-29 — filtros prediseñados de Comunicaciones:** no se abrió
 > un incidente de producción. La implementación evita tres regresiones conocidas
 > del patrón: los ceros no se omiten, el conteo de una pestaña no hereda el corte

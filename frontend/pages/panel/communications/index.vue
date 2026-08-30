@@ -7,17 +7,39 @@
           Registro por cliente de lo enviado y recibido, organizado por proyecto o por cliente.
         </p>
       </div>
-      <BaseButton
-        variant="primary"
-        size="md"
-        data-testid="communications-new-thread"
-        @click="openThreadForm"
-      >
-        <BaseActionIcon action="create" />
-        Nuevo hilo
-      </BaseButton>
+      <div class="flex flex-wrap items-center gap-2">
+        <BaseButton
+          :variant="isConfigOpen ? 'primary' : 'secondary'"
+          size="md"
+          data-testid="communications-settings"
+          :aria-pressed="isConfigOpen"
+          @click="toggleSettings"
+        >
+          <BaseActionIcon action="settings" />
+          Configuraciones
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="md"
+          data-testid="communications-new-thread"
+          :disabled="isConfigOpen"
+          disabled-reason="Vuelve a los hilos antes de crear uno nuevo."
+          @click="openThreadForm"
+        >
+          <BaseActionIcon action="create" />
+          Nuevo hilo
+        </BaseButton>
+      </div>
     </header>
 
+    <CommunicationSettingsPanel
+      v-if="isConfigOpen"
+      ref="settingsPanelRef"
+      @close="isConfigOpen = false"
+      @reset-tabs="handleResetTabs"
+    />
+
+    <template v-else>
     <BaseAlert
       v-if="noticeReady && showNotice"
       variant="info"
@@ -29,7 +51,7 @@
       Este módulo conserva el registro manual de las conversaciones. Copia el texto a WhatsApp o a tu correo y registra aquí lo enviado o recibido.
     </BaseAlert>
     <div v-else-if="noticeReady" class="mb-3">
-      <BaseButton variant="link" size="sm" data-testid="communications-show-help" @click="showNotice = true">
+      <BaseButton variant="link" size="sm" data-testid="communications-show-help" @click="showManualHelp">
         Cómo funciona el registro manual
       </BaseButton>
     </div>
@@ -40,8 +62,6 @@
       :counts="tabCounts"
       :is-tab-limit-reached="isTabLimitReached"
       count-title="Hilos que cumplen este filtro"
-      show-config-tab
-      :config-active="isConfigOpen"
       @select="handleSelectTab"
       @create="handleCreateTab"
       @rename="renameTab"
@@ -49,16 +69,7 @@
       @restore="restoreTab"
       @rebase="rebaseTab"
       @reorder="reorderTabs"
-      @config="isConfigOpen = true"
     />
-
-    <ViewSettingsPanel
-      v-if="isConfigOpen"
-      :filter-views="[{ value: 'communication', label: 'Comunicaciones' }]"
-      @reset="handleResetTabs"
-    />
-
-    <template v-else>
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-border-muted bg-surface p-3 panel-portrait:flex-row panel-portrait:items-center">
       <BaseInput
         v-model="searchInput"
@@ -85,7 +96,7 @@
             :options="ORDER_OPTIONS"
             size="sm"
             aria-label="Orden de los hilos"
-            @update:model-value="setOrder"
+            @update:model-value="handleSetOrder"
           />
         </div>
         <BaseActionButton
@@ -145,7 +156,7 @@
         :selection="navigationSelection"
         :facets="store.facets"
         data-testid="communications-navigation-panel"
-        @update:mode="setMode"
+        @update:mode="handleSetMode"
         @select="selectNavigation"
       />
 
@@ -198,8 +209,8 @@
           :current-page="store.page"
           :total-pages="store.numPages"
           :total-items="store.count"
-          :range-from="(store.page - 1) * 20 + 1"
-          :range-to="Math.min(store.page * 20, store.count)"
+          :range-from="(store.page - 1) * store.preferences.page_size + 1"
+          :range-to="Math.min(store.page * store.preferences.page_size, store.count)"
           @prev="page = Math.max(1, page - 1)"
           @next="page = Math.min(store.numPages, page + 1)"
           @go="page = $event"
@@ -228,6 +239,7 @@
     <CommunicationWorkspaceModal
       :model-value="workspaceOpen"
       :thread-id="requestedThreadId"
+      :default-channel="store.preferences.default_channel"
       @update:model-value="handleWorkspaceOpenChange"
       @changed="reloadThreadsAndCounts"
     />
@@ -297,14 +309,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import CommunicationFilterPanel from '~/components/communications/CommunicationFilterPanel.vue';
 import CommunicationNavigation from '~/components/communications/CommunicationNavigation.vue';
+import CommunicationSettingsPanel from '~/components/communications/CommunicationSettingsPanel.vue';
 import CommunicationThreadTable from '~/components/communications/CommunicationThreadTable.vue';
 import CommunicationWorkspaceModal from '~/components/communications/CommunicationWorkspaceModal.vue';
-import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import { useCommunicationFilters } from '~/composables/useCommunicationFilters';
 import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
 import {
@@ -322,7 +334,6 @@ import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
-const NOTICE_KEY = 'projectapp-communications-manual-notice-v1';
 const ORDER_OPTIONS = [
   { value: 'recent', label: 'Recientes', testId: 'communications-order-recent' },
   { value: 'oldest', label: 'Antiguos', testId: 'communications-order-oldest' },
@@ -358,6 +369,7 @@ const {
   rebaseTab,
   reorderTabs,
   reloadTabs,
+  filtersReady,
   requestFilters,
 } = useCommunicationFilters();
 
@@ -372,11 +384,16 @@ const {
   onHandleUp,
   resizeWidth: resizePanelWidth,
   resetWidth: resetPanelWidth,
-} = useCommunicationPanelWidth(navigationGridRef);
+  hydrateWidth: hydratePanelWidth,
+} = useCommunicationPanelWidth(navigationGridRef, {
+  initialWidth: store.preferences.navigation_width,
+  onPersist: persistNavigationWidth,
+});
 
 const noticeReady = ref(false);
 const showNotice = ref(false);
 const isConfigOpen = ref(false);
+const settingsPanelRef = ref(null);
 const tabCounts = ref({});
 let tabCountsRequestId = 0;
 const navigationDrawerOpen = ref(false);
@@ -413,8 +430,12 @@ const compactNavigationLabel = computed(() => {
     || (currentFilters.by === 'project' ? 'Proyecto seleccionado' : 'Cliente seleccionado');
 });
 
-const requestSignature = computed(() => JSON.stringify(requestFilters()));
-watch(requestSignature, loadThreads, { immediate: true });
+const requestSignature = computed(() => (
+  filtersReady.value ? JSON.stringify(requestFilters()) : ''
+));
+watch(requestSignature, (signature) => {
+  if (signature) loadThreads();
+}, { immediate: true });
 const tabCountSignature = computed(() => JSON.stringify(
   [...tabCountSpecs.value].sort((left, right) => String(left.id).localeCompare(String(right.id))),
 ));
@@ -423,14 +444,57 @@ watch(requestedThreadId, (threadId) => {
   if (!threadId) store.clearCurrentThread();
 });
 
-onMounted(() => {
-  noticeReady.value = true;
-  showNotice.value = localStorage.getItem(NOTICE_KEY) !== 'dismissed';
-});
+watch(
+  () => store.preferences.show_manual_help,
+  (showHelp) => {
+    if (!store.preferenceReady) return;
+    noticeReady.value = true;
+    showNotice.value = showHelp;
+  },
+  { immediate: true },
+);
+watch(
+  () => store.preferenceReady,
+  (ready) => {
+    if (!ready) return;
+    noticeReady.value = true;
+    showNotice.value = store.preferences.show_manual_help;
+  },
+  { immediate: true },
+);
+watch(
+  () => store.preferences.navigation_width,
+  (width) => hydratePanelWidth(width),
+);
+watch(
+  () => store.preferences.page_size,
+  (pageSize, previousPageSize) => {
+    if (!store.preferenceReady || pageSize === previousPageSize) return;
+    page.value = 1;
+  },
+);
 
-function dismissNotice() {
+async function dismissNotice() {
   showNotice.value = false;
-  localStorage.setItem(NOTICE_KEY, 'dismissed');
+  const result = await store.updatePreferences({ show_manual_help: false });
+  if (!result.success) {
+    notify.warning({
+      title: 'La ayuda se ocultó sólo por esta visita',
+      detail: result.message,
+    });
+  }
+}
+
+function showManualHelp() {
+  showNotice.value = true;
+}
+
+function toggleSettings() {
+  if (isConfigOpen.value) {
+    settingsPanelRef.value?.requestClose();
+    return;
+  }
+  isConfigOpen.value = true;
 }
 
 async function loadThreads() {
@@ -448,7 +512,6 @@ async function reloadThreadsAndCounts() {
 }
 
 function handleSelectTab(tabId) {
-  isConfigOpen.value = false;
   selectTab(tabId);
 }
 
@@ -464,7 +527,36 @@ async function handleCreateTab(name) {
 }
 
 function handleDrawerMode(mode) {
-  setMode(mode);
+  handleSetMode(mode);
+}
+
+async function persistPreference(payload, failureTitle) {
+  const result = await store.updatePreferences(payload);
+  if (!result.success) notify.warning({ title: failureTitle, detail: result.message });
+}
+
+function handleSetMode(mode) {
+  const normalized = mode === 'client' ? 'client' : 'project';
+  setMode(normalized);
+  persistPreference(
+    { navigation_mode: normalized },
+    'El modo cambió sólo por esta visita',
+  );
+}
+
+function handleSetOrder(order) {
+  setOrder(order);
+  persistPreference(
+    { thread_order: currentFilters.order },
+    'El orden cambió sólo por esta visita',
+  );
+}
+
+function persistNavigationWidth(width) {
+  persistPreference(
+    { navigation_width: width },
+    'El ancho cambió sólo por esta visita',
+  );
 }
 
 function handleDrawerSelection(selection) {

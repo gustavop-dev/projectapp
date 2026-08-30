@@ -20,6 +20,7 @@ from accounts.management.commands._seed_helpers import ensure_phase
 from accounts.models import (
     BugReport,
     ChangeRequest,
+    CommunicationPanelPreference,
     Deliverable,
     DeliverableClientFolder,
     DeliverableClientUpload,
@@ -349,6 +350,17 @@ class Command(BaseCommand):
             DiagnosticDefaultConfig.objects.get_or_create(language=lang)
 
         if admin:
+            CommunicationPanelPreference.objects.update_or_create(
+                user=admin,
+                defaults={
+                    'navigation_mode': CommunicationPanelPreference.NAVIGATION_CLIENT,
+                    'thread_order': CommunicationPanelPreference.ORDER_TITLE,
+                    'page_size': 50,
+                    'default_channel': CommunicationPanelPreference.CHANNEL_EMAIL,
+                    'show_manual_help': False,
+                    'navigation_width': 336,
+                },
+            )
             SavedFilterTab.objects.get_or_create(
                 user=admin, view='proposal', name='Aceptadas',
                 defaults={'filters': {'status': ['accepted']}, 'order': 0},

@@ -1,5 +1,4 @@
 import {
-  COMMUNICATION_ORDER_STORAGE_KEY,
   communicationFiltersFromQuery,
   communicationFiltersToQuery,
   resolveCommunicationOrder,
@@ -64,7 +63,7 @@ describe('communication filter URL contract', () => {
     const order = resolveCommunicationOrder({
       queryOrder: 'title',
       savedOrder: 'oldest',
-      storedOrder: 'recent',
+      preferredOrder: 'recent',
     });
 
     expect(order).toBe('title');
@@ -73,24 +72,23 @@ describe('communication filter URL contract', () => {
   it('uses the saved view order when the URL omits it', () => {
     const order = resolveCommunicationOrder({
       savedOrder: 'oldest',
-      storedOrder: 'title',
+      preferredOrder: 'title',
     });
 
     expect(order).toBe('oldest');
   });
 
-  it('uses the browser preference as the final fallback', () => {
-    const order = resolveCommunicationOrder({ storedOrder: 'title' });
+  it('uses the account preference as the final fallback', () => {
+    const order = resolveCommunicationOrder({ preferredOrder: 'title' });
 
     expect(order).toBe('title');
-    expect(COMMUNICATION_ORDER_STORAGE_KEY).toBe('panel.communications.order');
   });
 
   it('falls back to recent for an unsupported explicit order', () => {
     const order = resolveCommunicationOrder({
       queryOrder: 'unsupported',
       savedOrder: 'oldest',
-      storedOrder: 'title',
+      preferredOrder: 'title',
     });
 
     expect(order).toBe('recent');

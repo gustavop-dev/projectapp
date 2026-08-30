@@ -2,6 +2,16 @@
 
 ## Current State
 
+**2026-08-30 — Configuraciones de Comunicaciones listas para integrar:** el acceso
+quedó junto a Nuevo hilo y abre una superficie interna con preferencias personales
+de agrupación, orden, tamaño de página, canal inicial, ayuda y ancho. El contrato
+se persiste por administrador, migra una sola vez valores locales, mantiene la
+precedencia URL/vista guardada y permite restablecer preferencias o pestañas por
+separado. Un fallback evita que una falla de preferencias bloquee los hilos y el
+guard protege borradores sin guardar. No incluye plantillas, automatizaciones,
+proveedores ni cambia el significado del registro manual. Verificación: 15 pytest,
+42 unitarias frontend, 13 Playwright, build, checks estáticos y flow audit verdes.
+
 **2026-08-30 — Catálogo de módulos adicionales ampliado y listo para integrar:**
 el inventario crece de 18 a 23 módulos con CRM, agendamiento, membresías,
 autoservicio del cliente y fidelización/referidos, usando las cinco categorías y
