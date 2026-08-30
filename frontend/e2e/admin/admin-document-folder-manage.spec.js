@@ -28,8 +28,57 @@ const project = {
   client_display_name: 'Kore SAS',
 };
 
+const ownedFolder = {
+  ...emptyFolder,
+  project: 40,
+  client: 7,
+  client_display_name: 'Kore SAS',
+  project_name: 'Kore rediseño',
+};
+
+const navigationPayload = {
+  totals: {
+    active: { folders: 1, documents: 0 },
+    archived: { folders: 0, documents: 0 },
+  },
+  unassigned: {
+    project: {
+      active: { folders: 0, documents: 0 },
+      archived: { folders: 0, documents: 0 },
+    },
+    client: {
+      active: { folders: 0, documents: 0 },
+      archived: { folders: 0, documents: 0 },
+    },
+  },
+  projects: [{
+    id: 40,
+    name: 'Kore rediseño',
+    client: 7,
+    client_display_name: 'Kore SAS',
+    managed_root_id: null,
+    state: { name: 'Activo', system_key: 'active' },
+    is_visible: true,
+    catalog_bucket: 'active',
+    counts: {
+      active: { folders: 1, documents: 0 },
+      archived: { folders: 0, documents: 0 },
+    },
+  }],
+  clients: [],
+};
+
 function baseRoutes(apiPath, folders) {
   if (apiPath === 'auth/check/') return authCheck;
+  if (apiPath === 'accounts/panel-preferences/documents/') {
+    return { status: 200, contentType: 'application/json', body: JSON.stringify({ navigation_mode: 'project' }) };
+  }
+  if (apiPath === 'documents/navigation/') {
+    return { status: 200, contentType: 'application/json', body: JSON.stringify(navigationPayload) };
+  }
+  if (apiPath === 'document-folders/project-readiness/') {
+    return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ready', project_count: 1, enabled_project_count: 1 }) };
+  }
   if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
   if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify(folders) };
   if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
@@ -40,6 +89,14 @@ function baseRoutes(apiPath, folders) {
 async function openFolderManager(page) {
   await page.goto('/panel/documents');
   await page.getByRole('button', { name: /Gestionar/i }).click();
+}
+
+/** Abre una carpeta asignada desde su proyecto, sin duplicarla como huérfana. */
+async function openOwnedFolder(page) {
+  await page.getByTestId('documents-navigation-project-40').click();
+  const row = page.getByRole('row', { name: /Contratos/i });
+  await expect(row).toBeVisible();
+  await row.click();
 }
 
 test.describe('Admin Document Folder Manage', () => {
@@ -119,16 +176,10 @@ test.describe('Admin Document Folder Manage', () => {
   test('edits the folder you are standing in, from its header', {
     tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    const ownedFolder = {
-      ...emptyFolder,
-      client: 7,
-      client_display_name: 'Kore SAS',
-      project_name: 'Kore rediseño',
-    };
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, [ownedFolder]));
     await page.goto('/panel/documents');
 
-    await page.getByTestId('folder-list').getByText('Contratos').first().click();
+    await openOwnedFolder(page);
 
     // La cabecera dice de quién es la carpeta y ofrece editarla ahí mismo.
     await expect(page.getByTestId('folder-header-name')).toHaveText('Contratos');
@@ -143,19 +194,13 @@ test.describe('Admin Document Folder Manage', () => {
   }, async ({ page }) => {
     // Bug caught: a project result inside a short document modal could be
     // clipped before an administrator had a chance to select it.
-    const ownedFolder = {
-      ...emptyFolder,
-      client: 7,
-      client_display_name: 'Kore SAS',
-      project_name: 'Kore rediseño',
-    };
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, [ownedFolder]));
     await page.goto('/panel');
     await page.getByRole('navigation', { name: 'Navegación del panel' })
       .getByRole('link', { name: 'Gestor Documental' })
       .click();
     await expect(page).toHaveURL(/\/panel\/documents/);
-    await page.getByTestId('folder-list').getByText('Contratos').first().click();
+    await openOwnedFolder(page);
     await page.getByTestId('folder-header-edit').click();
     await page.getByTestId('folder-form-project').click();
     const option = page.getByTestId('folder-form-project-option-40');
