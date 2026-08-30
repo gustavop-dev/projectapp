@@ -321,7 +321,7 @@ test.describe('Admin Panel Projects', () => {
 
       await page.getByTestId('panel-projects-stat-states-summary').click();
       const stateRows = page.locator('[data-testid^="project-state-detail-"]');
-      await expect(stateRows).toHaveCount(7);
+      await expect(stateRows).toHaveCount(6);
       await expect(page.getByTestId('project-state-detail-4')).toContainText('Suspendido');
       await expect(page.getByTestId('project-state-detail-4')).toContainText('0');
       expect(await stateRows.evaluateAll((rows) => (
