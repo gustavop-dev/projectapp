@@ -1,5 +1,11 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-08-30:** Comunicaciones incorpora un centro
+> personal de Configuraciones junto a Nuevo hilo, persistencia por cuenta,
+> migración única de preferencias locales, guard de cambios y restablecimientos
+> independientes. Verificación: 15 pruebas backend, 42 unitarias frontend, 13 E2E,
+> build de producción, checks de contrato y auditoría del flujo en verde.
+
 > **Listo para integrar — 2026-08-29:** Nuevo proyecto y los modales de creación
 > del panel comparten validación bajo el campo, anchos coherentes, textos breves,
 > una sola convención de obligatoriedad y una fila final sólo para acciones.

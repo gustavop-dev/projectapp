@@ -1,5 +1,10 @@
 # Technical Documentation — ProjectApp
 
+> **Estado 2026-08-30 — implementado:** `accounts.0058` añade
+> `CommunicationPanelPreference` y los endpoints administradores GET/PATCH/reset.
+> El store normaliza el contrato por cuenta, migra una sola vez las claves locales
+> legadas y conserva defaults seguros si la API falla, sin bloquear el listado.
+
 > **Formularios 2026-08-29:** `BaseFormField` centraliza el mensaje visible,
 > `role="alert"`, `aria-invalid` y `aria-describedby` tanto para validación
 > nativa como para errores explícitos del API. `ClientAutocomplete` sólo ofrece
@@ -523,9 +528,21 @@ selector behavior and always renders a hidden active tab.
 `isPanelStacked` breakpoint: compact profiles render bounded cards with
 `overflow-x-hidden`; larger profiles retain `BaseResponsiveTable`. The latest
 message is normalized and capped at 120 characters before CSS truncation, with
-no `title` or alternate surface that leaks the full body. `useCommunicationFilters`
-stores only the validated order token under `panel.communications.order`; URL
-order wins, followed by a valid saved view, local preference and `recent`.
+no `title` or alternate surface that leaks the full body.
+
+`CommunicationPanelPreference` stores navigation mode, thread order, page size,
+default channel, help visibility and navigation width per account. The admin-only
+GET/PATCH/reset endpoints live under `accounts/panel-preferences/communications/`.
+`useCommunicationFilters` waits for saved tabs and preferences before its first
+list request: URL order wins, followed by a valid saved view, account preference
+and `recent`; navigation follows the same explicit-state precedence. The store
+serializes overlapping writes, keeps safe defaults on preference failure and
+uses the three former localStorage keys only as one-time migration inputs.
+
+`CommunicationSettingsPanel` replaces the list in place while open, protects an
+unsaved draft and separates preference reset from factory-tab reset. Page-size
+changes restart at page one, width changes remain clamped to 240–400 px and the
+workspace uses the preferred channel only for new message forms.
 
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 

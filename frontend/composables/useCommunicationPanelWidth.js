@@ -1,26 +1,27 @@
 import { computed, ref } from 'vue';
 
-import { usePersistedRef } from '~/composables/usePersistedRef';
+import {
+  COMMUNICATION_PANEL_STORAGE_KEY,
+  clampCommunicationPanelWidth,
+} from '~/constants/communicationPreferences';
 
 export const COMMUNICATION_PANEL_MIN = 240;
 export const COMMUNICATION_PANEL_MAX = 400;
 export const COMMUNICATION_PANEL_DEFAULT = 288;
-export const COMMUNICATION_PANEL_KEY = 'projectapp-communications-navigation-width';
+export const COMMUNICATION_PANEL_KEY = COMMUNICATION_PANEL_STORAGE_KEY;
 
 function clamp(value) {
-  const width = Number(value);
-  if (!Number.isFinite(width)) return COMMUNICATION_PANEL_DEFAULT;
-  return Math.min(COMMUNICATION_PANEL_MAX, Math.max(COMMUNICATION_PANEL_MIN, width));
+  return clampCommunicationPanelWidth(value);
 }
 
-export function useCommunicationPanelWidth(containerRef) {
-  const { ref: width, write, remove } = usePersistedRef(
-    COMMUNICATION_PANEL_KEY,
-    COMMUNICATION_PANEL_DEFAULT,
-  );
-  width.value = clamp(width.value);
+export function useCommunicationPanelWidth(containerRef, options = {}) {
+  const width = ref(clamp(options.initialWidth));
   const dragging = ref(false);
   const gridStyle = computed(() => ({ '--communications-panel-w': `${width.value}px` }));
+
+  function persist() {
+    if (typeof options.onPersist === 'function') options.onPersist(width.value);
+  }
 
   function onHandleDown() {
     dragging.value = true;
@@ -36,17 +37,21 @@ export function useCommunicationPanelWidth(containerRef) {
   function onHandleUp() {
     if (!dragging.value) return;
     dragging.value = false;
-    write(width.value);
+    persist();
   }
 
   function resizeWidth(value) {
     width.value = clamp(value);
-    write(width.value);
+    persist();
   }
 
   function resetWidth() {
     width.value = COMMUNICATION_PANEL_DEFAULT;
-    remove();
+    persist();
+  }
+
+  function hydrateWidth(value) {
+    if (!dragging.value) width.value = clamp(value);
   }
 
   return {
@@ -58,5 +63,6 @@ export function useCommunicationPanelWidth(containerRef) {
     onHandleUp,
     resizeWidth,
     resetWidth,
+    hydrateWidth,
   };
 }

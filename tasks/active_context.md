@@ -2,6 +2,16 @@
 
 ## Current State
 
+**2026-08-30 — Configuraciones de Comunicaciones listas para integrar:** el acceso
+quedó junto a Nuevo hilo y abre una superficie interna con preferencias personales
+de agrupación, orden, tamaño de página, canal inicial, ayuda y ancho. El contrato
+se persiste por administrador, migra una sola vez valores locales, mantiene la
+precedencia URL/vista guardada y permite restablecer preferencias o pestañas por
+separado. Un fallback evita que una falla de preferencias bloquee los hilos y el
+guard protege borradores sin guardar. No incluye plantillas, automatizaciones,
+proveedores ni cambia el significado del registro manual. Verificación: 15 pytest,
+42 unitarias frontend, 13 Playwright, build, checks estáticos y flow audit verdes.
+
 **2026-08-29 — Gestor Documental navegable por proyecto o cliente:** Documentos
 reutiliza el interruptor segmentado de Comunicaciones sobre la lista lateral y
 recuerda la elección por cuenta. Ambos modos incluyen sólo entidades con
@@ -60,10 +70,11 @@ debajo de landscape cada hilo es una tarjeta de índice con asunto,
 cliente/proyecto, canal, estado, cantidad, fecha y borradores; el último mensaje
 se normaliza y corta a una sola línea de máximo 120 caracteres. No hay scroll
 horizontal ni rótulo **Hilo** repetido; landscape+ conserva la tabla con
-**Asunto** y el detalle sigue siendo el único lector completo. El orden visible
-se persiste bajo `panel.communications.order` con precedencia URL → vista
-guardada → navegador → recientes. Pasan 15 pruebas Jest y 7 E2E; el flow-map
-está fresco y `admin-client-communications` cubre display/success/error/failure.
+**Asunto** y el detalle sigue siendo el único lector completo. El valor que se
+guardaba bajo `panel.communications.order` se migra una vez a la preferencia de
+cuenta; la precedencia vigente es URL → vista guardada → cuenta → recientes.
+Pasan 15 pruebas Jest y 7 E2E; el flow-map está fresco y
+`admin-client-communications` cubre display/success/error/failure.
 
 **2026-08-29 — Píldoras de estado indivisibles en Documentos:** los filtros de
 Consultas y Estados conservan icono y texto en una sola línea; cuando falta

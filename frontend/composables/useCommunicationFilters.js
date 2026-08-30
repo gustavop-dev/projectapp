@@ -7,6 +7,8 @@ import {
   COMMUNICATION_BUILTIN_BY_ID,
   COMMUNICATION_BUILTIN_TABS,
 } from '~/constants/communicationFilters';
+import { COMMUNICATION_PREFERENCE_DEFAULTS } from '~/constants/communicationPreferences';
+import { useCommunicationsStore } from '~/stores/communications';
 
 export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   by: 'project',
@@ -23,7 +25,6 @@ export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   order: 'recent',
 });
 
-export const COMMUNICATION_ORDER_STORAGE_KEY = 'panel.communications.order';
 const COMMUNICATION_ORDER_VALUES = Object.freeze(['recent', 'oldest', 'title']);
 
 const ARRAY_KEYS = ['status', 'channel', 'direction', 'message_status', 'reply_status'];
@@ -48,34 +49,13 @@ export function normalizeCommunicationOrder(value) {
   return isCommunicationOrder(value) ? value : COMMUNICATION_FILTER_DEFAULTS.order;
 }
 
-export function resolveCommunicationOrder({ queryOrder, savedOrder, storedOrder } = {}) {
+export function resolveCommunicationOrder({ queryOrder, savedOrder, preferredOrder } = {}) {
   if (queryOrder !== undefined && queryOrder !== null && queryOrder !== '') {
     return normalizeCommunicationOrder(queryOrder);
   }
   if (isCommunicationOrder(savedOrder)) return savedOrder;
-  if (isCommunicationOrder(storedOrder)) return storedOrder;
+  if (isCommunicationOrder(preferredOrder)) return preferredOrder;
   return COMMUNICATION_FILTER_DEFAULTS.order;
-}
-
-function readStoredOrder() {
-  if (typeof window === 'undefined') return undefined;
-  try {
-    return window.localStorage.getItem(COMMUNICATION_ORDER_STORAGE_KEY) || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function writeStoredOrder(order) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(
-      COMMUNICATION_ORDER_STORAGE_KEY,
-      normalizeCommunicationOrder(order),
-    );
-  } catch {
-    // Storage may be unavailable in privacy-restricted browser contexts.
-  }
 }
 
 function normalizeStoredFilters(stored = {}) {
@@ -158,15 +138,25 @@ function sameState(a, b) {
 export function useCommunicationFilters() {
   const route = useRoute();
   const router = useRouter();
+  const communicationStore = useCommunicationsStore();
   const initialTabId = scalar(route.query.tab) || 'all';
+  const hasExplicitNavigationState = ['by', 'project', 'client'].some(
+    (key) => route.query[key] !== undefined,
+  );
   const hasExplicitFilterState = FILTER_KEYS.some(
     (key) => key !== 'by' && route.query[key] !== undefined,
   );
   const initialFilters = communicationFiltersFromQuery(route.query);
+  const explicitNavigation = {
+    by: initialFilters.by,
+    project: initialFilters.project,
+    client: initialFilters.client,
+  };
   const initialBuiltin = COMMUNICATION_BUILTIN_BY_ID.get(String(initialTabId));
   if (initialBuiltin && !hasExplicitFilterState) {
     Object.assign(initialFilters, normalizeStoredFilters(initialBuiltin.filters));
   }
+  if (hasExplicitNavigationState) Object.assign(initialFilters, explicitNavigation);
   const currentFilters = reactive(initialFilters);
   const page = ref(pageFromQuery(route.query));
   const activeTabId = ref(initialTabId);
@@ -176,10 +166,10 @@ export function useCommunicationFilters() {
   );
   const searchInput = ref(currentFilters.q);
   const tabs = useSavedFilterTabs('communication');
+  const filtersReady = ref(false);
   let applyingExternalState = false;
   let pendingRouteSignature = '';
   let searchTimer = null;
-  let orderPreferenceReady = false;
 
   const placeholderByKey = computed(() => new Map(
     tabs.savedTabs.value
@@ -238,6 +228,7 @@ export function useCommunicationFilters() {
   }
 
   function replaceUrl() {
+    if (!filtersReady.value) return;
     const query = { ...route.query };
     for (const key of URL_KEYS) delete query[key];
     Object.assign(query, communicationFiltersToQuery(currentFilters));
@@ -282,10 +273,6 @@ export function useCommunicationFilters() {
     { deep: true },
   );
   watch([page, activeTabId], replaceUrl);
-  watch(() => currentFilters.order, (order) => {
-    if (orderPreferenceReady) writeStoredOrder(order);
-  });
-
   watch(
     () => route.query,
     (query) => {
@@ -307,34 +294,63 @@ export function useCommunicationFilters() {
   );
 
   onMounted(async () => {
-    await tabs.loadTabs();
-    const queryOrder = scalar(route.query.order);
-    let savedOrder;
+    try {
+      await Promise.all([
+        tabs.loadTabs(),
+        communicationStore.fetchPreferences(),
+      ]);
+      const queryOrder = scalar(route.query.order);
+      let savedOrder;
+      let savedNavigationMode;
 
-    if (String(activeTabId.value) !== 'all') {
-      const builtin = COMMUNICATION_BUILTIN_BY_ID.get(String(activeTabId.value));
-      if (!builtin) {
-        const tab = tabs.savedTabs.value.find(
-          (candidate) => !candidate.builtin_key
-            && String(candidate.id) === String(activeTabId.value),
-        );
-        if (!tab) {
-          activeTabId.value = 'all';
+      if (String(activeTabId.value) !== 'all') {
+        const builtin = COMMUNICATION_BUILTIN_BY_ID.get(String(activeTabId.value));
+        if (builtin) {
+          savedOrder = isCommunicationOrder(builtin.filters?.order)
+            ? builtin.filters.order
+            : undefined;
+          savedNavigationMode = ['project', 'client'].includes(builtin.filters?.by)
+            ? builtin.filters.by
+            : undefined;
         } else {
-          savedOrder = normalizeStoredFilters(tab.filters).order;
-          if (!hasExplicitFilterState) applySnapshot(tab.filters);
-          activeTabId.value = tab.id;
+          const tab = tabs.savedTabs.value.find(
+            (candidate) => !candidate.builtin_key
+              && String(candidate.id) === String(activeTabId.value),
+          );
+          if (!tab) {
+            activeTabId.value = 'all';
+          } else {
+            savedOrder = isCommunicationOrder(tab.filters?.order)
+              ? tab.filters.order
+              : undefined;
+            savedNavigationMode = ['project', 'client'].includes(tab.filters?.by)
+              ? tab.filters.by
+              : undefined;
+            if (!hasExplicitFilterState) applySnapshot(tab.filters);
+            activeTabId.value = tab.id;
+          }
         }
       }
-    }
 
-    currentFilters.order = resolveCommunicationOrder({
-      queryOrder,
-      savedOrder,
-      storedOrder: readStoredOrder(),
-    });
-    orderPreferenceReady = true;
-    writeStoredOrder(currentFilters.order);
+      if (hasExplicitNavigationState) {
+        applyingExternalState = true;
+        Object.assign(currentFilters, explicitNavigation);
+        applyingExternalState = false;
+      }
+      if (!hasExplicitNavigationState && !savedNavigationMode) {
+        currentFilters.by = communicationStore.preferences.navigation_mode;
+        currentFilters.project = '';
+        currentFilters.client = '';
+      }
+      currentFilters.order = resolveCommunicationOrder({
+        queryOrder,
+        savedOrder,
+        preferredOrder: communicationStore.preferences.thread_order,
+      });
+    } finally {
+      filtersReady.value = true;
+      replaceUrl();
+    }
   });
 
   if (getCurrentScope()) {
@@ -378,12 +394,18 @@ export function useCommunicationFilters() {
     currentFilters.q = '';
     currentFilters.date_from = '';
     currentFilters.date_to = '';
-    currentFilters.order = 'recent';
+    currentFilters.order = communicationStore.preferences.thread_order;
     page.value = 1;
   }
 
   function clearAll() {
-    applySnapshot(COMMUNICATION_FILTER_DEFAULTS);
+    applySnapshot({
+      ...COMMUNICATION_FILTER_DEFAULTS,
+      by: communicationStore.preferences.navigation_mode
+        || COMMUNICATION_PREFERENCE_DEFAULTS.navigation_mode,
+      order: communicationStore.preferences.thread_order
+        || COMMUNICATION_PREFERENCE_DEFAULTS.thread_order,
+    });
     activeTabId.value = 'all';
   }
 
@@ -441,6 +463,7 @@ export function useCommunicationFilters() {
   function requestFilters() {
     const request = {
       page: page.value,
+      page_size: communicationStore.preferences.page_size,
       order: currentFilters.order,
     };
     if (currentFilters.by === 'project' && currentFilters.project) {
@@ -486,6 +509,7 @@ export function useCommunicationFilters() {
     reorderTabs: tabs.reorderTabs,
     reloadTabs: tabs.loadTabs,
     tabsReady: tabs.isReady,
+    filtersReady,
     requestFilters,
   };
 }

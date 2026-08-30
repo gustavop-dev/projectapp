@@ -327,6 +327,11 @@ import { useDocumentStore } from '~/stores/documents';
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   threadId: { type: [Number, String], default: null },
+  defaultChannel: {
+    type: String,
+    default: 'whatsapp',
+    validator: (value) => ['email', 'whatsapp'].includes(value),
+  },
 });
 
 const emit = defineEmits(['update:modelValue', 'changed']);
@@ -352,9 +357,13 @@ function localDateTime(date = new Date()) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
+function initialChannel() {
+  return props.defaultChannel === 'email' ? 'email' : 'whatsapp';
+}
+
 const messageForm = reactive({
   direction: 'outgoing',
-  channel: 'whatsapp',
+  channel: initialChannel(),
   subject: '',
   content: '',
   occurred_at: localDateTime(),
@@ -395,6 +404,9 @@ watch(
   async ([open, threadId], previous) => {
     if (!open || !threadId) return;
     const previousId = previous?.[1];
+    if (!previous?.[0] || Number(previousId) !== Number(threadId)) {
+      resetMessageForm();
+    }
     if (Number(currentThread.value?.id) !== Number(threadId) || Number(previousId) !== Number(threadId)) {
       await loadThread();
     }
@@ -454,7 +466,7 @@ function resetMessageForm() {
   editingMessageId.value = null;
   Object.assign(messageForm, {
     direction: 'outgoing',
-    channel: 'whatsapp',
+    channel: initialChannel(),
     subject: '',
     content: '',
     occurred_at: localDateTime(),

@@ -7,6 +7,12 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-30 — preferencias vs. filtros:** la preferencia personal
+> aporta el fallback de una visita limpia; una URL o vista guardada debe seguir
+> reproduciendo exactamente el recorte explícito y ganar precedencia. Migrar una
+> clave local sólo al crear el perfil evita que un navegador viejo sobrescriba
+> preferencias ya sincronizadas desde otro dispositivo.
+
 > **Lección 2026-08-29 — el error pertenece al campo:** un formulario no debe
 > resumir junto al CTA lo que puede señalar exactamente en el control. La misma
 > fuente del mensaje debe gobernar borde, relación ARIA y limpieza al editar;
