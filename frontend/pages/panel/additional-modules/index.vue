@@ -362,6 +362,7 @@ async function closeDetail() {
             :data-testid="`additional-admin-module-${module.id}`"
           >
             <!-- design-tokens: allow-raw-button — disclosure header owns aria-expanded. -->
+            <!-- panel-action-icons: allow-disclosure — the module icon and state marker describe this content row. -->
             <button
               type="button"
               class="flex min-h-16 w-full min-w-0 items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-surface-raised focus:ring-2 focus:ring-inset focus:ring-focus-ring/40"
