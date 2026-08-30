@@ -6,8 +6,8 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin identifica y busca varios hilos mediante tarjetas compactas de resumen, sin desplazamiento horizontal, y conserva el orden elegido entre visitas. Navega por proyecto, cliente o sin proyecto, ajusta el panel lateral, combina filtros y guarda recortes propios. El aviso manual conserva su cierre y el contenido completo permanece en el detalle modal, con registro bidireccional, estados y documentos referenciados.",
-  "expectedSpecs": 10,
+  "description": "Admin identifica y busca varios hilos mediante tarjetas compactas sin desplazamiento horizontal, conserva el orden elegido entre visitas y navega por proyecto, cliente o sin proyecto. Aplica filtros prediseñados con conteos completos, guarda recortes propios diferenciados y puede restablecer los de fábrica sin perder sus vistas. El aviso manual conserva su cierre y el contenido completo permanece en el detalle modal, con registro bidireccional, estados y documentos referenciados.",
+  "expectedSpecs": 13,
   "outcomes": [
     "display",
     "success",

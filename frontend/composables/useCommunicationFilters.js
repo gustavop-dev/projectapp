@@ -2,7 +2,11 @@ import {
   computed, getCurrentScope, onMounted, onScopeDispose, reactive, ref, watch,
 } from 'vue';
 
-import { useSavedFilterTabs } from '~/composables/useSavedFilterTabs';
+import { sameFilters, useSavedFilterTabs } from '~/composables/useSavedFilterTabs';
+import {
+  COMMUNICATION_BUILTIN_BY_ID,
+  COMMUNICATION_BUILTIN_TABS,
+} from '~/constants/communicationFilters';
 
 export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   by: 'project',
@@ -12,6 +16,7 @@ export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   channel: [],
   direction: [],
   message_status: [],
+  reply_status: [],
   q: '',
   date_from: '',
   date_to: '',
@@ -21,7 +26,7 @@ export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
 export const COMMUNICATION_ORDER_STORAGE_KEY = 'panel.communications.order';
 const COMMUNICATION_ORDER_VALUES = Object.freeze(['recent', 'oldest', 'title']);
 
-const ARRAY_KEYS = ['status', 'channel', 'direction', 'message_status'];
+const ARRAY_KEYS = ['status', 'channel', 'direction', 'message_status', 'reply_status'];
 const FILTER_KEYS = Object.keys(COMMUNICATION_FILTER_DEFAULTS);
 const URL_KEYS = [...FILTER_KEYS, 'page', 'tab'];
 
@@ -104,6 +109,7 @@ export function communicationFiltersFromQuery(query = {}) {
     channel: values(query.channel),
     direction: values(query.direction),
     message_status: values(query.message_status),
+    reply_status: values(query.reply_status),
     q: scalar(query.q) || '',
     date_from: scalar(query.date_from) || '',
     date_to: scalar(query.date_to) || '',
@@ -152,9 +158,18 @@ function sameState(a, b) {
 export function useCommunicationFilters() {
   const route = useRoute();
   const router = useRouter();
-  const currentFilters = reactive(communicationFiltersFromQuery(route.query));
+  const initialTabId = scalar(route.query.tab) || 'all';
+  const hasExplicitFilterState = FILTER_KEYS.some(
+    (key) => key !== 'by' && route.query[key] !== undefined,
+  );
+  const initialFilters = communicationFiltersFromQuery(route.query);
+  const initialBuiltin = COMMUNICATION_BUILTIN_BY_ID.get(String(initialTabId));
+  if (initialBuiltin && !hasExplicitFilterState) {
+    Object.assign(initialFilters, normalizeStoredFilters(initialBuiltin.filters));
+  }
+  const currentFilters = reactive(initialFilters);
   const page = ref(pageFromQuery(route.query));
-  const activeTabId = ref(scalar(route.query.tab) || 'all');
+  const activeTabId = ref(initialTabId);
   const isFilterPanelOpen = ref(
     ARRAY_KEYS.some((key) => currentFilters[key].length)
       || Boolean(currentFilters.date_from || currentFilters.date_to),
@@ -166,8 +181,31 @@ export function useCommunicationFilters() {
   let searchTimer = null;
   let orderPreferenceReady = false;
 
-  const displayTabs = computed(() => [...tabs.savedTabs.value]
-    .sort((a, b) => (a.order || 0) - (b.order || 0)));
+  const placeholderByKey = computed(() => new Map(
+    tabs.savedTabs.value
+      .filter((tab) => tab.builtin_key)
+      .map((tab) => [String(tab.builtin_key), tab]),
+  ));
+  const displayTabs = computed(() => {
+    const placeholders = placeholderByKey.value;
+    const rows = [
+      ...COMMUNICATION_BUILTIN_TABS.map((builtin, index) => {
+        const placeholder = placeholders.get(String(builtin.id));
+        return {
+          ...builtin,
+          builtin: true,
+          order: placeholder ? placeholder.order : -1000 + index,
+          is_hidden: placeholder ? placeholder.is_hidden : false,
+        };
+      }),
+      ...tabs.savedTabs.value.filter((tab) => !tab.builtin_key),
+    ];
+    return rows.sort((a, b) => (a.order || 0) - (b.order || 0));
+  });
+  const tabCountSpecs = computed(() => [
+    { id: 'all', filters: {} },
+    ...displayTabs.value.map((tab) => ({ id: tab.id, filters: tab.filters || {} })),
+  ]);
   const navigationSelection = computed(() => (
     currentFilters.by === 'project'
       ? (currentFilters.project || 'all')
@@ -183,6 +221,12 @@ export function useCommunicationFilters() {
 
   function snapshot() {
     return normalizeStoredFilters(currentFilters);
+  }
+
+  function builtinStillMatches(tab) {
+    return Object.entries(tab.filters || {}).every(([key, value]) => (
+      sameFilters({ [key]: currentFilters[key] }, { [key]: value })
+    ));
   }
 
   function applySnapshot(filters) {
@@ -226,7 +270,12 @@ export function useCommunicationFilters() {
     currentFilters,
     () => {
       if (!applyingExternalState && String(activeTabId.value) !== 'all' && tabs.isReady.value) {
-        tabs.updateTabFilters(Number(activeTabId.value), snapshot());
+        const builtin = COMMUNICATION_BUILTIN_BY_ID.get(String(activeTabId.value));
+        if (builtin) {
+          if (!builtinStillMatches(builtin)) activeTabId.value = 'all';
+        } else {
+          tabs.updateTabFilters(Number(activeTabId.value), snapshot());
+        }
       }
       replaceUrl();
     },
@@ -263,18 +312,19 @@ export function useCommunicationFilters() {
     let savedOrder;
 
     if (String(activeTabId.value) !== 'all') {
-      const tab = tabs.savedTabs.value.find(
-        (candidate) => String(candidate.id) === String(activeTabId.value),
-      );
-      if (!tab) {
-        activeTabId.value = 'all';
-      } else {
-        savedOrder = normalizeStoredFilters(tab.filters).order;
-        const hasExplicitState = FILTER_KEYS.some(
-          (key) => key !== 'by' && route.query[key] !== undefined,
+      const builtin = COMMUNICATION_BUILTIN_BY_ID.get(String(activeTabId.value));
+      if (!builtin) {
+        const tab = tabs.savedTabs.value.find(
+          (candidate) => !candidate.builtin_key
+            && String(candidate.id) === String(activeTabId.value),
         );
-        if (!hasExplicitState) applySnapshot(tab.filters);
-        activeTabId.value = tab.id;
+        if (!tab) {
+          activeTabId.value = 'all';
+        } else {
+          savedOrder = normalizeStoredFilters(tab.filters).order;
+          if (!hasExplicitFilterState) applySnapshot(tab.filters);
+          activeTabId.value = tab.id;
+        }
       }
     }
 
@@ -342,7 +392,15 @@ export function useCommunicationFilters() {
       clearAll();
       return;
     }
-    const tab = tabs.savedTabs.value.find((candidate) => String(candidate.id) === String(tabId));
+    const builtin = COMMUNICATION_BUILTIN_BY_ID.get(String(tabId));
+    if (builtin) {
+      activeTabId.value = builtin.id;
+      applySnapshot(builtin.filters);
+      return;
+    }
+    const tab = tabs.savedTabs.value.find((candidate) => (
+      !candidate.builtin_key && String(candidate.id) === String(tabId)
+    ));
     if (!tab) return;
     activeTabId.value = tab.id;
     applySnapshot(tab.filters);
@@ -356,11 +414,13 @@ export function useCommunicationFilters() {
   }
 
   async function deleteTab(tabId) {
+    if (COMMUNICATION_BUILTIN_BY_ID.has(String(tabId))) return;
     await tabs.deleteTab(Number(tabId));
     if (String(activeTabId.value) === String(tabId)) clearAll();
   }
 
   async function restoreTab(tabId) {
+    if (COMMUNICATION_BUILTIN_BY_ID.has(String(tabId))) return null;
     const restored = await tabs.restoreTab(Number(tabId));
     if (restored && String(activeTabId.value) === String(tabId)) {
       applySnapshot(restored.filters);
@@ -369,10 +429,12 @@ export function useCommunicationFilters() {
   }
 
   function renameTab(tabId, name) {
+    if (COMMUNICATION_BUILTIN_BY_ID.has(String(tabId))) return null;
     return tabs.renameTab(Number(tabId), name);
   }
 
   function rebaseTab(tabId) {
+    if (COMMUNICATION_BUILTIN_BY_ID.has(String(tabId))) return null;
     return tabs.rebaseTab(Number(tabId));
   }
 
@@ -403,6 +465,7 @@ export function useCommunicationFilters() {
     isFilterPanelOpen,
     searchInput,
     displayTabs,
+    tabCountSpecs,
     navigationSelection,
     activeFilterCount,
     hasActiveFilters,
@@ -421,6 +484,8 @@ export function useCommunicationFilters() {
     restoreTab,
     rebaseTab,
     reorderTabs: tabs.reorderTabs,
+    reloadTabs: tabs.loadTabs,
+    tabsReady: tabs.isReady,
     requestFilters,
   };
 }

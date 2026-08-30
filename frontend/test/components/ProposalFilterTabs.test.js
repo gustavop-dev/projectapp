@@ -278,6 +278,38 @@ describe('ProposalFilterTabs restorable base', () => {
     expect(wrapper.find('[data-testid="filter-tabs-tab-tab-2"]').exists()).toBe(false);
   });
 
+  it('keeps the active hidden tab reachable', () => {
+    const wrapper = mountTabs({
+      activeTabId: 'tab-2',
+      tabs: [
+        { id: 'tab-1', name: 'Tab Uno' },
+        { id: 'tab-2', name: 'Tab Dos', is_hidden: true },
+      ],
+    });
+
+    expect(wrapper.get('[data-testid="filter-tabs-tab-tab-2"]').classes())
+      .toContain('border-emerald-600');
+  });
+
+  it('labels a user-created tab when factory tabs coexist', () => {
+    const wrapper = mountTabs({
+      tabs: [
+        { id: 'open', name: 'Abiertos', builtin: true },
+        { id: 71, name: 'Mi seguimiento', is_seeded: false },
+      ],
+    });
+
+    expect(wrapper.get('[data-testid="filter-tabs-origin-71"]').text()).toBe('Propia');
+    expect(wrapper.find('[data-testid="filter-tabs-origin-open"]').exists()).toBe(false);
+    expect(wrapper.get('select').text()).toContain('Mi seguimiento · Propia');
+  });
+
+  it('selects Configuraciones in the compact control', () => {
+    const wrapper = mountTabs({ showConfigTab: true, configActive: true });
+
+    expect(wrapper.get('select').element.value).toBe('__config__');
+  });
+
   // Ningún filtro predefinido puede quedar inalcanzable. El mecanismo es
   // envolver en varias líneas: nada se manda a un menú ni se recorta, así que
   // el activo tampoco necesita que lo traigan a la vista. jsdom no hace layout

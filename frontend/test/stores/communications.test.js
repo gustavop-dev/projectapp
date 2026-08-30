@@ -96,6 +96,27 @@ describe('communications store', () => {
     expect(store.isLoading).toBe(false);
   });
 
+  it('loads tab counts without dropping zero values', async () => {
+    const tabs = [
+      { id: 'all', filters: {} },
+      { id: 'draft-pending', filters: { message_status: ['draft'] } },
+    ];
+    create_request.mockResolvedValueOnce({
+      data: { counts: { all: 3, 'draft-pending': 0 } },
+    });
+    const store = useCommunicationsStore();
+
+    const result = await store.fetchTabCounts(tabs);
+
+    expect(create_request).toHaveBeenCalledWith(
+      'communications/threads/tab-counts/', { tabs },
+    );
+    expect(result).toEqual({
+      success: true,
+      counts: { all: 3, 'draft-pending': 0 },
+    });
+  });
+
   it('creates a thread as the current conversation', async () => {
     create_request.mockResolvedValueOnce({ data: thread() });
     const store = useCommunicationsStore();

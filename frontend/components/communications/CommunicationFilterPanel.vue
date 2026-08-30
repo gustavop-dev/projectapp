@@ -33,6 +33,13 @@
         test-id="communications-direction-filter"
         @update:model-value="setValue('direction', $event)"
       />
+      <BaseFilterDropdown
+        label="Respuesta del cliente"
+        :model-value="modelValue.reply_status"
+        :options="replyStatusOptions"
+        test-id="communications-reply-status-filter"
+        @update:model-value="setValue('reply_status', $event)"
+      />
 
       <BaseFormField label="Desde">
         <BaseInput
@@ -52,7 +59,7 @@
       </BaseFormField>
 
       <p class="panel-portrait:col-span-2 panel-desktop:col-span-4 text-[11px] text-text-subtle" data-testid="communications-filter-logic-hint">
-        Dentro de un filtro los valores se suman; entre filtros se restringen.
+        Dentro de un filtro los valores se suman; entre filtros se restringen. Respuesta del cliente sólo evalúa mensajes salientes enviados.
       </p>
     </div>
 
@@ -151,6 +158,13 @@ const definitions = {
       { value: 'incoming', label: 'Entrante' },
     ],
   },
+  reply_status: {
+    label: 'Respuesta',
+    options: [
+      { value: 'answered', label: 'Respondido' },
+      { value: 'unanswered', label: 'Sin respuesta' },
+    ],
+  },
 };
 
 function optionsWithCounts(key) {
@@ -165,6 +179,7 @@ const threadStatusOptions = computed(() => optionsWithCounts('status'));
 const messageStatusOptions = computed(() => optionsWithCounts('message_status'));
 const channelOptions = computed(() => optionsWithCounts('channel'));
 const directionOptions = computed(() => optionsWithCounts('direction'));
+const replyStatusOptions = computed(() => optionsWithCounts('reply_status'));
 
 function setValue(key, value) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
@@ -176,7 +191,7 @@ function optionLabel(key, value) {
 
 const chips = computed(() => {
   const rows = [];
-  for (const key of ['status', 'message_status', 'channel', 'direction']) {
+  for (const key of ['status', 'message_status', 'channel', 'direction', 'reply_status']) {
     const selected = Array.isArray(props.modelValue[key]) ? props.modelValue[key] : [];
     if (!selected.length) continue;
     rows.push({

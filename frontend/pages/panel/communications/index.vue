@@ -37,16 +37,28 @@
     <BaseFilterTabs
       :tabs="displayTabs"
       :active-tab-id="activeTabId"
+      :counts="tabCounts"
       :is-tab-limit-reached="isTabLimitReached"
-      @select="selectTab"
+      count-title="Hilos que cumplen este filtro"
+      show-config-tab
+      :config-active="isConfigOpen"
+      @select="handleSelectTab"
       @create="handleCreateTab"
       @rename="renameTab"
       @delete="deleteTab"
       @restore="restoreTab"
       @rebase="rebaseTab"
       @reorder="reorderTabs"
+      @config="isConfigOpen = true"
     />
 
+    <ViewSettingsPanel
+      v-if="isConfigOpen"
+      :filter-views="[{ value: 'communication', label: 'Comunicaciones' }]"
+      @reset="handleResetTabs"
+    />
+
+    <template v-else>
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-border-muted bg-surface p-3 panel-portrait:flex-row panel-portrait:items-center">
       <BaseInput
         v-model="searchInput"
@@ -81,7 +93,7 @@
           label="Actualizar hilos"
           size="md"
           :loading="store.isLoading"
-          @click="loadThreads"
+          @click="reloadThreadsAndCounts"
         />
       </div>
     </div>
@@ -211,12 +223,13 @@
         />
       </div>
     </BaseDrawer>
+    </template>
 
     <CommunicationWorkspaceModal
       :model-value="workspaceOpen"
       :thread-id="requestedThreadId"
       @update:model-value="handleWorkspaceOpenChange"
-      @changed="loadThreads"
+      @changed="reloadThreadsAndCounts"
     />
 
     <BaseModal v-model="threadFormOpen" kind="form" padding="none">
@@ -278,6 +291,7 @@ import CommunicationFilterPanel from '~/components/communications/CommunicationF
 import CommunicationNavigation from '~/components/communications/CommunicationNavigation.vue';
 import CommunicationThreadTable from '~/components/communications/CommunicationThreadTable.vue';
 import CommunicationWorkspaceModal from '~/components/communications/CommunicationWorkspaceModal.vue';
+import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import { useCommunicationFilters } from '~/composables/useCommunicationFilters';
 import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
 import {
@@ -314,6 +328,7 @@ const {
   isFilterPanelOpen,
   searchInput,
   displayTabs,
+  tabCountSpecs,
   navigationSelection,
   activeFilterCount,
   isTabLimitReached,
@@ -329,6 +344,7 @@ const {
   restoreTab,
   rebaseTab,
   reorderTabs,
+  reloadTabs,
   requestFilters,
 } = useCommunicationFilters();
 
@@ -347,6 +363,9 @@ const {
 
 const noticeReady = ref(false);
 const showNotice = ref(false);
+const isConfigOpen = ref(false);
+const tabCounts = ref({});
+let tabCountsRequestId = 0;
 const navigationDrawerOpen = ref(false);
 const threadFormOpen = ref(false);
 const workspaceOpenedLocally = ref(false);
@@ -376,6 +395,10 @@ const compactNavigationLabel = computed(() => {
 
 const requestSignature = computed(() => JSON.stringify(requestFilters()));
 watch(requestSignature, loadThreads, { immediate: true });
+const tabCountSignature = computed(() => JSON.stringify(
+  [...tabCountSpecs.value].sort((left, right) => String(left.id).localeCompare(String(right.id))),
+));
+watch(tabCountSignature, refreshTabCounts, { immediate: true });
 watch(requestedThreadId, (threadId) => {
   if (!threadId) store.clearCurrentThread();
 });
@@ -392,6 +415,26 @@ function dismissNotice() {
 
 async function loadThreads() {
   await store.fetchThreads(requestFilters());
+}
+
+async function refreshTabCounts() {
+  const requestId = ++tabCountsRequestId;
+  const result = await store.fetchTabCounts(tabCountSpecs.value);
+  if (requestId === tabCountsRequestId && result.success) tabCounts.value = result.counts;
+}
+
+async function reloadThreadsAndCounts() {
+  await Promise.all([loadThreads(), refreshTabCounts()]);
+}
+
+function handleSelectTab(tabId) {
+  isConfigOpen.value = false;
+  selectTab(tabId);
+}
+
+async function handleResetTabs() {
+  await reloadTabs();
+  await refreshTabCounts();
 }
 
 async function handleCreateTab(name) {
@@ -477,7 +520,7 @@ async function createThread() {
     return;
   }
   threadFormOpen.value = false;
-  await loadThreads();
+  await reloadThreadsAndCounts();
   workspaceOpenedLocally.value = true;
   await router.push(threadLocation(result.data.id));
   notify.success({ title: 'Hilo creado' });

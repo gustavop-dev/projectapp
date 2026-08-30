@@ -4,6 +4,7 @@ import {
   communicationFiltersToQuery,
   resolveCommunicationOrder,
 } from '../../composables/useCommunicationFilters';
+import { COMMUNICATION_BUILTIN_TABS } from '../../constants/communicationFilters';
 
 describe('communication filter URL contract', () => {
   it('reads comma-separated dimensions as arrays', () => {
@@ -12,12 +13,14 @@ describe('communication filter URL contract', () => {
       project: 'none',
       status: 'open,closed',
       channel: 'email,whatsapp',
+      reply_status: 'answered,unanswered',
       order: 'oldest',
     });
 
     expect(filters.project).toBe('none');
     expect(filters.status).toEqual(['open', 'closed']);
     expect(filters.channel).toEqual(['email', 'whatsapp']);
+    expect(filters.reply_status).toEqual(['answered', 'unanswered']);
     expect(filters.order).toBe('oldest');
   });
 
@@ -91,5 +94,25 @@ describe('communication filter URL contract', () => {
     });
 
     expect(order).toBe('recent');
+  });
+});
+
+describe('communication factory filter contract', () => {
+  it('puts pending drafts first', () => {
+    expect(COMMUNICATION_BUILTIN_TABS[0]).toMatchObject({
+      id: 'draft-pending',
+      name: 'Borradores pendientes',
+      filters: { message_status: ['draft'] },
+    });
+  });
+
+  it('limits unanswered sends to open threads', () => {
+    expect(COMMUNICATION_BUILTIN_TABS.find((tab) => tab.id === 'sent-unanswered')?.filters)
+      .toEqual({
+        status: ['open'],
+        direction: ['outgoing'],
+        message_status: ['sent'],
+        reply_status: ['unanswered'],
+      });
   });
 });

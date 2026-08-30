@@ -209,6 +209,33 @@ def test_post_enforces_max_tabs_per_view(api_client, admin_a, admin_a_headers):
     assert resp2.status_code == 201
 
 
+def test_post_appends_a_user_tab_after_factory_placeholders(
+    api_client, admin_a, admin_a_headers,
+):
+    for index, key in enumerate(['draft-pending', 'open']):
+        SavedFilterTab.objects.create(
+            user=admin_a,
+            view='communication',
+            name=key,
+            builtin_key=key,
+            order=index,
+        )
+
+    response = api_client.post(
+        '/api/accounts/saved-filter-tabs/',
+        {
+            'view': 'communication',
+            'name': 'Mi seguimiento',
+            'filters': {'channel': ['email']},
+        },
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert response.status_code == 201
+    assert response.json()['order'] == 2
+
+
 # ---------------------------------------------------------------------------
 # PATCH — update
 # ---------------------------------------------------------------------------
@@ -649,6 +676,30 @@ def test_get_seeds_builtins_for_a_view_without_factory_defaults(
     ).exclude(builtin_key='').count() == 2
 
 
+def test_first_builtin_seed_places_existing_user_tabs_after_factory(
+    api_client, admin_a, admin_a_headers, monkeypatch,
+):
+    monkeypatch.setattr(saved_filter_tab_service, 'BUILTIN_FILTER_TABS', {
+        'communication': [
+            {'key': 'draft-pending', 'name': 'Borradores pendientes'},
+            {'key': 'open', 'name': 'Abiertos'},
+        ],
+    })
+    own = SavedFilterTab.objects.create(
+        user=admin_a,
+        view='communication',
+        name='Mi seguimiento',
+        filters={'channel': ['email']},
+        order=0,
+    )
+
+    response = _get_view(api_client, admin_a_headers, 'communication')
+
+    own.refresh_from_db()
+    assert response.status_code == 200
+    assert own.order == 2
+
+
 def test_seeding_builtins_is_idempotent_and_keeps_a_moved_order(
     api_client, admin_a, admin_a_headers, _builtin_registry,
 ):
@@ -736,6 +787,8 @@ def test_reset_returns_the_builtins_to_the_factory_order_and_unhides_them(
     assert (rebuilt.order, rebuilt.is_hidden) == (1, False)
     # The user's own tab is theirs and outlives the reset.
     assert SavedFilterTab.objects.filter(id=mine.id).exists()
+    mine.refresh_from_db()
+    assert mine.order == 2
 
 
 def test_placeholders_do_not_eat_slots_from_the_twelve_tab_cap(
@@ -792,6 +845,7 @@ def test_builtin_registry_keys_exist_in_the_frontend_sources():
         'accounting_history_sends': 'constants/historyFilters.js',
         'accounting_history_changes': 'constants/historyFilters.js',
         'client': 'constants/clientFilters.js',
+        'communication': 'constants/communicationFilters.js',
     }
     assert set(sources) == set(BUILTIN_FILTER_TABS), (
         'every view with builtins needs its frontend source listed here'

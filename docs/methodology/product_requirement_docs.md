@@ -389,6 +389,12 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **Canonical cuts**: navigation, searchable multi-value filters and ordering
   live in the URL. A thread opens in a workspace modal addressed by
   `thread=<id>`, so closing it or using browser Back restores the exact list.
+  The shared filter strip starts with the factory cuts **Borradores pendientes**,
+  **Enviados sin respuesta**, **Abiertos**, **Cerrados**, **Correo** and
+  **WhatsApp**; every option shows its full-dataset count, including zero, and
+  the active cut remains reachable. User-named views coexist as visibly distinct
+  **Propia** tabs. Both kinds can be reordered, while module reset restores only
+  the factory order/visibility and preserves every user view.
   Frequent combinations can be named and restored through the accounting saved
   filter mechanism. Global text search covers the thread title, readable client,
   project name, message subject and message content through the shared REST/MCP
