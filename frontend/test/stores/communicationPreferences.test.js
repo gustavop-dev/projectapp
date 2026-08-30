@@ -37,9 +37,11 @@ describe('communication preference resilience', () => {
   });
 
   it('ignores blocked legacy cleanup', () => {
-    const blockedStorage = { removeItem: () => { throw new Error('blocked'); } };
+    const removeItem = jest.fn(() => { throw new Error('blocked'); });
+    const blockedStorage = { removeItem };
 
     expect(() => clearLegacyCommunicationPreferences(blockedStorage)).not.toThrow();
+    expect(removeItem).toHaveBeenCalledTimes(1);
   });
 
   it('serializes preference writes in invocation order', async () => {
