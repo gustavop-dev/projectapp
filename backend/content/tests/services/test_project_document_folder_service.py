@@ -4,6 +4,7 @@ import pytest
 from accounts.models import Project, UserProfile
 from content.models import DocumentFolder
 from content.services.project_document_folder_service import (
+    ProjectFolderReconciliationRequired,
     ensure_project_folder,
 )
 
@@ -40,6 +41,27 @@ def test_project_creation_builds_one_managed_root(project):
     assert root.project_id == project.id
     assert root.client_user_id == project.client_id
     assert root.folder_kind == 'project'
+
+
+def test_disabled_project_creation_does_not_build_a_root(client_profile):
+    project = Project.objects.create(
+        name='PRUEBA',
+        client=client_profile.user,
+        document_manager_enabled=False,
+    )
+
+    assert not DocumentFolder.objects.filter(managed_project=project).exists()
+
+
+def test_disabled_project_cannot_be_provisioned_implicitly(client_profile):
+    project = Project.objects.create(
+        name='PRUEBA',
+        client=client_profile.user,
+        document_manager_enabled=False,
+    )
+
+    with pytest.raises(ProjectFolderReconciliationRequired, match='no está habilitado'):
+        ensure_project_folder(project)
 
 
 def test_project_creation_builds_standard_children(project):
@@ -86,6 +108,30 @@ def test_project_rename_synchronizes_root_without_changing_slug(project):
     root.refresh_from_db()
     assert root.name == 'Kore Platform'
     assert root.slug == original_slug
+
+
+def test_updating_a_historical_project_never_recreates_a_missing_root(project):
+    root = project.document_root_folder
+    root.children.all().delete()
+    root.delete()
+
+    project.description = 'Edición ordinaria después de la migración de esquema'
+    project.save(update_fields=['description', 'updated_at'])
+
+    assert not DocumentFolder.objects.filter(managed_project=project).exists()
+
+
+def test_enabling_a_historical_project_still_requires_reviewed_adoption(project):
+    root = project.document_root_folder
+    root.children.all().delete()
+    root.delete()
+    project.document_manager_enabled = False
+    project.save(update_fields=['document_manager_enabled', 'updated_at'])
+
+    project.document_manager_enabled = True
+    project.save(update_fields=['document_manager_enabled', 'updated_at'])
+
+    assert not DocumentFolder.objects.filter(managed_project=project).exists()
 
 
 def test_project_client_change_synchronizes_its_folder_tree(

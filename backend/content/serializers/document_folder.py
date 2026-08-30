@@ -165,8 +165,8 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
         }
 
     def get_is_project_visible(self, obj):
-        state = self.get_managed_project_state(obj)
-        return bool(state and state['show_in_document_manager'])
+        project = getattr(obj, 'managed_project', None)
+        return bool(project and project.document_manager_enabled)
 
     def to_representation(self, instance):
         """Devuelve `client` como pk de UserProfile (el campo es write_only)."""

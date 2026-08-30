@@ -89,11 +89,37 @@ const counts = {
   folders: { active: 2, archived: 2 },
 };
 
+const navigationPayload = ({ active = 1, archived = 1 } = {}) => ({
+  totals: {
+    active: { folders: 2, documents: active },
+    archived: { folders: 2, documents: archived },
+  },
+  unassigned: {
+    project: {
+      active: { folders: 2, documents: active },
+      archived: { folders: 2, documents: archived },
+    },
+    client: {
+      active: { folders: 2, documents: active },
+      archived: { folders: 2, documents: archived },
+    },
+  },
+  projects: [],
+  clients: [],
+});
+
 /** Routes shared by every test. `url` distinguishes the requested scope. */
 function baseRoutes({ apiPath, url }) {
   const archivedScope = url.includes('scope=archived');
   const mixedScope = url.includes('scope=all');
   if (apiPath === 'auth/check/') return authCheck;
+  if (apiPath === 'accounts/panel-preferences/documents/') {
+    return json({ navigation_mode: 'project' });
+  }
+  if (apiPath === 'documents/navigation/') return json(navigationPayload());
+  if (apiPath === 'document-folders/project-readiness/') {
+    return json({ status: 'ready', project_count: 0, enabled_project_count: 0 });
+  }
   if (apiPath === 'documents/counts/') return json(counts);
   if (apiPath === 'documents/') {
     if (mixedScope) return json([...activeDocuments, ...archivedDocuments]);
@@ -488,22 +514,26 @@ test.describe('Admin Document Archive', () => {
           folders: counts.folders,
         });
       }
+      if (apiPath === 'documents/navigation/') {
+        return json(navigationPayload({
+          active: archived ? 0 : 1,
+          archived: archived ? 2 : 1,
+        }));
+      }
       if (apiPath === 'documents/' && url.includes('scope=active') && archived) return json([]);
       return baseRoutes({ apiPath, url });
     });
 
     await page.goto('/panel/documents');
-    // El interruptor de modo vive en la cabecera, fuera de la lista: ésta se
-    // ancla por testid y no por el texto «Archivados», que ya no está dentro.
-    const sidebar = page.getByTestId('manual-folder-section');
-    const allDocuments = sidebar.getByRole('button', { name: /^Todos los documentos/ });
-    await expect(allDocuments).toContainText('1');
+    // El inventario global vive en el catálogo, fuera de «Carpetas sin asignar».
+    const allDocuments = page.getByTestId('documents-navigation-all');
+    await expect(allDocuments.getByLabel('1 documentos')).toBeVisible();
 
     await page.getByRole('row', { name: /Contrato de Servicios/i })
       .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Archivar/).click();
 
-    await expect(allDocuments).toContainText('0');
+    await expect(allDocuments.getByLabel('0 documentos')).toBeVisible();
     // El total de archivados acompaña al interruptor, en la cabecera.
     await expect(page.getByTestId('folder-archived-count')).toHaveText('2');
   });

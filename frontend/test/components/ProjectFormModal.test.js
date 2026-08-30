@@ -46,6 +46,7 @@ const RECORD = {
     system_key: 'suspended',
     operational_effect: 'suspended',
   },
+  document_manager_enabled: false,
   client: { profile_id: 7, name: 'Deivis Ríos', company: 'Vástago' },
 };
 
@@ -99,6 +100,17 @@ function mountModal(props = {}) {
                 {{ option.label }}
               </option>
             </select>
+          `,
+        },
+        BaseToggle: {
+          props: ['modelValue'],
+          emits: ['update:modelValue'],
+          template: `
+            <button
+              type="button"
+              :aria-pressed="String(modelValue)"
+              @click="$emit('update:modelValue', !modelValue)"
+            >Alternar</button>
           `,
         },
         BaseButton: {
@@ -160,6 +172,7 @@ describe('ProjectFormModal', () => {
       name: 'Kore',
       client_profile_id: 7,
       description: '',
+      document_manager_enabled: true,
       state_id: 10,
     });
   });
@@ -195,6 +208,8 @@ describe('ProjectFormModal', () => {
     expect(wrapper.find('[data-testid="project-form-client-readonly"]').text())
       .toContain('Deivis Ríos');
     expect(wrapper.findComponent(ClientAutocompleteStub).exists()).toBe(false);
+    expect(wrapper.get('[data-testid="project-form-document-manager"]')
+      .attributes('aria-pressed')).toBe('false');
 
     await wrapper.find('[data-testid="project-form-name"]').setValue('Vástago App');
     await wrapper.find('form').trigger('submit');
@@ -203,8 +218,20 @@ describe('ProjectFormModal', () => {
     expect(payload).toEqual({
       name: 'Vástago App',
       description: 'App de gestión',
+      document_manager_enabled: false,
     });
     expect(payload).not.toHaveProperty('client_profile_id');
+  });
+
+  it('lets an operator enable a historical project without changing its content', async () => {
+    const wrapper = mountModal({ record: RECORD });
+    await flushPromises();
+
+    await wrapper.get('[data-testid="project-form-document-manager"]').trigger('click');
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0].document_manager_enabled).toBe(true);
+    expect(wrapper.text()).toContain('nunca elimina carpetas ni archivos');
   });
 
   it('warns about a same-name project for the same client without blocking', async () => {

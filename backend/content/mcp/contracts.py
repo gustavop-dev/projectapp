@@ -63,6 +63,26 @@ MCP_MODEL_CONTRACTS = {
     ),
     'documents': (
         _contract(
+            'accounts.Project',
+            read_only='id name client current_state',
+            excluded=(
+                _excluded(
+                    'Configuración operativa del proyecto reservada al panel; '
+                    'el MCP de Documentos sólo referencia proyectos existentes.',
+                    'description status state_review_required '
+                    'document_manager_enabled progress start_date '
+                    'estimated_end_date payment_milestones hosting_tiers '
+                    'hosting_start_date production_url staging_url admin_url '
+                    'repository_url admin_username',
+                )
+                | _excluded(
+                    'Credencial cifrada del sitio del proyecto: nunca debe salir por MCP.',
+                    'admin_password_encrypted',
+                )
+                | _excluded(_AUDIT_INTERNAL, 'created_at updated_at')
+            ),
+        ),
+        _contract(
             'content.Document',
             read_only='id slug status created_at updated_at tags',
             read_write=(

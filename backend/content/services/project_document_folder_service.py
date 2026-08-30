@@ -7,6 +7,7 @@ continue creating ordinary project-associated folders without turning them
 into lifecycle-managed roots.
 """
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from content.models import DocumentFolder
@@ -18,6 +19,8 @@ PROJECT_FOLDER_TEMPLATE = (
     ('Entregables', None),
     ('QA', None),
 )
+
+ACTIVE_PROJECT_EFFECTS = frozenset({'development', 'operating'})
 
 
 class ProjectFolderReconciliationRequired(RuntimeError):
@@ -31,6 +34,11 @@ def project_category_system_key(project_id, document_kind):
 
 def require_project_folder(project):
     """Return the managed root without silently provisioning historical data."""
+    if not project.document_manager_enabled:
+        raise ProjectFolderReconciliationRequired(
+            f'El proyecto «{project.name}» no está habilitado en el '
+            'Gestor Documental.'
+        )
     root = DocumentFolder.objects.filter(
         managed_project=project,
         parent__isnull=True,
@@ -45,86 +53,89 @@ def require_project_folder(project):
     return root
 
 
-def project_folder_readiness():
-    """Summarize whether Documents can render its managed-project section.
+def project_catalog_bucket(project):
+    """Classify a project without coupling document archival to its lifecycle."""
+    state = getattr(project, 'current_state', None)
+    if state is not None:
+        return (
+            'active'
+            if state.operational_effect in ACTIVE_PROJECT_EFFECTS
+            else 'archived'
+        )
+    return (
+        'active'
+        if project.status in {project.STATUS_DEVELOPMENT, project.STATUS_ACTIVE}
+        else 'archived'
+    )
 
-    State visibility is deliberately data-driven. Renaming or merging a state
-    never changes this calculation as long as the catalog keeps
-    ``show_in_document_manager`` truthful.
-    """
+
+def project_folder_readiness():
+    """Summarize reviewed-root adoption for enabled document spaces."""
     from accounts.models import Project
 
-    projects = Project.objects.all()
-    visible_projects = projects.filter(
-        current_state__show_in_document_manager=True,
+    all_projects = Project.objects.all()
+    projects = all_projects.filter(document_manager_enabled=True)
+    active_projects = projects.filter(
+        Q(current_state__operational_effect__in=ACTIVE_PROJECT_EFFECTS)
+        | Q(
+            current_state__isnull=True,
+            status__in=(Project.STATUS_DEVELOPMENT, Project.STATUS_ACTIVE),
+        )
     )
     roots = DocumentFolder.objects.filter(
         managed_project__isnull=False,
+        managed_project__document_manager_enabled=True,
         parent__isnull=True,
         is_archived=False,
     )
-    project_count = projects.count()
-    visible_project_count = visible_projects.count()
+    project_count = all_projects.count()
+    enabled_project_count = projects.count()
+    active_project_count = active_projects.count()
+    archived_project_count = enabled_project_count - active_project_count
     managed_root_count = roots.count()
-    visible_managed_root_count = roots.filter(
-        managed_project__current_state__show_in_document_manager=True,
+    active_managed_root_count = roots.filter(
+        Q(
+            managed_project__current_state__operational_effect__in=(
+                ACTIVE_PROJECT_EFFECTS
+            ),
+        )
+        | Q(
+            managed_project__current_state__isnull=True,
+            managed_project__status__in=(
+                Project.STATUS_DEVELOPMENT, Project.STATUS_ACTIVE,
+            ),
+        )
     ).count()
-    missing_root_count = max(project_count - managed_root_count, 0)
-    missing_visible_root_count = max(
-        visible_project_count - visible_managed_root_count,
+    missing_root_count = max(enabled_project_count - managed_root_count, 0)
+    missing_active_root_count = max(
+        active_project_count - active_managed_root_count,
         0,
     )
 
     if project_count == 0:
         readiness_status = 'no_projects'
+    elif enabled_project_count == 0:
+        readiness_status = 'no_enabled_projects'
     elif missing_root_count:
         readiness_status = 'reconciliation_required'
-    elif visible_managed_root_count == 0:
-        readiness_status = 'state_filter_empty'
     else:
         readiness_status = 'ready'
 
     return {
         'status': readiness_status,
         'project_count': project_count,
-        'visible_project_count': visible_project_count,
+        'enabled_project_count': enabled_project_count,
+        'disabled_project_count': project_count - enabled_project_count,
+        'active_project_count': active_project_count,
+        'archived_project_count': archived_project_count,
         'managed_root_count': managed_root_count,
-        'visible_managed_root_count': visible_managed_root_count,
+        'active_managed_root_count': active_managed_root_count,
         'missing_root_count': missing_root_count,
-        'missing_visible_root_count': missing_visible_root_count,
+        'missing_active_root_count': missing_active_root_count,
     }
 
 
-@transaction.atomic
-def ensure_project_folder(project):
-    """Return the project's single managed root, creating it when absent.
-
-    The unique database relation is the concurrency guard. Template folders
-    are created only with a genuinely new root, so adopting an existing tree
-    during the reviewed migration never injects duplicate structure.
-    """
-    defaults = {
-        'name': project.name,
-        'parent': None,
-        'project': project,
-        'client_user': project.client,
-    }
-    try:
-        # The nested savepoint keeps the outer transaction usable when the
-        # unique constraint reports a concurrent winner.
-        with transaction.atomic():
-            root, created = DocumentFolder.objects.get_or_create(
-                managed_project=project,
-                defaults=defaults,
-            )
-    except IntegrityError:
-        # A concurrent creator won the OneToOne race. Its transaction owns the
-        # template creation; this caller only needs the canonical root.
-        root = DocumentFolder.objects.select_for_update().get(
-            managed_project=project,
-        )
-        created = False
-
+def _synchronize_root(root, project, *, created):
     update_fields = []
     expected = {
         'name': project.name,
@@ -168,3 +179,53 @@ def ensure_project_folder(project):
             updated_at=timezone.now(),
         )
     return root
+
+
+@transaction.atomic
+def synchronize_existing_project_folder(project):
+    """Synchronize an adopted root, but never provision a historical one."""
+    root = DocumentFolder.objects.select_for_update().filter(
+        managed_project=project,
+    ).first()
+    if root is None:
+        return None
+    return _synchronize_root(root, project, created=False)
+
+
+@transaction.atomic
+def ensure_project_folder(project):
+    """Return the project's single managed root, creating it when absent.
+
+    The unique database relation is the concurrency guard. Template folders
+    are created only with a genuinely new root, so adopting an existing tree
+    during the reviewed migration never injects duplicate structure.
+    """
+    if not project.document_manager_enabled:
+        raise ProjectFolderReconciliationRequired(
+            f'El proyecto «{project.name}» no está habilitado en el '
+            'Gestor Documental.'
+        )
+
+    defaults = {
+        'name': project.name,
+        'parent': None,
+        'project': project,
+        'client_user': project.client,
+    }
+    try:
+        # The nested savepoint keeps the outer transaction usable when the
+        # unique constraint reports a concurrent winner.
+        with transaction.atomic():
+            root, created = DocumentFolder.objects.get_or_create(
+                managed_project=project,
+                defaults=defaults,
+            )
+    except IntegrityError:
+        # A concurrent creator won the OneToOne race. Its transaction owns the
+        # template creation; this caller only needs the canonical root.
+        root = DocumentFolder.objects.select_for_update().get(
+            managed_project=project,
+        )
+        created = False
+
+    return _synchronize_root(root, project, created=created)

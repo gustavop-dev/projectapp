@@ -278,14 +278,21 @@ flowchart LR
     ProposalDate --> ProposalDoc[Proposal snapshot Document]
 
     Sidebar[Documents sidebar] --> Readiness[project-readiness API]
-    Readiness --> Catalog[Project state visibility]
+    Readiness --> Catalog[Project document_manager_enabled]
+    Catalog --> Lifecycle[active / archived catalog bucket]
     Readiness --> RootInventory[Managed-root inventory]
+    Client[Client] -->|client_user| ClientRoot[Reviewed client root]
+    Unassigned[Unassigned root] -->|no project, no client| Sidebar
 ```
 
 `Document.project` describes business ownership; `Document.folder` describes
-where the record is stored. The sidebar deliberately lists the managed root,
-so a project assignment alone cannot create a row. Historical data enters this
-hierarchy only through the reviewed reconciliation manifest. Generated filing
+where the record is stored. The entity sidebar lists the complete enabled
+project/client catalogs even when an entity has no root or content; the managed
+root remains the physical boundary for filing. Project lifecycle only chooses
+the active/archived catalog group and never archives content. A reviewed client
+root stays top-level with `client_user`; a root with neither project nor client
+is the only kind shown under Carpetas sin asignar. Historical data enters these
+relations only through the reviewed reconciliation manifest. Generated filing
 reuses the two keyed first-level categories and reparents any legacy keyed
 branch before removing its now-empty parallel wrappers.
 
@@ -314,7 +321,7 @@ branch before removing its now-empty parallel wrappers.
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
 | **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, is_client_visible, legacy status (expand/contract only), language (es/en), cover_type, content_json, private delivery copy, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
-| **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect` and configurable `show_in_document_manager`; non-null `system_key` is database-unique per catalog and `NULL` remains repeatable |
+| **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect` and legacy read-only `show_in_document_manager` compatibility metadata; non-null `system_key` is database-unique per catalog and `NULL` remains repeatable |
 | **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document/project workflow and append-only audit | exactly one of document/project, state, opened_at/closed_at, actors, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
 | **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
 | **DocumentFolder / DocumentTag** | Folder hierarchy, system-owned project roots and legacy tag compatibility | name, color, parent (folder), client, project, optional one-to-one `managed_project`, nullable stable `system_key`, created_by; database checks keep a managed root active, top-level and aligned with its project |

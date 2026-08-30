@@ -95,7 +95,7 @@ def test_user_cannot_create_a_project_state_with_removed_paused_effect(
     assert 'operational_effect' in response.data
 
 
-def test_user_configures_project_folder_visibility(admin_client):
+def test_project_folder_visibility_is_not_configured_from_a_state(admin_client):
     created = admin_client.post('/api/project-states/', {
         'name': 'En garantía visible',
         'description': 'Opera mientras recibe acompañamiento de garantía.',
@@ -105,7 +105,7 @@ def test_user_configures_project_folder_visibility(admin_client):
     }, format='json')
 
     assert created.status_code == 201, created.data
-    assert created.data['show_in_document_manager'] is True
+    assert created.data['show_in_document_manager'] is False
 
 
 def test_project_state_requires_a_help_description(admin_client):

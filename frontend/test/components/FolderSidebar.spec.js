@@ -117,6 +117,7 @@ const navigationFacets = {
       id: 91,
       name: 'Kore Health',
       is_visible: true,
+      catalog_bucket: 'active',
       state: { name: 'Activo' },
       counts: {
         active: { folders: 3, documents: 9 },
@@ -126,10 +127,22 @@ const navigationFacets = {
     {
       id: 92,
       name: 'Candle',
-      is_visible: false,
+      is_visible: true,
+      catalog_bucket: 'archived',
       state: { name: 'Suspendido' },
       counts: {
         active: { folders: 1, documents: 2 },
+        archived: { folders: 0, documents: 0 },
+      },
+    },
+    {
+      id: 93,
+      name: 'Mimittos',
+      is_visible: true,
+      catalog_bucket: 'active',
+      state: { name: 'En desarrollo' },
+      counts: {
+        active: { folders: 0, documents: 0 },
         archived: { folders: 0, documents: 0 },
       },
     },
@@ -139,9 +152,20 @@ const navigationFacets = {
       id: 71,
       name: 'Kore SAS',
       is_inactive: false,
+      catalog_bucket: 'active',
       counts: {
         active: { folders: 4, documents: 10 },
         archived: { folders: 2, documents: 5 },
+      },
+    },
+    {
+      id: 72,
+      name: 'Cliente histórico',
+      is_inactive: true,
+      catalog_bucket: 'archived',
+      counts: {
+        active: { folders: 0, documents: 0 },
+        archived: { folders: 0, documents: 0 },
       },
     },
   ],
@@ -177,7 +201,6 @@ function mountSidebar(props = {}) {
     props: {
       folders: [],
       activeId: 'all',
-      totalCount: 0,
       navigationFacets,
       isDragging: false,
       ...props,
@@ -212,11 +235,13 @@ describe('FolderSidebar', () => {
   // ── Static entries ────────────────────────────────────────────────────────
 
   describe('static entries', () => {
-    it('renders the Todos entry with the total count', () => {
-      const wrapper = mountSidebar({ totalCount: 42 });
+    it('renders the catalog inventories in Todos', () => {
+      const wrapper = mountSidebar();
+      const allEntry = wrapper.get('[data-testid="documents-navigation-all"]');
 
-      expect(wrapper.text()).toContain('Todos');
-      expect(wrapper.text()).toContain('42');
+      expect(allEntry.text()).toContain('Todos');
+      expect(allEntry.text()).toContain('8');
+      expect(allEntry.text()).toContain('21');
     });
 
     it('renders the Sin carpeta entry', () => {
@@ -309,21 +334,21 @@ describe('FolderSidebar', () => {
         .not.toContain('Kore Health');
     });
 
-    it('hides projects outside the configured state filter', () => {
+    it('keeps zero-content projects in the active catalog', () => {
       const wrapper = mountSidebar();
 
       expect(wrapper.text()).toContain('Kore Health');
-      expect(wrapper.text()).not.toContain('Candle');
+      expect(wrapper.get('[data-testid="documents-navigation-project-93"]')
+        .attributes('aria-label')).toBe('Mimittos, 0 carpetas, 0 documentos');
     });
 
-    it('reveals filtered projects with the explicit control', async () => {
+    it('shows suspended projects immediately inside the archived group', () => {
       const wrapper = mountSidebar();
 
-      await wrapper.get('[data-testid="project-folders-toggle"]').trigger('click');
-
-      expect(wrapper.text()).toContain('Candle');
-      expect(wrapper.get('[data-testid="project-folders-toggle"]').text())
-        .toBe('Ver vigentes');
+      const group = wrapper.get('[data-testid="documents-navigation-archived-group"]');
+      expect(group.text()).toContain('Proyectos archivados');
+      expect(group.text()).toContain('Candle');
+      expect(wrapper.find('[data-testid="project-folders-toggle"]').exists()).toBe(false);
     });
 
     it('renders the recursive manual section inventory', () => {
@@ -401,15 +426,15 @@ describe('FolderSidebar', () => {
         .toContain('No hay proyectos creados todavía');
     });
 
-    it('offers state administration when the visibility filter is empty', () => {
+    it('explains when every project is explicitly excluded', () => {
       const wrapper = mountSidebar({
-        projectReadiness: { status: 'state_filter_empty', project_count: 8 },
+        projectReadiness: { status: 'no_enabled_projects', project_count: 8 },
       });
 
-      expect(wrapper.get('[data-testid="project-state-filter-empty"]').text())
-        .toContain('ningún estado está habilitado');
-      expect(wrapper.get('[data-testid="project-state-filter-action"]').attributes('href'))
-        .toBe('/panel/projects/statuses');
+      expect(wrapper.get('[data-testid="project-empty-disabled"]').text())
+        .toContain('todos están excluidos');
+      expect(wrapper.get('[data-testid="project-empty-disabled-action"]').attributes('href'))
+        .toBe('/panel/projects');
     });
 
     it('does not present a diagnostic request failure as a normal empty state', () => {
@@ -480,12 +505,14 @@ describe('FolderSidebar', () => {
   // ── Select emits ──────────────────────────────────────────────────────────
 
   describe('select emits', () => {
-    it('emits select with all when the Todos button is clicked', async () => {
+    it('uses the catalog Todos row instead of duplicating it in manual folders', async () => {
       const wrapper = mountSidebar();
-      const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos los documentos'));
-      await todosBtn.trigger('click');
 
-      expect(wrapper.emitted('select')).toEqual([['all']]);
+      await wrapper.get('[data-testid="documents-navigation-all"]').trigger('click');
+
+      expect(wrapper.emitted('select-entity')).toEqual([['all']]);
+      expect(wrapper.get('[data-testid="manual-folder-section"]').text())
+        .not.toContain('Todos los documentos');
     });
 
     it('emits select with none when the Sin carpeta button is clicked', async () => {
@@ -528,9 +555,9 @@ describe('FolderSidebar', () => {
   // ── Active styling ────────────────────────────────────────────────────────
 
   describe('active styling', () => {
-    it('applies active class to the Todos entry when activeId is all', () => {
-      const wrapper = mountSidebar({ activeId: 'all' });
-      const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos los documentos'));
+    it('applies active class to the catalog Todos entry', () => {
+      const wrapper = mountSidebar({ navigationSelection: 'all' });
+      const todosBtn = wrapper.get('[data-testid="documents-navigation-all"]');
 
       expect(todosBtn.classes()).toContain('bg-primary-soft');
     });
@@ -549,12 +576,12 @@ describe('FolderSidebar', () => {
   // ── Row alignment ─────────────────────────────────────────────────────────
 
   describe('row alignment', () => {
-    it('starts folder names on the same horizontal axis as the Todos entry', () => {
+    it('starts folder names on the same horizontal axis as Sin carpeta', () => {
       const wrapper = mountSidebar({ folders: [folderA] });
-      const todosBtn = folderNameButton(wrapper, 'Todos los documentos');
+      const unfiledBtn = folderNameButton(wrapper, 'Sin carpeta');
       const folderBtn = folderNameButton(wrapper, 'Propuestas');
 
-      expect(todosBtn.classes()).toContain('px-3');
+      expect(unfiledBtn.classes()).toContain('px-3');
       expect(folderBtn.classes()).toContain('px-3');
     });
 
@@ -767,7 +794,8 @@ describe('FolderSidebar', () => {
   describe('edit action', () => {
     const folders = [
       { id: 1, name: 'Kore', client: 7, client_display_name: 'Kore SAS' },
-      { id: 2, name: 'Sin dueño' },
+      { id: 2, name: 'Con proyecto', project: 91 },
+      { id: 3, name: 'Sin dueño' },
     ];
 
     it('offers editing right where archiving and deleting already are', async () => {
@@ -777,20 +805,23 @@ describe('FolderSidebar', () => {
       expect(edit.exists()).toBe(true);
 
       await edit.trigger('click');
-      expect(wrapper.emitted('edit')[0][0].id).toBe(1);
+      expect(wrapper.emitted('edit')[0][0].id).toBe(3);
     });
 
-    it('names the client the folder belongs to under its name', () => {
+    it('keeps client and project folders out of the unassigned section', () => {
       const wrapper = mountSidebar({ folders });
+      const section = wrapper.get('[data-testid="manual-folder-section"]');
 
-      expect(wrapper.find('[data-testid="folder-client-1"]').text())
-        .toContain('Kore SAS');
+      expect(section.text()).toContain('Carpetas sin asignar');
+      expect(section.text()).toContain('Sin dueño');
+      expect(section.text()).not.toContain('Kore');
+      expect(section.text()).not.toContain('Con proyecto');
     });
 
     it('says nothing about the client when the folder has none', () => {
       const wrapper = mountSidebar({ folders });
 
-      expect(wrapper.find('[data-testid="folder-client-2"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-client-3"]').exists()).toBe(false);
     });
   });
 });

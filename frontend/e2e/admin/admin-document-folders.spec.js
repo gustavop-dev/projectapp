@@ -67,17 +67,6 @@ const PROJECT_KORE = {
   active_children_count: 1,
 };
 
-const PROJECT_PAUSED = {
-  ...PROJECT_KORE,
-  id: 22,
-  name: 'Candle',
-  slug: 'candle',
-  project: 42,
-  managed_project: 42,
-  is_project_visible: false,
-  managed_project_state: { name: 'Suspendido', system_key: 'paused' },
-};
-
 const DOC_IN_FOLDER = {
   id: 1,
   title: 'Factura ACME',
@@ -127,6 +116,7 @@ const NAVIGATION = {
     managed_root_id: PROJECT_KORE.id,
     state: { name: 'Activo', system_key: 'active', show_in_document_manager: true },
     is_visible: true,
+    catalog_bucket: 'active',
     counts: {
       active: { folders: 1, documents: 0 },
       archived: { folders: 0, documents: 0 },
@@ -136,26 +126,11 @@ const NAVIGATION = {
     id: 7,
     name: 'Kore SAS',
     is_inactive: false,
+    catalog_bucket: 'active',
     counts: {
       active: { folders: 1, documents: 0 },
       archived: { folders: 0, documents: 0 },
     },
-  }],
-};
-
-const PAUSED_NAVIGATION = {
-  ...NAVIGATION,
-  projects: [{
-    ...NAVIGATION.projects[0],
-    id: 42,
-    name: 'Candle',
-    managed_root_id: PROJECT_PAUSED.id,
-    state: {
-      name: 'Suspendido',
-      system_key: 'paused',
-      show_in_document_manager: false,
-    },
-    is_visible: false,
   }],
 };
 
@@ -332,11 +307,14 @@ test.describe('Admin Document Folders', () => {
       readinessResponse: jsonOk({
         status: 'reconciliation_required',
         project_count: 8,
-        visible_project_count: 7,
+        enabled_project_count: 8,
+        disabled_project_count: 0,
+        active_project_count: 7,
+        archived_project_count: 1,
         managed_root_count: 1,
-        visible_managed_root_count: 1,
+        active_managed_root_count: 1,
         missing_root_count: 7,
-        missing_visible_root_count: 6,
+        missing_active_root_count: 6,
       }),
       folders: [PROJECT_KORE],
     });
@@ -348,27 +326,30 @@ test.describe('Admin Document Folders', () => {
     await expect(page.getByTestId('documents-navigation-project-41')).toContainText('Kore Health');
   });
 
-  test('empty project-state filter links to state administration', {
+  test('an explicitly disabled project catalog links to project administration', {
     tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupProjectReadinessApi(page, {
       readinessResponse: jsonOk({
-        status: 'state_filter_empty',
+        status: 'no_enabled_projects',
         project_count: 8,
-        visible_project_count: 0,
-        managed_root_count: 8,
-        visible_managed_root_count: 0,
+        enabled_project_count: 0,
+        disabled_project_count: 8,
+        active_project_count: 0,
+        archived_project_count: 0,
+        managed_root_count: 0,
+        active_managed_root_count: 0,
         missing_root_count: 0,
-        missing_visible_root_count: 0,
+        missing_active_root_count: 0,
       }),
-      folders: [PROJECT_PAUSED],
-      navigation: PAUSED_NAVIGATION,
+      folders: [],
+      navigation: { ...NAVIGATION, projects: [] },
     });
 
     await openDocuments(page);
-    await page.getByTestId('project-state-filter-action').click();
+    await page.getByTestId('project-empty-disabled-action').click();
 
-    await expect(page).toHaveURL(/\/panel\/projects\/statuses\/?$/);
+    await expect(page).toHaveURL(/\/panel\/projects\/?$/);
   });
 
   test('readiness request failure is not presented as a normal empty state', {

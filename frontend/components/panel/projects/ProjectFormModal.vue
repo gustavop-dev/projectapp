@@ -44,6 +44,7 @@ function defaultForm() {
     client_display_name: '',
     description: '',
     state_id: '',
+    document_manager_enabled: true,
   }
 }
 
@@ -61,6 +62,7 @@ watch(
         client_display_name: props.record.client?.name ?? '',
         description: props.record.description ?? '',
         state_id: props.record.current_state?.id ?? '',
+        document_manager_enabled: props.record.document_manager_enabled ?? true,
       }
     } else {
       form.value = defaultForm()
@@ -166,6 +168,7 @@ function onSubmit() {
   const payload = {
     name: form.value.name.trim(),
     description: form.value.description,
+    document_manager_enabled: form.value.document_manager_enabled,
   }
   // The client travels only on create: the panel keeps it immutable and the
   // backend answers 400 if the key even appears on an update.
@@ -315,6 +318,21 @@ function onSubmit() {
           @update:model-value="clearFieldError('description')"
         />
       </BaseFormField>
+
+      <div class="flex items-start justify-between gap-4 rounded-xl border border-border-default bg-surface-raised px-4 py-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-text-default">Mostrar en el Gestor Documental</p>
+          <p class="mt-1 text-xs text-text-subtle">
+            Crea o conserva el espacio documental del proyecto. Desactivarlo nunca elimina carpetas ni archivos existentes.
+          </p>
+        </div>
+        <BaseToggle
+          v-model="form.document_manager_enabled"
+          class="shrink-0"
+          aria-label="Mostrar proyecto en el Gestor Documental"
+          data-testid="project-form-document-manager"
+        />
+      </div>
       </div>
 
       <BaseModalActions>

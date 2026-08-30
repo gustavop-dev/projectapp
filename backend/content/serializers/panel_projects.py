@@ -39,6 +39,7 @@ class PanelProjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'status', 'status_label',
             'current_state', 'state_review_required', 'state_suggestion',
+            'document_manager_enabled',
             'created_at', 'client', 'hostings_count', 'incomes_count',
             'unlinked_hostings_count', 'unlinked_incomes_count',
             'unlinked_documents_count',
@@ -86,6 +87,7 @@ class CreatePanelProjectSerializer(serializers.Serializer):
     description = serializers.CharField(
         required=False, allow_blank=True, default='',
     )
+    document_manager_enabled = serializers.BooleanField(default=True)
     state_id = serializers.PrimaryKeyRelatedField(
         source='state',
         queryset=DocumentState.objects.filter(
@@ -117,6 +119,9 @@ class CreatePanelProjectSerializer(serializers.Serializer):
             name=validated_data['name'],
             description=validated_data.get('description', ''),
             client=self.client_profile.user,
+            document_manager_enabled=validated_data.get(
+                'document_manager_enabled', True,
+            ),
             current_state=state,
             status=LEGACY_STATUS_BY_EFFECT[state.operational_effect],
         )
@@ -170,7 +175,7 @@ class UpdatePanelProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'document_manager_enabled']
 
 
 class ProjectTransitionPreviewSerializer(serializers.Serializer):

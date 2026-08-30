@@ -452,40 +452,50 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Migration `content.0223_project_document_folders` adds the nullable one-to-one
   `DocumentFolder.managed_project`, database checks for managed-root invariants,
-  and `DocumentState.show_in_document_manager`. Existing development, active and
-  evolving project states are seeded visible; later catalog entries are configured
-  in the state manager instead of being hard-coded into the folder UI.
+  and legacy `DocumentState.show_in_document_manager` metadata. Migration
+  `accounts.0059_project_document_manager_enabled` adds the actual per-project
+  inclusion gate. Lifecycle effects classify enabled projects into active
+  (`development`/`operating`) or archived catalog groups; they do not hide or
+  archive document records.
 - `ProjectDocumentFolderService` is the only owner of automatic root creation and
-  synchronization. The `Project` post-save signal delegates to it; it is atomic,
-  idempotent and creates the four standard children only when the managed root is
-  first provisioned. Descendants retain normal user-controlled hierarchy.
+  synchronization. A `Project` post-save provisions only a newly created enabled
+  project. Later saves synchronize an existing adopted root but never create a
+  missing historical root. Explicit reconciliation is therefore the only bridge
+  from legacy data to `managed_project`. Descendants retain normal hierarchy.
 - Managed roots cannot be renamed, moved, archived, deleted or reordered through
   REST, MCP or Django admin. On project deletion the nullable ownership link is
   cleared, deliberately preserving the former root and all content as a personal
   hierarchy.
-- Production reconciliation is always two-step and review-gated:
-  `python manage.py reconcile_project_folders --plan <artifact.json>` performs no
-  writes and emits the JSON artifact plus a Markdown proposal. After every pending
-  action is marked `approve` or `skip`, run
-  `python manage.py reconcile_project_folders --apply-reviewed <artifact.json> --confirm <sha256> --inverse-out <snapshot.json>`.
-  Apply aborts if the database fingerprint or digest changed, if decisions remain
-  pending, or if conflicts exist. Never manufacture an approval artifact or apply
-  a proposal that was not reviewed against the named folders and impacts.
-- Manifest version 2 fingerprints the routing fields of every document and may
+- Production reconciliation is always plan/review/apply and is documented in
+  `docs/runbooks/document-manager-production-reconciliation.md`. Planning accepts
+  repeatable `--exclude-project`, `--enable-project` and explicit
+  `--assign-client-root FOLDER_ID:PROFILE_ID` directives but performs no writes.
+  Applying additionally requires the exact reviewed SHA-256, a verified
+  `--backup-reference` and a distinct `--inverse-out` path. The full inverse is
+  atomically prepared before entering the write transaction. Apply aborts if the
+  projects, lifecycle effects, document types, client identities, folders or
+  documents changed, if any decision is pending, or if a conflicting ownership
+  relation exists. Planning compares snapshots before and after proposal
+  generation, so a concurrent edit cannot be blessed by a later fingerprint.
+- Manifest version 3 fingerprints the routing fields of every relevant entity and may
   include `file_document` actions only for folderless collection accounts whose
   project, client, issue state and canonical path are unambiguous. A document in
   another manual tree becomes `document_conflict` and can only be skipped. Apply
-  creates/converts roots first, nests reviewed client folders second and files
-  approved documents last, preserving title and content while recording created
-  folders and the prior location in the inverse artifact.
+  configures project inclusion first, creates/converts project roots, assigns
+  reviewed client roots without nesting them, then files approved documents. It
+  preserves titles/content and records the complete pre-apply snapshot plus
+  individual changes.
 - Live generated-document filing requires that managed root to exist and never
   provisions it as a side effect. This prevents an account or proposal created
   during the migration window from bypassing the reviewed conversion.
 - `GET /api/document-folders/project-readiness/` is staff-only and derives four
-  statuses from projects, active managed roots and the catalog boolean
-  `show_in_document_manager`: `ready`, `no_projects`,
-  `reconciliation_required` and `state_filter_empty`. State names and legacy
-  status strings are intentionally absent from this calculation.
+  statuses from project inclusion and managed roots: `ready`, `no_projects`,
+  `no_enabled_projects` and `reconciliation_required`. Active/archived counts use
+  immutable `operational_effect`; editable state names and legacy visibility are
+  intentionally absent from inclusion.
+- MCP document tools keep their existing project-id contract. They do not expose
+  or mutate `document_manager_enabled`; the flag belongs to the panel/reviewed
+  reconciliation boundary, so this change does not widen connector permissions.
 
 ### Communications are a separate domain with shared infrastructure
 

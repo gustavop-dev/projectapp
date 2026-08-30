@@ -183,9 +183,26 @@ class TestCreatePanelProject:
         assert response.data['description'] == ''
         assert response.data['hostings_count'] == 0
         assert response.data['incomes_count'] == 0
+        assert response.data['document_manager_enabled'] is True
         assert response.data['client']['profile_id'] == owner.pk
         project = Project.objects.get(pk=response.data['id'])
         assert project.client_id == owner.user_id
+
+    def test_a_project_can_be_created_outside_the_document_manager(
+        self, admin_client,
+    ):
+        owner = make_client('excluded@example.com')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'PRUEBA',
+            'client_profile_id': owner.pk,
+            'document_manager_enabled': False,
+        }, format='json')
+
+        assert response.status_code == 201, response.data
+        project = Project.objects.get(pk=response.data['id'])
+        assert response.data['document_manager_enabled'] is False
+        assert not hasattr(project, 'document_root_folder')
 
     def test_the_create_response_reports_the_clients_backlog(self, admin_client):
         """The inline-create flow (crear al vuelo from an accounting picker)
@@ -291,6 +308,24 @@ class TestUpdatePanelProject:
         assert response.status_code == 200, response.data
         project.refresh_from_db()
         assert project.description == 'App de gestión'
+
+    def test_document_manager_visibility_can_change_without_deleting_content(
+        self, admin_client,
+    ):
+        owner = make_client('documents@example.com')
+        project = make_project(owner, 'Candle')
+        root_id = project.document_root_folder.id
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'document_manager_enabled': False},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        project.refresh_from_db()
+        assert project.document_manager_enabled is False
+        assert project.document_root_folder.id == root_id
 
     def test_status_change_requires_the_transition_flow(self, admin_client):
         owner = make_client('deivis@example.com')

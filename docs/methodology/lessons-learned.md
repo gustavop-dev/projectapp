@@ -7,6 +7,15 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-30 — catálogo, ubicación y archivo son dimensiones
+> distintas:** una migración de esquema no equivale a adoptar datos históricos,
+> y una entidad sin contenido todavía pertenece al catálogo. La inclusión del
+> proyecto debe ser explícita; su grupo activo/archivado se deriva del efecto
+> operativo, sin archivar documentos. La ubicación física sólo cambia mediante
+> un manifiesto revisado, respaldado y protegido contra drift. En la interfaz,
+> proyecto, cliente y carpeta sin asignar son filtros mutuamente excluyentes:
+> cambiar de eje debe limpiar los otros, no acumular una intersección invisible.
+
 > **Lección 2026-08-30 — preferencias vs. filtros:** la preferencia personal
 > aporta el fallback de una visita limpia; una URL o vista guardada debe seguir
 > reproduciendo exactamente el recorte explícito y ganar precedencia. Migrar una

@@ -34,6 +34,34 @@ const folder = {
   client_display_name: 'Kore SAS',
 };
 
+const navigationPayload = {
+  totals: {
+    active: { folders: 1, documents: 2 },
+    archived: { folders: 0, documents: 0 },
+  },
+  unassigned: {
+    project: {
+      active: { folders: 1, documents: 2 },
+      archived: { folders: 0, documents: 0 },
+    },
+    client: {
+      active: { folders: 0, documents: 0 },
+      archived: { folders: 0, documents: 0 },
+    },
+  },
+  projects: [],
+  clients: [{
+    id: 7,
+    name: 'Kore SAS',
+    is_inactive: false,
+    catalog_bucket: 'active',
+    counts: {
+      active: { folders: 1, documents: 2 },
+      archived: { folders: 0, documents: 0 },
+    },
+  }],
+};
+
 const preview = {
   folder: { id: 10, name: 'Kore' },
   current_client: { profile_id: 7, name: 'Kore SAS' },
@@ -52,6 +80,13 @@ const preview = {
 
 function baseRoutes(apiPath) {
   if (apiPath === 'auth/check/') return authCheck;
+  if (apiPath === 'accounts/panel-preferences/documents/') {
+    return json({ navigation_mode: 'project' });
+  }
+  if (apiPath === 'documents/navigation/') return json(navigationPayload);
+  if (apiPath === 'document-folders/project-readiness/') {
+    return json({ status: 'ready', project_count: 0, enabled_project_count: 0 });
+  }
   if (apiPath === 'documents/') return json([]);
   if (apiPath === 'document-folders/') return json([folder]);
   if (apiPath === 'document-tags/') return json([]);
@@ -69,6 +104,16 @@ async function pickAnotherClient(page) {
   const option = page.getByTestId('client-autocomplete-option-9');
   await expect(option).toBeInViewport({ ratio: 1 });
   await option.click();
+}
+
+/** Entra por el catálogo del cliente; la carpeta asignada no se duplica como huérfana. */
+async function openFolderForm(page) {
+  await page.getByTestId('documents-mode-client').click();
+  await page.getByTestId('documents-navigation-client-7').click();
+  const row = page.getByRole('row', { name: /Kore/i });
+  await expect(row).toBeVisible();
+  await row.click();
+  await page.getByTestId('folder-header-edit').click();
 }
 
 test.describe('Admin Document Folder Change Client', () => {
@@ -98,7 +143,7 @@ test.describe('Admin Document Folder Change Client', () => {
     });
     await page.goto('/panel/documents');
 
-    await page.getByTestId('folder-edit').first().click();
+    await openFolderForm(page);
     await pickAnotherClient(page);
     await page.getByTestId('folder-form-save').click();
 
@@ -122,7 +167,7 @@ test.describe('Admin Document Folder Change Client', () => {
       return baseRoutes(apiPath);
     });
     await page.goto('/panel/documents');
-    await page.getByTestId('folder-edit').first().click();
+    await openFolderForm(page);
     await pickAnotherClient(page);
     await page.getByTestId('folder-form-save').click();
 
@@ -156,7 +201,7 @@ test.describe('Admin Document Folder Change Client', () => {
       return baseRoutes(apiPath);
     });
     await page.goto('/panel/documents');
-    await page.getByTestId('folder-edit').first().click();
+    await openFolderForm(page);
     await pickAnotherClient(page);
     await page.getByTestId('folder-form-save').click();
     await expect(page.getByTestId('folder-change-client-preview')).toBeVisible();

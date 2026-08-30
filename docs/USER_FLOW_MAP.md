@@ -7091,15 +7091,15 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Module:** admin
 - **Role:** superuser admin
 - **Priority:** P2
-- **Routes:** `/panel` → `/panel/documents`; actions lead to `/panel/projects` or `/panel/projects/statuses`
-- **Description:** La sección Proyectos del Gestor Documental consulta un diagnóstico independiente del árbol. Si faltan carpetas gestionadas, informa cuántas requieren la conciliación revisada PA-108 sin convertirlas automáticamente. Si ningún estado es visible, enlaza al catálogo de estados. Una falla del diagnóstico se muestra como error y no como un vacío normal.
+- **Routes:** `/panel` → `/panel/documents`; actions lead to `/panel/projects`
+- **Description:** La sección Proyectos del Gestor Documental consulta un diagnóstico independiente del árbol. Si faltan carpetas gestionadas, informa cuántas requieren la conciliación revisada sin convertirlas automáticamente. Si todos los proyectos están explícitamente excluidos del Gestor Documental, enlaza a Proyectos para revisarlos. Una falla del diagnóstico se muestra como error y no como un vacío normal.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
 
 | Interacción | Outcome | Inicio → pasos → resultado |
 |---|---|---|
 | Consultar una sección con raíces pendientes | display | Panel → Gestor Documental → se informa el número exacto pendiente y siguen visibles las raíces ya conciliadas. |
-| Corregir un filtro de estados vacío | success | Panel → Gestor Documental → Administrar estados → catálogo de estados de proyecto. |
+| Revisar un catálogo explícitamente excluido | success | Panel → Gestor Documental → Revisar proyectos → módulo de proyectos. |
 | Fallar la consulta de diagnóstico | failure | Panel → Gestor Documental → respuesta 5xx → aviso de que no se pudo determinar la causa; nunca se presenta como ausencia real de proyectos. |
 | Validación de entrada | error n/a | Es una consulta de solo lectura sin campos editables; permisos y sesión pertenecen a los flows de autenticación del panel. |
 
@@ -7219,20 +7219,21 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Priority:** P1
 - **Route:** `/panel/documents`
 - **API:** `GET /api/documents/navigation/`, `GET/PATCH /api/accounts/panel-preferences/documents/`, `GET /api/documents/`, `GET /api/document-folders/`
-- **Description:** El administrador recorre el gestor por proyecto o por cliente con el mismo interruptor y en la misma posición que Comunicaciones. Cada entrada muestra por separado cuántas carpetas y documentos tiene en el ámbito activo, archivado o combinado; el inventario incluye todo descendiente porque la asociación canónica está copiada en cada carpeta y documento. «Sin proyecto» y «Sin cliente» permanecen visibles incluso con cero elementos. La preferencia se guarda por cuenta, mientras `?by=` permite compartir una visita sin cambiar esa memoria. «Carpetas propias» conserva su árbol y sus acciones sin depender del eje elegido.
+- **Description:** El administrador recorre el gestor por proyecto o por cliente con el mismo interruptor y en la misma posición que Comunicaciones. El catálogo incluye todas las entidades habilitadas aunque tengan cero contenido y separa los proyectos fuera de operación en «Proyectos archivados» y los clientes inactivos en su propio grupo, sin archivar sus documentos. Cada entrada muestra por separado cuántas carpetas y documentos tiene en el ámbito activo, archivado o combinado. «Sin proyecto» y «Sin cliente» permanecen visibles incluso con cero elementos. La preferencia se guarda por cuenta, mientras `?by=` permite compartir una visita sin cambiar esa memoria. «Carpetas sin asignar» contiene exclusivamente raíces sin proyecto ni cliente.
 - **Steps:**
   1. El administrador entra al Gestor Documental y encuentra el interruptor Proyectos/Clientes encima de la navegación lateral.
-  2. Recorre proyectos visibles; «Ver todos» recupera los que su estado excluye de la vista inicial.
+  2. Recorre proyectos activos y el grupo abierto de proyectos archivados; ambos incluyen registros con inventario cero.
   3. Elige un proyecto o «Sin proyecto» y el listado consulta únicamente esa asociación.
   4. Cambia a Clientes, elige una persona o «Sin cliente» y consulta su inventario.
   5. Sale del módulo y vuelve: el último modo elegido reaparece.
-  6. Abre una carpeta propia antes o después del cambio de modo sin perder esa vía de organización.
+  6. Abre una carpeta sin asignar; la navegación limpia cualquier proyecto o cliente previamente seleccionado.
 - **Branches:**
-  - [Branch A — Display] Cada entidad declara conteos separados de carpetas y documentos; clientes inactivos y proyectos ocultos con contenido siguen alcanzables.
+  - [Branch A — Display] Cada entidad declara conteos separados de carpetas y documentos; clientes inactivos y proyectos no operativos siguen alcanzables en grupos secundarios, incluso con cero contenido.
   - [Branch B — Sin asignar] Las entradas «Sin proyecto»/«Sin cliente» existen permanentemente y filtran los registros sin esa asociación.
   - [Branch C — Memoria] Un cambio desde el interruptor hace `PATCH`; una visita posterior hidrata el modo mediante `GET`. Un `?by=` explícito sólo gobierna esa visita.
-  - [Branch D — Carpetas propias] La sección manual no cambia al alternar el eje y sigue navegable si falla la carga de facetas.
-  - [Branch E — Fallo recuperable] Un 5xx de `/documents/navigation/` muestra una explicación con «Reintentar» sin bloquear el resto del gestor.
+  - [Branch D — Carpetas sin asignar] La sección manual no cambia al alternar el eje, excluye raíces que ya tengan proyecto o cliente y sigue navegable si falla la carga de facetas.
+  - [Branch E — Ejes excluyentes] Elegir proyecto limpia cliente, elegir cliente limpia proyecto y entrar a una carpeta manual limpia ambos; nunca se envían intersecciones accidentales.
+  - [Branch F — Fallo recuperable] Un 5xx de `/documents/navigation/` muestra una explicación con «Reintentar» sin bloquear el resto del gestor.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-navigation.spec.js`
 - **Unit Tests:** `test/components/FolderSidebar.spec.js`, `test/stores/document_navigation.test.js`, `test/composables/useDocumentFilterQuery.test.js`
@@ -7348,7 +7349,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Priority:** P1
 - **Routes:** `/panel/projects/statuses`
 - **API:** `GET|POST /api/project-states/`, `PATCH /api/project-states/<id>/`, `POST /api/project-states/<id>/retire/`, `POST /api/project-states/<id>/merge/`
-- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
+- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. La inclusión en el Gestor Documental pertenece a cada proyecto; el efecto operativo sólo agrupa un proyecto habilitado entre activos o archivados, sin archivar sus documentos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
 - **Interaction matrix:**
 
 | Interaction | Outcome | Start → end state |
