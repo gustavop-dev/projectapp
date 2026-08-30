@@ -288,7 +288,8 @@ test.describe('Admin Document Folders', () => {
     await page.getByRole('button', { name: /^Cuentas de cobro —/ }).click();
     await page.getByRole('button', { name: 'Nueva carpeta' }).click();
 
-    const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
+    const parentSelect = page.getByTestId('folder-manager-parent');
+    await expect(parentSelect).toBeVisible();
     await expect(parentSelect.locator('option:checked')).toHaveText('Cuentas de cobro');
   });
 
@@ -319,7 +320,7 @@ test.describe('Admin Document Folders', () => {
 
     await page.getByRole('button', { name: 'Nueva carpeta' }).click();
 
-    const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
+    const parentSelect = page.getByTestId('folder-manager-parent');
     await expect(parentSelect.locator('option', { hasText: 'Kore Health' })).toHaveCount(1);
     await expect(parentSelect.locator('option:checked')).toHaveText('Ninguna (carpeta raíz)');
   });

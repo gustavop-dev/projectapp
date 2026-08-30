@@ -227,18 +227,25 @@
     />
 
     <BaseModal v-model="threadFormOpen" kind="form" padding="none">
-      <form @submit.prevent="createThread">
+      <form novalidate @submit.prevent="createThread">
         <div class="border-b border-border-muted px-5 py-4 panel-portrait:px-6">
           <h2 class="text-lg font-semibold text-text-default">Nuevo hilo de comunicación</h2>
           <p class="mt-1 text-sm text-text-subtle">Un cliente puede mantener varios hilos abiertos a la vez.</p>
         </div>
         <div class="space-y-4 px-5 py-5 panel-portrait:px-6">
-          <BaseFormField label="Cliente">
+          <BaseFormField
+            v-slot="{ invalid, errorId }"
+            label="Cliente"
+            required
+            :error="threadFormErrors.client"
+          >
             <ClientAutocomplete
               v-model="threadForm.client"
               :initial-label="threadForm.clientLabel"
               placeholder="Buscar cliente..."
               test-id="communication-thread-client"
+              :error="invalid"
+              :error-described-by="errorId"
               @select="onThreadClientSelect"
             />
           </BaseFormField>
@@ -247,25 +254,31 @@
             :client-profile-id="threadForm.client"
             :client-label="threadForm.clientLabel"
             :allow-create="false"
-            label="Proyecto (opcional)"
+            label="Proyecto"
             testid="communication-thread-project"
           />
-          <BaseFormField label="Título">
+          <BaseFormField
+            v-slot="{ invalid, errorId }"
+            label="Título"
+            required
+            :error="threadFormErrors.title"
+          >
             <BaseInput
               v-model="threadForm.title"
               placeholder="Ej. Aprobación del alcance de la fase 2"
               data-testid="communication-thread-title"
+              :error="invalid"
+              :aria-describedby="errorId"
+              @update:model-value="clearThreadFormError('title')"
             />
           </BaseFormField>
         </div>
         <BaseModalActions>
-          <BaseButton variant="secondary" size="md" @click="threadFormOpen = false">Cancelar</BaseButton>
+          <BaseButton type="button" variant="secondary" size="md" @click="threadFormOpen = false">Cancelar</BaseButton>
           <BaseButton
             type="submit"
             variant="primary"
             size="md"
-            :disabled="!threadForm.client || !threadForm.title.trim()"
-            disabled-reason="Selecciona un cliente y escribe el título."
             :loading="store.isMutating"
             data-testid="communication-thread-create-submit"
           >
@@ -376,6 +389,13 @@ const threadForm = reactive({
   project: null,
   title: '',
 });
+const threadFormErrors = ref({});
+
+function clearThreadFormError(field) {
+  const nextErrors = { ...threadFormErrors.value };
+  delete nextErrors[field];
+  threadFormErrors.value = nextErrors;
+}
 
 const compactNavigationLabel = computed(() => {
   if (navigationSelection.value === 'all') {
@@ -474,6 +494,7 @@ function selectedClientEntry(clientId) {
 }
 
 function openThreadForm() {
+  threadFormErrors.value = {};
   Object.assign(threadForm, {
     client: null,
     clientLabel: '',
@@ -499,17 +520,26 @@ function openThreadForm() {
 }
 
 function onThreadClientSelect(client) {
+  clearThreadFormError('client');
   threadForm.clientLabel = client?.name || '';
   threadForm.project = null;
 }
 
 async function createThread() {
+  threadFormErrors.value = {
+    ...(!threadForm.client ? { client: 'Elige un cliente.' } : {}),
+    ...(!threadForm.title.trim() ? { title: 'Escribe el título del hilo.' } : {}),
+  };
+  if (Object.keys(threadFormErrors.value).length) return;
+
   const result = await store.createThread({
     client: threadForm.client,
     project: threadForm.project || null,
     title: threadForm.title.trim(),
   });
   if (!result.success) {
+    threadFormErrors.value = result.fieldErrors || {};
+    if (Object.keys(threadFormErrors.value).length) return;
     notify.error({ title: 'No se pudo crear el hilo', detail: result.message });
     return;
   }

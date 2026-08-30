@@ -138,7 +138,7 @@
             v-model="newNote.title"
             maxlength="120"
             :disabled="busy"
-            placeholder="Título breve (opcional)"
+            placeholder="Título breve"
             data-testid="document-observation-title"
           />
           <BaseTextarea
@@ -241,7 +241,7 @@
       <NotePreview :note="actionNote" />
       <div class="space-y-1.5">
         <label for="document-observation-resolution" class="text-sm font-medium text-text-default">
-          {{ finishOutcome === 'discarded' ? 'Motivo (opcional)' : 'Resolución (opcional)' }}
+          {{ finishOutcome === 'discarded' ? 'Motivo' : 'Resolución' }}
         </label>
         <BaseTextarea
           id="document-observation-resolution"

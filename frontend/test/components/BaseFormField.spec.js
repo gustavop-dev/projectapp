@@ -37,7 +37,48 @@ describe('BaseFormField', () => {
     const para = wrapper.find('p')
     expect(para.text()).toBe('Es obligatorio')
     expect(para.classes()).toContain('text-danger-strong')
+    expect(para.attributes('role')).toBe('alert')
+    expect(para.attributes('id')).toBeTruthy()
     expect(wrapper.text()).not.toContain('Hint')
+  })
+
+  it('links an explicit field error to its control', async () => {
+    const wrapper = mount(BaseFormField, {
+      props: { label: 'Cliente', error: 'Elige un cliente.' },
+      slots: { default: '<input data-testid="control" />' },
+    })
+    await wrapper.vm.$nextTick()
+
+    const input = wrapper.get('[data-testid="control"]')
+    const error = wrapper.get('[role="alert"]')
+    expect(input.attributes('aria-invalid')).toBe('true')
+    expect(input.attributes('aria-describedby')).toContain(error.attributes('id'))
+
+    await wrapper.setProps({ error: '' })
+    expect(input.attributes('aria-invalid')).toBeUndefined()
+    expect(input.attributes('aria-describedby')).toBeUndefined()
+  })
+
+  it('renders native required validation under its control', async () => {
+    const wrapper = mount(BaseFormField, {
+      props: {
+        label: 'Nombre',
+        required: true,
+        requiredMessage: 'Escribe el nombre.',
+      },
+      slots: { default: '<input required data-testid="control" />' },
+    })
+    const input = wrapper.get('[data-testid="control"]')
+
+    await input.trigger('invalid')
+
+    const error = wrapper.get('[role="alert"]')
+    expect(error.text()).toBe('Escribe el nombre.')
+    expect(input.attributes('aria-invalid')).toBe('true')
+    expect(input.attributes('aria-describedby')).toContain(error.attributes('id'))
+
+    await input.setValue('Kore')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('renders required marker when required is true', () => {

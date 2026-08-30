@@ -36,6 +36,7 @@ const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
 const inlineClientOpen = ref(false)
 const inlineClient = ref(emptyClientForm())
+const inlineClientErrors = ref({})
 
 const originOptions = [
   { value: 'development', label: 'Desarrollo' },
@@ -336,6 +337,7 @@ watch(
     if (source) applyRecord(source)
     else form.value = defaultForm()
     inlineClientOpen.value = false
+    inlineClientErrors.value = {}
     if (props.lockedClient) {
       form.value.client = props.lockedClient.id ?? null
       form.value.client_name = props.lockedClient.name ?? ''
@@ -363,9 +365,22 @@ function onClientSelect(client) {
 function onCreateNewClient(typedName) {
   inlineClientOpen.value = true
   inlineClient.value = { ...emptyClientForm(), name: typedName || '' }
+  inlineClientErrors.value = {}
+}
+
+function clearInlineClientError(field) {
+  if (!inlineClientErrors.value[field]) return
+  const next = { ...inlineClientErrors.value }
+  delete next[field]
+  inlineClientErrors.value = next
 }
 
 async function createInlineClient() {
+  inlineClientErrors.value = {}
+  if (!inlineClient.value.name.trim()) {
+    inlineClientErrors.value = { name: 'Escribe el nombre del cliente.' }
+    return
+  }
   creatingClient.value = true
   const result = await clientsStore.createClient(clientFormPayload(inlineClient.value))
   creatingClient.value = false
@@ -373,7 +388,16 @@ async function createInlineClient() {
     inlineClientOpen.value = false
     form.value.client = result.data.id
     form.value.client_name = result.data.name || ''
+    return
   }
+  inlineClientErrors.value = Object.fromEntries(
+    Object.entries(result.errors || {})
+      .filter(([field]) => !['message', 'error'].includes(field))
+      .map(([field, messages]) => [
+        field,
+        Array.isArray(messages) ? messages.join(' ') : String(messages || ''),
+      ]),
+  )
 }
 
 function onSubmit() {
@@ -434,7 +458,7 @@ function onSubmit() {
         <BaseInput v-model="form.concept" data-testid="income-form-concept" required />
       </BaseFormField>
 
-      <BaseFormField label="Cliente" hint="Opcional: un reembolso o un rendimiento no tiene cliente.">
+      <BaseFormField label="Cliente">
         <div
           v-if="lockedClient"
           class="rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
@@ -447,6 +471,7 @@ function onSubmit() {
           v-model="form.client"
           :initial-label="form.client_name"
           test-id="income-form-client"
+          allow-create
           @select="onClientSelect"
           @create-new="onCreateNewClient"
         />
@@ -470,8 +495,10 @@ function onSubmit() {
         <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
         <ClientFormFields
           v-model="inlineClient"
+          :errors="inlineClientErrors"
           testid-prefix="income-form-inline-client"
           dense
+          @clear-error="clearInlineClientError"
         />
         <div class="flex justify-end gap-2">
           <BaseButton type="button" variant="secondary" size="sm" @click="inlineClientOpen = false">
@@ -630,7 +657,7 @@ function onSubmit() {
         <BaseTextarea v-model="form.notes" :rows="3" />
       </BaseFormField>
 
-      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
+      <BaseModalActions class="-mx-6 -mb-4 mt-6">
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cancelar
         </BaseButton>
@@ -642,7 +669,7 @@ function onSubmit() {
         >
           {{ saving ? 'Guardando...' : 'Guardar' }}
         </BaseButton>
-      </div>
+      </BaseModalActions>
     </form>
   </BaseModal>
 </template>

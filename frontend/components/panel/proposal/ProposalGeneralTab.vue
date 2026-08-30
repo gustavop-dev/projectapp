@@ -382,6 +382,7 @@
           v-model="form.client_id"
           :initial-label="form.client_name"
           test-id="proposal-edit-client-autocomplete"
+          allow-create
           @select="emit('client-selected', $event)"
           @create-new="emit('create-inline-client', $event)"
         />
@@ -750,17 +751,19 @@
           </BaseButton>
         </div>
 
-        <button
+        <BaseButton
           v-if="nextAction"
           type="button"
+          variant="primary"
+          size="md"
           :disabled="nextAction.disabled"
           :title="nextAction.disabled ? 'El lanzamiento a la plataforma ya está en curso. Espera a que termine.' : undefined"
           :data-testid="'proposal-next-action-' + nextAction.key"
-          :class="['px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 w-full sm:w-auto sm:ml-auto', nextAction.colorClass]"
+          class="w-full sm:w-auto sm:ml-auto shadow-sm"
           @click="emit('next-action')"
         >
           {{ nextAction.label }}
-        </button>
+        </BaseButton>
       </div>
     </div>
   </form>

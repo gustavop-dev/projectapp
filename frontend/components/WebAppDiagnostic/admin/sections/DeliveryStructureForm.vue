@@ -30,7 +30,7 @@
           <BaseButton variant="danger-ghost" size="sm" class="ml-2" @click="form.blocks.splice(idx, 1)">Quitar</BaseButton>
         </div>
         <textarea v-model="b.paragraphsText" rows="3" placeholder="Párrafos (uno por línea)" class="w-full px-3 py-2 border border-border-default rounded-lg text-sm font-mono bg-surface text-text-default"></textarea>
-        <input v-model="b.example" type="text" placeholder="Ejemplo (opcional)" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
+        <input v-model="b.example" type="text" placeholder="Ejemplo" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
       </div>
     </div>
   </div>

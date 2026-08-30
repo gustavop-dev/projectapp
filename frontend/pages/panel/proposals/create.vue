@@ -72,6 +72,7 @@
             <ClientAutocomplete
               v-model="form.client_id"
               :initial-label="form.client_name"
+              allow-create
               @select="onClientSelected"
               @create-new="onCreateInlineClient"
             />
@@ -98,7 +99,7 @@
                 id="create-client-email"
                 v-model="form.client_email"
                 type="email"
-                placeholder="maria@gmail.com (opcional)"
+                placeholder="maria@gmail.com"
                 class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
             </div>
@@ -678,6 +679,7 @@
                 v-model="jsonForm.client_id"
                 :initial-label="jsonForm.client_name"
                 test-id="json-client-autocomplete"
+                allow-create
                 @select="onJsonClientSelected"
                 @create-new="onCreateInlineJsonClient"
               />
@@ -705,7 +707,7 @@
                   id="json-client-email"
                   v-model="jsonForm.client_email"
                   type="email"
-                  placeholder="maria@gmail.com (opcional)"
+                  placeholder="maria@gmail.com"
                   data-testid="json-client-email"
                   class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 />

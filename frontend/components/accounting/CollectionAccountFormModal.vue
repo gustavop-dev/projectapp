@@ -5,7 +5,6 @@ import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
-import BaseControlGate from '~/components/base/BaseControlGate.vue';
 import { INPUT_FIELD_BASE, INPUT_FIELD_SIZE } from '~/components/base/inputClasses';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { useIsMobile } from '~/composables/useIsMobile';
@@ -39,6 +38,7 @@ const notify = usePanelNotify();
 const step = ref('form');
 const previewing = ref(false);
 const saving = ref(false);
+const validationAttempted = ref(false);
 const preview = ref(null);
 // Served by the backend, not a blob: the viewer names its download after the
 // URL / Content-Disposition, and a blob: URL carries neither.
@@ -61,6 +61,7 @@ const savingClientEmail = ref(false);
 const clientFromIncome = ref(null);
 const loadingClient = ref(false);
 const inlineClient = ref(emptyClientForm());
+const inlineClientErrors = ref({});
 
 // ── Income ──
 const selectedIncome = ref(null);
@@ -145,6 +146,7 @@ watch(
   (open) => {
     if (!open) return;
     step.value = 'form';
+    validationAttempted.value = false;
     preview.value = null;
     clearPdf();
     form.value = defaultForm();
@@ -159,6 +161,7 @@ watch(
     showIncomeForm.value = false;
     clientFromIncome.value = null;
     loadingClient.value = false;
+    inlineClientErrors.value = {};
     selectedIncome.value = null;
     incomeQuery.value = '';
     incomeOptions.value = [];
@@ -605,9 +608,22 @@ async function saveClientEmail() {
 function onCreateNewClient(typedName) {
   showInlineClient.value = true;
   inlineClient.value = { ...emptyClientForm(), name: typedName || '' };
+  inlineClientErrors.value = {};
+}
+
+function clearInlineClientError(field) {
+  if (!inlineClientErrors.value[field]) return;
+  const next = { ...inlineClientErrors.value };
+  delete next[field];
+  inlineClientErrors.value = next;
 }
 
 async function createInlineClient() {
+  inlineClientErrors.value = {};
+  if (!inlineClient.value.name.trim()) {
+    inlineClientErrors.value = { name: 'Escribe el nombre del cliente.' };
+    return;
+  }
   creatingClient.value = true;
   const result = await clientsStore.createClient(clientFormPayload(inlineClient.value));
   creatingClient.value = false;
@@ -617,10 +633,21 @@ async function createInlineClient() {
     await onClientSelect(result.data);
     notify.success({ title: 'Cliente creado' });
   } else {
-    notify.error({
-      title: 'No se pudo crear el cliente',
-      detail: result.errors?.message || '',
-    });
+    const fields = Object.fromEntries(
+      Object.entries(result.errors || {})
+        .filter(([field]) => field !== 'message' && field !== 'error')
+        .map(([field, messages]) => [
+          field,
+          Array.isArray(messages) ? messages.join(' ') : String(messages || ''),
+        ]),
+    );
+    inlineClientErrors.value = fields;
+    if (!Object.keys(fields).length) {
+      notify.error({
+        title: 'No se pudo crear el cliente',
+        detail: result.errors?.message || '',
+      });
+    }
   }
 }
 
@@ -732,24 +759,51 @@ function onSplitKey(e) {
 
 // ── Preview + confirm ──
 
-const previewBlockers = computed(() => {
-  const reasons = [];
-  if (!clientId.value) reasons.push('Selecciona un cliente.');
-  if (clientId.value && loadingClient.value) reasons.push('Espera a que terminen de cargar los datos del cliente.');
-  if (!selectedIncome.value?.id) reasons.push('Selecciona un ingreso vinculado.');
-  if (incomeClientConflict.value) reasons.push('Resuelve el conflicto entre el cliente y el ingreso.');
-  if (!(Number(form.value.unit_price) > 0)) reasons.push('Ingresa un valor mayor a cero.');
-  if (!form.value.billing_concept.trim()) reasons.push('Escribe el concepto del servicio.');
-  if (selectedClientMissingEmail.value) {
-    reasons.push('Agrega y guarda un correo real para el cliente seleccionado.');
-  } else if (clientId.value && !isValidEmail(form.value.customer.email)) {
-    reasons.push('Escribe un correo destinatario válido para esta cuenta.');
-  }
-  if (form.value.term === 'fixed' && !form.value.due_date) {
-    reasons.push('Selecciona la fecha fija de pago.');
-  }
-  return reasons;
+const clientValidationError = computed(() => {
+  if (!validationAttempted.value) return '';
+  if (!clientId.value) return 'Elige o crea un cliente.';
+  if (loadingClient.value) return 'Espera a que carguen los datos del cliente.';
+  if (selectedClientMissingEmail.value) return 'Agrega y guarda el correo del cliente.';
+  return '';
 });
+const incomeValidationError = computed(() => {
+  if (!validationAttempted.value) return '';
+  if (!selectedIncome.value?.id) return 'Selecciona un ingreso vinculado.';
+  if (incomeClientConflict.value) return 'Resuelve el conflicto con el cliente del ingreso.';
+  return '';
+});
+const amountValidationError = computed(() => (
+  validationAttempted.value && !(Number(form.value.unit_price) > 0)
+    ? 'Ingresa un valor mayor a cero.'
+    : ''
+));
+const conceptValidationError = computed(() => (
+  validationAttempted.value && !form.value.billing_concept.trim()
+    ? 'Escribe el concepto del servicio.'
+    : ''
+));
+const customerEmailValidationError = computed(() => (
+  validationAttempted.value
+  && clientId.value
+  && !selectedClientMissingEmail.value
+  && !isValidEmail(form.value.customer.email)
+    ? 'Escribe un correo destinatario válido.'
+    : ''
+));
+const dueDateValidationError = computed(() => (
+  validationAttempted.value && form.value.term === 'fixed' && !form.value.due_date
+    ? 'Selecciona la fecha fija de pago.'
+    : ''
+));
+
+const previewBlockers = computed(() => [
+  clientValidationError.value,
+  incomeValidationError.value,
+  amountValidationError.value,
+  conceptValidationError.value,
+  customerEmailValidationError.value,
+  dueDateValidationError.value,
+].filter(Boolean));
 
 const canPreview = computed(() => previewBlockers.value.length === 0);
 
@@ -795,6 +849,7 @@ function buildPayload() {
 }
 
 async function goPreview() {
+  validationAttempted.value = true;
   if (!canPreview.value || previewing.value) return;
   previewing.value = true;
   const result = await store.previewCollectionAccount(buildPayload());
@@ -911,9 +966,10 @@ function downloadPdf() {
     <form
       v-if="step === 'form'"
       class="px-6 py-4 space-y-4"
+      novalidate
       @submit.prevent="goPreview"
     >
-      <BaseFormField label="Cliente" required>
+      <BaseFormField label="Cliente" required :error="clientValidationError">
         <div
           v-if="clientFromIncome"
           class="flex items-center justify-between gap-2 rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
@@ -937,6 +993,8 @@ function downloadPdf() {
           v-else
           v-model="clientId"
           test-id="collection-form-client"
+          allow-create
+          :error="!!clientValidationError"
           @select="onClientSelect"
           @create-new="onCreateNewClient"
         />
@@ -993,8 +1051,10 @@ function downloadPdf() {
         <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
         <ClientFormFields
           v-model="inlineClient"
+          :errors="inlineClientErrors"
           testid-prefix="collection-form-inline-client"
           dense
+          @clear-error="clearInlineClientError"
         />
         <div class="flex justify-end gap-2">
           <BaseButton type="button" variant="secondary" size="sm" @click="showInlineClient = false">
@@ -1018,6 +1078,7 @@ function downloadPdf() {
         label="Ingreso vinculado"
         required
         hint="Los ingresos perdidos nunca se listan"
+        :error="incomeValidationError"
       >
         <template v-if="props.income">
           <div
@@ -1226,11 +1287,11 @@ function downloadPdf() {
             @input="onNumberInput"
           />
         </BaseFormField>
-        <BaseFormField label="Valor" required>
+        <BaseFormField label="Valor" required :error="amountValidationError">
           <BaseCurrencyInput
             v-model="form.unit_price"
             data-testid="collection-form-amount"
-            required
+            :error="!!amountValidationError"
           />
         </BaseFormField>
       </BaseFormRow>
@@ -1239,17 +1300,18 @@ function downloadPdf() {
         label="Concepto del servicio"
         hint="Texto corto. Encabeza el documento y el asunto del correo."
         required
+        :error="conceptValidationError"
       >
         <BaseInput
           v-model="form.billing_concept"
           data-testid="collection-form-concept"
-          required
+          :error="!!conceptValidationError"
         />
       </BaseFormField>
 
       <BaseFormField
         label="Descripción del concepto"
-        hint="Opcional. Va en la columna Descripción del PDF y admite varias líneas — úsala para enumerar los requerimientos atendidos. Si la dejas vacía, se muestra el concepto."
+        hint="Va en la columna Descripción del PDF. Si queda vacía, se muestra el concepto."
       >
         <BaseTextarea
           v-model="form.billing_description"
@@ -1260,7 +1322,7 @@ function downloadPdf() {
       </BaseFormField>
 
       <BaseFormRow :cols="2" :gap="4">
-        <BaseFormField label="Período facturado (opcional)">
+        <BaseFormField label="Período facturado">
           <div class="flex items-center gap-2">
             <BaseInput v-model="form.period_start" type="date" data-testid="collection-form-period-start" />
             <span class="text-text-subtle text-sm">a</span>
@@ -1276,6 +1338,7 @@ function downloadPdf() {
            this field, where a 0 would mean nothing. -->
       <BaseFormField
         label="Plazo de pago"
+        :error="dueDateValidationError"
         :hint="form.term === 'days'
           ? '0 días = pago inmediato: la cuenta sale sin fecha de vencimiento.'
           : undefined"
@@ -1294,6 +1357,7 @@ function downloadPdf() {
             v-else
             v-model="form.due_date"
             type="date"
+            :error="!!dueDateValidationError"
             data-testid="collection-form-due-date"
           />
         </div>
@@ -1310,12 +1374,13 @@ function downloadPdf() {
           <BaseFormField label="Nombre / Razón social">
             <BaseInput v-model="form.customer.name" data-testid="collection-form-customer-name" />
           </BaseFormField>
-          <BaseFormField label="Correo destinatario de esta cuenta" required>
+          <BaseFormField label="Correo destinatario de esta cuenta" required :error="customerEmailValidationError">
             <BaseInput
               v-model="form.customer.email"
               type="email"
               data-testid="collection-form-customer-email"
               required
+              :error="!!customerEmailValidationError"
               :disabled="selectedClientMissingEmail"
               disabled-reason="Guarda el correo del cliente en el aviso superior para habilitar este campo."
             />
@@ -1361,31 +1426,19 @@ function downloadPdf() {
         />
       </BaseFormField>
 
-      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-end panel-portrait:justify-end">
+      <BaseModalActions class="-mx-6 -mb-4 mt-6">
         <BaseButton type="button" variant="secondary" @click="close">
           Cancelar
         </BaseButton>
-        <BaseControlGate
-          :reasons="previewing ? [] : previewBlockers"
-          label="Previsualizar no disponible"
-          align="stretch"
-          reserve-space
-          testid="collection-form-preview-gate"
+        <BaseButton
+          type="submit"
+          variant="primary"
+          :loading="previewing"
+          data-testid="collection-form-preview"
         >
-          <template #default="{ describedBy }">
-            <BaseButton
-              type="submit"
-              variant="primary"
-              class="w-full"
-              :disabled="!canPreview || previewing"
-              :aria-describedby="describedBy"
-              data-testid="collection-form-preview"
-            >
-              {{ previewing ? 'Generando...' : 'Previsualizar' }}
-            </BaseButton>
-          </template>
-        </BaseControlGate>
-      </div>
+          {{ previewing ? 'Generando...' : 'Previsualizar' }}
+        </BaseButton>
+      </BaseModalActions>
     </form>
 
     <!-- ── Step 2: preview ── -->
@@ -1528,9 +1581,7 @@ function downloadPdf() {
       </div>
 
       <!-- Fixed: the send decision never needs scrolling to reach. -->
-      <div
-        class="mt-4 flex shrink-0 flex-col-reverse items-stretch gap-2 border-t border-border-muted px-6 py-4 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between"
-      >
+      <BaseModalActions class="mt-4 shrink-0">
         <BaseButton
           type="button"
           variant="secondary"
@@ -1548,7 +1599,7 @@ function downloadPdf() {
         >
           {{ saving ? 'Enviando...' : 'Confirmar y enviar' }}
         </BaseButton>
-      </div>
+      </BaseModalActions>
     </div>
   </BaseModal>
 

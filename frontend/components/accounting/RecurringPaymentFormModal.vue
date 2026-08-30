@@ -84,7 +84,7 @@ const duplicateNeedsAnchor = computed(() => (
 // lands on, so anything beyond monthly needs the reference date to be announced.
 const anchorHint = computed(() => (
   isMonthlyFrequency.value
-    ? 'Opcional: con periodicidad mensual basta el día de cobro.'
+    ? 'Con periodicidad mensual basta el día de cobro.'
     : 'Cualquier cobro conocido. Sin ella este pago no genera avisos.'
 ))
 
@@ -280,7 +280,7 @@ function onSubmit() {
         <BaseTextarea v-model="form.notes" :rows="3" />
       </BaseFormField>
 
-      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
+      <BaseModalActions class="-mx-6 -mb-4 mt-6">
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cancelar
         </BaseButton>
@@ -292,7 +292,7 @@ function onSubmit() {
         >
           {{ saving ? 'Guardando...' : 'Guardar' }}
         </BaseButton>
-      </div>
+      </BaseModalActions>
     </form>
   </BaseModal>
 </template>

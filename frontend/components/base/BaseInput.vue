@@ -21,6 +21,7 @@ defineEmits(['update:modelValue'])
     :placeholder="placeholder"
     :disabled="disabled"
     :title="disabled && disabledReason ? disabledReason : undefined"
+    :aria-invalid="error ? 'true' : undefined"
     :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md, error ? INPUT_FIELD_ERROR : '']"
     @input="$emit('update:modelValue', $event.target.value)"
   />

@@ -78,7 +78,9 @@ describe('BaseSelect', () => {
     const wrapper = mount(BaseSelect, {
       props: { modelValue: 'a', options: ['a'], error: true },
     })
-    expect(wrapper.find('select').attributes('class')).toContain('border-danger-strong')
+    const select = wrapper.find('select')
+    expect(select.attributes('class')).toContain('border-danger-strong')
+    expect(select.attributes('aria-invalid')).toBe('true')
   })
 
   it('respects size="sm" with smaller padding/text', () => {

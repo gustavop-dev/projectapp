@@ -408,8 +408,8 @@ Two fields side by side go in a `BaseFormRow`, never in a hand-written
 
 ```vue
 <BaseFormRow :cols="2" :gap="3">
-  <BaseFormField label="NIT (opcional)">…</BaseFormField>
-  <BaseFormField label="Código de facturación (opcional)">…</BaseFormField>
+  <BaseFormField label="NIT">…</BaseFormField>
+  <BaseFormField label="Código de facturación">…</BaseFormField>
   <template #help>Estos datos aparecen en la cuenta de cobro.</template>
 </BaseFormRow>
 ```

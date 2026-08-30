@@ -3,6 +3,9 @@ import { setActivePinia, createPinia } from 'pinia';
 import IncomeFormModal from '../../../components/accounting/IncomeFormModal.vue';
 import BaseAlert from '../../../components/base/BaseAlert.vue';
 import { get_request } from '../../../stores/services/request_http';
+import { useProposalClientsStore } from '../../../stores/proposal_clients';
+import BaseFormField from '../../../components/base/BaseFormField.vue';
+import BaseInput from '../../../components/base/BaseInput.vue';
 
 jest.mock('../../../stores/services/request_http', () => ({
   get_request: jest.fn(),
@@ -32,7 +35,8 @@ const PartnerSplitInputStub = {
 };
 
 function mountModal(props = {}) {
-  setActivePinia(createPinia());
+  const pinia = createPinia();
+  setActivePinia(pinia);
   return mount(IncomeFormModal, {
     props: {
       open: true,
@@ -41,9 +45,10 @@ function mountModal(props = {}) {
       ...props,
     },
     global: {
+      plugins: [pinia],
       // The real alert, not a stub: the copy it renders is what the operator
       // reads to tell a chained date from a guess.
-      components: { BaseAlert },
+      components: { BaseAlert, BaseFormField, BaseInput },
       stubs: {
         ClientAutocomplete: ClientAutocompleteStub,
         Teleport: { template: '<div><slot /></div>' },
@@ -52,25 +57,6 @@ function mountModal(props = {}) {
           props: ['modelValue', 'size'],
           emits: ['update:modelValue', 'close'],
           template: '<div v-if="modelValue"><slot /></div>',
-        },
-        BaseFormField: {
-          // The hint and the error are rendered here, not by the caller, so a
-          // stub that swallowed them would hide the very copy under test.
-          props: ['label', 'hint', 'hintTestid', 'error', 'required', 'for', 'size'],
-          template: `
-            <div>
-              <label v-if="label">{{ label }}</label>
-              <slot />
-              <p v-if="error" data-testid="form-field-error">{{ error }}</p>
-              <p v-else-if="hint" :data-testid="hintTestid || undefined">{{ hint }}</p>
-            </div>
-          `,
-        },
-        BaseInput: {
-          props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled'],
-          emits: ['update:modelValue'],
-          template:
-            '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
           props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled'],
@@ -143,9 +129,52 @@ async function mountHostingCreate(suggestion = { suggestedStart: '2026-09-01' })
 
 afterEach(() => {
   get_request.mockReset();
+  jest.restoreAllMocks();
 });
 
 describe('IncomeFormModal', () => {
+  function expectDescribedError(wrapper, testId, message) {
+    const control = wrapper.get(`[data-testid="${testId}"]`);
+    const errorId = control.attributes('aria-describedby');
+    const error = wrapper.findAll('[role="alert"]')
+      .find((node) => node.attributes('id') === errorId);
+    expect(control.attributes('aria-invalid')).toBe('true');
+    expect(error.exists()).toBe(true);
+    expect(error.text()).toBe(message);
+  }
+
+  // Falla si el alta rápida manda un cliente sin nombre al store o esconde el motivo junto al campo.
+  it('rejects an empty inline income client name', async () => {
+    const wrapper = mountModal();
+    const createClient = jest.spyOn(useProposalClientsStore(), 'createClient');
+    wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', '');
+    await flushPromises();
+
+    await wrapper.get('[data-testid="income-form-inline-client-save"]').trigger('click');
+
+    expect(createClient).toHaveBeenCalledTimes(0);
+    expectDescribedError(wrapper, 'income-form-inline-client-name', 'Escribe el nombre del cliente.');
+  });
+
+  // Falla si un error de correo del servidor deja de señalar el dato que debe corregirse.
+  it('places inline income email rejection on its control', async () => {
+    const wrapper = mountModal();
+    jest.spyOn(useProposalClientsStore(), 'createClient').mockResolvedValue({
+      success: false,
+      errors: { email: ['Ese correo ya existe.'] },
+    });
+    wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', 'Nueva cliente');
+    await flushPromises();
+
+    await wrapper.get('[data-testid="income-form-inline-client-save"]').trigger('click');
+    await flushPromises();
+
+    const emailControl = wrapper.get('[data-testid="income-form-inline-client-email"]');
+    const emailError = wrapper.get(`#${emailControl.attributes('aria-describedby')}`);
+    expect(emailControl.attributes('aria-invalid')).toBe('true');
+    expect(emailError.attributes('role')).toBe('alert');
+    expect(emailError.text()).toBe('Ese correo ya existe.');
+  });
   it('renders an empty form in create mode', () => {
     const wrapper = mountModal();
 
@@ -698,8 +727,11 @@ describe('IncomeFormModal', () => {
       await wrapper.find('[data-testid="income-form-period-end"]').setValue('2026-09-01');
       await wrapper.find('form').trigger('submit');
 
-      expect(wrapper.get('[data-testid="form-field-error"]').text())
-        .toContain('posterior a la de inicio');
+      expectDescribedError(
+        wrapper,
+        'income-form-period-end',
+        'La fecha de fin debe ser posterior a la de inicio.',
+      );
       expect(wrapper.emitted('submit')).toBeUndefined();
     });
   });
@@ -1130,8 +1162,9 @@ describe('IncomeFormModal', () => {
       await wrapper.find('form').trigger('submit');
 
       expect(wrapper.emitted('submit')).toBeUndefined();
-      expect(wrapper.find('[data-testid="form-field-error"]').text())
-        .toBe('Elige la línea de negocio del ingreso.');
+      const originError = wrapper.findAll('[role="alert"]')
+        .find((node) => node.text() === 'Elige la línea de negocio del ingreso.');
+      expect(originError).toBeDefined();
 
       await segmentedButton(wrapper, 'Diagnóstico').trigger('click');
       await wrapper.find('form').trigger('submit');

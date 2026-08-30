@@ -11,6 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'create', 'rename', 'delete', 'reorder'])
 
 const newName = ref('')
+const newNameError = ref('')
 /** Mutable mirror: vuedraggable owns the array it reorders. */
 const localCategories = ref([])
 
@@ -25,13 +26,20 @@ watch(
 watch(
   () => props.open,
   (open) => {
-    if (open) newName.value = ''
+    if (open) {
+      newName.value = ''
+      newNameError.value = ''
+    }
   },
 )
 
 function onCreate() {
   const name = newName.value.trim()
-  if (!name) return
+  if (!name) {
+    newNameError.value = 'Escribe el nombre de la categoría.'
+    return
+  }
+  newNameError.value = ''
   emit('create', name)
   newName.value = ''
 }
@@ -114,34 +122,27 @@ function onDragEnd() {
         </template>
       </draggable>
 
-      <form class="flex items-center gap-2 pt-2" @submit.prevent="onCreate">
-        <BaseInput
-          v-model="newName"
-          placeholder="Nueva categoría..."
-          class="flex-1"
-          aria-label="Nombre de la nueva categoría"
-          data-testid="recurring-category-new-name"
-        />
-        <BaseControlGate
-          :reasons="!newName.trim() ? ['Escribe el nombre de la categoría para agregarla.'] : []"
-          label="Agregar no disponible"
-          align="end"
-        >
-          <template #default="{ describedBy }">
-            <BaseButton
-              type="submit"
-              variant="secondary"
-              :loading="saving"
-              :disabled="!newName.trim()"
-              disabled-reason="Escribe el nombre de la categoría para agregarla."
-              :aria-describedby="describedBy"
-              data-testid="recurring-category-create"
-            >
-              <BaseActionIcon action="create" />
-              <span>Agregar</span>
-            </BaseButton>
-          </template>
-        </BaseControlGate>
+      <form class="space-y-3 pt-2" novalidate @submit.prevent="onCreate">
+        <BaseFormField label="Nueva categoría" required :error="newNameError">
+          <BaseInput
+            v-model="newName"
+            placeholder="Nombre de la categoría"
+            :error="!!newNameError"
+            data-testid="recurring-category-new-name"
+            @update:model-value="newNameError = ''"
+          />
+        </BaseFormField>
+        <div class="flex justify-end">
+          <BaseButton
+            type="submit"
+            variant="secondary"
+            :loading="saving"
+            data-testid="recurring-category-create"
+          >
+            <BaseActionIcon action="create" />
+            <span>Agregar</span>
+          </BaseButton>
+        </div>
       </form>
 
       <div class="flex items-center justify-end pt-2">

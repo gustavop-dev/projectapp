@@ -240,6 +240,39 @@ describe('BulkAssignModal — the scope is visible before it runs', () => {
 });
 
 describe('BulkAssignModal — client creation from an empty search', () => {
+  function expectDescribedError(wrapper, testId, message) {
+    const control = wrapper.get(`[data-testid="${testId}"]`);
+    const errorId = control.attributes('aria-describedby');
+    const error = wrapper.findAll('[role="alert"]')
+      .find((node) => node.attributes('id') === errorId);
+    expect(control.attributes('aria-invalid')).toBe('true');
+    expect(error.exists()).toBe(true);
+    expect(error.text()).toBe(message);
+  }
+
+  // Falla si el botón de alta rápida vuelve a bloquearse antes de validar.
+  it('keeps the inline client create action enabled', async () => {
+    const wrapper = mountModal();
+    await wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', '');
+    await flushPromises();
+
+    const save = wrapper.get('[data-testid="hostings-bulk-inline-client-save"]');
+    expect(save.element.disabled).toBe(false);
+  });
+
+  // Falla si el alta rápida intenta crear un perfil vacío o no describe el nombre incompleto.
+  it('rejects an empty bulk inline client name', async () => {
+    const wrapper = mountModal();
+    await wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', '');
+    await flushPromises();
+
+    const save = wrapper.get('[data-testid="hostings-bulk-inline-client-save"]');
+    await save.trigger('click');
+
+    expect(mockCreateClient).toHaveBeenCalledTimes(0);
+    expectDescribedError(wrapper, 'hostings-bulk-inline-client-name', 'Escribe el nombre del cliente.');
+  });
+
   it('selects the client created inside the modal', async () => {
     mockCreateClient.mockResolvedValueOnce({
       success: true,
@@ -273,8 +306,11 @@ describe('BulkAssignModal — client creation from an empty search', () => {
     await wrapper.get('[data-testid="hostings-bulk-inline-client-save"]').trigger('click');
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="hostings-bulk-inline-client-error"]').text())
-      .toContain('Ese correo ya existe.');
+    const emailControl = wrapper.get('[data-testid="hostings-bulk-inline-client-email"]');
+    const emailError = wrapper.get(`#${emailControl.attributes('aria-describedby')}`);
+    expect(emailControl.attributes('aria-invalid')).toBe('true');
+    expect(emailError.attributes('role')).toBe('alert');
+    expect(emailError.text()).toBe('Ese correo ya existe.');
   });
 });
 

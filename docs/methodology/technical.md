@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Formularios 2026-08-29:** `BaseFormField` centraliza el mensaje visible,
+> `role="alert"`, `aria-invalid` y `aria-describedby` tanto para validación
+> nativa como para errores explícitos del API. `ClientAutocomplete` sólo ofrece
+> creación al vuelo cuando el consumidor declara `allow-create`, conserva esa
+> acción visible aun con coincidencias y puede exigir una selección realmente
+> confirmada. `BaseModalActions` mantiene las acciones finales aisladas del
+> contenido de validación.
+
 > **Tracking 2026-08-29:** `useProposalTracking` suspende su intervalo durante
 > `document.visibilityState=hidden`, finaliza por `sendBeacon`, reanuda con un
 > segmento nuevo y comparte una sola promesa para flushes concurrentes. Al

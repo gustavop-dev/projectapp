@@ -591,8 +591,11 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.getByTestId('pocket-movement-form-submit').click();
 
     await expect(modal).toBeVisible();
-    await expect(concept).toBeFocused();
     await expect(concept).toHaveValue('');
+    await expect(concept).toHaveAttribute('aria-invalid', 'true');
+    const errorId = await concept.getAttribute('aria-describedby');
+    expect(errorId).toBeTruthy();
+    await expect(modal.locator(`[id="${errorId}"]`)).toHaveText('Completa concepto.');
     expect(await concept.evaluate((element) => element.validity.valueMissing))
       .toBe(true);
   });

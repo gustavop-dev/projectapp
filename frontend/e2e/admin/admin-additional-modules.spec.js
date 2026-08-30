@@ -174,14 +174,24 @@ test.describe('Additional modules admin catalog', () => {
     await expect(page.getByTestId('additional-admin-module-10')).toBeVisible()
   })
 
-  test('validates incomplete bilingual module content', {
+  test('associates the English name error with its field', {
     tag: [...ADMIN_ADDITIONAL_MODULES_MANAGE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupApi(page)
     await openCatalog(page)
     await page.getByTestId('additional-module-new').click()
     await page.getByTestId('additional-module-save').click()
-    await expect(page.getByTestId('additional-module-form')).toContainText('Completa los campos obligatorios')
+
+    // Catches a regression that disconnects the English field from its local validation message.
+    const form = page.getByTestId('additional-module-form')
+    await expect(form.getByRole('tab', { name: 'English' })).toHaveAttribute('aria-selected', 'true')
+    const englishName = form.getByTestId('additional-module-name-en')
+    await expect(englishName).toHaveAttribute('aria-invalid', 'true')
+    const errorId = await englishName.getAttribute('aria-describedby')
+    expect(errorId).toBeTruthy()
+    await expect(form.locator(`[id="${errorId}"]`)).toHaveText('Escribe el nombre en inglés.')
+    await expect(form.getByRole('alert')).toHaveCount(8)
+    await expect(form.getByText('Completa los campos obligatorios', { exact: true })).toHaveCount(0)
   })
 
   test('creates a complete bilingual module', {
