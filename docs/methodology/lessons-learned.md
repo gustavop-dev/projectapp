@@ -1503,3 +1503,16 @@ Remembering order is a separate navigation contract. Resolve it predictably as
 explicit URL, then active saved view, then validated browser preference, then
 the product default. Persist only the small allow-listed token, never the whole
 reactive filter object.
+
+## 63. Compact density requires in-flow control geometry
+
+Removing unused rows reduces a card's height, but it also removes the empty
+space that used to mask absolutely positioned controls. A help target placed at
+an edge may then overlap the label or escape a narrow card even when the main
+content grid itself is valid.
+
+Model compact indicators as explicit tracks: flexible identity, atomic
+value/action and a fixed help column. Keep the main action and help as sibling
+buttons, preserve a 44 px target, and measure containment plus intersection in
+the real browser at every expanded reference width. The stacked layout remains
+the right default when support copy is itself part of the visible metric.

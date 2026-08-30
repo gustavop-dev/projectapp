@@ -32,6 +32,14 @@ describe('AccountingStatCard', () => {
       .toBe('true');
   });
 
+  it('forwards the compact horizontal layout without an empty sub line', () => {
+    // Falla si el wrapper contable pierde el layout solicitado por Proyectos.
+    const wrapper = mountCard({ layout: 'compact-horizontal' });
+
+    expect(wrapper.get('article').attributes('data-layout')).toBe('compact-horizontal');
+    expect(wrapper.find('[data-testid="indicator-support"]').exists()).toBe(false);
+  });
+
   it('uses the default tone class when no tone is given', () => {
     const wrapper = mountCard();
 

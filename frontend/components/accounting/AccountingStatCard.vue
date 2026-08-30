@@ -6,6 +6,11 @@ const props = defineProps({
   label: { type: String, required: true },
   value: { type: String, default: '' },
   sub: { type: String, default: '' },
+  layout: {
+    type: String,
+    default: 'stacked',
+    validator: (v) => ['stacked', 'compact-horizontal'].includes(v),
+  },
   tone: {
     type: String,
     default: 'default',
@@ -32,6 +37,7 @@ const resolvedActionLabel = computed(() => (
     :label="label"
     :value="value"
     :support="sub"
+    :layout="layout"
     :tone="tone"
     :action="resolvedAction"
     :action-label="resolvedActionLabel"
