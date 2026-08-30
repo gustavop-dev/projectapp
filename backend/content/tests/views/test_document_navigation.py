@@ -79,7 +79,7 @@ def navigation_setup(db, markdown_doc_type):
         effect=DocumentState.OperationalEffect.DEVELOPMENT,
     )
     hidden_state = make_project_state(
-        effect=DocumentState.OperationalEffect.PAUSED,
+        effect=DocumentState.OperationalEffect.SUSPENDED,
     )
     alpha = Project.objects.create(
         name='Alpha', client=acme.user, current_state=visible_state,
@@ -194,7 +194,7 @@ def test_navigation_includes_inactive_clients_with_content(
     assert legacy['counts']['active'] == {'folders': 5, 'documents': 2}
 
 
-def test_navigation_groups_paused_projects_as_archived_without_hiding_them(
+def test_navigation_groups_suspended_projects_as_archived_without_hiding_them(
     admin_client, navigation_setup,
 ):
     data = admin_client.get(reverse('document-navigation')).json()

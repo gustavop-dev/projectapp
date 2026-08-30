@@ -433,15 +433,19 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `content.0213/0214_project_lifecycle_states` add the relations and map known
   legacy statuses. `content.0218_project_state_help` adds state descriptions,
   backfills existing project states and seeds **En evolución** after **Activo** as
-  a second `operating` meaning. Legacy `archived` remains unclassified and
-  review-required; deploy applies migrations, never a session worktree.
+  a second `operating` meaning. `content.0229_remove_paused_project_state` and
+  `accounts.0058_remove_paused_project_status` consolidate the former Pausado
+  state, its episodes and compatibility mirror into **Suspendido**; the migration
+  preserves caused debt and applies the same future-billing cancellation as a
+  suspension. Legacy `archived` remains unclassified and review-required; deploy
+  applies migrations, never a session worktree.
 
 ### Project-owned document roots and reviewed reconciliation
 
 - Migration `content.0223_project_document_folders` adds the nullable one-to-one
   `DocumentFolder.managed_project`, database checks for managed-root invariants,
   and legacy `DocumentState.show_in_document_manager` metadata. Migration
-  `accounts.0058_project_document_manager_enabled` adds the actual per-project
+  `accounts.0059_project_document_manager_enabled` adds the actual per-project
   inclusion gate. Lifecycle effects classify enabled projects into active
   (`development`/`operating`) or archived catalog groups; they do not hide or
   archive document records.

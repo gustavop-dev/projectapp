@@ -179,12 +179,12 @@ def test_plan_rejects_a_source_that_changes_while_it_is_generated():
 def test_manifest_excludes_prueba_and_groups_candle_as_archived():
     prueba, _ = make_project('exclude@example.com', 'PRUEBA')
     candle, _ = make_project('candle@example.com', 'Candle')
-    paused = DocumentState.objects.get(
+    suspended = DocumentState.objects.get(
         catalog=DocumentStateGroup.Catalog.PROJECTS,
-        operational_effect=DocumentState.OperationalEffect.PAUSED,
+        operational_effect=DocumentState.OperationalEffect.SUSPENDED,
     )
-    candle.current_state = paused
-    candle.status = Project.STATUS_PAUSED
+    candle.current_state = suspended
+    candle.status = Project.STATUS_SUSPENDED
     candle.save(update_fields=['current_state', 'status', 'updated_at'])
 
     manifest = build_manifest(excluded_project_ids=[prueba.id])

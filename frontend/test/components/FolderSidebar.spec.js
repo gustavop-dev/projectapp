@@ -93,7 +93,7 @@ const hiddenProjectFolder = {
   name: 'Candle',
   folder_kind: 'project',
   is_project_visible: false,
-  managed_project_state: { name: 'Pausado', system_key: 'paused' },
+  managed_project_state: { name: 'Suspendido', system_key: 'suspended' },
   document_count: 1,
   children_count: 0,
 };
@@ -129,7 +129,7 @@ const navigationFacets = {
       name: 'Candle',
       is_visible: true,
       catalog_bucket: 'archived',
-      state: { name: 'Pausado' },
+      state: { name: 'Suspendido' },
       counts: {
         active: { folders: 1, documents: 2 },
         archived: { folders: 0, documents: 0 },
@@ -342,7 +342,7 @@ describe('FolderSidebar', () => {
         .attributes('aria-label')).toBe('Mimittos, 0 carpetas, 0 documentos');
     });
 
-    it('shows paused projects immediately inside the archived group', () => {
+    it('shows suspended projects immediately inside the archived group', () => {
       const wrapper = mountSidebar();
 
       const group = wrapper.get('[data-testid="documents-navigation-archived-group"]');

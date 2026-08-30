@@ -27,14 +27,13 @@ const GROUPS = [{
   selection_mode: 'exclusive',
   order: 0,
   is_active: true,
-  state_count: 8,
+  state_count: 7,
 }];
 
 const DESCRIPTION_BY_KEY = {
   development: 'El proyecto se está construyendo.',
   active: 'Está entregado y operando.',
   evolving: 'Está en producción mientras se desarrolla una ampliación.',
-  paused: 'El trabajo está detenido temporalmente.',
   suspended: 'El servicio puede reactivarse.',
   completed: 'Terminó como debía y quedó cerrado correctamente.',
   decommissioned: 'Terminó de forma definitiva.',
@@ -43,7 +42,6 @@ const DESCRIPTION_BY_KEY = {
 const HELP_BY_EFFECT = {
   development: 'Permite los cobros de construcción.',
   operating: 'Mantiene habilitados los cobros y los avisos.',
-  paused: 'No suspende automáticamente los cobros.',
   suspended: 'Detiene nuevos cobros y avisos.',
   completed: 'Exige un cierre financiero limpio.',
   decommissioned: 'Cancela el servicio y los cobros futuros.',
@@ -90,13 +88,12 @@ function initialCatalog() {
       historical_episode_count: 3,
     }),
     projectState(7, 'En evolución', 'evolving', 'operating', 'blue', { order: 2 }),
-    projectState(3, 'Pausado', 'paused', 'paused', 'yellow', { order: 3 }),
-    projectState(4, 'Suspendido', 'suspended', 'suspended', 'orange', { order: 4 }),
-    projectState(5, 'Completado', 'completed', 'completed', 'purple', { order: 5 }),
-    projectState(6, 'Dado de baja', 'decommissioned', 'decommissioned', 'gray', { order: 6 }),
+    projectState(4, 'Suspendido', 'suspended', 'suspended', 'orange', { order: 3 }),
+    projectState(5, 'Completado', 'completed', 'completed', 'purple', { order: 4 }),
+    projectState(6, 'Dado de baja', 'decommissioned', 'decommissioned', 'gray', { order: 5 }),
     projectState(8, 'En garantía', '', 'operating', 'blue', {
       description: 'Acompañamiento posterior a la entrega.',
-      order: 7,
+      order: 6,
     }),
   ];
 }
@@ -219,7 +216,7 @@ test.describe('Admin project lifecycle states', () => {
     tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const catalog = initialCatalog();
-    const currentState = catalog[4];
+    const currentState = catalog[3];
     await mockApi(page, async ({ apiPath, method }) => (
       baseRoutes(apiPath, method, catalog, currentState)
     ));
@@ -256,7 +253,7 @@ test.describe('Admin project lifecycle states', () => {
       }
       if (apiPath === 'projects/9/state-transitions/' && method === 'POST') {
         calls.push({ kind: 'apply', body: route.request().postDataJSON() });
-        currentState = catalog[4];
+        currentState = catalog[3];
         return json({ project: projectRow(currentState), episode: HISTORY[0] });
       }
       return baseRoutes(apiPath, method, catalog, currentState);
@@ -402,7 +399,7 @@ test.describe('Admin project state catalog', () => {
     });
   });
 
-  test('shows the seven seeded meanings and their usage counts', {
+  test('shows only the six seeded meanings', {
     tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const catalog = initialCatalog();
@@ -416,6 +413,7 @@ test.describe('Admin project state catalog', () => {
     await expect(page.getByTestId('catalog-state-1')).toContainText('En desarrollo');
     await expect(page.getByTestId('catalog-state-7')).toContainText('En evolución');
     await expect(page.getByTestId('catalog-state-4')).toContainText('Suspendido');
+    await expect(page.getByTestId('catalog-state-3')).toHaveCount(0);
     await expect(page.getByTestId('catalog-state-5')).toContainText('Completado');
     await expect(page.getByTestId('catalog-state-6')).toContainText('Dado de baja');
     await expect(page.getByTestId('catalog-state-2')).toContainText('1 proyectos activos · 3 episodios');

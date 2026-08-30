@@ -40,6 +40,8 @@ def _state_payload(project):
     state = project.current_state
     if state is None:
         return None
+    # Kept for compatibility with older consumers. Project inclusion is owned by
+    # Project.document_manager_enabled; lifecycle only selects the catalog bucket.
     return {
         'id': state.pk,
         'name': state.name,

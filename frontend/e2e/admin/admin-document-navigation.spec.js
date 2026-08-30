@@ -127,11 +127,11 @@ const navigationPayload = {
     },
     {
       id: 42,
-      name: 'Proyecto en pausa',
+      name: 'Proyecto suspendido',
       client: 8,
       client_display_name: 'Cliente Pausa',
       managed_root_id: 22,
-      state: { name: 'Suspendido', system_key: 'paused', show_in_document_manager: false },
+      state: { name: 'Suspendido', system_key: 'suspended', show_in_document_manager: false },
       is_visible: true,
       catalog_bucket: 'archived',
       counts: {
@@ -289,7 +289,7 @@ test.describe('Admin document project/client navigation', () => {
       .toContainText('Archivo interno');
   });
 
-  test('groups paused projects as archived without hiding them', {
+  test('groups suspended projects as archived without hiding them', {
     tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupNavigationApi(page);
@@ -298,7 +298,7 @@ test.describe('Admin document project/client navigation', () => {
     await expect(page.getByTestId('documents-navigation-archived-group'))
       .toContainText('Proyectos archivados');
     await expect(page.getByTestId('documents-navigation-project-42'))
-      .toContainText('Proyecto en pausa');
+      .toContainText('Proyecto suspendido');
   });
 
   test('manual folder selection clears a previously selected project', {

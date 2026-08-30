@@ -6,9 +6,10 @@
 el catálogo ya no depende de que una entidad tenga contenido: lista todos los
 proyectos habilitados y clientes, con grupos activos/archivados derivados del
 efecto operativo. PRUEBA queda excluido mediante el nuevo flag por proyecto;
-Candle permanece habilitado pero aparece en Proyectos archivados sin alterar el
-estado de sus documentos. Las raíces de proyecto/cliente desaparecen de
-Carpetas sin asignar y cambiar de eje limpia proyecto, cliente y carpeta
+Candle permanece habilitado pero aparece como Suspendido en Proyectos
+archivados sin alterar el estado de sus documentos. Las raíces de
+proyecto/cliente desaparecen de Carpetas sin asignar y cambiar de eje limpia
+proyecto, cliente y carpeta
 incompatibles. Sólo proyectos nuevos provisionan raíz automáticamente; Vástago,
 G&M, Xpandia, Kore, Tenndalux, Mimittos y el resto histórico se adoptan mediante
 un manifiesto v3 revisado, protegido con huella de proyectos/clientes/carpetas/
@@ -16,6 +17,15 @@ documentos, respaldo obligatorio y snapshot inverso. El runbook fija las
 asignaciones conocidas de Carlos/Gustavo y conserva Familia/Temporal como
 huérfanas. Producción no fue mutada: el paso posterior es desplegar, respaldar,
 generar el plan, revisar cada acción y recién entonces aplicarlo.
+
+**2026-08-30 — Pausado consolidado en Suspendido para Proyectos:** el ciclo
+administrable queda con seis estados semilla y una sola detención reversible.
+`paused` deja de ser una opción de modelo, efecto operativo, selector, filtro o
+fixture. La migración convierte el proyecto existente y cualquier estado
+personalizado con ese efecto a Suspendido, repunta sus episodios con un evento de
+fusión, conserva la deuda causada y cancela únicamente proyecciones/cobros futuros
+todavía abiertos. El despliegue aplicará la migración; no se ejecutó ninguna
+escritura sobre producción desde el worktree.
 
 **2026-08-30 — Asunto de Comunicaciones reducido al título:** la tabla y las
 tarjetas compactas ya no repiten el cuerpo del último mensaje debajo del título
@@ -527,13 +537,14 @@ viewports canónicos. Verificación: slices Jest de primitives y consumidores,
 Playwright 11/11, build Nuxt, contrato responsivo 103/13/5, flow-map fresco y
 auditoría sin junk-only ni missing.
 
-**2026-08-27 — Ciclo real y administrable para Proyectos:** el catálogo y los
+**2026-08-27 — Ciclo real y administrable para Proyectos (actualizado
+2026-08-30):** el catálogo y los
 episodios de PA-88 ahora están explícitamente acotados por dominio y sirven también
-a `Project`, sin duplicar infraestructura. Se sembraron En desarrollo, Activo, En
-evolución, Pausado, Suspendido, Completado y Dado de baja; el nombre, la
+a `Project`, sin duplicar infraestructura. Se siembran En desarrollo, Activo, En
+evolución, Suspendido, Completado y Dado de baja; el nombre, la
 descripción y el color se pueden adaptar,
 pero `operational_effect` conserva las consecuencias aun después de un renombre.
-Cada cambio exige preview y token contra datos financieros actuales, se aplica en
+Suspendido concentra la única detención reversible. Cada cambio exige preview y token contra datos financieros actuales, se aplica en
 transacción y deja fecha, actor y nota. Suspender preserva deuda causada y silencia
 nuevos cobros/avisos; completar exige cierre limpio; dar de baja cancela futuro y
 obliga a decidir saldo por saldo, con nota si se salta Suspendido. No existe avance

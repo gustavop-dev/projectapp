@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0057_userprofile_document_navigation_mode'),
+        ('accounts', '0058_remove_paused_project_status'),
     ]
 
     operations = [

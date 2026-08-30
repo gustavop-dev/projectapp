@@ -106,7 +106,7 @@ class TestProjectList:
         assert len(resp.json()) == 1
 
     def test_admin_filters_projects_by_status(self, api_client, admin_headers, sample_project):
-        resp = api_client.get('/api/accounts/projects/?status=paused', **admin_headers)
+        resp = api_client.get('/api/accounts/projects/?status=suspended', **admin_headers)
 
         assert resp.status_code == 200
         assert len(resp.json()) == 0
@@ -193,7 +193,7 @@ class TestProjectUpdate:
     ):
         resp = api_client.patch(
             f'/api/accounts/projects/{sample_project.id}/',
-            {'status': Project.STATUS_PAUSED},
+            {'status': Project.STATUS_SUSPENDED},
             format='json', **admin_headers,
         )
 

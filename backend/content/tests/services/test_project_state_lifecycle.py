@@ -140,7 +140,7 @@ def test_suspended_transition_cancels_future_projection(
 
 
 def test_transition_rejects_a_stale_preview(project, actor):
-    target = state('paused')
+    target = state('suspended')
     preview = preview_transition(project, target)
     project.name = 'Cambió mientras se confirmaba'
     project.save(update_fields=('name', 'updated_at'))

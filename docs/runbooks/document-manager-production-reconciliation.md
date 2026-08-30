@@ -10,7 +10,7 @@ base de producción.
 - Ejecutar únicamente desde el clon desplegado de producción, nunca desde un
   worktree de sesión.
 - Desplegar primero la migración
-  `accounts.0058_project_document_manager_enabled` y el comando actualizado.
+  `accounts.0059_project_document_manager_enabled` y el comando actualizado.
 - Crear y verificar un respaldo de la base antes de aplicar. Conservar su ruta o
   identificador para `--backup-reference`.
 - No renombrar, mover, archivar ni editar carpetas o documentos entre la
@@ -59,7 +59,7 @@ línea base, no autorización automática:
 | Proyecto 9 | Kore / raíz 65 | Convertir | 1 carpeta, 2 documentos |
 | Proyecto 12 | Tenndalux / raíz 78 | Convertir | 2 carpetas, 2 documentos |
 | Proyecto 5 | Mimittos | Crear raíz y revisar documento 120 | Documento sin carpeta |
-| Proyecto 13 | Candle | Crear/adoptar raíz; catálogo archivado | Estado no activo |
+| Proyecto 13 | Candle | Crear/adoptar raíz; catálogo archivado | Suspendido tras migración de ciclo |
 | Proyecto 7 | PRUEBA | Excluir | No mover ni borrar contenido |
 | Cliente 58 | Carlos / raíz 2 | Asignar al cliente | Conservar raíz superior |
 | Cliente 36 | Gustavo / raíces 3 y 61 | Asignar ambas al cliente | No anidar ni fusionar |
@@ -70,9 +70,9 @@ Para cada acción con `decision: "pending"`:
   correctos;
 - usar `skip` para toda acción informativa, ambigua o no aprobada;
 - no aprobar tipos `conflict`, `client_conflict` ni `document_conflict`;
-- confirmar que Candle tenga un estado cuyo efecto operativo no sea
-  `development` ni `operating`; así aparece bajo **Proyectos archivados** sin
-  archivar sus documentos;
+- confirmar que Candle haya quedado **Suspendido** tras la migración del ciclo,
+  o en otro estado cuyo efecto no sea `development` ni `operating`; así aparece
+  bajo **Proyectos archivados** sin archivar sus documentos;
 - confirmar que PRUEBA produzca `configure_project` con
   `document_manager_enabled: false`;
 - dejar Familia, Temporal y cualquier otra raíz sin relación inequívoca como

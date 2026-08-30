@@ -201,14 +201,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/platform/projects`
 - **API:** `GET /api/accounts/projects/`, `POST /api/accounts/projects/`
-- **Description:** Project listing with status filters and role-based views.
+- **Description:** Project listing with catalog-derived state filters and role-based views.
 - **Steps:**
   1. User navigates to `/platform/projects`.
   2. API fetches projects (admin: all; client: own projects only).
   3. Project cards render in a grid with name, client, status badge, progress bar, and dates.
   4. User clicks a project card → navigates to `/platform/projects/:id`.
 - **Branches:**
-  - [Branch A — Admin filters] Admin sees status filter tabs (Todos/Activos/Pausados/Completados/Archivados) → filters refetch from API with `?status=` param.
+  - [Branch A — Admin filters] Admin sees Todos plus the states present in the returned projects (including Suspendido when applicable) and filters the loaded rows by canonical state id.
   - [Branch B — Admin create] Admin clicks "Nuevo proyecto" → create project modal opens (see `platform-admin-project-create`).
   - [Branch C — Empty state] No projects → empty state message renders.
   - [Branch D — Client view] Client sees only their assigned projects without create button.
@@ -7346,12 +7346,12 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Priority:** P1
 - **Routes:** `/panel/projects/statuses`
 - **API:** `GET|POST /api/project-states/`, `PATCH /api/project-states/<id>/`, `POST /api/project-states/<id>/retire/`, `POST /api/project-states/<id>/merge/`
-- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los siete estados semilla son visibles, incluido En evolución para un proyecto entregado que sigue operando mientras se amplía. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
+- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. La inclusión en el Gestor Documental pertenece a cada proyecto; el efecto operativo sólo agrupa un proyecto habilitado entre activos o archivados, sin archivar sus documentos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
 - **Interaction matrix:**
 
 | Interaction | Outcome | Start → end state |
 |---|---|---|
-| Abrir el catálogo desde Proyectos | display | Proyectos → Administrar estados → siete semillas, ayuda, usos e histórico |
+| Abrir el catálogo desde Proyectos | display | Proyectos → Administrar estados → seis semillas, ayuda, usos e histórico |
 | Crear, renombrar o retirar un estado libre | success | Formulario/edición → catálogo refrescado sin perder histórico |
 | Retirar un estado usado | error | Confirmar retiro → explicación de proyectos activos → estado permanece |
 | Guardar durante una falla del servidor | failure | Editar nombre → HTTP 5xx visible → borrador permanece para reintentar |
