@@ -525,9 +525,9 @@ selector behavior and always renders a hidden active tab.
 
 `CommunicationThreadTable` switches explicitly through the page-owned
 `isPanelStacked` breakpoint: compact profiles render bounded cards with
-`overflow-x-hidden`; larger profiles retain `BaseResponsiveTable`. The latest
-message is normalized and capped at 120 characters before CSS truncation, with
-no `title` or alternate surface that leaks the full body. `useCommunicationFilters`
+`overflow-x-hidden`; larger profiles retain `BaseResponsiveTable`. Both
+projections render `thread.title` as the only **Asunto** content and leave
+`latest_message.content` out of the index. `useCommunicationFilters`
 stores only the validated order token under `panel.communications.order`; URL
 order wins, followed by a valid saved view, local preference and `recent`.
 

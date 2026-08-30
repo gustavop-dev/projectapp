@@ -11,6 +11,15 @@ fusión, conserva la deuda causada y cancela únicamente proyecciones/cobros fut
 todavía abiertos. El despliegue aplicará la migración; no se ejecutó ninguna
 escritura sobre producción desde el worktree.
 
+**2026-08-30 — Asunto de Comunicaciones reducido al título:** la tabla y las
+tarjetas compactas ya no repiten el cuerpo del último mensaje debajo del título
+del hilo. El índice conserva cliente/proyecto, canal, estado, cantidad, fecha y
+borradores; el contenido de cada mensaje queda exclusivamente en el detalle. El
+DTO, la búsqueda por contenido y el modelo de datos no cambian. La verificación
+queda verde con 7 pruebas unitarias, los 13 escenarios E2E de Comunicaciones y
+el guard de tokens; el escenario modificado pasó en el primer intento. El mapa
+está fresco y la auditoría conserva 0 `junk-only` y 0 faltantes.
+
 **2026-08-29 — Gestor Documental navegable por proyecto o cliente:** Documentos
 reutiliza el interruptor segmentado de Comunicaciones sobre la lista lateral y
 recuerda la elección por cuenta. Ambos modos incluyen sólo entidades con
@@ -63,16 +72,6 @@ falla diagnóstica, con acciones hacia Proyectos/Estados y sin ocultar resultado
 parciales. Backend, 7 unitarias y los 3 outcomes E2E focales pasan; el flow-map
 declara 356 flows, con cero faltantes y cero `junk-only`. Producción sigue sin
 mutarse: tras el deploy corresponde generar, revisar y aplicar el artefacto.
-
-**2026-08-29 — Listado compacto de Comunicaciones listo para integrar:** por
-debajo de landscape cada hilo es una tarjeta de índice con asunto,
-cliente/proyecto, canal, estado, cantidad, fecha y borradores; el último mensaje
-se normaliza y corta a una sola línea de máximo 120 caracteres. No hay scroll
-horizontal ni rótulo **Hilo** repetido; landscape+ conserva la tabla con
-**Asunto** y el detalle sigue siendo el único lector completo. El orden visible
-se persiste bajo `panel.communications.order` con precedencia URL → vista
-guardada → navegador → recientes. Pasan 15 pruebas Jest y 7 E2E; el flow-map
-está fresco y `admin-client-communications` cubre display/success/error/failure.
 
 **2026-08-29 — Píldoras de estado indivisibles en Documentos:** los filtros de
 Consultas y Estados conservan icono y texto en una sola línea; cuando falta

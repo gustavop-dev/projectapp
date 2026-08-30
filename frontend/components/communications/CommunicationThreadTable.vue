@@ -13,11 +13,10 @@
       <li
         v-for="index in 4"
         :key="index"
-        class="h-24 min-w-0 animate-pulse overflow-hidden rounded-xl border border-border-muted bg-surface p-3"
+        class="h-20 min-w-0 animate-pulse overflow-hidden rounded-xl border border-border-muted bg-surface p-3"
       >
         <div class="h-3 w-2/3 rounded bg-surface-raised" />
         <div class="mt-2 h-2.5 w-1/2 rounded bg-surface-raised" />
-        <div class="mt-3 h-2.5 w-full rounded bg-surface-raised" />
         <div class="mt-3 h-2.5 w-3/4 rounded bg-surface-raised" />
       </li>
     </ul>
@@ -51,15 +50,6 @@
             {{ thread.status === 'open' ? 'Abierto' : 'Cerrado' }}
           </BaseBadge>
         </div>
-
-        <p
-          v-if="thread.latest_message"
-          :data-testid="`communication-thread-excerpt-${thread.id}`"
-          class="mt-1.5 block min-w-0 max-w-full truncate text-xs text-text-subtle"
-        >
-          <span class="font-medium text-text-muted">{{ messageActor(thread.latest_message) }}:</span>
-          {{ messageExcerpt(thread.latest_message.content) }}
-        </p>
 
         <div class="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-text-muted">
           <span v-if="thread.channels?.length" class="flex min-w-0 flex-wrap gap-1">
@@ -116,14 +106,6 @@
       >
         <span class="block truncate" :title="row.title">{{ row.title }}</span>
       </BaseRowLink>
-      <p
-        v-if="row.latest_message"
-        :data-testid="`communication-thread-excerpt-${row.id}`"
-        class="mt-1 block min-w-0 max-w-full truncate text-xs font-normal text-text-subtle"
-      >
-        <span class="font-medium text-text-muted">{{ messageActor(row.latest_message) }}:</span>
-        {{ messageExcerpt(row.latest_message.content) }}
-      </p>
     </template>
 
     <template #cell-context="{ row }">
@@ -183,8 +165,6 @@ defineProps({
 
 defineEmits(['open', 'link-activate']);
 
-const MESSAGE_EXCERPT_MAX_LENGTH = 120;
-
 const COLUMNS = [
   {
     key: 'title', label: 'Asunto', size: 'name', link: true, textPolicy: 'truncate',
@@ -211,14 +191,4 @@ const COLUMNS = [
     responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
   },
 ];
-
-function messageActor(message) {
-  return message.direction === 'incoming' ? 'Cliente' : 'Nosotros';
-}
-
-function messageExcerpt(content) {
-  const normalized = String(content || '').replace(/\s+/g, ' ').trim();
-  if (normalized.length <= MESSAGE_EXCERPT_MAX_LENGTH) return normalized;
-  return `${normalized.slice(0, MESSAGE_EXCERPT_MAX_LENGTH - 1).trimEnd()}…`;
-}
 </script>
