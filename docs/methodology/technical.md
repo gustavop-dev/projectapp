@@ -423,7 +423,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ### Project-owned document roots and reviewed reconciliation
 
-- Migration `content.0222_project_document_folders` adds the nullable one-to-one
+- Migration `content.0223_project_document_folders` adds the nullable one-to-one
   `DocumentFolder.managed_project`, database checks for managed-root invariants,
   and `DocumentState.show_in_document_manager`. Existing development, active and
   evolving project states are seeded visible; later catalog entries are configured
@@ -444,6 +444,21 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   Apply aborts if the database fingerprint or digest changed, if decisions remain
   pending, or if conflicts exist. Never manufacture an approval artifact or apply
   a proposal that was not reviewed against the named folders and impacts.
+- Manifest version 2 fingerprints the routing fields of every document and may
+  include `file_document` actions only for folderless collection accounts whose
+  project, client, issue state and canonical path are unambiguous. A document in
+  another manual tree becomes `document_conflict` and can only be skipped. Apply
+  creates/converts roots first, nests reviewed client folders second and files
+  approved documents last, preserving title and content while recording created
+  folders and the prior location in the inverse artifact.
+- Live generated-document filing requires that managed root to exist and never
+  provisions it as a side effect. This prevents an account or proposal created
+  during the migration window from bypassing the reviewed conversion.
+- `GET /api/document-folders/project-readiness/` is staff-only and derives four
+  statuses from projects, active managed roots and the catalog boolean
+  `show_in_document_manager`: `ready`, `no_projects`,
+  `reconciliation_required` and `state_filter_empty`. State names and legacy
+  status strings are intentionally absent from this calculation.
 
 ### Communications are a separate domain with shared infrastructure
 
@@ -636,6 +651,12 @@ confirmed by the operator or another integration.
   `DocumentFolder.system_key`, then reconciles parent, name, owner and archive
   flags inside a transaction. Human-readable project/client names may change;
   identity and concurrency safety do not depend on them.
+- **One physical root per project** — project-scoped generated paths start at
+  `ensure_project_folder(project)`. Their Cuentas de cobro and Propuestas keys
+  are the same keys provisioned by the root template; legacy generated category
+  nodes are reparented under that root and empty `Proyectos/{project}` wrappers
+  are removed. The human path still includes “Proyectos” because that is the
+  sidebar section, not a stored duplicate container.
 - **One render, one retained proposal version** — proposal send/resend/multi-send
   calls `proposal_snapshot_service` before SMTP. It locks source proposals,
   allocates `source_version`, renders all PDFs before writing any Document,
@@ -650,8 +671,11 @@ confirmed by the operator or another integration.
 - **Backfill deployment order** — apply schema migrations first, preview with
   `python manage.py backfill_collection_account_filing`, review its paths, then
   run the same command with `--apply`. It only considers folderless collection
-  accounts, preserves manual classification and skips missing issue dates. Never
-  run either migrations or this data-writing command from a session worktree.
+  accounts, preserves manual classification and skips missing issue dates.
+  Project-linked rows without a managed root are also skipped and must go
+  through `reconcile_project_folders` so the backfill cannot bypass the reviewed
+  PA-108 adoption. Never run either migrations or this data-writing command from
+  a session worktree.
 
 ### Frontend Patterns
 

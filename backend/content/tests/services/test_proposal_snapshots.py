@@ -285,9 +285,8 @@ def test_onboarding_moves_versions_to_project_branch(
     )
     assert {snapshot.project_id for snapshot in snapshots} == {project.pk}
     assert folder_path(snapshots[0]) == [
-        'Proyectos',
         'Proyecto Nube',
-        'Propuestas comerciales',
+        'Propuestas',
         snapshots[0].issue_date.strftime('%Y'),
         f'{snapshots[0].issue_date.month:02d} - Agosto',
     ]

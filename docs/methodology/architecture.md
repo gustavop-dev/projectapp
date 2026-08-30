@@ -240,6 +240,30 @@ erDiagram
     McpConnector ||--o{ McpRequestLog : "has activity"
 ```
 
+### 4.1.1 Canonical project document hierarchy
+
+```mermaid
+flowchart LR
+    Project[Project] -->|managed_project| Root[Managed project root]
+    Root --> Accounts[Cuentas de cobro\nstable system_key]
+    Root --> Proposals[Propuestas\nstable system_key]
+    Accounts --> AccountDate[YYYY / MM - Mes]
+    Proposals --> ProposalDate[YYYY / MM - Mes]
+    AccountDate --> AccountDoc[Collection account Document]
+    ProposalDate --> ProposalDoc[Proposal snapshot Document]
+
+    Sidebar[Documents sidebar] --> Readiness[project-readiness API]
+    Readiness --> Catalog[Project state visibility]
+    Readiness --> RootInventory[Managed-root inventory]
+```
+
+`Document.project` describes business ownership; `Document.folder` describes
+where the record is stored. The sidebar deliberately lists the managed root,
+so a project assignment alone cannot create a row. Historical data enters this
+hierarchy only through the reviewed reconciliation manifest. Generated filing
+reuses the two keyed first-level categories and reparents any legacy keyed
+branch before removing its now-empty parallel wrappers.
+
 ### 4.2 Model Details
 
 | Model | Purpose | Key Fields |
@@ -268,7 +292,7 @@ erDiagram
 | **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect` and configurable `show_in_document_manager`; non-null `system_key` is database-unique per catalog and `NULL` remains repeatable |
 | **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document/project workflow and append-only audit | exactly one of document/project, state, opened_at/closed_at, actors, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
 | **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
-| **DocumentFolder / DocumentTag** | Folder hierarchy, system-owned project roots and legacy tag compatibility | name, color, parent (folder), client, project, optional one-to-one `managed_project`, created_by; database checks keep a managed root active, top-level and aligned with its project |
+| **DocumentFolder / DocumentTag** | Folder hierarchy, system-owned project roots and legacy tag compatibility | name, color, parent (folder), client, project, optional one-to-one `managed_project`, nullable stable `system_key`, created_by; database checks keep a managed root active, top-level and aligned with its project |
 | **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
 | **CommunicationMessage** | One ordered incoming/outgoing conversation event | thread, channel, direction, status, subject/content, occurred_at/recorded_at, source, reply_to, optional EmailLog seam, void audit |
 | **CommunicationAttachment** | Bidirectional reference to an existing document | message (CASCADE), document (PROTECT), unique message/document pair |
