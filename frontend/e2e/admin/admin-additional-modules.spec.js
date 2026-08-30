@@ -55,7 +55,7 @@ async function setupApi(page, scenario = {}) {
     if (apiPath === 'proposals/' && method === 'GET') return json(200, [])
     if (apiPath === 'proposals/dashboard/') return json(200, { total: 0, by_status: {} })
     if (apiPath === 'proposals/alerts/') return json(200, [])
-    if (apiPath === 'proposals/client-profiles/') return json(200, [])
+    if (apiPath === 'proposals/client-profiles/') return json(200, scenario.clients || [])
     if (apiPath === 'additional-modules/admin/' && method === 'GET') {
       catalogCalls += 1
       if (scenario.catalogUnavailable || catalogCalls <= (scenario.catalogFailures || 0)) {
@@ -158,6 +158,47 @@ test.describe('Additional modules admin catalog', () => {
     await detail.getByRole('button', { name: 'Cerrar' }).click()
     await expect(detail).not.toBeVisible()
     await expect(detailOpener).toBeFocused()
+  })
+
+  test('switches the panel catalog to English', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_CATALOG, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openCatalog(page)
+
+    await page.getByTestId('additional-language-en').click()
+
+    await expect(page).toHaveURL(/\/en-us\/panel\/additional-modules$/)
+    await expect(page.getByRole('heading', { name: 'Additional modules catalog' })).toBeVisible()
+    await expect(page.getByTestId('additional-admin-module-10')).toContainText('Facturación electrónica EN')
+  })
+
+  test('shows compact rows in list mode', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_CATALOG, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (sidebar navigation is covered by the catalog entry test; this case isolates list presentation)
+    await setupApi(page)
+    await openCatalog(page)
+
+    await page.getByTestId('additional-view-list').click()
+
+    await expect(page.getByTestId('additional-admin-list-commerce')).toBeVisible()
+    await expect(page.getByTestId('additional-admin-module-10')).toContainText('Facturación electrónica')
+  })
+
+  test('reveals complete details in accordion mode', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_CATALOG, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (sidebar navigation is covered by the catalog entry test; this case isolates accordion disclosure)
+    await setupApi(page)
+    await openCatalog(page)
+    await page.getByTestId('additional-view-accordion').click()
+
+    const trigger = page.getByTestId('additional-admin-accordion-trigger-10')
+    await trigger.click()
+
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByTestId('additional-admin-module-10')).toContainText('Credenciales')
   })
 
   test('retries after the catalog request fails', {
@@ -315,12 +356,14 @@ test.describe('Additional modules admin catalog', () => {
     await openCatalog(page)
     await openSelection(page, 'pdf')
     await page.getByTestId('additional-select-module-11').click()
+    await page.getByTestId('additional-share-recipient').fill('Acme Colombia')
     const downloadPromise = page.waitForEvent('download')
     await page.getByTestId('additional-selection-submit').click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe('catalogo-modulos-adicionales.pdf')
     expect(scenario.pdfPayload.module_ids).toEqual([10, 12])
     expect(scenario.pdfPayload.language).toBe('es')
+    expect(scenario.pdfPayload.recipient_label).toBe('Acme Colombia')
   })
 
   test('shows PDF generation failures without closing the selection', {

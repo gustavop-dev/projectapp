@@ -38,6 +38,43 @@ const selectedCatalog = {
   categories: [{ slug: 'commerce', name: 'Comercio', modules: [invoicing] }],
 }
 
+function localizedCatalog(source, language) {
+  if (language !== 'en') return source
+  const moduleCopy = {
+    'electronic-invoicing': {
+      name: 'Electronic invoicing',
+      summary: 'Issue tax documents from the platform.',
+      what_is: 'An integration with an authorized provider.',
+      purpose: 'Automate tax document issuance.',
+      problems_solved: ['Avoids duplicate data entry'],
+      integrations: ['Authorized provider'],
+      implementation_requirements: ['Tax credentials'],
+    },
+    'landing-page': {
+      name: 'Landing page',
+      summary: 'Create a measurable destination.',
+      what_is: 'A focused public page.',
+      purpose: 'Convert visits.',
+      problems_solved: ['Missing entry point'],
+      integrations: ['Analytics'],
+      implementation_requirements: ['Brand content'],
+    },
+  }
+  return {
+    ...source,
+    language: 'en',
+    canonical_path: '/en-us/additional-modules',
+    categories: source.categories.map((category) => ({
+      ...category,
+      name: category.slug === 'commerce' ? 'Commerce' : 'Marketing',
+      modules: category.modules.map((module) => ({
+        ...module,
+        ...moduleCopy[module.slug],
+      })),
+    })),
+  }
+}
+
 function json(status, body) {
   return { status, contentType: 'application/json', body: JSON.stringify(body) }
 }
@@ -45,20 +82,26 @@ function json(status, body) {
 async function setupPublicApi(page, scenario = {}) {
   let catalogCalls = 0
   await mockApi(page, async ({ apiPath, method, route }) => {
+    const requestUrl = new URL(route.request().url())
+    const requestedLanguage = requestUrl.searchParams.get('lang') || 'es'
     if (apiPath === 'additional-modules/public/' && method === 'GET') {
       catalogCalls += 1
       if (scenario.catalogUnavailable || catalogCalls <= (scenario.catalogFailures || 0)) {
         return json(503, { detail: 'Unavailable' })
       }
-      return json(200, fullCatalog)
+      return json(200, localizedCatalog(fullCatalog, requestedLanguage))
     }
     if (apiPath === `additional-modules/public/shares/${shareUuid}/pdf/`) {
+      scenario.pdfLanguage = requestedLanguage
       if (scenario.pdfFailure) return json(410, { detail: 'Este enlace fue retirado.' })
-      return { status: 200, contentType: 'application/pdf', headers: { 'Content-Disposition': 'attachment; filename="catalogo-seleccion.pdf"' }, body: '%PDF-1.4 selected' }
+      const filename = requestedLanguage === 'en' ? 'selected-modules.pdf' : 'catalogo-seleccion.pdf'
+      return { status: 200, contentType: 'application/pdf', headers: { 'Content-Disposition': `attachment; filename="${filename}"` }, body: '%PDF-1.4 selected' }
     }
     if (apiPath === 'additional-modules/public/pdf/') {
+      scenario.pdfLanguage = requestedLanguage
       if (scenario.pdfFailure) return json(503, { detail: 'Unavailable' })
-      return { status: 200, contentType: 'application/pdf', headers: { 'Content-Disposition': 'attachment; filename="catalogo-modulos-adicionales.pdf"' }, body: '%PDF-1.4 full' }
+      const filename = requestedLanguage === 'en' ? 'additional-modules-catalog.pdf' : 'catalogo-modulos-adicionales.pdf'
+      return { status: 200, contentType: 'application/pdf', headers: { 'Content-Disposition': `attachment; filename="${filename}"` }, body: '%PDF-1.4 full' }
     }
     if (apiPath === `additional-modules/public/shares/${shareUuid}/track/` && method === 'POST') {
       scenario.trackPayload = route.request().postDataJSON()
@@ -67,7 +110,7 @@ async function setupPublicApi(page, scenario = {}) {
     if (apiPath === `additional-modules/public/shares/${shareUuid}/` && method === 'GET') {
       return scenario.shareGone
         ? json(410, { detail: 'Este enlace fue retirado.' })
-        : json(200, selectedCatalog)
+        : json(200, localizedCatalog(selectedCatalog, requestedLanguage))
     }
     return null
   })
@@ -75,9 +118,11 @@ async function setupPublicApi(page, scenario = {}) {
 
 async function openFromFooter(page) {
   await page.goto('/es-co', { waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('button', { name: 'Switch to English' })).toBeEnabled()
   const catalogLink = page.getByRole('link', { name: 'Módulos adicionales', exact: true })
   await catalogLink.scrollIntoViewIfNeeded()
   await catalogLink.click()
+  await expect(page).toHaveURL(/\/es-co\/additional-modules$/)
   await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toBeVisible()
 }
 
@@ -93,6 +138,46 @@ test.describe('Public additional modules catalog', () => {
     await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toContainText('Facturación electrónica')
     await expect(page.getByTestId('additional-module-card-landing-page')).toContainText('Landing page')
     await expect(page.locator('main')).not.toContainText(/COP|USD|\$/)
+  })
+
+  test('switches the public catalog to English', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_CATALOG, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+
+    await page.getByTestId('additional-language-en').click()
+
+    await expect(page).toHaveURL(/\/en-us\/additional-modules$/)
+    await expect(page.getByRole('heading', { name: 'Additional modules' })).toBeVisible()
+    await expect(page.getByTestId('additional-module-card-electronic-invoicing'))
+      .toContainText('Electronic invoicing')
+  })
+
+  test('shows the compact module list', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_CATALOG, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+
+    await page.getByTestId('additional-view-list').click()
+
+    await expect(page.getByTestId('additional-module-list-electronic-invoicing')).toBeVisible()
+    await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toHaveCount(0)
+  })
+
+  test('restores the accordion preference after reload', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_CATALOG, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+    await page.getByTestId('additional-view-accordion').click()
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+
+    await expect(page.getByTestId('additional-module-accordion-electronic-invoicing')).toBeVisible()
+    await page.getByTestId('additional-module-accordion-trigger-electronic-invoicing').click()
+    await expect(page.getByText('Credenciales fiscales')).toBeVisible()
   })
 
   test('keeps a retry path when the live catalog is unavailable', {
@@ -141,6 +226,19 @@ test.describe('Public additional modules catalog', () => {
     await expect(page.locator('main')).not.toContainText('aperturas')
   })
 
+  test('allows a shared recipient to switch languages', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_SHARE, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await page.goto(`/es-co/additional-modules/share/${shareUuid}`, { waitUntil: 'domcontentloaded' })
+
+    await page.getByTestId('additional-language-en').click()
+
+    await expect(page).toHaveURL(new RegExp(`/en-us/additional-modules/share/${shareUuid}$`))
+    await expect(page.getByTestId('additional-module-card-electronic-invoicing'))
+      .toContainText('Electronic invoicing')
+  })
+
   test('shows a final unavailable state for a revoked selection', {
     tag: [...PUBLIC_ADDITIONAL_MODULES_SHARE, '@role:guest', '@outcome:failure'],
   }, async ({ page }) => {
@@ -155,12 +253,16 @@ test.describe('Public additional modules catalog', () => {
   test('downloads the public catalog PDF', {
     tag: [...PUBLIC_ADDITIONAL_MODULES_PDF, '@role:guest', '@outcome:success'],
   }, async ({ page }) => {
-    await setupPublicApi(page)
+    const scenario = {}
+    await setupPublicApi(page, scenario)
     await openFromFooter(page)
+    await page.getByTestId('additional-language-en').click()
+    await expect(page).toHaveURL(/\/en-us\/additional-modules$/)
     const downloadPromise = page.waitForEvent('download')
     await page.getByTestId('additional-modules-download-pdf').click()
     const download = await downloadPromise
-    expect(download.suggestedFilename()).toBe('catalogo-modulos-adicionales.pdf')
+    expect(download.suggestedFilename()).toBe('additional-modules-catalog.pdf')
+    expect(scenario.pdfLanguage).toBe('en')
   })
 
   test('keeps the shared catalog open when its PDF becomes unavailable', {

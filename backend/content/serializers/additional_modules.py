@@ -151,6 +151,13 @@ class AdditionalModulePdfSelectionSerializer(serializers.Serializer):
     language = serializers.ChoiceField(
         choices=AdditionalModuleShareLink.Language.choices,
     )
+    recipient_label = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+        default='',
+    )
     module_ids = serializers.PrimaryKeyRelatedField(
         source='modules',
         queryset=AdditionalModule.objects.filter(is_active=True),

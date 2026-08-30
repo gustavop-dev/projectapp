@@ -38,7 +38,7 @@ class AdditionalModulePdfService:
     """Build the same no-price catalog used by panel and public links."""
 
     @classmethod
-    def build(cls, *, language, module_ids=None):
+    def build(cls, *, language, module_ids=None, recipient_label=''):
         payload = serialize_public_catalog(
             language=language,
             module_ids=module_ids,
@@ -63,7 +63,11 @@ class AdditionalModulePdfService:
             author='Project App.',
         )
         styles = cls._styles()
-        story = cls._cover(payload, styles)
+        story = cls._cover(
+            payload,
+            styles,
+            recipient_label=str(recipient_label or '').strip(),
+        )
         story.extend(cls._index(payload, styles))
         story.extend(cls._catalog(payload, styles))
         document.build(
@@ -105,6 +109,16 @@ class AdditionalModulePdfService:
                 leading=17,
                 textColor=GRAY_500,
                 alignment=TA_CENTER,
+            ),
+            'cover_recipient': ParagraphStyle(
+                'CatalogCoverRecipient',
+                parent=sample['Heading2'],
+                fontName=_font('light'),
+                fontSize=18,
+                leading=23,
+                textColor=ESMERALD,
+                alignment=TA_CENTER,
+                spaceAfter=10,
             ),
             'section': ParagraphStyle(
                 'CatalogSection',
@@ -161,9 +175,9 @@ class AdditionalModulePdfService:
         }
 
     @classmethod
-    def _cover(cls, payload, styles):
+    def _cover(cls, payload, styles, *, recipient_label=''):
         english = payload['language'] == 'en'
-        return [
+        story = [
             Spacer(1, 48 * mm),
             Paragraph('PROJECT APP.', styles['cover_eyebrow']),
             Paragraph(
@@ -191,7 +205,21 @@ class AdditionalModulePdfService:
                 ),
                 styles['cover_body'],
             ),
-            Spacer(1, 12 * mm),
+        ]
+        if recipient_label:
+            story.extend([
+                Spacer(1, 10 * mm),
+                Paragraph(
+                    'PREPARED FOR' if english else 'PREPARADO PARA',
+                    styles['cover_eyebrow'],
+                ),
+                Paragraph(
+                    escape(recipient_label[:255]),
+                    styles['cover_recipient'],
+                ),
+            ])
+        story.extend([
+            Spacer(1, 8 * mm if recipient_label else 12 * mm),
             Paragraph(
                 (
                     f'{payload["total_modules"]} modules · '
@@ -203,7 +231,8 @@ class AdditionalModulePdfService:
                 styles['cover_eyebrow'],
             ),
             PageBreak(),
-        ]
+        ])
+        return story
 
     @classmethod
     def _index(cls, payload, styles):

@@ -21,7 +21,7 @@ export default async function globalSetup() {
     '/panel/login',                         // SPA — admin panel login
     '/panel',                               // SPA — admin dashboard
     '/panel/admins',                        // SPA — admin management
-    '/panel/additional-modules',            // SPA — reusable sales catalog
+    '/es-co/panel/additional-modules',      // SPA — reusable sales catalog
     '/panel/blog',                          // SPA — blog list
     '/panel/blog/create',                   // SPA — blog create
     '/panel/blog/1/edit',                   // SPA — blog edit (dynamic)
@@ -40,7 +40,7 @@ export default async function globalSetup() {
     '/panel/portfolio',                     // SPA — portfolio list
     '/panel/portfolio/create',              // SPA — portfolio create
     '/panel/portfolio/1/edit',              // SPA — portfolio edit (dynamic)
-    '/panel/proposals',                     // SPA — proposals list
+    '/es-co/panel/proposals',               // SPA — proposals list
     '/panel/proposals/create',              // SPA — create proposal
     '/panel/proposals/999/edit',            // SPA — edit proposal (dynamic)
     '/panel/proposals/defaults',            // SPA — proposal defaults

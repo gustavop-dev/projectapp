@@ -1,5 +1,8 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
+import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
+import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
+import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
 
 const props = defineProps({
   categories: { type: Array, default: () => [] },
@@ -7,14 +10,18 @@ const props = defineProps({
   downloadUrl: { type: String, default: '' },
   showHeader: { type: Boolean, default: true },
   isShared: { type: Boolean, default: false },
+  language: { type: String, default: 'es' },
 })
 
+const emit = defineEmits(['change-language'])
 const { t } = useI18n()
+const { viewMode } = useAdditionalModulesViewMode('public')
 const selectedModule = ref(null)
 const detailOpen = ref(false)
 const opener = ref(null)
 const isDownloading = ref(false)
 const downloadError = ref(false)
+const expandedModuleSlug = ref('')
 
 const hasModules = computed(() => props.totalModules > 0 && props.categories.length > 0)
 
@@ -26,6 +33,10 @@ function openModule(module, event) {
 
 function closeDetail() {
   detailOpen.value = false
+}
+
+function toggleAccordion(slug) {
+  expandedModuleSlug.value = expandedModuleSlug.value === slug ? '' : slug
 }
 
 function responseFilename(response) {
@@ -106,6 +117,13 @@ watch(detailOpen, async (isOpen) => {
     </header>
 
     <div v-if="hasModules" class="mx-auto w-full max-w-[1400px] px-4 pb-20 sm:px-6">
+      <AdditionalModulesCatalogControls
+        v-model="viewMode"
+        :language="language"
+        class="mb-8"
+        @change-language="emit('change-language', $event)"
+      />
+
       <nav
         class="mb-10 flex snap-x gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center sm:overflow-visible"
         :aria-label="t('additionalModules.title')"
@@ -137,7 +155,7 @@ watch(detailOpen, async (isOpen) => {
           <span class="shrink-0 text-sm text-text-muted">{{ category.modules.length }}</span>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div v-if="viewMode === 'cards'" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <!-- design-tokens: allow-raw-button — selectable catalog card opens inline detail. -->
           <button
             v-for="module in category.modules"
@@ -164,6 +182,71 @@ watch(detailOpen, async (isOpen) => {
             </span>
           </button>
         </div>
+
+        <div v-else-if="viewMode === 'list'" class="space-y-3">
+          <article
+            v-for="module in category.modules"
+            :id="`module-${module.slug}`"
+            :key="module.slug"
+            class="flex min-w-0 flex-col gap-4 rounded-2xl border border-border-default bg-surface p-4 shadow-card sm:flex-row sm:items-center"
+            :data-testid="`additional-module-list-${module.slug}`"
+          >
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-xl" aria-hidden="true">
+              {{ module.icon || '＋' }}
+            </span>
+            <div class="min-w-0 flex-1">
+              <h3 class="break-words text-lg font-medium text-text-brand">{{ module.name }}</h3>
+              <p class="mt-1 break-words text-sm leading-6 text-text-muted">{{ module.summary }}</p>
+            </div>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              class="self-start sm:self-center"
+              :aria-label="t('additionalModules.openDetail', { name: module.name })"
+              @click="openModule(module, $event)"
+            >
+              {{ t('additionalModules.viewDetails') }}
+            </BaseButton>
+          </article>
+        </div>
+
+        <div v-else class="space-y-3">
+          <article
+            v-for="module in category.modules"
+            :id="`module-${module.slug}`"
+            :key="module.slug"
+            class="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-card"
+            :data-testid="`additional-module-accordion-${module.slug}`"
+          >
+            <!-- design-tokens: allow-raw-button — disclosure header owns aria-expanded. -->
+            <button
+              type="button"
+              class="flex min-h-16 w-full min-w-0 items-center gap-3 p-4 text-left outline-none transition-colors hover:bg-surface-raised focus:ring-2 focus:ring-inset focus:ring-focus-ring/40"
+              :aria-expanded="expandedModuleSlug === module.slug"
+              :aria-controls="`additional-module-accordion-panel-${module.slug}`"
+              :data-testid="`additional-module-accordion-trigger-${module.slug}`"
+              @click="toggleAccordion(module.slug)"
+            >
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-xl" aria-hidden="true">
+                {{ module.icon || '＋' }}
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block break-words text-lg font-medium text-text-brand">{{ module.name }}</span>
+                <span class="mt-1 block break-words text-sm leading-6 text-text-muted">{{ module.summary }}</span>
+              </span>
+              <span class="shrink-0 text-xl text-text-brand" aria-hidden="true">
+                {{ expandedModuleSlug === module.slug ? '−' : '+' }}
+              </span>
+            </button>
+            <div
+              v-show="expandedModuleSlug === module.slug"
+              :id="`additional-module-accordion-panel-${module.slug}`"
+              class="border-t border-border-default p-4 sm:p-6"
+            >
+              <AdditionalModulesModuleDetails :module="module" />
+            </div>
+          </article>
+        </div>
       </section>
     </div>
 
@@ -176,10 +259,13 @@ watch(detailOpen, async (isOpen) => {
       v-model="detailOpen"
       kind="detail"
       padding="none"
-      data-testid="additional-module-detail-modal"
       @close="closeDetail"
     >
-      <div v-if="selectedModule" class="flex min-h-0 flex-col">
+      <div
+        v-if="selectedModule"
+        class="flex min-h-0 flex-col"
+        data-testid="additional-module-detail-modal"
+      >
         <header class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border-default bg-surface px-5 py-5 sm:px-7">
           <div class="min-w-0">
             <span class="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-2xl" aria-hidden="true">
@@ -202,39 +288,8 @@ watch(detailOpen, async (isOpen) => {
           </BaseButton>
         </header>
 
-        <div class="grid gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-7">
-          <BaseCard padding="md" class="sm:col-span-1">
-            <h3 class="text-sm font-medium uppercase tracking-wide text-text-brand">{{ t('additionalModules.whatIs') }}</h3>
-            <p class="mt-3 text-sm leading-6 text-text-muted">{{ selectedModule.what_is }}</p>
-          </BaseCard>
-          <BaseCard padding="md" class="sm:col-span-1">
-            <h3 class="text-sm font-medium uppercase tracking-wide text-text-brand">{{ t('additionalModules.purpose') }}</h3>
-            <p class="mt-3 text-sm leading-6 text-text-muted">{{ selectedModule.purpose }}</p>
-          </BaseCard>
-          <BaseCard padding="md">
-            <h3 class="text-sm font-medium uppercase tracking-wide text-text-brand">{{ t('additionalModules.problemsSolved') }}</h3>
-            <ul class="mt-3 space-y-2 text-sm leading-6 text-text-muted">
-              <li v-for="item in selectedModule.problems_solved" :key="item" class="flex gap-2">
-                <span aria-hidden="true" class="text-text-brand">•</span><span>{{ item }}</span>
-              </li>
-            </ul>
-          </BaseCard>
-          <BaseCard padding="md">
-            <h3 class="text-sm font-medium uppercase tracking-wide text-text-brand">{{ t('additionalModules.integrations') }}</h3>
-            <ul class="mt-3 space-y-2 text-sm leading-6 text-text-muted">
-              <li v-for="item in selectedModule.integrations" :key="item" class="flex gap-2">
-                <span aria-hidden="true" class="text-text-brand">•</span><span>{{ item }}</span>
-              </li>
-            </ul>
-          </BaseCard>
-          <BaseCard padding="md" class="sm:col-span-2">
-            <h3 class="text-sm font-medium uppercase tracking-wide text-text-brand">{{ t('additionalModules.requirements') }}</h3>
-            <ul class="mt-3 grid gap-2 text-sm leading-6 text-text-muted sm:grid-cols-2">
-              <li v-for="item in selectedModule.implementation_requirements" :key="item" class="flex gap-2">
-                <span aria-hidden="true" class="text-text-brand">•</span><span>{{ item }}</span>
-              </li>
-            </ul>
-          </BaseCard>
+        <div class="overflow-y-auto p-5 sm:p-7">
+          <AdditionalModulesModuleDetails :module="selectedModule" />
         </div>
       </div>
     </BaseModal>
