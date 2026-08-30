@@ -539,16 +539,19 @@ fork with layout. Incomes and Collection Accounts use the same leading menu in
 their classic and grouped tables. Long modal flows declare a semantic `kind`,
 and all compact badges use the atomic `BaseBadge` contract.
 
-Indicator headers share `BaseIndicatorCard`, whose three-row grid reserves
-label, value and one optional support line even when the last row is empty.
-Help is a separate sibling control and actionable cards expose one semantic
-main button, avoiding nested interactive elements. Projects uses this shell for
-catalog-ordered non-zero lifecycle cards and a separate operational group on
-expanded layouts; below the landscape breakpoint one **Estados** summary and one
-**Pendientes** summary open drawers with the complete facts. Incomes applies the
-same compact pattern as **Resultado anual** plus **Detalle operativo**, while its
-expanded branch keeps four business-ranked cards. Both branches reuse the same
-filter functions, so layout changes presentation without forking behavior.
+Indicator headers share `BaseIndicatorCard`. Its default stacked grid reserves
+label, value and one optional support line even when the last row is empty. The
+opt-in `compact-horizontal` layout instead keeps label and result/action on one
+72–80 px row, omits an absent support row and gives help a dedicated 48 px grid
+column. Help remains a sibling control and actionable cards expose one semantic
+main button, avoiding nested interactive elements in both layouts. Projects uses
+the compact layout for catalog-ordered non-zero lifecycle cards and the stacked
+layout for its separate operational group on expanded screens; below the
+landscape breakpoint one **Estados** summary and one **Pendientes** summary open
+drawers with the complete facts. Incomes applies the same summary pattern as
+**Resultado anual** plus **Detalle operativo**, while its expanded branch keeps
+four business-ranked stacked cards. All branches reuse the same filter functions,
+so layout changes presentation without forking behavior.
 
 `BaseDrawer` is the shared transient second zone for compact panel views: it
 teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll

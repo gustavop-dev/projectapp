@@ -92,6 +92,7 @@
               :label="state.name"
               :value="String(state.count)"
               :tone="statTone(state.color)"
+              layout="compact-horizontal"
               action="filter"
               :action-label="`Filtrar proyectos en estado ${state.name}`"
               :help-label="`Ayuda sobre el estado ${state.name}`"
