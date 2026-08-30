@@ -487,7 +487,7 @@ test.describe('Admin Client Communications', () => {
     await expect(page.getByTestId('communication-thread-row-41')).toBeVisible();
   });
 
-  test('summarizes compact thread cards without horizontal scrolling', {
+  test('renders subject-only compact thread cards', {
     tag: [
       ...ADMIN_CLIENT_COMMUNICATIONS,
       '@role:admin',
@@ -495,7 +495,7 @@ test.describe('Admin Client Communications', () => {
       '@responsive:communications',
     ],
   }, async ({ page }) => {
-    // quality: allow-no-interaction (display — this scenario validates the initial compact list density and clipping contract)
+    // quality: allow-no-interaction (display — this scenario validates the subject-only compact index contract)
     // quality: allow-deep-link (communications navigation is covered separately; this scenario isolates the responsive list render)
     await page.setViewportSize({ width: 412, height: 915 });
     await setupCommunicationsApi(page);
@@ -504,7 +504,6 @@ test.describe('Admin Client Communications', () => {
     const list = page.getByTestId('communication-thread-list');
     const cards = list.locator('[data-testid^="communication-thread-row-"]');
     const mainCard = page.getByTestId('communication-thread-row-41');
-    const excerpt = page.getByTestId('communication-thread-excerpt-41');
 
     await expect(cards).toHaveCount(5);
     await expect(mainCard).toContainText('Aprobación de alcance');
@@ -512,22 +511,11 @@ test.describe('Admin Client Communications', () => {
     await expect(mainCard).toContainText('WhatsApp');
     await expect(mainCard).toContainText('2 mensajes');
     await expect(page.getByTestId('communication-thread-row-43')).toContainText('1 borrador');
-    await expect(excerpt).toContainText('Cliente: Confirmamos que el alcance');
-    await expect(excerpt).not.toContainText(compactListMessage);
+    await expect(mainCard).not.toContainText('Confirmamos que el alcance');
+    await expect(mainCard).not.toContainText(compactListMessage);
+    await expect(page.getByTestId('communication-thread-excerpt-41')).toHaveCount(0);
     await expect(page.getByText('Hilo', { exact: true })).toHaveCount(0);
 
-    const excerptLayout = await excerpt.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        height: element.getBoundingClientRect().height,
-        lineHeight: Number.parseFloat(style.lineHeight),
-        overflow: style.overflow,
-        whiteSpace: style.whiteSpace,
-      };
-    });
-    expect(excerptLayout.height).toBeLessThanOrEqual(excerptLayout.lineHeight + 1);
-    expect(excerptLayout.overflow).toBe('hidden');
-    expect(excerptLayout.whiteSpace).toBe('nowrap');
     await expect.poll(() => list.evaluate((element) => getComputedStyle(element).overflowX))
       .toBe('hidden');
     const pageOverflow = await page.evaluate(() => (

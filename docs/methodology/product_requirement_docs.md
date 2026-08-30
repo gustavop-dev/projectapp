@@ -8,12 +8,11 @@
 > obligatorios y omite “(opcional)” en el resto de etiquetas. El mismo contrato
 > se aplica a los demás modales de creación alcanzables del panel.
 
-> **Entregado — 2026-08-29:** el listado de Comunicaciones vuelve a funcionar
+> **Corrección — 2026-08-30:** el listado de Comunicaciones funciona
 > como índice: por debajo de landscape muestra tarjetas compactas identificadas
 > por asunto, cliente/proyecto, canal, estado, cantidad, fecha y borradores. El
-> último mensaje queda como extracto normalizado de una línea y máximo 120
-> caracteres, sin desplazamiento horizontal; el contenido completo sigue
-> perteneciendo al detalle. El orden activo se ve y se recuerda entre visitas.
+> cuerpo del mensaje no aparece en la tabla ni en las tarjetas; pertenece
+> exclusivamente al detalle. El orden activo se ve y se recuerda entre visitas.
 
 > **Corrección 2026-08-29 — engagement real:** el tiempo de lectura de una
 > propuesta sólo se acumula mientras la página está visible. Ocultarla cierra y
@@ -403,9 +402,9 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   entry. On compact screens the same navigation moves into the shared drawer.
 - **List, not duplicate detail**: below the landscape breakpoint each thread is
   a compact summary card; landscape and larger profiles retain the comparative
-  table with **Asunto** as its identity column. An optional latest-message
-  excerpt is whitespace-normalized, capped at 120 characters and clipped to one
-  line. The list never exposes the complete message or an inner horizontal
+  table with **Asunto** as its identity column. Both projections show only the
+  thread title in that identity surface; message bodies remain exclusively in
+  the detail. The list never exposes message content or an inner horizontal
   scrollbar.
 - **Canonical cuts**: navigation, searchable multi-value filters and ordering
   live in the URL. A thread opens in a workspace modal addressed by

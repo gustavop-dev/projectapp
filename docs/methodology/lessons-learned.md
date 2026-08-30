@@ -1492,11 +1492,12 @@ answer whether to open the record through title, ownership, scope, state,
 channel, count, recency and pending work. Copying the complete latest message
 into that index destroys density and introduces nested reading interactions.
 
-If a preview materially helps recognition, normalize its whitespace, cap the
-data before rendering, clip it to one line and expose no tooltip containing the
-rest. Keep the complete body on the routed detail surface. When the responsive
-structure differs, let the owning page decide the breakpoint once and pass that
-capability to the list component; this avoids duplicate media-query state.
+Start with title and operational metadata only. A message preview belongs in an
+index only after an explicit recognition need outweighs the lost density; the
+Communications operator chose no preview. Keep the complete body on the routed
+detail surface. When the responsive structure differs, let the owning page
+decide the breakpoint once and pass that capability to the list component; this
+avoids duplicate media-query state.
 
 Remembering order is a separate navigation contract. Resolve it predictably as
 explicit URL, then active saved view, then validated browser preference, then

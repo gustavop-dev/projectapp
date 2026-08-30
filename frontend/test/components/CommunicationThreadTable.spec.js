@@ -76,24 +76,20 @@ describe('CommunicationThreadTable', () => {
     expect(card.text()).toContain('24 ago');
   });
 
-  it('shortens the compact message preview to one normalized line', () => {
+  it('omits message content from compact cards', () => {
     const wrapper = mountList();
-    const excerpt = wrapper.get('[data-testid="communication-thread-excerpt-41"]');
-    const excerptContent = excerpt.text().replace(/^Cliente:\s*/, '');
+    const card = wrapper.get('[data-testid="communication-thread-row-41"]');
 
-    expect(excerpt.text()).toMatch(/^Cliente:/);
-    expect(excerptContent).not.toMatch(/\s{2,}/);
-    expect(excerptContent).toHaveLength(120);
-    expect(excerptContent.endsWith('…')).toBe(true);
-    expect(excerpt.classes()).toContain('truncate');
-    expect(excerpt.attributes('title')).toBeUndefined();
+    expect(card.text()).toContain('Aprobación de alcance');
+    expect(card.text()).not.toContain('Confirmamos');
+    expect(wrapper.find('[data-testid="communication-thread-excerpt-41"]').exists()).toBe(false);
   });
 
-  it('omits the preview when the thread has no messages', () => {
-    const wrapper = mountList({ threads: [thread({ latest_message: null })] });
+  it('omits message content from desktop subject cells', () => {
+    const wrapper = mountList({ compact: false });
 
-    expect(wrapper.get('[data-testid="communication-thread-row-41"]').text())
-      .toContain('Aprobación de alcance');
+    expect(wrapper.text()).toContain('Aprobación de alcance');
+    expect(wrapper.text()).not.toContain('Confirmamos');
     expect(wrapper.find('[data-testid="communication-thread-excerpt-41"]').exists()).toBe(false);
   });
 

@@ -98,15 +98,17 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   identity cell with an unbounded two-line message body. The repeated **Hilo**
   label also spent compact height without distinguishing records.
 - **Resolution**: Added a dedicated compact card projection with identity
-  metadata, a normalized one-line/120-character excerpt, bounded overflow and
-  no redundant label. Desktop now names the identity column **Asunto**; complete
-  content remains exclusively in the workspace detail. The selected order is
-  validated and persisted with URL/saved-view precedence.
-- **Files Affected**: communications list component/page/filter composable,
-  focused Jest and Playwright coverage, responsive and E2E flow registries.
-- **Verification**: 15 focused unit tests and all 7 registered communications
-  E2E scenarios pass; the 412×915 case proves multiple visible cards, one-line
-  clipping and zero page overflow.
+  metadata, bounded overflow and no redundant label. Operator feedback then
+  removed the remaining excerpt from both projections: **Asunto** now contains
+  only the thread title, while message bodies remain exclusively in the
+  workspace detail. The selected order stays validated and persisted with
+  URL/saved-view precedence.
+- **Files Affected**: communications list component, focused Jest and Playwright
+  coverage, methodology and flow documentation.
+- **Verification**: All 7 focused component tests and all 13 communications E2E
+  scenarios pass; the subject-only 412×915 scenario passed on its first run and
+  proves multiple visible cards with zero page overflow. The timeline scenario
+  needed one unrelated cold-start retry before passing.
 
 ### [ERR-042] Proyectos estaba vacío aunque los documentos tenían proyecto
 
