@@ -6,8 +6,8 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin navega los hilos por proyecto, cliente o sin proyecto, aplica filtros prediseñados con conteos completos y guarda recortes propios diferenciados. Puede reordenar la tira y restablecer los prediseñados sin perder sus vistas. La lista mantiene el contexto mientras el detalle se abre en un modal de trabajo; cada hilo conserva el registro manual bidireccional, sus estados y los documentos referenciados.",
-  "expectedSpecs": 8,
+  "description": "Admin navega y busca los hilos por proyecto, cliente o sin proyecto, aplica filtros prediseñados con conteos completos y guarda recortes propios diferenciados. Puede ajustar la navegación, reordenar la tira y restablecer los prediseñados sin perder sus vistas; el aviso manual puede descartarse después de leído. La lista mantiene el contexto mientras el detalle se abre en un modal de trabajo y cada hilo conserva el registro manual bidireccional, sus estados y los documentos referenciados.",
+  "expectedSpecs": 11,
   "outcomes": [
     "display",
     "success",

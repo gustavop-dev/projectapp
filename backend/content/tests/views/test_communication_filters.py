@@ -106,6 +106,44 @@ def test_project_none_keeps_unassigned_threads_reachable(admin_client, admin_use
     assert [row['title'] for row in response.data['results']] == ['Sin proyecto']
 
 
+def test_project_name_search_scopes_the_list_contract(admin_client, admin_user):
+    client = make_client('project-search@example.com', 'Estela')
+    matching_project = Project.objects.create(
+        name='Portal Boreal', client=client.user,
+    )
+    other_project = Project.objects.create(
+        name='Tienda Austral', client=client.user,
+    )
+    communication_service.create_thread(
+        actor=admin_user,
+        client=client,
+        project=matching_project,
+        title='Revisión de alcance',
+    )
+    communication_service.create_thread(
+        actor=admin_user,
+        client=client,
+        project=other_project,
+        title='Revisión de alcance',
+    )
+
+    response = admin_client.get(
+        reverse('communication-threads'), {'q': 'boreal'},
+    )
+
+    assert response.status_code == 200
+    assert [row['project_name'] for row in response.data['results']] == ['Portal Boreal']
+    assert response.data['facets']['total'] == 1
+    assert response.data['facets']['navigation_total'] == 1
+    assert response.data['facets']['projects'] == [{
+        'id': matching_project.id,
+        'name': 'Portal Boreal',
+        'client_id': client.id,
+        'count': 1,
+        'unavailable': False,
+    }]
+
+
 def test_facets_exclude_their_own_dimension(admin_client, admin_user):
     client = make_client('facets@example.com', 'Elena')
     whatsapp = communication_service.create_thread(

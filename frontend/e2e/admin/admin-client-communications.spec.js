@@ -104,14 +104,14 @@ function secondThread() {
   });
 }
 
-function communicationFacets() {
+function communicationFacets(projectName = 'Portal de clientes') {
   return {
     total: 2,
     navigation_total: 2,
     without_project_count: 1,
     projects: [{
       id: 19,
-      name: 'Portal de clientes',
+      name: projectName,
       client_id: 7,
       count: 1,
       unavailable: false,
@@ -158,10 +158,14 @@ async function setupCommunicationsApi(page, {
   onListRequest = null,
   onSavedView = null,
   initialSavedTabs = [],
+  projectName = 'Portal de clientes',
 } = {}) {
   let shouldFailList = listFailure;
   const state = {
-    thread: { ...listThread(), messages: [outgoingMessage, incomingMessage] },
+    thread: {
+      ...listThread({ project_name: projectName }),
+      messages: [outgoingMessage, incomingMessage],
+    },
     savedTabs: [
       ...factorySavedTabs.map((tab) => ({ ...tab })),
       ...initialSavedTabs.map((tab, index) => ({
@@ -196,6 +200,7 @@ async function setupCommunicationsApi(page, {
         body: JSON.stringify({
           results: [
             listThread({
+              project_name: projectName,
               messages_count: state.thread.messages.length,
               latest_message: state.thread.messages.at(-1),
             }),
@@ -204,7 +209,7 @@ async function setupCommunicationsApi(page, {
           count: 2,
           page: 1,
           num_pages: 1,
-          facets: communicationFacets(),
+          facets: communicationFacets(projectName),
         }),
       };
     }
@@ -569,6 +574,62 @@ test.describe('Admin Client Communications', () => {
     await page.getByTestId('filter-tabs-tab-901').click();
     await expect(page).toHaveURL(/client=7/);
     await expect(page).toHaveURL(/message_status=draft(?:%2C|,)sent/);
+  });
+
+  test('searches the thread list by project name', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const listRequests = [];
+    await setupCommunicationsApi(page, {
+      onListRequest: (url) => listRequests.push(url),
+    });
+    await gotoCommunications(page);
+
+    await page.getByRole('textbox', { name: 'Buscar comunicaciones' })
+      .fill('Portal de clientes');
+
+    await expect(page).toHaveURL(/q=Portal(?:\+|%20)de(?:\+|%20)clientes/);
+    await expect.poll(() => listRequests.at(-1)).toMatch(
+      /q=Portal(?:\+|%20)de(?:\+|%20)clientes/,
+    );
+    await expect(page.getByTestId('communication-thread-row-41')).toBeVisible();
+  });
+
+  test('keeps the manual notice dismissed until help reopens it', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupCommunicationsApi(page);
+    // quality: allow-deep-link (panel entry is covered by the timeline display outcome)
+    await gotoCommunications(page);
+
+    await page.getByRole('button', { name: 'Cerrar alerta' }).click();
+    await expect(page.getByTestId('communications-channel-scope')).toHaveCount(0);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('communications-channel-scope')).toHaveCount(0);
+
+    await page.getByTestId('communications-show-help').click();
+    await expect(page.getByTestId('communications-channel-scope')).toBeVisible();
+  });
+
+  test('persists the resized project navigation width', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const longProjectName = 'Portal de clientes con seguimiento contractual ampliado';
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await setupCommunicationsApi(page, { projectName: longProjectName });
+    await gotoCommunications(page);
+
+    const handle = page.getByTestId('communications-navigation-resize-handle');
+    const projectName = page.getByTestId('communications-navigation-project-19')
+      .locator('span[title]');
+    await expect(projectName).toHaveAttribute('title', longProjectName);
+    await expect(handle).toHaveAttribute('aria-valuenow', '288');
+    await handle.press('End');
+    await expect(handle).toHaveAttribute('aria-valuenow', '400');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('communications-navigation-resize-handle'))
+      .toHaveAttribute('aria-valuenow', '400');
   });
 
   test('registers an outgoing WhatsApp message as sent', {

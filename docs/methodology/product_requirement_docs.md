@@ -366,6 +366,10 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   the active cut remains reachable. User-named views coexist as visibly distinct
   **Propia** tabs. Both kinds can be reordered, while module reset restores only
   the factory order/visibility and preserves every user view.
+  Frequent combinations can be named and restored through the accounting saved
+  filter mechanism. Global text search covers the thread title, readable client,
+  project name, message subject and message content through the shared REST/MCP
+  query service.
 - **Manual-channel boundary**: recording what the operator sent or received via
   WhatsApp or email is the chosen operating model, not a provisional phase. The
   product never claims that ProjectApp delivered it, and the interface does not

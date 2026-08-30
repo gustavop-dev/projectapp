@@ -476,6 +476,8 @@ accepts `recent`, `oldest` or `title`. The REST response includes self-excluding
 option counts plus project/client navigation counts. The staff-only
 `POST /api/communications/threads/tab-counts/` evaluates bounded tab specs
 against the full dataset so every strip count remains honest under an active cut.
+Text search matches thread title, client, project name, message subject or
+message content. Project/client navigation counts include nested thread totals.
 
 The panel URL is canonical for selection, filters, order and the `thread` detail
 modal. `CommunicationNavigation` is resizable on landscape widths and moves to

@@ -206,7 +206,7 @@ COMMUNICATION_TOOLS = [
                 'reply_status': {'type': 'string', 'enum': ['answered', 'unanswered'], 'description': 'Respondido o sin respuesta; aplica a mensajes salientes enviados y no anulados.'},
                 'date_from': {'type': 'string', 'description': 'Fecha o fecha-hora ISO mínima de los mensajes.'},
                 'date_to': {'type': 'string', 'description': 'Fecha o fecha-hora ISO máxima de los mensajes.'},
-                'q': {'type': 'string', 'description': 'Texto en título, cliente, asunto o contenido.'},
+                'q': {'type': 'string', 'description': 'Texto en título, cliente, proyecto, asunto o contenido.'},
                 'page': {'type': 'integer', 'minimum': 1, 'description': 'Página, desde 1.'},
                 'page_size': {'type': 'integer', 'minimum': 1, 'maximum': 100, 'description': 'Resultados por página; máximo 100.'},
             },
