@@ -84,6 +84,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import EntityNavigationModeSwitch from '~/components/panel/EntityNavigationModeSwitch.vue';
 
 const props = defineProps({
   mode: { type: String, default: 'project' },
