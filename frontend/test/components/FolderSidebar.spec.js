@@ -359,6 +359,68 @@ describe('FolderSidebar', () => {
       expect(wrapper.find('[data-testid="folder-delete"]').exists()).toBe(false);
       expect(wrapper.find('.folder-drag-handle').exists()).toBe(false);
     });
+
+    it('explains when project folders still need reconciliation', () => {
+      const wrapper = mountSidebar({
+        projectReadiness: {
+          status: 'reconciliation_required',
+          project_count: 8,
+          missing_root_count: 8,
+        },
+      });
+
+      expect(wrapper.get('[data-testid="project-reconciliation-required"]').text())
+        .toContain('Faltan las carpetas gestionadas de 8 proyectos');
+      expect(wrapper.get('[data-testid="project-reconciliation-action"]').attributes('href'))
+        .toBe('/panel/projects');
+      expect(wrapper.find('[data-testid="project-empty-fallback"]').exists()).toBe(false);
+    });
+
+    it('warns about partial reconciliation without hiding available projects', () => {
+      const wrapper = mountSidebar({
+        folders: [projectFolder],
+        projectReadiness: {
+          status: 'reconciliation_required',
+          project_count: 8,
+          missing_root_count: 3,
+        },
+      });
+
+      expect(wrapper.get('[data-testid="project-reconciliation-required"]').text())
+        .toContain('3 proyectos');
+      expect(wrapper.get('[data-testid="documents-navigation-project-91"]').text())
+        .toContain('Kore Health');
+    });
+
+    it('distinguishes a catalog with no projects', () => {
+      const wrapper = mountSidebar({
+        projectReadiness: { status: 'no_projects', project_count: 0 },
+      });
+
+      expect(wrapper.get('[data-testid="project-empty-no-projects"]').text())
+        .toContain('No hay proyectos creados todavía');
+    });
+
+    it('offers state administration when the visibility filter is empty', () => {
+      const wrapper = mountSidebar({
+        projectReadiness: { status: 'state_filter_empty', project_count: 8 },
+      });
+
+      expect(wrapper.get('[data-testid="project-state-filter-empty"]').text())
+        .toContain('ningún estado está habilitado');
+      expect(wrapper.get('[data-testid="project-state-filter-action"]').attributes('href'))
+        .toBe('/panel/projects/statuses');
+    });
+
+    it('does not present a diagnostic request failure as a normal empty state', () => {
+      const wrapper = mountSidebar({
+        projectReadinessError: 'fetch_project_readiness_failed',
+      });
+
+      expect(wrapper.get('[data-testid="project-readiness-error"]').text())
+        .toContain('No se pudo comprobar');
+      expect(wrapper.find('[data-testid="project-empty-fallback"]').exists()).toBe(false);
+    });
   });
 
   // ── Los dos contadores de la fila ─────────────────────────────────────────

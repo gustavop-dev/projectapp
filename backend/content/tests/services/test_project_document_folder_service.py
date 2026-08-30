@@ -56,6 +56,15 @@ def test_project_creation_builds_standard_children(project):
         project=project,
         client_user=project.client,
     ).exists()
+    children = {child.name: child for child in root.children.all()}
+    assert children['Cuentas de cobro'].system_key == (
+        f'generated:project:{project.id}:collection_account'
+    )
+    assert children['Propuestas'].system_key == (
+        f'generated:project:{project.id}:commercial_proposal'
+    )
+    assert children['Entregables'].system_key is None
+    assert children['QA'].system_key is None
 
 
 def test_ensure_project_folder_is_idempotent(project):

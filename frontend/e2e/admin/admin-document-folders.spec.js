@@ -6,7 +6,10 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DOCUMENT_FOLDERS } from '../helpers/flow-tags.js';
+import {
+  ADMIN_DOCUMENT_FOLDERS,
+  ADMIN_DOCUMENT_PROJECT_READINESS,
+} from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
 
@@ -62,6 +65,17 @@ const PROJECT_KORE = {
   children_count: 1,
   active_document_count: 2,
   active_children_count: 1,
+};
+
+const PROJECT_PAUSED = {
+  ...PROJECT_KORE,
+  id: 22,
+  name: 'Candle',
+  slug: 'candle',
+  project: 42,
+  managed_project: 42,
+  is_project_visible: false,
+  managed_project_state: { name: 'Suspendido', system_key: 'paused' },
 };
 
 const DOC_IN_FOLDER = {
@@ -129,6 +143,22 @@ const NAVIGATION = {
   }],
 };
 
+const PAUSED_NAVIGATION = {
+  ...NAVIGATION,
+  projects: [{
+    ...NAVIGATION.projects[0],
+    id: 42,
+    name: 'Candle',
+    managed_root_id: PROJECT_PAUSED.id,
+    state: {
+      name: 'Suspendido',
+      system_key: 'paused',
+      show_in_document_manager: false,
+    },
+    is_visible: false,
+  }],
+};
+
 async function setupFolderApi(page, folders = [FOLDER_CUENTAS, FOLDER_CONTRATOS]) {
   let preferenceMode = 'project';
   const requestedUrls = [];
@@ -168,6 +198,37 @@ async function setupFolderApi(page, folders = [FOLDER_CUENTAS, FOLDER_CONTRATOS]
   });
 
   return { requestedUrls };
+}
+
+async function setupProjectReadinessApi(page, {
+  readinessResponse,
+  folders = [],
+  navigation = NAVIGATION,
+}) {
+  await mockApi(page, async ({ apiPath }) => {
+    if (apiPath === 'auth/check/') {
+      return jsonOk({ user: { username: 'admin', is_staff: true } });
+    }
+    if (apiPath === 'accounts/panel-preferences/documents/') {
+      return jsonOk({ navigation_mode: 'project' });
+    }
+    if (apiPath === 'documents/navigation/') return jsonOk(navigation);
+    if (apiPath === 'document-folders/project-readiness/') return readinessResponse;
+    if (apiPath === 'document-folders/') return jsonOk(folders);
+    if (apiPath === 'documents/counts/') {
+      return jsonOk({
+        documents: { active: 0, archived: 0, unfiled_active: 0, unfiled_archived: 0 },
+        folders: { active: folders.length, archived: 0 },
+      });
+    }
+    if (apiPath === 'documents/') return jsonOk([]);
+    if (apiPath === 'document-states/' || apiPath === 'document-state-groups/') {
+      return jsonOk([]);
+    }
+    if (apiPath === 'document-tags/') return jsonOk([]);
+    if (apiPath.startsWith('accounting/projects/')) return jsonOk({ results: [] });
+    return null;
+  });
 }
 
 async function openDocuments(page) {
@@ -261,5 +322,71 @@ test.describe('Admin Document Folders', () => {
     const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
     await expect(parentSelect.locator('option', { hasText: 'Kore Health' })).toHaveCount(1);
     await expect(parentSelect.locator('option:checked')).toHaveText('Ninguna (carpeta raíz)');
+  });
+
+  test('pending reconciliation explains the missing managed roots', {
+    tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupProjectReadinessApi(page, {
+      readinessResponse: jsonOk({
+        status: 'reconciliation_required',
+        project_count: 8,
+        visible_project_count: 7,
+        managed_root_count: 1,
+        visible_managed_root_count: 1,
+        missing_root_count: 7,
+        missing_visible_root_count: 6,
+      }),
+      folders: [PROJECT_KORE],
+    });
+
+    await openDocuments(page);
+
+    const warning = page.getByTestId('project-reconciliation-required');
+    await expect(warning).toContainText('Faltan las carpetas gestionadas de 7 proyectos');
+    await expect(page.getByTestId('documents-navigation-project-41')).toContainText('Kore Health');
+  });
+
+  test('empty project-state filter links to state administration', {
+    tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupProjectReadinessApi(page, {
+      readinessResponse: jsonOk({
+        status: 'state_filter_empty',
+        project_count: 8,
+        visible_project_count: 0,
+        managed_root_count: 8,
+        visible_managed_root_count: 0,
+        missing_root_count: 0,
+        missing_visible_root_count: 0,
+      }),
+      folders: [PROJECT_PAUSED],
+      navigation: PAUSED_NAVIGATION,
+    });
+
+    await openDocuments(page);
+    await page.getByTestId('project-state-filter-action').click();
+
+    await expect(page).toHaveURL(/\/panel\/projects\/statuses\/?$/);
+  });
+
+  test('readiness request failure is not presented as a normal empty state', {
+    tag: [...ADMIN_DOCUMENT_PROJECT_READINESS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await setupProjectReadinessApi(page, {
+      readinessResponse: {
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'temporarily unavailable' }),
+      },
+      navigation: { ...NAVIGATION, projects: [] },
+    });
+
+    await openDocuments(page);
+
+    await expect(page.getByTestId('project-readiness-error')).toContainText(
+      'No se pudo comprobar por qué la sección de proyectos está vacía',
+    );
+    await expect(page.getByTestId('project-empty-fallback')).toHaveCount(0);
   });
 });

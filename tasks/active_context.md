@@ -13,6 +13,21 @@ siendo un eje independiente aun cuando fallen las facetas. Backend, preferencia,
 store, composable, componente, build y los flujos E2E focales quedan cubiertos;
 la migración se aplicará únicamente durante deploy.
 
+**2026-08-29 — Conciliación de carpetas de proyecto lista para integrar:** el
+diagnóstico confirmó ocho proyectos, siete visibles y cero raíces gestionadas;
+la migración de esquema sí estaba aplicada y el filtro no dependía de nombres
+obsoletos. El filing automático ahora reutiliza Cuentas de cobro/Propuestas bajo
+la única raíz de cada proyecto y retira wrappers legados vacíos. El manifiesto
+PA-108 v2 propone por separado convertir/crear raíces y ubicar sólo documentos
+sin carpeta con ruta inequívoca; los que ya están en otro árbol quedan como
+conflicto, y ni el filing en vivo ni el backfill general pueden crear una raíz
+histórica sin revisión. El panel distingue conciliación pendiente, catálogo
+vacío, filtro de estados vacío y
+falla diagnóstica, con acciones hacia Proyectos/Estados y sin ocultar resultados
+parciales. Backend, 7 unitarias y los 3 outcomes E2E focales pasan; el flow-map
+declara 356 flows, con cero faltantes y cero `junk-only`. Producción sigue sin
+mutarse: tras el deploy corresponde generar, revisar y aplicar el artefacto.
+
 **2026-08-29 — Píldoras de estado indivisibles en Documentos:** los filtros de
 Consultas y Estados conservan icono y texto en una sola línea; cuando falta
 espacio, el contenedor reubica la píldora completa en la fila siguiente sin

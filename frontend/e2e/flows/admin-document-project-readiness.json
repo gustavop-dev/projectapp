@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-project-readiness",
+  "name": "Admin Document Project Readiness",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "The document sidebar distinguishes a genuinely empty project catalog from missing managed roots, an empty project-state visibility filter, and a readiness request failure. Correctable states explain the cause and link the admin to the relevant project or state screen without converting folders automatically.",
+  "expectedSpecs": 3,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

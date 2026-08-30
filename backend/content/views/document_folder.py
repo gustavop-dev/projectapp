@@ -12,7 +12,11 @@ from content.models import DocumentFolder
 from content.serializers.document_folder import (
     DocumentFolderChangeClientSerializer, DocumentFolderSerializer,
 )
-from content.services import document_archive_service, document_folder_service
+from content.services import (
+    document_archive_service,
+    document_folder_service,
+    project_document_folder_service,
+)
 from content.views.document import (
     apply_archive_scope, archive_scope, archived_order_field, search_term,
 )
@@ -122,6 +126,13 @@ def list_document_folders(request):
         folders = folders.order_by(archived_order_field(request), 'order', 'name')
     serializer = DocumentFolderSerializer(folders, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def project_folder_readiness(request):
+    """Explain whether an empty Projects folder section is real or repairable."""
+    return Response(project_document_folder_service.project_folder_readiness())
 
 
 @api_view(['POST'])

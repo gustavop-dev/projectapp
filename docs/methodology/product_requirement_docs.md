@@ -235,12 +235,25 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   otherwise hidden project roots without changing or deleting their content.
 - A new project root starts with Cuentas de cobro, Propuestas, Entregables and
   QA. Content and subfolders created below it inherit the project and client
-  when the caller does not provide an explicit association.
+  when the caller does not provide an explicit association. Cuentas de cobro
+  and Propuestas carry stable system keys: generated records for a project are
+  filed below this same managed root, never in a second physical
+  `Proyectos / {project}` tree. Generated filing refuses to provision a missing
+  historical root: that project must pass the reviewed reconciliation first.
 - Existing roots are reconciled only through a review artifact: a dry-run plan
   records every proposed conversion, nesting, creation, skip and conflict; the
   apply command requires the reviewed decisions, database fingerprint and plan
-  digest to still match. A client-named root is nested under the unique project
-  root; no production folder is converted from a name-only shortcut.
+  digest to still match. The same artifact proposes an exact canonical path for
+  eligible folderless project documents and flags documents already placed in
+  another tree as conflicts; neither class moves by inference. A client-named
+  root is nested under the unique project root; no production folder is
+  converted from a name-only shortcut, and the general account backfill defers
+  project rows until their managed root has passed this review.
+- `GET /api/document-folders/project-readiness/` distinguishes a real empty
+  catalog, roots pending reconciliation, a state-visibility filter with zero
+  matches and a diagnostic request failure. The sidebar explains correctable
+  states and links to Projects or its state catalog while keeping already
+  reconciled roots visible.
 - Client visibility is an independent `is_client_visible` gate. The legacy
   draft/published field remains only during the expand/contract rollout and no
   longer represents the internal workflow.
@@ -313,7 +326,9 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   Bogotá issue date under `Proyectos / {project} / Cuentas de cobro / YYYY /
   MM - Mes`. Without a project it uses `Clientes / {client} / Sin proyecto`;
   without an identifiable client it uses `Sin clasificar`. Missing levels are
-  created idempotently. Cancellation moves the same record to `Anuladas`; a
+  created idempotently. For a project, “Proyectos” is the sidebar section and
+  `{project}` is its managed root; the stored tree therefore begins at that
+  root. Cancellation moves the same record to `Anuladas`; a
   never-issued cancellation uses `Sin emitir / Anuladas`. Retrying delivery
   keeps the same document; issuing a replacement after cancellation creates a
   new account/number while the annulled original remains in its branch.
@@ -328,9 +343,10 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Every initial proposal send, resend and multi-send stores the exact PDF bytes
   attached to the email as an immutable `vNN` Document snapshot, named
   `YYYY-MM-DD · Propuesta comercial · title · vNN` and filed under the parallel
-  `Propuestas comerciales / YYYY / MM - Month` hierarchy. Observations remain
-  editable; source data, folder and workflow state do not. Acceptance moves all
-  retained versions to the created project.
+  `Propuestas comerciales / YYYY / MM - Month` hierarchy while it has no
+  project. Observations remain editable; source data, folder and workflow state
+  do not. Acceptance moves every retained version under the managed project's
+  canonical `Propuestas / YYYY / MM - Month` branch.
 - Historical folderless collection accounts are handled by the dry-run-first
   `backfill_collection_account_filing` command. Applying it uses the same live
   rule, preserves manually classified records and skips rows whose issue date
