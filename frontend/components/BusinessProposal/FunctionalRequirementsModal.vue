@@ -16,7 +16,7 @@
               unstyled
               icon-only
               class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:text-text-default hover:bg-surface-raised transition-colors"
-              :aria-label="language === 'en' ? 'Close' : 'Cerrar'"
+              :aria-label="language === 'en' ? 'Close requirements group' : 'Cerrar grupo de requerimientos'"
               @click="$emit('close')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

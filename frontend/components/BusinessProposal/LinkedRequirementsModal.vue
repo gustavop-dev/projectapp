@@ -84,7 +84,9 @@ defineEmits(['close']);
 const kickerLabel = computed(() => (
   props.language === 'en' ? 'Requirements to implement' : 'Requerimientos a implementar'
 ));
-const closeLabel = computed(() => (props.language === 'en' ? 'Close' : 'Cerrar'));
+const closeLabel = computed(() => (
+  props.language === 'en' ? 'Close linked requirements' : 'Cerrar requerimientos vinculados'
+));
 
 function priorityText(priority) {
   return priorityLabel(priority, props.language);
