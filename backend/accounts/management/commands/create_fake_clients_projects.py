@@ -89,7 +89,7 @@ class Command(BaseCommand):
                     'cedula': f'10{index:08d}',
                     'nit': f'901{index:06d}-{index % 10}' if index % 2 == 0 else '',
                     'created_by': admin,
-                    'deactivated_at': (
+                    'archived_at': (
                         context.anchor_now - timedelta(days=30 + index)
                         if index % 11 == 0 else None
                     ),

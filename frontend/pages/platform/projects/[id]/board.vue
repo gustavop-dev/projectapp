@@ -134,7 +134,9 @@
               @click="openDetailModal(card)"
             >
               <!-- Complete button (admin) -->
-              <button
+              <BaseButton
+                unstyled
+                icon-only
                 v-if="authStore.isAdmin"
                 type="button"
                 class="touch-reveal touch-target absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-border-default text-green-light/40 opacity-0 transition-all group-hover:opacity-100 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring dark:hover:border-emerald-400 dark:hover:text-emerald-400"
@@ -144,7 +146,7 @@
                 @click.stop="handleComplete(card)"
               >
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
-              </button>
+              </BaseButton>
 
               <!-- Priority dot -->
               <div class="mb-2 flex items-center gap-2">
@@ -240,9 +242,9 @@
                     Pega un array JSON de requerimientos. Usá el botón <span class="font-semibold">Ejemplo</span> para descargar la plantilla.
                   </p>
                 </div>
-                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
+                <BaseButton unstyled icon-only type="button" aria-label="Cerrar importación" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                </BaseButton>
               </div>
 
               <form class="space-y-4" @submit.prevent="handleImport">
@@ -320,9 +322,9 @@
                     Ref. flujo: {{ detailCard.source_flow_key }}
                   </p>
                 </div>
-                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailCard = null">
+                <BaseButton unstyled icon-only type="button" aria-label="Cerrar detalle" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailCard = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                </BaseButton>
               </div>
 
               <!-- Description -->

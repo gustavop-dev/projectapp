@@ -28,7 +28,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Q
-from django.utils import timezone
 
 from accounts.models import UserProfile
 
@@ -243,14 +242,19 @@ def _maybe_fill_user_names(user, first_name, last_name):
 
 @transaction.atomic
 def update_client_profile(profile, *, name=None, email=None, phone=None,
-                          company=None, is_inactive=None):
+                          company=None):
     """
     Update the canonical client identity (User + UserProfile) and cascade
     the new values to all linked proposals' snapshots.
 
     Any argument left as ``None`` is preserved. Pass an empty string to
-    explicitly clear a field. ``is_inactive`` toggles the manual inactive
-    mark (``deactivated_at``); it never triggers a snapshot cascade.
+    explicitly clear a field.
+
+    The archive state is deliberately NOT here: archiving a client suspends
+    its projects and cancels their future billing, so it belongs to
+    ``accounts.services.client_archive_service``, which previews that impact
+    first. Letting an identity edit carry ``is_archived`` would archive a
+    client through the ordinary save button, with no preview and no audit row.
     """
     user = profile.user
     user_dirty = []
@@ -297,14 +301,6 @@ def update_client_profile(profile, *, name=None, email=None, phone=None,
         if profile.company_name != company:
             profile.company_name = company
             profile_dirty.append('company_name')
-
-    if is_inactive is not None:
-        if is_inactive and profile.deactivated_at is None:
-            profile.deactivated_at = timezone.now()
-            profile_dirty.append('deactivated_at')
-        elif not is_inactive and profile.deactivated_at is not None:
-            profile.deactivated_at = None
-            profile_dirty.append('deactivated_at')
 
     snapshot_dirty = bool(user_dirty) or any(
         field in ('phone', 'company_name') for field in profile_dirty

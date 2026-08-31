@@ -103,22 +103,28 @@
 
         <!-- Navigation Buttons -->
         <div class="flex gap-4 pt-8">
-          <button
+          <BaseButton
+            unstyled
+            icon-only
             @click="handlePrev"
+            aria-label="Previous testimonial"
             class="h-12 w-12 rounded-full bg-esmerald-light flex items-center justify-center group hover:bg-esmerald transition-colors"
           >
             <svg class="h-6 w-6 text-esmerald group-hover:text-bone group-hover:rotate-12 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
+            unstyled
+            icon-only
             @click="handleNext"
+            aria-label="Next testimonial"
             class="h-12 w-12 rounded-full bg-esmerald-light flex items-center justify-center group hover:bg-esmerald transition-colors"
           >
             <svg class="h-6 w-6 text-esmerald group-hover:text-bone group-hover:-rotate-12 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>

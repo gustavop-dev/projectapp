@@ -50,6 +50,38 @@ class CommunicationThread(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Comunicación madre. Mismo reparto de conceptos que en el gestor documental:
+    # `client`/`project` son la asociación de CUALQUIER hilo; estos dos marcan el
+    # único hilo que representa a esa entidad en el módulo.
+    #
+    # `managed_client` apunta a UserProfile —y no a auth.User como su gemelo de
+    # carpetas— por la misma razón que allá apunta a auth.User: coincidir con la
+    # columna hermana (`client`), que es lo que hace posible la CheckConstraint
+    # `client = F('managed_client')`.
+    managed_project = models.OneToOneField(
+        'accounts.Project',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='communication_root_thread',
+    )
+    managed_client = models.OneToOneField(
+        'accounts.UserProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='client_communication_root_thread',
+    )
+
+    # Archivado: eje de VISIBILIDAD, ortogonal a `status`. Cerrar un hilo bloquea
+    # su escritura y sigue mostrándolo; archivarlo lo saca de la vista sin decir
+    # nada sobre la conversación.
+    #
+    # Sin `archived_via_*`: ese campo existe en carpetas sólo para poder revertir
+    # una cascada, y acá los hilos son planos — no arrastran nada al archivarse.
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ['-last_activity_at', '-id']
         indexes = [
@@ -62,9 +94,53 @@ class CommunicationThread(models.Model):
                 name='commthread_project_status_at',
             ),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_project__isnull=True)
+                    | models.Q(project=models.F('managed_project'))
+                ),
+                name='managed_thread_matches_project',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_client__isnull=True)
+                    | models.Q(client=models.F('managed_client'))
+                ),
+                name='managed_thread_matches_client',
+            ),
+            # La madre es el punto de entrada de su entidad: si pudiera
+            # archivarse, el proyecto o el cliente quedaría sin cabecera.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_project__isnull=True)
+                    & models.Q(managed_client__isnull=True)
+                    | models.Q(is_archived=False)
+                ),
+                name='managed_thread_is_active',
+            ),
+            # Un hilo representa UNA entidad. Ser la madre del proyecto y la del
+            # cliente a la vez haría ambigua la fila que el panel fija arriba.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_client__isnull=True)
+                    | models.Q(managed_project__isnull=True)
+                ),
+                name='managed_thread_is_project_or_client',
+            ),
+        ]
 
     def __str__(self):
         return self.title
+
+    @property
+    def thread_kind(self):
+        """Espejo literal de `DocumentFolder.folder_kind`."""
+        if self.managed_project_id:
+            return 'project'
+        if self.managed_client_id:
+            return 'client'
+        return 'manual'
 
     def clean(self):
         errors = {}

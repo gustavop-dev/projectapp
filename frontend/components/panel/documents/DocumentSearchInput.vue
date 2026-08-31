@@ -16,7 +16,9 @@ defineEmits(['update:modelValue'])
       class="pl-10 pr-12 shadow-sm [&::-webkit-search-cancel-button]:hidden"
       @update:model-value="$emit('update:modelValue', $event)"
     />
-    <button
+    <BaseButton
+      unstyled
+      icon-only
       v-if="modelValue"
       type="button"
       aria-label="Limpiar búsqueda"
@@ -27,6 +29,6 @@ defineEmits(['update:modelValue'])
       @click="$emit('update:modelValue', '')"
     >
       <BaseActionIcon action="clear" />
-    </button>
+    </BaseButton>
   </div>
 </template>

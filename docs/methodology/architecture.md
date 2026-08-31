@@ -1,5 +1,12 @@
 # Architecture — ProjectApp
 
+> **Interacción de iconos 2026-08-31:** `BaseButton` es la frontera transversal
+> para la activación inmediata de controles icon-only, tanto botones como
+> enlaces; `BaseActionButton` agrega el glifo canónico y presenta estados
+> resueltos sin sustituirlo. `useClipboardFeedback` concentra la semántica real
+> de copiar y sus temporizadores por clave. Un guard estático cubre componentes,
+> layouts y páginas y evita que nuevos controles crudos eludan este contrato.
+
 > **Acceso comercial 2026-08-31:** `AdditionalModules/QuickAccess` es la
 > superficie compartida entre `/panel/additional-modules` y `/panel/`.
 > `useAdditionalModulesPublicAccess` proyecta la URL canónica por locale y la
@@ -582,11 +589,12 @@ label, value and one optional support line even when the last row is empty. The
 opt-in `compact-horizontal` layout instead keeps label and result/action on one
 72–80 px row, omits an absent support row and gives help a dedicated 48 px grid
 column. Help remains a sibling control and actionable cards expose one semantic
-main button, avoiding nested interactive elements in both layouts. Projects uses
-the compact layout for catalog-ordered non-zero lifecycle cards and the stacked
-layout for its separate operational group on expanded screens; below the
-landscape breakpoint one **Estados** summary and one **Pendientes** summary open
-drawers with the complete facts. Incomes applies the same summary pattern as
+main button, avoiding nested interactive elements in both layouts. A bounded,
+single-line support text may remain under the identity without increasing that
+row. Projects uses the same compact layout and four/five-column grid for its
+catalog-ordered non-zero lifecycle and operational cards on expanded screens;
+below the landscape breakpoint one **Estados** summary and one **Pendientes**
+summary open drawers with the complete facts. Incomes applies the same summary pattern as
 **Resultado anual** plus **Detalle operativo**, while its expanded branch keeps
 four business-ranked stacked cards. All branches reuse the same filter functions,
 so layout changes presentation without forking behavior.

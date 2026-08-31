@@ -74,6 +74,18 @@ describe('BaseButton', () => {
     expect(cls).toContain('base-button--link')
   })
 
+  it('preserves bespoke visual classes in unstyled mode', () => {
+    const classes = mount(BaseButton, {
+      props: { iconOnly: true, unstyled: true },
+      attrs: { 'aria-label': 'Compartir', class: 'custom-floating-control' },
+    }).get('button').classes()
+
+    expect(classes).toContain('custom-floating-control')
+    expect(classes).toContain('base-button--icon')
+    expect(classes).not.toContain('bg-primary')
+    expect(classes).not.toContain('p-2')
+  })
+
   describe('iconOnly accessibility warning', () => {
     let warn
 
@@ -113,6 +125,51 @@ describe('BaseButton', () => {
     const wrapper = mount(BaseButton, { slots: { default: 'x' } })
     await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('click')).toBeTruthy()
+  })
+
+  describe('icon activation feedback', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('keeps an icon visibly active for a short interval after click', async () => {
+      const wrapper = mount(BaseButton, {
+        props: { iconOnly: true },
+        attrs: { 'aria-label': 'Copiar' },
+        slots: { default: '<svg />' },
+      })
+
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
+
+      jest.advanceTimersByTime(180)
+      await wrapper.vm.$nextTick()
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('idle')
+    })
+
+    it('does not add activation state to text buttons', async () => {
+      const wrapper = mount(BaseButton, { slots: { default: 'Guardar' } })
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.get('button').attributes('data-activation-state')).toBeUndefined()
+    })
+
+    it('does not activate a loading icon control', async () => {
+      const wrapper = mount(BaseButton, {
+        props: { iconOnly: true, loading: true },
+        attrs: { 'aria-label': 'Actualizar' },
+      })
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('idle')
+    })
+
+    it('clears the activation timer on unmount', async () => {
+      const wrapper = mount(BaseButton, {
+        props: { iconOnly: true },
+        attrs: { 'aria-label': 'Abrir' },
+      })
+      await wrapper.get('button').trigger('click')
+      wrapper.unmount()
+      expect(jest.getTimerCount()).toBe(0)
+    })
   })
 
   it('disables the button when disabled prop is true', () => {

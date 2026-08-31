@@ -152,8 +152,8 @@ class TestListPanelProjects:
         make_project(covered, 'Vastago')
         make_client('wilson@example.com', first='Wilson')
         gone = make_client('viejo@example.com', first='Viejo')
-        gone.deactivated_at = timezone.now()
-        gone.save(update_fields=['deactivated_at'])
+        gone.archived_at = timezone.now()
+        gone.save(update_fields=['archived_at'])
 
         response = admin_client.get(LIST_URL)
 

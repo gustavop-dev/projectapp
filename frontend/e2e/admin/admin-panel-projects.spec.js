@@ -526,6 +526,22 @@ test.describe('Admin Panel Projects', () => {
     await expect(getProjectResult(page, 2)).toBeVisible();
   });
 
+  test('operational help opens without activating its pending workflow', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      calls: [],
+      meta: { ...META, records_without_project: 3 },
+    }));
+    await gotoProjects(page);
+
+    await page.getByTestId('project-stat-unlinked-help').click();
+
+    await expect(page.getByTestId('project-stat-unlinked-help-content'))
+      .toContainText('Suma hostings e ingresos');
+    await expect(page.getByTestId('project-pending-indicator-drawer')).toHaveCount(0);
+  });
+
   test('non-zero state cards preserve the catalog order', {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {

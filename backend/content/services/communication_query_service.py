@@ -36,6 +36,39 @@ class CommunicationFilterError(ValueError):
         self.errors = errors
 
 
+def _managed_thread_id(entity, related_name):
+    """Id de la comunicación madre de la entidad, o None si no tiene.
+
+    El inverso de un OneToOne levanta `RelatedObjectDoesNotExist` en vez de
+    devolver None, y la mayoría de las entidades no tiene madre: el acceso va
+    con guarda para no pagar una excepción por fila.
+    """
+    thread = getattr(entity, related_name, None)
+    return thread.pk if thread else None
+
+
+def _state_payload(project):
+    """Estado del proyecto para el subtítulo de la fila, o None."""
+    state = getattr(project, 'current_state', None)
+    if state is None:
+        return None
+    return {'id': state.pk, 'name': state.name, 'system_key': state.system_key}
+
+
+class _ParamsRequest:
+    """Adaptador mínimo para reusar `archive_scope`, que lee `query_params`.
+
+    `parse_filters` recibe el QueryDict pelado, y `archive_scope` espera un
+    request. Envolver es preferible a duplicar el vocabulario del scope: si
+    mañana se agrega un valor o cambia el alias legacy, hay un solo sitio.
+    """
+
+    __slots__ = ('query_params',)
+
+    def __init__(self, params):
+        self.query_params = params
+
+
 @dataclass(frozen=True)
 class CommunicationFilters:
     client_id: int | None = None
@@ -50,6 +83,9 @@ class CommunicationFilters:
     date_to: tuple[str, object] | None = None
     query: str = ''
     order: str = 'recent'
+    # Eje de visibilidad, independiente de `statuses` (abierto/cerrado). Mismo
+    # vocabulario que el gestor documental: active | archived | all.
+    scope: str = 'active'
 
 
 def message_queryset():
@@ -164,7 +200,20 @@ def parse_filters(params):
     if order not in {'recent', 'oldest', 'title'}:
         raise CommunicationFilterError({'order': 'Orden inválido.'})
 
+    # `archive_scope` vive en views/document.py pero no es de documentos: es el
+    # vocabulario compartido del panel, y document_folder.py ya lo importa. Esto
+    # trae de arriba el default 'active', el alias legacy `?archived=1` y el
+    # None que distingue un valor inválido.
+    from content.views.document import archive_scope
+
+    scope = archive_scope(_ParamsRequest(params))
+    if scope is None:
+        raise CommunicationFilterError({
+            'scope': 'El estado solicitado no es válido. Usa active, archived o all.',
+        })
+
     return CommunicationFilters(
+        scope=scope,
         client_id=_positive_id(params, 'client'),
         project_id=project_id,
         without_project=without_project,
@@ -244,6 +293,13 @@ def _filtered_messages(filters, exclude=frozenset()):
 def apply_filters(queryset, filters, *, exclude=frozenset()):
     """Apply navigation, thread, correlated-message and text filters."""
     exclude = frozenset(exclude)
+    # El scope va PRIMERO y no admite exclusión por faceta: no es una dimensión
+    # de navegación sino el ámbito en que se mira todo. Las facetas se recalculan
+    # dentro de él, que es justo lo que hace que sus conteos digan la verdad al
+    # encender el interruptor de archivados.
+    from content.views.document import apply_archive_scope
+
+    queryset = apply_archive_scope(queryset, filters.scope)
     if 'client' not in exclude and filters.client_id is not None:
         queryset = queryset.filter(client_id=filters.client_id)
     if 'project' not in exclude:
@@ -352,7 +408,9 @@ def build_facets(filters):
     }
 
     projects = list(
-        Project.objects.select_related('client__profile', 'current_state').all()
+        Project.objects.select_related(
+            'client__profile', 'current_state', 'communication_root_thread',
+        ).all()
     )
 
     client_ids = set(client_counts)
@@ -373,6 +431,10 @@ def build_facets(filters):
                 build_client_display_name(profile) if profile else project.client.email
             ),
             'catalog_bucket': project_catalog_bucket(project),
+            # Sin este id el panel no puede fijar la comunicación madre arriba
+            # de su grupo ni suprimirla de la lista de hermanas.
+            'managed_root_id': _managed_thread_id(project, 'communication_root_thread'),
+            'state': _state_payload(project),
             'count': project_counts.get(project.pk, 0),
             'unavailable': False,
         })
@@ -383,6 +445,8 @@ def build_facets(filters):
             'client_id': None,
             'client_name': '',
             'catalog_bucket': 'active',
+            'managed_root_id': None,
+            'state': None,
             'count': 0,
             'unavailable': True,
         })
@@ -394,6 +458,20 @@ def build_facets(filters):
             'name': (
                 build_client_display_name(clients[client_id])
                 if client_id in clients else 'Cliente no disponible'
+            ),
+            # `is_archived` + `catalog_bucket`: los mismos dos campos con que el
+            # gestor documental arma el grupo «Clientes inactivos».
+            'is_archived': (
+                clients[client_id].is_archived_client if client_id in clients else False
+            ),
+            'catalog_bucket': (
+                'archived'
+                if client_id in clients and clients[client_id].is_archived_client
+                else 'active'
+            ),
+            'managed_root_id': (
+                _managed_thread_id(clients[client_id], 'client_communication_root_thread')
+                if client_id in clients else None
             ),
             'count': client_counts.get(client_id, 0),
             'unavailable': client_id not in clients,

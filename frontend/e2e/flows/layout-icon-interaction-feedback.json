@@ -1,0 +1,17 @@
+{
+  "id": "layout-icon-interaction-feedback",
+  "name": "Visible Icon Interaction Feedback",
+  "module": "layout",
+  "roles": [
+    "guest",
+    "admin",
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Activate an icon-only action and receive immediate visual acknowledgement. Clipboard actions add a nearby success or failure result only after the browser resolves the write, while preserving the canonical icon.",
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

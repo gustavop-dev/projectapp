@@ -113,10 +113,27 @@ describe('BaseActionButton', () => {
     expect(wrapper.get('button').find('svg.animate-spin').exists()).toBe(true)
   })
 
-  it('announces feedback without swapping the canonical icon', () => {
-    const wrapper = factory({ statusLabel: 'Copiado: URL pública' })
+  it('shows and announces feedback without swapping the canonical icon', () => {
+    const wrapper = factory({
+      statusLabel: 'Copiado: URL pública',
+      statusTone: 'success',
+    })
     expect(wrapper.get('button').attributes('aria-label')).toBe('Copiado: URL pública')
+    expect(wrapper.get('button').attributes('data-action-status')).toBe('success')
     expect(wrapper.get('[role="status"]').text()).toBe('Copiado: URL pública')
+    const visibleStatus = document.body.querySelector('[role="tooltip"]')
+    expect(visibleStatus.textContent).toContain('Copiado: URL pública')
+    expect(visibleStatus.classList).toContain('bg-success-soft')
+    expect(visibleStatus.classList).toContain('text-success-strong')
     expect(wrapper.getComponent(BaseActionIcon).props('action')).toBe('copy')
+  })
+
+  it('uses the danger treatment for a failed action result', () => {
+    factory({ statusLabel: 'No se pudo copiar', statusTone: 'danger' })
+    const visibleStatus = document.body.querySelector('[role="tooltip"]')
+
+    expect(visibleStatus.textContent).toContain('No se pudo copiar')
+    expect(visibleStatus.classList).toContain('bg-danger-soft')
+    expect(visibleStatus.classList).toContain('text-danger-strong')
   })
 })

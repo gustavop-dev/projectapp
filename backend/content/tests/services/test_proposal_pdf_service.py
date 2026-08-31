@@ -19,8 +19,6 @@ from reportlab.pdfgen import canvas
 from content.models import (
     BusinessProposal,
     ProposalChangeLog,
-    ProposalRequirementGroup,
-    ProposalRequirementItem,
     ProposalSection,
 )
 from content.services.pdf_utils import _draw_green_bar
@@ -943,43 +941,6 @@ class TestGenerate:
         assert pdf_bytes is not None
         latin = pdf_bytes.decode('latin-1', errors='ignore')
         assert marker not in latin
-        mock_cover.exists.assert_called()
-
-    @patch(
-        'content.services.proposal_pdf_service.COVER_PDF',
-        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
-    )
-    @patch(
-        'content.services.proposal_pdf_service.BACK_COVER_PDF',
-        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
-    )
-    def test_handles_db_requirement_groups(self, mock_back, mock_cover, proposal):
-        """DB-backed requirement groups are rendered into the PDF."""
-        ProposalSection.objects.create(
-            proposal=proposal,
-            section_type='functional_requirements',
-            title='Requirements',
-            order=0,
-            is_enabled=True,
-            content_json={
-                'index': '1', 'title': 'Requirements',
-                'intro': 'Detail.',
-                'groups': [], 'additionalModules': [],
-            },
-        )
-        grp = ProposalRequirementGroup.objects.create(
-            proposal=proposal, group_id='views',
-            title='Views', description='Pages.', order=0,
-        )
-        ProposalRequirementItem.objects.create(
-            group=grp, item_id='home', icon='✅',
-            name='Home', description='Landing.', order=0,
-        )
-
-        result = ProposalPdfService.generate(proposal)
-
-        assert result is not None
-        assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
 
     @patch(

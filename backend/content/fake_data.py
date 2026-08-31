@@ -162,7 +162,6 @@ DERIVED_MODELS = {
     'content.HostingCycle', 'content.LinktreeButton',
     'content.ProposalAlert', 'content.ProposalChangeLog',
     'content.ProposalDocument', 'content.ProposalProjectStage',
-    'content.ProposalRequirementGroup', 'content.ProposalRequirementItem',
     'content.ProposalSection', 'content.ProposalSectionView',
     'content.ProposalShareLink', 'content.ProposalViewEvent',
     'content.TaskAlert', 'content.TaskComment',

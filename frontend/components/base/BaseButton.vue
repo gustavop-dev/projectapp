@@ -1,5 +1,7 @@
 <script setup>
-import { computed, useAttrs, watchEffect } from 'vue'
+import {
+  computed, onBeforeUnmount, ref, useAttrs, watchEffect,
+} from 'vue'
 import { oneOf } from './propValidators'
 
 defineOptions({ inheritAttrs: false })
@@ -24,6 +26,9 @@ const props = defineProps({
    * the same help through an application tooltip. */
   nativeTitle: { type: Boolean, default: true },
   iconOnly: { type: Boolean, default: false },    // square padding for icon buttons
+  /** Preserve a bespoke branded control's visual classes while adopting the
+   * shared semantics, focus, touch target and activation feedback. */
+  unstyled: { type: Boolean, default: false },
   /** Buttons are short UI controls by default. Sentence-like CTAs can opt in
    * to wrapping without allowing an icon to detach from its text. */
   textPolicy: {
@@ -35,7 +40,7 @@ const props = defineProps({
   to: { type: [String, Object], default: null },
 })
 
-defineEmits(['click'])
+const emit = defineEmits(['click'])
 
 const attrs = useAttrs()
 const forwardedAttrs = computed(() => {
@@ -49,6 +54,23 @@ const disabledTitle = computed(() => {
     ? (props.disabledReason || attrs.title || 'Operación en curso. Espera un momento.')
     : (attrs.title || '')
 })
+
+const isActivated = ref(false)
+let activationTimer = null
+
+function handleClick(event) {
+  if (props.iconOnly && !props.disabled && !props.loading) {
+    clearTimeout(activationTimer)
+    isActivated.value = true
+    activationTimer = setTimeout(() => {
+      isActivated.value = false
+      activationTimer = null
+    }, 180)
+  }
+  emit('click', event)
+}
+
+onBeforeUnmount(() => clearTimeout(activationTimer))
 
 const variants = {
   primary: 'bg-primary text-on-primary hover:bg-primary-strong border border-transparent',
@@ -82,6 +104,7 @@ const linkSizes = {
 }
 
 const sizeClasses = computed(() => {
+  if (props.unstyled) return ''
   if (props.variant === 'link') return linkSizes[props.size] || linkSizes.md
   if (props.iconOnly) return iconSizes[props.size] || iconSizes.md
   return sizes[props.size] || sizes.md
@@ -90,10 +113,12 @@ const sizeClasses = computed(() => {
 const classes = computed(() => [
   'base-button',
   props.iconOnly && 'base-button--icon',
-  props.variant === 'link' && 'base-button--link',
-  'inline-flex min-w-0 max-w-full flex-nowrap items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60',
-  props.textPolicy === 'atomic' ? 'whitespace-nowrap' : 'whitespace-normal',
-  variants[props.variant] || variants.primary,
+  !props.unstyled && props.variant === 'link' && 'base-button--link',
+  props.unstyled
+    ? 'outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60'
+    : 'inline-flex min-w-0 max-w-full flex-nowrap items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60',
+  !props.unstyled && (props.textPolicy === 'atomic' ? 'whitespace-nowrap' : 'whitespace-normal'),
+  !props.unstyled && (variants[props.variant] || variants.primary),
   sizeClasses.value,
 ])
 
@@ -114,7 +139,8 @@ if (process.env.NODE_ENV !== 'production') {
     v-bind="forwardedAttrs"
     :to="to"
     :class="classes"
-    @click="$emit('click', $event)"
+    :data-activation-state="iconOnly ? (isActivated ? 'active' : 'idle') : undefined"
+    @click="handleClick"
   >
     <svg
       v-if="loading"
@@ -133,7 +159,8 @@ if (process.env.NODE_ENV !== 'production') {
     v-bind="forwardedAttrs"
     :href="typeof to === 'string' ? to : undefined"
     :class="classes"
-    @click="$emit('click', $event)"
+    :data-activation-state="iconOnly ? (isActivated ? 'active' : 'idle') : undefined"
+    @click="handleClick"
   >
     <svg
       v-if="loading"
@@ -154,7 +181,8 @@ if (process.env.NODE_ENV !== 'production') {
     :disabled="disabled || loading"
     :title="disabledTitle || undefined"
     :class="classes"
-    @click="$emit('click', $event)"
+    :data-activation-state="iconOnly ? (isActivated ? 'active' : 'idle') : undefined"
+    @click="handleClick"
   >
     <svg
       v-if="loading"
@@ -171,6 +199,33 @@ if (process.env.NODE_ENV !== 'production') {
 </template>
 
 <style scoped>
+.base-button--icon {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease,
+    transform 180ms ease;
+}
+
+.base-button--icon:active,
+.base-button--icon[data-activation-state='active'] {
+  outline: 3px solid rgb(var(--color-focus-ring-rgb) / 0.38);
+  outline-offset: 2px;
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .base-button--icon {
+    transition: none;
+  }
+
+  .base-button--icon:active,
+  .base-button--icon[data-activation-state='active'] {
+    transform: none;
+  }
+}
+
 /* The visual size may stay compact with a mouse; coarse pointers still get
  * the canonical 44px hit area without every caller remembering it. */
 @media (pointer: coarse) {

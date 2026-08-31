@@ -150,6 +150,39 @@ def reopen_thread(thread, *, actor):
 
 
 @transaction.atomic
+def archive_thread(thread, *, actor):
+    """Saca el hilo de la vista sin decir nada sobre la conversación.
+
+    Es otro eje que cerrar: un hilo cerrado sigue listándose, y uno abierto se
+    puede archivar. Sin cascada — los hilos son planos y los mensajes viven
+    dentro del suyo, así que no hay nada que arrastrar ni que revertir después.
+    """
+    if thread.thread_kind != 'manual':
+        raise CommunicationError(
+            'Esta es la comunicación madre de su proyecto o cliente: es el punto '
+            'de entrada de esa entidad y no puede archivarse.'
+        )
+    if thread.is_archived:
+        raise CommunicationError('El hilo ya está archivado.')
+    thread.is_archived = True
+    thread.archived_at = timezone.now()
+    thread.updated_by = actor
+    thread.save(update_fields=['is_archived', 'archived_at', 'updated_by', 'updated_at'])
+    return thread
+
+
+@transaction.atomic
+def unarchive_thread(thread, *, actor):
+    if not thread.is_archived:
+        raise CommunicationError('El hilo no está archivado.')
+    thread.is_archived = False
+    thread.archived_at = None
+    thread.updated_by = actor
+    thread.save(update_fields=['is_archived', 'archived_at', 'updated_by', 'updated_at'])
+    return thread
+
+
+@transaction.atomic
 def create_message(*, thread, actor, document_ids=None, **validated_data):
     documents = list(Document.objects.filter(pk__in=document_ids or []))
     if len(documents) != len(set(document_ids or [])):

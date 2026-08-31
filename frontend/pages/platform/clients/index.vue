@@ -181,15 +181,18 @@
                 </p>
               </div>
 
-              <button
+              <BaseButton
+                unstyled
+                icon-only
                 type="button"
+                aria-label="Cerrar invitación"
                 class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:text-text-default dark:hover:text-white"
                 @click="closeInviteModal"
               >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
 
             <div v-if="inviteError" class="mt-6 rounded-2xl border border-red-500/20 bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-200">

@@ -67,6 +67,7 @@ export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@prio
 export const ADMIN_BLOG_OVERDUE_DETECTION = ['@flow:admin-blog-overdue-detection', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_PUBLISH_MODE = ['@flow:admin-blog-publish-mode', '@module:admin', '@priority:P2'];
 export const ADMIN_CALCULATOR_FOLLOWUP_ALERT = ['@flow:admin-calculator-followup-alert', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_ARCHIVED_TAB = ['@flow:admin-client-archived-tab', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_COMMUNICATIONS = ['@flow:admin-client-communications', '@module:admin', '@priority:P1'];
 export const ADMIN_CLIENT_CREATE_STANDALONE = ['@flow:admin-client-create-standalone', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '@module:admin', '@priority:P2'];
@@ -78,7 +79,6 @@ export const ADMIN_CLIENT_EMAIL_COPY_HISTORY = ['@flow:admin-client-email-copy-h
 export const ADMIN_CLIENT_EMAIL_COPY_SETTINGS = ['@flow:admin-client-email-copy-settings', '@module:admin', '@priority:P1'];
 export const ADMIN_CLIENT_EMAIL_VALIDATED_NOTIFICATION = ['@flow:admin-client-email-validated-notification', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_FIRST_LOGIN_NOTIFICATION = ['@flow:admin-client-first-login-notification', '@module:admin', '@priority:P2'];
-export const ADMIN_CLIENT_INACTIVE_TAB = ['@flow:admin-client-inactive-tab', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENTS_CONFIG_TAB = ['@flow:admin-clients-config-tab', '@module:admin', '@priority:P3'];
 export const ADMIN_CLIENTS_DOCUMENTS_SECTION = ['@flow:admin-clients-documents-section', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENTS_FILTER_PRESETS = ['@flow:admin-clients-filter-presets', '@module:admin', '@priority:P2'];
@@ -276,6 +276,7 @@ export const DIAGNOSTIC_PUBLIC_VIEW = ['@flow:diagnostic-public-view', '@module:
 
 // ── layout ──
 export const LAYOUT_FOOTER_NAVIGATION = ['@flow:layout-footer-navigation', '@module:layout', '@priority:P3'];
+export const LAYOUT_ICON_INTERACTION_FEEDBACK = ['@flow:layout-icon-interaction-feedback', '@module:layout', '@priority:P2'];
 export const LAYOUT_LOCALE_SWITCH = ['@flow:layout-locale-switch', '@module:layout', '@priority:P2'];
 export const LAYOUT_NAVBAR_NAVIGATION = ['@flow:layout-navbar-navigation', '@module:layout', '@priority:P2'];
 

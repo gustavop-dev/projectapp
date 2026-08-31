@@ -146,19 +146,22 @@ describe('useProposalClientsStore', () => {
       );
     });
 
-    it('passes inactive=true in the URL', async () => {
+    it('passes archived=true in the URL', async () => {
       get_request.mockResolvedValueOnce({ data: [] });
-      await store.fetchClients({ inactive: true });
+      await store.fetchClients({ archived: true });
       expect(get_request).toHaveBeenCalledWith(
-        'proposals/client-profiles/?inactive=true&limit=100',
+        'proposals/client-profiles/?archived=true&limit=100',
       );
     });
 
-    it('omits inactive from the URL by default', async () => {
+    it('omits archived from the URL by default', async () => {
+      // The default list is the ACTIVE one: sending archived=false would be
+      // harmless, but sending nothing is what the backend documents as the
+      // panel default, and this is the test that keeps the two in step.
       get_request.mockResolvedValueOnce({ data: [] });
-      await store.fetchClients({ orphans: true });
+      await store.fetchClients();
       expect(get_request).toHaveBeenCalledWith(
-        'proposals/client-profiles/?orphans=true&limit=100',
+        'proposals/client-profiles/?limit=100',
       );
     });
 

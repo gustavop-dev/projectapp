@@ -8,7 +8,9 @@
       >
         <div class="video-modal-container relative w-full max-w-3xl lg:max-w-4xl">
           <!-- Close button -->
-          <button
+          <BaseButton
+            unstyled
+            icon-only
             @click="closeModal"
             class="absolute -top-12 right-0 text-white hover:text-accent transition-colors z-10"
             aria-label="Close video"
@@ -16,7 +18,7 @@
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </BaseButton>
 
           <!-- Native HTML5 Video player -->
           <div class="video-wrapper bg-black rounded-2xl overflow-hidden flex items-center justify-center max-h-[75vh]">

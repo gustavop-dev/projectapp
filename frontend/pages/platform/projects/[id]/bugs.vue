@@ -304,9 +304,9 @@
                     </div>
                     <div v-else class="relative w-full p-2">
                       <img :src="screenshotPreview" alt="Preview" class="mx-auto max-h-32 rounded-lg object-contain" />
-                      <button type="button" class="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70" @click.stop="removeScreenshot">
+                      <BaseButton unstyled icon-only type="button" aria-label="Quitar pantallazo" class="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70" @click.stop="removeScreenshot">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+                      </BaseButton>
                     </div>
                   </div>
                 </div>
@@ -342,9 +342,9 @@
                     Los demás campos se ignoran.
                   </p>
                 </div>
-                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
+                <BaseButton unstyled icon-only type="button" aria-label="Cerrar importación" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                </BaseButton>
               </div>
 
               <form class="space-y-4" @submit.prevent="handleImportResponses">
@@ -396,9 +396,9 @@
                   </p>
                   <h2 class="text-lg font-bold text-text-default">{{ detailBug.title }}</h2>
                 </div>
-                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailBug = null">
+                <BaseButton unstyled icon-only type="button" aria-label="Cerrar detalle" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailBug = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                </BaseButton>
               </div>
 
               <!-- Source requirement -->
@@ -424,6 +424,7 @@
 
               <!-- Screenshot -->
               <div v-if="detailBug.screenshot_url" class="mb-5">
+                <!-- icon-interaction-feedback: allow-custom -- full screenshot preview link, not an icon control. -->
                 <a :href="detailBug.screenshot_url" target="_blank" class="block overflow-hidden rounded-xl border border-border-default transition hover:border-border-default dark:hover:border-white/15">
                   <img :src="detailBug.screenshot_url" alt="Pantallazo" class="w-full object-contain" style="max-height: 300px" />
                 </a>

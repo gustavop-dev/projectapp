@@ -288,7 +288,7 @@ test.describe('Nested linked-requirements modal', () => {
     await page.getByTestId('view-requirements-link').first().click();
     await expect(page.getByTestId('linked-requirement').first()).toBeVisible({ timeout: 3000 });
 
-    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await page.getByRole('button', { name: 'Cerrar requerimientos vinculados' }).click();
 
     await expect(page.getByTestId('linked-requirement')).toHaveCount(0);
     await expect(page.getByText('Página principal con hero y servicios')).toBeVisible();

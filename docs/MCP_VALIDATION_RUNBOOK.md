@@ -45,9 +45,30 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   proyectos, deliberadas: la raíz de cliente **no** se crea sola con el cliente
   (se adopta), y **sí** se puede renombrar —el nombre lo pone el operador, no un
   módulo externo—, así que `rename_folder` la acepta.
+- **Archivado de clientes.** `UserProfile.archived_at` (antes `deactivated_at`)
+  es el eje de ciclo de vida del cliente, con el mismo vocabulario que el bucket
+  no activo de proyectos. `list_clients` devuelve **sólo activos** salvo que se
+  pida `archived=true`: devolverlos mezclados es como el conector termina
+  proponiendo trabajo sobre un cliente que se archivó a propósito. `archived_at`
+  es read-only y `archived_by` está excluido como auditoría interna, junto a
+  `created_by` — archivar **no** es una operación del MCP, porque suspende los
+  proyectos del cliente y cancela su facturación futura, y eso exige la vista
+  previa del panel. Es el mismo criterio por el que el conector omite
+  `close`/`reopen` de comunicaciones y el archivado de documentos.
 - `update_message` edita sólo un borrador saliente activo y
   `mark_message_sent` registra un hecho externo. Ninguna de las dos herramientas
   envía correo ni WhatsApp.
+- `CommunicationThread.managed_project` / `managed_client` identifican la
+  **comunicación madre** de un proyecto o un cliente, en paralelo con
+  `DocumentFolder.managed_project` / `managed_client`. Son read-only para el MCP:
+  la madre de proyecto se provisiona sola al crearse el proyecto, la de cliente
+  sólo por adopción revisada, y ninguna se marca desde una herramienta.
+  `thread_kind` toma tres valores (`project` / `client` / `manual`).
+- El **archivado** de hilos (`is_archived`/`archived_at`) es un eje de visibilidad
+  ortogonal a `status` (`open`/`closed`): cerrar bloquea la escritura, archivar
+  saca de la vista. Queda excluido del MCP igual que el de documentos, y la madre
+  no se puede archivar. `list_threads` no expone `scope`: el conector ve siempre
+  el ámbito activo.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 
 ## Inventario vigente

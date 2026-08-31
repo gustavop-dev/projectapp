@@ -38,7 +38,9 @@
       />
       <!-- In catalog mode this clears only the filter; selecting a client and
            filtering the visible catalog are deliberately independent acts. -->
-      <button
+      <BaseButton
+        unstyled
+        icon-only
         v-if="!disabled && (isCatalog ? inputText : (modelValue || inputText))"
         type="button"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
@@ -51,7 +53,7 @@
         @click="isCatalog ? clearCatalogFilter() : clearSelection()"
       >
         <BaseActionIcon action="clear" />
-      </button>
+      </BaseButton>
     </div>
 
     <!-- Linked client hint (id beside the name) -->

@@ -520,14 +520,16 @@
               </p>
               <h3 class="text-lg font-medium text-text-brand leading-snug">{{ requirementModal.req.title }}</h3>
             </div>
-            <button
+            <BaseButton
+              unstyled
+              icon-only
               type="button"
               class="shrink-0 w-9 h-9 rounded-full border border-esmerald/20 text-text-default/70 hover:bg-esmerald/10 text-lg leading-none"
-              aria-label="Close"
+              :aria-label="language === 'en' ? 'Close' : 'Cerrar'"
               @click="closeRequirementModal"
             >
               ×
-            </button>
+            </BaseButton>
           </div>
           <div class="overflow-y-auto px-5 py-4">
             <table class="w-full text-sm border-collapse">
@@ -585,14 +587,16 @@
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-esmerald/10">
             <h3 class="text-sm font-semibold text-text-brand">{{ language === 'en' ? 'All technical notes' : 'Todas las notas técnicas' }}</h3>
-            <button
+            <BaseButton
+              unstyled
+              icon-only
               type="button"
               class="w-9 h-9 rounded-full border border-esmerald/20 text-text-default/70 hover:bg-esmerald/10"
-              aria-label="Close"
+              :aria-label="language === 'en' ? 'Close' : 'Cerrar'"
               @click="integrationNotesModalOpen = false"
             >
               ×
-            </button>
+            </BaseButton>
           </div>
           <div class="overflow-y-auto p-4">
             <table class="w-full text-sm">

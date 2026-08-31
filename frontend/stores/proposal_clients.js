@@ -53,13 +53,13 @@ export const useProposalClientsStore = defineStore('proposalClients', {
      * @param {string} [params.search] - icontains match on email/name/company.
      * @param {boolean|null} [params.orphans] - true=only orphans,
      *     false=only active, null/undefined=all.
-     * @param {boolean} [params.inactive=false] - true=only manually
-     *     deactivated clients; false/omitted=exclude them (server default).
+     * @param {boolean} [params.archived=false] - true=only archived
+     *     clients; false/omitted=exclude them (server default).
      * @param {number} [params.limit=100] - hard cap 500 (server-side).
      * @param {boolean} [params.silent=false] - true skips the isLoading
      *     flip so in-place refreshes don't swap the list to a skeleton.
      */
-    async fetchClients({ search = '', orphans = null, inactive = false, limit = 100, silent = false } = {}) {
+    async fetchClients({ search = '', orphans = null, archived = false, limit = 100, silent = false } = {}) {
       if (!silent) this.isLoading = true;
       this.error = null;
       try {
@@ -67,7 +67,7 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         if (search) query.set('search', search);
         if (orphans === true) query.set('orphans', 'true');
         if (orphans === false) query.set('orphans', 'false');
-        if (inactive === true) query.set('inactive', 'true');
+        if (archived === true) query.set('archived', 'true');
         if (limit) query.set('limit', String(limit));
         const url = `proposals/client-profiles/${
           query.toString() ? `?${query.toString()}` : ''
@@ -269,6 +269,78 @@ export const useProposalClientsStore = defineStore('proposalClients', {
       } catch (error) {
         const data = error?.response?.data;
         this.error = data?.error || 'update_failed';
+        this.isUpdating = false;
+        return { success: false, errors: data };
+      }
+    },
+
+    /**
+     * What archiving this client would do to its projects. Writes nothing.
+     *
+     * The preview carries one `impact_token` per project: the confirm echoes
+     * them back so the backend can prove the operator saw the numbers that
+     * are about to be applied.
+     */
+    async previewClientArchive(id) {
+      try {
+        const response = await get_request(
+          `proposals/client-profiles/${id}/archive-preview/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, errors: error?.response?.data };
+      }
+    },
+
+    /**
+     * Archive the client and suspend the projects named in `transitions`.
+     *
+     * Not a PATCH on purpose: the ordinary update endpoint rejects
+     * `is_archived`, because archiving cancels the projects' future billing
+     * and that has to go through the preview.
+     */
+    async archiveClient(id, transitions) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/client-profiles/${id}/archive/`,
+          { transitions },
+        );
+        const updated = response.data.client;
+        this.clients = this.clients.map((c) => (c.id === id ? updated : c));
+        if (this.currentClient?.id === id) {
+          this.currentClient = { ...this.currentClient, ...updated };
+        }
+        this.isUpdating = false;
+        return { success: true, data: response.data };
+      } catch (error) {
+        const data = error?.response?.data;
+        this.error = data?.error || 'archive_failed';
+        this.isUpdating = false;
+        return { success: false, errors: data };
+      }
+    },
+
+    /** Bring the client back. Its projects stay suspended. */
+    async unarchiveClient(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/client-profiles/${id}/unarchive/`,
+          {},
+        );
+        const updated = response.data.client;
+        this.clients = this.clients.map((c) => (c.id === id ? updated : c));
+        if (this.currentClient?.id === id) {
+          this.currentClient = { ...this.currentClient, ...updated };
+        }
+        this.isUpdating = false;
+        return { success: true, data: response.data };
+      } catch (error) {
+        const data = error?.response?.data;
+        this.error = data?.error || 'unarchive_failed';
         this.isUpdating = false;
         return { success: false, errors: data };
       }

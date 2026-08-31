@@ -8,13 +8,27 @@
         class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
         @input="$emit('update:modelValue', $event.target.value)"
       />
-      <!-- panel-action-icons: allow-content-glyph — the button previews the emoji value being edited. -->
-      <button
-        ref="buttonRef"
-        type="button"
-        class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-border-default hover:bg-surface-muted text-sm cursor-pointer"
-        @click.stop="showPicker = !showPicker"
-      >😀</button>
+      <BaseTooltip
+        text="Seleccionar emoji"
+        position="top"
+        width="max-w-xs"
+        min-width="min-w-0"
+        :toggle-on-click="false"
+      >
+        <template #trigger="{ tooltipId }">
+          <!-- panel-action-icons: allow-content-glyph — the button previews the emoji value being edited. -->
+          <BaseButton
+            :ref="setButtonRef"
+            unstyled
+            icon-only
+            type="button"
+            class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-border-default hover:bg-surface-muted text-sm cursor-pointer"
+            aria-label="Seleccionar emoji"
+            :aria-describedby="tooltipId"
+            @click.stop="showPicker = !showPicker"
+          >😀</BaseButton>
+        </template>
+      </BaseTooltip>
     </div>
     <teleport to="body">
       <div v-if="showPicker" class="fixed inset-0 z-[9998]" @click="showPicker = false" />
@@ -50,6 +64,10 @@ const pickerStyle = computed(() => ({
   top: `${pickerPos.value.top}px`,
   left: `${pickerPos.value.left}px`,
 }));
+
+function setButtonRef(component) {
+  buttonRef.value = component?.$el || null;
+}
 
 watch(showPicker, async (val) => {
   if (val && buttonRef.value) {

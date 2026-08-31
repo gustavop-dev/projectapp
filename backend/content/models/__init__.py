@@ -7,8 +7,6 @@ The following models are imported:
     - HourPackage: Catalog of development hour packages per nationality.
     - BusinessProposal: Model for client business proposals.
     - ProposalSection: Individual sections within a proposal.
-    - ProposalRequirementGroup: Groups of functional requirements.
-    - ProposalRequirementItem: Individual requirement items.
 """
 
 from .contact import Contact
@@ -23,8 +21,6 @@ from .hour_packages import (
 from .business_proposal import BusinessProposal, ProposalAlert
 from .proposal_section import ProposalSection
 from .proposal_project_stage import ProposalProjectStage
-from .proposal_requirement_group import ProposalRequirementGroup
-from .proposal_requirement_item import ProposalRequirementItem
 from .blog_post import BlogPost
 from .proposal_view_event import ProposalViewEvent
 from .proposal_section_view import ProposalSectionView

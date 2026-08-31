@@ -14,6 +14,16 @@ This file captures important patterns, preferences, and project intelligence tha
 > edición por MCP debe reutilizar el mismo servicio del panel y mantener separada
 > la persistencia del hecho de cualquier transporte externo.
 
+> **Lección 2026-08-31 — activación, proceso y resultado son estados distintos:**
+> un pulso inmediato sólo confirma la entrada; no debe fingir que una operación
+> asíncrona terminó. El primitive visual cubre botones y enlaces icon-only, el
+> loading pertenece a la tarea y el resultado sólo se presenta cuando existe
+> evidencia. En particular, copiar se considera exitoso al resolver Clipboard
+> API, no al invocarla. Mantener el glifo estable preserva reconocimiento; el
+> tooltip temporal y la región viva comunican éxito o fallo. Un guard transversal
+> es necesario porque corregir únicamente el icono donde se detectó el problema
+> deja que el mismo defecto reaparezca en otras superficies.
+
 > **Lección 2026-08-30 — catálogo, ubicación y archivo son dimensiones
 > distintas:** una migración de esquema no equivale a adoptar datos históricos,
 > y una entidad sin contenido todavía pertenece al catálogo. La inclusión del
@@ -1572,7 +1582,10 @@ Model compact indicators as explicit tracks: flexible identity, atomic
 value/action and a fixed help column. Keep the main action and help as sibling
 buttons, preserve a 44 px target, and measure containment plus intersection in
 the real browser at every expanded reference width. The stacked layout remains
-the right default when support copy is itself part of the visible metric.
+the right default when support needs more than one line; a bounded single line
+can coexist with the compact layout when browser geometry confirms the same
+height. Two groups that promise equal cards must also share the column count,
+not only the component.
 
 ## 64. Bilingual content and presentation mode are orthogonal state
 

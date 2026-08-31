@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import BaseBadge from '~/components/base/BaseBadge.vue'
 import {
   getViewCopyReference,
@@ -8,6 +8,8 @@ import {
 } from '~/config/viewCatalog'
 import { findCapabilityNode } from '~/config/viewCapabilityCatalog'
 import { viewTypeLabelMap, viewAudienceLabelMap } from '~/constants/viewMapFilterOptions'
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback'
+import { usePanelNotify } from '~/composables/usePanelNotify'
 import {
   viewTypeBadgeVariantMap,
   viewAudienceBadgeVariantMap,
@@ -28,16 +30,25 @@ const iconPath = computed(
 const groups = computed(() => groupSectionViews(props.section))
 const operationalNode = computed(() => findCapabilityNode(props.section.id))
 
-const copiedKey = ref(null)
-let copyTimer = null
+const notify = usePanelNotify()
+const clipboardFeedback = useClipboardFeedback()
 
-function copyReference(view) {
+async function copyReference(view) {
   const text = getViewCopyReference(props.section.label, view)
-  navigator.clipboard.writeText(text).then(() => {
-    clearTimeout(copyTimer)
-    copiedKey.value = view.url
-    copyTimer = setTimeout(() => { copiedKey.value = null }, 1500)
+  await clipboardFeedback.copyText({
+    key: view.url,
+    text,
+    successLabel: 'Copiado: referencia',
+    errorLabel: 'No se pudo copiar la referencia',
+    onError: () => notify.error({
+      title: 'No se pudo copiar la referencia',
+      detail: 'Tu navegador bloqueó el acceso al portapapeles.',
+    }),
   })
+}
+
+function copyFeedback(view) {
+  return clipboardFeedback.feedbackFor(view.url)
 }
 </script>
 
@@ -115,8 +126,9 @@ function copyReference(view) {
                 />
                 <BaseActionButton
                   action="copy"
-                  :label="copiedKey === view.url ? 'Copiado: referencia' : 'Copiar referencia'"
-                  :status-label="copiedKey === view.url ? 'Copiado: referencia' : ''"
+                  :label="copyFeedback(view).label || 'Copiar referencia'"
+                  :status-label="copyFeedback(view).label"
+                  :status-tone="copyFeedback(view).tone"
                   class="text-text-subtle hover:text-text-brand"
                   @click="copyReference(view)"
                 />

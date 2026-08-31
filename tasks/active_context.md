@@ -15,6 +15,29 @@ MCP y 3 regresiones existentes verdes; Django no reporta problemas, no hay drift
 de migraciones y el gate estricto del batch cerró con cero errores. Sólo falta la
 confirmación del CI del PR.
 
+**2026-08-31 — reacción visible de iconos interactivos lista para integrar:** el
+requerimiento transversal cubre controles icon-only ejecutables del panel, la
+plataforma y las vistas públicas, incluidas acciones, navegación, apertura y
+toggles. El contrato elegido conserva el glifo: una pulsación breve confirma la
+activación; las operaciones asíncronas mantienen su loading; y los resultados
+que no se explican por sí mismos, especialmente copiar, muestran halo más una
+etiqueta temporal visible y accesible. Touch y teclado reciben la misma señal,
+`prefers-reduced-motion` conserva color/anillo sin escala y los fallos mantienen
+el mensaje accionable existente además del estado visual. La implementación
+migra los controles crudos al primitive, añade un guard CI y registra el flow
+transversal. Verificación: 27 unitarias focales, dos escenarios Playwright de
+éxito/fallo, build Nuxt, 536 SFC válidos y checks estáticos en verde.
+
+**2026-08-31 — Indicadores de Proyectos con paridad visual y responsive:**
+`/panel/projects` presenta **Ciclo del proyecto** y **Pendientes operativos**
+con la misma tarjeta horizontal de 80 px y la misma grilla de cuatro/cinco
+columnas en anchos expandidos. La línea de apoyo operativa queda limitada a una
+línea y ya no altera las dimensiones; cada ayuda permanece anclada dentro de su
+tarjeta y no activa el filtro o workflow principal. En 412/835 px se conservan
+exactamente los dos resúmenes iguales con drawers completos. Verificación: 19
+pruebas unitarias, 17 escenarios funcionales y los cinco contratos responsive
+de 412/835/1195/1440/2560 px pasan.
+
 **2026-08-31 — acceso rápido de Módulos adicionales listo para integrar:** la
 cabecera comercial de `/panel/additional-modules` deja visible y seleccionable
 la URL pública canónica, permite copiarla, abrir la experiencia del cliente y
@@ -86,14 +109,6 @@ DTO, la búsqueda por contenido y el modelo de datos no cambian. La verificació
 queda verde con 7 pruebas unitarias, los 13 escenarios E2E de Comunicaciones y
 el guard de tokens; el escenario modificado pasó en el primer intento. El mapa
 está fresco y la auditoría conserva 0 `junk-only` y 0 faltantes.
-
-**2026-08-30 — Tarjetas compactas del ciclo de proyectos listas:** los estados
-no nulos de `/panel/projects` usan una fila horizontal de 72–80 px: nombre a la
-izquierda, conteo y filtro a la derecha y ayuda en un track propio de 48 px. La
-línea de apoyo ausente ya no reserva altura y el `?` deja de depender de posición
-absoluta. Pendientes operativos y los dos resúmenes de 412/835 conservan el
-layout apilado. Pasan 19 unitarias, la interacción de ayuda y las geometrías de
-1195/1440/2560; el flow-map permanece fresco.
 
 **2026-08-29 — Gestor Documental navegable por proyecto o cliente (actualizado
 2026-08-30):** Documentos reutiliza el interruptor segmentado de Comunicaciones

@@ -160,7 +160,9 @@ def test_create_thread_requires_client(
     response = call_tool(api_client, token, 'create_thread', {'title': 'Sin cliente'})
 
     assert response.data['result']['isError'] is True
-    assert CommunicationThread.objects.count() == 0
+    # La madre que el proyecto provisiona al crearse no cuenta: lo que se
+    # verifica es que el tool NO cree un hilo, y esa no la creo el tool.
+    assert CommunicationThread.objects.filter(managed_project__isnull=True).count() == 0
 
 
 def test_create_thread_rejects_project_from_another_client(
@@ -178,7 +180,9 @@ def test_create_thread_rejects_project_from_another_client(
     })
 
     assert response.data['result']['isError'] is True
-    assert CommunicationThread.objects.count() == 0
+    # La madre que el proyecto provisiona al crearse no cuenta: lo que se
+    # verifica es que el tool NO cree un hilo, y esa no la creo el tool.
+    assert CommunicationThread.objects.filter(managed_project__isnull=True).count() == 0
 
 
 def test_create_and_get_thread_preserve_client_project(
@@ -296,7 +300,13 @@ def test_list_threads_searches_project_name(
         api_client, token, 'list_threads', {'q': 'boreal'},
     )
 
-    assert [row['project_name'] for row in payload(response)['results']] == [
+    # La madre del proyecto lleva su mismo nombre, asi que tambien casa con la
+    # busqueda: se compara sobre los hilos manuales, que es lo que el test mide.
+    rows = [
+        row for row in payload(response)['results']
+        if row['thread_kind'] == 'manual'
+    ]
+    assert [row['project_name'] for row in rows] == [
         'Portal Boreal MCP',
     ]
 

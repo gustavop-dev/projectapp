@@ -39,6 +39,10 @@ class AccountingChangeLog(models.Model):
         # cliente todo lo que guarda, y quién lo hizo tiene que quedar escrito.
         DOCUMENT_FOLDER = 'document_folder', 'Carpeta de documentos'
         DOCUMENT = 'document', 'Documento'
+        # Archivar un cliente suspende sus proyectos y con ellos cancela
+        # ingresos futuros: quién lo hizo tiene que sobrevivir al
+        # desarchivado, que limpia archived_at/archived_by del perfil.
+        CLIENT = 'client', 'Cliente'
 
     class Action(models.TextChoices):
         CREATED = 'created', 'Creado'

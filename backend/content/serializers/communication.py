@@ -190,6 +190,7 @@ class CommunicationThreadListSerializer(serializers.ModelSerializer):
     draft_count = serializers.IntegerField(read_only=True)
     latest_message = serializers.SerializerMethodField()
     channels = serializers.SerializerMethodField()
+    thread_kind = serializers.CharField(read_only=True)
 
     class Meta:
         model = CommunicationThread
@@ -197,8 +198,13 @@ class CommunicationThreadListSerializer(serializers.ModelSerializer):
             'id', 'title', 'status', 'client_id', 'client_name', 'client_email',
             'project_id', 'project_name', 'messages_count', 'draft_count',
             'channels', 'latest_message', 'last_activity_at', 'closed_at',
+            'thread_kind', 'is_archived', 'archived_at',
             'created_at', 'updated_at',
         )
+        # `is_archived`/`archived_at` son read-only por el mismo motivo que en
+        # carpetas: el PATCH del hilo usa este serializer, y dejarlos escribibles
+        # permitiría archivar saltándose la guarda de la comunicación madre.
+        read_only_fields = ('is_archived', 'archived_at')
 
     def get_client_name(self, obj):
         return build_client_display_name(obj.client)

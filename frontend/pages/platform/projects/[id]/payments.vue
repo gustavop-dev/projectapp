@@ -522,14 +522,17 @@
                   <h2 class="text-lg font-bold text-text-default">{{ sub?.has_payment_source ? 'Cambiar tarjeta' : 'Registrar tarjeta' }}</h2>
                   <p class="mt-0.5 text-xs text-green-light">Cobro automático de tu hosting</p>
                 </div>
-                <button
+                <BaseButton
+                  unstyled
+                  icon-only
                   v-if="cardStep !== 'three_ds'"
                   type="button"
+                  aria-label="Cerrar registro de tarjeta"
                   class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white"
                   @click="closeCardModal"
                 >
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                </BaseButton>
               </div>
 
               <!-- Step: card form -->

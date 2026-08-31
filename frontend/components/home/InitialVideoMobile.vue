@@ -60,9 +60,16 @@
     
             <!-- Close button in the top-right corner -->
             <div class="absolute top-6 right-6 z-[1000]">
-              <button @click="closeModal" class="p-4 bg-transparent flex items-center justify-center">
+              <BaseButton
+                unstyled
+                icon-only
+                type="button"
+                aria-label="Close video"
+                class="p-4 bg-transparent flex items-center justify-center"
+                @click="closeModal"
+              >
                 <XMarkIcon class="size-8 text-white" />
-              </button>
+              </BaseButton>
             </div>
           </div>
         </Teleport>
@@ -259,4 +266,3 @@
     }
   });
   </script>
-  

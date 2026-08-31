@@ -541,9 +541,18 @@ test.describe('Admin Client Communications', () => {
       await expect(navigation).toContainText('Portal de clientes');
       await expect(page.getByTestId('communications-navigation-project-20')).toContainText('Kore');
       await expect(page.getByTestId('communications-navigation-project-21')).toContainText('PRUEBA');
+      // Las comunicaciones sueltas tienen su propia seccion, igual que las
+      // carpetas propias del gestor documental.
+      await expect(page.getByTestId('communications-own-section')).toContainText('Sin proyecto');
+
+      // El interruptor de ciclo de vida es EXCLUYENTE: los archivados aparecen
+      // al encenderlo, y los activos se retiran mientras dure.
+      await expect(page.getByTestId('communications-navigation-archived-group'))
+        .toHaveCount(0);
+      await page.getByTestId('communications-inactive-projects-toggle').click();
       await expect(page.getByTestId('communications-navigation-archived-group'))
         .toContainText('Candle');
-      await expect(navigation).toContainText('Sin proyecto');
+      await expect(page.getByTestId('communications-navigation-project-20')).toHaveCount(0);
     });
   });
 

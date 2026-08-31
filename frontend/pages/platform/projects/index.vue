@@ -78,13 +78,16 @@
             >
               <div class="mb-6 flex items-center justify-between">
                 <h2 class="text-lg font-bold text-text-default">Nuevo proyecto</h2>
-                <button
+                <BaseButton
+                  unstyled
+                  icon-only
                   type="button"
+                  aria-label="Cerrar creación de proyecto"
                   class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white"
                   @click="closeCreateModal"
                 >
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                </BaseButton>
               </div>
 
               <div

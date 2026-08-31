@@ -77,6 +77,21 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-048] Los iconos clicables no confirmaban la activación
+
+- **Date**: 2026-08-31
+- **Context**: Acciones icon-only, detectado inicialmente al copiar, podían
+  ejecutarse sin una señal visible de que el clic se había registrado.
+- **Root Cause**: Muchos controles usaban botones o enlaces crudos y los estados
+  transitorios se implementaban por pantalla; no existía un primitive común que
+  separara activación, trabajo pendiente y resultado.
+- **Resolution**: Los controles migraron a `BaseButton`/`BaseActionButton`, con
+  reacción inmediata, paridad táctil/teclado y reduced motion. Copiar usa
+  `useClipboardFeedback` y sólo confirma éxito al resolver Clipboard API; el
+  fallo presenta tono visible y conserva la notificación accionable.
+- **Verification**: 27 pruebas unitarias focales, dos escenarios Playwright de
+  éxito/fallo, build Nuxt, parseo de 536 SFC y ambos guards de iconos en verde.
+
 ### [ERR-047] Los proyectos suspendidos ignoraban el control de archivados
 
 - **Date**: 2026-08-30
@@ -1013,9 +1028,9 @@ contracts, not conventions repeated in individual commands.
 - **Root Cause**: El único layout de `BaseIndicatorCard` reservaba tres filas,
   incluida una línea de apoyo vacía, y ubicaba ayuda y acción fuera del flujo.
 - **Resolution**: Añadir el layout opt-in `compact-horizontal`: una fila de
-  72–80 px para estado y conteo/filtro, más una columna propia de 48 px para la
-  ayuda. Proyectos lo usa sólo en los estados del ciclo; Pendientes y los
-  resúmenes compactos conservan el layout apilado.
+  72–80 px para identidad y conteo/acción, más una columna propia de 48 px para
+  la ayuda. La adopción inicial cubrió el ciclo; ERR-046 extendió la misma
+  geometría a Pendientes operativos.
 - **Files Affected**: primitive y wrapper de indicadores, página de Proyectos,
   pruebas unitarias/E2E y contrato documentado del flow.
 - **Verification**: 19 unitarias; ayuda sin activar el filtro; geometría sin
@@ -1038,3 +1053,22 @@ contracts, not conventions repeated in individual commands.
   pasan sin resultados inesperados ni flaky retries.
 - **Lesson**: En Nuxt, visible no implica hidratado; el readiness debe observar
   un control interactivo y el warmup debe usar la URL canónica real.
+
+### [ERR-046] Pendientes operativos rompía la paridad de los indicadores de Proyectos
+
+- **Date**: 2026-08-31
+- **Context**: Ciclo del proyecto ya usaba tarjetas horizontales de 72–80 px,
+  mientras Pendientes operativos conservaba tres tarjetas apiladas, más anchas y
+  altas, aunque ambas secciones formaban una sola cabecera de indicadores.
+- **Root Cause**: La adopción inicial de `compact-horizontal` se limitó al ciclo y
+  el grupo operativo mantuvo una grilla distinta para preservar su línea de apoyo.
+- **Resolution**: Aplicar el mismo layout y la misma grilla de cuatro/cinco
+  columnas a ambos grupos. La ayuda permanece en su track de 48 px y la línea de
+  apoyo operativa se limita a una línea sin alterar las dimensiones.
+- **Files Affected**: página de Proyectos, regresión responsive, definición del
+  flujo y documentación del contrato.
+- **Verification**: 19 pruebas unitarias y 17 escenarios funcionales; paridad de
+  ancho/alto, ayuda contenida y sin activar la acción principal en 1195, 1440 y
+  2560 px; dos resúmenes iguales en 412 y 835 px.
+- **Lesson**: Igualar el componente no basta si dos grupos hermanos usan grillas
+  distintas; la paridad visual exige compartir layout y tracks de columnas.
