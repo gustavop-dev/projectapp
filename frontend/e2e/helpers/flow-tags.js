@@ -51,6 +51,7 @@ export const ADMIN_ACCOUNTING_STATS_MODALS = ['@flow:admin-accounting-stats-moda
 export const ADMIN_ADDITIONAL_MODULES_CATALOG = ['@flow:admin-additional-modules-catalog', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_MANAGE = ['@flow:admin-additional-modules-manage', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_PDF = ['@flow:admin-additional-modules-pdf', '@module:admin', '@priority:P2'];
+export const ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS = ['@flow:admin-additional-modules-quick-access', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_REORDER = ['@flow:admin-additional-modules-reorder', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_SHARE = ['@flow:admin-additional-modules-share', '@module:admin', '@priority:P1'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
