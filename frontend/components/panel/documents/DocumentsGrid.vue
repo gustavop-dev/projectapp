@@ -70,7 +70,7 @@ function archivedContentCount(folder) {
         'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
           dragOverFolderId === sub.id,
       }"
-      :draggable="!sub.is_archived && sub.folder_kind !== 'project' && !sub.is_system_managed"
+      :draggable="!sub.is_archived && sub.folder_kind === 'manual' && !sub.is_system_managed"
       :data-testid="`folder-card-${sub.id}`"
       @click="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
@@ -94,6 +94,11 @@ function archivedContentCount(folder) {
       >{{ sub.name }}</BaseRowLink>
       <BaseBadge v-if="sub.folder_kind === 'project'" variant="info" size="sm">
         Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
+      </BaseBadge>
+      <!-- Sin estado detrás: los clientes no tienen catálogo de ciclo de vida
+           como los proyectos, sólo el booleano de inactividad. -->
+      <BaseBadge v-else-if="sub.folder_kind === 'client'" variant="neutral" size="sm">
+        Cliente
       </BaseBadge>
       <span class="text-xs text-text-subtle">
         {{ folderSummary(sub, folderSummaryScope(sub)) }}

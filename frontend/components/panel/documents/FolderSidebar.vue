@@ -527,11 +527,22 @@ const entitiesSectionLabel = computed(() => (
   props.navigationMode === 'project' ? 'Proyectos' : 'Clientes'
 ));
 
+// «Propia» es la raíz sin NINGUNA marca de pertenencia. Las condiciones son
+// redundantes a propósito: un payload parcial que perdiera una todavía deja
+// fuera de esta sección lo que ya tiene su propio espacio.
+//
+// Se excluyen las clases gestionadas por nombre en vez de exigir
+// `folder_kind === 'manual'`: esto es un filtro de PRESENTACIÓN y una fila sin
+// el campo —los resultados de búsqueda no viven en `folders`— debe seguir
+// viéndose. Las guardas de permiso (arrastrar, editar, borrar) sí son
+// afirmativas, porque ahí el default correcto es denegar.
 const manualFolders = computed(() => props.folders
   .filter((folder) => (
     folder.parent == null
     && folder.folder_kind !== 'project'
+    && folder.folder_kind !== 'client'
     && folder.managed_project == null
+    && folder.managed_client == null
     && folder.project == null
     && folder.client == null
   )));

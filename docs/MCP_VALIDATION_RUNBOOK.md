@@ -38,6 +38,13 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   única raíz documental canónica. El MCP puede seguir referenciando proyectos
   existentes, pero no adopta carpetas históricas ni provisiona raíces por esa
   vía.
+- `DocumentFolder.managed_client` es el equivalente para clientes y se comporta
+  igual desde el MCP: read-only, sin adopción ni provisión por esa vía. Con él
+  `folder_kind` tiene **tres** valores (`project` / `client` / `manual`), que es
+  lo que declara la descripción de `list_folders`. Dos asimetrías respecto de
+  proyectos, deliberadas: la raíz de cliente **no** se crea sola con el cliente
+  (se adopta), y **sí** se puede renombrar —el nombre lo pone el operador, no un
+  módulo externo—, así que `rename_folder` la acepta.
 - `mark_message_sent` registra un hecho externo. No envía correo ni WhatsApp.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 

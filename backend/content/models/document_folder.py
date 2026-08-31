@@ -68,6 +68,25 @@ class DocumentFolder(models.Model):
         blank=True,
         related_name='client_document_folders',
     )
+    # El equivalente de `managed_project` para clientes, con la misma
+    # separación: `client_user` es la asociación heredable de CUALQUIER carpeta;
+    # esto marca la única raíz que representa al cliente en el gestor.
+    #
+    # Apunta a auth.User y no a UserProfile a propósito: es lo que permite la
+    # CheckConstraint `client_user = F('managed_client')`, la que garantiza en
+    # base que la raíz no pueda quedar apuntando a otro cliente que el suyo.
+    #
+    # A diferencia de las raíces de proyecto, NO se provisiona sola: los
+    # proyectos crean la suya en el post_save, pero hay decenas de perfiles de
+    # cliente y sólo un puñado con carpeta, así que un signal llenaría el gestor
+    # de carpetas vacías. Se adopta explícitamente.
+    managed_client = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='client_document_root_folder',
+    )
 
     # Archivado: saca la carpeta de la vista sin destruirla. A diferencia de
     # borrar, archivar SÍ está permitido con contenido: la cascada arrastra
@@ -108,6 +127,37 @@ class DocumentFolder(models.Model):
                 ),
                 name='managed_project_folder_is_active',
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_client__isnull=True)
+                    | models.Q(parent__isnull=True)
+                ),
+                name='managed_client_folder_is_root',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_client__isnull=True)
+                    | models.Q(client_user=models.F('managed_client'))
+                ),
+                name='managed_folder_matches_client',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_client__isnull=True)
+                    | models.Q(is_archived=False)
+                ),
+                name='managed_client_folder_is_active',
+            ),
+            # Una raíz representa a UN espacio. Una carpeta que fuera a la vez
+            # la del proyecto y la del cliente heredaría dos asociaciones
+            # incompatibles hacia abajo.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(managed_client__isnull=True)
+                    | models.Q(managed_project__isnull=True)
+                ),
+                name='managed_root_is_project_or_client',
+            ),
         ]
 
     def __str__(self):
@@ -115,7 +165,11 @@ class DocumentFolder(models.Model):
 
     @property
     def folder_kind(self):
-        return 'project' if self.managed_project_id else 'manual'
+        if self.managed_project_id:
+            return 'project'
+        if self.managed_client_id:
+            return 'client'
+        return 'manual'
 
     @property
     def is_system_managed(self):

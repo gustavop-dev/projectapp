@@ -18,7 +18,7 @@
           :style="{ marginLeft: `${depth * 18}px` }"
         >
           <div
-            v-if="folder.folder_kind !== 'project' && !folder.is_system_managed"
+            v-if="folder.folder_kind === 'manual' && !folder.is_system_managed"
             class="folder-tree-handle flex-shrink-0 w-4 flex items-center justify-center
                    text-text-subtle cursor-grab active:cursor-grabbing"
             title="Arrastrar para reordenar"
@@ -41,6 +41,9 @@
           <BaseBadge v-if="folder.folder_kind === 'project'" variant="info" size="sm">
             Automática
           </BaseBadge>
+          <BaseBadge v-else-if="folder.folder_kind === 'client'" variant="neutral" size="sm">
+            Cliente
+          </BaseBadge>
 
           <!-- Directo, a diferencia del panel lateral: acá el árbol se dibuja
                anidado e indentado, así que un total del subárbol pondría 12 en
@@ -49,7 +52,7 @@
             {{ folder.document_count }} doc
           </span>
 
-          <div v-if="folder.folder_kind !== 'project' && !folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div v-if="folder.folder_kind === 'manual' && !folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <BaseButton
               variant="ghost"
               icon-only
@@ -128,7 +131,7 @@ function rowClass(folder) {
 
 function canMove(event) {
   const folder = event.draggedContext?.element;
-  return folder?.folder_kind !== 'project' && !folder?.is_system_managed;
+  return folder?.folder_kind === 'manual' && !folder?.is_system_managed;
 }
 
 // vuedraggable aísla cada lista por defecto: el reorden solo afecta este nivel.
@@ -136,7 +139,7 @@ function onReorderEnd() {
   emit('reorder', {
     parentId: props.parentId,
     orderedIds: localSiblings.value
-      .filter((folder) => folder.folder_kind !== 'project' && !folder.is_system_managed)
+      .filter((folder) => folder.folder_kind === 'manual' && !folder.is_system_managed)
       .map((folder) => folder.id),
   });
 }

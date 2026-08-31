@@ -51,6 +51,18 @@ def _state_payload(project):
     }
 
 
+def _client_root_id(profile):
+    """Id de la carpeta madre adoptada por el cliente, o None si no tiene.
+
+    El OneToOne inverso levanta `RelatedObjectDoesNotExist` en vez de devolver
+    `None`, y la mayoría de los clientes no tiene raíz: el acceso se hace con
+    guarda para no pagar una excepción por fila.
+    """
+    user = getattr(profile, 'user', None)
+    root = getattr(user, 'client_document_root_folder', None) if user else None
+    return root.pk if root else None
+
+
 def build_document_navigation():
     """Return project/client facets using a constant number of database queries."""
     document_rows = _grouped_rows(Document)
@@ -65,7 +77,7 @@ def build_document_navigation():
     )
     clients = list(
         UserProfile.objects.clients()
-        .select_related('user')
+        .select_related('user', 'user__client_document_root_folder')
     )
     valid_client_ids = {profile.pk for profile in clients}
 
@@ -142,6 +154,11 @@ def build_document_navigation():
             'catalog_bucket': (
                 'archived' if profile.is_inactive_client else 'active'
             ),
+            # Igual que en proyectos: sin este id el panel no puede suprimir la
+            # raíz redundante y el cliente se vería como una carpeta que
+            # contiene otra carpeta con su mismo nombre. `None` para los
+            # clientes que todavía no adoptaron una — que son la mayoría.
+            'managed_root_id': _client_root_id(profile),
             'counts': client_counts[profile.pk],
         }
         for profile in clients

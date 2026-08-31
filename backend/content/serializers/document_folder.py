@@ -89,7 +89,7 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             'id', 'name', 'slug', 'parent', 'order',
             'client', 'client_display_name', 'project', 'project_name',
             'managed_project', 'folder_kind', 'managed_project_state',
-            'is_project_visible', 'is_system_managed',
+            'managed_client', 'is_project_visible', 'is_system_managed',
             'document_count', 'children_count',
             'active_document_count', 'active_children_count',
             'archived_document_count', 'archived_children_count',
@@ -102,7 +102,7 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
         read_only_fields = (
             'slug', 'created_at', 'updated_at', 'is_archived', 'archived_at',
             'managed_project', 'folder_kind', 'managed_project_state',
-            'is_project_visible',
+            'managed_client', 'is_project_visible',
         )
 
     def get_document_count(self, obj):
@@ -173,6 +173,12 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
         """Devuelve `client` como pk de UserProfile (el campo es write_only)."""
         data = super().to_representation(instance)
         data['client'] = self.get_client(instance)
+        # El modelo persiste auth.User, pero el panel habla en pk de UserProfile
+        # en TODA asociación de cliente. Devolver acá el id de usuario obligaría
+        # al frontend a manejar dos vocabularios para el mismo concepto.
+        managed = getattr(instance, 'managed_client', None)
+        profile = getattr(managed, 'profile', None) if managed else None
+        data['managed_client'] = profile.id if profile else None
         return data
 
     def validate(self, attrs):
@@ -186,6 +192,22 @@ class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializ
                         'no desde el Gestor Documental.'
                     ),
                     'code': 'managed_project_folder',
+                })
+
+        # La raíz de cliente protege menos que la de proyecto: `project` NO está
+        # en el conjunto porque una carpeta de cliente sí puede recibir una
+        # asociación de proyecto en su subárbol, y el nombre lo pone el operador
+        # —no lo dicta un módulo externo, como sí ocurre con Proyectos—. Lo que
+        # no puede cambiar es a quién representa ni dejar de ser raíz.
+        if self.instance is not None and self.instance.managed_client_id:
+            protected = {'parent', 'client'}
+            if protected.intersection(self.initial_data):
+                raise serializers.ValidationError({
+                    'detail': (
+                        'Esta carpeta es el espacio del cliente: no puede '
+                        'cambiar de dueño ni dejar de ser raíz.'
+                    ),
+                    'code': 'managed_client_folder',
                 })
 
         # Crear dentro de una carpeta copia su eje de proyecto/cliente cuando

@@ -17,8 +17,10 @@ import { ADMIN_DOCUMENT_FOLDER_MANAGE } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
-const emptyFolder = { id: 10, name: 'Contratos', parent: null, position: 1, document_count: 0 };
-const busyFolder = { id: 11, name: 'Facturas', parent: null, position: 2, document_count: 3 };
+// `folder_kind` va en todas las fixtures porque el serializer siempre lo manda:
+// omitirlo dejaba pasar guardas que en produccion si distinguen la clase de raiz.
+const emptyFolder = { id: 10, name: 'Contratos', parent: null, position: 1, document_count: 0, folder_kind: 'manual' };
+const busyFolder = { id: 11, name: 'Facturas', parent: null, position: 2, document_count: 3, folder_kind: 'manual' };
 const project = {
   id: 40,
   name: 'Kore rediseño',

@@ -265,6 +265,8 @@ test.describe('Admin Document Archive', () => {
       apiPath, url: route.request().url(),
     }));
 
+    // quality: allow-deep-link (el modo archivado se enciende con el
+    // interruptor del panel, que SÍ se pulsa en este mismo test.)
     await page.goto('/panel/documents');
     await page.getByTestId('folder-archived-entry').click();
 

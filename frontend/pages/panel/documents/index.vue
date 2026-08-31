@@ -725,8 +725,11 @@ const navigationFolders = computed(() => folderStore.folders.filter(
 const navigationFolderIds = computed(
   () => new Set(navigationFolders.value.map((folder) => folder.id)),
 );
+// La raíz gestionada de la entidad seleccionada no se lista: sería una carpeta
+// con su mismo nombre conteniéndolo todo. Vale para proyectos y para clientes
+// —los que ya adoptaron una carpeta madre—, que es el mismo caso con otro dueño.
 const suppressedManagedRootId = computed(() => (
-  navigationMode.value === 'project' && typeof navigationSelection.value === 'number'
+  typeof navigationSelection.value === 'number'
     ? selectedNavigationEntry.value?.managed_root_id ?? null
     : null
 ));
