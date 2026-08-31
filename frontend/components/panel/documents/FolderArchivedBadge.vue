@@ -22,8 +22,18 @@ const emit = defineEmits(['view'])
 </script>
 
 <template>
-  <!-- El tooltip por defecto mide 260px+, inservible en el panel lateral. -->
-  <BaseTooltip position="top" width="max-w-xs" min-width="min-w-0">
+  <!-- El tooltip por defecto mide 260px+, inservible en el panel lateral. Al
+       bajar el piso a min-w-0 hay que reponer w-max: el trigger es una pastilla
+       de ~40px y, sin ancho máximo de contenido ni `floating`, el panel absoluto
+       encoge contra ese ancestro y el texto se parte letra por letra. `floating`
+       lo saca a <body>, donde el clamping al viewport de BaseTooltip lo acota. -->
+  <BaseTooltip
+    position="top"
+    width="w-max max-w-xs"
+    min-width="min-w-0"
+    content-class="whitespace-normal [overflow-wrap:normal]"
+    floating
+  >
     <template #trigger>
       <!-- design-tokens: allow-raw-button — insignia inline, no una acción de formulario -->
       <button
