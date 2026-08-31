@@ -6002,7 +6002,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-blog-overdue-detection` | admin | P2 | — | 0 |
 | `admin-blog-publish-mode` | admin | P2 | display,success | 1 |
 | `admin-calculator-followup-alert` | admin | P2 | — | 0 |
-| `admin-client-communications` | admin | P1 | display,success,error,failure | 13 |
+| `admin-client-communications` | admin | P1 | display,success,error,failure | 15 |
 | `admin-client-create-standalone` | admin | P2 | success,error | 1 |
 | `admin-client-delete-orphan` | admin | P2 | display,success | 1 |
 | `admin-client-delete-protected` | admin | P2 | error | 1 |
