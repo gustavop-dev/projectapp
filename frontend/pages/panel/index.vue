@@ -108,10 +108,15 @@
         class="mb-8 dash-reveal"
         style="animation-delay: 180ms"
       />
+      <DashboardAdditionalModulesSection
+        :summary="additionalModules"
+        class="mb-8 dash-reveal"
+        style="animation-delay: 240ms"
+      />
       <DashboardOperationsSection
         :operations="operations"
         class="mb-4 dash-reveal"
-        style="animation-delay: 240ms"
+        style="animation-delay: 300ms"
       />
 
       <!-- Stats modals -->
@@ -133,6 +138,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import DashboardAttentionRadar from '~/components/panel/dashboard/DashboardAttentionRadar.vue';
+import DashboardAdditionalModulesSection from '~/components/panel/dashboard/DashboardAdditionalModulesSection.vue';
 import DashboardFinanceSection from '~/components/panel/dashboard/DashboardFinanceSection.vue';
 import DashboardOperationsSection from '~/components/panel/dashboard/DashboardOperationsSection.vue';
 import DashboardProposalsSection from '~/components/panel/dashboard/DashboardProposalsSection.vue';
@@ -148,7 +154,14 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = usePanelDashboardStore();
 const { summary, loading, error } = storeToRefs(store);
-const { finance, proposals, operations, attention, hasFinance } = storeToRefs(store);
+const {
+  finance,
+  proposals,
+  additionalModules,
+  operations,
+  attention,
+  hasFinance,
+} = storeToRefs(store);
 const notify = usePanelNotify();
 
 const todayLabel = computed(() =>

@@ -1,5 +1,14 @@
 # Architecture — ProjectApp
 
+> **Acceso comercial 2026-08-31:** `AdditionalModules/QuickAccess` es la
+> superficie compartida entre `/panel/additional-modules` y `/panel/`.
+> `useAdditionalModulesPublicAccess` proyecta la URL canónica por locale y la
+> descarga completa; las selecciones siguen usando el store y sus modales
+> existentes. `panel_dashboard_service` agrega sólo conteos operativos y la
+> última apertura: considera vigente un enlace activo con al menos un módulo y
+> una categoría activos, pero conserva la última apertura histórica aunque el
+> enlace ya se haya revocado. No cambia el esquema ni el contrato público.
+
 > **Comunicaciones 2026-08-30 — implementado:**
 > `CommunicationPanelPreference` es la fuente por administrador de los defaults
 > visuales y del compositor. La URL y las vistas guardadas conservan precedencia;

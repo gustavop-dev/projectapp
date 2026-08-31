@@ -1,0 +1,10 @@
+{
+  "id": "admin-additional-modules-quick-access",
+  "name": "Admin Additional Modules Quick Access",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin sees and copies the canonical public catalog URL, downloads the complete active catalog PDF in one click, and uses dashboard metrics and shortcuts to prepare a tracked client selection.",
+  "expectedSpecs": 3,
+  "outcomes": ["success", "display"]
+}
