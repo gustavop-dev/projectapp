@@ -7,11 +7,14 @@ import { usePanelNotify } from '~/composables/usePanelNotify'
 import AdditionalModulesAdminModuleActions from '~/components/AdditionalModules/AdminModuleActions.vue'
 import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
 import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
+import AdditionalModulesQuickAccess from '~/components/AdditionalModules/QuickAccess.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] })
 
 const { locale, t } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
+const route = useRoute()
+const router = useRouter()
 const store = useAdditionalModulesStore()
 const notify = usePanelNotify()
 const { viewMode } = useAdditionalModulesViewMode('panel')
@@ -42,6 +45,30 @@ const groupedModules = computed(() => orderedCategories.value.map((category) => 
   ...category,
   modules: store.modules.filter((module) => module.category === category.id),
 })).filter((category) => category.modules.length > 0))
+const activeCategoryIds = computed(() => new Set(
+  store.categories.filter((category) => category.is_active).map((category) => category.id),
+))
+const activeModuleIds = computed(() => new Set(
+  store.modules
+    .filter((module) => module.is_active && activeCategoryIds.value.has(module.category))
+    .map((module) => module.id),
+))
+const usableShareLinks = computed(() => store.shareLinks.filter((link) => (
+  link.is_active
+  && link.selected_modules.some((module) => activeModuleIds.value.has(module.id))
+)))
+const quickAccessStats = computed(() => ({
+  active_module_count: activeModuleIds.value.size,
+  active_share_count: usableShareLinks.value.length,
+  unopened_active_share_count: usableShareLinks.value.filter(
+    (link) => !link.first_viewed_at,
+  ).length,
+  last_viewed_at: store.shareLinks.reduce((latest, link) => {
+    if (!link.last_viewed_at) return latest
+    if (!latest) return link.last_viewed_at
+    return new Date(link.last_viewed_at) > new Date(latest) ? link.last_viewed_at : latest
+  }, null),
+}))
 
 const localized = (value, field) => value?.[`${field}_${isEnglish.value ? 'en' : 'es'}`] || ''
 const localizedModule = (module) => ({
@@ -75,6 +102,15 @@ onMounted(async () => {
     clients.value = response.data.results || response.data
   } catch {
     clients.value = []
+  }
+
+  const requestedAction = Array.isArray(route.query.action)
+    ? route.query.action[0]
+    : route.query.action
+  if (requestedAction === 'share' || requestedAction === 'pdf') {
+    openSelection(requestedAction)
+  } else if (requestedAction === 'tracking') {
+    await openHistory()
   }
 })
 
@@ -177,12 +213,28 @@ async function submitSelection(payload) {
     : 'catalogo-modulos-adicionales.pdf'
   link.click()
   URL.revokeObjectURL(objectUrl)
-  selectionOpen.value = false
+  await updateSelectionOpen(false)
 }
 
 async function openHistory() {
   await store.fetchShareLinks()
   historyOpen.value = true
+}
+
+async function clearRequestedAction() {
+  if (!route.query.action) return
+  const { action: _action, ...query } = route.query
+  await router.replace({ query })
+}
+
+async function updateSelectionOpen(value) {
+  selectionOpen.value = value
+  if (!value) await clearRequestedAction()
+}
+
+async function updateHistoryOpen(value) {
+  historyOpen.value = value
+  if (!value) await clearRequestedAction()
 }
 
 async function changeShareStatus({ link, action }) {
@@ -235,11 +287,17 @@ async function closeDetail() {
         <BaseButton size="sm" data-testid="additional-module-new" @click="openCreateModule">{{ t('additionalModules.addModule') }}</BaseButton>
         <BaseButton variant="secondary" size="sm" @click="categoriesOpen = true">{{ t('additionalModules.manageCategories') }}</BaseButton>
         <BaseButton variant="secondary" size="sm" @click="orderOpen = true">{{ t('additionalModules.reorder') }}</BaseButton>
-        <BaseButton variant="secondary" size="sm" @click="openSelection('share')">{{ t('additionalModules.createLink') }}</BaseButton>
-        <BaseButton variant="secondary" size="sm" @click="openSelection('pdf')">{{ t('additionalModules.downloadPdf') }}</BaseButton>
-        <BaseButton variant="secondary" size="sm" @click="openHistory">{{ t('additionalModules.shareHistory') }}</BaseButton>
       </div>
     </header>
+
+    <AdditionalModulesQuickAccess
+      class="mb-8"
+      :language="language"
+      :stats="quickAccessStats"
+      @share="openSelection('share')"
+      @customize-pdf="openSelection('pdf')"
+      @tracking="openHistory"
+    />
 
     <div v-if="store.isLoading && !store.modules.length" class="flex min-h-64 items-center justify-center" role="status">
       <span class="h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-primary" />
@@ -431,7 +489,7 @@ async function closeDetail() {
       @save="saveOrder"
     />
     <AdditionalModulesCatalogSelectionModal
-      v-model="selectionOpen"
+      :model-value="selectionOpen"
       :mode="selectionMode"
       :categories="store.categories"
       :modules="store.modules"
@@ -439,12 +497,14 @@ async function closeDetail() {
       :saving="store.isUpdating"
       :error-message="selectionError"
       :generated-url="generatedUrl"
+      @update:model-value="updateSelectionOpen"
       @submit="submitSelection"
     />
     <AdditionalModulesShareHistoryModal
-      v-model="historyOpen"
+      :model-value="historyOpen"
       :links="store.shareLinks"
       :saving="store.isUpdating"
+      @update:model-value="updateHistoryOpen"
       @status="changeShareStatus"
       @copy="copyShare"
     />

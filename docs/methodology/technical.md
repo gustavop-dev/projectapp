@@ -8,6 +8,17 @@
 > desmontar y deja al consumidor publicar el error de negocio. El check
 > `check:icon-interaction-feedback` se ejecuta en CI junto al catálogo del panel.
 
+> **Acceso rápido 2026-08-31:** `QuickAccess.vue` concentra las acciones
+> comerciales del catálogo y tiene variantes completa/compacta para módulo y
+> dashboard. La URL visible usa el origen del navegador con fallback SSR; su
+> copia conserva el texto seleccionable cuando Clipboard API falla. El PDF
+> completo consume `GET /api/additional-modules/public/pdf/?lang=…` como `Blob`
+> mediante el cliente HTTP del panel.
+> El resumen `additional_modules` del dashboard expone `active_module_count`,
+> `active_share_count`, `unopened_active_share_count` y `last_viewed_at`; no
+> expone precios ni reemplaza el seguimiento detallado de los enlaces
+> seleccionados.
+
 > **Estado 2026-08-30 — implementado:** `accounts.0058` añade
 > `CommunicationPanelPreference` y los endpoints administradores GET/PATCH/reset.
 > El store normaliza el contrato por cuenta, migra una sola vez las claves locales

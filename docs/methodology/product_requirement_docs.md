@@ -8,6 +8,14 @@
 > escribir realmente al portapapeles y muestra un estado de error visible si el
 > navegador lo bloquea, además del mensaje accionable de la pantalla.
 
+> **Ajuste 2026-08-31 — acceso comercial visible:** Módulos adicionales abre
+> con un centro de acceso rápido que muestra la URL pública canónica, permite
+> copiarla o abrirla y descarga el catálogo completo en PDF sin pasar por una
+> selección. El dashboard global repite estas entradas y resume módulos activos,
+> enlaces seleccionados vigentes, pendientes de apertura y última apertura. Se
+> distingue de forma explícita el catálogo canónico, indexable y sin seguimiento,
+> de los enlaces seleccionados, `noindex` y con seguimiento comercial.
+
 > **Entregado — 2026-08-30:** Comunicaciones ubica **Configuraciones** junto a
 > **Nuevo hilo** y reúne en una superficie propia las preferencias personales de
 > agrupación, orden, cantidad por página, ancho lateral, canal inicial y ayuda.
