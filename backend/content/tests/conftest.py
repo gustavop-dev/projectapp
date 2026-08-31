@@ -22,8 +22,6 @@ from content.models import (
     ContractTemplate,
     PortfolioWork,
     ProposalDocument,
-    ProposalRequirementGroup,
-    ProposalRequirementItem,
     ProposalSection,
     ProposalShareLink,
 )
@@ -399,33 +397,6 @@ def proposal_section(db, proposal):
         order=0,
         is_enabled=True,
         content_json={'heading': 'Welcome to our proposal'},
-    )
-
-
-@pytest.fixture
-def requirement_group(db, proposal):
-    """A sample requirement group."""
-    return ProposalRequirementGroup.objects.create(
-        proposal=proposal,
-        group_id='views',
-        title='Views',
-        description='Frontend views and pages.',
-        order=0,
-    )
-
-
-@pytest.fixture
-def requirement_item(db, requirement_group):
-    """A sample requirement item."""
-    return ProposalRequirementItem.objects.create(
-        group=requirement_group,
-        item_id='dashboard-view',
-        icon='✅',
-        name='Dashboard View',
-        description='Main dashboard with analytics.',
-        options=[],
-        fields=[],
-        order=0,
     )
 
 

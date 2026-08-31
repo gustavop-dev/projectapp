@@ -23,9 +23,13 @@ export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   date_from: '',
   date_to: '',
   order: 'recent',
+  // Eje de visibilidad, ortogonal a `status`. Mismo vocabulario que el gestor
+  // documental: 'active' es el reposo y no se serializa a la URL.
+  scope: 'active',
 });
 
 const COMMUNICATION_ORDER_VALUES = Object.freeze(['recent', 'oldest', 'title']);
+const COMMUNICATION_SCOPE_VALUES = Object.freeze(['active', 'archived', 'all']);
 
 const ARRAY_KEYS = ['status', 'channel', 'direction', 'message_status', 'reply_status'];
 const FILTER_KEYS = Object.keys(COMMUNICATION_FILTER_DEFAULTS);
@@ -94,6 +98,9 @@ export function communicationFiltersFromQuery(query = {}) {
     date_from: scalar(query.date_from) || '',
     date_to: scalar(query.date_to) || '',
     order: scalar(query.order) || 'recent',
+    scope: COMMUNICATION_SCOPE_VALUES.includes(scalar(query.scope))
+      ? scalar(query.scope)
+      : 'active',
   });
 }
 
@@ -108,6 +115,7 @@ export function communicationFiltersToQuery(filters) {
   if (filters.date_from) query.date_from = filters.date_from;
   if (filters.date_to) query.date_to = filters.date_to;
   if (filters.order !== 'recent') query.order = filters.order;
+  if (filters.scope && filters.scope !== 'active') query.scope = filters.scope;
   return query;
 }
 
@@ -366,6 +374,11 @@ export function useCommunicationFilters() {
     page.value = 1;
   }
 
+  function setScope(scope) {
+    currentFilters.scope = COMMUNICATION_SCOPE_VALUES.includes(scope) ? scope : 'active';
+    page.value = 1;
+  }
+
   function selectNavigation(value) {
     if (currentFilters.by === 'project') {
       currentFilters.project = value === 'all' ? '' : String(value);
@@ -478,6 +491,10 @@ export function useCommunicationFilters() {
     if (currentFilters.q.trim()) request.q = currentFilters.q.trim();
     if (currentFilters.date_from) request.date_from = currentFilters.date_from;
     if (currentFilters.date_to) request.date_to = currentFilters.date_to;
+    // 'active' es el default del backend: mandarlo seria ruido en la query.
+    if (currentFilters.scope && currentFilters.scope !== 'active') {
+      request.scope = currentFilters.scope;
+    }
     return request;
   }
 
@@ -511,5 +528,6 @@ export function useCommunicationFilters() {
     tabsReady: tabs.isReady,
     filtersReady,
     requestFilters,
+    setScope,
   };
 }

@@ -155,9 +155,14 @@
         :mode="currentFilters.by"
         :selection="navigationSelection"
         :facets="store.facets"
+        :archived-mode="currentFilters.scope === 'archived'"
+        :scope-locked="Boolean(currentFilters.q.trim())"
+        :show-inactive-projects="showInactiveProjects"
         data-testid="communications-navigation-panel"
         @update:mode="handleSetMode"
         @select="selectNavigation"
+        @toggle-archived="handleToggleArchived"
+        @toggle-inactive-projects="handleToggleInactiveProjects"
       />
 
       <BaseResizeHandle
@@ -229,8 +234,14 @@
           :mode="currentFilters.by"
           :selection="navigationSelection"
           :facets="store.facets"
+          :archived-mode="currentFilters.scope === 'archived'"
+          :scope-locked="Boolean(currentFilters.q.trim())"
+          :show-inactive-projects="showInactiveProjects"
+          touch-mode
           @update:mode="handleDrawerMode"
           @select="handleDrawerSelection"
+          @toggle-archived="handleToggleArchived"
+          @toggle-inactive-projects="handleToggleInactiveProjects"
         />
       </div>
     </BaseDrawer>
@@ -358,6 +369,7 @@ const {
   isTabLimitReached,
   setMode,
   selectNavigation,
+  setScope,
   updateFilters,
   setOrder,
   clearFilters,
@@ -542,6 +554,27 @@ function handleSetMode(mode) {
     { navigation_mode: normalized },
     'El modo cambió sólo por esta visita',
   );
+}
+
+// El interruptor de archivados es un eje de la VISITA, no una preferencia: no
+// se persiste ni viaja en la memoria de cuenta, igual que en el gestor documental.
+function handleToggleArchived(on) {
+  setScope(on ? 'archived' : 'active');
+}
+
+// Empieza apagado en cada visita, como su gemelo de documentos, y al girarlo
+// suelta la seleccion si el proyecto elegido deja de listarse: si no, el listado
+// quedaria filtrado por una fila que ya no se ve.
+const showInactiveProjects = ref(false);
+
+function handleToggleInactiveProjects(on) {
+  showInactiveProjects.value = Boolean(on);
+  const selected = store.facets.projects?.find(
+    (entry) => String(entry.id) === String(navigationSelection.value),
+  );
+  if (!selected) return;
+  const selectedIsInactive = selected.catalog_bucket === 'archived';
+  if (showInactiveProjects.value !== selectedIsInactive) selectNavigation('all');
 }
 
 function handleSetOrder(order) {

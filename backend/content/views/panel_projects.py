@@ -196,7 +196,7 @@ def _clients_without_projects_count():
     """
     return (
         UserProfile.objects.clients()
-        .filter(deactivated_at__isnull=True)
+        .filter(archived_at__isnull=True)
         .filter(~Exists(Project.objects.filter(client_id=OuterRef('user_id'))))
         .count()
     )

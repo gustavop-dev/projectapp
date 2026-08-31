@@ -308,8 +308,15 @@ def test_project_client_change_detaches_historical_threads(admin_user):
     )
 
     thread.refresh_from_db()
-    assert result['detached_communications'] == 1
+    # Dos: la conversacion historica y la comunicacion madre que el proyecto
+    # tenia con su cliente anterior. Ninguna correspondencia cambia de dueno.
+    assert result['detached_communications'] == 2
     assert thread.project_id is None
+    # Y el proyecto estrena madre bajo su nuevo dueno, sin perder el invariante
+    # de una sola por proyecto.
+    fresh = CommunicationThread.objects.get(managed_project=project)
+    assert fresh.client_id == target.id
+    assert fresh.pk != thread.pk
 
 
 def test_fake_command_creates_bidirectional_demo_thread(admin_user):

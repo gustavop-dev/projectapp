@@ -204,11 +204,11 @@
                   Huérfano
                 </span>
                 <span
-                  v-if="client.is_inactive"
+                  v-if="client.is_archived"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
-                  title="Cliente marcado como inactivo — oculto de los demás tabs"
+                  title="Cliente archivado — oculto de los demás tabs"
                 >
-                  Inactivo
+                  Archivado
                 </span>
               </div>
               <p
@@ -356,13 +356,13 @@
               @click.stop="openEditModal(client)"
             />
 
-            <!-- Inactive toggle button -->
+            <!-- Archive toggle button -->
             <BaseActionButton
-              :action="client.is_inactive ? 'activate' : 'deactivate'"
-              :label="client.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo'"
-              :data-testid="`client-toggle-inactive-${client.id}`"
+              :action="client.is_archived ? 'activate' : 'deactivate'"
+              :label="client.is_archived ? 'Desarchivar cliente' : 'Archivar cliente'"
+              :data-testid="`client-toggle-archived-${client.id}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-warning-strong hover:bg-warning-soft transition-colors"
-              @click.stop="toggleInactive(client)"
+              @click.stop="openArchiveModal(client)"
             />
 
             <!-- Trash button -->
@@ -919,8 +919,8 @@
         >
           Ver en plataforma
         </BaseButton>
-        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="toggleInactiveFromActions">
-          {{ clientActionTarget.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo' }}
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="openArchiveModalFromActions">
+          {{ clientActionTarget.is_archived ? 'Desarchivar cliente' : 'Archivar cliente' }}
         </BaseButton>
         <BaseButton variant="danger-ghost" size="md" class="min-h-11 w-full justify-start" @click="deleteClientFromActions">
           Eliminar cliente
@@ -955,6 +955,7 @@
             :model-value="createForm"
             testid-prefix="clients-new"
             :errors="createFieldErrors"
+            show-archived
             @update:model-value="Object.assign(createForm, $event)"
             @clear-error="clearCreateFieldError"
           />
@@ -990,8 +991,11 @@
             :model-value="editForm"
             testid-prefix="clients-edit"
             :errors="editFieldErrors"
+            show-archived
+            editing
             @update:model-value="Object.assign(editForm, $event)"
             @clear-error="clearEditFieldError"
+            @request-archive="openArchiveModal(editingClient)"
           />
           <BaseAlert v-if="editError" variant="danger">{{ editError }}</BaseAlert>
           </div>
@@ -1005,6 +1009,16 @@
           </BaseModalActions>
         </form>
     </BaseModal>
+
+    <!-- Archive, with the project cascade shown before it happens. Reached
+         from the row icon, the mobile action sheet and the edit form alike:
+         one reviewed path, no shortcut. -->
+    <ClientArchiveModal
+      :open="Boolean(archiveTarget)"
+      :client="archiveTarget"
+      @close="closeArchiveModal"
+      @changed="onArchiveChanged"
+    />
 
     <!-- The client's emails, and the viewer for one of them. Siblings rather
          than nested: BaseModal has no stacking manager, so DOM order is what
@@ -1048,6 +1062,7 @@ import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
+import ClientArchiveModal from '~/components/clients/ClientArchiveModal.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import ClientModuleTabs from '~/components/clients/ClientModuleTabs.vue';
 import ClientReassignModal from '~/components/clients/ClientReassignModal.vue';
@@ -1248,8 +1263,8 @@ function platformFromActions() {
   takeClientAction((client) => goToPlatform(`/platform/clients/${client.user_id}`));
 }
 
-function toggleInactiveFromActions() {
-  takeClientAction(toggleInactive);
+function openArchiveModalFromActions() {
+  takeClientAction(openArchiveModal);
 }
 
 function deleteClientFromActions() {
@@ -1377,7 +1392,7 @@ const CLIENT_STATUSES = [
   { id: 'all', label: 'Todos' },
   { id: 'active', label: 'Activos' },
   { id: 'orphans', label: 'Huérfanos' },
-  { id: 'inactive', label: 'Inactivos' },
+  { id: 'archived', label: 'Archivados' },
 ];
 const route = useRoute();
 const router = useRouter();
@@ -1456,7 +1471,7 @@ async function loadClients({ silent = false } = {}) {
       // so ask for the endpoint's hard cap instead of the default 100. Past 500
       // clients this needs real server-side pagination.
       limit: 500,
-      inactive: clientStatus.value === 'inactive',
+      archived: clientStatus.value === 'archived',
       silent,
     }),
     // Same search, so the numbers in the selector describe the same table the
@@ -1502,17 +1517,25 @@ function setClientStatus(status) {
   loadClients();
 }
 
-async function toggleInactive(client) {
-  const makeInactive = !client.is_inactive;
-  const result = await clientsStore.updateClient(client.id, { is_inactive: makeInactive });
-  if (result.success) {
-    notify.success(makeInactive
-      ? `"${client.name}" marcado como inactivo.`
-      : `"${client.name}" reactivado.`);
-    await loadClients();
-  } else {
-    notify.error('No se pudo actualizar el estado del cliente.');
-  }
+const archiveTarget = ref(null);
+
+// The row icon used to PATCH straight away. It now opens the same modal the
+// edit form does: archiving suspends the client's projects and cancels their
+// future billing, and that is not something a single unlabelled click should
+// be able to do.
+function openArchiveModal(client) {
+  archiveTarget.value = client;
+}
+
+function closeArchiveModal() {
+  archiveTarget.value = null;
+}
+
+async function onArchiveChanged({ archived }) {
+  const name = archiveTarget.value?.name || 'El cliente';
+  notify.success(archived ? `"${name}" archivado.` : `"${name}" desarchivado.`);
+  closeEditModal();
+  await loadClients();
 }
 
 function compactContextLabel(client) {
@@ -1667,6 +1690,13 @@ async function submitCreate() {
   }
   const result = await clientsStore.createClient(clientFormPayload(createForm));
   if (result.success) {
+    // Born archived: a brand-new client has no projects, so the cascade is
+    // empty and there is nothing to preview. It still goes through the archive
+    // endpoint so the audit row exists from the start, like every other
+    // archive.
+    if (createForm.is_archived) {
+      await clientsStore.archiveClient(result.data.id, []);
+    }
     closeCreateModal();
     await loadClients();
   } else {
@@ -1702,6 +1732,7 @@ function openEditModal(client) {
   editForm.company = client.company || '';
   editForm.nit = client.nit || '';
   editForm.billing_code = client.billing_code || '';
+  editForm.is_archived = Boolean(client.is_archived);
   editError.value = '';
   editFieldErrors.value = {};
 }

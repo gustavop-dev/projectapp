@@ -1005,22 +1005,9 @@ function getSectionProps(section, displayIndex) {
   }
 
   if (section.section_type === 'functional_requirements') {
-    // Use groups from content_json; fall back to legacy requirement_groups from proposal
-    let groups = content.groups || [];
-    if (!groups.length) {
-      const legacyGroups = proposal.value?.requirement_groups || [];
-      groups = legacyGroups.map((g) => ({
-        id: g.group_id,
-        icon: g.title?.trim().split(' ')[0] || '🧩',
-        title: g.title?.trim().split(' ').slice(1).join(' ') || g.title,
-        description: g.description,
-        items: (g.items || []).map((item) => ({
-          icon: item.icon,
-          name: item.name,
-          description: item.description,
-        })),
-      }));
-    }
+    // content_json is the only source: the legacy requirement_groups tables
+    // were dropped after shipping zero rows in production.
+    const groups = content.groups || [];
     // Build a price map for all groups with price_percent so FR cards can show price badges
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};

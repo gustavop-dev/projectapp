@@ -90,6 +90,15 @@ def list_clients(arguments):
     elif orphans is False:
         qs = qs.exclude(**_ORPHAN_PREDICATE)
 
+    # Same default as the panel list: archived clients are out unless asked
+    # for. The connector was returning them mixed in with the active ones,
+    # with nothing on the row saying so, which is how an assistant ends up
+    # proposing work to a client that was deliberately put away.
+    if arguments.get('archived') is True:
+        qs = qs.filter(archived_at__isnull=False)
+    else:
+        qs = qs.filter(archived_at__isnull=True)
+
     try:
         limit = min(int(arguments.get('limit', 100) or 100), 500)
     except (TypeError, ValueError):
@@ -198,15 +207,18 @@ CLIENT_TOOLS = [
         'name': 'list_clients',
         'description': (
             'Lista clientes con métricas de propuestas, proyectos, diagnósticos, '
-            'documentos, contabilidad, correos y comunicaciones. Filtros: search '
+            'documentos, contabilidad, correos y comunicaciones. Devuelve sólo '
+            'clientes activos salvo que pidas archived=true. Filtros: search '
             '(texto), orphans (true=sólo sin propuestas, proyectos, diagnósticos, '
-            'ingresos, hostings ni hilos; false=el resto) y limit.'
+            'ingresos, hostings ni hilos; false=el resto), archived '
+            '(true=sólo archivados) y limit.'
         ),
         'input_schema': {
             'type': 'object',
             'properties': {
                 'search': {'type': 'string'},
                 'orphans': {'type': 'boolean'},
+                'archived': {'type': 'boolean'},
                 'limit': {'type': 'integer', 'default': 100, 'maximum': 500},
             },
         },

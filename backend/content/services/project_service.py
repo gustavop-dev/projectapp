@@ -328,11 +328,24 @@ def change_client_apply(project, new_profile, mode, user):
 
     # Always preserve the original client on historical conversations. Both
     # cascade modes only detach their project pointer.
+    #
+    # La comunicación madre se desprende como cualquier otra: sus mensajes son
+    # correspondencia con el cliente ANTERIOR y moverlos al nuevo los expondría.
+    # Al soltar el proyecto deja de ser madre —si no, `managed_project` quedaría
+    # apuntando a un proyecto que ya no es el suyo y la CheckConstraint lo
+    # rechazaría—, y el proyecto recibe una madre nueva bajo su nuevo dueño.
+    # Es la diferencia deliberada con el gestor documental, donde la carpeta raíz
+    # SÍ sigue al proyecto: allá se mueve organización, acá correspondencia.
     detached_communications = len(sets['communication_threads'])
     if detached_communications:
         CommunicationThread.objects.filter(
             pk__in=[thread.pk for thread in sets['communication_threads']],
-        ).update(project=None, updated_by=user, updated_at=timezone.now())
+        ).update(
+            project=None,
+            managed_project=None,
+            updated_by=user,
+            updated_at=timezone.now(),
+        )
 
     if mode == MODE_MOVE:
         for record in sets['hostings']:
@@ -399,6 +412,14 @@ def change_client_apply(project, new_profile, mode, user):
         for document in sets['draft_following'] + sets['draft_detaching']:
             _detach_draft(document, user)
             detached['draft_accounts'] += 1
+
+    # El proyecto quedó sin madre al desprenderse la anterior: se le da una nueva
+    # bajo su nuevo dueño. Va acá, explícito, y no en el signal de update: éste
+    # sólo sincroniza madres existentes —igual que en carpetas, donde adoptar una
+    # raíz histórica exige revisión—, y quien la quitó fue esta operación.
+    from content.services.project_communication_service import ensure_project_thread
+
+    ensure_project_thread(project)
 
     logger.info(
         'Project %s changed client to profile %s (mode=%s): moved=%s detached=%s',

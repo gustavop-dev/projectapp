@@ -90,7 +90,7 @@ const LONG_CLIENT = {
   company: 'Respuesta_Etapa_3_Inventario',
   is_email_placeholder: false,
   is_orphan: false,
-  is_inactive: false,
+  is_archived: false,
   total_proposals: 0,
   projects_count: 0,
   diagnostics_count: 0,
@@ -172,8 +172,8 @@ describe('panel/clients index page', () => {
     // `limit` asks for the endpoint's hard cap: the page does not paginate
     // server-side and the subfilters (and their counts) run over whatever was
     // loaded, so a 100-row window would make them lie.
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(1, { search: '', orphans: null, inactive: false, limit: 500, silent: false });
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: '', orphans: true, inactive: false, limit: 500, silent: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(1, { search: '', orphans: null, archived: false, limit: 500, silent: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: '', orphans: true, archived: false, limit: 500, silent: false });
   });
 
   it('keeps the status out of the module row it used to compete with', async () => {
@@ -185,13 +185,13 @@ describe('panel/clients index page', () => {
   });
 
   it('labels each status with its own match count', async () => {
-    mockStore.statusCounts = { all: 12000, active: 9999, orphans: 9999, inactive: 0 };
+    mockStore.statusCounts = { all: 12000, active: 9999, orphans: 9999, archived: 0 };
     const wrapper = mountPage();
     await flushPromises();
 
     const options = wrapper.findComponent({ name: 'BaseSegmented' }).props('options');
     expect(options.map((o) => o.label)).toEqual([
-      'Todos (12000)', 'Activos (9999)', 'Huérfanos (9999)', 'Inactivos (0)',
+      'Todos (12000)', 'Activos (9999)', 'Huérfanos (9999)', 'Archivados (0)',
     ]);
   });
 
@@ -299,6 +299,6 @@ describe('panel/clients index page', () => {
     jest.advanceTimersByTime(250);
     await flushPromises();
 
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: 'ana', orphans: null, inactive: false, limit: 500, silent: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: 'ana', orphans: null, archived: false, limit: 500, silent: false });
   });
 });

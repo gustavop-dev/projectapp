@@ -6,6 +6,12 @@ const BaseActionIconStub = {
 }
 
 const BaseTooltipStub = {
+  props: {
+    floating: {
+      type: Boolean,
+      default: false,
+    },
+  },
   setup() {
     return { tooltipId: 'indicator-tooltip' }
   },
@@ -62,6 +68,7 @@ describe('BaseIndicatorCard', () => {
     const wrapper = mountCard({ layout: 'compact-horizontal' })
 
     expect(wrapper.get('article').attributes('data-layout')).toBe('compact-horizontal')
+    expect(wrapper.get('article').classes()).toContain('h-20')
     expect(wrapper.find('[data-testid="indicator-support"]').exists()).toBe(false)
   })
 
@@ -80,6 +87,7 @@ describe('BaseIndicatorCard', () => {
     const action = wrapper.get('[aria-label="Filtrar por estado activo"]')
     const help = wrapper.get('[data-testid="compact-state-help"]')
 
+    expect(wrapper.findComponent(BaseTooltipStub).props('floating')).toBe(false)
     expect(action.element.contains(help.element)).toBe(false)
 
     await help.trigger('click')
@@ -113,6 +121,7 @@ describe('BaseIndicatorCard', () => {
     )
     const help = wrapper.get('[data-testid="indicator-custom-help"]')
 
+    expect(wrapper.findComponent(BaseTooltipStub).props('floating')).toBe(true)
     expect(help.attributes('aria-label')).toBe('Ayuda sobre el indicador')
     expect(wrapper.get('[data-testid="indicator-custom-help-content"]').text())
       .toBe('Explicación concreta')

@@ -88,7 +88,7 @@
         "admin-client-create-standalone",
         "admin-client-delete-orphan",
         "admin-client-delete-protected",
-        "admin-client-inactive-tab",
+        "admin-client-archived-tab",
         "admin-clients-filter-presets",
         "admin-clients-documents-section",
         "admin-client-drag-reassign",

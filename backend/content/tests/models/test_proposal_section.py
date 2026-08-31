@@ -1,12 +1,10 @@
-"""Tests for ProposalSection, ProposalRequirementGroup, and ProposalRequirementItem models.
+"""Tests for the ProposalSection model.
 
 Covers: foreign key relationships, ordering, unique_together, __str__, defaults.
 """
 import pytest
 
 from content.models import (
-    ProposalRequirementGroup,
-    ProposalRequirementItem,
     ProposalSection,
 )
 
@@ -77,62 +75,4 @@ class TestProposalSection:
         proposal.delete()
         assert not ProposalSection.objects.filter(
             proposal_id=proposal_id
-        ).exists()
-
-
-class TestProposalRequirementGroup:
-    def test_str_returns_client_and_title(self, requirement_group):
-        assert 'Acme Corp' in str(requirement_group)
-        assert 'Views' in str(requirement_group)
-
-    def test_group_belongs_to_proposal(self, requirement_group, proposal):
-        assert requirement_group.proposal == proposal
-        assert requirement_group.proposal_id == proposal.id
-
-    def test_groups_ordered_by_order_field(self, proposal):
-        ProposalRequirementGroup.objects.create(
-            proposal=proposal, group_id='g1', title='G1', order=1,
-        )
-        ProposalRequirementGroup.objects.create(
-            proposal=proposal, group_id='g0', title='G0', order=0,
-        )
-        groups = list(proposal.requirement_groups.all())
-        assert groups[0].order <= groups[1].order
-
-    def test_cascade_delete_with_proposal(self, proposal, requirement_group):
-        proposal.delete()
-        assert not ProposalRequirementGroup.objects.filter(
-            pk=requirement_group.pk
-        ).exists()
-
-
-class TestProposalRequirementItem:
-    def test_str_returns_name(self, requirement_item):
-        assert str(requirement_item) == 'Dashboard View'
-        assert requirement_item.name in str(requirement_item)
-
-    def test_item_belongs_to_group(self, requirement_item, requirement_group):
-        assert requirement_item.group == requirement_group
-        assert requirement_item.group_id == requirement_group.id
-
-    def test_default_icon_is_checkmark(self, requirement_group):
-        item = ProposalRequirementItem.objects.create(
-            group=requirement_group,
-            item_id='test-item',
-            name='Test Item',
-        )
-        assert item.icon == '✅'
-
-    def test_default_options_empty_list(self, requirement_item):
-        assert requirement_item.options == []
-        assert isinstance(requirement_item.options, list)
-
-    def test_default_fields_empty_list(self, requirement_item):
-        assert requirement_item.fields == []
-        assert isinstance(requirement_item.fields, list)
-
-    def test_cascade_delete_with_group(self, requirement_group, requirement_item):
-        requirement_group.delete()
-        assert not ProposalRequirementItem.objects.filter(
-            pk=requirement_item.pk
         ).exists()

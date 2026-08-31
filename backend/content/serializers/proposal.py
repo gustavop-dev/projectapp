@@ -14,8 +14,6 @@ from content.models import (
     ProposalAlert,
     ProposalProjectStage,
     ProposalSection,
-    ProposalRequirementGroup,
-    ProposalRequirementItem,
     ProposalShareLink,
     ProposalDefaultConfig,
 )
@@ -33,27 +31,6 @@ def _validate_client_email_mx(value):
             'El dominio de este correo no puede recibir emails (sin registros MX).'
         )
     return value
-
-
-class ProposalRequirementItemSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the ProposalRequirementItem model.
-    """
-
-    class Meta:
-        model = ProposalRequirementItem
-        fields = '__all__'
-
-
-class ProposalRequirementGroupSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the ProposalRequirementGroup model, including nested items.
-    """
-    items = ProposalRequirementItemSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = ProposalRequirementGroup
-        fields = ('id', 'group_id', 'title', 'description', 'order', 'items')
 
 
 class ProposalProjectStageSerializer(serializers.ModelSerializer):
@@ -171,7 +148,6 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     nested requirement groups with items, and computed properties.
     """
     sections = serializers.SerializerMethodField()
-    requirement_groups = ProposalRequirementGroupSerializer(many=True, read_only=True)
     # project_stages is internal-only execution tracking; the model docstring
     # explicitly says it must never be rendered to the client. Gate by is_admin.
     project_stages = serializers.SerializerMethodField()
@@ -208,7 +184,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'view_count', 'first_viewed_at', 'sent_at', 'responded_at',
             'created_at', 'updated_at',
             'email_intro', 'email_features', 'email_method_phases', 'email_signed_by',
-            'sections', 'requirement_groups', 'project_stages', 'change_logs',
+            'sections', 'project_stages', 'change_logs',
             'days_remaining', 'is_expired', 'validity_text', 'public_url',
             'discounted_investment', 'effective_total_investment',
             'selected_modules', 'has_confirmed_module_selection',
