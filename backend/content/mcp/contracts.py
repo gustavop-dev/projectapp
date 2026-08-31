@@ -94,7 +94,7 @@ MCP_MODEL_CONTRACTS = {
                 _excluded(_AUDIT_INTERNAL, 'uuid created_by updated_by content_json')
                 | _excluded(
                     _COMMERCIAL_DOCUMENT,
-                    'document_type deliverable issuer hosting_record income_record '
+                    'document_type issuer hosting_record income_record '
                     'source_proposal source_version generated_file '
                     'public_number issue_date due_date city currency subtotal '
                     'discount_total tax_total total notes terms_and_conditions '

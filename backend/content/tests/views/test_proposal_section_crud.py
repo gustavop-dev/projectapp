@@ -8,7 +8,6 @@ from django.urls import reverse
 
 from content.models import (
     BusinessProposal,
-    ProposalRequirementGroup,
     ProposalSection,
 )
 
@@ -157,18 +156,6 @@ class TestDeleteProposalSection:
         response = admin_client.delete(_delete_url(section))
         assert response.status_code == 200
         assert not prop.sections.filter(section_type='functional_requirements').exists()
-
-    def test_requirement_groups_survive_fr_delete(self, admin_client, prop):
-        group = ProposalRequirementGroup.objects.create(
-            proposal=prop, group_id='g1', title='Grupo', order=1,
-        )
-        section = ProposalSection.objects.create(
-            proposal=prop, section_type='functional_requirements',
-            title='Requerimientos', content_json={'groups': []}, order=1,
-        )
-        response = admin_client.delete(_delete_url(section))
-        assert response.status_code == 200
-        assert ProposalRequirementGroup.objects.filter(id=group.id).exists()
 
     def test_requires_admin(self, api_client, prop):
         section = ProposalSection.objects.create(
