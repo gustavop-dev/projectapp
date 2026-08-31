@@ -95,8 +95,9 @@
                     type="button"
                     variant="ghost"
                     size="sm"
-                    :label="`Copiar ${note.title || 'observación'}`"
-                    :status-label="copiedNoteId === note.id ? 'Observación copiada' : ''"
+                    :label="noteCopyFeedback(note).label || `Copiar ${note.title || 'observación'}`"
+                    :status-label="noteCopyFeedback(note).label"
+                    :status-tone="noteCopyFeedback(note).tone"
                     :disabled="busy"
                     :data-testid="`document-observation-copy-${note.id}`"
                     @click="copyNote(note)"
@@ -307,6 +308,7 @@ import BaseInput from '~/components/base/BaseInput.vue';
 import BaseTextarea from '~/components/base/BaseTextarea.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import NotePreview from '~/components/panel/documents/DocumentObservationPreview.vue';
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentStateStore } from '~/stores/document_states';
 
@@ -320,6 +322,7 @@ const props = defineProps({
 const emit = defineEmits(['update:notes', 'workflow-changed', 'busy-change']);
 const stateStore = useDocumentStateStore();
 const notify = usePanelNotify();
+const clipboardFeedback = useClipboardFeedback();
 const tabs = [
   { id: 'active', label: 'Observaciones' },
   { id: 'trash', label: 'Papelera' },
@@ -329,7 +332,6 @@ const localNotes = ref([]);
 const deletedNotes = ref([]);
 const events = ref([]);
 const selectedIds = ref([]);
-const copiedNoteId = ref(null);
 const pane = ref('active');
 const view = ref('list');
 const busy = ref(false);
@@ -541,15 +543,20 @@ async function restoreObservation(note) {
 }
 
 async function copyNote(note) {
-  try {
-    await navigator.clipboard.writeText(note.content);
-    copiedNoteId.value = note.id;
-  } catch {
-    notify.error({
+  await clipboardFeedback.copyText({
+    key: `note-${note.id}`,
+    text: note.content,
+    successLabel: 'Observación copiada',
+    errorLabel: 'No se pudo copiar la observación',
+    onError: () => notify.error({
       title: 'No se pudo copiar al portapapeles',
       detail: 'Tu navegador bloqueó el acceso al portapapeles.',
-    });
-  }
+    }),
+  });
+}
+
+function noteCopyFeedback(note) {
+  return clipboardFeedback.feedbackFor(`note-${note.id}`);
 }
 
 function noteStatusLabel(status) {

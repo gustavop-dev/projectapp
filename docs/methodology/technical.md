@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Icon feedback 2026-08-31:** `BaseButton` expone `unstyled` sin perder su
+> pulso de activación de 180 ms, foco, semántica ni mínimo táctil de 44 px.
+> `BaseTooltip.forceOpen` permite que `BaseActionButton.statusLabel` sea visible
+> y anunciado con tono info/success/danger. `useClipboardFeedback` espera la
+> promesa de Clipboard API, conserva éxito 2 s y fallo 3 s, limpia timers al
+> desmontar y deja al consumidor publicar el error de negocio. El check
+> `check:icon-interaction-feedback` se ejecuta en CI junto al catálogo del panel.
+
 > **Acceso rápido 2026-08-31:** `QuickAccess.vue` concentra las acciones
 > comerciales del catálogo y tiene variantes completa/compacta para módulo y
 > dashboard. La URL visible usa el origen del navegador con fallback SSR; su

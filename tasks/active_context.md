@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-31 — reacción visible de iconos interactivos lista para integrar:** el
+requerimiento transversal cubre controles icon-only ejecutables del panel, la
+plataforma y las vistas públicas, incluidas acciones, navegación, apertura y
+toggles. El contrato elegido conserva el glifo: una pulsación breve confirma la
+activación; las operaciones asíncronas mantienen su loading; y los resultados
+que no se explican por sí mismos, especialmente copiar, muestran halo más una
+etiqueta temporal visible y accesible. Touch y teclado reciben la misma señal,
+`prefers-reduced-motion` conserva color/anillo sin escala y los fallos mantienen
+el mensaje accionable existente además del estado visual. La implementación
+migra los controles crudos al primitive, añade un guard CI y registra el flow
+transversal. Verificación: 27 unitarias focales, dos escenarios Playwright de
+éxito/fallo, build Nuxt, 536 SFC válidos y checks estáticos en verde.
+
 **2026-08-31 — Indicadores de Proyectos con paridad visual y responsive:**
 `/panel/projects` presenta **Ciclo del proyecto** y **Pendientes operativos**
 con la misma tarjeta horizontal de 80 px y la misma grilla de cuatro/cinco

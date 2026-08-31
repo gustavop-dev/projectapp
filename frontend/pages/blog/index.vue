@@ -266,14 +266,17 @@
 
           <!-- Pagination -->
           <div v-if="totalPages > 1 && !searchQuery && !selectedCategory" class="flex items-center justify-center gap-2 pb-20 pt-4">
-            <button
+            <BaseButton
+              unstyled
+              icon-only
               :disabled="currentPage <= 1"
+              :aria-label="isEnglish ? 'Previous page' : 'Página anterior'"
               class="px-4 py-2.5 rounded-full border-2 text-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
               :class="currentPage <= 1 ? 'border-border-default text-text-subtle' : 'border-border-default text-text-brand hover:border-esmerald/40'"
               @click="goToPage(currentPage - 1)"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-            </button>
+            </BaseButton>
             <button
               v-for="p in paginationRange"
               :key="p"
@@ -285,14 +288,17 @@
             >
               {{ p }}
             </button>
-            <button
+            <BaseButton
+              unstyled
+              icon-only
               :disabled="currentPage >= totalPages"
+              :aria-label="isEnglish ? 'Next page' : 'Página siguiente'"
               class="px-4 py-2.5 rounded-full border-2 text-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
               :class="currentPage >= totalPages ? 'border-border-default text-text-subtle' : 'border-border-default text-text-brand hover:border-esmerald/40'"
               @click="goToPage(currentPage + 1)"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-            </button>
+            </BaseButton>
           </div>
         </template>
       </div>

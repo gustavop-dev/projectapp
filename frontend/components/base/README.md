@@ -164,9 +164,9 @@ prefer the bare class without `/N`.
 | `BaseCurrencyInput` | `modelValue` (Number/null), `decimals` (0 = COP; 2 allows a decimal comma), `size`, `error`, `placeholder`, `disabled` — money input that live-formats es-CO thousands (`1234567` → `1.234.567`) and emits the numeric value |
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
-| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `textPolicy` (`atomic` default / `wrap`), `loading`, `disabled`, `disabledReason`, `nativeTitle` (internal tooltip-owner escape hatch), `iconOnly`, `as` — see [Button variants](#button-variants) |
+| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `textPolicy` (`atomic` default / `wrap`), `loading`, `disabled`, `disabledReason`, `nativeTitle` (internal tooltip-owner escape hatch), `iconOnly`, `unstyled` (bespoke branded controls only), `as` — see [Button variants](#button-variants) |
 | `BaseActionIcon` | `action` — renders the canonical 16 px Heroicons 24 Outline glyph from `config/panelActions.js`; consumers cannot replace it |
-| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `disabledReason`, `as`, `to` — canonical icon-only action with one short viewport-aware hover/focus tooltip, no native duplicate, and a separately contextual accessible name |
+| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `statusTone` (`info`/`success`/`danger`), `variant`, `size`, `loading`, `disabled`, `disabledReason`, `as`, `to` — canonical icon-only action with one short viewport-aware hover/focus tooltip, no native duplicate, a separately contextual accessible name and visible transient status |
 | `BaseControlGate` | `reasons`, `label`, `visible`, `reserveSpace`, `align`, `position` — complete visible + hover/focus/touch explanation around a native disabled control |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`, `textPolicy` (`atomic` default / `wrap`); status icon + label never separate |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
@@ -192,7 +192,7 @@ prefer the bare class without `/N`.
 | `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |
-| `BaseTooltip`   | `position` (`top`/`bottom`/`left`/`right`), `backgroundColor`, `textColor`, `width`, `minWidth`, `rootClass`, `triggerClass`, `toggleOnClick`, `floating`, `viewportPadding`. Trigger via `#trigger`, body via default slot. `floating` teleports to `body`, flips/clamps inside the viewport and follows scroll/resize; click provides the touch path when enabled |
+| `BaseTooltip`   | `position` (`top`/`bottom`/`left`/`right`), `backgroundColor`, `textColor`, `width`, `minWidth`, `rootClass`, `triggerClass`, `toggleOnClick`, `forceOpen`, `floating`, `viewportPadding`. Trigger via `#trigger`, body via default slot. `floating` teleports to `body`, flips/clamps inside the viewport and follows scroll/resize; `forceOpen` presents owned transient status without requiring hover/focus |
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
@@ -213,13 +213,38 @@ Use `BaseActionButton` for an icon-only control. It supplies one viewport-aware
 hover/focus tooltip from the short catalog label and a separate accessible name
 from `label`; it deliberately emits no native browser `title`. Pass `tooltip`
 only when intentional visual copy should override the catalog label.
-`statusLabel` announces transient feedback without replacing the action glyph.
+`statusLabel` forces that same tooltip visible and announces it without replacing
+the action glyph; pair it with `statusTone="success"` or `statusTone="danger"`
+when the action has a resolved outcome.
 Text buttons and menu items may render `BaseActionIcon` beside their visible
 label. Do not import a Heroicon,
 embed SVG, or use an emoji to represent an executable action. Run
 `npm run check:panel-action-icons` to verify the contract. Informational,
 decorative and content glyphs are outside the action vocabulary and need an
 explicit guard comment when they appear inside a selectable row.
+
+### Visible icon interaction contract
+
+Every clickable icon across panel, platform and public views uses `BaseButton`
+with `icon-only`, or `BaseActionButton` when the action belongs to the canonical
+panel vocabulary. `BaseButton` owns the immediate 180 ms activation signal for
+buttons and links: a halo plus a small press scale. Coarse pointers receive a
+minimum 44 px target; `prefers-reduced-motion` keeps the color/halo signal and
+removes the scale and transition. Use `unstyled` only when a branded control
+must retain bespoke chrome—the interaction, accessibility and touch contract
+still remain active.
+
+Immediate activation only confirms that the input was registered. Existing
+`loading` state continues to represent pending asynchronous work. An outcome
+that is not otherwise visible must use a nearby status; clipboard actions use
+`useClipboardFeedback`, which exposes success for 2 seconds only after
+`navigator.clipboard.writeText()` resolves and danger for 3 seconds when it
+rejects. The owning screen still reports its actionable error through the
+normal notification path.
+
+Run `npm run check:icon-interaction-feedback` before delivery. The guard scans
+application Vue files and rejects raw icon-only `button`, `a` and `NuxtLink`
+controls unless an intentional custom exception is documented inline.
 
 ## Responsive panel contract
 

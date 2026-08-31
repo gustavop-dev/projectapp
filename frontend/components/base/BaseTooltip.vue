@@ -18,15 +18,15 @@
 
     <Teleport to="body" :disabled="!floating">
       <transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="transform scale-95 opacity-0"
-        enter-to-class="transform scale-100 opacity-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="transform scale-100 opacity-100"
-        leave-to-class="transform scale-95 opacity-0"
+        enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
+        enter-from-class="transform scale-95 opacity-0 motion-reduce:transform-none"
+        enter-to-class="transform scale-100 opacity-100 motion-reduce:transform-none"
+        leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
+        leave-from-class="transform scale-100 opacity-100 motion-reduce:transform-none"
+        leave-to-class="transform scale-95 opacity-0 motion-reduce:transform-none"
       >
         <div
-          v-if="showTooltip && !disabled"
+          v-if="tooltipVisible"
           :id="tooltipId"
           ref="tooltipEl"
           role="tooltip"
@@ -111,11 +111,15 @@ const props = defineProps({
   triggerClass: { type: String, default: 'cursor-help' },
   toggleOnClick: { type: Boolean, default: true },
   disabled: { type: Boolean, default: false },
+  /** Keep the same viewport-aware tooltip visible while a transient action
+   * status is active. Hover/focus behavior resumes when the status clears. */
+  forceOpen: { type: Boolean, default: false },
   floating: { type: Boolean, default: false },
   viewportPadding: { type: Number, default: 8 },
 })
 
 const showTooltip = ref(false)
+const tooltipVisible = computed(() => !props.disabled && (props.forceOpen || showTooltip.value))
 const rootEl = ref(null)
 const triggerEl = ref(null)
 const tooltipEl = ref(null)
@@ -157,7 +161,7 @@ function resolvePosition(triggerRect, tooltipRect, viewportWidth, viewportHeight
 }
 
 function updateFloatingPosition() {
-  if (!props.floating || !showTooltip.value || props.disabled || typeof window === 'undefined') return
+  if (!props.floating || !tooltipVisible.value || typeof window === 'undefined') return
   const trigger = triggerEl.value
   const tooltip = tooltipEl.value
   if (!trigger || !tooltip) return
@@ -274,16 +278,17 @@ watch(() => props.disabled, (disabled) => {
 })
 
 watch(
-  [showTooltip, () => props.floating, () => props.position],
+  [tooltipVisible, () => props.floating, () => props.position, () => props.text],
   async ([visible, floating]) => {
     stopFloatingListeners()
     if (!visible || !floating || props.disabled) return
     floatingStyle.value = { top: '0px', left: '0px', visibility: 'hidden' }
     await nextTick()
-    if (!showTooltip.value || !props.floating || props.disabled) return
+    if (!tooltipVisible.value || !props.floating) return
     updateFloatingPosition()
     startFloatingListeners()
   },
+  { immediate: true },
 )
 
 onBeforeUnmount(stopFloatingListeners)

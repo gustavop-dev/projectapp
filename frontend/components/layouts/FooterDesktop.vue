@@ -168,15 +168,17 @@
           <p class="sr-only">Video showcasing our web design and development portfolio</p>
         </video>
       </div>
-      <button 
-        ref="modalBall" 
+      <BaseButton
+        unstyled
+        icon-only
+        :ref="setModalBallRef"
         class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
         @click="closeModal"
         aria-label="Close video"
         >
         <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
         <span class="sr-only">Close showcase video</span>
-      </button>
+      </BaseButton>
     </div>
   </Teleport>
   
@@ -233,6 +235,10 @@ const modalBall = ref(null);
 const modalBallText = ref(null);
 const mainVideo = ref(null);
 const modalVideo = ref(null);
+
+function setModalBallRef(component) {
+  modalBall.value = component?.$el || null;
+}
 
 // Variables para seguimiento de ratón y posiciones de elementos
 let mouseX = 0, mouseY = 0, modalMouseX = 0, modalMouseY = 0;
