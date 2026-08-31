@@ -131,14 +131,14 @@ describe('ClientArchiveModal', () => {
     }));
     const wrapper = mountModal();
 
-    expect(wrapper.get('[data-testid="client-archive-confirm"]').attributes('disabled'))
-      .toBeDefined();
+    expect(wrapper.get('[data-testid="client-archive-confirm"]').element.disabled)
+      .toBe(true);
 
     resolvePreview(previewWith());
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="client-archive-confirm"]').attributes('disabled'))
-      .toBeUndefined();
+    expect(wrapper.get('[data-testid="client-archive-confirm"]').element.disabled)
+      .toBe(false);
   });
 
   it('does not preview when unarchiving, and warns the projects stay put', async () => {

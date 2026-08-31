@@ -43,7 +43,7 @@ const archivedClient = {
   updated_at: '2026-06-01T10:00:00Z',
 };
 
-function setupMock(page, { onUpdate = null } = {}) {
+function setupMock(page, { onUpdate = null, archiveStatus = 200 } = {}) {
   return mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
 
@@ -92,6 +92,16 @@ function setupMock(page, { onUpdate = null } = {}) {
 
     const archiveMatch = apiPath.match(/^proposals\/client-profiles\/(\d+)\/(archive|unarchive)\/$/);
     if (archiveMatch && method === 'POST') {
+      if (archiveStatus === 409) {
+        return {
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: 'projects_changed',
+            message: 'La lista de proyectos cambió desde la vista previa. Revísala de nuevo.',
+          }),
+        };
+      }
       const clientId = Number(archiveMatch[1]);
       const archiving = archiveMatch[2] === 'archive';
       const body = JSON.parse(route.request().postData() || '{}');
@@ -178,9 +188,32 @@ test.describe('Admin Clients Archived Tab', () => {
     await expect(page.getByText('"Carlos López" archivado.')).toBeVisible();
     expect(updates).toEqual([{
       clientId: 101,
-      archiving: true,
-      transitions: [{ project_id: 7, impact_token: 'tok-7' }],
+      body: {
+        archiving: true,
+        transitions: [{ project_id: 7, impact_token: 'tok-7' }],
+      },
     }]);
+  });
+
+  test('a confirmation that went stale is refused, not applied', {
+    tag: [...ADMIN_CLIENT_ARCHIVED_TAB, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await setupMock(page, { archiveStatus: 409 });
+    await gotoClients(page);
+
+    await expect(page.getByText('Carlos López')).toBeVisible();
+    await page.getByTestId('client-toggle-archived-101').click();
+    await expect(page.getByTestId('client-archive-impact')).toBeVisible();
+
+    await page.getByTestId('client-archive-confirm').click();
+
+    // The modal stays open with the reason. Applying anyway would suspend a
+    // project — and cancel its income — under a confirmation for a different
+    // set of projects than the one on screen.
+    await expect(page.getByTestId('client-archive-error'))
+      .toContainText('La lista de proyectos cambió desde la vista previa.');
+    await expect(page.getByTestId('client-archive-modal')).toBeVisible();
+    await expect(page.getByText('"Carlos López" archivado.')).toHaveCount(0);
   });
 
   test('the toggle from the Archivados list brings the client back', {
@@ -205,7 +238,7 @@ test.describe('Admin Clients Archived Tab', () => {
     await page.getByTestId('client-archive-confirm').click();
 
     await expect(page.getByText('"Dora Dormida" desarchivado.')).toBeVisible();
-    expect(updates).toEqual([{ clientId: 104, archiving: false }]);
+    expect(updates).toEqual([{ clientId: 104, body: { archiving: false } }]);
   });
 });
 

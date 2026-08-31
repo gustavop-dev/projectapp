@@ -155,10 +155,13 @@ describe('useProposalClientsStore', () => {
     });
 
     it('omits archived from the URL by default', async () => {
+      // The default list is the ACTIVE one: sending archived=false would be
+      // harmless, but sending nothing is what the backend documents as the
+      // panel default, and this is the test that keeps the two in step.
       get_request.mockResolvedValueOnce({ data: [] });
-      await store.fetchClients({ orphans: true });
+      await store.fetchClients();
       expect(get_request).toHaveBeenCalledWith(
-        'proposals/client-profiles/?orphans=true&limit=100',
+        'proposals/client-profiles/?limit=100',
       );
     });
 
