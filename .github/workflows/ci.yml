@@ -105,6 +105,13 @@ jobs:
   # holds 29% of the tests and 9% of the time, so any count-based split lands
   # 3-to-1 lopsided and the slowest shard sets the wall clock anyway.
   #
+  # Six shards, not more: each one costs ~1.1 min of fixed setup (deps, then the
+  # test database and its 320 migrations, which do not divide), so the curve is
+  # 1.1 + 45/N. Six lands the backend at ~8.7 min, which puts it BELOW the E2E
+  # block — the block closes at T+15 and is what the whole run waits on now.
+  # Past six the backend is already off the critical path and extra shards only
+  # buy queue pressure.
+  #
   # Coverage is combined in backend-coverage-merge, which owns the floor: a
   # per-shard --cov-fail-under would measure a fraction of the codebase and fail
   # every time.
@@ -115,7 +122,7 @@ jobs:
       # One red domain must not hide the state of the other three.
       fail-fast: false
       matrix:
-        shard: ["1/4", "2/4", "3/4", "4/4"]
+        shard: ["1/6", "2/6", "3/6", "4/6", "5/6", "6/6"]
     defaults:
       run:
         working-directory: backend
@@ -143,7 +150,7 @@ jobs:
         # Cheap guard against the real failure mode of a split: a test file that
         # silently stops running. Every discovered file must land in exactly one
         # shard.
-        run: python3 "$GITHUB_WORKSPACE/scripts/ci/backend-shard-files.py" --check 4
+        run: python3 "$GITHUB_WORKSPACE/scripts/ci/backend-shard-files.py" --check 6
 
       - name: Run pytest with coverage (shard ${{ matrix.shard }})
         # No --cov-report and no --cov-fail-under here: this shard only produces
