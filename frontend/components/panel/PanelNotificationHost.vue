@@ -73,7 +73,9 @@ async function runAction(n) {
             </button>
           </div>
 
-          <button
+          <BaseButton
+            unstyled
+            icon-only
             type="button"
             aria-label="Cerrar"
             title="Cerrar"
@@ -81,7 +83,7 @@ async function runAction(n) {
             @click="dismiss(n.id)"
           >
             <BaseActionIcon action="close" />
-          </button>
+          </BaseButton>
         </div>
       </TransitionGroup>
     </div>

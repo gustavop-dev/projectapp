@@ -15,6 +15,16 @@ This file captures important patterns, preferences, and project intelligence tha
 > compartidos, esta distinción puede aplicarse por dominio sin alterar el contrato
 > vigente del otro catálogo.
 
+> **Lección 2026-08-31 — activación, proceso y resultado son estados distintos:**
+> un pulso inmediato sólo confirma la entrada; no debe fingir que una operación
+> asíncrona terminó. El primitive visual cubre botones y enlaces icon-only, el
+> loading pertenece a la tarea y el resultado sólo se presenta cuando existe
+> evidencia. En particular, copiar se considera exitoso al resolver Clipboard
+> API, no al invocarla. Mantener el glifo estable preserva reconocimiento; el
+> tooltip temporal y la región viva comunican éxito o fallo. Un guard transversal
+> es necesario porque corregir únicamente el icono donde se detectó el problema
+> deja que el mismo defecto reaparezca en otras superficies.
+
 > **Lección 2026-08-30 — catálogo, ubicación y archivo son dimensiones
 > distintas:** una migración de esquema no equivale a adoptar datos históricos,
 > y una entidad sin contenido todavía pertenece al catálogo. La inclusión del

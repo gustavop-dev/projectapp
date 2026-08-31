@@ -75,14 +75,14 @@ function save() {
           <template #item="{ element: category, index: categoryIndex }">
             <section class="rounded-xl border border-border-default bg-surface">
               <header class="flex items-center gap-2 border-b border-border-default bg-surface-raised px-3 py-3">
-                <!-- design-tokens: allow-raw-button — drag handle, not a standalone action. -->
-                <button
-                  type="button"
+                <BaseButton
+                  unstyled
+                  icon-only
                   class="category-drag-handle min-h-11 min-w-11 cursor-grab rounded-lg text-text-muted hover:bg-surface"
                   :aria-label="`${t('additionalModules.reorder')}: ${category.name_es}`"
                 >
                   <span aria-hidden="true">⋮⋮</span>
-                </button>
+                </BaseButton>
                 <h3 class="min-w-0 flex-1 font-medium text-text-brand">{{ category.name_es }}</h3>
                 <BaseButton
                   variant="ghost"
@@ -114,14 +114,14 @@ function save() {
               >
                 <template #item="{ element: module, index: moduleIndex }">
                   <div class="flex items-center gap-2 rounded-lg border border-border-default bg-surface px-2 py-2">
-                    <!-- design-tokens: allow-raw-button — drag handle, not a standalone action. -->
-                    <button
-                      type="button"
+                    <BaseButton
+                      unstyled
+                      icon-only
                       class="module-drag-handle min-h-11 min-w-11 cursor-grab rounded-lg text-text-muted hover:bg-surface-raised"
                       :aria-label="`${t('additionalModules.reorder')}: ${module.name_es}`"
                     >
                       <span aria-hidden="true">⋮⋮</span>
-                    </button>
+                    </BaseButton>
                     <span aria-hidden="true" class="text-lg">{{ module.icon }}</span>
                     <span class="min-w-0 flex-1 text-sm text-text-default">{{ module.name_es }}</span>
                     <BaseBadge v-if="!module.is_active" variant="neutral" size="sm">{{ t('additionalModules.retired') }}</BaseBadge>

@@ -18,21 +18,33 @@
           class="w-full h-10 bg-black rounded-t-xl flex items-center justify-center relative"
         >
           <div class="absolute flex gap-2 left-0 ps-4">
-            <button
+            <BaseButton
+              unstyled
+              icon-only
               @click="hideModal"
-              class="w-3 h-3 bg-red-600 rounded-full cursor-pointer"
+              class="flex w-3 h-3 items-center justify-center cursor-pointer"
               aria-label="Close contact form"
-            ></button>
-            <button
+            >
+              <span class="block h-3 w-3 rounded-full bg-red-600" aria-hidden="true" />
+            </BaseButton>
+            <BaseButton
+              unstyled
+              icon-only
               @click="hideModal"
-              class="w-3 h-3 bg-yellow-600 rounded-full cursor-pointer"
+              class="flex w-3 h-3 items-center justify-center cursor-pointer"
               aria-label="Close contact form"
-            ></button>
-            <button
+            >
+              <span class="block h-3 w-3 rounded-full bg-yellow-600" aria-hidden="true" />
+            </BaseButton>
+            <BaseButton
+              unstyled
+              icon-only
               @click="hideModal"
-              class="w-3 h-3 bg-surface-raised rounded-full cursor-pointer"
+              class="flex w-3 h-3 items-center justify-center cursor-pointer"
               aria-label="Close contact form"
-            ></button>
+            >
+              <span class="block h-3 w-3 rounded-full bg-surface-raised" aria-hidden="true" />
+            </BaseButton>
           </div>
         </div>
         

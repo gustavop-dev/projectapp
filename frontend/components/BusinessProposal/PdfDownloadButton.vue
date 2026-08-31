@@ -1,6 +1,7 @@
 <template>
-  <button
-    type="button"
+  <BaseButton
+    unstyled
+    icon-only
     class="pdf-download fixed bottom-[4.75rem] right-4 z-40
            w-12 h-12 rounded-full
            bg-white/90 backdrop-blur-sm shadow-lg border border-border-default
@@ -8,6 +9,7 @@
            hover:bg-primary-soft hover:text-text-brand hover:border-emerald-200
            transition-colors"
     :disabled="isGenerating"
+    :aria-label="isGenerating ? 'Generando PDF' : 'Descargar PDF'"
     :title="isGenerating ? 'Generando...' : 'Descargar PDF'"
     @click="downloadPdf"
   >
@@ -21,7 +23,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
-  </button>
+  </BaseButton>
 </template>
 
 <script setup>

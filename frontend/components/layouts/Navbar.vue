@@ -81,13 +81,15 @@
       >
         {{ globalMessages.sign_in || 'Sign In' }}
       </NuxtLink>
-      <button
+      <BaseButton
+        unstyled
+        icon-only
         @click="openMenuMobile"
         class="w-10 h-10 rounded-full bg-primary flex items-center justify-center"
         aria-label="Open menu"
       >
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </button>
+      </BaseButton>
     </div>
   </nav>
 
@@ -123,13 +125,15 @@
           >
             ProjectApp.
           </NuxtLink>
-          <button
+          <BaseButton
+            unstyled
+            icon-only
             @click="closeMenuMobile"
             class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-text-brand hover:bg-primary/20 transition-colors"
             aria-label="Close menu"
           >
             <XMarkIcon class="w-6 h-6" />
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Nav links — large, staggered -->

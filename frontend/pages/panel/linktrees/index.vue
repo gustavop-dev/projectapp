@@ -33,7 +33,14 @@
       <template #cell-public_url="{ row: tree }">
         <div class="flex min-w-0 items-center gap-2">
           <code class="min-w-0 break-all rounded bg-surface-muted px-2 py-1 text-xs">{{ publicLinkFor(tree) }}</code>
-          <BaseActionButton action="copy" label="Copiar link" size="sm" @click="copyLink(tree)" />
+          <BaseActionButton
+            action="copy"
+            :label="copyFeedback(tree).label || 'Copiar link'"
+            :status-label="copyFeedback(tree).label"
+            :status-tone="copyFeedback(tree).tone"
+            size="sm"
+            @click="copyLink(tree)"
+          />
         </div>
       </template>
 
@@ -141,6 +148,7 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useLinktreesStore } from '~/stores/linktrees';
 
@@ -148,6 +156,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = useLinktreesStore();
 const notify = usePanelNotify();
+const clipboardFeedback = useClipboardFeedback();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const localePath = useLocalePath();
 const lp = (path) => localePath(path);
@@ -191,12 +200,20 @@ function publicLinkFor(tree) {
 }
 
 async function copyLink(tree) {
-  try {
-    await navigator.clipboard.writeText(publicLinkFor(tree));
-    notify.success({ title: 'Link copiado' });
-  } catch {
-    notify.error({ title: 'No se pudo copiar', detail: 'Copiá el link manualmente.' });
-  }
+  await clipboardFeedback.copyText({
+    key: `linktree-${tree.id}`,
+    text: publicLinkFor(tree),
+    successLabel: 'Copiado: link público',
+    errorLabel: 'No se pudo copiar el link',
+    onError: () => notify.error({
+      title: 'No se pudo copiar',
+      detail: 'Copiá el link manualmente.',
+    }),
+  });
+}
+
+function copyFeedback(tree) {
+  return clipboardFeedback.feedbackFor(`linktree-${tree.id}`);
 }
 
 function openCreateModal() {

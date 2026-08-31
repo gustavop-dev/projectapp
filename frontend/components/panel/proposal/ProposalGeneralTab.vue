@@ -51,8 +51,9 @@
           <span class="text-text-subtle text-xs">URL pública</span>
           <BaseActionButton
             action="copy"
-            :label="copied ? 'Copiado: URL pública' : 'Copiar URL pública'"
-            :status-label="copied ? 'Copiado: URL pública' : ''"
+            :label="copyFeedback('public').label || 'Copiar URL pública'"
+            :status-label="copyFeedback('public').label"
+            :status-tone="copyFeedback('public').tone"
             @click="copyUrl"
             class="-my-1 text-text-subtle hover:text-text-brand"
           />
@@ -67,8 +68,9 @@
             <span class="text-text-subtle text-xs">{{ link.labelUrl }}</span>
             <BaseActionButton
               action="copy"
-              :label="copiedMode === link.mode ? `Copiado: ${link.labelUrl}` : `Copiar ${link.labelUrl}`"
-              :status-label="copiedMode === link.mode ? `Copiado: ${link.labelUrl}` : ''"
+              :label="copyFeedback(link.mode).label || `Copiar ${link.labelUrl}`"
+              :status-label="copyFeedback(link.mode).label"
+              :status-tone="copyFeedback(link.mode).tone"
               @click="copyModeUrl(link.mode)"
               class="-my-1 text-text-subtle hover:text-text-brand"
             />
@@ -781,6 +783,8 @@ import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DEFAULT_METHOD_PHASES } from '~/stores/proposals_constants';
 import { useProposalStore } from '~/stores/proposals';
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useTooltipTexts } from '~/composables/useTooltipTexts';
 import { toSlug } from '~/utils/slugify';
 
@@ -813,6 +817,8 @@ const emit = defineEmits([
 ]);
 
 const proposalStore = useProposalStore();
+const notify = usePanelNotify();
+const clipboardFeedback = useClipboardFeedback();
 const { proposalEdit: tt } = useTooltipTexts();
 
 // Aliases so the code moved verbatim from the edit page keeps reading
@@ -850,21 +856,37 @@ const publicIdentifier = computed(
   () => proposal.value?.slug || proposal.value?.uuid || ''
 );
 
-const copied = ref(false);
-function copyUrl() {
+async function copyUrl() {
   const url = `${window.location.origin}/proposal/${publicIdentifier.value}`;
-  navigator.clipboard.writeText(url).then(() => {
-    copied.value = true;
-    setTimeout(() => { copied.value = false; }, 2000);
+  await clipboardFeedback.copyText({
+    key: 'public',
+    text: url,
+    successLabel: 'Copiado: URL pública',
+    errorLabel: 'No se pudo copiar la URL',
+    onError: notifyCopyError,
   });
 }
 
-const copiedMode = ref(null);
-function copyModeUrl(mode) {
+async function copyModeUrl(mode) {
   const url = `${window.location.origin}/proposal/${publicIdentifier.value}?mode=${mode}`;
-  navigator.clipboard.writeText(url).then(() => {
-    copiedMode.value = mode;
-    setTimeout(() => { copiedMode.value = null; }, 2000);
+  const link = proposalModeLinks.value.find((candidate) => candidate.mode === mode);
+  await clipboardFeedback.copyText({
+    key: mode,
+    text: url,
+    successLabel: `Copiado: ${link?.labelUrl || 'URL de la propuesta'}`,
+    errorLabel: 'No se pudo copiar la URL',
+    onError: notifyCopyError,
+  });
+}
+
+function copyFeedback(key) {
+  return clipboardFeedback.feedbackFor(key);
+}
+
+function notifyCopyError() {
+  notify.error({
+    title: 'No se pudo copiar la URL',
+    detail: 'Tu navegador bloqueó el acceso al portapapeles.',
   });
 }
 

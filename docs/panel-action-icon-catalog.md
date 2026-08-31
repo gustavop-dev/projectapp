@@ -122,9 +122,13 @@ acciones diferentes.
 - Área táctil: mínimo `44 × 44 px` en dispositivos de puntero grueso, provisto
   por `BaseButton`.
 - Un control que contiene solamente un icono usa `BaseActionButton`: recibe
-  tooltip en hover/foco, atributo `title` y nombre accesible (`aria-label`).
-- El feedback transitorio se expresa con `statusLabel` y una región viva; el
-  glifo permanece estable para que la acción siga siendo reconocible.
+  un solo tooltip en hover/foco y nombre accesible (`aria-label`), sin duplicar
+  la ayuda con un `title` nativo.
+- El feedback transitorio se expresa con `statusLabel`, `statusTone` y una
+  región viva. El mismo tooltip queda visible durante el estado y el glifo
+  permanece estable para que la acción siga siendo reconocible.
+- La activación inmediata, el objetivo táctil y reduced motion pertenecen a
+  `BaseButton`; un estado async conserva su `loading` independiente.
 
 ## Catálogo canónico
 
@@ -232,6 +236,9 @@ Todos los iconos de esta tabla pertenecen a Heroicons 24 Outline.
 - `npm run check:panel-action-icons` falla ante SVG, emojis, Heroicons directos,
   acciones desconocidas o botones icon-only sin nombre/tooltip dentro del
   alcance del panel. El mismo guard corre en CI.
+- `npm run check:icon-interaction-feedback` amplía el contrato a panel,
+  plataforma y superficies públicas: rechaza controles icon-only crudos salvo
+  una excepción visual justificada en el archivo. También corre en CI.
 
 Para cambiar el símbolo de una acción se modifica una sola entrada en
 `frontend/config/panelActions.js`; las pantallas consumidoras no deben importar

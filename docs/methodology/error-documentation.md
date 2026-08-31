@@ -71,7 +71,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-048] El catálogo de estados presentaba requisitos como una lista roja
+### [ERR-049] El catálogo de estados presentaba requisitos como una lista roja
 
 - **Date**: 2026-08-31
 - **Context**: En `/panel/projects/statuses`, crear, editar y fusionar mostraban
@@ -86,6 +86,21 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   Documentos permanece sin cambios.
 - **Verification**: 6 pruebas unitarias, 14 escenarios Playwright del archivo
   afectado, guard de controles, build Nuxt y auditoría de flujos en verde.
+
+### [ERR-048] Los iconos clicables no confirmaban la activación
+
+- **Date**: 2026-08-31
+- **Context**: Acciones icon-only, detectado inicialmente al copiar, podían
+  ejecutarse sin una señal visible de que el clic se había registrado.
+- **Root Cause**: Muchos controles usaban botones o enlaces crudos y los estados
+  transitorios se implementaban por pantalla; no existía un primitive común que
+  separara activación, trabajo pendiente y resultado.
+- **Resolution**: Los controles migraron a `BaseButton`/`BaseActionButton`, con
+  reacción inmediata, paridad táctil/teclado y reduced motion. Copiar usa
+  `useClipboardFeedback` y sólo confirma éxito al resolver Clipboard API; el
+  fallo presenta tono visible y conserva la notificación accionable.
+- **Verification**: 27 pruebas unitarias focales, dos escenarios Playwright de
+  éxito/fallo, build Nuxt, parseo de 536 SFC y ambos guards de iconos en verde.
 
 ### [ERR-047] Los proyectos suspendidos ignoraban el control de archivados
 

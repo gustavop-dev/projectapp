@@ -13,7 +13,19 @@ import EmojiIconField from '../../components/BusinessProposal/admin/EmojiIconFie
 function mountField(props = {}) {
   return mount(EmojiIconField, {
     props: { modelValue: '', label: '', ...props },
-    global: { stubs: { Teleport: true, EmojiPicker: true } },
+    global: {
+      stubs: {
+        Teleport: true,
+        EmojiPicker: true,
+        BaseTooltip: {
+          template: '<div><slot name="trigger" /></div>',
+        },
+        BaseButton: {
+          emits: ['click'],
+          template: '<button type="button" @click="$emit(\'click\', $event)"><slot /></button>',
+        },
+      },
+    },
   });
 }
 
@@ -42,7 +54,7 @@ describe('EmojiIconField', () => {
   it('shows the overlay backdrop when the emoji button is clicked', async () => {
     const wrapper = mountField();
 
-    await wrapper.find('button').trigger('click');
+    await wrapper.find('button[aria-label="Seleccionar emoji"]').trigger('click');
     await nextTick();
 
     // The v-if="showPicker" overlay div is rendered when picker is open

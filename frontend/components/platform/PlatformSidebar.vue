@@ -64,8 +64,11 @@
           :disabled="item.disabled"
         />
         <!-- Personaliza button (opens theme picker, not a route) -->
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           type="button"
+          aria-label="Personalizar apariencia"
           :class="[
             'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
             isCollapsed ? 'justify-center' : '',
@@ -79,7 +82,7 @@
             <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
           </svg>
           <span v-if="!isCollapsed" class="truncate">Personaliza</span>
-        </button>
+        </BaseButton>
       </div>
 
       <!-- Admin section -->
@@ -134,8 +137,11 @@
         ]"
       >
         <!-- Color theme -->
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           type="button"
+          aria-label="Personalizar apariencia"
           :class="sidebarActionClass"
           :title="isCollapsed ? 'Personalizar' : undefined"
           @click="showThemePicker = true"
@@ -147,19 +153,25 @@
             <circle cx="6.5" cy="12.5" r="2.5" />
             <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
           </svg>
-        </button>
+        </BaseButton>
 
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           type="button"
+          aria-label="Cerrar sesión"
           :class="sidebarActionClass"
           :title="isCollapsed ? 'Salir' : undefined"
           @click="$emit('logout')"
         >
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-        </button>
+        </BaseButton>
 
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           type="button"
+          :aria-label="isCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
           :class="[sidebarActionClass, 'ml-auto']"
           :title="isCollapsed ? 'Expandir' : 'Colapsar'"
           @click="toggleSidebar"
@@ -173,7 +185,7 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
           </svg>
-        </button>
+        </BaseButton>
       </div>
     </div>
   </aside>

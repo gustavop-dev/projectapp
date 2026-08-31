@@ -31,15 +31,18 @@
       class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 md:hidden"
       :class="hasCover ? '' : 'bg-surface/80 backdrop-blur-xl dark:bg-primary-strong/90'"
     >
-      <button
+      <BaseButton
+        unstyled
+        icon-only
         type="button"
+        aria-label="Abrir navegación"
         class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
         @click="openMobile"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
+      </BaseButton>
       <NuxtLink :to="localePath('/platform/projects')" class="text-base font-bold tracking-tight text-text-brand dark:text-white">
         Project<span class="text-green-light dark:text-accent">App.</span>
       </NuxtLink>
@@ -88,9 +91,16 @@
                 <h3 class="text-lg font-semibold text-text-brand dark:text-white">Personalizar interfaz</h3>
                 <p class="mt-1 text-xs text-green-light">Escoge un color y una imagen para hacer tuyo este espacio.</p>
               </div>
-              <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white" @click="showThemePicker = false">
+              <BaseButton
+                unstyled
+                icon-only
+                type="button"
+                aria-label="Cerrar personalización"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
+                @click="showThemePicker = false"
+              >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              </BaseButton>
             </div>
             <ThemePicker />
           </div>

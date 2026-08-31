@@ -33,7 +33,14 @@
       <template #cell-short_link="{ row: card }">
         <div class="flex min-w-0 items-center gap-2">
           <code class="min-w-0 break-all rounded bg-surface-muted px-2 py-1 text-xs">{{ shortLinkFor(card) }}</code>
-          <BaseActionButton action="copy" label="Copiar link" size="sm" @click="copyLink(card)" />
+          <BaseActionButton
+            action="copy"
+            :label="copyFeedback(card).label || 'Copiar link'"
+            :status-label="copyFeedback(card).label"
+            :status-tone="copyFeedback(card).tone"
+            size="sm"
+            @click="copyLink(card)"
+          />
         </div>
       </template>
 
@@ -165,6 +172,7 @@ import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import DownloadQrModal from '~/components/panel/qr-cards/DownloadQrModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useQrCardsStore } from '~/stores/qr_cards';
 import { useLinktreesStore } from '~/stores/linktrees';
@@ -174,6 +182,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const store = useQrCardsStore();
 const linktreesStore = useLinktreesStore();
 const notify = usePanelNotify();
+const clipboardFeedback = useClipboardFeedback();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const formModal = reactive({
@@ -233,12 +242,20 @@ function shortLinkFor(card) {
 }
 
 async function copyLink(card) {
-  try {
-    await navigator.clipboard.writeText(shortLinkFor(card));
-    notify.success({ title: 'Link copiado' });
-  } catch {
-    notify.error({ title: 'No se pudo copiar', detail: 'Copiá el link manualmente.' });
-  }
+  await clipboardFeedback.copyText({
+    key: `qr-card-${card.id}`,
+    text: shortLinkFor(card),
+    successLabel: 'Copiado: link corto',
+    errorLabel: 'No se pudo copiar el link',
+    onError: () => notify.error({
+      title: 'No se pudo copiar',
+      detail: 'Copiá el link manualmente.',
+    }),
+  });
+}
+
+function copyFeedback(card) {
+  return clipboardFeedback.feedbackFor(`qr-card-${card.id}`);
 }
 
 function openCreateModal() {

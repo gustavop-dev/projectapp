@@ -22,15 +22,18 @@
               Project<span class="text-text-brand dark:text-accent">App.</span>
             </span>
           </div>
-          <button
+          <BaseButton
+            unstyled
+            icon-only
             type="button"
+            aria-label="Cerrar navegación"
             class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
             @click="$emit('close')"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Navigation (reuse sidebar items) -->
@@ -104,8 +107,11 @@
 
           <div class="mt-2 flex items-center gap-1">
             <!-- Theme customization -->
-            <button
+            <BaseButton
+              unstyled
+              icon-only
               type="button"
+              aria-label="Personalizar apariencia"
               class="flex h-9 w-9 items-center justify-center rounded-lg text-green-light transition hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
               @click="$emit('close'); $emit('openThemePicker')"
             >
@@ -116,7 +122,7 @@
                 <circle cx="6.5" cy="12.5" r="2.5" />
                 <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
               </svg>
-            </button>
+            </BaseButton>
 
             <BaseButton variant="ghost" size="md" class="ml-auto" @click="$emit('logout')">
               Salir

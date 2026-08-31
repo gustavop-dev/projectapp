@@ -1,13 +1,16 @@
 <template>
   <div class="proposal-index fixed left-0 top-0 z-50 pointer-events-none">
     <!-- Toggle button (always visible) -->
-    <button
+    <BaseButton
+      unstyled
+      icon-only
       data-testid="index-toggle"
       class="index-toggle absolute left-4 z-50 pointer-events-auto
              w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg
              flex items-center justify-center text-text-brand
              hover:bg-primary/5 transition-all"
       :class="bannerActive ? 'top-28 sm:top-20' : 'top-4'"
+      :aria-label="language === 'en' ? (isOpen ? 'Close index' : 'Open index') : (isOpen ? 'Cerrar índice' : 'Abrir índice')"
       @click="isOpen = !isOpen"
     >
       <svg v-if="!isOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,7 +19,7 @@
       <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
-    </button>
+    </BaseButton>
 
     <!-- Blur backdrop when index is open -->
     <Transition name="idx-fade">
@@ -38,17 +41,20 @@
       :class="isOpen ? 'pointer-events-auto' : 'pointer-events-none translate-x-[-120%]'"
     >
       <!-- Mobile close button — same style/position as hamburger toggle -->
-      <button
+      <BaseButton
+        unstyled
+        icon-only
         class="sm:hidden absolute left-4 top-4 z-10
                w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg
                flex items-center justify-center text-text-brand
                hover:bg-primary/5 transition-colors"
+        :aria-label="language === 'en' ? 'Close index' : 'Cerrar índice'"
         @click="isOpen = false"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
-      </button>
+      </BaseButton>
 
       <p class="text-[10px] uppercase tracking-[0.2em] text-text-brand font-medium mb-2 px-2 mt-14 sm:mt-0">
         Índice

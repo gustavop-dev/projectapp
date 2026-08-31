@@ -4,6 +4,7 @@
       "title": "3. Shared Flows (Guest + Admin)",
       "flows": [
         "layout-navbar-navigation",
+        "layout-icon-interaction-feedback",
         "layout-locale-switch",
         "layout-footer-navigation"
       ]

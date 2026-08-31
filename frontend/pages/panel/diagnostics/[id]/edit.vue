@@ -206,8 +206,9 @@
               <span class="text-text-subtle text-xs">URL pública</span>
               <BaseActionButton
                 action="copy"
-                :label="urlCopied ? 'Copiado: URL pública' : 'Copiar URL pública'"
-                :status-label="urlCopied ? 'Copiado: URL pública' : ''"
+                :label="publicUrlFeedback.label || 'Copiar URL pública'"
+                :status-label="publicUrlFeedback.label"
+                :status-tone="publicUrlFeedback.tone"
                 class="text-text-subtle hover:text-text-brand transition-colors"
                 @click="copyPublicUrl"
               />
@@ -645,6 +646,7 @@ import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
 import { toSlug } from '~/utils/slugify';
@@ -660,6 +662,8 @@ const {
   confirmState, requestConfirm, handleConfirmed, handleSecondaryAction, handleCancelled,
 } = useConfirmModal();
 const notify = usePanelNotify();
+const clipboardFeedback = useClipboardFeedback();
+const publicUrlFeedback = computed(() => clipboardFeedback.feedbackFor('public-url'));
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 
@@ -786,16 +790,18 @@ async function saveSlug() {
 }
 
 // ── Public URL copy ───────────────────────────────────────────────────
-const urlCopied = ref(false);
-let urlCopiedTimer = null;
 async function copyPublicUrl() {
   if (!store.current?.public_url) return;
-  try {
-    await navigator.clipboard.writeText(store.current.public_url);
-    urlCopied.value = true;
-    if (urlCopiedTimer) clearTimeout(urlCopiedTimer);
-    urlCopiedTimer = setTimeout(() => { urlCopied.value = false; }, 1500);
-  } catch (_) { /* ignore */ }
+  await clipboardFeedback.copyText({
+    key: 'public-url',
+    text: store.current.public_url,
+    successLabel: 'Copiado: URL pública',
+    errorLabel: 'No se pudo copiar la URL',
+    onError: () => notify.error({
+      title: 'No se pudo copiar la URL pública',
+      detail: 'Tu navegador bloqueó el acceso al portapapeles.',
+    }),
+  });
 }
 
 // ── General editable form (title/client/language/pricing/size) ────────
@@ -1389,7 +1395,6 @@ onMounted(() => store.fetchDetail(id.value));
 // antes de recargar.
 usePanelRefresh(guardedReload);
 onUnmounted(() => {
-  if (urlCopiedTimer) clearTimeout(urlCopiedTimer);
   if (jsonCopiedTimer) clearTimeout(jsonCopiedTimer);
 });
 </script>

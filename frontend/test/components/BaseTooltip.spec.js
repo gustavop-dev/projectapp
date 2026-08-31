@@ -18,6 +18,28 @@ describe('BaseTooltip', () => {
     expect(wrapper.text()).not.toContain('Tip body')
   })
 
+  it('keeps a forced status visible without hover or focus', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: { text: 'Copiado', forceOpen: true },
+    })
+    expect(wrapper.get('[role="tooltip"]').text()).toContain('Copiado')
+
+    await wrapper.setProps({ forceOpen: false })
+    expect(wrapper.find('[role="tooltip"]').exists()).toBe(false)
+  })
+
+  it('positions an initially forced floating status', async () => {
+    const wrapper = mount(BaseTooltip, {
+      attachTo: document.body,
+      props: { text: 'Copiado', forceOpen: true, floating: true },
+    })
+    await nextTick()
+
+    const tooltip = document.body.querySelector('[role="tooltip"]')
+    expect(tooltip.style.visibility).toBe('visible')
+    wrapper.unmount()
+  })
+
   it('shows the body on pointerenter (mouse)', async () => {
     const wrapper = mount(BaseTooltip, { slots: { default: 'Tip body' } })
     await wrapper.find('div.cursor-help').trigger('pointerenter', { pointerType: 'mouse' })
