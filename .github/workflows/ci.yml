@@ -253,8 +253,17 @@ jobs:
         run: npm run check:view-catalog
 
       - name: Run Jest tests with coverage
+        # --maxWorkers=100%: the 524 suites add up to 48.4 min of work and the
+        # job resolved them in 16.75 min of wall clock, i.e. 2.9 effective
+        # workers — jest's default of `cores - 1` on a 4-core runner. The runner
+        # is a dedicated, throwaway machine, so leaving a core idle buys nothing
+        # here. It stays on the command and OUT of jest.config.cjs on purpose:
+        # locally, taking every core makes the machine unusable while tests run,
+        # and there the default is the right one.
+        # If this ever turns flaky or OOMs, --maxWorkers=3 pins today's
+        # behaviour explicitly instead of falling back to the implicit default.
         run: |
-          NODE_OPTIONS='--no-deprecation' npx jest --config jest.config.cjs --coverage --ci --forceExit --json --outputFile=jest-results.json || true
+          NODE_OPTIONS='--no-deprecation' npx jest --config jest.config.cjs --coverage --ci --maxWorkers=100% --forceExit --json --outputFile=jest-results.json || true
           node scripts/coverage-summary.cjs
           # Fail the step if tests failed
           node --input-type=commonjs -e "const r=require('./jest-results.json'); if(!r.success) process.exit(1);"
