@@ -15,6 +15,18 @@ MCP y 3 regresiones existentes verdes; Django no reporta problemas, no hay drift
 de migraciones y el gate estricto del batch cerró con cero errores. Sólo falta la
 confirmación del CI del PR.
 
+**2026-08-31 — validación del catálogo de estados de proyectos lista para
+integrar:** crear, editar y fusionar conservan sus acciones disponibles y, tras
+el intento, muestran cada requisito junto al control correspondiente mediante
+`BaseFormField`; nombre, descripción y efecto operativo identifican su
+obligatoriedad. Los errores de serializer se mantienen en el mismo campo y se
+limpian al corregirlo. La selección faltante de una fusión sigue este patrón,
+mientras la prohibición permanente de fusionar estados semilla permanece como
+ayuda accesible del control deshabilitado. El catálogo documental conserva su
+comportamiento previo. Verificación: 6 unitarias, 14 escenarios E2E del archivo
+afectado, guard de controles, build Nuxt, mapa fresco y auditoría con 0
+`junk-only`/0 faltantes.
+
 **2026-08-31 — reacción visible de iconos interactivos lista para integrar:** el
 requerimiento transversal cubre controles icon-only ejecutables del panel, la
 plataforma y las vistas públicas, incluidas acciones, navegación, apertura y

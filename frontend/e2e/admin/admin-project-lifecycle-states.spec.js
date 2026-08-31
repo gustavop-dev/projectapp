@@ -419,6 +419,63 @@ test.describe('Admin project state catalog', () => {
     await expect(page.getByTestId('catalog-state-2')).toContainText('1 proyectos activos · 3 episodios');
   });
 
+  test('places missing creation requirements beside their fields', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    let createCalls = 0;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'project-states/' && method === 'POST') {
+        createCalls += 1;
+        return json({}, 201);
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    await page.getByTestId('catalog-create-state').click();
+
+    const name = page.getByTestId('catalog-new-state-name');
+    const description = page.getByTestId('catalog-new-state-description');
+    await expect(name).toHaveAttribute('aria-invalid', 'true');
+    await expect(description).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('Escribe el nombre del estado.', { exact: true }))
+      .toBeVisible();
+    await expect(page.getByText('Explica qué significa el estado.', { exact: true }))
+      .toBeVisible();
+    expect(createCalls).toBe(0);
+  });
+
+  test('places a missing merge target beside its selector', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    let mergeCalls = 0;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'project-states/8/merge/' && method === 'POST') {
+        mergeCalls += 1;
+        return json(catalog.find((state) => state.id === 8));
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    const row = page.getByTestId('catalog-state-8');
+    await row.getByTestId('catalog-merge-state-8').click();
+
+    const target = row.getByLabel('Destino para fusionar En garantía');
+    await expect(target).toHaveAttribute('aria-invalid', 'true');
+    await expect(row.getByText('Elige el estado de destino.', { exact: true }))
+      .toBeVisible();
+    expect(mergeCalls).toBe(0);
+
+    await target.selectOption('2');
+    await expect(row.getByText('Elige el estado de destino.', { exact: true }))
+      .toHaveCount(0);
+  });
+
   test('creates a reusable state with an explicit operational effect', {
     tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

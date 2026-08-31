@@ -14,6 +14,14 @@ This file captures important patterns, preferences, and project intelligence tha
 > edición por MCP debe reutilizar el mismo servicio del panel y mantener separada
 > la persistencia del hecho de cualquier transporte externo.
 
+> **Lección 2026-08-31 — corregible e inmutable necesitan superficies
+> distintas:** un requisito incompleto o un error de serializer pertenece al
+> campo, aparece después del intento y se limpia cuando cambia ese valor. Una
+> restricción permanente no debe fingir ser validación del formulario: conserva
+> el control deshabilitado y una explicación accesible. En componentes
+> compartidos, esta distinción puede aplicarse por dominio sin alterar el contrato
+> vigente del otro catálogo.
+
 > **Lección 2026-08-31 — activación, proceso y resultado son estados distintos:**
 > un pulso inmediato sólo confirma la entrada; no debe fingir que una operación
 > asíncrona terminó. El primitive visual cubre botones y enlaces icon-only, el
