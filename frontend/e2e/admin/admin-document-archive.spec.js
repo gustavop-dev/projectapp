@@ -258,6 +258,27 @@ test.describe('Admin Document Archive', () => {
     await expect(table.getByText('Anexos')).toHaveCount(0);
   });
 
+  test('archived mode lists only the folders that hold archived content', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => baseRoutes({
+      apiPath, url: route.request().url(),
+    }));
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-archived-entry').click();
+
+    const table = page.getByRole('table');
+    // «Contratos» está activa y no guarda nada archivado: en este modo sobra.
+    await expect(table.getByText('Contratos', { exact: true })).toHaveCount(0);
+    // «temp» sí guarda archivados, así que se lista para poder bajar hasta ellos…
+    await expect(table.getByText('temp', { exact: true })).toBeVisible();
+    // …y su inventario se cuenta en el scope de la VISTA, no en el de la fila:
+    // rotulada por su estado diría «Vacía», que es el síntoma que se reportó.
+    await expect(table.getByRole('row', { name: /temp/ })).toContainText('2 documentos');
+    await expect(table.getByText('Contratos 2024')).toBeVisible();
+  });
+
   test('an archived folder can be entered and navigated like an active one', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -784,7 +805,11 @@ test.describe('Admin Document Archive', () => {
     await expect(page.getByTestId('doc-scope-banner')).toContainText('Modo archivado');
     // Y los contadores pasan a contar lo archivado, que es lo que se lista.
     await expect(unfiled).toContainText('0');
-    await expect(contratos).toContainText('0');
+    // «Contratos» está activa y no guarda nada archivado: en este modo no tiene
+    // nada que ofrecer, así que sale del panel en vez de quedarse rotulando 0.
+    await expect(contratos).toHaveCount(0);
+    // «temp» sí guarda archivados: se queda, y cuenta los que se listan.
+    await expect(sidebar.getByRole('button', { name: /^temp —/ })).toContainText('2');
     // La carpeta archivada deja de aparentar que no existe.
     await expect(sidebar.getByText('Contratos 2024')).toBeVisible();
   });

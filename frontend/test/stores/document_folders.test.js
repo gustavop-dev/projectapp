@@ -337,6 +337,37 @@ describe('useDocumentFolderStore', () => {
       expect(store.ancestorsOf(4).map((f) => f.name)).toEqual(['temp', 'Actas'])
     })
 
+    describe('archived mode lists only what holds archived content', () => {
+      // El árbol que reportó el operador: parado en un proyecto sin nada
+      // archivado veía TODAS sus carpetas, con su inventario activo.
+      beforeEach(() => {
+        store.folders = [
+          { id: 10, name: 'Mimittos', parent: null, active_children_count: 1 },
+          { id: 11, name: 'Cuentas', parent: 10, active_document_count: 1 },
+          { id: 20, name: 'Vastago', parent: null, active_children_count: 1 },
+          { id: 21, name: 'Feedback', parent: 20, active_document_count: 4, archived_document_count: 1 },
+        ]
+      })
+
+      it('drops a project whose subtree has nothing archived', () => {
+        expect(store.belongsToScope(store.folderById(10), 'archived')).toBe(false)
+        expect(store.belongsToScope(store.folderById(11), 'archived')).toBe(false)
+        expect(store.scopedRootFolders('archived').map((f) => f.id)).toEqual([20])
+      })
+
+      it('keeps an active folder that still holds archived documents', () => {
+        expect(store.belongsToScope(store.folderById(21), 'archived')).toBe(true)
+        expect(store.childrenOf(20, 'archived').map((f) => f.id)).toEqual([21])
+        expect(store.childrenOf(10, 'archived')).toEqual([])
+      })
+
+      it('leaves the active and mixed scopes untouched', () => {
+        expect(store.scopedRootFolders('active').map((f) => f.id)).toEqual([10, 20])
+        expect(store.childrenOf(10, 'active').map((f) => f.id)).toEqual([11])
+        expect(store.childrenOf(10, 'all').map((f) => f.id)).toEqual([11])
+      })
+    })
+
     it('totalContentCount counts archived content, matching the delete 409', () => {
       const folder = {
         active_document_count: 0,

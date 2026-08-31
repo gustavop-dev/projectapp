@@ -550,7 +550,7 @@ import BasePagination from '~/components/base/BasePagination.vue';
 import BaseDrawer from '~/components/base/BaseDrawer.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { isRootInScope, matchesScope, treeScopeFor } from '~/utils/archiveScope';
+import { isRootInScope } from '~/utils/archiveScope';
 import { folderSummaryFrom, scopedCounts } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -676,13 +676,14 @@ const navigationRootValue = computed(() => (
 // el archivo encendido: una carpeta archivada entera no aparecía por ningún
 // lado y «Todos» decía un número mientras el listado mostraba otro.
 //
-// `treeScopeFor` es la MISMA regla con que el rollup decide por qué carpetas
-// puede bajar. Importarla en los dos sitios es lo que garantiza que la suma de
-// las filas más «Sin carpeta» dé exactamente «Todos»: las raíces que se listan
-// y los subárboles que se suman son la misma partición del árbol.
-const treeScope = computed(() => treeScopeFor(effectiveScope.value));
-
-const sidebarFolders = computed(() => folderStore.scopedRootFolders(treeScope.value));
+// El eje de RENDERIZADO es el scope de la vista, no `treeScopeFor`. Ése abre el
+// árbol completo y es la regla del ROLLUP —cuántos archivados cuelgan de una
+// carpeta activa—, no la de «qué filas se listan». Mezclarlos hacía que el modo
+// archivado pintara el árbol entero. Quién puede aparecer lo decide
+// `belongsToScope`, que suma las carpetas activas con archivados dentro para
+// que se pueda bajar hasta ellos, y el panel lateral y el listado lo comparten:
+// si discrepan, el panel promete «0 subcarpetas» y al entrar aparecen N.
+const sidebarFolders = computed(() => folderStore.scopedRootFolders(effectiveScope.value));
 
 const sidebarUnfiledCount = computed(() => {
   const { unfiled_active: unfiledActive, unfiled_archived: unfiledArchived } = documentStore.counts.documents;
@@ -718,7 +719,8 @@ function folderMatchesNavigation(folder) {
 }
 
 const navigationFolders = computed(() => folderStore.folders.filter(
-  (folder) => matchesScope(folder, treeScope.value) && folderMatchesNavigation(folder),
+  (folder) => folderStore.belongsToScope(folder, effectiveScope.value)
+    && folderMatchesNavigation(folder),
 ));
 const navigationFolderIds = computed(
   () => new Set(navigationFolders.value.map((folder) => folder.id)),
@@ -761,7 +763,7 @@ const currentSubfolders = computed(() => {
   }
   if (id === 'root') return folderStore.scopedRootFolders(effectiveScope.value);
   if (typeof id !== 'number') return [];
-  const children = folderStore.childrenOf(id, treeScope.value);
+  const children = folderStore.childrenOf(id, effectiveScope.value);
   return navigationSelection.value === 'all'
     ? children
     : children.filter(folderMatchesNavigation);

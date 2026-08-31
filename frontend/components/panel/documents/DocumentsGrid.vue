@@ -36,6 +36,16 @@ function onFolderLink(event, sub) {
   emit('select-folder', sub.id)
 }
 
+/**
+ * Igual que en la tabla: en `all` cada fila habla de su propio estado; en los
+ * otros dos manda el scope de la VISTA, o una carpeta activa listada en modo
+ * archivado anunciaría su inventario activo.
+ */
+function folderSummaryScope(sub) {
+  if (props.scope === 'all') return sub.is_archived ? 'archived' : 'active'
+  return props.scope
+}
+
 function archivedContentCount(folder) {
   return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
 }
@@ -86,7 +96,7 @@ function archivedContentCount(folder) {
         Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
       </BaseBadge>
       <span class="text-xs text-text-subtle">
-        {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+        {{ folderSummary(sub, folderSummaryScope(sub)) }}
       </span>
       <FolderArchivedBadge
         v-if="!sub.is_archived && archivedContentCount(sub)"

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { isRootInScope, matchesScope } from '~/utils/archiveScope';
+import { matchesScope } from '~/utils/archiveScope';
 import { buildFolderRollup, directRollupRecord } from '~/utils/folderRollup';
 import {
   get_request, create_request, patch_request, delete_request,
@@ -30,17 +30,26 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
 
     // Carpetas en la cima del scope: sin padre, o con un padre que no se lista
     // en este scope y por lo tanto no puede contenerlas visualmente.
-    scopedRootFolders: (state) => (scope) => state.folders.filter(
-      (f) => matchesScope(f, scope)
-        && isRootInScope(f.parent, (id) => state.folders.find((c) => c.id === id) || null, scope),
-    ),
+    //
+    // La pertenencia la decide `belongsToScope`, no `matchesScope`: en archivado
+    // eso suma las carpetas activas que GUARDAN archivados, para que se pueda
+    // bajar hasta ellos. Para 'active' y 'all' los dos criterios coinciden, así
+    // que estos getters no cambian fuera del modo archivado.
+    scopedRootFolders() {
+      return (scope) => this.folders.filter(
+        (f) => this.belongsToScope(f, scope)
+          && (f.parent == null || !this.belongsToScope(this.folderById(f.parent), scope)),
+      );
+    },
 
     folderById: (state) => (id) => state.folders.find((f) => f.id === id) || null,
 
     // El default 'active' preserva a todos los callers previos al eje de estado.
-    childrenOf: (state) => (id, scope = 'active') => state.folders.filter(
-      (f) => f.parent === id && matchesScope(f, scope),
-    ),
+    childrenOf() {
+      return (id, scope = 'active') => this.folders.filter(
+        (f) => f.parent === id && this.belongsToScope(f, scope),
+      );
+    },
 
     // Cadena raíz → carpeta actual; set de visitados evita bucles con datos cíclicos.
     ancestorsOf: (state) => (id) => {
@@ -157,6 +166,28 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
     /** Elementos archivados que la carpeta todavía guarda (estado mixto). */
     archivedContentCount: () => (folder) => (folder?.archived_document_count || 0)
       + (folder?.archived_children_count || 0),
+
+    /**
+     * ¿La carpeta merece una fila en este scope?
+     *
+     * `treeScopeFor` abre el árbol entero en modo archivado a propósito, para
+     * que se pueda bajar hasta un archivado que vive dentro de una carpeta
+     * ACTIVA. Pero «se puede bajar por ella» no es «hay que listarla»: sin este
+     * segundo filtro el modo archivado pinta el árbol completo, que es
+     * exactamente lo contrario de lo que el usuario pidió al encenderlo.
+     *
+     * Pertenece al scope la que ESTÁ en él, y además —sólo en archivado— la que
+     * GUARDA algo de él en su subárbol. Se apoya en el rollup que ya alimenta
+     * los contadores, así que no introduce una tercera noción de scope.
+     */
+    belongsToScope() {
+      return (folder, scope = 'active') => {
+        if (matchesScope(folder, scope)) return true;
+        if (scope !== 'archived') return false;
+        return this.rollupOf(folder, 'archived').docs > 0
+          || this.archivedContentCount(folder) > 0;
+      };
+    },
 
     /**
      * Todo lo que contiene, archivado incluido.

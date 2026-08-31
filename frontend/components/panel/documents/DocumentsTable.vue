@@ -58,6 +58,19 @@ const dateHeader = computed(() => {
   return props.scope === 'all' ? 'Fecha' : 'Creado'
 })
 
+/**
+ * Scope con que se cuenta el inventario de una fila de carpeta.
+ *
+ * En `all` la lista es mixta y cada fila habla de su propio estado. En los
+ * otros dos manda el scope de la VISTA: en archivado se listan también carpetas
+ * activas que guardan archivados, y contarlas por su estado haría que
+ * anunciaran su inventario activo — justo lo que el modo pide esconder.
+ */
+function folderSummaryScope(sub) {
+  if (props.scope === 'all') return sub.is_archived ? 'archived' : 'active'
+  return props.scope
+}
+
 const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
 // Production inventory on 2026-08-28: the widest of 40 titles needs 496 px
 // including cell padding and safety. 520 px fits that boundary without tying
@@ -262,7 +275,7 @@ function onFolderLink(event, sub) {
             </div>
           </td>
           <td class="px-6 py-4 text-sm text-text-subtle" colspan="4">
-            {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+            {{ folderSummary(sub, folderSummaryScope(sub)) }}
           </td>
         </tr>
         <!-- design-tokens: allow-clickable-row — BaseOverflowText encapsula el BaseRowLink real. -->
