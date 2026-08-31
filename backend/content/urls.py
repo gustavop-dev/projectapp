@@ -230,6 +230,7 @@ from content.views.client_email_copy import (
     client_email_copy_recipients,
 )
 from content.views.communication import (
+    archive_communication_thread,
     close_communication_thread,
     communication_message_detail,
     communication_thread_detail,
@@ -240,6 +241,7 @@ from content.views.communication import (
     document_communication_usage,
     mark_communication_message_sent,
     reopen_communication_thread,
+    unarchive_communication_thread,
     void_communication_message,
 )
 from content.views.proposal_clients import (
@@ -643,6 +645,16 @@ urlpatterns = [
         'communications/threads/<int:thread_id>/reopen/',
         reopen_communication_thread,
         name='reopen-communication-thread',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/archive/',
+        archive_communication_thread,
+        name='archive-communication-thread',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/unarchive/',
+        unarchive_communication_thread,
+        name='unarchive-communication-thread',
     ),
     path(
         'communications/threads/<int:thread_id>/messages/',

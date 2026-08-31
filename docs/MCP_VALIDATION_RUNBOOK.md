@@ -46,6 +46,17 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   (se adopta), y **sí** se puede renombrar —el nombre lo pone el operador, no un
   módulo externo—, así que `rename_folder` la acepta.
 - `mark_message_sent` registra un hecho externo. No envía correo ni WhatsApp.
+- `CommunicationThread.managed_project` / `managed_client` identifican la
+  **comunicación madre** de un proyecto o un cliente, en paralelo con
+  `DocumentFolder.managed_project` / `managed_client`. Son read-only para el MCP:
+  la madre de proyecto se provisiona sola al crearse el proyecto, la de cliente
+  sólo por adopción revisada, y ninguna se marca desde una herramienta.
+  `thread_kind` toma tres valores (`project` / `client` / `manual`).
+- El **archivado** de hilos (`is_archived`/`archived_at`) es un eje de visibilidad
+  ortogonal a `status` (`open`/`closed`): cerrar bloquea la escritura, archivar
+  saca de la vista. Queda excluido del MCP igual que el de documentos, y la madre
+  no se puede archivar. `list_threads` no expone `scope`: el conector ve siempre
+  el ámbito activo.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 
 ## Inventario vigente

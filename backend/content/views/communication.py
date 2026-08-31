@@ -215,6 +215,36 @@ def reopen_communication_thread(request, thread_id):
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+def archive_communication_thread(request, thread_id):
+    thread = get_object_or_404(CommunicationThread, pk=thread_id)
+    try:
+        communication_service.archive_thread(thread, actor=request.user)
+    except communication_service.CommunicationError as exc:
+        return _business_error(exc)
+    return Response(CommunicationThreadDetailSerializer(
+        get_object_or_404(
+            communication_query_service.thread_queryset(), pk=thread_id,
+        ),
+    ).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def unarchive_communication_thread(request, thread_id):
+    thread = get_object_or_404(CommunicationThread, pk=thread_id)
+    try:
+        communication_service.unarchive_thread(thread, actor=request.user)
+    except communication_service.CommunicationError as exc:
+        return _business_error(exc)
+    return Response(CommunicationThreadDetailSerializer(
+        get_object_or_404(
+            communication_query_service.thread_queryset(), pk=thread_id,
+        ),
+    ).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
 def communication_thread_messages(request, thread_id):
     thread = get_object_or_404(
         CommunicationThread.objects.select_related('client__user'),

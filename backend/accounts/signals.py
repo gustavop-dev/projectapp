@@ -83,6 +83,30 @@ def synchronize_project_document_folder(
     synchronize_existing_project_folder(instance)
 
 
+@receiver(post_save, sender=Project)
+def synchronize_project_communication_thread(
+    sender, instance, created, raw=False, **kwargs,
+):
+    """Misma regla que las carpetas: se provisiona al crear, nunca hacia atrás.
+
+    `ensure_project_thread` devuelve None cuando el cliente del proyecto todavía
+    no tiene un perfil utilizable. Eso NO es un error acá: el proyecto se crea
+    igual y su comunicación madre la recoge después el backfill, que sí puede
+    reportar el salto a una persona.
+    """
+    if raw:
+        return
+    from content.services.project_communication_service import (
+        ensure_project_thread,
+        synchronize_existing_project_thread,
+    )
+
+    if created:
+        ensure_project_thread(instance)
+        return
+    synchronize_existing_project_thread(instance)
+
+
 def _touches_snapshot(update_fields, snapshot_fields):
     """True when a save() touches at least one snapshot-relevant field.
 
