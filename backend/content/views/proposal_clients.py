@@ -15,6 +15,9 @@ Endpoints
 - ``POST   /api/proposals/client-profiles/create/``        standalone create
 - ``PATCH  /api/proposals/client-profiles/<id>/update/``   update + cascade snapshots
 - ``DELETE /api/proposals/client-profiles/<id>/delete/``   orphan-only delete
+- ``GET    /api/proposals/client-profiles/<id>/archive-preview/`` cascade impact
+- ``POST   /api/proposals/client-profiles/<id>/archive/``  archive + cascade
+- ``POST   /api/proposals/client-profiles/<id>/unarchive/`` bring the client back
 """
 
 import logging
@@ -31,7 +34,7 @@ from rest_framework.response import Response
 
 from accounts.models import Project, UserProfile
 from accounts.serializers import ProjectListSerializer
-from accounts.services import proposal_client_service
+from accounts.services import client_archive_service, proposal_client_service
 from accounts.services.billing_code import (
     billing_code_error,
     normalize_billing_code,
@@ -47,6 +50,7 @@ from content.serializers.accounting import (
 )
 from content.serializers.proposal import ProposalListSerializer
 from content.services import accounting_service
+from content.services.project_state_service import ProjectStateError
 from content.serializers.document import ClientDocumentRowSerializer
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
@@ -553,6 +557,14 @@ def search_proposal_clients(request):
         default=0,
     )
     qs = UserProfile.objects.clients()
+    # Archived clients stay out of every picker by default. Leaving them in is
+    # how a filed-away client keeps collecting brand-new proposals, incomes and
+    # hostings: the operator types three letters, the old name comes up, and
+    # nothing on the row says it was archived. ``include_archived`` is for the
+    # flows that legitimately need them — reassigning a folder or a thread to a
+    # client that was already put away.
+    if _parse_bool(request.query_params.get('include_archived')) is not True:
+        qs = qs.filter(archived_at__isnull=True)
     if query:
         qs = qs.filter(
             Q(user__email__icontains=query)
@@ -737,7 +749,20 @@ def update_proposal_client(request, client_id):
         if key in request.data:
             payload[key] = request.data[key]
     if 'is_archived' in request.data:
-        payload['is_archived'] = _parse_bool(request.data.get('is_archived'))
+        # Archiving suspends the client's projects and cancels their future
+        # billing. That has to be previewed, so it does not ride along with an
+        # ordinary identity save — same rule the projects module applies to
+        # ``status``/``state_id``.
+        return Response(
+            {
+                'error': 'client_archive_transition_required',
+                'message': (
+                    'Archiva el cliente desde su propia acción para revisar '
+                    'las consecuencias sobre sus proyectos.'
+                ),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if not payload:
         return Response(
@@ -781,3 +806,138 @@ def delete_proposal_client(request, client_id):
         )
 
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------------------------------------------------------------------------
+# Archive (client) + project cascade
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def preview_client_archive(request, client_id):
+    """What archiving this client would do to its projects. Writes nothing.
+
+    The operator sees every project the cascade moves and what it costs before
+    confirming, because suspending a project cancels its future incomes and
+    archives its future hosting charges, and none of that comes back.
+    """
+    profile = _get_profile_or_404(client_id)
+    if profile is None:
+        return Response(
+            {'error': 'client_not_found'}, status=status.HTTP_404_NOT_FOUND,
+        )
+    try:
+        preview = client_archive_service.archive_client_preview(profile)
+    except client_archive_service.ClientArchiveError as exc:
+        return Response(
+            {'error': exc.code, 'message': exc.message},
+            status=status.HTTP_409_CONFLICT,
+        )
+    return Response(preview)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def archive_proposal_client(request, client_id):
+    """Archive the client and suspend the projects named in ``transitions``.
+
+    ``transitions`` echoes the preview the operator actually saw — one
+    ``impact_token`` per project. A mismatch is a 409, not a silent re-preview:
+    the confirmation would otherwise cover numbers nobody read.
+    """
+    profile = _get_profile_or_404(client_id)
+    if profile is None:
+        return Response(
+            {'error': 'client_not_found'}, status=status.HTTP_404_NOT_FOUND,
+        )
+
+    raw = request.data.get('transitions')
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        return Response(
+            {
+                'error': 'invalid_transitions',
+                'message': 'transitions debe ser una lista.',
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    transitions = []
+    for item in raw:
+        if not isinstance(item, dict):
+            return Response(
+                {
+                    'error': 'invalid_transitions',
+                    'message': 'Cada transición debe traer project_id e '
+                               'impact_token.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            project_id = int(item.get('project_id'))
+        except (TypeError, ValueError):
+            return Response(
+                {
+                    'error': 'invalid_transitions',
+                    'message': 'project_id inválido.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        transitions.append({
+            'project_id': project_id,
+            'impact_token': item.get('impact_token') or '',
+        })
+
+    try:
+        result = client_archive_service.archive_client(
+            profile, transitions=transitions, actor=request.user,
+        )
+    except client_archive_service.ClientArchiveError as exc:
+        return Response(
+            {'error': exc.code, 'message': exc.message},
+            status=status.HTTP_409_CONFLICT,
+        )
+    except ProjectStateError as exc:
+        # A stale token or a blocker raised inside the per-project transition.
+        return Response(
+            {'error': exc.code, 'message': str(exc)},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    profile = _get_profile_or_404(client_id)
+    return Response({
+        'client': ProposalClientSerializer(profile).data,
+        'suspended_projects': result['suspended_projects'],
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def unarchive_proposal_client(request, client_id):
+    """Bring the client back, leaving its projects suspended.
+
+    Reactivating a project restores its label but not the incomes the cascade
+    cancelled, so it stays an explicit per-project decision. The response names
+    the ones still parked so the UI can say it out loud.
+    """
+    profile = _get_profile_or_404(client_id)
+    if profile is None:
+        return Response(
+            {'error': 'client_not_found'}, status=status.HTTP_404_NOT_FOUND,
+        )
+    try:
+        result = client_archive_service.unarchive_client(
+            profile, actor=request.user,
+        )
+    except client_archive_service.ClientArchiveError as exc:
+        return Response(
+            {'error': exc.code, 'message': exc.message},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    profile = _get_profile_or_404(client_id)
+    return Response({
+        'client': ProposalClientSerializer(profile).data,
+        'still_suspended': result['still_suspended'],
+    })

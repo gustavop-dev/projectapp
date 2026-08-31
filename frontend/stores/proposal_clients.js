@@ -275,6 +275,78 @@ export const useProposalClientsStore = defineStore('proposalClients', {
     },
 
     /**
+     * What archiving this client would do to its projects. Writes nothing.
+     *
+     * The preview carries one `impact_token` per project: the confirm echoes
+     * them back so the backend can prove the operator saw the numbers that
+     * are about to be applied.
+     */
+    async previewClientArchive(id) {
+      try {
+        const response = await get_request(
+          `proposals/client-profiles/${id}/archive-preview/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, errors: error?.response?.data };
+      }
+    },
+
+    /**
+     * Archive the client and suspend the projects named in `transitions`.
+     *
+     * Not a PATCH on purpose: the ordinary update endpoint rejects
+     * `is_archived`, because archiving cancels the projects' future billing
+     * and that has to go through the preview.
+     */
+    async archiveClient(id, transitions) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/client-profiles/${id}/archive/`,
+          { transitions },
+        );
+        const updated = response.data.client;
+        this.clients = this.clients.map((c) => (c.id === id ? updated : c));
+        if (this.currentClient?.id === id) {
+          this.currentClient = { ...this.currentClient, ...updated };
+        }
+        this.isUpdating = false;
+        return { success: true, data: response.data };
+      } catch (error) {
+        const data = error?.response?.data;
+        this.error = data?.error || 'archive_failed';
+        this.isUpdating = false;
+        return { success: false, errors: data };
+      }
+    },
+
+    /** Bring the client back. Its projects stay suspended. */
+    async unarchiveClient(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/client-profiles/${id}/unarchive/`,
+          {},
+        );
+        const updated = response.data.client;
+        this.clients = this.clients.map((c) => (c.id === id ? updated : c));
+        if (this.currentClient?.id === id) {
+          this.currentClient = { ...this.currentClient, ...updated };
+        }
+        this.isUpdating = false;
+        return { success: true, data: response.data };
+      } catch (error) {
+        const data = error?.response?.data;
+        this.error = data?.error || 'unarchive_failed';
+        this.isUpdating = false;
+        return { success: false, errors: data };
+      }
+    },
+
+    /**
      * Delete a client (and the underlying User). Backend enforces the
      * orphan rule (zero proposals, projects, diagnostics, accounting
      * incomes and hostings); a 400 with `client_has_proposals` /

@@ -147,25 +147,31 @@ class TestUpdateClientProfile:
         profile.user.refresh_from_db()
         assert profile.user.email == f'cliente_{profile.pk}@temp.example.com'
 
-    def test_toggling_is_archived_does_not_cascade_snapshots(self):
+    def test_archiving_does_not_cascade_snapshots(self):
+        from accounts.services.client_archive_service import (
+            archive_client, unarchive_client,
+        )
+
         profile = proposal_client_service.get_or_create_client_for_proposal(
-            name='Inactiva Test', email='inactiva@gmail.com',
+            name='Archivable Test', email='archivable@gmail.com',
         )
         # Stale snapshot on purpose: a cascade would overwrite it.
         proposal = BusinessProposal.objects.create(
             title='Stale', client_name='Nombre Viejo',
-            client_email='inactiva@gmail.com', client=profile,
+            client_email='archivable@gmail.com', client=profile,
             total_investment=1000,
         )
 
-        proposal_client_service.update_client_profile(profile, is_archived=True)
+        archive_client(profile, transitions=[], actor=None)
 
         profile.refresh_from_db()
         assert profile.archived_at is not None
+        # Putting a client away says nothing about who they are, so the
+        # proposal keeps the identity it was sent with.
         proposal.refresh_from_db()
         assert proposal.client_name == 'Nombre Viejo'
 
-        proposal_client_service.update_client_profile(profile, is_archived=False)
+        unarchive_client(profile, actor=None)
         profile.refresh_from_db()
         assert profile.archived_at is None
 
