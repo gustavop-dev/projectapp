@@ -224,10 +224,12 @@ test.describe('Admin Document Archive', () => {
 
     // Eliminar es imposible con contenido — el backend responde 409 —, así que
     // el ícono lo dice en vez de llevar a un modal sin salida.
-    await expect(row.getByTestId('folder-delete')).toBeDisabled();
-    // El tooltip sólo aparece al pasar por encima; es donde vive la explicación.
-    await row.getByTestId('folder-delete').hover();
-    await expect(row.getByText(/No se puede eliminar/)).toBeVisible();
+    const deleteButton = row.getByTestId('folder-delete');
+    const deleteTooltipProxy = row.locator('[data-disabled-action-proxy]');
+    await expect(deleteButton).toBeDisabled();
+    // El proxy accesible muestra la explicación al recibir foco de teclado.
+    await deleteTooltipProxy.focus();
+    await expect(page.getByRole('tooltip')).toContainText('No se puede eliminar');
 
     await row.getByTestId('folder-archive').click();
     await page.getByTestId('confirm-modal-confirm').click();
