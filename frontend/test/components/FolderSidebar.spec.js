@@ -734,8 +734,50 @@ describe('FolderSidebar', () => {
       const archiveControl = wrapper.get('[data-testid="document-archive-control"]');
       const manualSection = wrapper.get('[data-testid="manual-folder-section"]');
 
-      expect(archiveControl.element.nextElementSibling)
-        .toBe(manualSection.element.parentElement);
+      // El switch es de OTRO eje que el acordeón de entidades, así que queda
+      // fuera de él y pegado a «Carpetas propias»: son dos <li> hermanos.
+      expect(archiveControl.element.nextElementSibling).toBe(manualSection.element);
+    });
+
+    it('offers both sections open, with an accessible collapse trigger each', () => {
+      const wrapper = mountSidebar();
+      const entities = wrapper.get('[data-testid="entities-section-toggle"]');
+      const manual = wrapper.get('[data-testid="manual-folder-section-toggle"]');
+
+      // Abiertas al entrar: recoger es una decisión del usuario, no el default.
+      expect(entities.attributes('aria-expanded')).toBe('true');
+      expect(manual.attributes('aria-expanded')).toBe('true');
+      // El trigger tiene que apuntar al cuerpo que abre, o el lector de
+      // pantalla no sabe qué se desplegó.
+      expect(wrapper.find(`#${entities.attributes('aria-controls')}`).exists()).toBe(true);
+      expect(wrapper.find(`#${manual.attributes('aria-controls')}`).exists()).toBe(true);
+      expect(entities.text()).toContain('Proyectos');
+    });
+
+    it('collapses the entity catalog without losing it from the DOM', async () => {
+      const wrapper = mountSidebar();
+      const entities = wrapper.get('[data-testid="entities-section-toggle"]');
+
+      await entities.trigger('click');
+
+      expect(entities.attributes('aria-expanded')).toBe('false');
+      const body = wrapper.get(`#${entities.attributes('aria-controls')}`);
+      // BaseCollapse lo deja inerte y oculto a la asistencia, no lo desmonta:
+      // así la animación de altura tiene de dónde partir.
+      expect(body.attributes('aria-hidden')).toBe('true');
+      expect(body.attributes('inert')).toBeDefined();
+
+      // El estado es de módulo (lo comparten el panel fijo y el del drawer), así
+      // que dejarlo plegado se filtraría al resto del archivo.
+      await entities.trigger('click');
+      expect(entities.attributes('aria-expanded')).toBe('true');
+    });
+
+    it('names the client catalog when the sidebar navigates by client', () => {
+      const wrapper = mountSidebar({ navigationMode: 'client' });
+
+      expect(wrapper.get('[data-testid="entities-section-toggle"]').text())
+        .toContain('Clientes');
     });
 
     it('goes inert while a search is running', async () => {

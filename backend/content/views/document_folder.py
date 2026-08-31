@@ -67,7 +67,7 @@ def _annotated_folders(scope):
     # sin el select_related el panel lateral paga tres consultas por carpeta.
     queryset = DocumentFolder.objects.select_related(
         'client_user__profile', 'project',
-        'managed_project__current_state',
+        'managed_project__current_state', 'managed_client__profile',
     )
     return apply_archive_scope(queryset, scope).annotate(
         active_document_count=Count(
@@ -98,6 +98,25 @@ def _managed_folder_error(folder):
         'La raíz del proyecto se administra automáticamente. Renombra o '
         'cambia el proyecto desde el módulo Proyectos.',
         code='managed_project_folder',
+        status=status.HTTP_409_CONFLICT,
+    )
+
+
+def _managed_client_folder_error(folder):
+    """Protege la carpeta madre de un cliente de dejar de serlo.
+
+    NO se aplica en el PATCH de actualización: renombrarla es legítimo (a
+    diferencia de la raíz de proyecto, cuyo nombre lo dicta el módulo
+    Proyectos), y el serializer ya bloquea ahí lo que sí importa — cambiarle el
+    dueño o el padre. Acá se cubren las operaciones que la harían desaparecer o
+    cambiar de cliente en bloque.
+    """
+    if not folder.managed_client_id:
+        return None
+    return error_response(
+        'Esta carpeta es el espacio documental del cliente. Quita esa marca '
+        'antes de moverla, archivarla o reasignarla.',
+        code='managed_client_folder',
         status=status.HTTP_409_CONFLICT,
     )
 
@@ -180,6 +199,16 @@ def update_document_folder(request, folder_id):
         _managed_folder_error(folder)
         or _system_managed_folder_error(folder)
         or _managed_parent_error(request)
+        # Dirigida, no total: a la raíz de cliente SÍ se le puede cambiar el
+        # nombre —lo pone el operador, no un módulo externo—, pero no el dueño
+        # ni el padre. El serializer repite la regla para los callers que no
+        # pasan por acá (MCP); acá se atiende para responder 409 con `code`,
+        # como el resto de las guardas del gestor, y no un 400 de validación.
+        or (
+            _managed_client_folder_error(folder)
+            if {'parent', 'client'}.intersection(request.data)
+            else None
+        )
     )
     if managed:
         return managed
@@ -211,7 +240,11 @@ def delete_document_folder(request, folder_id):
     sacar de la vista una carpeta con contenido está archivar, no borrar.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
-    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    managed = (
+        _managed_folder_error(folder)
+        or _managed_client_folder_error(folder)
+        or _system_managed_folder_error(folder)
+    )
     if managed:
         return managed
     document_count = folder.documents.count()
@@ -251,7 +284,11 @@ def archive_document_folder(request, folder_id):
     nada. Devuelve cuánto arrastró para que la UI lo pueda reportar.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
-    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    managed = (
+        _managed_folder_error(folder)
+        or _managed_client_folder_error(folder)
+        or _system_managed_folder_error(folder)
+    )
     if managed:
         return managed
     counts = document_archive_service.archive_folder(folder)
@@ -274,7 +311,11 @@ def unarchive_document_folder(request, folder_id):
     propia.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
-    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    managed = (
+        _managed_folder_error(folder)
+        or _managed_client_folder_error(folder)
+        or _system_managed_folder_error(folder)
+    )
     if managed:
         return managed
     counts = document_archive_service.unarchive_folder(folder)
@@ -316,7 +357,11 @@ def _resolve_target_profile(folder, raw_profile_id):
 def preview_document_folder_client_change(request, folder_id):
     """Impacto de mover la carpeta a otro cliente. No escribe nada."""
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
-    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    managed = (
+        _managed_folder_error(folder)
+        or _managed_client_folder_error(folder)
+        or _system_managed_folder_error(folder)
+    )
     if managed:
         return managed
     profile, error = _resolve_target_profile(
@@ -369,7 +414,11 @@ def change_document_folder_client(request, folder_id):
     servicio, así que su bloque atómico nunca se abre sobre un plan viejo.
     """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
-    managed = _managed_folder_error(folder) or _system_managed_folder_error(folder)
+    managed = (
+        _managed_folder_error(folder)
+        or _managed_client_folder_error(folder)
+        or _system_managed_folder_error(folder)
+    )
     if managed:
         return managed
 
@@ -431,13 +480,14 @@ def reorder_document_folders(request):
     if managed:
         return managed
 
-    # Las raíces de proyecto se ordenan por nombre de proyecto y no participan
-    # del orden manual. Ignorarlas mantiene compatible el payload de clientes
-    # antiguos que todavía envían todas las raíces juntas.
+    # Las raíces gestionadas —de proyecto y de cliente— se ordenan por el nombre
+    # de la entidad que representan y no participan del orden manual. Ignorarlas
+    # mantiene compatible el payload de clientes antiguos que todavía envían
+    # todas las raíces juntas.
     folders_by_id = {
         folder.id: folder
         for folder in folders
-        if not folder.managed_project_id
+        if not folder.managed_project_id and not folder.managed_client_id
     }
     for order, folder_id in enumerate(ids):
         if folder_id in folders_by_id:

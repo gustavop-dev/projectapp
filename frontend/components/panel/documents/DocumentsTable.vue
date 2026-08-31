@@ -1,7 +1,7 @@
 <script setup>
 import {
   formatDocumentDate, folderRowSummary,
-  archivedAgeLabel,
+  archivedAgeLabel, isManagedFolderKind,
 } from '~/utils/documentStatus'
 import { computed, ref } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
@@ -57,6 +57,19 @@ const dateHeader = computed(() => {
   if (props.scope === 'archived') return 'Archivado'
   return props.scope === 'all' ? 'Fecha' : 'Creado'
 })
+
+/**
+ * Scope con que se cuenta el inventario de una fila de carpeta.
+ *
+ * En `all` la lista es mixta y cada fila habla de su propio estado. En los
+ * otros dos manda el scope de la VISTA: en archivado se listan también carpetas
+ * activas que guardan archivados, y contarlas por su estado haría que
+ * anunciaran su inventario activo — justo lo que el modo pide esconder.
+ */
+function folderSummaryScope(sub) {
+  if (props.scope === 'all') return sub.is_archived ? 'archived' : 'active'
+  return props.scope
+}
 
 const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
 // Production inventory on 2026-08-28: the widest of 40 titles needs 496 px
@@ -211,7 +224,7 @@ function onFolderLink(event, sub) {
           :key="`folder-${sub.id}`"
           class="transition-colors select-none hover:bg-surface-muted cursor-pointer"
           :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
-          :draggable="!sub.is_archived && sub.folder_kind !== 'project' && !sub.is_system_managed"
+          :draggable="!sub.is_archived && !isManagedFolderKind(sub) && !sub.is_system_managed"
           @click="emit('select-folder', sub.id)"
           @dragstart="emit('folder-dragstart', $event, sub)"
           @dragend="emit('folder-dragend')"
@@ -253,6 +266,11 @@ function onFolderLink(event, sub) {
               <BaseBadge v-if="sub.folder_kind === 'project'" variant="info" size="sm">
                 Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
               </BaseBadge>
+              <!-- Sin estado detrás: los clientes no tienen catálogo de ciclo de
+                   vida como los proyectos, sólo el booleano de inactividad. -->
+              <BaseBadge v-else-if="sub.folder_kind === 'client'" variant="neutral" size="sm">
+                Cliente
+              </BaseBadge>
               <FolderArchivedBadge
                 v-if="!sub.is_archived && archivedContentCount(sub)"
                 :count="archivedContentCount(sub)"
@@ -262,7 +280,7 @@ function onFolderLink(event, sub) {
             </div>
           </td>
           <td class="px-6 py-4 text-sm text-text-subtle" colspan="4">
-            {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+            {{ folderSummary(sub, folderSummaryScope(sub)) }}
           </td>
         </tr>
         <!-- design-tokens: allow-clickable-row — BaseOverflowText encapsula el BaseRowLink real. -->

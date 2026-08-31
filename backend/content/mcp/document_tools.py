@@ -875,7 +875,7 @@ DOCUMENT_TOOLS = [
         'name': 'list_folders',
         'description': (
             'Lista todas las carpetas activas con su ruta, naturaleza '
-            '(project/manual), proyecto, estado y conteo directo.'
+            '(project/client/manual), proyecto, estado y conteo directo.'
         ),
         'input_schema': {'type': 'object', 'properties': {}},
         'handler': list_folders,
