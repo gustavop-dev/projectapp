@@ -31,7 +31,9 @@ const tooltipTestId = computed(() => (
     trigger-class="inline-flex"
   >
     <template #trigger="{ tooltipId }">
-      <button
+      <BaseButton
+        unstyled
+        icon-only
         type="button"
         class="inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-info-soft text-info-strong transition-colors hover:bg-info-strong/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         :aria-label="`Ayuda sobre el estado ${state.name}`"
@@ -39,7 +41,7 @@ const tooltipTestId = computed(() => (
         :data-testid="tooltipTestId"
       >
         <QuestionMarkCircleIcon class="h-4 w-4" aria-hidden="true" />
-      </button>
+      </BaseButton>
     </template>
     <div class="space-y-2" :data-testid="`${tooltipTestId}-content`">
       <p class="font-semibold">{{ state.name }}</p>

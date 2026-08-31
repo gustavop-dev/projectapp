@@ -1,6 +1,8 @@
 <template>
   <div class="diagnostic-index fixed left-0 top-0 z-50 pointer-events-none">
-    <button
+    <BaseButton
+      unstyled
+      icon-only
       data-testid="diagnostic-index-toggle"
       :aria-label="isOpen ? 'Cerrar índice de secciones' : 'Abrir índice de secciones'"
       :aria-expanded="isOpen"
@@ -22,7 +24,7 @@
       <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
-    </button>
+    </BaseButton>
 
     <Transition name="idx-fade">
       <div
@@ -43,7 +45,9 @@
              sm:max-h-[80vh]"
       :class="isOpen ? 'pointer-events-auto' : 'pointer-events-none translate-x-[-120%]'"
     >
-      <button
+      <BaseButton
+        unstyled
+        icon-only
         class="sm:hidden absolute left-4 top-4 z-10
                w-10 h-10 rounded-full
                bg-surface dark:bg-primary-strong shadow-lg
@@ -52,12 +56,13 @@
                text-text-brand dark:text-text-brand
                hover:bg-primary/5 dark:hover:bg-primary/80
                transition-colors"
+        aria-label="Cerrar índice de secciones"
         @click="isOpen = false"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
-      </button>
+      </BaseButton>
 
       <p class="text-[10px] uppercase tracking-[0.2em] text-text-brand dark:text-text-brand font-medium mb-2 px-2 mt-14 sm:mt-0">
         Índice

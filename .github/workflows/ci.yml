@@ -84,6 +84,10 @@ jobs:
         working-directory: frontend
         run: node scripts/check-panel-action-icons.mjs
 
+      - name: Verify icon interaction feedback
+        working-directory: frontend
+        run: node scripts/check-icon-interaction-feedback.mjs
+
       - name: Verify disabled controls explain themselves
         working-directory: frontend
         run: node scripts/check-disabled-controls.mjs --strict

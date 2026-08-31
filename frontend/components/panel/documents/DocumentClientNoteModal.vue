@@ -36,10 +36,11 @@
               size="sm"
               :label="copyLabel('subject', 'asunto')"
               :status-label="copyStatus('subject', 'asunto')"
+              :status-tone="copyTone('subject')"
               :disabled="isBusy || !draft.subject.trim()"
               :disabled-reason="isBusy ? busyDisabledReason : !draft.subject.trim() ? 'Escribe un asunto antes de copiarlo.' : ''"
               data-testid="client-note-copy-subject"
-              @click="copyText('subject', draft.subject)"
+              @click="copyText('subject', draft.subject, 'asunto')"
             />
           </div>
           <BaseInput
@@ -63,10 +64,11 @@
               size="sm"
               :label="copyLabel('email', 'correo')"
               :status-label="copyStatus('email', 'correo')"
+              :status-tone="copyTone('email')"
               :disabled="isBusy || !draft.emailBody.trim()"
               :disabled-reason="isBusy ? busyDisabledReason : !draft.emailBody.trim() ? 'Escribe el correo antes de copiarlo.' : ''"
               data-testid="client-note-copy-email"
-              @click="copyText('email', draft.emailBody)"
+              @click="copyText('email', draft.emailBody, 'correo')"
             />
           </div>
           <BaseTextarea
@@ -90,10 +92,11 @@
               size="sm"
               :label="copyLabel('whatsapp', 'WhatsApp')"
               :status-label="copyStatus('whatsapp', 'WhatsApp')"
+              :status-tone="copyTone('whatsapp')"
               :disabled="isBusy || !draft.whatsappMessage.trim()"
               :disabled-reason="isBusy ? busyDisabledReason : !draft.whatsappMessage.trim() ? 'Escribe el mensaje antes de copiarlo.' : ''"
               data-testid="client-note-copy-whatsapp"
-              @click="copyText('whatsapp', draft.whatsappMessage)"
+              @click="copyText('whatsapp', draft.whatsappMessage, 'WhatsApp')"
             />
           </div>
           <BaseTextarea
@@ -169,10 +172,11 @@
                 size="sm"
                 :label="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
                 :status-label="copyStatus(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
+                :status-tone="copyTone(`custom-title-${note.key}`)"
                 :disabled="isBusy || !note.title.trim()"
                 :disabled-reason="isBusy ? busyDisabledReason : !note.title.trim() ? 'Escribe el título antes de copiarlo.' : ''"
                 :data-testid="`client-note-custom-copy-title-${index}`"
-                @click="copyText(`custom-title-${note.key}`, note.title)"
+                @click="copyText(`custom-title-${note.key}`, note.title, `título de la nota ${index + 1}`)"
               />
             </div>
             <BaseInput
@@ -200,10 +204,11 @@
                 size="sm"
                 :label="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
                 :status-label="copyStatus(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
+                :status-tone="copyTone(`custom-content-${note.key}`)"
                 :disabled="isBusy || !note.content.trim()"
                 :disabled-reason="isBusy ? busyDisabledReason : !note.content.trim() ? 'Escribe el contenido antes de copiarlo.' : ''"
                 :data-testid="`client-note-custom-copy-content-${index}`"
-                @click="copyText(`custom-content-${note.key}`, note.content)"
+                @click="copyText(`custom-content-${note.key}`, note.content, `contenido de la nota ${index + 1}`)"
               />
             </div>
             <BaseTextarea
@@ -259,6 +264,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import DocumentObservationManager from '~/components/panel/documents/DocumentObservationManager.vue';
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const props = defineProps({
@@ -281,7 +287,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'submit', 'workflow-changed']);
 const notify = usePanelNotify();
-const copiedField = ref('');
+const clipboardFeedback = useClipboardFeedback();
 const validationAttempted = ref(false);
 const observationBusy = ref(false);
 const localNotes = ref([]);
@@ -321,7 +327,7 @@ watch(
     draft.whatsappMessage = props.whatsappMessage;
     draft.customNotes = props.customNotes.map(makeDraftNote);
     localNotes.value = props.notes.map((note) => ({ ...note }));
-    copiedField.value = '';
+    clipboardFeedback.clearAllFeedback();
     validationAttempted.value = false;
     observationBusy.value = false;
   },
@@ -367,22 +373,27 @@ function submit() {
 }
 
 function copyLabel(field, label) {
-  return copiedField.value === field ? `Copiado: ${label}` : `Copiar ${label}`;
+  return clipboardFeedback.feedbackFor(field).label || `Copiar ${label}`;
 }
 
-function copyStatus(field, label) {
-  return copiedField.value === field ? `Copiado: ${label}` : '';
+function copyStatus(field) {
+  return clipboardFeedback.feedbackFor(field).label;
 }
 
-async function copyText(field, value) {
-  try {
-    await navigator.clipboard.writeText(value);
-    copiedField.value = field;
-  } catch {
-    notify.error({
+function copyTone(field) {
+  return clipboardFeedback.feedbackFor(field).tone;
+}
+
+async function copyText(field, value, label) {
+  await clipboardFeedback.copyText({
+    key: field,
+    text: value,
+    successLabel: `Copiado: ${label}`,
+    errorLabel: `No se pudo copiar: ${label}`,
+    onError: () => notify.error({
       title: 'No se pudo copiar al portapapeles',
       detail: 'Tu navegador bloqueó el acceso al portapapeles.',
-    });
-  }
+    }),
+  });
 }
 </script>

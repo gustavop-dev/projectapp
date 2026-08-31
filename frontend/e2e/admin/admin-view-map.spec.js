@@ -8,7 +8,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_VIEW_MAP } from '../helpers/flow-tags.js';
+import { ADMIN_VIEW_MAP, LAYOUT_ICON_INTERACTION_FEEDBACK } from '../helpers/flow-tags.js';
 
 const authCheck = {
   status: 200,
@@ -270,7 +270,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('copy reference button shows copied feedback', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_VIEW_MAP, ...LAYOUT_ICON_INTERACTION_FEEDBACK, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await mockApi(page, async ({ apiPath }) => {
@@ -292,7 +292,41 @@ test.describe('Admin View Map', () => {
 
     await copyButton.click();
 
-    await expect(viewCard.getByRole('button', { name: 'Copiado: referencia' })).toBeVisible({ timeout: 5000 });
+    const successButton = viewCard.getByRole('button', { name: 'Copiado: referencia' });
+    await expect(successButton).toBeVisible({ timeout: 5000 });
+    await expect(successButton).toHaveAttribute('data-action-status', 'success');
+    await expect(tooltip).toHaveText('Copiado: referencia');
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe('[Panel administrativo] Mapa de vistas — /panel/views');
+  });
+
+  test('copy reference button reports a blocked clipboard write', {
+    tag: [...LAYOUT_ICON_INTERACTION_FEEDBACK, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => Promise.reject(new DOMException('Clipboard blocked', 'NotAllowedError')),
+        },
+      });
+    });
+
+    const viewCard = page.locator('article').filter({ hasText: '/panel/views' });
+    await viewCard.getByRole('button', { name: 'Copiar referencia' }).click();
+
+    const failedButton = viewCard.getByRole('button', { name: 'No se pudo copiar la referencia' });
+    await expect(failedButton).toBeVisible({ timeout: 5000 });
+    await expect(failedButton).toHaveAttribute('data-action-status', 'danger');
+    await expect(page.getByRole('tooltip')).toHaveText('No se pudo copiar la referencia');
+    await expect(page.getByRole('alert')).toContainText('No se pudo copiar la referencia');
   });
 
   test('seeded filter tabs render and selecting Dashboards filters the catalog', {

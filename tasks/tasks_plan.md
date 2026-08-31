@@ -1,5 +1,10 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-08-31:** todos los iconos interactivos de panel,
+> plataforma y vistas públicas comparten reacción inmediata; copiar confirma el
+> resultado real y diferencia éxito/fallo. El contrato queda protegido por el
+> design system, un composable, CI, unitarias y el flow E2E transversal.
+
 > **Listo para integrar — 2026-08-30:** el Gestor Documental expone el catálogo
 > completo de proyectos y clientes, separa activos de archivados y reserva
 > **Carpetas propias** para raíces realmente no asignadas. PRUEBA queda activo y
@@ -51,6 +56,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Transversal — reacción visible de iconos interactivos | 🟡 Ready for merge | 2026-08-31. Todos los controles icon-only ejecutables de panel, plataforma y superficies públicas comparten una reacción inmediata; copiar confirma sólo después de escribir al portapapeles y diferencia éxito/fallo mediante estado visible y accesible. El glifo permanece estable, async conserva loading, touch/teclado tienen paridad y reduced motion reemplaza escala por halo. Verificación: 27 unitarias focales, 2 E2E, build, 536 SFC válidos, flow audit y guards en verde. |
 | Documents — safe project/client reconciliation | 🟡 Ready for merge | Updated 2026-08-30. Every canonical project appears even with zero content; a visit-local toggle reveals non-operational projects inclusively while the separate archive toggle still filters content. `DocumentFolder.managed_project` identifies the canonical root. Manifest v5 promotes G&M, Vástago, Xpandia, Kore and Tenndalux, creates roots for Mimittos, PRUEBA and Candle, nests Germán under Kore, files document 120 and explicitly assigns loose documents 1–5/135/157/154/159. Carlos, Gustavo, Aarón, Littigio, ProjectApp and Requirement Estimates stay untouched. Apply requires a reviewed hash, unchanged fingerprint, verified backup and inverse snapshot. Production remains untouched pending deploy and the operator runbook. |
 | Projects — compact lifecycle cards | 🟡 Ready for merge | 2026-08-30. Expanded non-zero lifecycle states use `BaseIndicatorCard`'s opt-in horizontal layout: 72–80 px, no empty support row, inline count/filter and a dedicated 48 px help column. Pending cards and the 412/835 summaries retain the stacked contract. Nineteen unit tests, help/filter isolation and geometry at 1195/1440/2560 are green; the flow map is fresh. |
 | Documents — project/client navigation switch | 🟡 Ready for merge | 2026-08-29, refined 2026-08-30. The document manager reuses Communications' shared Project/Client segmented control, persists the choice per staff profile and exposes the selected mode through `by` in the URL. A constant-query backend facet service counts every directly associated folder and document once and returns complete catalogs, including zero-content rows and permanent Sin proyecto/Sin cliente buckets. Projects default to operational rows; a non-persisted inclusive toggle reveals non-active rows and resets hidden selections. The global content archive toggle remains independent beside **Carpetas propias**, which contains only roots with neither entity. The technical PA-108 warning is no longer exposed in the UI. |

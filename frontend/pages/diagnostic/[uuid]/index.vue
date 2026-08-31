@@ -174,7 +174,9 @@
 
         <DownloadDiagnosticPdfButton v-if="store.current?.uuid" />
 
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           type="button"
           data-testid="diagnostic-restart-tutorial"
           class="restart-tutorial-btn fixed bottom-[76px] left-6 z-[9990] w-11 h-11 rounded-full
@@ -192,14 +194,16 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </button>
+        </BaseButton>
 
         <DiagnosticOnboarding
           ref="onboardingRef"
           :language="store.current?.language || 'es'"
         />
 
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           type="button"
           data-testid="diagnostic-theme-toggle"
           class="theme-toggle fixed bottom-6 left-6 z-[9990] w-11 h-11 rounded-full
@@ -241,7 +245,7 @@
             <circle cx="12" cy="12" r="4" stroke-linecap="round" stroke-linejoin="round" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1.8M12 19.2V21M4.22 4.22l1.27 1.27M18.51 18.51l1.27 1.27M3 12h1.8M19.2 12H21M4.22 19.78l1.27-1.27M18.51 5.49l1.27-1.27" />
           </svg>
-        </button>
+        </BaseButton>
       </template>
     </div>
   </div>

@@ -275,6 +275,7 @@ export const DIAGNOSTIC_PUBLIC_VIEW = ['@flow:diagnostic-public-view', '@module:
 
 // ── layout ──
 export const LAYOUT_FOOTER_NAVIGATION = ['@flow:layout-footer-navigation', '@module:layout', '@priority:P3'];
+export const LAYOUT_ICON_INTERACTION_FEEDBACK = ['@flow:layout-icon-interaction-feedback', '@module:layout', '@priority:P2'];
 export const LAYOUT_LOCALE_SWITCH = ['@flow:layout-locale-switch', '@module:layout', '@priority:P2'];
 export const LAYOUT_NAVBAR_NAVIGATION = ['@flow:layout-navbar-navigation', '@module:layout', '@priority:P2'];
 

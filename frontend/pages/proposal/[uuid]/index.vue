@@ -102,8 +102,11 @@
         />
 
         <!-- Restart tutorial button -->
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           v-if="viewMode && !isDocumentView"
+          :aria-label="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           class="restart-tutorial-btn fixed bottom-[72px] left-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-text-brand shadow-raised transition-all hover:scale-110 hover:bg-surface-muted sm:left-6"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           @click="onboardingRef?.forceStart()"
@@ -111,17 +114,20 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </button>
+        </BaseButton>
 
         <!-- Dark mode toggle -->
-        <button
+        <BaseButton
+          unstyled
+          icon-only
           v-if="viewMode"
+          :aria-label="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           class="dark-mode-toggle fixed bottom-4 left-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-lg text-text-muted shadow-raised transition-all hover:scale-110 hover:bg-surface-muted sm:bottom-6 sm:left-6"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
         >
           {{ proposalDarkMode ? '&#9728;&#65039;' : '&#127769;' }}
-        </button>
+        </BaseButton>
 
         <!-- Onboarding tutorial tooltips -->
         <ProposalOnboarding
@@ -212,10 +218,13 @@
         <Transition name="fade-popup">
           <div v-if="welcomeBack" class="fixed bottom-6 right-6 z-[10000] max-w-xs w-full">
             <div class="bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 relative">
-              <button
+              <BaseButton
+                unstyled
+                icon-only
                 class="absolute top-3 right-3 w-6 h-6 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-border-muted transition-colors text-xs"
+                :aria-label="pLang === 'es' ? 'Cerrar bienvenida' : 'Close welcome message'"
                 @click="welcomeBack = null"
-              >✕</button>
+              >✕</BaseButton>
               <div class="flex items-center gap-3 mb-3">
                 <div class="w-10 h-10 bg-primary-soft rounded-xl flex items-center justify-center flex-shrink-0">
                   <span class="text-xl">👋</span>

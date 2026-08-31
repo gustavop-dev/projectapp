@@ -1,19 +1,22 @@
 <template>
   <div class="share-proposal">
     <!-- Floating share button: click = open share modal -->
-    <button
+    <BaseButton
+      unstyled
+      icon-only
       data-testid="share-proposal-btn"
       class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-surface border border-border-default
              rounded-full shadow-lg flex items-center justify-center
              hover:bg-surface-muted transition-colors group"
       :title="t.shareTitle"
+      :aria-label="t.shareTitle"
       @click="showModal = true"
     >
       <svg class="w-5 h-5 text-text-muted group-hover:text-text-brand transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
       </svg>
-    </button>
+    </BaseButton>
 
     <!-- Share modal -->
     <teleport to="body">
@@ -38,7 +41,9 @@
                   <p class="text-xs text-text-subtle">{{ t.shareSubtitle }}</p>
                 </div>
               </div>
-              <button
+              <BaseButton
+                unstyled
+                icon-only
                 class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-raised text-text-subtle transition-colors hover:bg-border-muted hover:text-text-muted"
                 :aria-label="language === 'es' ? 'Cerrar' : 'Close'"
                 @click="closeModal"
@@ -46,7 +51,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
 
             <!-- Link display + copy -->

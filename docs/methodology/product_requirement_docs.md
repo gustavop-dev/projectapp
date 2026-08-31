@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Entregado — 2026-08-31:** todo icono ejecutable de panel, plataforma y
+> superficies públicas confirma de inmediato que recibió el clic, incluido si
+> navega, abre o alterna una vista. El glifo no cambia; touch y teclado conservan
+> la misma señal y reduced motion elimina la escala, no el halo. Las acciones
+> asíncronas mantienen su estado de carga. Copiar muestra éxito sólo después de
+> escribir realmente al portapapeles y muestra un estado de error visible si el
+> navegador lo bloquea, además del mensaje accionable de la pantalla.
+
 > **Entregado — 2026-08-30:** Comunicaciones ubica **Configuraciones** junto a
 > **Nuevo hilo** y reúne en una superficie propia las preferencias personales de
 > agrupación, orden, cantidad por página, ancho lateral, canal inicial y ayuda.

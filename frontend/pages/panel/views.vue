@@ -213,8 +213,9 @@
               <BaseActionButton
                 action="copy"
                 class="rounded-lg p-1.5 text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-brand"
-                :label="copiedKey === `${section.id}-${view.url}` ? 'Copiado: referencia' : 'Copiar referencia'"
-                :status-label="copiedKey === `${section.id}-${view.url}` ? 'Copiado: referencia' : ''"
+                :label="copyFeedback(section, view).label || 'Copiar referencia'"
+                :status-label="copyFeedback(section, view).label"
+                :status-tone="copyFeedback(section, view).tone"
                 @click="copyReference(section, view)"
               />
             </div>
@@ -252,6 +253,7 @@ import {
 } from '~/config/viewCatalog'
 import { useViewMapStore } from '~/stores/view_map'
 import { usePanelNotify } from '~/composables/usePanelNotify'
+import { useClipboardFeedback } from '~/composables/useClipboardFeedback'
 import { useViewMapFilters } from '~/composables/useViewMapFilters'
 import { useViewMapMode } from '~/composables/useViewMapMode'
 import ViewMapFilterPanel from '~/components/views/ViewMapFilterPanel.vue'
@@ -305,6 +307,7 @@ const {
 
 const viewMapStore = useViewMapStore()
 const notify = usePanelNotify()
+const clipboardFeedback = useClipboardFeedback()
 
 const sectionOptions = [
   { value: 'catalog', label: 'Catálogo', testId: 'view-map-section-catalog' },
@@ -320,7 +323,6 @@ const viewModeOptions = [
 const activeSection = ref('catalog')
 
 const search = ref('')
-const copiedKey = ref(null)
 
 // ── Configuración: defaults persistidos en ViewMapSettings ──
 const configFilters = reactive({ categories: [], audiences: [], viewTypes: [] })
@@ -401,16 +403,23 @@ const selectedSection = computed(() =>
 
 const isFiltering = computed(() => hasActiveFilters.value || search.value.trim().length > 0)
 
-let copyTimer = null
-
-function copyReference(section, view) {
+async function copyReference(section, view) {
   const text = getViewCopyReference(section.label, view)
   const key = `${section.id}-${view.url}`
-  navigator.clipboard.writeText(text).then(() => {
-    clearTimeout(copyTimer)
-    copiedKey.value = key
-    copyTimer = setTimeout(() => { copiedKey.value = null }, 1500)
+  await clipboardFeedback.copyText({
+    key,
+    text,
+    successLabel: 'Copiado: referencia',
+    errorLabel: 'No se pudo copiar la referencia',
+    onError: () => notify.error({
+      title: 'No se pudo copiar la referencia',
+      detail: 'Tu navegador bloqueó el acceso al portapapeles.',
+    }),
   })
+}
+
+function copyFeedback(section, view) {
+  return clipboardFeedback.feedbackFor(`${section.id}-${view.url}`)
 }
 
 function clearAll() {

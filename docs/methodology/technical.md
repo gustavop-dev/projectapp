@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Icon feedback 2026-08-31:** `BaseButton` expone `unstyled` sin perder su
+> pulso de activación de 180 ms, foco, semántica ni mínimo táctil de 44 px.
+> `BaseTooltip.forceOpen` permite que `BaseActionButton.statusLabel` sea visible
+> y anunciado con tono info/success/danger. `useClipboardFeedback` espera la
+> promesa de Clipboard API, conserva éxito 2 s y fallo 3 s, limpia timers al
+> desmontar y deja al consumidor publicar el error de negocio. El check
+> `check:icon-interaction-feedback` se ejecuta en CI junto al catálogo del panel.
+
 > **Estado 2026-08-30 — implementado:** `accounts.0058` añade
 > `CommunicationPanelPreference` y los endpoints administradores GET/PATCH/reset.
 > El store normaliza el contrato por cuenta, migra una sola vez las claves locales
