@@ -82,9 +82,18 @@ def notify_project_client(
     exclude_user=None,
     deliverable=None,
 ):
-    """Notify the project's client about an event."""
+    """Notify the project's client about an event.
+
+    An archived client is skipped: archiving files the whole relationship
+    away, and a notification is the one thing that would keep pulling them
+    back into it. The team-facing twin ``notify_project_admins`` is untouched —
+    the operator still needs to see what happens on the project.
+    """
     client = project.client
     if exclude_user and client.id == exclude_user.id:
+        return None
+    profile = getattr(client, 'profile', None)
+    if profile is not None and profile.archived_at is not None:
         return None
     return notify(
         user=client,

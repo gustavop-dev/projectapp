@@ -43,7 +43,7 @@ function baseHandler(extra = () => null) {
     if (apiPath === 'document-tags/') return json([]);
     if (apiPath.startsWith('accounts/saved-filter-tabs')) return json([]);
     if (apiPath === 'proposals/client-profiles/status-counts/') {
-      return json({ all: 0, active: 0, orphans: 0, inactive: 0 });
+      return json({ all: 0, active: 0, orphans: 0, archived: 0 });
     }
     if (apiPath === 'proposals/client-profiles/') return json([]);
     return null;

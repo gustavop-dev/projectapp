@@ -29,6 +29,19 @@ def make_project(profile, name='Vastago', *, status=Project.STATUS_ACTIVE):
     return Project.objects.create(name=name, client=profile.user, status=status)
 
 
+def thread_ids(project):
+    """Threads the preview would list for ``project``.
+
+    Every project is auto-provisioned a mother thread, so an apply payload that
+    omits it looks to the staleness check like a row that appeared after the
+    preview — which is exactly what it protects against. A real client echoes
+    the preview; these tests echo it the same way.
+    """
+    return list(
+        project.communication_threads.values_list('pk', flat=True),
+    )
+
+
 def make_hosting(profile, project):
     return HostingRecord.objects.create(
         client=profile, project=project,
@@ -149,6 +162,7 @@ class TestApplyEndpoint:
             'client_profile_id': target.pk,
             'mode': 'move',
             'income_ids': [seen.pk],
+            'communication_thread_ids': thread_ids(project),
         }, format='json')
 
         assert response.status_code == 409
@@ -171,6 +185,7 @@ class TestApplyEndpoint:
             'mode': 'move',
             'hosting_ids': [hosting.pk],
             'income_ids': [income.pk],
+            'communication_thread_ids': thread_ids(project),
         }, format='json')
 
         assert response.status_code == 200, response.data
@@ -198,6 +213,7 @@ class TestApplyEndpoint:
             'client_profile_id': target.pk,
             'mode': 'detach',
             'income_ids': [income.pk],
+            'communication_thread_ids': thread_ids(project),
         }, format='json')
 
         assert response.status_code == 200, response.data

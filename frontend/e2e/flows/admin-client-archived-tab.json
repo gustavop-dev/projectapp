@@ -1,0 +1,16 @@
+{
+  "id": "admin-client-archived-tab",
+  "name": "Admin Client Archived Tab",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "The Archivados option of the transversal client-status selector (next to the search box, labelled with its own match count, mirrored in ?status=) lists only archived clients (archived=true, with the pre-rename ?inactive= spelling still accepted), and the row toggle archives a client or brings it back.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

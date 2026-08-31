@@ -54,8 +54,8 @@ const resolvedHelpLabel = computed(() => props.helpLabel || `Ayuda sobre ${props
     class="relative min-w-0 rounded-xl border border-border-muted bg-surface shadow-sm"
     :class="isCompactHorizontal
       ? ($slots.help
-        ? 'grid min-h-[4.5rem] grid-cols-[minmax(0,1fr)_3rem] items-stretch'
-        : 'grid min-h-[4.5rem] grid-cols-1 items-stretch')
+        ? 'grid h-20 grid-cols-[minmax(0,1fr)_3rem] items-stretch'
+        : 'grid h-20 grid-cols-1 items-stretch')
       : 'h-full min-h-[8.25rem] sm:min-h-[9.5rem]'"
     :data-layout="layout"
   >
@@ -65,7 +65,7 @@ const resolvedHelpLabel = computed(() => props.helpLabel || `Ayuda sobre ${props
       class="min-w-0 text-left"
       :class="[
         isCompactHorizontal
-          ? 'grid min-h-[4.5rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3'
+          ? 'grid h-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3'
           : 'grid h-full min-h-[8.25rem] w-full grid-rows-[2.25rem_2.25rem_1.25rem] gap-1 rounded-xl p-4 pr-12 sm:min-h-[9.5rem] sm:p-5 sm:pr-14',
         isCompactHorizontal && $slots.help ? 'rounded-l-xl' : 'rounded-xl',
         isActionable && isCompactHorizontal
@@ -142,11 +142,11 @@ const resolvedHelpLabel = computed(() => props.helpLabel || `Ayuda sobre ${props
       :position="helpPosition"
       width="max-w-xs"
       min-width="min-w-[min(15rem,calc(100vw-2rem))]"
+      :floating="!isCompactHorizontal"
       :root-class="isCompactHorizontal
         ? 'flex h-full items-center justify-center border-l border-border-muted'
-        : 'inline-block'"
+        : 'absolute right-2 top-2 z-20'"
       trigger-class="inline-flex"
-      :class="isCompactHorizontal ? '' : 'absolute right-2 top-2 z-20'"
     >
       <template #trigger="{ tooltipId }">
         <button

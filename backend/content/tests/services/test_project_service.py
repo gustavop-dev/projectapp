@@ -366,5 +366,9 @@ class TestDeletionBlockers:
             'hostings': 1,
             'incomes': 0,
             'documents': 1,
-            'communication_threads': 1,
+            # Two: the historical thread created above plus the project's
+            # auto-provisioned mother thread. The mother counts on purpose —
+            # a hard delete would blank its project with SET_NULL, which is
+            # precisely the silent orphaning this guard exists to stop.
+            'communication_threads': 2,
         }

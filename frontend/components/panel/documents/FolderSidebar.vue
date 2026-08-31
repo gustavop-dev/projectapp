@@ -23,20 +23,19 @@
     </div>
 
     <div
-      v-if="navigationMode === 'project'"
       class="flex shrink-0 items-center justify-between gap-2 border-b border-border-muted px-3 py-2.5 transition-colors"
       :class="showInactiveProjects ? 'bg-warning-soft' : ''"
       data-testid="inactive-projects-control"
     >
       <span class="flex items-center gap-2 min-w-0">
         <span class="text-sm truncate" :class="showInactiveProjects ? 'font-medium text-text-default' : 'text-text-muted'">
-          Ver proyectos no activos
+          {{ lifecycleToggleLabel }}
         </span>
       </span>
       <BaseToggle
         :model-value="showInactiveProjects"
         size="sm"
-        aria-label="Ver proyectos no activos"
+        :aria-label="lifecycleToggleLabel"
         data-testid="inactive-projects-toggle"
         @update:model-value="$emit('toggle-inactive-projects', $event)"
       />
@@ -228,7 +227,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
           <span class="truncate text-sm" :class="archivedMode ? 'font-medium text-text-default' : 'text-text-muted'">
-            Ver archivados
+            Ver documentos archivados
           </span>
           <span class="shrink-0 text-xs text-text-subtle" data-testid="folder-archived-count">{{ archivedCount }}</span>
         </span>
@@ -236,7 +235,7 @@
           :model-value="archivedMode"
           :disabled="scopeLocked"
           size="sm"
-          aria-label="Ver archivados"
+          aria-label="Ver documentos archivados"
           disabled-reason="La búsqueda recorre activos y archivados."
           data-testid="folder-archived-entry"
           @update:model-value="$emit('toggle-archived', $event)"
@@ -579,7 +578,7 @@ const searchedNavigationEntries = computed(() => {
 function isArchivedNavigationEntry(entry) {
   if (entry.catalog_bucket) return entry.catalog_bucket === 'archived';
   return props.navigationMode === 'client'
-    ? Boolean(entry.is_inactive)
+    ? Boolean(entry.is_archived)
     : entry.is_visible === false;
 }
 
@@ -587,26 +586,33 @@ const activeNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter((entry) => !isArchivedNavigationEntry(entry)));
 const archivedNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter(isArchivedNavigationEntry));
-// El toggle de proyectos no activos es EXCLUYENTE, no aditivo: encendido deja
+// El interruptor de ciclo de vida es EXCLUYENTE, no aditivo: encendido deja
 // ver sólo los no activos, apagado sólo los activos. Los dos computed son las
 // dos caras de la misma condición, por eso se leen juntos.
+//
+// Gobierna los DOS modos. Antes sólo aplicaba a proyectos y los clientes
+// archivados se listaban siempre, así que el mismo panel se comportaba de dos
+// maneras según el modo — y archivar un cliente no lo sacaba de la vista.
 const visibleActiveNavigationEntries = computed(() => (
-  props.navigationMode === 'project' && props.showInactiveProjects
-    ? []
-    : activeNavigationEntries.value
+  props.showInactiveProjects ? [] : activeNavigationEntries.value
 ));
 const visibleArchivedNavigationEntries = computed(() => (
-  props.navigationMode === 'project' && !props.showInactiveProjects
-    ? []
-    : archivedNavigationEntries.value
+  props.showInactiveProjects ? archivedNavigationEntries.value : []
+));
+const lifecycleToggleLabel = computed(() => (
+  props.navigationMode === 'project'
+    ? 'Ver proyectos no activos'
+    : 'Ver clientes archivados'
 ));
 const navigationArchivedGroupLabel = computed(() => (
-  props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes inactivos'
+  props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes archivados'
 ));
 const navigationEmptyMessage = computed(() => {
   if (navigationSearch.value.trim()) return 'No hay coincidencias.';
-  if (props.navigationMode === 'project' && props.showInactiveProjects) {
-    return 'No hay proyectos no activos.';
+  if (props.showInactiveProjects) {
+    return props.navigationMode === 'project'
+      ? 'No hay proyectos no activos.'
+      : 'No hay clientes archivados.';
   }
   return `No hay ${props.navigationMode === 'project' ? 'proyectos' : 'clientes'} disponibles.`;
 });
@@ -666,7 +672,7 @@ function navigationCounts(counts = {}) {
 
 function navigationEntrySubtitle(entry) {
   if (props.navigationMode === 'project') return entry.state?.name || 'Sin estado';
-  return entry.is_inactive ? 'Cliente inactivo' : '';
+  return entry.is_archived ? 'Cliente inactivo' : '';
 }
 
 function navigationRowLabel(entry) {

@@ -1573,7 +1573,10 @@ Model compact indicators as explicit tracks: flexible identity, atomic
 value/action and a fixed help column. Keep the main action and help as sibling
 buttons, preserve a 44 px target, and measure containment plus intersection in
 the real browser at every expanded reference width. The stacked layout remains
-the right default when support copy is itself part of the visible metric.
+the right default when support needs more than one line; a bounded single line
+can coexist with the compact layout when browser geometry confirms the same
+height. Two groups that promise equal cards must also share the column count,
+not only the component.
 
 ## 64. Bilingual content and presentation mode are orthogonal state
 

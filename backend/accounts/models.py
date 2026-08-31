@@ -135,13 +135,24 @@ class UserProfile(models.Model):
         default=False,
         help_text='True after the client fills in their profile details.',
     )
-    deactivated_at = models.DateTimeField(
+    archived_at = models.DateTimeField(
         null=True,
         blank=True,
         default=None,
-        help_text='When set, this client is marked inactive and hidden from '
-                  'the default panel client lists. Independent from '
+        help_text='When set, this client is archived and hidden from the '
+                  'default panel client lists. Archiving is the client-side '
+                  'twin of a project moving out of an active state, and it '
+                  'cascades its projects to "suspended". Independent from '
                   'auth.User.is_active, which is False for client shells.',
+    )
+    archived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='archived_client_profiles',
+        help_text='Who archived this client last. Cleared on unarchive; the '
+                  'durable trail is the AccountingChangeLog row.',
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -176,9 +187,9 @@ class UserProfile(models.Model):
         return (self.user.email or '').endswith(self.PLACEHOLDER_EMAIL_DOMAIN)
 
     @property
-    def is_inactive_client(self):
-        """True when the client was manually marked inactive in the panel."""
-        return self.deactivated_at is not None
+    def is_archived_client(self):
+        """True when the client was archived from the panel."""
+        return self.archived_at is not None
 
     @property
     def avatar_display_url(self):

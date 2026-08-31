@@ -275,7 +275,7 @@ def retrieve_public_proposal(request, proposal_uuid):
     proposal = get_object_or_404(
         BusinessProposal.objects
         .select_related('client__user')
-        .prefetch_related('sections', 'requirement_groups__items'),
+        .prefetch_related('sections'),
         uuid=proposal_uuid,
     )
     return _serve_public_proposal(request, proposal)
@@ -288,7 +288,7 @@ def retrieve_public_proposal_by_slug(request, proposal_slug):
     proposal = get_object_or_404(
         BusinessProposal.objects
         .select_related('client__user')
-        .prefetch_related('sections', 'requirement_groups__items'),
+        .prefetch_related('sections'),
         slug=proposal_slug,
     )
     return _serve_public_proposal(request, proposal)
@@ -589,7 +589,6 @@ def retrieve_proposal(request, proposal_id):
         .prefetch_related(
             'project_stages',
             'sections',
-            'requirement_groups__items',
             # change_logs intentionally not prefetched: the serializer slices
             # to 50, so a LIMIT query beats loading the unbounded log table.
             'proposal_documents',
@@ -2812,7 +2811,7 @@ def retrieve_shared_proposal(request, share_uuid):
     share_link = get_object_or_404(
         ProposalShareLink.objects
         .select_related('proposal__client__user')
-        .prefetch_related('proposal__sections', 'proposal__requirement_groups__items'),
+        .prefetch_related('proposal__sections'),
         uuid=share_uuid,
     )
     proposal = share_link.proposal

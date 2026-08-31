@@ -151,7 +151,14 @@ def complete_dataset_snapshot():
             'uuid', 'title', 'client__user__email', 'status', 'currency',
             'investment_amount', 'duration_label', 'size_category', 'view_count',
         )),
-        'threads': list(CommunicationThread.objects.order_by(
+        # Seeded conversations only. A project's auto-provisioned mother
+        # thread defaults ``last_activity_at`` to the wall clock, so including
+        # it would make this snapshot differ between two runs of the SAME seed
+        # — turning a determinism check into a clock check. That every project
+        # gets a mother is asserted on its own, where it belongs.
+        'threads': list(CommunicationThread.objects.filter(
+            managed_project__isnull=True, managed_client__isnull=True,
+        ).order_by(
             'title',
         ).values_list(
             'title', 'client__user__email', 'project__name', 'status',
@@ -357,8 +364,14 @@ def test_document_seed_honors_a_small_volume_target():
 
 
 def test_communication_seed_distributes_thread_lengths(seeded_communications):
+    # Only the seeded conversations: auto-provisioned mother threads are born
+    # empty, and letting them into the tally would turn any change in the
+    # seeder's own distribution into a change in the 0-message bucket.
     lengths = Counter(
-        CommunicationThread.objects.annotate(total=Count('messages'))
+        CommunicationThread.objects.filter(
+            managed_project__isnull=True, managed_client__isnull=True,
+        )
+        .annotate(total=Count('messages'))
         .values_list('total', flat=True)
     )
 
@@ -563,7 +576,15 @@ def test_orchestrator_populates_every_visible_module_root():
     assert IncomeRecord.objects.exists()
     assert HostingRecord.objects.exists()
     assert Document.objects.exists()
-    assert CommunicationThread.objects.count() == 5
+    # Split on purpose: the seeder asks for 5 conversations, and every project
+    # is additionally auto-provisioned a mother thread. Asserting one total
+    # would silently absorb a seeder that stopped creating conversations.
+    assert CommunicationThread.objects.filter(
+        managed_project__isnull=True, managed_client__isnull=True,
+    ).count() == 5
+    assert CommunicationThread.objects.filter(
+        managed_project__isnull=False,
+    ).count() == Project.objects.count()
     assert Linktree.objects.exists()
     assert QRCard.objects.exists()
     assert LinkedInPost.objects.exists()

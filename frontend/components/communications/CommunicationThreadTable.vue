@@ -46,6 +46,16 @@
               <span>{{ thread.project_name || 'Sin proyecto' }}</span>
             </p>
           </div>
+          <!-- Espejo de los badges del gestor documental: identifica la
+               comunicacion madre de la entidad frente a las conversaciones
+               sueltas. Sin estado detras en el caso del cliente, que no tiene
+               catalogo de ciclo de vida. -->
+          <BaseBadge v-if="thread.thread_kind === 'project'" variant="info" size="sm">
+            Proyecto
+          </BaseBadge>
+          <BaseBadge v-else-if="thread.thread_kind === 'client'" variant="neutral" size="sm">
+            Cliente
+          </BaseBadge>
           <BaseBadge :variant="thread.status === 'open' ? 'success' : 'neutral'" size="sm">
             {{ thread.status === 'open' ? 'Abierto' : 'Cerrado' }}
           </BaseBadge>
