@@ -15,6 +15,19 @@ MCP y 3 regresiones existentes verdes; Django no reporta problemas, no hay drift
 de migraciones y el gate estricto del batch cerró con cero errores. Sólo falta la
 confirmación del CI del PR.
 
+**2026-08-31 — acceso rápido de Módulos adicionales listo para integrar:** la
+cabecera comercial de `/panel/additional-modules` deja visible y seleccionable
+la URL pública canónica, permite copiarla, abrir la experiencia del cliente y
+descargar el catálogo completo en PDF con el idioma activo. Desde el mismo lugar
+se preparan selecciones con tracking, se personaliza su PDF y se consulta el
+historial; administración, categorías y orden quedan como acciones separadas.
+El dashboard global repite el acceso en modo compacto y muestra módulos activos,
+enlaces seleccionados vigentes, pendientes de apertura y última apertura
+histórica. El catálogo canónico se identifica como indexable/sin tracking y los
+enlaces seleccionados como `noindex`/con tracking. No hay migración ni precios.
+Verificación focal: 2 pytest, 19 unitarias frontend, 3 escenarios Playwright del
+flow nuevo, 6 regresiones de compartir/PDF, build, guards y flow audit verdes.
+
 **2026-08-30 — catálogo, archivo y conciliación documental corregidos, listos
 para integrar:** Documentos y Comunicaciones enumeran todos los proyectos
 canónicos, incluidos los que aún no tienen contenido. En Documentos sólo el

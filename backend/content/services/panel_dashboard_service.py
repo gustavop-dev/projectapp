@@ -1,18 +1,21 @@
 """Global panel dashboard: consolidated KPIs across modules.
 
 Single payload for ``GET /api/panel/dashboard/`` combining finance
-(accounting, superuser-gated by the caller), proposals (cheap core) and
-operations (tasks, documents, diagnostics, emails, hour packages), plus
-the cross-module "attention" list that powers the dashboard radar.
+(accounting, superuser-gated by the caller), proposals (cheap core), the
+additional-modules commercial summary and operations (tasks, documents,
+diagnostics, emails, hour packages), plus the cross-module "attention" list
+that powers the dashboard radar.
 """
 
 from datetime import timedelta
 
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Max, Q, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from content.models import (
+    AdditionalModule,
+    AdditionalModuleShareLink,
     BusinessProposal,
     Document,
     EmailLog,
@@ -123,6 +126,32 @@ def _diagnostics_summary():
         'by_status': by_status,
         'active_pipeline': active_pipeline,
         'accepted_value': accepted_value,
+    }
+
+
+def _additional_modules_summary():
+    """Small commercial snapshot for the global panel dashboard."""
+
+    usable_link = Q(
+        is_active=True,
+        selected_modules__is_active=True,
+        selected_modules__category__is_active=True,
+    )
+    link_metrics = AdditionalModuleShareLink.objects.aggregate(
+        active_share_count=Count('id', filter=usable_link, distinct=True),
+        unopened_active_share_count=Count(
+            'id',
+            filter=usable_link & Q(first_viewed_at__isnull=True),
+            distinct=True,
+        ),
+        last_viewed_at=Max('last_viewed_at'),
+    )
+    return {
+        'active_module_count': AdditionalModule.objects.filter(
+            is_active=True,
+            category__is_active=True,
+        ).count(),
+        **link_metrics,
     }
 
 
@@ -289,6 +318,7 @@ def build_panel_dashboard(*, include_finance):
         'generated_at': now.isoformat(),
         'finance': _finance_block(today.year) if include_finance else None,
         'proposals': build_dashboard_core(),
+        'additional_modules': _additional_modules_summary(),
         'operations': operations,
         'attention': _attention_block(
             operations, today, now, include_finance=include_finance,

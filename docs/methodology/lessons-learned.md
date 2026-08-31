@@ -90,6 +90,13 @@ This file captures important patterns, preferences, and project intelligence tha
 > precios ni datos de una propuesta, y las URLs seleccionadas usan `noindex`
 > aunque el catálogo canónico sí sirva para captación.
 
+> **Lección 2026-08-31 — descubribilidad comercial:** que una capacidad exista
+> dentro de un modal no la vuelve operable. La URL canónica y el PDF completo
+> deben ser visibles antes de seleccionar módulos; la personalización y el
+> tracking son un segundo camino explícito. Etiquetar ambos evita prometer
+> seguimiento sobre una URL indexable o compartir todo cuando se quería curar
+> una selección.
+
 ---
 
 ## 1. Architecture Patterns
