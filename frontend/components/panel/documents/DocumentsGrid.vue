@@ -4,7 +4,10 @@ import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadg
 import { folderRowSummary, isManagedFolderKind } from '~/utils/documentStatus'
 import { isPlainActivation } from '~/utils/rowNavigation'
 
-defineProps({
+// Asignado a `props` —y no un `defineProps` suelto— porque `folderSummaryScope`
+// lee el scope de la vista: sin la asignación, `props` no existe en el scope del
+// script y la fila de carpeta revienta el render entero de la grilla.
+const props = defineProps({
   documents: { type: Array, default: () => [] },
   subfolders: { type: Array, default: () => [] },
   editToFor: { type: Function, default: () => null },
