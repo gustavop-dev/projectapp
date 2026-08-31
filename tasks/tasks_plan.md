@@ -1,5 +1,10 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-08-31:** ambos grupos de indicadores de Proyectos
+> comparten tarjetas horizontales de 80 px y grilla de cuatro/cinco columnas en
+> escritorio; el apoyo queda acotado y la ayuda permanece dentro de cada tarjeta.
+> En celular/tableta se conservan los dos resúmenes con drawers completos.
+
 > **Acceso comercial listo para integrar — 2026-08-31:** Módulos adicionales
 > muestra la URL pública y la descarga completa en PDF al inicio del módulo y
 > desde el dashboard. Las selecciones personalizadas y su seguimiento permanecen
@@ -27,10 +32,6 @@
 > catálogo, estado compatible, episodios e impactos financieros en Suspendido,
 > única detención reversible.
 
-> **Listo para integrar — 2026-08-30:** las tarjetas expandidas del ciclo de
-> proyectos son horizontales y compactas; el botón de ayuda ocupa un track
-> propio dentro de la tarjeta y ya no se superpone con el contenido.
-
 > **Listo para integrar — 2026-08-29:** Nuevo proyecto y los modales de creación
 > del panel comparten validación bajo el campo, anchos coherentes, textos breves,
 > una sola convención de obligatoriedad y una fila final sólo para acciones.
@@ -57,7 +58,7 @@
 | Feature | Status | Details |
 |---------|--------|---------|
 | Documents — safe project/client reconciliation | 🟡 Ready for merge | Updated 2026-08-30. Every canonical project appears even with zero content; a visit-local toggle reveals non-operational projects inclusively while the separate archive toggle still filters content. `DocumentFolder.managed_project` identifies the canonical root. Manifest v5 promotes G&M, Vástago, Xpandia, Kore and Tenndalux, creates roots for Mimittos, PRUEBA and Candle, nests Germán under Kore, files document 120 and explicitly assigns loose documents 1–5/135/157/154/159. Carlos, Gustavo, Aarón, Littigio, ProjectApp and Requirement Estimates stay untouched. Apply requires a reviewed hash, unchanged fingerprint, verified backup and inverse snapshot. Production remains untouched pending deploy and the operator runbook. |
-| Projects — compact lifecycle cards | 🟡 Ready for merge | 2026-08-30. Expanded non-zero lifecycle states use `BaseIndicatorCard`'s opt-in horizontal layout: 72–80 px, no empty support row, inline count/filter and a dedicated 48 px help column. Pending cards and the 412/835 summaries retain the stacked contract. Nineteen unit tests, help/filter isolation and geometry at 1195/1440/2560 are green; the flow map is fresh. |
+| Projects — compact indicator cards | 🟡 Ready for merge | Updated 2026-08-31. Expanded non-zero lifecycle and operational indicators share `BaseIndicatorCard`'s 80 px horizontal layout, the same four/five-column grid, bounded support, inline result/action and a dedicated 48 px help column. At 412/835 px, exactly two equal summaries retain all facts in drawers. Nineteen unit tests, 17 functional scenarios and geometry at 412/835/1195/1440/2560 are green; the flow map is registered. |
 | Documents — project/client navigation switch | 🟡 Ready for merge | 2026-08-29, refined 2026-08-30. The document manager reuses Communications' shared Project/Client segmented control, persists the choice per staff profile and exposes the selected mode through `by` in the URL. A constant-query backend facet service counts every directly associated folder and document once and returns complete catalogs, including zero-content rows and permanent Sin proyecto/Sin cliente buckets. Projects default to operational rows; a non-persisted inclusive toggle reveals non-active rows and resets hidden selections. The global content archive toggle remains independent beside **Carpetas propias**, which contains only roots with neither entity. The technical PA-108 warning is no longer exposed in the UI. |
 | Panel — creation-form validation and modal actions | 🟡 Ready for merge | 2026-08-29. Nuevo proyecto muestra nombre/cliente/estado/descripción como un bloque de ancho completo, conserva En desarrollo sin ayuda contradictoria y expone Crear cliente aun con coincidencias. Errores locales y del API quedan bajo su control con relación ARIA; Cancelar/Guardar quedan solos. `BaseFormField`, `ClientAutocomplete` y los modales de creación de Clientes, Tareas, Documentos, Contabilidad y contenido comparten el contrato; no hay cambio backend ni de esquema. Unitarias focales, cuatro escenarios Playwright, build y flow audit están verdes. |
 | Proposals — visibility-aware engagement tracking | 🟡 Ready for merge | 2026-08-29. Ocultar la página finaliza un único segmento por beacon y detiene el intervalo; volver a verla inicia otro segmento. Los flushes concurrentes se coalescen y un response sólo limpia las entradas que realmente envió. 38 pruebas focales verdes. |

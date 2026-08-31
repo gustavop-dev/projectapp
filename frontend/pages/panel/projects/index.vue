@@ -117,7 +117,7 @@
           >
             Pendientes operativos
           </h2>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-4 gap-3 panel-wide:grid-cols-5">
             <AccountingStatCard
               v-for="indicator in nonZeroPendingIndicators"
               :key="indicator.key"
@@ -125,6 +125,7 @@
               :value="String(indicator.value)"
               :sub="indicator.support"
               tone="warning"
+              layout="compact-horizontal"
               :action="indicator.action"
               :action-label="indicator.actionLabel"
               :help-label="`Ayuda sobre ${indicator.label}`"
