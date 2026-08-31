@@ -10,6 +10,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
+  ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS,
   ADMIN_DASHBOARD,
   ADMIN_DASHBOARD_ATTENTION_RADAR,
   ADMIN_DASHBOARD_ERROR_RETRY,
@@ -53,6 +54,12 @@ const summaryFixture = {
     pipeline_count: 3,
     monthly_trend: [],
     recent: [{ id: 1, title: 'Sitio ACME', client_name: 'ACME Corp', status: 'sent' }],
+  },
+  additional_modules: {
+    active_module_count: 23,
+    active_share_count: 4,
+    unopened_active_share_count: 2,
+    last_viewed_at: '2026-07-15T15:30:00Z',
   },
   operations: {
     tasks: { open: 5, overdue: 2, overdue_high: 1, blocked: 0, high_priority_open: 2 },
@@ -122,7 +129,32 @@ test.describe('Admin Dashboard', () => {
     await expect(page.getByTestId('attention-radar-list')).toBeVisible();
     await expect(page.getByTestId('dashboard-finance-section')).toBeVisible();
     await expect(page.getByTestId('dashboard-proposals-section')).toBeVisible();
+    await expect(page.getByTestId('dashboard-additional-modules-section')).toBeVisible();
     await expect(page.getByTestId('dashboard-operations-section')).toBeVisible();
+  });
+
+  test('opens a tracked client selection from the commercial resource summary', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS, '@role:admin', '@outcome:display', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'panel/dashboard/') return jsonResponse(summaryFixture);
+      if (apiPath === 'additional-modules/admin/') {
+        return jsonResponse({ revision: 'r1', categories: [], modules: [] });
+      }
+      if (apiPath === 'additional-modules/admin/shares/') return jsonResponse([]);
+      if (apiPath === 'proposals/client-profiles/') return jsonResponse([]);
+      return null;
+    });
+    await page.goto('/es-co/panel', { waitUntil: 'domcontentloaded' });
+    const resources = page.getByTestId('dashboard-additional-modules-section');
+
+    await expect(resources.getByTestId('additional-modules-active-count')).toHaveText('23');
+    await expect(resources.getByTestId('additional-modules-unopened-count')).toHaveText('2');
+    await resources.getByTestId('additional-modules-create-share').click();
+
+    await expect(page).toHaveURL(/\/es-co\/panel\/additional-modules\?action=share$/);
+    await expect(page.getByRole('heading', { name: 'Preparar enlace compartible' })).toBeVisible();
   });
 
   test('pulse tiles open the finance and proposals stats modals', {

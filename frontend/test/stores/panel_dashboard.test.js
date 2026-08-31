@@ -14,6 +14,12 @@ const SUMMARY = {
   generated_at: '2026-07-16T10:00:00-05:00',
   finance: { year: 2026, liquid_total: 1000 },
   proposals: { pipeline_value: 500, by_status: { sent: 1 } },
+  additional_modules: {
+    active_module_count: 23,
+    active_share_count: 4,
+    unopened_active_share_count: 2,
+    last_viewed_at: '2026-07-16T10:00:00-05:00',
+  },
   operations: { tasks: { open: 2, overdue: 1 } },
   attention: [{ type: 'tasks_overdue', severity: 'warning', count: 1, meta: {} }],
 }
@@ -36,6 +42,7 @@ describe('usePanelDashboardStore', () => {
     expect(store.summary).toBeNull()
     expect(store.finance).toBeNull()
     expect(store.proposals).toBeNull()
+    expect(store.additionalModules).toBeNull()
     expect(store.operations).toBeNull()
     expect(store.attention).toEqual([])
     expect(store.hasFinance).toBe(false)
@@ -59,6 +66,7 @@ describe('usePanelDashboardStore', () => {
     await store.fetchSummary()
 
     expect(store.finance.year).toBe(2026)
+    expect(store.additionalModules.active_module_count).toBe(23)
     expect(store.attention).toHaveLength(1)
     expect(store.hasFinance).toBe(true)
   })

@@ -7,8 +7,8 @@ export const usePanelDashboardStore = defineStore('panel_dashboard', {
    *
    * Properties:
    * - summary (Object|null): consolidated payload from /api/panel/dashboard/
-   *   with finance (null for non-superusers), proposals, operations and
-   *   the cross-module attention list.
+   *   with finance (null for non-superusers), proposals, additional modules,
+   *   operations and the cross-module attention list.
    * - loading (Boolean): fetch in flight.
    * - error (Boolean): last fetch failed.
    */
@@ -21,6 +21,7 @@ export const usePanelDashboardStore = defineStore('panel_dashboard', {
   getters: {
     finance: (state) => state.summary?.finance ?? null,
     proposals: (state) => state.summary?.proposals ?? null,
+    additionalModules: (state) => state.summary?.additional_modules ?? null,
     operations: (state) => state.summary?.operations ?? null,
     attention: (state) => state.summary?.attention ?? [],
     hasFinance: (state) => Boolean(state.summary?.finance),
