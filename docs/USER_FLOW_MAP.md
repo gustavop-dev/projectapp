@@ -5987,6 +5987,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-additional-modules-catalog` | admin | P1 | success,display,failure | 5 |
 | `admin-additional-modules-manage` | admin | P1 | success,error,failure | 4 |
 | `admin-additional-modules-pdf` | admin | P2 | success,failure | 2 |
+| `admin-additional-modules-quick-access` | admin | P1 | success,display | 3 |
 | `admin-additional-modules-reorder` | admin | P2 | success,failure | 2 |
 | `admin-additional-modules-share` | admin | P1 | success,error,failure,display | 4 |
 | `admin-admin-management` | admin | P3 | display,success,error | 1 |

@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from accounts.services import proposal_client_service
 from content.models import (
+    AdditionalModule,
+    AdditionalModuleShareLink,
     BusinessProposal,
     Document,
     DocumentType,
@@ -89,6 +91,51 @@ class TestPayloadShape:
         assert finance['pocket_balance'] == Decimal('0')
         assert 'total' in finance['card_debt']
         assert len(finance['monthly']) == 12
+
+    def test_additional_modules_matches_the_active_catalog(self):
+        payload = build_panel_dashboard(include_finance=False)
+
+        assert payload['additional_modules']['active_module_count'] == (
+            AdditionalModule.objects.filter(
+                is_active=True,
+                category__is_active=True,
+            ).count()
+        )
+
+
+class TestAdditionalModulesSummary:
+    @freeze_time('2026-08-31 12:00:00')
+    def test_reports_usable_links_and_the_latest_historical_open(self):
+        module = AdditionalModule.objects.filter(
+            is_active=True,
+            category__is_active=True,
+        ).first()
+        active_link = AdditionalModuleShareLink.objects.create(
+            recipient_label='Conversación activa',
+        )
+        active_link.selected_modules.add(module)
+        orphan_link = AdditionalModuleShareLink.objects.create(
+            recipient_label='Sin selección disponible',
+        )
+        viewed_at = timezone.now()
+        revoked_link = AdditionalModuleShareLink.objects.create(
+            recipient_label='Histórico abierto',
+            is_active=False,
+            revoked_at=viewed_at,
+            view_count=1,
+            first_viewed_at=viewed_at,
+            last_viewed_at=viewed_at,
+        )
+        revoked_link.selected_modules.add(module)
+
+        summary = build_panel_dashboard(
+            include_finance=False,
+        )['additional_modules']
+
+        assert summary['active_share_count'] == 1
+        assert summary['unopened_active_share_count'] == 1
+        assert summary['last_viewed_at'] == viewed_at
+        assert orphan_link.first_viewed_at is None
 
 
 # ── operations: tasks ──

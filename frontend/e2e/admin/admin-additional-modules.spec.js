@@ -6,6 +6,7 @@ import {
   ADMIN_ADDITIONAL_MODULES_CATALOG,
   ADMIN_ADDITIONAL_MODULES_MANAGE,
   ADMIN_ADDITIONAL_MODULES_PDF,
+  ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS,
   ADMIN_ADDITIONAL_MODULES_REORDER,
   ADMIN_ADDITIONAL_MODULES_SHARE,
 } from '../helpers/flow-tags.js'
@@ -90,6 +91,15 @@ async function setupApi(page, scenario = {}) {
       if (scenario.pdfFailure) return json(500, { detail: 'No se pudo generar el PDF.' })
       return { status: 200, contentType: 'application/pdf', headers: { 'Content-Disposition': 'attachment; filename="catalogo.pdf"' }, body: '%PDF-1.4 demo' }
     }
+    if (apiPath === 'additional-modules/public/pdf/' && method === 'GET') {
+      scenario.fullPdfLanguage = new URL(route.request().url()).searchParams.get('lang')
+      return {
+        status: 200,
+        contentType: 'application/pdf',
+        headers: { 'Content-Disposition': 'attachment; filename="catalogo-completo.pdf"' },
+        body: '%PDF-1.4 complete',
+      }
+    }
     return null
   })
 }
@@ -100,7 +110,7 @@ async function openCatalog(page) {
 }
 
 async function openSelection(page, mode = 'share') {
-  await page.getByRole('button', { name: mode === 'share' ? 'Generar enlace' : 'Descargar PDF' }).click()
+  await page.getByRole('button', { name: mode === 'share' ? 'Preparar selección' : 'Personalizar PDF' }).click()
   await expect(page.getByRole('heading', { name: mode === 'share' ? 'Preparar enlace compartible' : 'Preparar PDF' })).toBeVisible()
 }
 
@@ -171,6 +181,41 @@ test.describe('Additional modules admin catalog', () => {
     await expect(page).toHaveURL(/\/en-us\/panel\/additional-modules$/)
     await expect(page.getByRole('heading', { name: 'Additional modules catalog' })).toBeVisible()
     await expect(page.getByTestId('additional-admin-module-10')).toContainText('Facturación electrónica EN')
+  })
+
+  test('exposes a canonical public URL that can be copied directly', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS, '@role:admin', '@outcome:display', '@outcome:success'],
+  }, async ({ page, context }) => {
+    await setupApi(page)
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    // quality: allow-deep-link (catalog entry is covered separately; this isolates the canonical sharing controls)
+    await openCatalog(page)
+    const expectedUrl = `${new URL(page.url()).origin}/es-co/additional-modules`
+
+    await expect(page.getByTestId('additional-modules-public-url')).toHaveValue(expectedUrl)
+    await page.getByTestId('additional-modules-copy-public-url').click()
+
+    await expect(page.getByRole('alert')).toContainText('URL pública copiada')
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(expectedUrl)
+    await expect(page.getByTestId('additional-modules-open-public'))
+      .toHaveAttribute('href', '/es-co/additional-modules')
+  })
+
+  test('downloads the complete active catalog without opening the selection modal', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const scenario = {}
+    await setupApi(page, scenario)
+    // quality: allow-deep-link (catalog entry is covered separately; this isolates the complete PDF download)
+    await openCatalog(page)
+
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByTestId('additional-modules-download-full-pdf').click()
+    const download = await downloadPromise
+
+    expect(download.suggestedFilename()).toBe('catalogo-completo.pdf')
+    expect(scenario.fullPdfLanguage).toBe('es')
+    await expect(page.getByRole('heading', { name: 'Preparar PDF' })).toHaveCount(0)
   })
 
   test('shows compact rows in list mode', {
@@ -340,7 +385,7 @@ test.describe('Additional modules admin catalog', () => {
     await setupApi(page, { shareLinks: [trackedLink] })
     // quality: allow-deep-link (the commercial catalog navigation is covered above; this isolates the Seguimiento display and revoke behavior)
     await openCatalog(page)
-    await page.getByRole('button', { name: 'Seguimiento' }).click()
+    await page.getByTestId('additional-modules-tracking').click()
     const history = page.getByTestId('additional-share-history')
     await expect(history).toContainText('Acme — pagos')
     await expect(history).toContainText('2 aperturas')
