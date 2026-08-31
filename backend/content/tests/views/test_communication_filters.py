@@ -106,6 +106,19 @@ def test_project_none_keeps_unassigned_threads_reachable(admin_client, admin_use
     assert [row['title'] for row in response.data['results']] == ['Sin proyecto']
 
 
+def state_payload(project):
+    """Estado esperado en la faceta, derivado del proyecto real.
+
+    El ciclo de vida lo siembra un signal, asi que hardcodearlo ataria el test
+    al catalogo en vez de al contrato de la faceta.
+    """
+    project.refresh_from_db()
+    state = project.current_state
+    if state is None:
+        return None
+    return {'id': state.pk, 'name': state.name, 'system_key': state.system_key}
+
+
 def test_project_name_search_scopes_the_list_contract(admin_client, admin_user):
     client = make_client('project-search@example.com', 'Estela')
     matching_project = Project.objects.create(
@@ -132,9 +145,13 @@ def test_project_name_search_scopes_the_list_contract(admin_client, admin_user):
     )
 
     assert response.status_code == 200
-    assert [row['project_name'] for row in response.data['results']] == ['Portal Boreal']
-    assert response.data['facets']['total'] == 1
-    assert response.data['facets']['navigation_total'] == 1
+    # Dos coincidencias: el hilo manual y la comunicacion madre, que lleva el
+    # nombre del proyecto y por eso tambien casa con la busqueda.
+    assert [row['project_name'] for row in response.data['results']] == [
+        'Portal Boreal', 'Portal Boreal',
+    ]
+    assert response.data['facets']['total'] == 2
+    assert response.data['facets']['navigation_total'] == 2
     assert response.data['facets']['projects'] == [
         {
             'id': matching_project.id,
@@ -142,7 +159,9 @@ def test_project_name_search_scopes_the_list_contract(admin_client, admin_user):
             'client_id': client.id,
             'client_name': 'Estela',
             'catalog_bucket': 'active',
-            'count': 1,
+            'managed_root_id': matching_project.communication_root_thread.pk,
+            'state': state_payload(matching_project),
+            'count': 2,
             'unavailable': False,
         },
         {
@@ -151,6 +170,8 @@ def test_project_name_search_scopes_the_list_contract(admin_client, admin_user):
             'client_id': client.id,
             'client_name': 'Estela',
             'catalog_bucket': 'active',
+            'managed_root_id': other_project.communication_root_thread.pk,
+            'state': state_payload(other_project),
             'count': 0,
             'unavailable': False,
         },
@@ -176,7 +197,11 @@ def test_project_facets_return_complete_lifecycle_catalog(
         'client_id': client.id,
         'client_name': 'Germán',
         'catalog_bucket': 'active',
-        'count': 0,
+        # El proyecto provisiona su comunicacion madre al crearse; este id es
+        # el que deja al panel fijarla arriba de su grupo.
+        'managed_root_id': active.communication_root_thread.pk,
+        'state': state_payload(active),
+        'count': 1,
         'unavailable': False,
     }
     assert rows[archived.id] == {
@@ -185,7 +210,9 @@ def test_project_facets_return_complete_lifecycle_catalog(
         'client_id': client.id,
         'client_name': 'Germán',
         'catalog_bucket': 'archived',
-        'count': 0,
+        'managed_root_id': archived.communication_root_thread.pk,
+        'state': state_payload(archived),
+        'count': 1,
         'unavailable': False,
     }
 

@@ -38,8 +38,8 @@ const CLIENT_ROW = {
   documents_no_project_count: 2,
   last_document_at: '2026-08-10T10:00:00Z',
   is_orphan: false,
-  is_inactive: false,
-  deactivated_at: null,
+  is_archived: false,
+  archived_at: null,
   accepted_count: 0,
   last_status: 'sent',
   last_sent_at: '2026-05-01T10:00:00Z',
@@ -85,7 +85,7 @@ function setupMock(page) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ all: 1, active: 1, orphans: 0, inactive: 0 }),
+        body: JSON.stringify({ all: 1, active: 1, orphans: 0, archived: 0 }),
       };
     }
     if (apiPath === 'proposals/client-profiles/101/') {

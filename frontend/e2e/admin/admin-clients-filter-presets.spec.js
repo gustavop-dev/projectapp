@@ -42,8 +42,8 @@ function client(overrides) {
     emails_failed_count: 0,
     last_email_at: null,
     is_orphan: false,
-    is_inactive: false,
-    deactivated_at: null,
+    is_archived: false,
+    archived_at: null,
     accepted_count: 0,
     last_status: 'sent',
     last_sent_at: '2026-05-01T10:00:00Z',
@@ -159,7 +159,7 @@ function setupMock(page) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ all: 4, active: 4, orphans: 0, inactive: 0 }),
+        body: JSON.stringify({ all: 4, active: 4, orphans: 0, archived: 0 }),
       };
     }
 

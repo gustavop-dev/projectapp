@@ -15,8 +15,6 @@ from accounts.services.proposal_client_service import (
 )
 from content.models import (
     BusinessProposal,
-    ProposalRequirementGroup,
-    ProposalRequirementItem,
     ProposalSection,
 )
 
@@ -55,14 +53,6 @@ def rich_proposal(db):
             content_json={'title': st}, order=i,
             is_enabled=(st != 'final_note'),
         )
-    for g in range(3):
-        group = ProposalRequirementGroup.objects.create(
-            proposal=prop, group_id=f'g{g}', title=f'Grupo {g}', order=g,
-        )
-        for j in range(4):
-            ProposalRequirementItem.objects.create(
-                group=group, item_id=f'g{g}-i{j}', name=f'Item {j}', order=j,
-            )
     return prop
 
 
@@ -82,8 +72,6 @@ class TestAdminProposalDetailQueries:
             response = admin_client.get(url)
         assert response.status_code == 200
         assert len(response.data['sections']) == 5  # admin sees disabled too
-        assert len(response.data['requirement_groups']) == 3
-        assert all(len(g['items']) == 4 for g in response.data['requirement_groups'])
         assert len(ctx) <= MAX_ADMIN_DETAIL_QUERIES, (
             f'{len(ctx)} queries (max {MAX_ADMIN_DETAIL_QUERIES}) — did a '
             f'serializer method stop using the prefetch cache?'

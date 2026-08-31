@@ -691,18 +691,6 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     if hidden_ids:
         all_groups = [g for g in all_groups if _safe(g, 'id') not in hidden_ids]
 
-    db_groups = list(proposal.requirement_groups.all().order_by('order'))
-    for grp in db_groups:
-        all_groups.append({
-            'title': grp.title,
-            'description': grp.description,
-            'items': [
-                {'name': item.name, 'description': item.description,
-                 'icon': item.icon}
-                for item in grp.items.all().order_by('order')
-            ],
-        })
-
     # Filter out calculator-module groups not selected
     sel_ids = ps.get('selected_modules') if ps else None
     all_groups = _filter_calculator_groups(all_groups, sel_ids)

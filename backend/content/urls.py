@@ -230,6 +230,7 @@ from content.views.client_email_copy import (
     client_email_copy_recipients,
 )
 from content.views.communication import (
+    archive_communication_thread,
     close_communication_thread,
     communication_message_detail,
     communication_thread_detail,
@@ -240,12 +241,14 @@ from content.views.communication import (
     document_communication_usage,
     mark_communication_message_sent,
     reopen_communication_thread,
+    unarchive_communication_thread,
     void_communication_message,
 )
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
     create_proposal_client, update_proposal_client, delete_proposal_client,
     proposal_client_status_counts,
+    preview_client_archive, archive_proposal_client, unarchive_proposal_client,
 )
 from content.views.task import (
     list_tasks, create_task, update_task, reorder_task, delete_task,
@@ -493,6 +496,9 @@ urlpatterns = [
     path('proposals/client-profiles/<int:client_id>/', retrieve_proposal_client, name='retrieve-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/update/', update_proposal_client, name='update-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/delete/', delete_proposal_client, name='delete-proposal-client'),
+    path('proposals/client-profiles/<int:client_id>/archive-preview/', preview_client_archive, name='preview-client-archive'),
+    path('proposals/client-profiles/<int:client_id>/archive/', archive_proposal_client, name='archive-proposal-client'),
+    path('proposals/client-profiles/<int:client_id>/unarchive/', unarchive_proposal_client, name='unarchive-proposal-client'),
     # The client's email history. Nested under the client on purpose: the
     # scope is what authorizes the row.
     path('proposals/client-profiles/<int:client_id>/emails/', list_client_emails, name='list-client-emails'),
@@ -643,6 +649,16 @@ urlpatterns = [
         'communications/threads/<int:thread_id>/reopen/',
         reopen_communication_thread,
         name='reopen-communication-thread',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/archive/',
+        archive_communication_thread,
+        name='archive-communication-thread',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/unarchive/',
+        unarchive_communication_thread,
+        name='unarchive-communication-thread',
     ),
     path(
         'communications/threads/<int:thread_id>/messages/',

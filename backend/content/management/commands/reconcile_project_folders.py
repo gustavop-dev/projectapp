@@ -144,7 +144,7 @@ def database_snapshot():
     return {
         'clients': list(
             UserProfile.objects.clients().order_by('id').values(
-                'id', 'user_id', 'company_name', 'deactivated_at',
+                'id', 'user_id', 'company_name', 'archived_at',
                 'updated_at', 'user__first_name', 'user__last_name',
                 'user__email',
             )

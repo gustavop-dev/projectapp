@@ -13,7 +13,6 @@ from .proposal import (
     ProposalListSerializer, ProposalDetailSerializer,
     ProposalCreateUpdateSerializer, ProposalSectionDetailSerializer,
     ProposalSectionListSerializer, ProposalSectionUpdateSerializer,
-    ProposalRequirementGroupSerializer, ProposalRequirementItemSerializer,
 )
 from .blog import (
     BlogPostListSerializer, BlogPostDetailSerializer,

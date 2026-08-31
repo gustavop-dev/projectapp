@@ -146,7 +146,7 @@ class Command(BaseCommand):
                     'phone': client_data['phone'],
                     'cedula': client_data.get('cedula', ''),
                     'created_by': admin,
-                    'deactivated_at': (
+                    'archived_at': (
                         context.anchor_now - timedelta(days=client_data['deactivated_days_ago'])
                         if 'deactivated_days_ago' in client_data else None
                     ),

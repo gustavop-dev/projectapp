@@ -63,8 +63,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     open_communications_count = serializers.SerializerMethodField()
     last_communication_at = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
-    is_inactive = serializers.SerializerMethodField()
-    deactivated_at = serializers.DateTimeField(read_only=True)
+    is_archived = serializers.SerializerMethodField()
+    archived_at = serializers.DateTimeField(read_only=True)
     accepted_count = serializers.SerializerMethodField()
     last_status = serializers.SerializerMethodField()
     last_sent_at = serializers.SerializerMethodField()
@@ -105,8 +105,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'open_communications_count',
             'last_communication_at',
             'is_orphan',
-            'is_inactive',
-            'deactivated_at',
+            'is_archived',
+            'archived_at',
             'accepted_count',
             'last_status',
             'last_sent_at',
@@ -140,8 +140,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'open_communications_count',
             'last_communication_at',
             'is_orphan',
-            'is_inactive',
-            'deactivated_at',
+            'is_archived',
+            'archived_at',
             'accepted_count',
             'last_status',
             'last_sent_at',
@@ -348,8 +348,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             return False
         return self.get_communications_count(obj) == 0
 
-    def get_is_inactive(self, obj):
-        return obj.deactivated_at is not None
+    def get_is_archived(self, obj):
+        return obj.archived_at is not None
 
     def get_accepted_count(self, obj):
         annotated = getattr(obj, 'accepted_count', None)
@@ -410,8 +410,8 @@ class ProposalNestedClientSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     is_email_placeholder = serializers.BooleanField(read_only=True)
     # Reads an already-loaded column, so it costs no extra query.
-    is_inactive = serializers.SerializerMethodField()
-    deactivated_at = serializers.DateTimeField(read_only=True)
+    is_archived = serializers.SerializerMethodField()
+    archived_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = UserProfile
@@ -424,15 +424,15 @@ class ProposalNestedClientSerializer(serializers.ModelSerializer):
             'company',
             'is_onboarded',
             'is_email_placeholder',
-            'is_inactive',
-            'deactivated_at',
+            'is_archived',
+            'archived_at',
             'created_at',
             'updated_at',
         )
         read_only_fields = fields
 
-    def get_is_inactive(self, obj):
-        return obj.deactivated_at is not None
+    def get_is_archived(self, obj):
+        return obj.archived_at is not None
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

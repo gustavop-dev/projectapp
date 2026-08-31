@@ -17,8 +17,20 @@ import BaseInput from '~/components/base/BaseInput.vue';
 import { BILLING_CODE_MAX_LENGTH } from '~/utils/billingCode';
 
 const props = defineProps({
-  /** `{ name, email, phone, company, nit, billing_code }` */
+  /** `{ name, email, phone, company, nit, billing_code, is_archived }` */
   modelValue: { type: Object, required: true },
+  /**
+   * Show the archive control. Off by default so the three inline "crear al
+   * vuelo" panels don't offer it: you are creating a client to use right now,
+   * and filing it away in the same breath is never what that flow means.
+   */
+  showArchived: { type: Boolean, default: false },
+  /**
+   * Editing an existing client. The control then only ANNOUNCES the change —
+   * flipping it opens the cascade preview, because archiving suspends the
+   * client's projects and the plain save must not carry that.
+   */
+  editing: { type: Boolean, default: false },
   /** Prefix for each field's data-testid, e.g. `clients-new` -> `clients-new-name`. */
   testidPrefix: { type: String, required: true },
   /** Compact 3-column strip for the inline panels; stacked otherwise. */
@@ -27,11 +39,22 @@ const props = defineProps({
   errors: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(['update:modelValue', 'clear-error']);
+const emit = defineEmits(['update:modelValue', 'clear-error', 'request-archive']);
 
 function update(field, value) {
   emit('update:modelValue', { ...props.modelValue, [field]: value });
   emit('clear-error', field);
+}
+
+function onArchivedToggle(next) {
+  // Editing: the archive is its own reviewed operation, so the checkbox is a
+  // request, not a value change. Creating: there are no projects yet, so there
+  // is nothing to preview and the flag is plain form state.
+  if (props.editing) {
+    emit('request-archive');
+    return;
+  }
+  update('is_archived', next);
 }
 
 function errorFor(field) {
@@ -135,5 +158,33 @@ function errorFor(field) {
         />
       </BaseFormField>
     </BaseFormRow>
+
+    <!-- Lifecycle. Last on purpose: it is not part of the client's identity,
+         it is what the panel does with it. -->
+    <BaseFormField
+      v-if="showArchived"
+      label="Estado"
+      :size="dense ? 'sm' : 'md'"
+    >
+      <label class="flex items-start gap-2 text-sm text-text-default">
+        <input
+          type="checkbox"
+          class="mt-0.5 h-4 w-4 rounded border-input-border text-primary"
+          :checked="Boolean(modelValue.is_archived)"
+          :data-testid="`${testidPrefix}-archived`"
+          @change="onArchivedToggle($event.target.checked)"
+        >
+        <span>
+          Archivado
+          <span class="block text-xs text-text-subtle">
+            {{
+              editing
+                ? 'Se revisa el impacto sobre sus proyectos antes de aplicarlo.'
+                : 'Queda fuera de las listas activas y de los buscadores.'
+            }}
+          </span>
+        </span>
+      </label>
+    </BaseFormField>
   </div>
 </template>

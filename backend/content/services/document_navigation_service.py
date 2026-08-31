@@ -150,9 +150,9 @@ def build_document_navigation():
         {
             'id': profile.pk,
             'name': build_client_display_name(profile),
-            'is_inactive': profile.is_inactive_client,
+            'is_archived': profile.is_archived_client,
             'catalog_bucket': (
-                'archived' if profile.is_inactive_client else 'active'
+                'archived' if profile.is_archived_client else 'active'
             ),
             # Igual que en proyectos: sin este id el panel no puede suprimir la
             # raíz redundante y el cliente se vería como una carpeta que

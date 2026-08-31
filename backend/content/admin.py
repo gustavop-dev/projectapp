@@ -18,7 +18,7 @@ from accounts.services.impersonation import (
 )
 from .models import (
     Contact, PortfolioWork,
-    BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
+    BusinessProposal, ProposalSection,
     BlogPost, ProposalViewEvent, ProposalSectionView, ProposalChangeLog,
     ProposalDefaultConfig, EmailTemplateConfig,
     Document,
@@ -137,16 +137,6 @@ class ProposalSectionInline(admin.TabularInline):
     ordering = ('order',)
 
 
-class ProposalRequirementGroupInline(admin.TabularInline):
-    """
-    Inline admin for requirement groups within BusinessProposalAdmin.
-    """
-    model = ProposalRequirementGroup
-    extra = 0
-    fields = ('group_id', 'title', 'description', 'order')
-    ordering = ('order',)
-
-
 class BusinessProposalAdmin(admin.ModelAdmin):
     """
     Custom admin configuration for the BusinessProposal model.
@@ -162,7 +152,7 @@ class BusinessProposalAdmin(admin.ModelAdmin):
         'responded_at', 'revisit_alert_sent_at',
         'reminder_sent_at', 'created_at', 'updated_at',
     )
-    inlines = [ProposalSectionInline, ProposalRequirementGroupInline]
+    inlines = [ProposalSectionInline]
     fieldsets = (
         ('Identity', {
             'fields': ('uuid', 'title', 'client_name', 'client_email', 'slug', 'deliverable'),
@@ -240,15 +230,6 @@ class EmailTemplateConfigAdmin(admin.ModelAdmin):
     list_filter = ('is_active',)
     search_fields = ('template_key',)
     readonly_fields = ('created_at', 'updated_at')
-
-
-class ProposalRequirementItemAdmin(admin.ModelAdmin):
-    """
-    Custom admin configuration for the ProposalRequirementItem model.
-    """
-    list_display = ('name', 'group', 'icon', 'order')
-    list_filter = ('group__proposal',)
-    search_fields = ('name', 'description')
 
 
 class DocumentAdmin(admin.ModelAdmin):
@@ -352,7 +333,6 @@ class ProjectAppAdminSite(admin.AdminSite):
                 'app_label': 'business_proposals',
                 'models': [m for m in content_models if m['object_name'] in [
                     'BusinessProposal', 'ProposalSection',
-                    'ProposalRequirementGroup', 'ProposalRequirementItem',
                     'ProposalViewEvent', 'ProposalSectionView',
                     'ProposalChangeLog', 'ProposalDefaultConfig',
                     'EmailTemplateConfig',
@@ -439,8 +419,6 @@ admin_site.register(Contact, ContactAdmin)
 admin_site.register(PortfolioWork, PortfolioWorkAdmin)
 admin_site.register(BusinessProposal, BusinessProposalAdmin)
 admin_site.register(ProposalSection)
-admin_site.register(ProposalRequirementGroup)
-admin_site.register(ProposalRequirementItem, ProposalRequirementItemAdmin)
 admin_site.register(BlogPost, BlogPostAdmin)
 admin_site.register(ProposalViewEvent)
 admin_site.register(ProposalSectionView)

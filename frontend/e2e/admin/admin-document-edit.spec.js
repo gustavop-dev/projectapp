@@ -85,7 +85,7 @@ async function mockResponsiveHeaderApi(page) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
     }
     if (apiPath === 'proposals/client-profiles/status-counts/') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify({ all: 0, active: 0, orphans: 0, inactive: 0 }) };
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ all: 0, active: 0, orphans: 0, archived: 0 }) };
     }
     if (apiPath === 'proposals/client-profiles/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
@@ -854,7 +854,7 @@ test.describe('Admin Document Edit', () => {
       if (apiPath === 'document-folders/' || apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: '[]' };
       if (apiPath.startsWith('accounts/saved-filter-tabs')) return { status: 200, contentType: 'application/json', body: '[]' };
       if (apiPath === 'proposals/client-profiles/status-counts/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify({ all: 0, active: 0, orphans: 0, inactive: 0 }) };
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ all: 0, active: 0, orphans: 0, archived: 0 }) };
       }
       if (apiPath === 'proposals/client-profiles/') return { status: 200, contentType: 'application/json', body: '[]' };
       return null;
