@@ -74,32 +74,67 @@ function rectanglesOverlap(first, second) {
     && Math.min(first.y + first.height, second.y + second.height) > Math.max(first.y, second.y);
 }
 
-async function expectCompactLifecycleCardGeometry(page) {
-  const card = page.getByTestId('panel-projects-stat-state-2');
-  const help = page.getByTestId('project-stat-state-help-2');
+async function expectIndicatorHelpContained(page, cardTestId, helpTestId) {
+  const card = page.getByTestId(cardTestId);
+  const help = page.getByTestId(helpTestId);
+
+  await expect(help).toBeVisible();
+
+  const [cardBox, helpBox] = await Promise.all([
+    card.boundingBox(),
+    help.boundingBox(),
+  ]);
+
+  expect(helpBox.x).toBeGreaterThanOrEqual(cardBox.x);
+  expect(helpBox.y).toBeGreaterThanOrEqual(cardBox.y);
+  expect(helpBox.x + helpBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+  expect(helpBox.y + helpBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height);
+
+  return { card, helpBox, cardBox };
+}
+
+async function expectCompactIndicatorCardGeometry(page, cardTestId, helpTestId) {
+  const { card, helpBox, cardBox } = await expectIndicatorHelpContained(
+    page,
+    cardTestId,
+    helpTestId,
+  );
   const label = card.getByTestId('indicator-label');
   const value = card.getByTestId('accounting-stat-value');
   const resultAction = card.getByTestId('indicator-result-action');
 
   await expect(card).toHaveAttribute('data-layout', 'compact-horizontal');
-  await expect(help).toBeVisible();
 
-  const [cardBox, helpBox, labelBox, valueBox, resultActionBox] = await Promise.all([
-    card.boundingBox(),
-    help.boundingBox(),
+  const [labelBox, valueBox, resultActionBox] = await Promise.all([
     label.boundingBox(),
     value.boundingBox(),
     resultAction.boundingBox(),
   ]);
 
   expect(cardBox.height).toBeLessThanOrEqual(80);
-  expect(helpBox.x).toBeGreaterThanOrEqual(cardBox.x);
-  expect(helpBox.y).toBeGreaterThanOrEqual(cardBox.y);
-  expect(helpBox.x + helpBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
-  expect(helpBox.y + helpBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height);
   expect(rectanglesOverlap(helpBox, labelBox)).toBe(false);
   expect(rectanglesOverlap(helpBox, valueBox)).toBe(false);
   expect(rectanglesOverlap(helpBox, resultActionBox)).toBe(false);
+
+  return cardBox;
+}
+
+async function expectExpandedProjectIndicatorParity(page) {
+  const lifecycleBox = await expectCompactIndicatorCardGeometry(
+    page,
+    'panel-projects-stat-state-2',
+    'project-stat-state-help-2',
+  );
+  const pendingCards = [
+    ['panel-projects-stat-orphans', 'project-stat-orphans-help'],
+    ['panel-projects-stat-unlinked', 'project-stat-unlinked-help'],
+  ];
+
+  for (const [cardTestId, helpTestId] of pendingCards) {
+    const pendingBox = await expectCompactIndicatorCardGeometry(page, cardTestId, helpTestId);
+    expect(Math.round(pendingBox.width)).toBe(Math.round(lifecycleBox.width));
+    expect(Math.round(pendingBox.height)).toBe(Math.round(lifecycleBox.height));
+  }
 }
 
 async function expectWidePageCap(page, testId, width) {
@@ -439,6 +474,19 @@ for (const viewport of COMPACT_PROJECT_VIEWPORTS) {
       const firstCard = await cards.first().boundingBox();
       const secondCard = await cards.nth(1).boundingBox();
       expect(Math.round(firstCard.height)).toBe(Math.round(secondCard.height));
+      await expectIndicatorHelpContained(
+        page,
+        'panel-projects-stat-states-summary',
+        'project-states-summary-help',
+      );
+      await expectIndicatorHelpContained(
+        page,
+        'panel-projects-stat-pending-summary',
+        'project-pending-summary-help',
+      );
+      await page.getByTestId('project-pending-summary-help').click();
+      await expect(page.getByTestId('project-pending-summary-help-content')).toBeVisible();
+      await expect(page.getByTestId('project-pending-indicator-drawer')).toHaveCount(0);
 
       await page.getByTestId('project-actions-12').click();
       const actions = page.getByTestId('project-actions-drawer');
@@ -471,7 +519,7 @@ for (const viewport of EXPANDED_PROJECT_VIEWPORTS) {
 
       const card = await cards.first().boundingBox();
       expect(Math.round(card.height)).toBeGreaterThan(0);
-      await expectCompactLifecycleCardGeometry(page);
+      await expectExpandedProjectIndicatorParity(page);
       await expectNoViewportOverflow(page);
     });
   });
@@ -499,7 +547,7 @@ test.describe('Proyectos — contrato expandido de monitor', () => {
     const card = await cards.first().boundingBox();
     const pageBox = await page.getByTestId('projects-page').boundingBox();
     expect(Math.round(card.height)).toBeGreaterThan(0);
-    await expectCompactLifecycleCardGeometry(page);
+    await expectExpandedProjectIndicatorParity(page);
     expect(pageBox.width).toBeLessThanOrEqual(1401);
     await expectNoViewportOverflow(page);
   });

@@ -298,10 +298,11 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `inline-end` mode is only for legacy loose-icon action rows; do not migrate
   those implicitly while adopting the kebab contract.
 - KPI cards use `BaseIndicatorCard`. The default `stacked` layout reserves one
-  support line; `compact-horizontal` is opt-in for label/value-only cards and
-  omits that row when support is absent. In both layouts the help control remains
-  outside the optional main action so the DOM never nests buttons; the compact
-  layout assigns it a fixed 48 px grid column instead of absolute positioning.
+  support line; `compact-horizontal` is opt-in for bounded 72–80 px cards, omits
+  the row when support is absent and clamps supplied support to one line. In both
+  layouts the help control remains outside the optional main action so the DOM
+  never nests buttons; the compact layout assigns it a fixed 48 px grid column
+  instead of absolute positioning.
   Below `PANEL_BREAKPOINTS.landscape`, dense KPI headers expose two summaries and
   move the complete facts into `BaseDrawer`; expanded layouts may suppress
   zero-valued detail cards but must retain their filters in the compact drawer or
@@ -789,12 +790,13 @@ confirmed by the operator or another integration.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Indicator-card contract** — use `BaseIndicatorCard` for label/value/support
-  KPI surfaces. Keep `stacked` when support is part of the visible fact and use
-  `compact-horizontal` only when label, value and action are the complete card.
-  Always supply consistent help and an explicit action; group lifecycle and
-  operational questions separately, preserve catalog order, and use two
-  drawer-backed summaries when the complete card set would push the first result
-  below the initial compact viewport.
+  KPI surfaces. Keep `stacked` when support needs more than one visible line; use
+  `compact-horizontal` when identity, value/action and at most one bounded support
+  line fit the short card. Sibling groups that promise equal card sizes must use
+  the same grid columns. Always supply consistent help and an explicit action;
+  group lifecycle and operational questions separately, preserve catalog order,
+  and use two drawer-backed summaries when the complete card set would push the
+  first result below the initial compact viewport.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
 - **Action tooltip/accessibility split** — `BaseActionButton` is the sole tooltip
   owner for an icon-only panel action. Its visual copy defaults to the short

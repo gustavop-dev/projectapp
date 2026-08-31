@@ -770,7 +770,9 @@ The canonical counts, commands and exceptions are maintained in
 27. **Indicator headers preserve content priority**: KPI cards use a fixed
     label/value/reserved-support structure, consistent help and an explicit
     action. Expanded views keep meaningful non-zero indicators in business
-    order and separate lifecycle from operational questions. Compact project
+    order and separate lifecycle from operational questions. In Proyectos both
+    expanded groups share the same compact card geometry and column widths; a
+    bounded support line cannot make an operational card taller. Compact project
     and income headers collapse to two actionable summaries whose drawers retain
     the full detail, including zero-valued states, so the first list row remains
     visible in the initial 412×915 viewport.
