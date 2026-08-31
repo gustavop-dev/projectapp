@@ -278,9 +278,11 @@ flowchart LR
     ProposalDate --> ProposalDoc[Proposal snapshot Document]
 
     Sidebar[Documents / Communications] --> Catalog[All Project rows]
-    Catalog --> Lifecycle[active / archived catalog bucket]
+    Catalog --> LifecycleToggle[Show non-active projects\nvisit-local and inclusive]
+    Sidebar --> ArchiveToggle[Show archived\ndocument content scope]
     Root -->|unique managed_project marker| RootIdentity[Canonical identity]
     LegacyBranch[Explicitly mapped legacy root] -->|reviewed nesting| Root
+    LooseDocument[Explicitly mapped loose document] -->|reviewed assignment| Root
     Client[Client] -->|client_user| ClientRoot[Reviewed client root]
     Own[Own root] -->|no project, no client| Sidebar
 ```
@@ -290,12 +292,16 @@ where the record is stored. The entity sidebars list the complete canonical
 project catalog even when a project has no root, documents or communications;
 the managed
 root remains the physical boundary for filing. Project lifecycle only chooses
-the active/archived catalog group and never archives content. A reviewed client
+whether a row belongs to the default operational catalog or to the optional,
+inclusive non-active group; it never archives content. The independent archive
+toggle changes document/folder scope. A reviewed client
 root stays top-level with `client_user`; a reviewed related branch may be nested
 under its canonical project root. A root with neither project nor client is the
 only kind shown under Carpetas propias. Historical data enters these relations
-only through the reviewed reconciliation manifest. Generated filing
-reuses the two keyed first-level categories and reparents any legacy keyed
+only through the reviewed reconciliation manifest. Its v5 explicit document
+directive can associate a loose record only when it has no folder/project and
+its client is empty or matches; ordinary content enters the root and generated
+content follows its keyed type/year/month path. Generated filing reuses the two keyed first-level categories and reparents any legacy keyed
 branch before removing its now-empty parallel wrappers.
 
 ### 4.2 Model Details

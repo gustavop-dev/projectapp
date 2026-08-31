@@ -754,6 +754,13 @@ confirmed by the operator or another integration.
   through `reconcile_project_folders` so the backfill cannot bypass the reviewed
   PA-108 adoption. Never run either migrations or this data-writing command from
   a session worktree.
+- **Reviewed reconciliation v5** — `--assign-document-project D:P` is a
+  plan-only, repeatable directive for audited loose documents. Planning rejects
+  missing IDs, placed/already-linked rows and mismatched clients. Application
+  requires the approved project-root action, unchanged database fingerprint,
+  exact manifest hash, verified backup and an inverse artifact. It assigns
+  project/client and either files generated content through
+  `ensure_generated_folder_path` or places ordinary content at the managed root.
 
 ### Frontend Patterns
 
@@ -763,6 +770,11 @@ confirmed by the operator or another integration.
   `document_navigation.js` owns the persisted preference plus aggregate facets;
   `documents.js` continues to own transient list filters and
   `document_folders.js` continues to own the independent structural hierarchy.
+- **Two independent archive axes in Documents** — the visit-local project
+  lifecycle toggle defaults off and only expands the project catalog; hiding a
+  selected non-active project resets that filter to All. The existing
+  `archiveScope` toggle stays global to document/folder content, keeps its URL
+  contract and is rendered beside Own folders.
 - **Brief action tooltips stay horizontal** — `BaseTooltip.contentClass` keeps
   long explanatory hints wrapping by default, while `BaseActionButton` opts its
   short catalog label into `whitespace-nowrap`; the floating positioner still

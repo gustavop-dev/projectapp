@@ -33,7 +33,7 @@ from content.services.generated_document_filing_service import (
 from content.services.project_document_folder_service import ensure_project_folder
 
 
-MANIFEST_VERSION = 4
+MANIFEST_VERSION = 5
 EXPECTED_PROJECTLIKE_ROOTS = ('Proyegabs',)
 
 
@@ -113,6 +113,30 @@ def _parse_project_root_nestings(values):
             )
         nestings[folder_id] = project_id
     return nestings
+
+
+def _parse_document_project_assignments(values):
+    assignments = {}
+    for value in values:
+        try:
+            document_raw, project_raw = value.split(':', 1)
+            document_id = int(document_raw)
+            project_id = int(project_raw)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise CommandError(
+                '--assign-document-project usa el formato DOCUMENTO:PROYECTO.'
+            ) from exc
+        if document_id <= 0 or project_id <= 0:
+            raise CommandError(
+                '--assign-document-project requiere identificadores positivos.'
+            )
+        previous = assignments.get(document_id)
+        if previous is not None and previous != project_id:
+            raise CommandError(
+                f'El documento {document_id} tiene dos proyectos distintos.'
+            )
+        assignments[document_id] = project_id
+    return assignments
 
 
 def database_snapshot():
@@ -266,7 +290,7 @@ def _root_id(folder_id, folders_by_id):
     return current.id if current is not None else None
 
 
-def _generated_document_path(document):
+def _generated_document_path(document, *, project=None, client_user=None):
     cancelled = document.commercial_status == Document.CommercialStatus.CANCELLED
     unissued = cancelled and not document.issue_date
     if getattr(document.document_type, 'code', None) != COLLECTION_ACCOUNT:
@@ -276,17 +300,30 @@ def _generated_document_path(document):
     return describe_generated_folder_path(
         COLLECTION_ACCOUNT,
         business_date=document.issue_date,
-        project=document.project,
-        client_user=document.client_user,
+        project=project or document.project,
+        client_user=client_user or document.client_user,
         cancelled=cancelled,
         unissued=unissued,
     )
+
+
+def _reviewed_document_target(document, project):
+    client_user = document.client_user or project.client
+    generated_path = _generated_document_path(
+        document,
+        project=project,
+        client_user=client_user,
+    )
+    if generated_path is not None:
+        return 'generated_path', generated_path
+    return 'project_root', f'Proyectos / {project.name}'
 
 
 def build_manifest(
     *,
     project_root_nestings=None,
     client_root_assignments=None,
+    document_project_assignments=None,
 ):
     project_root_nestings = {
         int(folder_id): int(project_id)
@@ -295,6 +332,12 @@ def build_manifest(
     client_root_assignments = {
         int(folder_id): int(profile_id)
         for folder_id, profile_id in (client_root_assignments or {}).items()
+    }
+    document_project_assignments = {
+        int(document_id): int(project_id)
+        for document_id, project_id in (
+            document_project_assignments or {}
+        ).items()
     }
     overlap = set(project_root_nestings) & set(client_root_assignments)
     if overlap:
@@ -326,7 +369,12 @@ def build_manifest(
     }
 
     projects_by_id = {project.id: project for project in projects}
-    unknown_projects = set(project_root_nestings.values()) - set(projects_by_id)
+    documents_by_id = {document.id: document for document in documents}
+    directed_project_ids = (
+        set(project_root_nestings.values())
+        | set(document_project_assignments.values())
+    )
+    unknown_projects = directed_project_ids - set(projects_by_id)
     if unknown_projects:
         raise CommandError(
             'No existen los proyectos indicados: '
@@ -383,6 +431,48 @@ def build_manifest(
         raise CommandError(
             'No existen los perfiles de cliente indicados: '
             + ', '.join(str(value) for value in sorted(unknown_profiles))
+        )
+
+    unknown_documents = set(document_project_assignments) - set(documents_by_id)
+    if unknown_documents:
+        raise CommandError(
+            'No existen los documentos indicados: '
+            + ', '.join(str(value) for value in sorted(unknown_documents))
+        )
+    placed_documents = [
+        document_id
+        for document_id in document_project_assignments
+        if documents_by_id[document_id].folder_id is not None
+    ]
+    if placed_documents:
+        raise CommandError(
+            'Sólo se pueden asignar documentos sin carpeta: '
+            + ', '.join(str(value) for value in sorted(placed_documents))
+        )
+    linked_documents = [
+        document_id
+        for document_id in document_project_assignments
+        if documents_by_id[document_id].project_id is not None
+    ]
+    if linked_documents:
+        raise CommandError(
+            'Sólo se pueden asignar documentos sin proyecto: '
+            + ', '.join(str(value) for value in sorted(linked_documents))
+        )
+    client_conflicting_documents = [
+        document_id
+        for document_id, project_id in document_project_assignments.items()
+        if documents_by_id[document_id].client_user_id not in (
+            None,
+            projects_by_id[project_id].client_id,
+        )
+    ]
+    if client_conflicting_documents:
+        raise CommandError(
+            'Estos documentos pertenecen a otro cliente: '
+            + ', '.join(
+                str(value) for value in sorted(client_conflicting_documents)
+            )
         )
 
     actions = []
@@ -584,6 +674,37 @@ def build_manifest(
             ),
         })
 
+    for document_id, project_id in sorted(document_project_assignments.items()):
+        document = documents_by_id[document_id]
+        project = projects_by_id[project_id]
+        target_strategy, target_path = _reviewed_document_target(
+            document,
+            project,
+        )
+        target_root = project_root_action[project_id]
+        actions.append({
+            'id': f'assign-document-project-{document.id}-{project.id}',
+            'type': 'assign_document_project',
+            'decision': 'pending',
+            'document_id': document.id,
+            'document_title': document.title,
+            'folder_id': None,
+            'current_project_id': None,
+            'current_client_user_id': document.client_user_id,
+            'project_id': project.id,
+            'project_name': project.name,
+            'client_user_id': project.client_id,
+            'target_strategy': target_strategy,
+            'target_path': target_path,
+            'target_root_folder_id': target_root.get('folder_id'),
+            'target_root_action_id': target_root['id'],
+            'rule': 'explicit-reviewed-directive',
+            'reason': (
+                f'Asociar al proyecto {project.name} y ubicar en '
+                f'{target_path}.'
+            ),
+        })
+
     for document in documents:
         if not document.project_id:
             continue
@@ -669,6 +790,15 @@ def build_manifest(
                     client_root_assignments.items()
                 )
             ],
+            'document_project_assignments': [
+                {
+                    'document_id': document_id,
+                    'project_id': project_id,
+                }
+                for document_id, project_id in sorted(
+                    document_project_assignments.items()
+                )
+            ],
         },
         'missing_expected_names': [
             name for name in EXPECTED_PROJECTLIKE_ROOTS
@@ -726,6 +856,7 @@ def _validate_review(manifest):
         and action.get('type') not in {
             'convert', 'create', 'nest_project_root',
             'assign_client_folder', 'file_document',
+            'assign_document_project',
         }
     ]
     if invalid_approvals:
@@ -774,6 +905,42 @@ def _validate_review(manifest):
         raise CommandError(
             'Asignaciones de cliente inválidas: '
             + ', '.join(invalid_client_assignments)
+        )
+    invalid_document_assignments = [
+        action['id'] for action in manifest.get('actions', [])
+        if action.get('type') == 'assign_document_project'
+        and (
+            not isinstance(action.get('document_id'), int)
+            or not isinstance(action.get('project_id'), int)
+            or action.get('target_strategy') not in {
+                'generated_path', 'project_root',
+            }
+        )
+    ]
+    if invalid_document_assignments:
+        raise CommandError(
+            'Asignaciones documento→proyecto inválidas: '
+            + ', '.join(invalid_document_assignments)
+        )
+    missing_document_targets = [
+        action['id'] for action in manifest.get('actions', [])
+        if action.get('type') == 'assign_document_project'
+        and action.get('decision') == 'approve'
+        and (
+            action.get('target_root_action_id') not in actions_by_id
+            or (
+                actions_by_id[action['target_root_action_id']].get('type')
+                in {'convert', 'create'}
+                and actions_by_id[
+                    action['target_root_action_id']
+                ].get('decision') != 'approve'
+            )
+        )
+    ]
+    if missing_document_targets:
+        raise CommandError(
+            'Cada documento aprobado requiere aprobar su raíz de proyecto: '
+            + ', '.join(missing_document_targets)
         )
 
 
@@ -890,6 +1057,83 @@ def _file_reviewed_document(action, inverse):
     document.save(update_fields=update_fields)
 
 
+def _assign_reviewed_document_project(action, inverse):
+    document = Document.objects.select_related(
+        'document_type', 'project', 'client_user',
+    ).get(pk=action['document_id'])
+    project = Project.objects.select_related('client').get(
+        pk=action['project_id'],
+    )
+    if document.folder_id is not None or document.project_id is not None:
+        raise CommandError(
+            f'El documento {document.id} cambió desde la asignación revisada.'
+        )
+    if document.client_user_id not in (None, project.client_id):
+        raise CommandError(
+            f'El documento {document.id} pertenece a otro cliente.'
+        )
+    root = DocumentFolder.objects.filter(
+        managed_project=project,
+        parent__isnull=True,
+        is_archived=False,
+    ).first()
+    if root is None:
+        raise CommandError(
+            f'El proyecto {project.id} no tiene una raíz aprobada.'
+        )
+
+    target_strategy, target_path = _reviewed_document_target(
+        document,
+        project,
+    )
+    if (
+        target_strategy != action.get('target_strategy')
+        or target_path != action.get('target_path')
+    ):
+        raise CommandError(
+            f'La ruta revisada del documento {document.id} cambió desde el plan.'
+        )
+
+    previous_folder_ids = set(
+        DocumentFolder.objects.values_list('id', flat=True)
+    )
+    effective_client = document.client_user or project.client
+    if target_strategy == 'generated_path':
+        cancelled = (
+            document.commercial_status
+            == Document.CommercialStatus.CANCELLED
+        )
+        target = ensure_generated_folder_path(
+            COLLECTION_ACCOUNT,
+            business_date=document.issue_date,
+            project=project,
+            client_user=effective_client,
+            cancelled=cancelled,
+            unissued=cancelled and not document.issue_date,
+        )
+    else:
+        target = root
+
+    inverse['changes'].append({
+        'type': 'assigned_document_project',
+        'document_id': document.id,
+        'folder_id': document.folder_id,
+        'project_id': document.project_id,
+        'client_user_id': document.client_user_id,
+        'created_folder_ids': sorted(
+            set(DocumentFolder.objects.values_list('id', flat=True))
+            - previous_folder_ids
+        ),
+    })
+    document.folder = target
+    document.project = project
+    update_fields = ['folder', 'project', 'updated_at']
+    if document.client_user_id is None:
+        document.client_user = project.client
+        update_fields.append('client_user')
+    document.save(update_fields=update_fields)
+
+
 @transaction.atomic
 def apply_manifest(manifest):
     list(get_user_model().objects.select_for_update().values_list('id', flat=True))
@@ -905,7 +1149,7 @@ def apply_manifest(manifest):
             'Los proyectos, carpetas o documentos cambiaron desde el plan. '
             'Regenera y revisa un manifiesto nuevo.'
         )
-    inverse = {'version': 3, 'generated_at': timezone.now().isoformat(), 'changes': []}
+    inverse = {'version': 4, 'generated_at': timezone.now().isoformat(), 'changes': []}
 
     approved = [
         action for action in manifest['actions']
@@ -995,6 +1239,9 @@ def apply_manifest(manifest):
     for action in approved:
         if action['type'] == 'file_document':
             _file_reviewed_document(action, inverse)
+    for action in approved:
+        if action['type'] == 'assign_document_project':
+            _assign_reviewed_document_project(action, inverse)
     return inverse
 
 
@@ -1025,6 +1272,11 @@ class Command(BaseCommand):
             metavar='FOLDER_ID:PROFILE_ID',
             help='Asignación explícita carpeta raíz→cliente (repetible).',
         )
+        parser.add_argument(
+            '--assign-document-project', action='append', default=[],
+            metavar='DOCUMENT_ID:PROJECT_ID',
+            help='Asociación explícita documento sin carpeta→proyecto (repetible).',
+        )
 
     def handle(self, *args, **options):
         if options['plan']:
@@ -1035,6 +1287,11 @@ class Command(BaseCommand):
                 ),
                 client_root_assignments=_parse_client_root_assignments(
                     options['assign_client_root'],
+                ),
+                document_project_assignments=(
+                    _parse_document_project_assignments(
+                        options['assign_document_project'],
+                    )
                 ),
             )
             _write_json_atomic(output, manifest)
@@ -1050,9 +1307,10 @@ class Command(BaseCommand):
         if (
             options['nest_project_root']
             or options['assign_client_root']
+            or options['assign_document_project']
         ):
             raise CommandError(
-                'Las directivas de carpeta sólo se aceptan con --plan.'
+                'Las directivas de conciliación sólo se aceptan con --plan.'
             )
         if not options['backup_reference']:
             raise CommandError(
@@ -1080,7 +1338,7 @@ class Command(BaseCommand):
             )
         before = _json_snapshot(database_snapshot())
         prepared_inverse = {
-            'version': 3,
+            'version': 4,
             'status': 'prepared',
             'generated_at': timezone.now().isoformat(),
             'backup_reference': options['backup_reference'],

@@ -244,11 +244,16 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Generic branded PDF documents separate from proposals
 - Above the folder list, the same segmented control as Communications switches
   entity navigation between **Projects** and **Clients**. Each mode lists the
-  complete catalog, including entities with zero folders/documents, and
-  its separate counters include the full descendant inventory exactly once.
-  Projects whose operational effect is neither development nor operating appear
-  under **Archived projects**; inactive clients appear under **Inactive clients**.
-  These are catalog groups and never archive documents by themselves.
+  complete operational catalog, including entities with zero folders/documents,
+  and its separate counters include the full descendant inventory exactly once.
+  **Show non-active projects** is off on every visit and inclusively reveals
+  projects whose operational effect is neither development nor operating; it
+  never removes active projects. Turning it off while one of those projects is
+  selected returns to **All**. Inactive clients keep their existing secondary
+  group. Project lifecycle never archives documents by itself.
+- **Show archived** is a different control: it changes the active/archived
+  content scope for any project, client or manual folder and sits immediately
+  before **Own folders**. Neither toggle changes or persists the other.
 - **Without project** and **Without client** are permanent destinations in their
   respective modes. Selecting an entity or unassigned bucket scopes the document
   list; the chosen grouping persists per staff account between visits.
@@ -274,15 +279,18 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   historical root: that project must pass the reviewed reconciliation first.
 - Existing roots are reconciled only through a review artifact: a dry-run plan
   records every proposed project conversion/creation, explicit nesting of a
-  related legacy root, client-root assignment, document filing, skip and
+  related legacy root, client-root assignment, explicit assignment of a
+  folderless/projectless document to a project, document filing, skip and
   conflict. Applying
   requires every decision, the exact plan digest, a verified backup reference,
   an unchanged fingerprint of projects/clients/folders/documents and a separate
   inverse snapshot path. A reviewed `nest_project_root` may place an explicitly
   mapped legacy root under the one canonical project root; a client root remains
-  top-level and receives a client. Folderless project documents
-  move only to an exact canonical path approved in the artifact; placed records
-  with conflicts never move by inference.
+  top-level and receives a client. Folderless project documents move only to an
+  exact canonical path approved in the artifact. Manifest v5 accepts repeatable
+  `--assign-document-project DOCUMENTO:PROYECTO` directives: generated records
+  use their keyed canonical path and ordinary documents enter the managed root.
+  Placed, already linked or client-conflicting records never move by inference.
 - `GET /api/document-folders/project-readiness/` remains a staff-only operational
   diagnostic for an empty catalog or roots pending reconciliation. It reports
   active/archived lifecycle counts independently from document archival, but the

@@ -27,4 +27,14 @@ describe('PanelRefreshButton', () => {
     expect(floatingClasses).toEqual(expect.arrayContaining(['fixed', 'bottom-6', 'right-6']));
     expect(buttonClasses).toContain('rounded-full');
   });
+
+  it('uses the primary variant without conflicting raw color overrides', () => {
+    const wrapper = mount(PanelRefreshButton);
+    const action = wrapper.getComponent({ name: 'BaseActionButton' });
+    const buttonClasses = wrapper.get('button').classes();
+
+    expect(action.props('variant')).toBe('primary');
+    expect(buttonClasses).toEqual(expect.arrayContaining(['bg-primary', 'text-on-primary']));
+    expect(buttonClasses).not.toContain('text-white');
+  });
 });

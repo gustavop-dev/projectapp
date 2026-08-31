@@ -15,8 +15,16 @@ This file captures important patterns, preferences, and project intelligence tha
 > con la relación única `managed_project`, no con otro booleano. La ubicación
 > física sólo cambia mediante un manifiesto revisado, respaldado y protegido
 > contra drift; una rama histórica relacionada sólo se anida con una directiva
-> explícita. En la interfaz, proyecto, cliente y carpeta propia son filtros mutuamente excluyentes:
+> explícita. Ciclo de proyecto y archivo de contenido también son ejes distintos:
+> dos toggles independientes deben nombrarlos, y ocultar una opción seleccionada
+> exige volver a un destino visible. En la interfaz, proyecto, cliente y carpeta propia son filtros mutuamente excluyentes:
 > cambiar de eje debe limpiar los otros, no acumular una intersección invisible.
+
+> **Lección 2026-08-30 — una directiva explícita completa la autoridad del
+> manifiesto:** los documentos sueltos no deben inferirse por nombre. Una pareja
+> documento→proyecto revisada puede ser autoridad sólo si el registro sigue sin
+> carpeta/proyecto y el cliente es compatible; la ruta final se calcula con las
+> reglas canónicas y el inverso conserva tanto FKs previas como carpetas creadas.
 
 > **Lección 2026-08-30 — wrap según semántica del tooltip:** una explicación
 > extensa necesita cortes seguros, pero un rótulo breve de acción necesita una

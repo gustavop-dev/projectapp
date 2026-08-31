@@ -196,8 +196,10 @@ const BaseTooltipStub = {
   `,
 };
 
+const mountedWrappers = [];
+
 function mountSidebar(props = {}) {
-  return mount(FolderSidebar, {
+  const wrapper = mount(FolderSidebar, {
     props: {
       folders: [],
       activeId: 'all',
@@ -213,6 +215,8 @@ function mountSidebar(props = {}) {
       components: { BaseTooltip: BaseTooltipStub },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 function folderNameButton(wrapper, name) {
@@ -230,6 +234,11 @@ describe('FolderSidebar', () => {
       docs: directDocs(folder, scope),
       subs: folder?.children_count || 0,
     }));
+  });
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
+    document.body.innerHTML = '';
   });
 
   // ── Static entries ────────────────────────────────────────────────────────
@@ -342,13 +351,29 @@ describe('FolderSidebar', () => {
         .attributes('aria-label')).toBe('Mimittos, 0 carpetas, 0 documentos');
     });
 
-    it('shows suspended projects immediately inside the archived group', () => {
+    it('hides suspended projects until the project lifecycle toggle is on', async () => {
       const wrapper = mountSidebar();
+
+      expect(wrapper.find('[data-testid="documents-navigation-archived-group"]').exists())
+        .toBe(false);
+      expect(wrapper.text()).not.toContain('Candle');
+
+      await wrapper.get('[data-testid="inactive-projects-toggle"]').trigger('click');
+      expect(wrapper.emitted('toggle-inactive-projects')).toEqual([[true]]);
+      await wrapper.setProps({ showInactiveProjects: true });
 
       const group = wrapper.get('[data-testid="documents-navigation-archived-group"]');
       expect(group.text()).toContain('Proyectos archivados');
       expect(group.text()).toContain('Candle');
-      expect(wrapper.find('[data-testid="project-folders-toggle"]').exists()).toBe(false);
+    });
+
+    it('keeps inactive clients reachable without the project lifecycle toggle', () => {
+      const wrapper = mountSidebar({ navigationMode: 'client' });
+
+      expect(wrapper.find('[data-testid="inactive-projects-control"]').exists())
+        .toBe(false);
+      expect(wrapper.get('[data-testid="documents-navigation-archived-group"]')
+        .text()).toContain('Cliente histórico');
     });
 
     it('renders the recursive manual section inventory', () => {
@@ -444,9 +469,13 @@ describe('FolderSidebar', () => {
       mockFolderStore.recursiveDocumentCount.mockReturnValue(12);
       const wrapper = mountSidebar({ folders: [parentFolder] });
 
-      expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
-      expect(wrapper.text()).toContain('contiene 2 subcarpetas');
-      expect(wrapper.text()).not.toContain('contiene 12 documentos');
+      const deleteButton = wrapper.get('[data-testid="folder-delete"]');
+      const deleteTooltipProxy = deleteButton.element.closest('[data-disabled-action-proxy]');
+
+      expect(deleteButton.element.disabled).toBe(true);
+      expect(deleteTooltipProxy).not.toBeNull();
+      expect(deleteTooltipProxy.getAttribute('aria-label')).toContain('contiene 2 subcarpetas');
+      expect(deleteTooltipProxy.getAttribute('aria-label')).not.toContain('contiene 12 documentos');
     });
   });
 
@@ -581,17 +610,25 @@ describe('FolderSidebar', () => {
       expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
     });
 
-    it('explains in the tooltip why a filled folder cannot be deleted', () => {
+    it('explains in one horizontal tooltip why a filled folder cannot be deleted', async () => {
       const wrapper = mountSidebar({ folders: [folderA] });
+      const button = wrapper.get('[data-testid="folder-delete"]');
 
-      expect(wrapper.text()).toContain('No se puede eliminar');
-      expect(wrapper.text()).toContain('Archívala en su lugar');
+      expect(button.attributes('title')).toBeUndefined();
+      await wrapper.get('[data-disabled-action-proxy]').trigger('click');
+      const tooltips = document.body.querySelectorAll('[role="tooltip"]');
+      expect(tooltips).toHaveLength(1);
+      expect(tooltips[0].textContent).toContain('No se puede eliminar');
+      expect(tooltips[0].textContent).toContain('Archívala en su lugar');
+      expect(tooltips[0].className).toContain('whitespace-nowrap');
     });
 
-    it('names the action in the tooltip when the folder can be deleted', () => {
+    it('names the action in the tooltip when the folder can be deleted', async () => {
       const wrapper = mountSidebar({ folders: [emptyFolder] });
 
-      expect(wrapper.text()).toContain('Eliminar carpeta');
+      await wrapper.get('[data-testid="folder-delete"]').trigger('focusin');
+      expect(document.body.querySelector('[role="tooltip"]').textContent)
+        .toContain('Eliminar carpeta');
     });
   });
 
@@ -604,11 +641,13 @@ describe('FolderSidebar', () => {
       expect(wrapper.emitted('archive')).toEqual([[folderA]]);
     });
 
-    it('stays enabled for a filled folder — it is the way out', () => {
+    it('stays enabled for a filled folder — it is the way out', async () => {
       const wrapper = mountSidebar({ folders: [folderA] });
 
       expect(wrapper.find('[data-testid="folder-archive"]').element.disabled).toBe(false);
-      expect(wrapper.text()).toContain('Archivar carpeta');
+      await wrapper.get('[data-testid="folder-archive"]').trigger('focusin');
+      expect(document.body.querySelector('[role="tooltip"]').textContent)
+        .toContain('Archivar carpeta');
     });
   });
 
@@ -663,6 +702,15 @@ describe('FolderSidebar', () => {
       const wrapper = mountSidebar({ archivedCount: 23 });
 
       expect(wrapper.find('[data-testid="folder-archived-count"]').text()).toBe('23');
+    });
+
+    it('places the content archive switch immediately before own folders', () => {
+      const wrapper = mountSidebar();
+      const archiveControl = wrapper.get('[data-testid="document-archive-control"]');
+      const manualSection = wrapper.get('[data-testid="manual-folder-section"]');
+
+      expect(archiveControl.element.nextElementSibling)
+        .toBe(manualSection.element.parentElement);
     });
 
     it('goes inert while a search is running', async () => {

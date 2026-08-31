@@ -73,6 +73,7 @@
         :active-id="documentStore.activeFolderId"
         :archive-scope="effectiveScope"
         :archived-count="documentStore.counts.documents.archived"
+        :show-inactive-projects="showInactiveProjects"
         :unfiled-count="sidebarUnfiledCount"
         :navigation-mode="navigationMode"
         :navigation-selection="navigationSelection"
@@ -91,6 +92,7 @@
         @archive="handleArchiveFolder"
         @view-archived="handleViewArchivedFolder"
         @toggle-archived="handleToggleArchivedMode"
+        @toggle-inactive-projects="handleToggleInactiveProjects"
         @update:navigation-mode="handleNavigationModeChange"
         @select-entity="handleSelectNavigationEntity"
         @retry-navigation="navigationStore.fetchNavigation"
@@ -432,6 +434,7 @@
         :active-id="documentStore.activeFolderId"
         :archive-scope="effectiveScope"
         :archived-count="documentStore.counts.documents.archived"
+        :show-inactive-projects="showInactiveProjects"
         :unfiled-count="sidebarUnfiledCount"
         :navigation-mode="navigationMode"
         :navigation-selection="navigationSelection"
@@ -450,6 +453,7 @@
         @archive="archiveFolderFromDrawer"
         @view-archived="viewArchivedFolderFromDrawer"
         @toggle-archived="handleToggleArchivedMode"
+        @toggle-inactive-projects="handleToggleInactiveProjects"
         @update:navigation-mode="handleNavigationModeChange"
         @select-entity="selectNavigationEntityFromDrawer"
         @retry-navigation="navigationStore.fetchNavigation"
@@ -611,6 +615,10 @@ const {
 } = useFolderPanelWidth(foldersGridRef);
 
 const searchQuery = ref('');
+// El ciclo de vida del proyecto es un eje de catálogo, no el archivo de
+// documentos. Este control empieza apagado en cada visita y no se serializa en
+// URL ni preferencias: sólo abre temporalmente el grupo no operativo.
+const showInactiveProjects = ref(false);
 const focusedDocumentId = ref(null);
 const newlyCreatedId = ref(null);
 let newlyCreatedTimer = null;
@@ -1024,6 +1032,9 @@ onMounted(async () => {
   await navigationStore.fetchPreference();
   filterQuery.applyQueryToStore();
   await loadDocuments();
+  if (!showInactiveProjects.value && selectedProjectIsInactive.value) {
+    await handleSelectNavigationEntity('all');
+  }
   // La carpeta del deep link ya no existe: se cae a Todos y se refetchea.
   if (filterQuery.validateFolder(folderStore)) {
     await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
@@ -1048,7 +1059,11 @@ async function handleNavigationModeChange(mode) {
     : documentStore.activeClientId;
   await documentStore.setFilters(navigationEntityFilters(
     mode,
-    selected ?? 'all',
+    mode === 'project'
+      && !showInactiveProjects.value
+      && selectedProjectIsInactive.value
+      ? 'all'
+      : selected ?? 'all',
     documentStore.archiveScope,
   ));
 }
@@ -1061,6 +1076,23 @@ function handleSelectNavigationEntity(value) {
   );
   if (isSearching.value) return exitSearchAndNavigate(filters);
   return documentStore.setFilters(filters);
+}
+
+const selectedProjectIsInactive = computed(() => (
+  navigationMode.value === 'project'
+  && selectedNavigationEntry.value
+  && (
+    selectedNavigationEntry.value.catalog_bucket === 'archived'
+    || selectedNavigationEntry.value.is_visible === false
+  )
+));
+
+function handleToggleInactiveProjects(on) {
+  showInactiveProjects.value = Boolean(on);
+  if (!showInactiveProjects.value && selectedProjectIsInactive.value) {
+    return handleSelectNavigationEntity('all');
+  }
+  return undefined;
 }
 
 function selectNavigationEntityFromDrawer(value) {
