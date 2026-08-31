@@ -146,6 +146,7 @@ test.describe('Admin Dashboard', () => {
       if (apiPath === 'proposals/client-profiles/') return jsonResponse([]);
       return null;
     });
+    // quality: allow-deep-link (the dashboard itself is the entry point whose cross-route action is under test)
     await page.goto('/es-co/panel', { waitUntil: 'domcontentloaded' });
     const resources = page.getByTestId('dashboard-additional-modules-section');
 

@@ -188,6 +188,7 @@ test.describe('Additional modules admin catalog', () => {
   }, async ({ page, context }) => {
     await setupApi(page)
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    // quality: allow-deep-link (catalog entry is covered separately; this isolates the canonical sharing controls)
     await openCatalog(page)
     const expectedUrl = `${new URL(page.url()).origin}/es-co/additional-modules`
 
@@ -205,6 +206,7 @@ test.describe('Additional modules admin catalog', () => {
   }, async ({ page }) => {
     const scenario = {}
     await setupApi(page, scenario)
+    // quality: allow-deep-link (catalog entry is covered separately; this isolates the complete PDF download)
     await openCatalog(page)
 
     const downloadPromise = page.waitForEvent('download')
