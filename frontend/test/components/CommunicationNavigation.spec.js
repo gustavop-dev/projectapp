@@ -94,7 +94,7 @@ describe('CommunicationNavigation', () => {
     expect(wrapper.find('[data-testid="communications-inactive-projects-control"]').exists())
       .toBe(false);
     expect(wrapper.get('[data-testid="communications-navigation-archived-group"]').text())
-      .toContain('Clientes inactivos');
+      .toContain('Clientes archivados');
   });
 
   it('offers both sections open, with an accessible collapse trigger each', () => {

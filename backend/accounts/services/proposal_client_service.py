@@ -243,14 +243,14 @@ def _maybe_fill_user_names(user, first_name, last_name):
 
 @transaction.atomic
 def update_client_profile(profile, *, name=None, email=None, phone=None,
-                          company=None, is_inactive=None):
+                          company=None, is_archived=None):
     """
     Update the canonical client identity (User + UserProfile) and cascade
     the new values to all linked proposals' snapshots.
 
     Any argument left as ``None`` is preserved. Pass an empty string to
-    explicitly clear a field. ``is_inactive`` toggles the manual inactive
-    mark (``deactivated_at``); it never triggers a snapshot cascade.
+    explicitly clear a field. ``is_archived`` toggles the manual inactive
+    mark (``archived_at``); it never triggers a snapshot cascade.
     """
     user = profile.user
     user_dirty = []
@@ -298,13 +298,13 @@ def update_client_profile(profile, *, name=None, email=None, phone=None,
             profile.company_name = company
             profile_dirty.append('company_name')
 
-    if is_inactive is not None:
-        if is_inactive and profile.deactivated_at is None:
-            profile.deactivated_at = timezone.now()
-            profile_dirty.append('deactivated_at')
-        elif not is_inactive and profile.deactivated_at is not None:
-            profile.deactivated_at = None
-            profile_dirty.append('deactivated_at')
+    if is_archived is not None:
+        if is_archived and profile.archived_at is None:
+            profile.archived_at = timezone.now()
+            profile_dirty.append('archived_at')
+        elif not is_archived and profile.archived_at is not None:
+            profile.archived_at = None
+            profile_dirty.append('archived_at')
 
     snapshot_dirty = bool(user_dirty) or any(
         field in ('phone', 'company_name') for field in profile_dirty

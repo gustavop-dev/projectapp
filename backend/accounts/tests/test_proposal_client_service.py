@@ -147,7 +147,7 @@ class TestUpdateClientProfile:
         profile.user.refresh_from_db()
         assert profile.user.email == f'cliente_{profile.pk}@temp.example.com'
 
-    def test_toggling_is_inactive_does_not_cascade_snapshots(self):
+    def test_toggling_is_archived_does_not_cascade_snapshots(self):
         profile = proposal_client_service.get_or_create_client_for_proposal(
             name='Inactiva Test', email='inactiva@gmail.com',
         )
@@ -158,16 +158,16 @@ class TestUpdateClientProfile:
             total_investment=1000,
         )
 
-        proposal_client_service.update_client_profile(profile, is_inactive=True)
+        proposal_client_service.update_client_profile(profile, is_archived=True)
 
         profile.refresh_from_db()
-        assert profile.deactivated_at is not None
+        assert profile.archived_at is not None
         proposal.refresh_from_db()
         assert proposal.client_name == 'Nombre Viejo'
 
-        proposal_client_service.update_client_profile(profile, is_inactive=False)
+        proposal_client_service.update_client_profile(profile, is_archived=False)
         profile.refresh_from_db()
-        assert profile.deactivated_at is None
+        assert profile.archived_at is None
 
     def test_sync_snapshot_copies_canonical_fields_to_proposal(self):
         profile = proposal_client_service.get_or_create_client_for_proposal(

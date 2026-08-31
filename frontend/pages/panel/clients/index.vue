@@ -204,11 +204,11 @@
                   Huérfano
                 </span>
                 <span
-                  v-if="client.is_inactive"
+                  v-if="client.is_archived"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
-                  title="Cliente marcado como inactivo — oculto de los demás tabs"
+                  title="Cliente archivado — oculto de los demás tabs"
                 >
-                  Inactivo
+                  Archivado
                 </span>
               </div>
               <p
@@ -356,13 +356,13 @@
               @click.stop="openEditModal(client)"
             />
 
-            <!-- Inactive toggle button -->
+            <!-- Archive toggle button -->
             <BaseActionButton
-              :action="client.is_inactive ? 'activate' : 'deactivate'"
-              :label="client.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo'"
-              :data-testid="`client-toggle-inactive-${client.id}`"
+              :action="client.is_archived ? 'activate' : 'deactivate'"
+              :label="client.is_archived ? 'Desarchivar cliente' : 'Archivar cliente'"
+              :data-testid="`client-toggle-archived-${client.id}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-warning-strong hover:bg-warning-soft transition-colors"
-              @click.stop="toggleInactive(client)"
+              @click.stop="toggleArchived(client)"
             />
 
             <!-- Trash button -->
@@ -919,8 +919,8 @@
         >
           Ver en plataforma
         </BaseButton>
-        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="toggleInactiveFromActions">
-          {{ clientActionTarget.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo' }}
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="toggleArchivedFromActions">
+          {{ clientActionTarget.is_archived ? 'Desarchivar cliente' : 'Archivar cliente' }}
         </BaseButton>
         <BaseButton variant="danger-ghost" size="md" class="min-h-11 w-full justify-start" @click="deleteClientFromActions">
           Eliminar cliente
@@ -1248,8 +1248,8 @@ function platformFromActions() {
   takeClientAction((client) => goToPlatform(`/platform/clients/${client.user_id}`));
 }
 
-function toggleInactiveFromActions() {
-  takeClientAction(toggleInactive);
+function toggleArchivedFromActions() {
+  takeClientAction(toggleArchived);
 }
 
 function deleteClientFromActions() {
@@ -1377,7 +1377,7 @@ const CLIENT_STATUSES = [
   { id: 'all', label: 'Todos' },
   { id: 'active', label: 'Activos' },
   { id: 'orphans', label: 'Huérfanos' },
-  { id: 'inactive', label: 'Inactivos' },
+  { id: 'archived', label: 'Archivados' },
 ];
 const route = useRoute();
 const router = useRouter();
@@ -1456,7 +1456,7 @@ async function loadClients({ silent = false } = {}) {
       // so ask for the endpoint's hard cap instead of the default 100. Past 500
       // clients this needs real server-side pagination.
       limit: 500,
-      inactive: clientStatus.value === 'inactive',
+      archived: clientStatus.value === 'archived',
       silent,
     }),
     // Same search, so the numbers in the selector describe the same table the
@@ -1502,13 +1502,13 @@ function setClientStatus(status) {
   loadClients();
 }
 
-async function toggleInactive(client) {
-  const makeInactive = !client.is_inactive;
-  const result = await clientsStore.updateClient(client.id, { is_inactive: makeInactive });
+async function toggleArchived(client) {
+  const makeArchived = !client.is_archived;
+  const result = await clientsStore.updateClient(client.id, { is_archived: makeArchived });
   if (result.success) {
-    notify.success(makeInactive
-      ? `"${client.name}" marcado como inactivo.`
-      : `"${client.name}" reactivado.`);
+    notify.success(makeArchived
+      ? `"${client.name}" archivado.`
+      : `"${client.name}" desarchivado.`);
     await loadClients();
   } else {
     notify.error('No se pudo actualizar el estado del cliente.');

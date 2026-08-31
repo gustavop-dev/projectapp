@@ -168,7 +168,7 @@ MCP_MODEL_CONTRACTS = {
         _contract(
             'accounts.UserProfile',
             read_only=(
-                'id user is_onboarded cedula nit billing_code deactivated_at '
+                'id user is_onboarded cedula nit billing_code archived_at '
                 'created_at updated_at'
             ),
             read_write='company_name phone',
@@ -180,7 +180,7 @@ MCP_MODEL_CONTRACTS = {
                     'education_level avatar avatar_url theme_color cover_image '
                     'custom_cover_image profile_completed document_navigation_mode',
                 )
-                | _excluded(_AUDIT_INTERNAL, 'created_by')
+                | _excluded(_AUDIT_INTERNAL, 'created_by archived_by')
             ),
         ),
     ),

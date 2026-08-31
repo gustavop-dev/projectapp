@@ -247,7 +247,7 @@ const CLIENT = {
   is_onboarded: true,
   is_email_placeholder: false,
   is_orphan: false,
-  is_inactive: false,
+  is_archived: false,
   total_proposals: 3,
   projects_count: 2,
   diagnostics_count: 1,
@@ -280,7 +280,7 @@ async function mockClients(page) {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath.startsWith('accounts/saved-filter-tabs')) return jsonOk([]);
     if (apiPath === 'proposals/client-profiles/status-counts/') {
-      return jsonOk({ all: 1, active: 1, orphans: 0, inactive: 0 });
+      return jsonOk({ all: 1, active: 1, orphans: 0, archived: 0 });
     }
     if (apiPath === 'proposals/client-profiles/') return jsonOk([CLIENT]);
     if (apiPath === 'proposals/client-profiles/101/') {

@@ -1,13 +1,13 @@
 /**
- * E2E tests for the "Inactivos" tab in the admin clients page.
+ * E2E tests for the "Archivados" tab in the admin clients page.
  *
- * Covers: the Inactivos tab requesting inactive=true and rendering only
- * deactivated clients, and the pause/play toggle PATCHing is_inactive.
+ * Covers: the Archivados tab requesting archived=true and rendering only
+ * archived clients, and the row toggle PATCHing is_archived.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_CLIENT_INACTIVE_TAB } from '../helpers/flow-tags.js';
+import { ADMIN_CLIENT_ARCHIVED_TAB } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
@@ -21,13 +21,13 @@ const activeClient = {
   is_email_placeholder: false,
   total_proposals: 3,
   is_orphan: false,
-  is_inactive: false,
-  deactivated_at: null,
+  is_archived: false,
+  archived_at: null,
   created_at: '2026-01-01T10:00:00Z',
   updated_at: '2026-03-10T10:00:00Z',
 };
 
-const inactiveClient = {
+const archivedClient = {
   id: 104,
   name: 'Dora Dormida',
   email: 'dora@test.com',
@@ -37,8 +37,8 @@ const inactiveClient = {
   is_email_placeholder: false,
   total_proposals: 1,
   is_orphan: false,
-  is_inactive: true,
-  deactivated_at: '2026-06-01T10:00:00Z',
+  is_archived: true,
+  archived_at: '2026-06-01T10:00:00Z',
   created_at: '2026-02-01T10:00:00Z',
   updated_at: '2026-06-01T10:00:00Z',
 };
@@ -51,14 +51,14 @@ function setupMock(page, { onUpdate = null } = {}) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ all: 1, active: 1, orphans: 0, inactive: 1 }),
+        body: JSON.stringify({ all: 1, active: 1, orphans: 0, archived: 1 }),
       };
     }
 
     if (apiPath === 'proposals/client-profiles/') {
       const requestUrl = new URL(route.request().url());
-      const inactiveParam = requestUrl.searchParams.get('inactive');
-      const filtered = inactiveParam === 'true' ? [inactiveClient] : [activeClient];
+      const archivedParam = requestUrl.searchParams.get('archived');
+      const filtered = archivedParam === 'true' ? [archivedClient] : [activeClient];
       return { status: 200, contentType: 'application/json', body: JSON.stringify(filtered) };
     }
 
@@ -67,11 +67,11 @@ function setupMock(page, { onUpdate = null } = {}) {
       const clientId = Number(updateMatch[1]);
       const body = JSON.parse(route.request().postData() || '{}');
       if (onUpdate) onUpdate(clientId, body);
-      const source = clientId === inactiveClient.id ? inactiveClient : activeClient;
+      const source = clientId === archivedClient.id ? archivedClient : activeClient;
       const updated = {
         ...source,
-        is_inactive: Boolean(body.is_inactive),
-        deactivated_at: body.is_inactive ? '2026-07-09T10:00:00Z' : null,
+        is_archived: Boolean(body.is_archived),
+        archived_at: body.is_archived ? '2026-07-09T10:00:00Z' : null,
       };
       return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
     }
@@ -85,7 +85,7 @@ async function gotoClients(page) {
   await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible({ timeout: 30_000 });
 }
 
-test.describe('Admin Clients Inactive Tab', () => {
+test.describe('Admin Clients Archived Tab', () => {
   test.describe.configure({ timeout: 60_000 });
 
   test.beforeEach(async ({ page }) => {
@@ -95,60 +95,60 @@ test.describe('Admin Clients Inactive Tab', () => {
     });
   });
 
-  test('Inactivos requests inactive=true and lists only deactivated clients', {
-    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:display'],
+  test('Archivados requests archived=true and lists only archived clients', {
+    tag: [...ADMIN_CLIENT_ARCHIVED_TAB, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (reaching /panel/clients through the sidebar is
     // its own flow; the status selector is the subject here)
     await setupMock(page);
     await gotoClients(page);
 
-    // Default status hides the inactive client.
+    // Default status hides the archived client.
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('Dora Dormida')).not.toBeVisible();
 
     // Status is a transversal selector next to the search box now, labelled
     // with its own match count.
-    const inactiveRequest = page.waitForRequest((req) => req.url().includes('inactive=true'));
-    await page.getByTestId('clients-status-inactive').click();
-    await inactiveRequest;
+    const archivedRequest = page.waitForRequest((req) => req.url().includes('archived=true'));
+    await page.getByTestId('clients-status-archived').click();
+    await archivedRequest;
 
     await expect(page.getByText('Dora Dormida')).toBeVisible();
     await expect(page.getByText('Carlos López')).not.toBeVisible();
-    await expect(page.getByText('Inactivo', { exact: true })).toBeVisible();
-    await expect(page).toHaveURL(/status=inactive/);
+    await expect(page.getByText('Archivado', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/status=archived/);
   });
 
-  test('pause toggle PATCHes is_inactive=true and notifies', {
-    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:success'],
+  test('the row toggle PATCHes is_archived=true and notifies', {
+    tag: [...ADMIN_CLIENT_ARCHIVED_TAB, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onUpdate: (clientId, body) => updates.push({ clientId, body }) });
     await gotoClients(page);
 
     await expect(page.getByText('Carlos López')).toBeVisible();
-    await page.getByTestId('client-toggle-inactive-101').click();
+    await page.getByTestId('client-toggle-archived-101').click();
 
     await expect(page.getByText('"Carlos López" marcado como inactivo.')).toBeVisible();
-    expect(updates).toEqual([{ clientId: 101, body: { is_inactive: true } }]);
+    expect(updates).toEqual([{ clientId: 101, body: { is_archived: true } }]);
   });
 
-  test('play toggle from the Inactivos list reactivates the client', {
-    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:success'],
+  test('the toggle from the Archivados list brings the client back', {
+    tag: [...ADMIN_CLIENT_ARCHIVED_TAB, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onUpdate: (clientId, body) => updates.push({ clientId, body }) });
     await gotoClients(page);
 
-    const inactiveRequest = page.waitForRequest((req) => req.url().includes('inactive=true'));
-    await page.getByTestId('clients-status-inactive').click();
-    await inactiveRequest;
+    const archivedRequest = page.waitForRequest((req) => req.url().includes('archived=true'));
+    await page.getByTestId('clients-status-archived').click();
+    await archivedRequest;
     await expect(page.getByText('Dora Dormida')).toBeVisible();
 
-    await page.getByTestId('client-toggle-inactive-104').click();
+    await page.getByTestId('client-toggle-archived-104').click();
 
     await expect(page.getByText('"Dora Dormida" reactivado.')).toBeVisible();
-    expect(updates).toEqual([{ clientId: 104, body: { is_inactive: false } }]);
+    expect(updates).toEqual([{ clientId: 104, body: { is_archived: false } }]);
   });
 });
 

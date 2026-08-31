@@ -455,14 +455,14 @@ def build_facets(filters):
                 build_client_display_name(clients[client_id])
                 if client_id in clients else 'Cliente no disponible'
             ),
-            # `is_inactive` + `catalog_bucket`: los mismos dos campos con que el
+            # `is_archived` + `catalog_bucket`: los mismos dos campos con que el
             # gestor documental arma el grupo «Clientes inactivos».
-            'is_inactive': (
-                clients[client_id].is_inactive_client if client_id in clients else False
+            'is_archived': (
+                clients[client_id].is_archived_client if client_id in clients else False
             ),
             'catalog_bucket': (
                 'archived'
-                if client_id in clients and clients[client_id].is_inactive_client
+                if client_id in clients and clients[client_id].is_archived_client
                 else 'active'
             ),
             'managed_root_id': (

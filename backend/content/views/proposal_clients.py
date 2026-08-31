@@ -424,20 +424,34 @@ def _apply_search(qs, search):
     )
 
 
-def _apply_status(qs, *, orphans, inactive):
+def _apply_status(qs, *, orphans, archived):
     """
     Client-status cut, shared by the list and its counts so the number in the
     selector can never disagree with the rows the same selection returns.
 
-    ``orphans`` is tri-state (None = no cut). ``inactive`` is exclusive:
-    manually deactivated clients are hidden everywhere except their own tab,
-    which is what makes the four options add up to the whole table.
+    ``orphans`` is tri-state (None = no cut). ``archived`` is exclusive:
+    archived clients are hidden everywhere except their own tab, which is what
+    makes the four options add up to the whole table.
     """
     if orphans is True:
         qs = qs.filter(**_ORPHAN_PREDICATE)
     elif orphans is False:
         qs = qs.exclude(**_ORPHAN_PREDICATE)
-    return qs.filter(deactivated_at__isnull=not inactive)
+    return qs.filter(archived_at__isnull=not archived)
+
+
+def _archived_param(request):
+    """Read the archived cut, honouring the pre-rename ``inactive`` spelling.
+
+    The panel was shipped with ``?inactive=1`` and the word only changed for
+    the operator's vocabulary, so the old spelling stays valid: a bookmarked
+    URL or a saved tab must not silently return the active list instead.
+    """
+    for key in ('archived', 'inactive'):
+        raw = request.query_params.get(key)
+        if raw is not None:
+            return _parse_bool(raw) is True
+    return False
 
 
 @api_view(['GET'])
@@ -456,8 +470,9 @@ def list_proposal_clients(request):
         - ``without_projects``: ``true`` returns only clients with zero
           platform projects (a strictly weaker predicate than ``orphans``);
           ``false`` returns the inverse. Feeds the Projects module indicator.
-        - ``inactive``: ``true`` returns only manually deactivated clients.
-          Omitted/``false`` excludes them (panel default).
+        - ``archived``: ``true`` returns only archived clients.
+          Omitted/``false`` excludes them (panel default). ``inactive`` is
+          still accepted as the pre-rename spelling.
         - ``limit``: max rows to return (default 100, hard cap 500).
     """
     qs = _apply_search(_base_queryset(), (request.query_params.get('search') or '').strip())
@@ -465,7 +480,7 @@ def list_proposal_clients(request):
     qs = _apply_status(
         qs,
         orphans=_parse_bool(request.query_params.get('orphans')),
-        inactive=_parse_bool(request.query_params.get('inactive')) is True,
+        archived=_archived_param(request),
     )
 
     without_projects = _parse_bool(request.query_params.get('without_projects'))
@@ -501,10 +516,10 @@ def proposal_client_status_counts(request):
         return _apply_status(qs, **kwargs).count()
 
     return Response({
-        'all': count(orphans=None, inactive=False),
-        'active': count(orphans=False, inactive=False),
-        'orphans': count(orphans=True, inactive=False),
-        'inactive': count(orphans=None, inactive=True),
+        'all': count(orphans=None, archived=False),
+        'active': count(orphans=False, archived=False),
+        'orphans': count(orphans=True, archived=False),
+        'archived': count(orphans=None, archived=True),
     })
 
 
@@ -721,8 +736,8 @@ def update_proposal_client(request, client_id):
     for key in ('name', 'email', 'phone', 'company'):
         if key in request.data:
             payload[key] = request.data[key]
-    if 'is_inactive' in request.data:
-        payload['is_inactive'] = _parse_bool(request.data.get('is_inactive'))
+    if 'is_archived' in request.data:
+        payload['is_archived'] = _parse_bool(request.data.get('is_archived'))
 
     if not payload:
         return Response(

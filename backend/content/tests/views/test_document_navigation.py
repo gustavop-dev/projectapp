@@ -41,7 +41,7 @@ def make_client(email, *, company='', inactive=False):
         user=user,
         role=UserProfile.ROLE_CLIENT,
         company_name=company,
-        deactivated_at=timezone.now() if inactive else None,
+        archived_at=timezone.now() if inactive else None,
     )
     return profile
 
@@ -189,7 +189,7 @@ def test_navigation_includes_inactive_clients_with_content(
 
     legacy = find_entry(data['clients'], navigation_setup['legacy'].id)
     assert legacy['name'] == 'Legacy'
-    assert legacy['is_inactive'] is True
+    assert legacy['is_archived'] is True
     assert legacy['catalog_bucket'] == 'archived'
     assert legacy['counts']['active'] == {'folders': 5, 'documents': 2}
 

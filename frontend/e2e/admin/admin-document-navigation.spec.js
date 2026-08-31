@@ -158,7 +158,7 @@ const navigationPayload = {
     {
       id: 7,
       name: 'Cliente Atlas SAS',
-      is_inactive: false,
+      is_archived: false,
       catalog_bucket: 'active',
       counts: {
         active: { folders: 6, documents: 1 },
@@ -168,7 +168,7 @@ const navigationPayload = {
     {
       id: 8,
       name: 'Cliente histórico',
-      is_inactive: true,
+      is_archived: true,
       catalog_bucket: 'archived',
       counts: {
         active: { folders: 0, documents: 0 },

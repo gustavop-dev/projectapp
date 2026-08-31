@@ -228,7 +228,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
           <span class="truncate text-sm" :class="archivedMode ? 'font-medium text-text-default' : 'text-text-muted'">
-            Ver archivados
+            Ver documentos archivados
           </span>
           <span class="shrink-0 text-xs text-text-subtle" data-testid="folder-archived-count">{{ archivedCount }}</span>
         </span>
@@ -236,7 +236,7 @@
           :model-value="archivedMode"
           :disabled="scopeLocked"
           size="sm"
-          aria-label="Ver archivados"
+          aria-label="Ver documentos archivados"
           disabled-reason="La búsqueda recorre activos y archivados."
           data-testid="folder-archived-entry"
           @update:model-value="$emit('toggle-archived', $event)"
@@ -579,7 +579,7 @@ const searchedNavigationEntries = computed(() => {
 function isArchivedNavigationEntry(entry) {
   if (entry.catalog_bucket) return entry.catalog_bucket === 'archived';
   return props.navigationMode === 'client'
-    ? Boolean(entry.is_inactive)
+    ? Boolean(entry.is_archived)
     : entry.is_visible === false;
 }
 
@@ -601,7 +601,7 @@ const visibleArchivedNavigationEntries = computed(() => (
     : archivedNavigationEntries.value
 ));
 const navigationArchivedGroupLabel = computed(() => (
-  props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes inactivos'
+  props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes archivados'
 ));
 const navigationEmptyMessage = computed(() => {
   if (navigationSearch.value.trim()) return 'No hay coincidencias.';
@@ -666,7 +666,7 @@ function navigationCounts(counts = {}) {
 
 function navigationEntrySubtitle(entry) {
   if (props.navigationMode === 'project') return entry.state?.name || 'Sin estado';
-  return entry.is_inactive ? 'Cliente inactivo' : '';
+  return entry.is_archived ? 'Cliente inactivo' : '';
 }
 
 function navigationRowLabel(entry) {

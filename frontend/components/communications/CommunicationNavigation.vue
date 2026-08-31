@@ -150,14 +150,14 @@
               class="truncate text-sm"
               :class="archivedMode ? 'font-medium text-text-default' : 'text-text-muted'"
             >
-              Ver archivados
+              Ver comunicaciones archivadas
             </span>
           </span>
           <BaseToggle
             :model-value="archivedMode"
             :disabled="scopeLocked"
             size="sm"
-            aria-label="Ver archivados"
+            aria-label="Ver comunicaciones archivadas"
             disabled-reason="La búsqueda recorre activos y archivados."
             data-testid="communications-archived-entry"
             @update:model-value="$emit('toggle-archived', $event)"
@@ -293,7 +293,7 @@ const visibleArchivedEntries = computed(() => (
   props.mode === 'project' && !props.showInactiveProjects ? [] : archivedEntries.value
 ));
 const archivedGroupLabel = computed(() => (
-  props.mode === 'project' ? 'Proyectos archivados' : 'Clientes inactivos'
+  props.mode === 'project' ? 'Proyectos archivados' : 'Clientes archivados'
 ));
 const navigationLabel = computed(() => (
   props.mode === 'project' ? 'Proyectos' : 'Clientes con comunicaciones'

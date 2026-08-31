@@ -53,7 +53,7 @@ const navigationPayload = {
   clients: [{
     id: 7,
     name: 'Kore SAS',
-    is_inactive: false,
+    is_archived: false,
     catalog_bucket: 'active',
     counts: {
       active: { folders: 1, documents: 2 },

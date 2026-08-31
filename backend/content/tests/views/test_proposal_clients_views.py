@@ -316,7 +316,7 @@ class TestPresetAnnotations:
         assert _row_for(response, stranger)['active_hostings_count'] == 0
 
     @freeze_time('2026-08-13 12:00:00')
-    def test_deactivated_client_stays_out_even_holding_a_live_hosting(
+    def test_archived_client_stays_out_even_holding_a_live_hosting(
         self, admin_client, make_client_profile,
     ):
         profile = make_client_profile(company='Pausado SAS')
@@ -324,8 +324,8 @@ class TestPresetAnnotations:
             client=profile, client_name='Pausado SAS - Web',
             monthly_value=Decimal('60000.00'), is_active=True,
         )
-        profile.deactivated_at = timezone.now()
-        profile.save(update_fields=['deactivated_at'])
+        profile.archived_at = timezone.now()
+        profile.save(update_fields=['archived_at'])
 
         response = admin_client.get(reverse('list-proposal-clients'))
 
@@ -845,17 +845,17 @@ class TestUpdateProposalClient:
 
 
 # ---------------------------------------------------------------------------
-# Inactive clients
+# Archived clients
 # ---------------------------------------------------------------------------
 
-class TestInactiveClients:
+class TestArchivedClients:
     @freeze_time('2026-01-15 12:00:00')
-    def test_default_list_excludes_deactivated_client(
+    def test_default_list_excludes_archived_client(
         self, admin_client, real_client_with_proposal, orphan_client,
     ):
         from django.utils import timezone
-        orphan_client.deactivated_at = timezone.now()
-        orphan_client.save(update_fields=['deactivated_at'])
+        orphan_client.archived_at = timezone.now()
+        orphan_client.save(update_fields=['archived_at'])
 
         response = admin_client.get(reverse('list-proposal-clients'))
 
@@ -865,54 +865,73 @@ class TestInactiveClients:
         assert orphan_client.pk not in ids
 
     @freeze_time('2026-01-15 12:00:00')
-    def test_inactive_true_returns_only_deactivated_clients(
+    def test_archived_true_returns_only_archived_clients(
         self, admin_client, real_client_with_proposal, orphan_client,
     ):
         from django.utils import timezone
-        orphan_client.deactivated_at = timezone.now()
-        orphan_client.save(update_fields=['deactivated_at'])
+        orphan_client.archived_at = timezone.now()
+        orphan_client.save(update_fields=['archived_at'])
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'archived': 'true'},
+        )
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert ids == [orphan_client.pk]
+        assert response.data[0]['is_archived'] is True
+
+    @freeze_time('2026-01-15 12:00:00')
+    def test_the_pre_rename_inactive_spelling_still_filters(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        # The panel shipped with ?inactive=1 before the word became
+        # "archivado". A bookmarked URL or a saved tab that still says
+        # ``inactive`` must not silently fall back to the ACTIVE list, which
+        # is what a dropped param would do here.
+        from django.utils import timezone
+        orphan_client.archived_at = timezone.now()
+        orphan_client.save(update_fields=['archived_at'])
 
         response = admin_client.get(
             reverse('list-proposal-clients'), {'inactive': 'true'},
         )
 
         assert response.status_code == 200
-        ids = [c['id'] for c in response.data]
-        assert ids == [orphan_client.pk]
-        assert response.data[0]['is_inactive'] is True
+        assert [c['id'] for c in response.data] == [orphan_client.pk]
 
-    def test_patch_is_inactive_true_sets_deactivated_at(
+    def test_patch_is_archived_true_sets_archived_at(
         self, admin_client, orphan_client,
     ):
         response = admin_client.patch(
             reverse('update-proposal-client', args=[orphan_client.pk]),
-            {'is_inactive': True},
+            {'is_archived': True},
             format='json',
         )
 
         assert response.status_code == 200
-        assert response.data['is_inactive'] is True
+        assert response.data['is_archived'] is True
         orphan_client.refresh_from_db()
-        assert orphan_client.deactivated_at is not None
+        assert orphan_client.archived_at is not None
 
     @freeze_time('2026-01-15 12:00:00')
-    def test_patch_is_inactive_false_clears_deactivated_at(
+    def test_patch_is_archived_false_clears_archived_at(
         self, admin_client, orphan_client,
     ):
         from django.utils import timezone
-        orphan_client.deactivated_at = timezone.now()
-        orphan_client.save(update_fields=['deactivated_at'])
+        orphan_client.archived_at = timezone.now()
+        orphan_client.save(update_fields=['archived_at'])
 
         response = admin_client.patch(
             reverse('update-proposal-client', args=[orphan_client.pk]),
-            {'is_inactive': False},
+            {'is_archived': False},
             format='json',
         )
 
         assert response.status_code == 200
-        assert response.data['is_inactive'] is False
+        assert response.data['is_archived'] is False
         orphan_client.refresh_from_db()
-        assert orphan_client.deactivated_at is None
+        assert orphan_client.archived_at is None
 
 
 # ---------------------------------------------------------------------------
@@ -1174,22 +1193,22 @@ class TestClientStatusCounts:
             ('all', {}),
             ('active', {'orphans': 'false'}),
             ('orphans', {'orphans': 'true'}),
-            ('inactive', {'inactive': 'true'}),
+            ('archived', {'archived': 'true'}),
         ):
             listed = admin_client.get(reverse('list-proposal-clients'), params)
             assert response.data[status] == len(listed.data), status
 
     @freeze_time('2026-01-15 12:00:00')
-    def test_deactivated_client_only_counts_under_inactive(
+    def test_archived_client_only_counts_under_archived(
         self, admin_client, real_client_with_proposal, orphan_client,
     ):
         from django.utils import timezone
-        orphan_client.deactivated_at = timezone.now()
-        orphan_client.save(update_fields=['deactivated_at'])
+        orphan_client.archived_at = timezone.now()
+        orphan_client.save(update_fields=['archived_at'])
 
         response = admin_client.get(reverse('proposal-client-status-counts'))
 
-        assert response.data['inactive'] == 1
+        assert response.data['archived'] == 1
         assert response.data['all'] == 1
         assert response.data['orphans'] == 0
 

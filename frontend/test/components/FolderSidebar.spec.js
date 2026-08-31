@@ -151,7 +151,7 @@ const navigationFacets = {
     {
       id: 71,
       name: 'Kore SAS',
-      is_inactive: false,
+      is_archived: false,
       catalog_bucket: 'active',
       counts: {
         active: { folders: 4, documents: 10 },
@@ -161,7 +161,7 @@ const navigationFacets = {
     {
       id: 72,
       name: 'Cliente histórico',
-      is_inactive: true,
+      is_archived: true,
       catalog_bucket: 'archived',
       counts: {
         active: { folders: 0, documents: 0 },
