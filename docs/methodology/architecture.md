@@ -1190,6 +1190,11 @@ The editable label never drives behavior: `DocumentState.operational_effect` doe
 misrepresent billing or closure consequences. `ProjectStateHelpBadge` renders both
 layers throughout the internal Projects panel. **Activo** and **En evolución** are
 distinct catalog meanings that deliberately share the `operating` effect.
+The catalog's input-validation boundary is separate from those semantic help
+layers: `BaseFormField` presents attempted local/API errors beside create, edit and
+merge controls, while `BaseControlGate` is reserved for permanent restrictions
+such as seed-state merges. This keeps actionable corrections attached to their
+input without turning immutable policy into a red validation list.
 The legacy `Project.status` remains a compatibility mirror, while new panel and
 platform writes cannot mutate it directly. Hosting failure produces a manual
 suggestion only; no timer automatically moves Suspendido to Dado de baja.

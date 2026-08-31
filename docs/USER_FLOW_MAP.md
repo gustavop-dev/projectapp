@@ -6134,7 +6134,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
 | `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 5 |
-| `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 7 |
+| `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 9 |
 | `admin-proposal-actions-modal` | admin | P1 | display | 1 |
 | `admin-proposal-advanced-filters` | admin | P2 | display | 1 |
 | `admin-proposal-analytics` | admin | P2 | display | 1 |

@@ -71,6 +71,22 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-049] El catálogo de estados presentaba requisitos como una lista roja
+
+- **Date**: 2026-08-31
+- **Context**: En `/panel/projects/statuses`, crear, editar y fusionar mostraban
+  bloqueos agrupados junto a la acción, lejos del campo que debía corregirse.
+- **Root Cause**: `StateCatalogManager` usaba `BaseControlGate` tanto para datos
+  incompletos y corregibles como para restricciones permanentes del catálogo.
+  No mantenía estado de intento ni errores de serializer por campo.
+- **Resolution**: El modo Proyectos usa `BaseFormField` para nombre, descripción,
+  efecto operativo y destino de fusión; muestra validación local/API sólo tras el
+  intento y la limpia al editar. Los estados semilla conservan un gate accesible
+  porque su restricción no se resuelve completando el formulario. El modo
+  Documentos permanece sin cambios.
+- **Verification**: 6 pruebas unitarias, 14 escenarios Playwright del archivo
+  afectado, guard de controles, build Nuxt y auditoría de flujos en verde.
+
 ### [ERR-048] Los iconos clicables no confirmaban la activación
 
 - **Date**: 2026-08-31

@@ -241,4 +241,3 @@ test.describe('Admin Clients Archived Tab', () => {
     expect(updates).toEqual([{ clientId: 104, body: { archiving: false } }]);
   });
 });
-
