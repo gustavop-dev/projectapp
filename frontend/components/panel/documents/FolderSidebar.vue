@@ -43,7 +43,25 @@
     </div>
 
     <ul class="p-2 space-y-1 flex-1 overflow-y-auto" role="list" data-testid="folder-list">
-      <li>
+      <li role="presentation">
+        <!-- design-tokens: allow-raw-button — cabecera de sección plegable, no una acción -->
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted transition-colors hover:bg-surface-muted"
+          :class="touchMode ? 'min-h-11' : ''"
+          :aria-expanded="sidebarSections.entities"
+          :aria-controls="entitiesSectionId"
+          data-testid="entities-section-toggle"
+          @click="toggleSidebarSection('entities')"
+        >
+          <span class="flex items-center gap-2">
+            <BaseActionIcon :action="sidebarSections.entities ? 'collapse' : 'expand'" />
+            {{ entitiesSectionLabel }}
+          </span>
+        </button>
+        <BaseCollapse :id="entitiesSectionId" :open="sidebarSections.entities">
+          <ul class="space-y-1" role="list">
+            <li>
         <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
         <button
           type="button"
@@ -195,6 +213,9 @@
         >
           Reintentar
         </button>
+            </li>
+          </ul>
+        </BaseCollapse>
       </li>
 
       <li
@@ -222,14 +243,27 @@
         />
       </li>
 
-      <li role="presentation">
-        <details open data-testid="manual-folder-section">
-          <summary class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted hover:bg-surface-muted">
-            <span>Carpetas propias</span>
+      <li role="presentation" data-testid="manual-folder-section">
+        <div>
+          <!-- design-tokens: allow-raw-button — cabecera de sección plegable, no una acción -->
+          <button
+            type="button"
+            class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted transition-colors hover:bg-surface-muted"
+            :class="touchMode ? 'min-h-11' : ''"
+            :aria-expanded="sidebarSections.manual"
+            :aria-controls="manualSectionId"
+            data-testid="manual-folder-section-toggle"
+            @click="toggleSidebarSection('manual')"
+          >
+            <span class="flex items-center gap-2">
+              <BaseActionIcon :action="sidebarSections.manual ? 'collapse' : 'expand'" />
+              Carpetas propias
+            </span>
             <span class="font-normal normal-case text-text-subtle" data-testid="manual-folder-section-count">
               {{ sectionInventory(manualFolders) }}
             </span>
-          </summary>
+          </button>
+          <BaseCollapse :id="manualSectionId" :open="sidebarSections.manual">
           <div class="flex items-center justify-end px-3 py-1">
             <button
               type="button"
@@ -410,8 +444,9 @@
             </div>
           </li>
         </template>
-      </draggable>
-        </details>
+          </draggable>
+          </BaseCollapse>
+        </div>
       </li>
     </ul>
 
@@ -425,14 +460,17 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { DocumentTextIcon, FolderIcon } from '@heroicons/vue/24/outline';
 import draggable from 'vuedraggable';
 import EntityNavigationModeSwitch from '~/components/panel/EntityNavigationModeSwitch.vue';
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue';
+import BaseActionIcon from '~/components/base/BaseActionIcon.vue';
+import BaseCollapse from '~/components/base/BaseCollapse.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
-import { folderRowLabel, folderRowSummary, scopedCounts } from '~/utils/documentStatus';
+import { useFolderSidebarSections } from '~/composables/useFolderSidebarSections';
+import { folderRowLabel, folderRowSummary, isManagedFolderKind, scopedCounts } from '~/utils/documentStatus';
 
 const props = defineProps({
   folders: { type: Array, default: () => [] },
@@ -476,11 +514,31 @@ const localFolders = ref([]);
 const isFolderDragging = ref(false);
 const navigationSearch = ref('');
 
+// El panel se monta dos veces a la vez —fijo y dentro del drawer táctil—, así
+// que el estado abierto/cerrado se comparte (vive en el composable) pero los
+// `id` de `aria-controls` NO pueden: dos nodos con el mismo id romperían la
+// relación del trigger con su cuerpo.
+const { sections: sidebarSections, toggle: toggleSidebarSection } = useFolderSidebarSections();
+const sectionUid = useId();
+const entitiesSectionId = `documents-sidebar-entities-${sectionUid}`;
+const manualSectionId = `documents-sidebar-manual-${sectionUid}`;
+
+const entitiesSectionLabel = computed(() => (
+  props.navigationMode === 'project' ? 'Proyectos' : 'Clientes'
+));
+
+// «Propia» es la raíz sin NINGUNA marca de pertenencia. Las condiciones son
+// redundantes a propósito: un payload parcial que perdiera una todavía deja
+// fuera de esta sección lo que ya tiene su propio espacio.
+//
+// `isManagedFolderKind` centraliza qué clases posee el sistema, así que sumar
+// una tercera es una sola edición y no siete comparaciones repartidas.
 const manualFolders = computed(() => props.folders
   .filter((folder) => (
     folder.parent == null
-    && folder.folder_kind !== 'project'
+    && !isManagedFolderKind(folder)
     && folder.managed_project == null
+    && folder.managed_client == null
     && folder.project == null
     && folder.client == null
   )));

@@ -55,6 +55,27 @@ export function archivedAgeLabel(dateStr) {
  * estado de la fila y sumarlo con el archivado duplicaría una carpeta
  * archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
  */
+/**
+ * Clases de raíz que el sistema posee: representan a un proyecto o a un cliente.
+ *
+ * Vive acá y no repetido en cada componente para que sumar una clase nueva sea
+ * una sola edición: las guardas de arrastrar, editar y borrar preguntan por
+ * este conjunto, no por un valor suelto.
+ */
+export const MANAGED_FOLDER_KINDS = Object.freeze(['project', 'client']);
+
+/**
+ * ¿La carpeta es una raíz gestionada, y por lo tanto intocable desde el gestor?
+ *
+ * Se pregunta por la NEGATIVA («no es de las gestionadas») en vez de exigir
+ * `folder_kind === 'manual'`: el campo llega en todo payload del serializer,
+ * pero una fila sin él —una fixture parcial, un resultado de búsqueda— debe
+ * seguir comportándose como propia y no quedar inerte en silencio.
+ */
+export function isManagedFolderKind(folder) {
+  return MANAGED_FOLDER_KINDS.includes(folder?.folder_kind);
+}
+
 export function scopedCounts(folder, scope) {
   if (!folder) return { docs: 0, subs: 0 };
   const activeDocs = folder.active_document_count

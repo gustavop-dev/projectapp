@@ -1,10 +1,13 @@
 <script setup>
 import DocumentCard from '~/components/panel/documents/DocumentCard.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
-import { folderRowSummary } from '~/utils/documentStatus'
+import { folderRowSummary, isManagedFolderKind } from '~/utils/documentStatus'
 import { isPlainActivation } from '~/utils/rowNavigation'
 
-defineProps({
+// Asignado a `props` —y no un `defineProps` suelto— porque `folderSummaryScope`
+// lee el scope de la vista: sin la asignación, `props` no existe en el scope del
+// script y la fila de carpeta revienta el render entero de la grilla.
+const props = defineProps({
   documents: { type: Array, default: () => [] },
   subfolders: { type: Array, default: () => [] },
   editToFor: { type: Function, default: () => null },
@@ -36,6 +39,16 @@ function onFolderLink(event, sub) {
   emit('select-folder', sub.id)
 }
 
+/**
+ * Igual que en la tabla: en `all` cada fila habla de su propio estado; en los
+ * otros dos manda el scope de la VISTA, o una carpeta activa listada en modo
+ * archivado anunciaría su inventario activo.
+ */
+function folderSummaryScope(sub) {
+  if (props.scope === 'all') return sub.is_archived ? 'archived' : 'active'
+  return props.scope
+}
+
 function archivedContentCount(folder) {
   return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
 }
@@ -60,7 +73,7 @@ function archivedContentCount(folder) {
         'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
           dragOverFolderId === sub.id,
       }"
-      :draggable="!sub.is_archived && sub.folder_kind !== 'project' && !sub.is_system_managed"
+      :draggable="!sub.is_archived && !isManagedFolderKind(sub) && !sub.is_system_managed"
       :data-testid="`folder-card-${sub.id}`"
       @click="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
@@ -85,8 +98,13 @@ function archivedContentCount(folder) {
       <BaseBadge v-if="sub.folder_kind === 'project'" variant="info" size="sm">
         Proyecto · {{ sub.managed_project_state?.name || 'Sin estado' }}
       </BaseBadge>
+      <!-- Sin estado detrás: los clientes no tienen catálogo de ciclo de vida
+           como los proyectos, sólo el booleano de inactividad. -->
+      <BaseBadge v-else-if="sub.folder_kind === 'client'" variant="neutral" size="sm">
+        Cliente
+      </BaseBadge>
       <span class="text-xs text-text-subtle">
-        {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+        {{ folderSummary(sub, folderSummaryScope(sub)) }}
       </span>
       <FolderArchivedBadge
         v-if="!sub.is_archived && archivedContentCount(sub)"
