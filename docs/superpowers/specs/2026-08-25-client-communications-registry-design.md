@@ -40,6 +40,7 @@ erDiagram
     CommunicationMessage ||--o{ CommunicationAttachment : "referencias"
     Document ||--o{ CommunicationAttachment : "se usa en"
     CommunicationMessage ||--o{ CommunicationMessageDateCorrection : "audita fecha"
+    CommunicationMessage ||--o{ CommunicationMessageRevision : "audita edición"
 ```
 
 - Un cliente puede tener varios hilos abiertos al mismo tiempo.
@@ -53,7 +54,9 @@ erDiagram
   tiene una respuesta entrante válida. Así no se destruye el hecho original de
   que fue enviado.
 - Un mensaje entregado no se edita: puede anularse con motivo o corregirse su
-  fecha mediante un evento append-only. Los borradores sí se editan/eliminan.
+  fecha mediante un evento append-only. Los borradores sí se editan/eliminan;
+  cada edición exitosa conserva los valores anterior/nuevo en una revisión
+  append-only.
 - Un adjunto no copia archivos. `CommunicationAttachment` referencia un
   `Document` existente; la API y la UI permiten navegar en ambas direcciones y
   bloquean borrar un documento aún referenciado.

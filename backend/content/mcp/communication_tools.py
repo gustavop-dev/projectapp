@@ -2,8 +2,8 @@
 
 The handlers deliberately reuse the panel serializers and service layer so a
 conversation cannot bypass thread, message, reply, or document guardrails.
-Marking a message as sent records an external fact; it never delivers email or
-WhatsApp itself.
+Editing a draft or marking it as sent only updates the registry; neither action
+delivers email or WhatsApp itself.
 """
 import json
 
@@ -13,6 +13,7 @@ from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
 from content.models import CommunicationMessage
 from content.serializers.communication import (
+    CommunicationDraftUpdateSerializer,
     CommunicationMarkSentSerializer,
     CommunicationMessageCreateSerializer,
     CommunicationMessageSerializer,
@@ -157,6 +158,56 @@ def create_message(arguments):
     ).data
 
 
+_UPDATE_MESSAGE_FIELDS = frozenset({
+    'subject', 'content', 'document_ids', 'reply_to_id', 'occurred_at',
+})
+
+
+def update_message(arguments):
+    if 'message_id' not in arguments:
+        raise ToolError('message_id es obligatorio.')
+    unknown_fields = sorted(
+        set(arguments) - _UPDATE_MESSAGE_FIELDS - {'message_id'},
+    )
+    if unknown_fields:
+        raise ToolError(
+            f'Campos no permitidos: {", ".join(unknown_fields)}.',
+        )
+    supplied_fields = _UPDATE_MESSAGE_FIELDS.intersection(arguments)
+    if not supplied_fields:
+        raise ToolError('Envía al menos un campo para actualizar.')
+
+    message = _message_or_error(arguments.get('message_id'))
+    data = {
+        field: arguments[field]
+        for field in ('subject', 'content', 'occurred_at', 'document_ids')
+        if field in arguments
+    }
+    if 'reply_to_id' in arguments:
+        data['reply_to'] = arguments.get('reply_to_id')
+    serializer = CommunicationDraftUpdateSerializer(
+        message,
+        data=data,
+        partial=True,
+    )
+    if not serializer.is_valid():
+        raise ToolError(_serializer_error(serializer.errors))
+    validated_data = dict(serializer.validated_data)
+    document_ids = validated_data.pop('document_ids', None)
+    try:
+        message = communication_service.update_draft(
+            message,
+            actor=mcp_actor(),
+            document_ids=document_ids,
+            **validated_data,
+        )
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return CommunicationMessageSerializer(
+        communication_query_service.message_queryset().get(pk=message.pk),
+    ).data
+
+
 def mark_message_sent(arguments):
     message = _message_or_error(arguments.get('message_id'))
     data = {
@@ -272,6 +323,56 @@ COMMUNICATION_TOOLS = [
             'additionalProperties': False,
         },
         'handler': create_message,
+    },
+    {
+        'name': 'update_message',
+        'description': (
+            'Edita en el mismo registro un borrador saliente activo localizado '
+            'previamente con get_thread. Permite corregir asunto, contenido, fecha, '
+            'respuesta y documentos del cliente; conserva ID, hilo, canal y dirección. '
+            'No crea otro mensaje ni envía correo o WhatsApp.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                'message_id': {
+                    'type': 'integer',
+                    'minimum': 1,
+                    'description': 'ID obligatorio del borrador saliente activo.',
+                },
+                'subject': {
+                    'type': 'string',
+                    'description': 'Asunto obligatorio y no vacío para correo; vacío para WhatsApp.',
+                },
+                'content': {
+                    'type': 'string',
+                    'description': 'Texto completo corregido del mensaje.',
+                },
+                'document_ids': {
+                    'type': 'array',
+                    'items': {'type': 'integer', 'minimum': 1},
+                    'description': 'Reemplaza por completo los documentos relacionados; [] elimina todos.',
+                },
+                'reply_to_id': {
+                    'type': ['integer', 'null'],
+                    'description': 'Mensaje de dirección opuesta del mismo hilo; null elimina la referencia.',
+                },
+                'occurred_at': {
+                    'type': 'string',
+                    'description': 'Fecha-hora ISO corregida del borrador.',
+                },
+            },
+            'required': ['message_id'],
+            'anyOf': [
+                {'required': ['subject']},
+                {'required': ['content']},
+                {'required': ['document_ids']},
+                {'required': ['reply_to_id']},
+                {'required': ['occurred_at']},
+            ],
+            'additionalProperties': False,
+        },
+        'handler': update_message,
     },
     {
         'name': 'mark_message_sent',

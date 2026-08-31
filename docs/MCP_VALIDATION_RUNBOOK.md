@@ -5,10 +5,10 @@ estado. `create_folder` hereda la asociación de su padre y `rename_folder`
 rechaza raíces automáticas de proyecto; estas protecciones se validan junto
 con los contratos de modelo antes de publicar cambios del gestor.
 
-Última revisión integral: 2026-08-29.
+Última revisión integral: 2026-08-31.
 
 Este documento es el procedimiento repetible para validar los conectores MCP de
-ProjectApp. Cubre el transporte compartido, las cinco herramientas de
+ProjectApp. Cubre el transporte compartido, las seis herramientas de
 Comunicaciones, el ciclo recuperable de observaciones en Documentos y la
 paridad de los ocho conectores preexistentes. La fuente
 ejecutable del inventario está en `backend/content/views/mcp_blog.py`; la
@@ -38,7 +38,9 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   única raíz documental canónica. El MCP puede seguir referenciando proyectos
   existentes, pero no adopta carpetas históricas ni provisiona raíces por esa
   vía.
-- `mark_message_sent` registra un hecho externo. No envía correo ni WhatsApp.
+- `update_message` edita sólo un borrador saliente activo y
+  `mark_message_sent` registra un hecho externo. Ninguna de las dos herramientas
+  envía correo ni WhatsApp.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 
 ## Inventario vigente
@@ -48,7 +50,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
 | `documents` | 17 | Carpetas manuales, markdown, cliente/proyecto, estados y observaciones recuperables; jerarquías generadas visibles pero protegidas |
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
-| `communications` | 5 | Hilos y registro conversacional de mensajes |
+| `communications` | 6 | Hilos, borradores editables y registro conversacional de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
 | `accounting` | 69 | Libros, hosting, pagos/abonos, recurrentes, bolsillo, tarjetas y extractos |
 | `diagnostics` | 13 | Diagnósticos, metadatos, secciones, estados y envíos |
@@ -252,6 +254,7 @@ fallar de forma explícita.
 | Blog | `get_blog_post` devuelve JSON bilingüe, fuentes, SEO, portada y LinkedIn | crear/editar conserva esos campos | post inexistente o payload incompleto |
 | Documents | resumen/detalle y filtros muestran cliente, proyecto, estados, tags y sólo observaciones activas | crear/editar mantiene asociaciones; eliminar/restaurar observaciones reconcilia estados y papelera en una transacción | proyecto ajeno, archivado, selección de observaciones mezclada o restauración incompatible |
 | Clients | métricas incluyen documentos, ingresos, hostings y comunicaciones | CRUD usa `proposal_client_service` | un hilo impide tratar/eliminar el cliente como huérfano |
+| Communications | hilo completo incluye mensajes, documentos, correcciones y revisiones | `update_message` conserva el ID del borrador, reemplaza documentos y registra el diff sin enviar por el canal | mensaje no borrador, documento de otro cliente o respuesta de otro hilo |
 | Tasks | detalle, comentarios y alertas reflejan el modelo actual | CRUD, archivo, orden y duplicación | comentario/alerta de otra tarea |
 | Accounting | detalle incluye pagos, deducciones, cuenta de cobro, período de hosting y ciclo de vida de recurrentes | `settle_income`/`bulk_settle_incomes` crean pagos; las seis tools de recurrentes preparan duplicado, cambian estado, archivan/restauran, silencian avisos y aplican lote por el mismo servicio del panel | no esperado, repetido, excedido, ID perdido o intento de activar/silenciar un recurrente archivado |
 | Diagnostics | detalle expone slug, expiración y cliente | update permite esos campos y usa el serializer actual | slug duplicado o cliente inválido |
@@ -266,14 +269,18 @@ de tres comandos.
 
 ```bash
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/views/test_mcp_communications.py -q
+  content/tests/views/test_mcp_communication_update.py -q
+
+/home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
+  content/tests/services/test_communication_service.py -q
 
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
   content/tests/views/test_mcp_contracts.py -q
-
-/home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/views/test_mcp_parity_refresh.py -q
 ```
+
+En el ciclo siguiente, ejecutar la regresión focal de
+`test_mcp_communications.py` y `test_mcp_parity_refresh.py`; no agrupar archivos
+si la selección resultante supera 20 casos.
 
 Para cambios en observaciones de Documentos, agregar el archivo focal sin
 superar 20 tests por ejecución:
@@ -318,7 +325,7 @@ qué queda fuera del MCP.
 
 - Los nueve conectores aparecen en el registro y `tools/list` coincide con este
   inventario.
-- Comunicaciones cubre las cinco operaciones mínimas y todos sus rechazos dejan
+- Comunicaciones cubre las seis operaciones vigentes y todos sus rechazos dejan
   la base consistente.
 - Los MCP existentes devuelven y aceptan los campos descritos en su contrato;
   Documentos expone 17 herramientas y conserva paridad para borrar, listar la
@@ -345,3 +352,15 @@ El gate global local puntuó 97/100, pero no pudo ejecutar sus dos puentes AST d
 frontend porque este worktree backend-only no instala `frontend/node_modules`
 (`@babel/parser` ausente). No fue un hallazgo de los cambios MCP; el workflow de
 CI, que instala las dependencias frontend, conserva la validación global final.
+
+## Ejecución focal — 2026-08-31
+
+| Verificación | Resultado |
+|---|---|
+| Edición MCP de borradores | 19/19 tests verdes |
+| Servicio y auditoría de revisiones | 14/14 tests verdes |
+| Regresión `tools/list` / creación / envío | 3/3 tests verdes |
+| Contratos MCP | 20/20 tests verdes |
+| Django system check | 0 issues |
+| `makemigrations --check --dry-run` | sin cambios detectados |
+| Quality gate focal | 0 errores; warnings históricos no bloqueantes |
