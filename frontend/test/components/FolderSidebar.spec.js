@@ -351,12 +351,16 @@ describe('FolderSidebar', () => {
         .attributes('aria-label')).toBe('Mimittos, 0 carpetas, 0 documentos');
     });
 
-    it('hides suspended projects until the project lifecycle toggle is on', async () => {
+    it('swaps active for inactive projects when the lifecycle toggle is on', async () => {
       const wrapper = mountSidebar();
 
       expect(wrapper.find('[data-testid="documents-navigation-archived-group"]').exists())
         .toBe(false);
       expect(wrapper.text()).not.toContain('Candle');
+      expect(wrapper.find('[data-testid="documents-navigation-project-91"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="documents-navigation-project-93"]').exists())
+        .toBe(true);
 
       await wrapper.get('[data-testid="inactive-projects-toggle"]').trigger('click');
       expect(wrapper.emitted('toggle-inactive-projects')).toEqual([[true]]);
@@ -365,6 +369,27 @@ describe('FolderSidebar', () => {
       const group = wrapper.get('[data-testid="documents-navigation-archived-group"]');
       expect(group.text()).toContain('Proyectos archivados');
       expect(group.text()).toContain('Candle');
+      // El toggle es excluyente: los activos dejan de listarse.
+      expect(wrapper.find('[data-testid="documents-navigation-project-91"]').exists())
+        .toBe(false);
+      expect(wrapper.find('[data-testid="documents-navigation-project-93"]').exists())
+        .toBe(false);
+    });
+
+    it('explains the empty catalog when no project is inactive', async () => {
+      const activeOnly = {
+        ...navigationFacets,
+        projects: navigationFacets.projects.filter(
+          (entry) => entry.catalog_bucket === 'active',
+        ),
+      };
+      const wrapper = mountSidebar({
+        navigationFacets: activeOnly,
+        showInactiveProjects: true,
+      });
+
+      expect(wrapper.get('[data-testid="project-empty-fallback"]').text())
+        .toBe('No hay proyectos no activos.');
     });
 
     it('keeps inactive clients reachable without the project lifecycle toggle', () => {

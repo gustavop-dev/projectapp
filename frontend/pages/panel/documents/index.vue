@@ -1087,9 +1087,18 @@ const selectedProjectIsInactive = computed(() => (
   )
 ));
 
+// El toggle es excluyente en ambos sentidos, así que cualquiera de los dos
+// giros puede dejar fuera del listado al proyecto seleccionado. Sin soltar la
+// selección, el listado seguiría filtrado por una fila que ya no se ve.
+const selectedProjectHiddenByToggle = computed(() => (
+  navigationMode.value === 'project'
+  && Boolean(selectedNavigationEntry.value)
+  && showInactiveProjects.value !== Boolean(selectedProjectIsInactive.value)
+));
+
 function handleToggleInactiveProjects(on) {
   showInactiveProjects.value = Boolean(on);
-  if (!showInactiveProjects.value && selectedProjectIsInactive.value) {
+  if (selectedProjectHiddenByToggle.value) {
     return handleSelectNavigationEntity('all');
   }
   return undefined;

@@ -95,7 +95,7 @@
         </button>
       </li>
 
-      <li v-for="entry in activeNavigationEntries" :key="entry.id">
+      <li v-for="entry in visibleActiveNavigationEntries" :key="entry.id">
         <!-- design-tokens: allow-raw-button — selectable navigation row, not an action -->
         <button
           type="button"
@@ -179,11 +179,11 @@
         Cargando {{ navigationMode === 'project' ? 'proyectos' : 'clientes' }}…
       </li>
       <li
-        v-else-if="!activeNavigationEntries.length && !visibleArchivedNavigationEntries.length"
+        v-else-if="!visibleActiveNavigationEntries.length && !visibleArchivedNavigationEntries.length"
         class="px-3 py-4 text-center text-xs text-text-subtle"
         :data-testid="navigationMode === 'project' ? 'project-empty-fallback' : undefined"
       >
-        {{ navigationSearch.trim() ? 'No hay coincidencias.' : `No hay ${navigationMode === 'project' ? 'proyectos' : 'clientes'} disponibles.` }}
+        {{ navigationEmptyMessage }}
       </li>
       <li v-if="navigationError" class="rounded-lg bg-danger-soft px-3 py-2 text-xs text-text-default">
         <p>{{ navigationError }}</p>
@@ -529,6 +529,14 @@ const activeNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter((entry) => !isArchivedNavigationEntry(entry)));
 const archivedNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter(isArchivedNavigationEntry));
+// El toggle de proyectos no activos es EXCLUYENTE, no aditivo: encendido deja
+// ver sólo los no activos, apagado sólo los activos. Los dos computed son las
+// dos caras de la misma condición, por eso se leen juntos.
+const visibleActiveNavigationEntries = computed(() => (
+  props.navigationMode === 'project' && props.showInactiveProjects
+    ? []
+    : activeNavigationEntries.value
+));
 const visibleArchivedNavigationEntries = computed(() => (
   props.navigationMode === 'project' && !props.showInactiveProjects
     ? []
@@ -537,6 +545,13 @@ const visibleArchivedNavigationEntries = computed(() => (
 const navigationArchivedGroupLabel = computed(() => (
   props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes inactivos'
 ));
+const navigationEmptyMessage = computed(() => {
+  if (navigationSearch.value.trim()) return 'No hay coincidencias.';
+  if (props.navigationMode === 'project' && props.showInactiveProjects) {
+    return 'No hay proyectos no activos.';
+  }
+  return `No hay ${props.navigationMode === 'project' ? 'proyectos' : 'clientes'} disponibles.`;
+});
 
 const navigationAllCounts = computed(() => navigationCounts(props.navigationFacets.totals));
 const navigationUnassignedCounts = computed(() => navigationCounts(

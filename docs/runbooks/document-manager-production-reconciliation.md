@@ -5,6 +5,15 @@ cliente sin borrar documentos. El despliegue de código y esquema no ejecuta la
 conciliación: una persona debe generar, revisar y aprobar el manifiesto sobre la
 base de producción.
 
+> **Estado: APLICADO el 2026-08-31.** La corrida dejó las ocho raíces gestionadas
+> (`project_folder_readiness()` → `status=ready`, `missing_root_count=0`) y cero
+> documentos sin carpeta. Artefactos en
+> `~/backups/vps/20260831-doc-reconciliation/`: respaldo `db/projectapp_db.sql`,
+> manifiesto revisado `document-manager-31082026.json`
+> (SHA-256 `269593e4…a11db4dc`), reporte `.md` y snapshot inverso `.inverse.json`.
+> Las secciones siguientes describen el procedimiento y quedan como referencia
+> para la próxima conciliación; el mapeo aplicado está en §2.
+
 ## Guardas obligatorias
 
 - Ejecutar únicamente desde el clon desplegado de producción, nunca desde un
@@ -29,10 +38,14 @@ conteos en producción.
 
 ```bash
 cd /home/ryzepeck/webapps/projectapp/backend
-source ../.venv/bin/activate
-python manage.py reconcile_project_folders \
-  --plan /ruta/segura/document-manager-20260830.json \
+DJANGO_SETTINGS_MODULE=projectapp.settings_prod ./venv/bin/python manage.py \
+  reconcile_project_folders \
+  --plan /ruta/segura/document-manager-20260831.json \
   --nest-project-root 64:9 \
+  --assign-client-root 2:58 \
+  --assign-client-root 3:59 \
+  --assign-client-root 58:52 \
+  --assign-client-root 61:59 \
   --assign-document-project 1:10 \
   --assign-document-project 2:10 \
   --assign-document-project 3:10 \
@@ -43,6 +56,9 @@ python manage.py reconcile_project_folders \
   --assign-document-project 154:12 \
   --assign-document-project 159:8
 ```
+
+El intérprete real del clon de producción es `backend/venv/bin/python`; no existe
+un `.venv` en la raíz del repo.
 
 El comando escribe el JSON y un reporte Markdown contiguo, imprime su SHA-256 y
 confirma que no modificó la base.
@@ -67,6 +83,10 @@ línea base, no autorización automática:
 | Proyecto 10 | Documentos 135 y 157 | Asociar y ubicar en ruta canónica | Cuentas de cobro del cliente de Vástago |
 | Proyecto 12 | Documento 154 | Asociar y ubicar en ruta canónica | Cuenta de cobro del cliente de Tenndalux |
 | Proyecto 8 | Documento 159 | Asociar y ubicar en ruta canónica | Cuenta de cobro del cliente de G&M |
+| Cliente 58 | Carlos / raíz 2 | Asignar a cliente | 1 carpeta, 3 documentos |
+| Cliente 59 | Gustavo / raíz 3 | Asignar a cliente | 1 carpeta, 1 documento |
+| Cliente 59 | Gustavo CLI / raíz 61 | Asignar a cliente | 1 carpeta, 4 documentos |
+| Cliente 52 | Aarón / raíz 58 | Asignar a cliente | 1 carpeta, 6 documentos |
 
 Para cada acción con `decision: "pending"`:
 
@@ -83,9 +103,17 @@ Para cada acción con `decision: "pending"`:
   `convert` de Kore;
 - aprobar `assign_document_project` únicamente para los documentos 1–5, 135,
   157, 154 y 159 y verificar su proyecto/cliente/ruta antes de hacerlo;
-- dejar Carlos y Gustavo sin cambios por ahora;
-- dejar Aarón, Littigio, ProjectApp, Requirement Estimates y cualquier otra
-  raíz sin relación inequívoca como **Carpeta propia**;
+- asignar Carlos (raíz 2 → perfil 58), Gustavo (raíz 3 → perfil 59), Gustavo CLI
+  (raíz 61 → perfil 59) y Aarón (raíz 58 → perfil 52) con `--assign-client-root`:
+  el emparejamiento por nombre las deja ambiguas o apuntando al cliente
+  equivocado, así que la elección de perfil es del operador y va como directiva
+  explícita, nunca por inferencia;
+- **rechazar (`skip`) la asignación de ProjectApp (raíz 66 → perfil 29)**: existe
+  un perfil de cliente homónimo, pero esa carpeta es de la propia empresa. El
+  emparejamiento automático la propone en cada corrida; hay que saltarla siempre;
+- dejar Littigio, Requirement Estimates, Templates, temp, Familia, Aerocivil,
+  Samuel, Kafe Sistemas Project y cualquier otra raíz sin relación inequívoca
+  como **Carpeta propia**;
 - confirmar que el documento 120 ya conserve `project=5` y produzca
   `file_document` hacia la ruta canónica de Mimittos.
 
@@ -136,8 +164,10 @@ del plan, la aplicación se cancela sin conciliar datos.
 - Las raíces 5, 7, 55, 65 y 78 ya no aparecen en **Carpetas propias**; se
   presentan exclusivamente desde su proyecto. Germán Franco tampoco queda como
   raíz propia porque vive bajo Kore.
-- Carlos, Gustavo, Aarón, Littigio, ProjectApp, Requirement Estimates y las
-  demás raíces todavía no conciliadas siguen visibles sólo en **Carpetas propias**.
+- Carlos, Gustavo, Gustavo CLI y Aarón salen de **Carpetas propias** y quedan
+  bajo su cliente. Littigio, ProjectApp, Requirement Estimates, Templates, temp,
+  Familia, Aerocivil, Samuel y Kafe Sistemas Project siguen visibles sólo en
+  **Carpetas propias**.
 - Cambiar entre proyecto, cliente y carpeta manual limpia los otros dos filtros
   y nunca produce una intersección residual vacía.
 
