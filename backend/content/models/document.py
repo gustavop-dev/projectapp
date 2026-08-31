@@ -64,6 +64,14 @@ class Document(models.Model):
         blank=True,
         related_name='documents',
     )
+    deliverable = models.ForeignKey(
+        'accounts.Deliverable',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documents',
+        help_text='Optional scope: show this document under a specific deliverable.',
+    )
     client_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

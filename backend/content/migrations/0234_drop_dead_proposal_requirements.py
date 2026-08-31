@@ -1,14 +1,14 @@
-"""Drop three relations that were dead in code and empty in production.
+"""Drop the legacy proposal-requirement tables.
 
-Verified against production (MySQL ``projectapp_db``) before writing this:
+``ProposalRequirementGroup`` / ``ProposalRequirementItem`` hold 0 and 0 rows in
+production, have no writer that a user can reach (only the Django admin could),
+and the frontend already labelled them the "legacy" fallback behind
+``BusinessProposal.content_json``, which is the live source.
 
-- ``Document.deliverable``: 0 of 136 documents carried one. Never assigned
-  anywhere, absent from every Document serializer, already excluded from the
-  MCP contract. The feature its help_text described was never wired.
-- ``ProposalRequirementGroup`` / ``ProposalRequirementItem``: 0 and 0 rows. No
-  production writer ever created one — only tests and the Django admin could —
-  and the frontend already labelled them the "legacy" fallback behind
-  ``BusinessProposal.content_json``, which is the live source.
+``Document.deliverable`` was dropped here too and put back: it has 0 rows, but
+it is NOT dead — ``accounts/collection_account_views.py`` writes it on create
+and filters by it on list, and ``deliverable_id`` is a public field of the
+collection-account serializer. Zero rows meant unused, not unwired.
 
 Nothing to migrate, therefore: this is a pure drop.
 """
@@ -27,10 +27,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='proposalrequirementitem',
             name='group',
-        ),
-        migrations.RemoveField(
-            model_name='document',
-            name='deliverable',
         ),
         migrations.DeleteModel(
             name='ProposalRequirementGroup',

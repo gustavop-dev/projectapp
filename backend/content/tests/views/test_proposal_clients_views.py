@@ -900,38 +900,11 @@ class TestArchivedClients:
         assert response.status_code == 200
         assert [c['id'] for c in response.data] == [orphan_client.pk]
 
-    def test_patch_is_archived_true_sets_archived_at(
-        self, admin_client, orphan_client,
-    ):
-        response = admin_client.patch(
-            reverse('update-proposal-client', args=[orphan_client.pk]),
-            {'is_archived': True},
-            format='json',
-        )
-
-        assert response.status_code == 200
-        assert response.data['is_archived'] is True
-        orphan_client.refresh_from_db()
-        assert orphan_client.archived_at is not None
-
-    @freeze_time('2026-01-15 12:00:00')
-    def test_patch_is_archived_false_clears_archived_at(
-        self, admin_client, orphan_client,
-    ):
-        from django.utils import timezone
-        orphan_client.archived_at = timezone.now()
-        orphan_client.save(update_fields=['archived_at'])
-
-        response = admin_client.patch(
-            reverse('update-proposal-client', args=[orphan_client.pk]),
-            {'is_archived': False},
-            format='json',
-        )
-
-        assert response.status_code == 200
-        assert response.data['is_archived'] is False
-        orphan_client.refresh_from_db()
-        assert orphan_client.archived_at is None
+    # Archivar y desarchivar ya no pasan por este PATCH: suspenden los
+    # proyectos del cliente y cancelan su facturación futura, así que viven en
+    # su propio par preview/apply. El rechazo del PATCH y la cascada se prueban
+    # en content/tests/views/test_client_archive_views.py y
+    # accounts/tests/test_client_archive_service.py.
 
 
 # ---------------------------------------------------------------------------
