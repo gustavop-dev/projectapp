@@ -18,7 +18,7 @@
           :style="{ marginLeft: `${depth * 18}px` }"
         >
           <div
-            v-if="folder.folder_kind === 'manual' && !folder.is_system_managed"
+            v-if="!isManagedFolderKind(folder) && !folder.is_system_managed"
             class="folder-tree-handle flex-shrink-0 w-4 flex items-center justify-center
                    text-text-subtle cursor-grab active:cursor-grabbing"
             title="Arrastrar para reordenar"
@@ -52,7 +52,7 @@
             {{ folder.document_count }} doc
           </span>
 
-          <div v-if="folder.folder_kind === 'manual' && !folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div v-if="!isManagedFolderKind(folder) && !folder.is_system_managed" class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <BaseButton
               variant="ghost"
               icon-only
@@ -97,6 +97,7 @@ import { ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 // Auto-referencia explícita para el render recursivo del árbol.
 import FolderManagerTree from '~/components/panel/documents/FolderManagerTree.vue';
+import { isManagedFolderKind } from '~/utils/documentStatus';
 
 const props = defineProps({
   siblings: { type: Array, default: () => [] },
@@ -131,7 +132,7 @@ function rowClass(folder) {
 
 function canMove(event) {
   const folder = event.draggedContext?.element;
-  return folder?.folder_kind === 'manual' && !folder?.is_system_managed;
+  return !isManagedFolderKind(folder) && !folder?.is_system_managed;
 }
 
 // vuedraggable aísla cada lista por defecto: el reorden solo afecta este nivel.
@@ -139,7 +140,7 @@ function onReorderEnd() {
   emit('reorder', {
     parentId: props.parentId,
     orderedIds: localSiblings.value
-      .filter((folder) => folder.folder_kind === 'manual' && !folder.is_system_managed)
+      .filter((folder) => !isManagedFolderKind(folder) && !folder.is_system_managed)
       .map((folder) => folder.id),
   });
 }

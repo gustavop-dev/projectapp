@@ -1,7 +1,7 @@
 <script setup>
 import {
   formatDocumentDate, folderRowSummary,
-  archivedAgeLabel,
+  archivedAgeLabel, isManagedFolderKind,
 } from '~/utils/documentStatus'
 import { computed, ref } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
@@ -224,7 +224,7 @@ function onFolderLink(event, sub) {
           :key="`folder-${sub.id}`"
           class="transition-colors select-none hover:bg-surface-muted cursor-pointer"
           :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
-          :draggable="!sub.is_archived && sub.folder_kind === 'manual' && !sub.is_system_managed"
+          :draggable="!sub.is_archived && !isManagedFolderKind(sub) && !sub.is_system_managed"
           @click="emit('select-folder', sub.id)"
           @dragstart="emit('folder-dragstart', $event, sub)"
           @dragend="emit('folder-dragend')"

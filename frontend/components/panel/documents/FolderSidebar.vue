@@ -470,7 +470,7 @@ import BaseCollapse from '~/components/base/BaseCollapse.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import { useFolderSidebarSections } from '~/composables/useFolderSidebarSections';
-import { folderRowLabel, folderRowSummary, scopedCounts } from '~/utils/documentStatus';
+import { folderRowLabel, folderRowSummary, isManagedFolderKind, scopedCounts } from '~/utils/documentStatus';
 
 const props = defineProps({
   folders: { type: Array, default: () => [] },
@@ -531,16 +531,12 @@ const entitiesSectionLabel = computed(() => (
 // redundantes a propósito: un payload parcial que perdiera una todavía deja
 // fuera de esta sección lo que ya tiene su propio espacio.
 //
-// Se excluyen las clases gestionadas por nombre en vez de exigir
-// `folder_kind === 'manual'`: esto es un filtro de PRESENTACIÓN y una fila sin
-// el campo —los resultados de búsqueda no viven en `folders`— debe seguir
-// viéndose. Las guardas de permiso (arrastrar, editar, borrar) sí son
-// afirmativas, porque ahí el default correcto es denegar.
+// `isManagedFolderKind` centraliza qué clases posee el sistema, así que sumar
+// una tercera es una sola edición y no siete comparaciones repartidas.
 const manualFolders = computed(() => props.folders
   .filter((folder) => (
     folder.parent == null
-    && folder.folder_kind !== 'project'
-    && folder.folder_kind !== 'client'
+    && !isManagedFolderKind(folder)
     && folder.managed_project == null
     && folder.managed_client == null
     && folder.project == null

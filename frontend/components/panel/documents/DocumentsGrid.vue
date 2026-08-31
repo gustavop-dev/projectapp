@@ -1,7 +1,7 @@
 <script setup>
 import DocumentCard from '~/components/panel/documents/DocumentCard.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
-import { folderRowSummary } from '~/utils/documentStatus'
+import { folderRowSummary, isManagedFolderKind } from '~/utils/documentStatus'
 import { isPlainActivation } from '~/utils/rowNavigation'
 
 defineProps({
@@ -70,7 +70,7 @@ function archivedContentCount(folder) {
         'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
           dragOverFolderId === sub.id,
       }"
-      :draggable="!sub.is_archived && sub.folder_kind === 'manual' && !sub.is_system_managed"
+      :draggable="!sub.is_archived && !isManagedFolderKind(sub) && !sub.is_system_managed"
       :data-testid="`folder-card-${sub.id}`"
       @click="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
