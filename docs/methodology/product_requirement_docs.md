@@ -177,6 +177,12 @@ authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
   editable description explains what the state means and a system-owned message
   explains its billing, reminder, hosting and closure implications. This help is
   available by hover/focus and by tap; the customer portal remains unchanged.
+- In the project-state catalog, required create/edit fields are identified in
+  their labels. Local and serializer validation appears beside the responsible
+  control only after an attempted action and clears when that value changes; it
+  is never summarized as a red list beside the CTA. Merge follows the same rule
+  for a missing destination, while immutable seed restrictions remain accessible
+  help because editing another field cannot resolve them.
 - New projects begin En desarrollo. Later changes require a server preview and an
   impact token; direct enum writes and the legacy archive/unarchive endpoints do
   not bypass that flow.

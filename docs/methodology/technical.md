@@ -437,6 +437,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `ProjectStateHelpBadge` pairs the editable `description` with the derived,
   read-only `operational_effect_help` in counts, filters, rows, cards, catalog and
   transition context, with pointer, keyboard and touch access.
+- `StateCatalogManager` keeps project-catalog validation local to each action.
+  `BaseFormField` owns the label, required marker, `aria-describedby` relation and
+  inline message for create/edit fields and the merge destination. Submit remains
+  available until the user attempts the action; local requirements and normalized
+  API `fieldErrors` then share the same surface and clear per field on input.
+  Permanent seed restrictions still use `BaseControlGate` as accessible disabled
+  help. The Documents branch of the shared component retains its existing gate.
 - Migrations `accounts.0055_project_lifecycle_state` and
   `content.0213/0214_project_lifecycle_states` add the relations and map known
   legacy statuses. `content.0218_project_state_help` adds state descriptions,

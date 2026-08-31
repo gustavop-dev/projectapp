@@ -7,6 +7,14 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-31 — corregible e inmutable necesitan superficies
+> distintas:** un requisito incompleto o un error de serializer pertenece al
+> campo, aparece después del intento y se limpia cuando cambia ese valor. Una
+> restricción permanente no debe fingir ser validación del formulario: conserva
+> el control deshabilitado y una explicación accesible. En componentes
+> compartidos, esta distinción puede aplicarse por dominio sin alterar el contrato
+> vigente del otro catálogo.
+
 > **Lección 2026-08-30 — catálogo, ubicación y archivo son dimensiones
 > distintas:** una migración de esquema no equivale a adoptar datos históricos,
 > y una entidad sin contenido todavía pertenece al catálogo. La inclusión del
