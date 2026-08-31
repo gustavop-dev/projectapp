@@ -22,7 +22,6 @@
     </div>
 
     <div
-      v-if="mode === 'project'"
       class="flex shrink-0 items-center justify-between gap-2 border-b border-border-muted px-3 py-2.5 transition-colors"
       :class="showInactiveProjects ? 'bg-warning-soft' : ''"
       data-testid="communications-inactive-projects-control"
@@ -32,13 +31,13 @@
           class="truncate text-sm"
           :class="showInactiveProjects ? 'font-medium text-text-default' : 'text-text-muted'"
         >
-          Ver proyectos no activos
+          {{ lifecycleToggleLabel }}
         </span>
       </span>
       <BaseToggle
         :model-value="showInactiveProjects"
         size="sm"
-        aria-label="Ver proyectos no activos"
+        :aria-label="lifecycleToggleLabel"
         data-testid="communications-inactive-projects-toggle"
         @update:model-value="$emit('toggle-inactive-projects', $event)"
       />
@@ -286,11 +285,18 @@ const archivedEntries = computed(() => visibleEntries.value.filter(
 // El interruptor de no-activos es EXCLUYENTE, no aditivo: encendido deja ver
 // solo los no activos, apagado solo los activos. Los dos computed son las dos
 // caras de la misma condicion, por eso se leen juntos.
+// Gobierna los DOS modos, igual que en el gestor documental: antes los clientes
+// archivados se listaban siempre y el control ni se ofrecia en ese modo.
 const visibleActiveEntries = computed(() => (
-  props.mode === 'project' && props.showInactiveProjects ? [] : activeEntries.value
+  props.showInactiveProjects ? [] : activeEntries.value
 ));
 const visibleArchivedEntries = computed(() => (
-  props.mode === 'project' && !props.showInactiveProjects ? [] : archivedEntries.value
+  props.showInactiveProjects ? archivedEntries.value : []
+));
+const lifecycleToggleLabel = computed(() => (
+  props.mode === 'project'
+    ? 'Ver proyectos no activos'
+    : 'Ver clientes archivados'
 ));
 const archivedGroupLabel = computed(() => (
   props.mode === 'project' ? 'Proyectos archivados' : 'Clientes archivados'
@@ -300,8 +306,10 @@ const navigationLabel = computed(() => (
 ));
 const emptyMessage = computed(() => {
   if (search.value.trim()) return 'No hay coincidencias.';
-  if (props.mode === 'project' && props.showInactiveProjects) {
-    return 'No hay proyectos no activos.';
+  if (props.showInactiveProjects) {
+    return props.mode === 'project'
+      ? 'No hay proyectos no activos.'
+      : 'No hay clientes archivados.';
   }
   return emptyLabel.value;
 });

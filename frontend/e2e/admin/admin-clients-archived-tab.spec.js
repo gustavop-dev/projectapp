@@ -62,18 +62,54 @@ function setupMock(page, { onUpdate = null } = {}) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(filtered) };
     }
 
-    const updateMatch = apiPath.match(/^proposals\/client-profiles\/(\d+)\/update\/$/);
-    if (updateMatch && method === 'PATCH') {
-      const clientId = Number(updateMatch[1]);
-      const body = JSON.parse(route.request().postData() || '{}');
-      if (onUpdate) onUpdate(clientId, body);
-      const source = clientId === archivedClient.id ? archivedClient : activeClient;
-      const updated = {
-        ...source,
-        is_archived: Boolean(body.is_archived),
-        archived_at: body.is_archived ? '2026-07-09T10:00:00Z' : null,
+    // Archiving never goes through the identity PATCH: it suspends the
+    // client's projects, so it has its own preview + apply pair.
+    const previewMatch = apiPath.match(/^proposals\/client-profiles\/(\d+)\/archive-preview\/$/);
+    if (previewMatch) {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          client_id: Number(previewMatch[1]),
+          client_name: 'Carlos López',
+          target_state_id: 4,
+          target_state_name: 'Suspendido',
+          projects: [{
+            project_id: 7,
+            project_name: 'Portal Carlos',
+            current_state: 'Activo',
+            impact_token: 'tok-7',
+            future_incomes: [{ id: 1, concept: 'Hosting' }],
+            future_payments: [],
+            active_hostings: [],
+            blockers: [],
+          }],
+          skipped: [],
+          totals: { future_incomes: 1, future_payments: 0, active_hostings: 0 },
+        }),
       };
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
+    }
+
+    const archiveMatch = apiPath.match(/^proposals\/client-profiles\/(\d+)\/(archive|unarchive)\/$/);
+    if (archiveMatch && method === 'POST') {
+      const clientId = Number(archiveMatch[1]);
+      const archiving = archiveMatch[2] === 'archive';
+      const body = JSON.parse(route.request().postData() || '{}');
+      if (onUpdate) onUpdate(clientId, { archiving, ...body });
+      const source = clientId === archivedClient.id ? archivedClient : activeClient;
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          client: {
+            ...source,
+            is_archived: archiving,
+            archived_at: archiving ? '2026-07-09T10:00:00Z' : null,
+          },
+          suspended_projects: archiving ? [7] : [],
+          still_suspended: archiving ? [] : [7],
+        }),
+      };
     }
 
     return null;
@@ -119,7 +155,7 @@ test.describe('Admin Clients Archived Tab', () => {
     await expect(page).toHaveURL(/status=archived/);
   });
 
-  test('the row toggle PATCHes is_archived=true and notifies', {
+  test('the row toggle previews the cascade before archiving', {
     tag: [...ADMIN_CLIENT_ARCHIVED_TAB, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
@@ -129,8 +165,22 @@ test.describe('Admin Clients Archived Tab', () => {
     await expect(page.getByText('Carlos López')).toBeVisible();
     await page.getByTestId('client-toggle-archived-101').click();
 
-    await expect(page.getByText('"Carlos López" marcado como inactivo.')).toBeVisible();
-    expect(updates).toEqual([{ clientId: 101, body: { is_archived: true } }]);
+    // The warning has to name the cost before the confirm turns on: suspending
+    // the project cancels its future income and nothing brings it back.
+    const impact = page.getByTestId('client-archive-impact');
+    await expect(impact).toContainText('1 proyecto pasará a «Suspendido»');
+    await expect(impact).toContainText('Portal Carlos');
+    await expect(impact).toContainText('1 ingresos futuros se marcarán como cancelados.');
+    await expect(impact).toContainText('Reactivar después no revierte esas cancelaciones.');
+
+    await page.getByTestId('client-archive-confirm').click();
+
+    await expect(page.getByText('"Carlos López" archivado.')).toBeVisible();
+    expect(updates).toEqual([{
+      clientId: 101,
+      archiving: true,
+      transitions: [{ project_id: 7, impact_token: 'tok-7' }],
+    }]);
   });
 
   test('the toggle from the Archivados list brings the client back', {
@@ -147,8 +197,15 @@ test.describe('Admin Clients Archived Tab', () => {
 
     await page.getByTestId('client-toggle-archived-104').click();
 
-    await expect(page.getByText('"Dora Dormida" reactivado.')).toBeVisible();
-    expect(updates).toEqual([{ clientId: 104, body: { is_archived: false } }]);
+    // Unarchiving says out loud that the projects stay suspended: their
+    // cancelled incomes do not come back, so reactivating is a separate call.
+    await expect(page.getByTestId('client-archive-unarchive-note'))
+      .toContainText('Sus proyectos siguen suspendidos');
+
+    await page.getByTestId('client-archive-confirm').click();
+
+    await expect(page.getByText('"Dora Dormida" desarchivado.')).toBeVisible();
+    expect(updates).toEqual([{ clientId: 104, archiving: false }]);
   });
 });
 

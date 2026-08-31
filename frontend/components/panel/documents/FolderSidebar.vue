@@ -23,20 +23,19 @@
     </div>
 
     <div
-      v-if="navigationMode === 'project'"
       class="flex shrink-0 items-center justify-between gap-2 border-b border-border-muted px-3 py-2.5 transition-colors"
       :class="showInactiveProjects ? 'bg-warning-soft' : ''"
       data-testid="inactive-projects-control"
     >
       <span class="flex items-center gap-2 min-w-0">
         <span class="text-sm truncate" :class="showInactiveProjects ? 'font-medium text-text-default' : 'text-text-muted'">
-          Ver proyectos no activos
+          {{ lifecycleToggleLabel }}
         </span>
       </span>
       <BaseToggle
         :model-value="showInactiveProjects"
         size="sm"
-        aria-label="Ver proyectos no activos"
+        :aria-label="lifecycleToggleLabel"
         data-testid="inactive-projects-toggle"
         @update:model-value="$emit('toggle-inactive-projects', $event)"
       />
@@ -587,26 +586,33 @@ const activeNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter((entry) => !isArchivedNavigationEntry(entry)));
 const archivedNavigationEntries = computed(() => searchedNavigationEntries.value
   .filter(isArchivedNavigationEntry));
-// El toggle de proyectos no activos es EXCLUYENTE, no aditivo: encendido deja
+// El interruptor de ciclo de vida es EXCLUYENTE, no aditivo: encendido deja
 // ver sólo los no activos, apagado sólo los activos. Los dos computed son las
 // dos caras de la misma condición, por eso se leen juntos.
+//
+// Gobierna los DOS modos. Antes sólo aplicaba a proyectos y los clientes
+// archivados se listaban siempre, así que el mismo panel se comportaba de dos
+// maneras según el modo — y archivar un cliente no lo sacaba de la vista.
 const visibleActiveNavigationEntries = computed(() => (
-  props.navigationMode === 'project' && props.showInactiveProjects
-    ? []
-    : activeNavigationEntries.value
+  props.showInactiveProjects ? [] : activeNavigationEntries.value
 ));
 const visibleArchivedNavigationEntries = computed(() => (
-  props.navigationMode === 'project' && !props.showInactiveProjects
-    ? []
-    : archivedNavigationEntries.value
+  props.showInactiveProjects ? archivedNavigationEntries.value : []
+));
+const lifecycleToggleLabel = computed(() => (
+  props.navigationMode === 'project'
+    ? 'Ver proyectos no activos'
+    : 'Ver clientes archivados'
 ));
 const navigationArchivedGroupLabel = computed(() => (
   props.navigationMode === 'project' ? 'Proyectos archivados' : 'Clientes archivados'
 ));
 const navigationEmptyMessage = computed(() => {
   if (navigationSearch.value.trim()) return 'No hay coincidencias.';
-  if (props.navigationMode === 'project' && props.showInactiveProjects) {
-    return 'No hay proyectos no activos.';
+  if (props.showInactiveProjects) {
+    return props.navigationMode === 'project'
+      ? 'No hay proyectos no activos.'
+      : 'No hay clientes archivados.';
   }
   return `No hay ${props.navigationMode === 'project' ? 'proyectos' : 'clientes'} disponibles.`;
 });

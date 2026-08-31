@@ -75,7 +75,7 @@ describe('CommunicationNavigation', () => {
       .toBe(false);
   });
 
-  it('groups inactive clients under their own heading', async () => {
+  it('governs archived clients with the same exclusive switch as projects', async () => {
     const wrapper = mountNavigation({
       mode: 'client',
       facets: {
@@ -89,10 +89,15 @@ describe('CommunicationNavigation', () => {
       },
     });
 
-    // En modo cliente no hay interruptor de ciclo de vida: el grupo se ve siempre,
-    // que es exactamente lo que hace el gestor documental.
-    expect(wrapper.find('[data-testid="communications-inactive-projects-control"]').exists())
+    // El interruptor gobierna los DOS modos, igual que en el gestor documental:
+    // apagado sólo activos, encendido sólo archivados.
+    const control = wrapper.get('[data-testid="communications-inactive-projects-control"]');
+    expect(control.text()).toContain('Ver clientes archivados');
+    expect(wrapper.find('[data-testid="communications-navigation-archived-group"]').exists())
       .toBe(false);
+
+    await wrapper.setProps({ showInactiveProjects: true });
+
     expect(wrapper.get('[data-testid="communications-navigation-archived-group"]').text())
       .toContain('Clientes archivados');
   });

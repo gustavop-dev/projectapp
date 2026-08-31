@@ -392,11 +392,20 @@ describe('FolderSidebar', () => {
         .toBe('No hay proyectos no activos.');
     });
 
-    it('keeps inactive clients reachable without the project lifecycle toggle', () => {
+    it('governs archived clients with the same exclusive switch as projects', async () => {
+      // El interruptor gobierna los DOS modos. Antes el modo cliente listaba
+      // los archivados siempre y ni siquiera ofrecía el control, así que el
+      // mismo panel se comportaba distinto según el modo y archivar un cliente
+      // no lo sacaba de la vista.
       const wrapper = mountSidebar({ navigationMode: 'client' });
+      const control = wrapper.get('[data-testid="inactive-projects-control"]');
 
-      expect(wrapper.find('[data-testid="inactive-projects-control"]').exists())
+      expect(control.text()).toContain('Ver clientes archivados');
+      expect(wrapper.find('[data-testid="documents-navigation-archived-group"]').exists())
         .toBe(false);
+
+      await wrapper.setProps({ showInactiveProjects: true });
+
       expect(wrapper.get('[data-testid="documents-navigation-archived-group"]')
         .text()).toContain('Cliente histórico');
     });
