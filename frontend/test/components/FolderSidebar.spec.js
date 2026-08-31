@@ -469,9 +469,13 @@ describe('FolderSidebar', () => {
       mockFolderStore.recursiveDocumentCount.mockReturnValue(12);
       const wrapper = mountSidebar({ folders: [parentFolder] });
 
-      expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
-      expect(wrapper.text()).toContain('contiene 2 subcarpetas');
-      expect(wrapper.text()).not.toContain('contiene 12 documentos');
+      const deleteButton = wrapper.get('[data-testid="folder-delete"]');
+      const deleteTooltipProxy = deleteButton.element.closest('[data-disabled-action-proxy]');
+
+      expect(deleteButton.element.disabled).toBe(true);
+      expect(deleteTooltipProxy).not.toBeNull();
+      expect(deleteTooltipProxy.getAttribute('aria-label')).toContain('contiene 2 subcarpetas');
+      expect(deleteTooltipProxy.getAttribute('aria-label')).not.toContain('contiene 12 documentos');
     });
   });
 
