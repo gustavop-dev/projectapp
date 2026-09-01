@@ -1,4 +1,4 @@
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Q
 from django.db.models.functions import Lower
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -16,6 +16,7 @@ from content.serializers.document_thread import (
     DocumentThreadSerializer,
     DocumentThreadUpdateSerializer,
 )
+from content.services.document_thread_query import thread_detail_queryset
 from content.services.document_thread_service import (
     DocumentThreadError,
     create_document_thread,
@@ -28,25 +29,6 @@ class DocumentThreadCandidatePagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 50
-
-
-def _thread_queryset():
-    item_queryset = (
-        DocumentThreadItem.objects.select_related(
-            'document__document_type',
-            'document__folder',
-            'document__project',
-            'document__client_user__profile',
-            'linked_by',
-            'updated_by',
-        )
-        .order_by('occurred_on', 'position', 'id')
-    )
-    return (
-        DocumentThread.objects.select_related('created_by', 'updated_by')
-        .annotate(document_count=Count('items', distinct=True))
-        .prefetch_related(Prefetch('items', queryset=item_queryset))
-    )
 
 
 def _thread_error_response(exc):
@@ -66,7 +48,7 @@ def document_thread_detail(request, document_id):
     membership = DocumentThreadItem.objects.filter(document=document).first()
     if membership is None:
         return JsonResponse(None, safe=False)
-    thread = get_object_or_404(_thread_queryset(), pk=membership.thread_id)
+    thread = get_object_or_404(thread_detail_queryset(), pk=membership.thread_id)
     return Response(DocumentThreadSerializer(thread).data)
 
 
@@ -167,7 +149,7 @@ def create_thread(request):
         )
     except DocumentThreadError as exc:
         return _thread_error_response(exc)
-    thread = get_object_or_404(_thread_queryset(), pk=thread.pk)
+    thread = get_object_or_404(thread_detail_queryset(), pk=thread.pk)
     return Response(DocumentThreadSerializer(thread).data, status=status.HTTP_201_CREATED)
 
 
@@ -193,5 +175,5 @@ def update_or_delete_thread(request, thread_id):
         return _thread_error_response(exc)
     if dissolved:
         return Response({'thread': None, 'dissolved': True})
-    updated = get_object_or_404(_thread_queryset(), pk=updated.pk)
+    updated = get_object_or_404(thread_detail_queryset(), pk=updated.pk)
     return Response(DocumentThreadSerializer(updated).data)

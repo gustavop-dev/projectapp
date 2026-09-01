@@ -92,6 +92,9 @@ class TestDocumentsMcpToolList:
             'set_document_state', 'close_document_state', 'add_document_note',
             'finish_document_note', 'delete_document_notes',
             'list_deleted_document_notes', 'restore_document_note',
+            'get_document_thread', 'list_document_threads',
+            'create_document_thread', 'update_document_thread',
+            'dissolve_document_thread',
         ]
 
     def test_serverinfo_handshake_works_on_shared_endpoint(self, api_client, documents_connector):

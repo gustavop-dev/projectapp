@@ -94,28 +94,40 @@ def test_project_has_no_module_specific_catalog_opt_out():
     assert 'document_manager_enabled' not in project_contract.classified_fields
 
 
-def test_document_threads_are_deliberately_panel_only():
+def test_document_threads_are_exposed_by_the_documents_connector():
     contracts = {
         contract.model_label: contract
         for contract in MCP_MODEL_CONTRACTS['documents']
     }
-    expected_exclusions = {
-        'content.DocumentThread': {
-            'id', 'title', 'created_by', 'updated_by', 'created_at', 'updated_at',
-        },
-        'content.DocumentThreadItem': {
-            'id', 'thread', 'document', 'occurred_on', 'position', 'linked_by',
-            'updated_by', 'linked_at', 'updated_at',
-        },
-    }
 
-    for model_label, excluded_fields in expected_exclusions.items():
-        contract = contracts[model_label]
-        assert contract.read_only == frozenset()
-        assert contract.read_write == frozenset()
-        assert set(contract.excluded) == excluded_fields
+    thread = contracts['content.DocumentThread']
+    assert thread.read_write == frozenset({'title'})
+    assert thread.read_only == frozenset({
+        'id', 'created_by', 'updated_by', 'created_at', 'updated_at',
+    })
+    assert thread.excluded == {}
 
-    assert len(TOOLS_BY_SLUG['documents']) == 17
+    item = contracts['content.DocumentThreadItem']
+    assert item.read_write == frozenset({'thread', 'document', 'occurred_on'})
+    assert item.read_only == frozenset({
+        'id', 'linked_by', 'updated_by', 'linked_at', 'updated_at',
+    })
+    # La posición es derivada: el conector envía fechas y el servidor ordena.
+    assert set(item.excluded) == {'position'}
+    assert item.excluded['position'].strip()
+
+
+def test_documents_connector_registers_the_five_thread_tools():
+    tool_names = {tool['name'] for tool in TOOLS_BY_SLUG['documents']}
+
+    assert {
+        'get_document_thread',
+        'list_document_threads',
+        'create_document_thread',
+        'update_document_thread',
+        'dissolve_document_thread',
+    } <= tool_names
+    assert len(TOOLS_BY_SLUG['documents']) == 22
 
 
 @pytest.mark.parametrize('slug', CONNECTOR_SLUGS)
