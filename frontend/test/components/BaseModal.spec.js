@@ -82,6 +82,14 @@ describe('BaseModal', () => {
     wrapper.unmount()
   })
 
+  it('applies a local theme to teleported public content', () => {
+    const wrapper = mountModal({ theme: 'dark' })
+    const dialog = document.body.querySelector('[role="dialog"]')
+
+    expect(dialog.getAttribute('data-theme')).toBe('dark')
+    wrapper.unmount()
+  })
+
   it('uses the semantic modal kind as the width source of truth', () => {
     const wrapper = mountModal({ kind: 'form', size: 'sm' })
     const panel = getModalPanel()

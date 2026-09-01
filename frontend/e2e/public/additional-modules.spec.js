@@ -3,8 +3,10 @@ import { mockApi } from '../helpers/api.js'
 import {
   PUBLIC_ADDITIONAL_MODULES_CATALOG,
   PUBLIC_ADDITIONAL_MODULES_DETAIL,
+  PUBLIC_ADDITIONAL_MODULES_GUIDE,
   PUBLIC_ADDITIONAL_MODULES_PDF,
   PUBLIC_ADDITIONAL_MODULES_SHARE,
+  PUBLIC_ADDITIONAL_MODULES_THEME,
 } from '../helpers/flow-tags.js'
 
 const shareUuid = '11111111-1111-4111-8111-111111111111'
@@ -81,6 +83,13 @@ function json(status, body) {
 
 async function setupPublicApi(page, scenario = {}) {
   let catalogCalls = 0
+  await page.addInitScript((showGuide) => {
+    if (showGuide) {
+      window.localStorage.removeItem('projectapp-additional-modules-guide-seen')
+      return
+    }
+    window.localStorage.setItem('projectapp-additional-modules-guide-seen', 'true')
+  }, Boolean(scenario.showGuide))
   await mockApi(page, async ({ apiPath, method, route }) => {
     const requestUrl = new URL(route.request().url())
     const requestedLanguage = requestUrl.searchParams.get('lang') || 'es'
@@ -134,12 +143,20 @@ test.describe('Public additional modules catalog', () => {
   }, async ({ page }) => {
     await setupPublicApi(page)
     await openFromFooter(page)
-    await expect(page.getByRole('heading', { name: 'Módulos adicionales' })).toBeVisible()
+    const heading = page.getByRole('heading', { name: 'Módulos adicionales' })
+    await expect(heading).toBeVisible()
+    const headingBox = await heading.boundingBox()
+    expect(headingBox.y).toBeLessThan(150)
     await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toContainText('Facturación electrónica')
     await expect(page.getByTestId('additional-module-card-landing-page')).toContainText('Landing page')
     await expect(page.locator('main')).not.toContainText(/COP|USD|\$/)
     await expect(page.locator('nav[aria-label="Main navigation"]')).toHaveCount(0)
     await expect(page.locator('nav[aria-label="Mobile navigation"]')).toHaveCount(0)
+    await expect(page.getByTestId('additional-modules-share-floating')).toBeVisible()
+    await expect(page.getByTestId('additional-modules-download-pdf-floating')).toBeVisible()
+    await expect(page.getByTestId('additional-modules-guide-restart')).toBeVisible()
+    await expect(page.getByTestId('additional-modules-theme-toggle')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Contact our web design team via WhatsApp' })).toBeVisible()
   })
 
   test('switches the public catalog to English', {
@@ -254,6 +271,82 @@ test.describe('Public additional modules catalog', () => {
     await expect(page.getByRole('button', { name: 'Reintentar' })).toHaveCount(0)
   })
 
+  test('copies the current shared-selection URL without creating another token', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_SHARE, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__copiedAdditionalModulesUrl = ''
+      Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (value) => {
+            window.__copiedAdditionalModulesUrl = value
+          },
+        },
+      })
+    })
+    await setupPublicApi(page)
+    await page.goto(`/es-co/additional-modules/share/${shareUuid}`, { waitUntil: 'domcontentloaded' })
+
+    await page.getByTestId('additional-modules-share-floating').click()
+    await expect(page.getByTestId('additional-modules-share-dialog')).toBeVisible()
+    await page.getByTestId('additional-modules-copy-link').click()
+
+    await expect(page.getByTestId('additional-modules-share-feedback')).toHaveText('Enlace copiado')
+    const copiedUrl = await page.evaluate(() => window.__copiedAdditionalModulesUrl)
+    expect(new URL(copiedUrl).pathname).toBe(`/es-co/additional-modules/share/${shareUuid}`)
+  })
+
+  test('starts in light mode with the public theme control available', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_THEME, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+
+    await expect(page.getByTestId('additional-modules-catalog')).toHaveAttribute('data-theme', 'light')
+    await expect(page.getByTestId('additional-modules-theme-toggle')).toBeVisible()
+  })
+
+  test('remembers dark mode after reloading the public catalog', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_THEME, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+
+    await page.getByTestId('additional-modules-theme-toggle').click()
+    await expect(page.getByTestId('additional-modules-catalog')).toHaveAttribute('data-theme', 'dark')
+    await page.reload({ waitUntil: 'domcontentloaded' })
+
+    await expect(page.getByTestId('additional-modules-catalog')).toHaveAttribute('data-theme', 'dark')
+  })
+
+  test('introduces the catalog controls on the first visit', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_GUIDE, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupPublicApi(page, { showGuide: true })
+    await openFromFooter(page)
+
+    await expect(page.getByTestId('additional-modules-guide')).toBeVisible()
+    await expect(page.getByTestId('additional-modules-guide')).toContainText('Modo claro y oscuro')
+    await expect(page.getByTestId('additional-modules-guide-progress')).toHaveText('1/7')
+  })
+
+  test('reopens the catalog guide from its floating control', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_GUIDE, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+    await expect(page.getByTestId('additional-modules-guide')).toHaveCount(0)
+
+    await page.getByTestId('additional-modules-guide-restart').click()
+    await expect(page.getByTestId('additional-modules-guide')).toBeVisible()
+    await page.getByRole('button', { name: 'Omitir' }).click()
+    await expect(page.getByTestId('additional-modules-guide')).toHaveCount(0)
+
+    await page.getByTestId('additional-modules-guide-restart').click()
+    await expect(page.getByTestId('additional-modules-guide')).toBeVisible()
+  })
+
   test('downloads the public catalog PDF', {
     tag: [...PUBLIC_ADDITIONAL_MODULES_PDF, '@role:guest', '@outcome:success'],
   }, async ({ page }) => {
@@ -263,7 +356,7 @@ test.describe('Public additional modules catalog', () => {
     await page.getByTestId('additional-language-en').click()
     await expect(page).toHaveURL(/\/en-us\/additional-modules$/)
     const downloadPromise = page.waitForEvent('download')
-    await page.getByTestId('additional-modules-download-pdf').click()
+    await page.getByTestId('additional-modules-download-pdf-floating').click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe('additional-modules-catalog.pdf')
     expect(scenario.pdfLanguage).toBe('en')
@@ -276,7 +369,7 @@ test.describe('Public additional modules catalog', () => {
     await setupPublicApi(page, { pdfFailure: true })
     await page.goto(`/es-co/additional-modules/share/${shareUuid}`, { waitUntil: 'domcontentloaded' })
     await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toBeVisible()
-    await page.getByTestId('additional-modules-download-pdf').click()
+    await page.getByTestId('additional-modules-download-pdf-floating').click()
     await expect(page.getByText('No pudimos generar el PDF. Vuelve a intentarlo.')).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`/additional-modules/share/${shareUuid}$`))
   })

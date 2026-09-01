@@ -1,0 +1,10 @@
+{
+  "id": "public-additional-modules-theme",
+  "name": "Public Additional Modules Theme",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Visitor can read the public catalog in light or dark mode and the chosen theme is restored on later visits.",
+  "expectedSpecs": 2,
+  "outcomes": ["success", "display"]
+}
