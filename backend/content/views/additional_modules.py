@@ -1,4 +1,3 @@
-from django.contrib.auth import get_user
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
@@ -44,7 +43,7 @@ from content.services.additional_module_pdf_service import (
 )
 from content.services.frontend_build import schedule_rebuild_after_publish
 from content.throttles import TrackingAnonThrottle
-from content.utils import get_client_ip
+from content.utils import get_client_ip, is_staff_session
 
 
 def _schedule_catalog_rebuild():
@@ -394,8 +393,7 @@ def track_public_share_catalog(request, share_uuid):
         return unavailable
     share_link, _module_ids = resolved
 
-    session_user = get_user(request._request)
-    if session_user.is_authenticated and session_user.is_staff:
+    if is_staff_session(request):
         return Response({'status': 'skipped'})
 
     serializer = AdditionalModuleTrackSerializer(data=request.data)

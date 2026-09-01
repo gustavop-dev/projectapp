@@ -1,5 +1,16 @@
 # Architecture — ProjectApp
 
+> **Seguimiento comercial 2026-09-01:** `content.utils.is_staff_session` es la
+> frontera común que consulta la sesión Django subyacente antes de cualquier
+> escritura de analytics comerciales. La usan catálogo adicional, propuestas y
+> diagnósticos, incluidos enlaces secundarios y eventos de interacción; sin
+> sesión staff el request conserva el comportamiento público anónimo. Los
+> endpoints públicos de tracking de diagnósticos desactivan autenticación DRF
+> para preservar esa sesión sólo como señal de exclusión, sin convertirla en un
+> requisito de acceso. En frontend, `app.vue` excluye toda ruta
+> `/additional-modules` del Navbar global y los recursos creados desde el panel
+> inicializan `es`, manteniendo el cambio explícito a inglés.
+
 > **Interacción de iconos refinada 2026-09-01:** `BaseButton` es la frontera transversal
 > para la activación inmediata de controles icon-only, tanto botones como
 > enlaces. Un contenedor interno aísla el pulso de 360 ms de cualquier transform

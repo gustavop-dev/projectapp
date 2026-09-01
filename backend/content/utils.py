@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import dns.resolver
 from django.conf import settings
+from django.contrib.auth import get_user
 from django.utils import timezone as dj_timezone
 from django.utils.text import slugify
 from rest_framework.fields import BooleanField
@@ -32,6 +33,18 @@ def get_client_ip(request):
     if xff:
         return xff.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
+
+
+def is_staff_session(request):
+    """Return whether the underlying Django session belongs to staff.
+
+    Public tracking endpoints intentionally disable DRF authentication so they
+    remain anonymous and CSRF-free. Reading the underlying HttpRequest keeps
+    the panel session available solely to exclude internal previews.
+    """
+    django_request = getattr(request, '_request', request)
+    user = get_user(django_request)
+    return bool(user.is_authenticated and user.is_staff)
 
 
 def today_bogota() -> date:

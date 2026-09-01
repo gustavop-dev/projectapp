@@ -138,6 +138,8 @@ test.describe('Public additional modules catalog', () => {
     await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toContainText('Facturación electrónica')
     await expect(page.getByTestId('additional-module-card-landing-page')).toContainText('Landing page')
     await expect(page.locator('main')).not.toContainText(/COP|USD|\$/)
+    await expect(page.locator('nav[aria-label="Main navigation"]')).toHaveCount(0)
+    await expect(page.locator('nav[aria-label="Mobile navigation"]')).toHaveCount(0)
   })
 
   test('switches the public catalog to English', {
@@ -224,6 +226,8 @@ test.describe('Public additional modules catalog', () => {
     await expect.poll(() => scenario.trackPayload?.session_id).toMatch(/^[a-z0-9]{32}$/)
     await expect(page.locator('main')).not.toContainText('Acme')
     await expect(page.locator('main')).not.toContainText('aperturas')
+    await expect(page.locator('nav[aria-label="Main navigation"]')).toHaveCount(0)
+    await expect(page.locator('nav[aria-label="Mobile navigation"]')).toHaveCount(0)
   })
 
   test('allows a shared recipient to switch languages', {

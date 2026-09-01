@@ -988,11 +988,10 @@ class TestHeatScoreEdgeCases:
 # content/views/proposal.py — calculator interaction admin skip
 # ═══════════════════════════════════════════════════════════════════
 
-@freeze_time('2026-01-15T10:00:00Z')
 class TestCalculatorInteractionAdminSkip:
 
     def test_staff_user_gets_skipped_response(self, admin_user, db):
-        """track_calculator_interaction returns skipped status for staff using session auth."""
+        """Falla si un clic interno crea un evento del calculador aunque responda omitido."""
         import json as _json
 
         from django.test import Client
@@ -1014,6 +1013,7 @@ class TestCalculatorInteractionAdminSkip:
         )
         assert response.status_code == 200
         assert _json.loads(response.content)['status'] == 'skipped'
+        assert ProposalChangeLog.objects.filter(proposal=p).count() == 0
 
 
 # ═══════════════════════════════════════════════════════════════════
