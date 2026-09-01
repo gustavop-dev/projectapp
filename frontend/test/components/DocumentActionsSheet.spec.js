@@ -39,12 +39,14 @@ function actionByLabel(wrapper, label) {
 describe('DocumentActionsSheet', () => {
   describe('visibility', () => {
     it('does not render content when modelValue is false', () => {
+      // quality: allow-negation-only (a closed teleported sheet intentionally renders no content)
       const wrapper = mountSheet({ modelValue: false });
 
       expect(wrapper.text()).not.toContain('Contrato de Servicios');
     });
 
     it('does not render content when document is null', () => {
+      // quality: allow-negation-only (a sheet without a target intentionally renders no content)
       const wrapper = mountSheet({ document: null });
 
       expect(wrapper.text()).not.toContain('Renombrar');
@@ -69,13 +71,14 @@ describe('DocumentActionsSheet', () => {
     it('renders every action label', () => {
       const wrapper = mountSheet();
       const labels = [
-        'Editar contenido', 'Renombrar', 'Mover a carpeta', 'Enviar por correo',
+        'Editar contenido', 'Hilo de documentos', 'Renombrar', 'Mover a carpeta', 'Enviar por correo',
         'Descargar PDF', 'Copiar markdown', 'Duplicar', 'Eliminar',
       ];
 
-      labels.forEach((label) => {
-        expect(actionByLabel(wrapper, label)).toBeTruthy();
-      });
+      const rendered = actionButtons(wrapper).map(button => button.text());
+      expect(rendered).toEqual(expect.arrayContaining(
+        labels.map(label => expect.stringContaining(label)),
+      ));
     });
 
     it('lists "Editar contenido" as the first action', () => {
@@ -112,6 +115,13 @@ describe('DocumentActionsSheet', () => {
       await actionByLabel(wrapper, 'Renombrar').trigger('click');
 
       expect(wrapper.emitted('rename')).toHaveLength(1);
+    });
+
+    it('emits thread when "Hilo de documentos" is clicked', async () => {
+      const wrapper = mountSheet();
+      await actionByLabel(wrapper, 'Hilo de documentos').trigger('click');
+
+      expect(wrapper.emitted('thread')).toHaveLength(1);
     });
 
     it('emits duplicate when "Duplicar" is clicked', async () => {
@@ -264,11 +274,13 @@ describe('DocumentActionsSheet — generated snapshots', () => {
     const labels = wrapper.findAll('[data-testid="document-actions-list"] > *')
       .map((element) => element.text().replace(/\s+/g, ' ').trim());
 
-    expect(labels).toHaveLength(4);
-    expect(labels[0]).toContain('Ver versión archivada');
-    expect(labels[1]).toContain('Abrir en pestaña nueva');
-    expect(labels[2]).toContain('Descargar versión archivada');
-    expect(labels[3]).toContain('Archivar');
+    expect(labels).toEqual([
+      expect.stringContaining('Ver versión archivada'),
+      expect.stringContaining('Abrir en pestaña nueva'),
+      expect.stringContaining('Hilo de documentos'),
+      expect.stringContaining('Descargar versión archivada'),
+      expect.stringContaining('Archivar'),
+    ]);
     expect(labels.join(' | ')).not.toMatch(/Renombrar|Mover|Enviar|Duplicar|Eliminar/);
     expect(labels.filter((label) => label.includes('Descargar'))).toHaveLength(1);
   });
@@ -280,9 +292,10 @@ describe('DocumentActionsSheet — generated snapshots', () => {
     });
     const labels = actionButtons(wrapper).map((button) => button.text());
 
-    expect(labels).toHaveLength(2);
+    expect(labels).toHaveLength(3);
     expect(labels[0]).toContain('Restaurar');
-    expect(labels[1]).toContain('Descargar versión archivada');
+    expect(labels[1]).toContain('Hilo de documentos');
+    expect(labels[2]).toContain('Descargar versión archivada');
   });
 });
 
@@ -299,11 +312,12 @@ describe('DocumentActionsSheet — issued collection accounts', () => {
     const labels = wrapper.findAll('[data-testid="document-actions-list"] > *')
       .map((element) => element.text().replace(/\s+/g, ' ').trim());
 
-    expect(labels).toHaveLength(4);
+    expect(labels).toHaveLength(5);
     expect(labels[0]).toContain('Ver cuenta de cobro');
     expect(labels[1]).toContain('Abrir en pestaña nueva');
-    expect(labels[2]).toContain('Descargar cuenta de cobro');
-    expect(labels[3]).toContain('Archivar');
+    expect(labels[2]).toContain('Hilo de documentos');
+    expect(labels[3]).toContain('Descargar cuenta de cobro');
+    expect(labels[4]).toContain('Archivar');
     expect(labels.join(' | ')).not.toMatch(/Renombrar|Mover|Enviar|Duplicar|Eliminar/);
   });
 });

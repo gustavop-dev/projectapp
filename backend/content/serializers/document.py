@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from accounts.models import Project, UserProfile
@@ -208,9 +209,28 @@ class GeneratedDocumentReadMixin:
         return obj.is_generated_snapshot
 
 
+class DocumentThreadSummaryMixin:
+    """Compact thread context shared by document list and detail payloads."""
+
+    def get_thread_summary(self, obj):
+        try:
+            membership = obj.thread_item
+        except (AttributeError, ObjectDoesNotExist):
+            return None
+        count = getattr(obj, 'thread_document_count', None)
+        if count is None:
+            count = membership.thread.items.count()
+        return {
+            'id': membership.thread_id,
+            'title': membership.thread.title,
+            'document_count': count,
+        }
+
+
 class DocumentListSerializer(
     GeneratedDocumentReadMixin,
     ClientProjectReadMixin,
+    DocumentThreadSummaryMixin,
     serializers.ModelSerializer,
 ):
     """Lightweight serializer for document lists."""
@@ -230,6 +250,7 @@ class DocumentListSerializer(
     display_state = serializers.SerializerMethodField()
     is_generated_snapshot = serializers.SerializerMethodField()
     source_proposal_id = serializers.IntegerField(read_only=True)
+    thread_summary = serializers.SerializerMethodField()
 
     EXCERPT_MAX_CHARS = 500
 
@@ -242,9 +263,11 @@ class DocumentListSerializer(
             'document_type_code', 'commercial_status',
             'display_state', 'is_generated_snapshot',
             'source_proposal_id', 'source_version',
+            'issue_date',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_details', 'active_states',
+            'thread_summary',
             'content_excerpt',
             'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
@@ -295,6 +318,7 @@ class DocumentListSerializer(
 class DocumentDetailSerializer(
     GeneratedDocumentReadMixin,
     ClientProjectReadMixin,
+    DocumentThreadSummaryMixin,
     serializers.ModelSerializer,
 ):
     """Full serializer for document detail view."""
@@ -317,6 +341,7 @@ class DocumentDetailSerializer(
     display_state = serializers.SerializerMethodField()
     is_generated_snapshot = serializers.SerializerMethodField()
     source_proposal_id = serializers.IntegerField(read_only=True)
+    thread_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -330,10 +355,11 @@ class DocumentDetailSerializer(
             'document_type_code', 'commercial_status',
             'display_state', 'is_generated_snapshot',
             'source_proposal_id', 'source_version',
+            'issue_date',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',
-            'active_states', 'notes',
+            'active_states', 'notes', 'thread_summary',
             'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
         )

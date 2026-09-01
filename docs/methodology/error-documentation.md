@@ -7,6 +7,14 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-01 — visor PDF extraído no resolvía en montaje aislado:**
+> `PdfPreviewModal` confiaba en el auto-registro de componentes de Nuxt, por lo
+> que Jest montaba el modal sin `PdfPreviewPane` y ocultaba iframe, error y probe.
+> La dependencia ahora se importa explícitamente; los cuatro escenarios del
+> modal y los cuatro del pane pasan. Los probes y cargas del workspace también
+> descartan respuestas obsoletas para impedir que un documento anterior repinte
+> la selección vigente.
+
 > **Resuelto 2026-09-01 — vistas internas y defaults del catálogo:** las
 > aperturas del propio equipo podían contaminar las señales comerciales, el
 > idioma inicial heredaba el locale del panel y el catálogo público conservaba
@@ -85,6 +93,20 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-050] El visor PDF extraído desaparecía fuera del runtime de Nuxt
+
+- **Date**: 2026-09-01
+- **Context**: La extracción de `PdfPreviewPane.vue` permitió reutilizar el PDF
+  dentro del hilo, pero la regresión aislada de `DocumentPdfPreviewModal` no
+  encontraba iframe, error ni llamada `fetch`.
+- **Root Cause**: `PdfPreviewModal.vue` dependía únicamente del auto-import de
+  componentes de Nuxt; Vue Test Utils no instala ese transform al montar el SFC.
+- **Resolution**: Importar `PdfPreviewPane` explícitamente desde el modal y
+  mantener tokens de generación en sus probes para ignorar resultados tardíos.
+- **Files Affected**: `frontend/components/base/PdfPreviewModal.vue`,
+  `frontend/components/base/PdfPreviewPane.vue` y sus pruebas focales.
+- **Verification**: 8 pruebas de visor/pane y build Nuxt en verde.
 
 ### [ERR-049] El catálogo de estados presentaba requisitos como una lista roja
 

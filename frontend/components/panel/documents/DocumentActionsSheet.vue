@@ -82,6 +82,7 @@ const emit = defineEmits([
   'copy-markdown',
   'duplicate',
   'send-email',
+  'thread',
   'archive',
   'unarchive',
   'delete',
@@ -104,6 +105,13 @@ const UNARCHIVE_ACTION = {
   description: 'Lo devuelve a su carpeta original',
 };
 
+const THREAD_ACTION = {
+  event: 'thread',
+  action: 'link',
+  label: 'Hilo de documentos',
+  description: 'Enlazar o consultar documentos relacionados',
+};
+
 const BASE_ACTIONS = [
   {
     event: 'edit',
@@ -121,6 +129,7 @@ const BASE_ACTIONS = [
     label: 'Abrir en pestaña nueva',
     description: 'Abre el editor en otra pestaña, sin salir de la lista',
   },
+  THREAD_ACTION,
   {
     event: 'rename',
     action: 'rename',
@@ -174,7 +183,7 @@ const isArchived = computed(() => props.archived || !!props.document?.is_archive
 // Un documento archivado está fuera de circulación: editarlo, renombrarlo,
 // moverlo, enviarlo por correo o duplicarlo sería incoherente. Queda lo que
 // tiene sentido sobre algo guardado: consultarlo, restaurarlo o borrarlo.
-const ARCHIVED_EVENTS = new Set(['download-pdf', 'copy-markdown', 'delete']);
+const ARCHIVED_EVENTS = new Set(['thread', 'download-pdf', 'copy-markdown', 'delete']);
 
 const GENERATED_ACTIONS = [
   {
@@ -184,6 +193,7 @@ const GENERATED_ACTIONS = [
     description: 'Consultar el PDF y los datos guardados de esta versión',
   },
   BASE_ACTIONS.find((action) => action.event === 'open-new-tab'),
+  THREAD_ACTION,
   {
     event: 'download-pdf',
     action: 'download',
@@ -200,6 +210,7 @@ const ISSUED_ACCOUNT_ACTIONS = [
     description: 'Consultar el documento emitido y sus datos',
   },
   BASE_ACTIONS.find((action) => action.event === 'open-new-tab'),
+  THREAD_ACTION,
   {
     event: 'download-pdf',
     action: 'download',
@@ -221,8 +232,9 @@ const actions = computed(() => {
     if (isArchived.value) {
       return [
         UNARCHIVE_ACTION,
+        readOnlyActions.find((action) => action.event === 'thread'),
         readOnlyActions.find((action) => action.event === 'download-pdf'),
-      ];
+      ].filter(Boolean);
     }
     return readOnlyActions.filter((action) => !action.newTab || props.editTo);
   }

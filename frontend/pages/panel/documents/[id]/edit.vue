@@ -56,6 +56,18 @@
         class="flex min-w-0 flex-col gap-2 panel-portrait:flex-row panel-portrait:items-center panel-landscape:flex-shrink-0 panel-landscape:justify-end"
         data-testid="doc-header-actions"
       >
+        <BaseButton
+          variant="secondary"
+          size="md"
+          class="w-full whitespace-nowrap panel-portrait:w-auto"
+          data-testid="doc-thread-action"
+          @click="showThreadModal = true"
+        >
+          <BaseActionIcon action="link" />
+          {{ documentStore.currentDocument?.thread_summary
+            ? `Hilo · ${documentStore.currentDocument.thread_summary.document_count}`
+            : 'Enlazar documentos' }}
+        </BaseButton>
         <div class="flex justify-end whitespace-nowrap" data-testid="doc-document-actions">
           <BaseActionMenu
             :items="downloadItems"
@@ -671,6 +683,12 @@
       :cover-options="savedCoverOptions"
     />
 
+    <DocumentThreadModal
+      v-model="showThreadModal"
+      :document="documentStore.currentDocument"
+      @saved="handleThreadSaved"
+    />
+
     <!-- Las tres salidas del guard: [Seguir editando] [Salir sin guardar]
          [Guardar y salir]. Sin este modal el guard abriría un diálogo que
          nadie renderiza y la navegación se bloquearía en silencio. -->
@@ -703,6 +721,7 @@ import DocumentClientNoteModal from '~/components/panel/documents/DocumentClient
 import DocumentStateHistoryModal from '~/components/panel/documents/DocumentStateHistoryModal.vue';
 import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue';
 import DocumentStateSelector from '~/components/panel/documents/DocumentStateSelector.vue';
+import DocumentThreadModal from '~/components/panel/documents/DocumentThreadModal.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
@@ -771,6 +790,7 @@ const showFullPreview = ref(false);
 const showPdfPreview = ref(false);
 const showClientNote = ref(false);
 const showStateHistory = ref(false);
+const showThreadModal = ref(false);
 const workflowEpisodes = ref([]);
 const normalizedNotes = ref([]);
 const copiedMarkdown = ref(false);
@@ -1051,6 +1071,20 @@ async function handleUnarchive() {
   } else {
     notify.error({ title: 'No se pudo restaurar el documento', detail: result.message });
   }
+}
+
+function handleThreadSaved({ thread }) {
+  if (!documentStore.currentDocument) return;
+  documentStore.currentDocument = {
+    ...documentStore.currentDocument,
+    thread_summary: thread
+      ? {
+        id: thread.id,
+        title: thread.title,
+        document_count: thread.document_count,
+      }
+      : null,
+  };
 }
 
 async function reloadDocument() {

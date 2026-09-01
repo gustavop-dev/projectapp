@@ -12,6 +12,7 @@ from content.models import (
     Contact,
     Document,
     DocumentFolder,
+    DocumentThread,
     DocumentTag,
     EmailLog,
     LinkedInPost,
@@ -96,6 +97,13 @@ class Command(BaseCommand):
         ):
             deleted, _ = model.objects.all().delete()
             self.stdout.write(self.style.SUCCESS(f'Deleted {label} ({deleted} rows)'))
+
+        # Thread items protect their documents: dissolve the demo histories
+        # before removing the documents themselves.
+        deleted, _ = DocumentThread.objects.all().delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Deleted document threads ({deleted} rows)'
+        ))
 
         # Documents cascade to items, collection account, payment methods.
         deleted, _ = Document.objects.all().delete()

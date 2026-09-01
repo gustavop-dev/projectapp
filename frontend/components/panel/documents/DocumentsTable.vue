@@ -329,9 +329,18 @@ function onFolderLink(event, sub) {
                  desde desktop para no reservar una línea vacía bajo el título. -->
             <div
               class="relative z-10 mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted"
-              :class="doc.folder_name ? '' : 'panel-desktop:hidden'"
+              :class="doc.folder_name || doc.thread_summary ? '' : 'panel-desktop:hidden'"
               :data-testid="`document-title-meta-${doc.id}`"
             >
+              <BaseBadge
+                v-if="doc.thread_summary"
+                variant="info"
+                size="sm"
+                :title="doc.thread_summary.title"
+                :data-testid="`document-thread-badge-${doc.id}`"
+              >
+                Hilo · {{ doc.thread_summary.document_count }}
+              </BaseBadge>
               <span
                 v-if="doc.folder_name"
                 class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded bg-surface-raised px-2 py-0.5 text-2xs font-medium text-text-muted [overflow-wrap:anywhere]"
