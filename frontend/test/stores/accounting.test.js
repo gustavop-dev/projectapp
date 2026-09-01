@@ -159,6 +159,74 @@ describe('useAccountingStore', () => {
       expect(store.recurringPayments[1]).toEqual({ id: 13 })
     })
 
+    // Falla si el silencio usa la mutación genérica que notifica al cliente.
+    it('posts an income reminder mute to its dedicated endpoint', async () => {
+      create_request.mockResolvedValue({
+        data: {
+          id: 12,
+          concept: 'Hosting anual',
+          reminders_muted: true,
+          reminders_muted_until: '2026-09-30',
+        },
+      })
+
+      const result = await store.muteIncomeReminders(12, {
+        muted: true,
+        until: '2026-09-30',
+      })
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/incomes/12/mute/',
+        { muted: true, until: '2026-09-30' },
+      )
+      expect(result.success).toBe(true)
+    })
+
+    // Falla si la respuesta del ingreso 12 reemplaza una fila distinta.
+    it('replaces only the targeted income row after muting reminders', async () => {
+      store.incomes = [
+        { id: 12, concept: 'Hosting anual', reminders_muted: false },
+        { id: 13, concept: 'Hosting mensual', reminders_muted: false },
+      ]
+      create_request.mockResolvedValue({
+        data: {
+          id: 12,
+          concept: 'Hosting anual',
+          reminders_muted: true,
+          reminders_muted_until: '2026-09-30',
+        },
+      })
+
+      await store.muteIncomeReminders(12, {
+        muted: true,
+        until: '2026-09-30',
+      })
+
+      expect(store.incomes).toEqual([
+        {
+          id: 12,
+          concept: 'Hosting anual',
+          reminders_muted: true,
+          reminders_muted_until: '2026-09-30',
+        },
+        { id: 13, concept: 'Hosting mensual', reminders_muted: false },
+      ])
+    })
+
+    // Falla si un error deja el panel bloqueado o cambia el ingreso sin persistirlo.
+    it('keeps the income list intact when muting reminders fails', async () => {
+      store.incomes = [{ id: 12, concept: 'Hosting anual', reminders_muted: false }]
+      create_request.mockRejectedValue(apiError(503, { error: 'Servicio no disponible' }))
+
+      const result = await store.muteIncomeReminders(12, { muted: true, until: null })
+
+      expect(result.success).toBe(false)
+      expect(store.isUpdating).toBe(false)
+      expect(store.incomes).toEqual([
+        { id: 12, concept: 'Hosting anual', reminders_muted: false },
+      ])
+    })
+
     it('replaces every row returned by a recurring bulk action', async () => {
       store.recurringPayments = [
         { id: 12, is_active: true },

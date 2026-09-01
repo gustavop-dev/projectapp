@@ -7,6 +7,16 @@
 > escenarios del flujo, 5 viewports responsive, guards de diseño y mapa E2E
 > fresco con las cuatro clases de outcome cubiertas.
 
+> **Calendario contable listo para integrar — 2026-09-01:** se auditó el calendario ya
+> implementado y se fijaron como contrato los hitos 15/7/día, la recurrencia
+> quincenal por defecto, la pausa individual visible y los destinatarios
+> exclusivamente internos. La aceptación añade cobertura de digest, cadencia,
+> contenido, logging por target, fallo de entrega y el flujo P1 completo de
+> silenciar/reactivar; además corrige el nombre canónico del cliente sin cambiar
+> esquema ni crear historial de pagos recurrentes. Verificación focal: 24
+> pruebas backend, 35 unitarias, 6 E2E sin retries, mapa fresco y quality gate
+> sin errores nuevos; auditoría final: 0 tests basura.
+
 > **Aceptación lista para integrar — 2026-09-01:** los enlaces entre la ficha
 > comercial y el espacio de proyecto ya estaban completos; la entrega endurece
 > su aceptación E2E sin tocar producto. Nuxt tiene readiness explícita y warmup

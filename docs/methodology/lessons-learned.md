@@ -16,6 +16,14 @@ This file captures important patterns, preferences, and project intelligence tha
 > la prueba debe entrar por la acción que el usuario realmente ve —drawer en
 > tarjetas, acción de fila en tabla— antes de evaluar el modal compartido.
 
+> **Lección 2026-09-01 — identidad visible y trazabilidad son contratos por
+> destinatario:** `UserProfile` no expone `full_name`; cualquier comunicación
+> que nombre a un cliente debe reutilizar `build_client_display_name` y cargar
+> su `user` sin N+1. En un digest consolidado no basta probar el primer log: cada
+> destinatario necesita los mismos targets para diagnosticar tanto una entrega
+> exitosa como un fallo, y la cadencia nunca debe avanzar si el transporte no
+> aceptó el mensaje.
+
 > **Lección 2026-09-01 — excluir previews en la frontera de escritura:** una
 > vista interna debe reconocerse por una credencial verificable —la sesión
 > Django staff— y detener toda mutación antes de crear eventos, incrementar

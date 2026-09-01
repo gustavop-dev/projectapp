@@ -92,12 +92,24 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-050] El modal de cambio de estado acumulaba avisos bajo la confirmación
+### [ERR-051] El modal de cambio de estado acumulaba avisos bajo la confirmación
 - **Date**: 2026-09-01
 - **Context**: Panel de Proyectos, al revisar o intentar una transición con estado, decisiones de ingresos o nota pendientes.
 - **Root Cause**: `applyBlockReasons` se renderizaba como un bloque rojo global dentro del footer, aunque cada razón pertenecía a un control distinto.
 - **Resolution**: Mantener una única fuente de razones de bloqueo, proyectar cada mensaje mediante `BaseFormField`, separar errores de preview/aplicación y reservar `BaseModalActions` para Cancelar/Confirmar.
 - **Files Affected**: `frontend/components/panel/projects/ProjectStateTransitionModal.vue`, sus pruebas unitarias y el flujo E2E `admin-project-lifecycle-states`.
+
+### [ERR-050] El digest mostraba la representación técnica del cliente
+- **Date**: 2026-09-01
+- **Context**: Las líneas de ingresos esperados intentaban leer `full_name`
+  directamente de `UserProfile`.
+- **Root Cause**: Ese atributo no existe; el fallback `str(profile)` podía
+  producir correo y rol en lugar del nombre que usa el resto del sistema.
+- **Resolution**: Cargar `client__user` y resolver el texto mediante
+  `build_client_display_name`, que prioriza nombre, empresa y correo.
+- **Files Affected**:
+  `backend/content/services/accounting_payment_calendar_service.py`,
+  `backend/content/tests/services/test_accounting_payment_calendar_service.py`.
 
 ### [ERR-049] El catálogo de estados presentaba requisitos como una lista roja
 

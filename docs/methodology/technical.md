@@ -8,6 +8,16 @@
 > forma independiente al corregirse. El footer usa `BaseModalActions` sticky y
 > no renderiza resúmenes rojos. No hay cambio de payload, API ni esquema.
 
+> **Contrato técnico del calendario contable — 2026-09-01:**
+> `AccountingSettings.overdue_reminder_frequency` acepta `weekly` o
+> `biweekly`; `IncomeRecord.reminders_muted` y
+> `reminders_muted_until` controlan la pausa individual. El endpoint
+> `POST /api/accounting/incomes/<id>/mute/` alimenta el store Pinia y la fila
+> conserva el estado visible tras éxito o fallo. El flujo P1
+> `admin-accounting-income-reminder-mute` declara y ejecuta outcomes
+> `display`, `success`, `error` y `failure`; el registro sharded es la fuente y
+> `generate_flow_registry.py` deriva el mapa y las constantes.
+
 > **Follow-up técnico 2026-09-01:** los serializers de enlace seleccionado y
 > PDF administrativo aceptan `language` omitido y aplican `es`; el modal reinicia
 > cada apertura en español y permite elegir inglés, mientras `QuickAccess`
