@@ -530,16 +530,21 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 The client communications registry lives in the existing `content` Django app
 but does not reuse `Document` as its persistence shape. Four models introduced
-by migration `content.0210_communications_registry` own threads, ordered messages, protected document
-references and append-only date corrections. `communication_service.py` is the
-only write owner; DRF function-based views remain thin and staff-only.
+by migration `content.0210_communications_registry` own threads, ordered messages,
+protected document references and append-only date corrections. Migration
+`content.0231_communication_message_revisions` adds the fifth model:
+`CommunicationMessageRevision` records the supplied old/new values for every
+successful draft edit. `communication_service.py` is the only write owner; DRF
+function-based views remain thin and staff-only.
 
 The operating model is transport-neutral: `source=manual` means an operator
 recorded the fact. `source=platform_email` and the optional one-to-one
 `email_log` remain persistence seams, not a product commitment to automatic
 delivery. “Respondido” is derived from a non-void reply and is not an additional
 mutable database status. Delivered/received messages are corrected or annulled,
-never edited.
+never edited. Active outgoing drafts are updated under a row lock; message
+fields, attachment replacement, revision creation and thread activity share one
+transaction.
 
 The Nuxt surface is `/panel/communications`; its Options-API Pinia store uses
 `request_http` (session + CSRF), not `usePlatformApi`. Documents are referenced
@@ -599,9 +604,11 @@ workspace uses the preferred channel only for new message forms.
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 
 `content.0212_seed_communications_mcp` registers the Communications connector
-inactive and tokenless. `content/mcp/communication_tools.py` exposes five JSON-RPC
-tools and reuses the same queryset/serializer/service boundary as the panel. No MCP
-tool sends email or WhatsApp: `mark_message_sent` only records a delivery fact already
+inactive and tokenless. `content/mcp/communication_tools.py` exposes six JSON-RPC
+tools and reuses the same queryset/serializer/service boundary as the panel.
+`update_message` changes subject/content/date/reply/documents on one active outgoing
+draft, preserves its identity and returns its revision history. No MCP tool sends
+email or WhatsApp: `mark_message_sent` only records a delivery fact already
 confirmed by the operator or another integration.
 
 ### Authentication: Dual Strategy

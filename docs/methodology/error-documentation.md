@@ -7,6 +7,12 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Prevención verificada 2026-08-31 — edición MCP de borradores:** no se abrió
+> un incidente de producción. La herramienta rechaza mensajes enviados,
+> recibidos, fallidos, anulados o entrantes antes de escribir; documentos de
+> otro cliente y respuestas de otro hilo revierten toda la transacción y no
+> generan una revisión engañosa.
+
 > **Prevención verificada 2026-08-30 — preferencias de Comunicaciones:** la carga
 > de preferencias no es una dependencia dura del listado; los defaults vigentes
 > siguen disponibles si la API falla, un guardado fallido conserva el borrador y

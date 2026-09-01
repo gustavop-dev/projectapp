@@ -113,6 +113,7 @@ def test_tool_list_exposes_minimum_communications_surface(
         'get_thread',
         'create_thread',
         'create_message',
+        'update_message',
         'mark_message_sent',
     ]
 

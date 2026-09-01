@@ -6,6 +6,7 @@ from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     CommunicationMessage,
     CommunicationMessageDateCorrection,
+    CommunicationMessageRevision,
     CommunicationThread,
     Document,
 )
@@ -37,9 +38,23 @@ class CommunicationDateCorrectionSerializer(serializers.ModelSerializer):
         return obj.corrected_by.get_full_name() or obj.corrected_by.username
 
 
+class CommunicationMessageRevisionSerializer(serializers.ModelSerializer):
+    edited_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CommunicationMessageRevision
+        fields = ('id', 'changes', 'edited_by_name', 'edited_at')
+
+    def get_edited_by_name(self, obj):
+        if not obj.edited_by:
+            return ''
+        return obj.edited_by.get_full_name() or obj.edited_by.username
+
+
 class CommunicationMessageSerializer(serializers.ModelSerializer):
     documents = CommunicationDocumentSerializer(many=True, read_only=True)
     date_corrections = CommunicationDateCorrectionSerializer(many=True, read_only=True)
+    revisions = CommunicationMessageRevisionSerializer(many=True, read_only=True)
     channel_display = serializers.CharField(source='get_channel_display', read_only=True)
     direction_display = serializers.CharField(source='get_direction_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -67,6 +82,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
             'has_reply',
             'documents',
             'date_corrections',
+            'revisions',
             'created_by_name',
             'voided_at',
             'void_reason',

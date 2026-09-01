@@ -108,6 +108,7 @@ from .communication import (
     CommunicationAttachment,
     CommunicationMessage,
     CommunicationMessageDateCorrection,
+    CommunicationMessageRevision,
     CommunicationThread,
 )
 from .view_map import ViewMapSettings

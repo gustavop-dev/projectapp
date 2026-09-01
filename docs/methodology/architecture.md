@@ -194,12 +194,13 @@ Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates
 
 `TOOLS_BY_SLUG` dispatches nine module catalogs: blog, documents, proposals,
 diagnostics, clients, tasks, accounting, LinkedIn personal and communications.
-The Communications catalog is deliberately five-tool: list/open a thread,
-create a thread, append a message and mark an outgoing draft as sent. Its writes
-delegate to `communication_service.py`, so client ownership, project scope,
-direction/channel/status transitions, reply linkage and protected Document
-references are identical to the panel. It records a confirmed send; provider
-delivery remains outside this phase.
+The Communications catalog exposes six tools: list/open a thread, create a
+thread, append a message, edit one active outgoing draft in place and mark it as
+sent. Its writes delegate to `communication_service.py`, so client ownership,
+project scope, direction/channel/status transitions, reply linkage and protected
+Document references are identical to the panel. Draft edits lock the row and
+append `CommunicationMessageRevision` inside the same transaction. Editing and
+recording a confirmed send never invoke provider delivery.
 
 MCP parity is an architectural boundary, not informal documentation.
 `content/mcp/contracts.py` classifies every concrete field of every exposed model
@@ -265,6 +266,7 @@ erDiagram
     CommunicationMessage ||--o{ CommunicationAttachment : "references"
     Document ||--o{ CommunicationAttachment : "is used in"
     CommunicationMessage ||--o{ CommunicationMessageDateCorrection : "audits dates"
+    CommunicationMessage ||--o{ CommunicationMessageRevision : "audits draft edits"
 
     UserProfile ||--o{ Project : "owns projects"
     UserProfile ||--o{ VerificationCode : "has codes"
@@ -352,6 +354,7 @@ branch before removing its now-empty parallel wrappers.
 | **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
 | **CommunicationMessage** | One ordered incoming/outgoing conversation event | thread, channel, direction, status, subject/content, occurred_at/recorded_at, source, reply_to, optional EmailLog seam, void audit |
 | **CommunicationAttachment** | Bidirectional reference to an existing document | message (CASCADE), document (PROTECT), unique message/document pair |
+| **CommunicationMessageRevision** | Append-only draft-edit audit | message, supplied field diffs, edited_by/at |
 | **CommunicationMessageDateCorrection** | Append-only business-date correction | message, previous/corrected occurred_at, reason, corrected_by/at |
 | **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
 | **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |

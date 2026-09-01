@@ -148,6 +148,7 @@ DERIVED_MODELS = {
     'accounts.RequirementHistory', 'content.AccountingChangeLog',
     'content.ClientDocumentNumberSequence', 'content.CommunicationAttachment',
     'content.CommunicationMessageDateCorrection',
+    'content.CommunicationMessageRevision',
     'content.CreditCardTransaction', 'content.DiagnosticAttachment',
     'content.DiagnosticChangeLog', 'content.DiagnosticSection',
     'content.DiagnosticSectionView', 'content.DiagnosticViewEvent',

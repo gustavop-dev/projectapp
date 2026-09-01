@@ -472,6 +472,10 @@ MCP_MODEL_CONTRACTS = {
             read_write='message document',
         ),
         _contract(
+            'content.CommunicationMessageRevision',
+            read_only='id message changes edited_by edited_at',
+        ),
+        _contract(
             'content.CommunicationMessageDateCorrection',
             read_only=(
                 'id message previous_occurred_at corrected_occurred_at reason '

@@ -477,7 +477,9 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   protected join. Document detail exposes reverse usage, and a referenced
   document cannot be deleted accidentally.
 - Delivered messages are immutable: corrections create append-only dated audit
-  rows and annulments require a reason. Drafts remain editable and deletable.
+  rows and annulments require a reason. Drafts remain editable and deletable;
+  every successful edit preserves its supplied old/new values in an append-only
+  revision while keeping the same message identity.
 - The decision record, comparison and phased roadmap live in
   `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
 

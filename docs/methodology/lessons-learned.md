@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-08-31 — editar un borrador no debe borrar su historia:** la
+> mutabilidad previa al envío y la trazabilidad no son opuestas. La operación
+> conserva la identidad del mensaje, bloquea la fila, valida el estado final y
+> escribe diff, documentos y actividad en una sola transacción. Exponer esa
+> edición por MCP debe reutilizar el mismo servicio del panel y mantener separada
+> la persistencia del hecho de cualquier transporte externo.
+
 > **Lección 2026-08-31 — corregible e inmutable necesitan superficies
 > distintas:** un requisito incompleto o un error de serializer pertenece al
 > campo, aparece después del intento y se limpia cuando cambia ese valor. Una

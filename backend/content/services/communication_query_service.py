@@ -95,7 +95,11 @@ def message_queryset():
     return (
         CommunicationMessage.objects
         .select_related('created_by', 'reply_to')
-        .prefetch_related('documents', 'date_corrections__corrected_by')
+        .prefetch_related(
+            'documents',
+            'date_corrections__corrected_by',
+            'revisions__edited_by',
+        )
         .annotate(has_reply=Exists(active_replies))
     )
 

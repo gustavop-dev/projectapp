@@ -285,6 +285,37 @@ class CommunicationAttachment(models.Model):
         return f'{self.message_id} → {self.document_id}'
 
 
+class CommunicationMessageRevision(models.Model):
+    """Append-only audit trail for successful draft edits."""
+
+    message = models.ForeignKey(
+        CommunicationMessage,
+        on_delete=models.CASCADE,
+        related_name='revisions',
+    )
+    changes = models.JSONField(default=list)
+    edited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='communication_message_revisions',
+        null=True,
+        blank=True,
+    )
+    edited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-edited_at', '-id']
+        indexes = [
+            models.Index(
+                fields=['message', 'edited_at'],
+                name='commrevision_message_at',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Revisión de borrador #{self.message_id}'
+
+
 class CommunicationMessageDateCorrection(models.Model):
     """Append-only audit trail for corrections to a message's business date."""
 

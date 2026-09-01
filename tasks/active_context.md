@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
+`update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
+el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o
+WhatsApp. El servicio compartido bloquea la fila, conserva identidad/hilo/canal/
+dirección/creación, valida cliente y respuesta, y agrega una revisión append-only
+con valores anterior/nuevo dentro de la misma transacción. `get_thread` devuelve
+de inmediato la versión y revisiones actuales. La migración `content.0231`
+incorpora el historial y refresca sólo la descripción del conector, sin tocar
+tokens ni activación. Verificación focal: 14 casos de servicio, 19 de integración
+MCP y 3 regresiones existentes verdes; Django no reporta problemas, no hay drift
+de migraciones y el gate estricto del batch cerró con cero errores. Sólo falta la
+confirmación del CI del PR.
+
 **2026-08-31 — validación del catálogo de estados de proyectos lista para
 integrar:** crear, editar y fusionar conservan sus acciones disponibles y, tras
 el intento, muestran cada requisito junto al control correspondiente mediante

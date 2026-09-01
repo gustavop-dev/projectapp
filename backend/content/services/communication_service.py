@@ -7,6 +7,7 @@ from content.models import (
     CommunicationAttachment,
     CommunicationMessage,
     CommunicationMessageDateCorrection,
+    CommunicationMessageRevision,
     CommunicationThread,
     Document,
 )
@@ -46,8 +47,12 @@ def _validate_message_shape(*, thread, channel, direction, status, subject, repl
             raise CommunicationError('No se puede responder a un borrador.')
 
 
-def _validate_documents(thread, documents):
+def _validate_documents(thread, documents, *, require_client_owner=False):
     for document in documents:
+        if require_client_owner and not document.client_user_id:
+            raise CommunicationError(
+                f'El documento “{document.title}” no pertenece al cliente del hilo.'
+            )
         if document.client_user_id and document.client_user_id != thread.client.user_id:
             raise CommunicationError(
                 f'El documento “{document.title}” pertenece a otro cliente.'
@@ -62,6 +67,35 @@ def _recalculate_last_activity(thread, *, actor=None):
     if actor is not None:
         thread.updated_by = actor
     thread.save(update_fields=['last_activity_at', 'updated_by', 'updated_at'])
+
+
+def _revision_value(field, value):
+    if field == 'reply_to':
+        return value.pk if value else None
+    if field == 'occurred_at':
+        return value.isoformat()
+    return value
+
+
+def _draft_revision_changes(
+    message, validated_data, *, previous_document_ids=None, document_ids=None,
+):
+    changes = []
+    for field, new_value in validated_data.items():
+        old_value = getattr(message, field)
+        audit_field = 'reply_to_id' if field == 'reply_to' else field
+        changes.append({
+            'field': audit_field,
+            'old': _revision_value(field, old_value),
+            'new': _revision_value(field, new_value),
+        })
+    if document_ids is not None:
+        changes.append({
+            'field': 'document_ids',
+            'old': sorted(previous_document_ids or []),
+            'new': sorted(set(document_ids)),
+        })
+    return changes
 
 
 @transaction.atomic
@@ -174,8 +208,37 @@ def create_message(*, thread, actor, document_ids=None, **validated_data):
 
 @transaction.atomic
 def update_draft(message, *, actor, document_ids=None, **validated_data):
-    if message.status != CommunicationMessage.Status.DRAFT or message.voided_at:
-        raise CommunicationError('Sólo los borradores activos se pueden editar.')
+    message = (
+        CommunicationMessage.objects.select_for_update()
+        .select_related('thread__client__user', 'reply_to')
+        .get(pk=message.pk)
+    )
+    if not validated_data and document_ids is None:
+        raise CommunicationError('Envía al menos un campo para actualizar.')
+    if (
+        message.direction != CommunicationMessage.Direction.OUTGOING
+        or message.status != CommunicationMessage.Status.DRAFT
+        or message.voided_at
+    ):
+        raise CommunicationError(
+            'Sólo los borradores salientes activos se pueden editar.',
+        )
+
+    documents = None
+    previous_document_ids = None
+    if document_ids is not None:
+        documents = list(Document.objects.filter(pk__in=document_ids))
+        if len(documents) != len(set(document_ids)):
+            raise CommunicationError('Uno o más documentos no existen.')
+        _validate_documents(
+            message.thread,
+            documents,
+            require_client_owner=True,
+        )
+        previous_document_ids = list(
+            message.attachments.values_list('document_id', flat=True),
+        )
+
     candidate = {
         'thread': message.thread,
         'channel': validated_data.get('channel', message.channel),
@@ -185,20 +248,27 @@ def update_draft(message, *, actor, document_ids=None, **validated_data):
         'reply_to': validated_data.get('reply_to', message.reply_to),
     }
     _validate_message_shape(**candidate)
+    changes = _draft_revision_changes(
+        message,
+        validated_data,
+        previous_document_ids=previous_document_ids,
+        document_ids=document_ids,
+    )
     for field, value in validated_data.items():
         setattr(message, field, value)
     message.updated_by = actor
     message.save()
     if document_ids is not None:
-        documents = list(Document.objects.filter(pk__in=document_ids))
-        if len(documents) != len(set(document_ids)):
-            raise CommunicationError('Uno o más documentos no existen.')
-        _validate_documents(message.thread, documents)
         message.attachments.all().delete()
         CommunicationAttachment.objects.bulk_create([
             CommunicationAttachment(message=message, document=document)
             for document in documents
         ])
+    CommunicationMessageRevision.objects.create(
+        message=message,
+        changes=changes,
+        edited_by=actor,
+    )
     _recalculate_last_activity(message.thread, actor=actor)
     return message
 
