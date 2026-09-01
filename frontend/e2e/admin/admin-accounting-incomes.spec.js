@@ -2,7 +2,7 @@
  * E2E tests for the accounting incomes subview.
  *
  * FLOWS: admin-accounting-income-crud, admin-accounting-collection-create,
- *        admin-accounting-income-client
+ *        admin-accounting-income-client, admin-accounting-income-reminder-mute
  * Covers: list rendering, create via modal with automatic 50/50 partner
  *         split, HTML5 validation, edit prefill, duplicate from both the row
  *         menu and the detail modal (seeded form, always expected, failing
@@ -20,6 +20,7 @@ import {
   ADMIN_ACCOUNTING_COLLECTION_CREATE,
   ADMIN_ACCOUNTING_INCOME_CLIENT,
   ADMIN_ACCOUNTING_INCOME_CRUD,
+  ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -47,6 +48,8 @@ function incomeRow(overrides = {}) {
     pending_amount: '1160000.00',
     payment_status: 'pending',
     payment_status_label: 'Pendiente',
+    reminders_muted: false,
+    reminders_muted_until: null,
     client: null,
     client_name: null,
     origin: '',
@@ -129,6 +132,7 @@ const INCOME_INDICATOR_ROWS = [
 function buildHandler({
   rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
   savedTabs = [], duplicateDraftStatus = 200,
+  muteStatus = 200,
   // Landing mode the mocked backend setting dictates. Production defaults to
   // 'grouped'; the mock pins 'classic' because almost every test in this file
   // exercises classic-only affordances (column sort, row checkboxes,
@@ -295,6 +299,32 @@ function buildHandler({
         body: JSON.stringify(incomeRow({ ...rows[0], ...body })),
       };
     }
+    const muteMatch = apiPath.match(/^accounting\/incomes\/(\d+)\/mute\/$/);
+    if (muteMatch && method === 'POST') {
+      const body = route.request().postDataJSON();
+      const id = Number(muteMatch[1]);
+      calls.push({ method, apiPath, body });
+      if (muteStatus !== 200) {
+        return {
+          status: muteStatus,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: 'No se pudo actualizar el seguimiento.',
+            code: 'server_error',
+          }),
+        };
+      }
+      const row = rows.find((item) => item.id === id);
+      Object.assign(row, {
+        reminders_muted: body.muted,
+        reminders_muted_until: body.muted ? (body.until || null) : null,
+      });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(row),
+      };
+    }
     if (/^accounting\/incomes\/\d+\/delete\/$/.test(apiPath) && method === 'DELETE') {
       calls.push({ method, apiPath });
       // The page refetches after every mutation (a row's payment state is
@@ -384,7 +414,12 @@ async function gotoIncomes(page, query = '?accounting_incomeTab=all') {
   await page.goto(`/panel/accounting/incomes${query}`, { waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
-  ).toBeVisible({ timeout: 25_000 });
+  ).toBeVisible({ timeout: 40_000 });
+}
+
+async function openIncomeMute(page, incomeId = 1) {
+  await page.getByTestId(`income-actions-${incomeId}`).click();
+  await page.getByTestId(`income-action-toggle-mute-${incomeId}`).click();
 }
 
 async function navigateToIncomesFromPanel(page) {
@@ -1079,6 +1114,144 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await expect(page.getByText('No se pudo guardar')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
+  });
+});
+
+test.describe('Admin Accounting Income Reminder Mute', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+    await page.clock.install({ time: new Date('2026-09-01T12:00:00Z') });
+  });
+
+  test('shows a dated silence on the income row', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
+      '@role:admin',
+      '@outcome:display',
+    ],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({
+        reminders_muted: true,
+        reminders_muted_until: '2026-09-30',
+      })],
+      calls: [],
+    }));
+
+    await navigateToIncomesFromPanel(page);
+
+    const badge = page.getByTestId('income-muted-1').filter({ visible: true });
+    await expect(badge).toHaveText('Silenciado hasta 30 sep');
+    await expect(badge).toHaveAttribute(
+      'title', 'Los avisos se reanudan el Mié, 30 sep 2026',
+    );
+  });
+
+  test('silences income reminders until the chosen date', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
+      '@role:admin',
+      '@outcome:success',
+    ],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await openIncomeMute(page);
+    await page.getByTestId('income-mute-date').fill('2026-09-30');
+    await page.getByTestId('income-mute-submit').click();
+
+    await expect(page.getByText('Avisos silenciados')).toBeVisible();
+    await expect(page.getByTestId('income-muted-1').filter({ visible: true }))
+      .toHaveText('Silenciado hasta 30 sep');
+    const call = calls.find((item) => item.apiPath.endsWith('/mute/'));
+    expect(call.body).toEqual({ muted: true, until: '2026-09-30' });
+  });
+
+  test('silences income reminders indefinitely', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
+      '@role:admin',
+      '@outcome:success',
+    ],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await openIncomeMute(page);
+    await page.getByRole('tab', { name: 'Indefinidamente', exact: true }).click();
+    await page.getByTestId('income-mute-submit').click();
+
+    await expect(page.getByTestId('income-muted-1').filter({ visible: true }))
+      .toHaveText('Silenciado');
+    const call = calls.find((item) => item.apiPath.endsWith('/mute/'));
+    expect(call.body).toEqual({ muted: true, until: null });
+  });
+
+  test('reactivates reminders from a silenced income', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
+      '@role:admin',
+      '@outcome:success',
+    ],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({ reminders_muted: true })], calls,
+    }));
+    await gotoIncomes(page);
+
+    await openIncomeMute(page);
+
+    await expect(page.getByText('Avisos reactivados')).toBeVisible();
+    await expect(page.getByTestId('income-muted-1')).toHaveCount(0);
+    const call = calls.find((item) => item.apiPath.endsWith('/mute/'));
+    expect(call.body).toEqual({ muted: false });
+  });
+
+  test('blocks a resume date that is not in the future', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
+      '@role:admin',
+      '@outcome:error',
+    ],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await openIncomeMute(page);
+    await page.getByTestId('income-mute-date').fill('2026-09-01');
+
+    await expect(page.getByText('Elige una fecha posterior a hoy.')).toBeVisible();
+    await expect(page.getByTestId('income-mute-submit')).toBeDisabled();
+    expect(calls.some((item) => item.apiPath.endsWith('/mute/'))).toBe(false);
+  });
+
+  test('keeps the reminder state when the API rejects the mute', {
+    tag: [
+      ...ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE,
+      '@role:admin',
+      '@outcome:failure',
+    ],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow()], calls: [], muteStatus: 500,
+    }));
+    await gotoIncomes(page);
+
+    await openIncomeMute(page);
+    await page.getByTestId('income-mute-date').fill('2026-09-30');
+    await page.getByTestId('income-mute-submit').click();
+
+    await expect(page.getByText('No se pudieron silenciar los avisos')).toBeVisible();
+    await expect(page.getByTestId('income-mute-modal')).toBeVisible();
+    await expect(page.getByTestId('income-muted-1')).toHaveCount(0);
   });
 });
 

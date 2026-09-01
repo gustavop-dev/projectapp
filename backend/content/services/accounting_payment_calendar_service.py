@@ -125,7 +125,7 @@ def collect_income_notices(today, config):
         # in sync. A partial payment deliberately keeps notifying — the balance
         # is still owed — and the digest shows what is left, not the gross.
         .exclude(paid_amount__gte=F('total_amount'))
-        .select_related('client', 'project__current_state')
+        .select_related('client__user', 'project__current_state')
     )
 
     items = []
@@ -189,6 +189,10 @@ def mark_income_notices_sent(items, today):
 
 
 def _income_item(record, today):
+    from accounts.services.proposal_client_service import (
+        build_client_display_name,
+    )
+
     paid = getattr(record, 'paid_amount', None) or 0
     pending = record.total_amount - paid
     client = record.client
@@ -197,7 +201,7 @@ def _income_item(record, today):
         'id': record.pk,
         'title': record.concept,
         'subtitle': '',
-        'client_name': getattr(client, 'full_name', '') or str(client or ''),
+        'client_name': build_client_display_name(client) if client else '',
         'due_date': record.period_date,
         'days_left': (record.period_date - today).days,
         'amount': pending,

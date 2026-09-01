@@ -1,0 +1,17 @@
+{
+  "id": "admin-accounting-income-reminder-mute",
+  "name": "Admin Accounting Income Reminder Mute",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "A superuser can silence the payment-calendar reminders of one uncollected expected income from its row menu, either until a future date or indefinitely. The Cobro cell shows the muted state and its resume date, so a deliberately quiet receivable cannot look unmonitored. A muted row offers Reactivar avisos, which clears both mute fields immediately. The modal rejects empty or non-future resume dates, and an API failure keeps the modal open and the row unchanged. Only expected, not-fully-paid incomes expose the action; the dedicated POST /api/accounting/incomes/:id/mute/ endpoint audits the change without generating another accounting email.",
+  "expectedSpecs": 6,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}
