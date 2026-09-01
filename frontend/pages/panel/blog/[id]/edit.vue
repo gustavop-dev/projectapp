@@ -87,7 +87,7 @@
         </div>
 
         <!-- Español Section -->
-        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
+        <fieldset class="w-full min-w-0 max-w-full border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">Español</legend>
           <div>
             <label for="title_es" class="block text-sm font-medium text-text-default mb-1">Título (ES)</label>
@@ -109,7 +109,7 @@
         </fieldset>
 
         <!-- English Section -->
-        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
+        <fieldset class="w-full min-w-0 max-w-full border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">English</legend>
           <div>
             <label for="title_en" class="block text-sm font-medium text-text-default mb-1">Title (EN)</label>
@@ -130,7 +130,7 @@
         </fieldset>
 
         <!-- SEO Section -->
-        <fieldset class="border border-border-default rounded-xl p-5 space-y-6">
+        <fieldset class="w-full min-w-0 max-w-full border border-border-default rounded-xl p-5 space-y-6">
           <legend class="text-sm font-medium text-text-default px-2">SEO</legend>
           <div class="space-y-4">
             <div>
@@ -166,7 +166,7 @@
         </fieldset>
 
         <!-- LinkedIn Summary -->
-        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
+        <fieldset class="w-full min-w-0 max-w-full border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">LinkedIn</legend>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -195,15 +195,16 @@
                 <span class="w-2 h-2 rounded-full bg-primary" />
                 Conectado como <strong>{{ linkedinStatus.profile_name }}</strong>
               </div>
-              <div class="flex items-center gap-3">
-                <select v-model="linkedinLang" class="px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring">
+              <div class="flex min-w-0 flex-col items-stretch gap-3 panel-portrait:flex-row panel-portrait:items-center">
+                <select v-model="linkedinLang" class="w-full min-w-0 px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring panel-portrait:w-auto">
                   <option value="en">Publish in English</option>
                   <option value="es">Publicar en Español</option>
                 </select>
                 <BaseControlGate
                   :reasons="!selectedLinkedInSummary ? ['Escribe el resumen de LinkedIn en el idioma elegido.'] : []"
                   label="Publicar en LinkedIn no disponible"
-                  align="end"
+                  align="stretch"
+                  class="w-full min-w-0 panel-portrait:w-auto"
                 >
                   <template #default="{ describedBy }">
                     <BaseButton
@@ -213,6 +214,7 @@
                       :disabled="!selectedLinkedInSummary"
                       disabled-reason="Escribe el resumen de LinkedIn en el idioma elegido."
                       :aria-describedby="describedBy"
+                      class="w-full panel-portrait:w-auto"
                       @click="publishToLinkedIn"
                     >
               <BaseActionIcon action="publish" />
@@ -231,7 +233,7 @@
         </fieldset>
 
         <!-- Cover image -->
-        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
+        <fieldset class="w-full min-w-0 max-w-full border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">Imagen de portada</legend>
 
           <!-- File upload -->
@@ -298,7 +300,7 @@
         </div>
 
         <!-- Publishing options -->
-        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
+        <fieldset class="w-full min-w-0 max-w-full border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">Publicación</legend>
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 cursor-pointer">

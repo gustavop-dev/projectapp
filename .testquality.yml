@@ -47,7 +47,7 @@ flow_definitions_dir: flows
 # Responsive overrides consumed by the fleet's responsive ledger. ProjectApp
 # intentionally uses its panel vocabulary and the 835x1195 portrait viewport;
 # leaving these implicit made the ledger report the generic 835x1194 matrix and
-# only the eight flow-registry modules instead of the twelve acceptance owners.
+# only the flow-registry modules instead of the thirteen acceptance owners.
 responsive_widths:
   - compact=412x915
   - portrait=835x1195
@@ -73,6 +73,7 @@ responsive_modules:
   - projects
   - commercial
   - emails
+  - communications
   - canvas
   - dashboard
   - content
@@ -82,11 +83,12 @@ responsive_modules:
 responsive_module_paths:
   - "foundation=frontend/assets/styles,frontend/components/base,frontend/components/panel/PanelMobileDrawer.vue,frontend/components/panel/PanelSidebar.vue,frontend/composables/usePanelSidebar.js,frontend/config/responsive.js,frontend/layouts/admin.vue,frontend/pages/panel/styleguide.vue,frontend/tailwind.config.js"
   - "accounting=frontend/components/accounting,frontend/pages/panel/accounting"
-  - "documents=frontend/components/panel/documents,frontend/pages/panel/documents/index.vue"
+  - "documents=frontend/components/panel/documents,frontend/pages/panel/documents/index.vue,frontend/pages/panel/documents/statuses.vue"
   - "clients=frontend/components/clients,frontend/components/platform,frontend/layouts/platform.vue,frontend/pages/panel/clients,frontend/pages/platform"
   - "projects=frontend/components/panel/projects,frontend/pages/panel/projects"
   - "commercial=frontend/components/AdditionalModules/CatalogOrderModal.vue,frontend/components/AdditionalModules/CatalogSelectionModal.vue,frontend/components/AdditionalModules/CategoryManagerModal.vue,frontend/components/AdditionalModules/ModuleFormModal.vue,frontend/components/AdditionalModules/ShareHistoryModal.vue,frontend/components/BusinessProposal/admin,frontend/components/WebAppDiagnostic/admin,frontend/components/proposals,frontend/pages/panel/additional-modules,frontend/pages/panel/defaults.vue,frontend/pages/panel/diagnostics,frontend/pages/panel/hour-packages,frontend/pages/panel/proposals"
   - "emails=frontend/components/email,frontend/pages/panel/emails,frontend/pages/panel/proposals/email-deliverability.vue,frontend/pages/panel/proposals/email-templates.vue"
+  - "communications=frontend/components/communications,frontend/composables/useCommunicationFilters.js,frontend/pages/panel/communications"
   - "canvas=frontend/components/panel/documents/DocumentEditor,frontend/components/panel/documents/DocumentPreview,frontend/pages/panel/documents/create.vue,frontend/pages/panel/documents/[id]/edit.vue"
   - "dashboard=frontend/components/panel/dashboard,frontend/components/stats,frontend/pages/panel/admins,frontend/pages/panel/index.vue,frontend/pages/panel/tasks,frontend/pages/panel/views.vue"
   - "content=frontend/components/panel/qr-cards,frontend/pages/panel/blog,frontend/pages/panel/linkedin,frontend/pages/panel/linktrees,frontend/pages/panel/portfolio,frontend/pages/panel/qr-cards"

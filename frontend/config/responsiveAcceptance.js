@@ -183,11 +183,15 @@ export const RESPONSIVE_MODULE_NAMES = Object.freeze(Object.keys(RESPONSIVE_MODU
 export const RESPONSIVE_VIEWPORT_NAMES = Object.freeze(Object.keys(PANEL_VIEWPORTS));
 
 const ALL_MODULES_PATHS = Object.freeze([
+  '.testquality.yml',
   '.github/workflows/responsive-acceptance.yml',
+  'docs/RESPONSIVE_QA_TEST_SCRIPT.md',
   'frontend/config/responsiveAcceptance.js',
   'frontend/e2e/helpers/test.js',
+  'frontend/package.json',
   'frontend/playwright.config.js',
   'frontend/scripts/check-responsive-contract.mjs',
+  'frontend/scripts/run-responsive-changed.mjs',
 ]);
 
 const ALL_MODULES_PREFIXES = Object.freeze([

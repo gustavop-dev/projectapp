@@ -662,13 +662,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** platform-admin, platform-client
 - **Priority:** P2
 - **Routes:** `/platform/projects/:id/deliverables/:deliverableId`
-- **API:** `GET /api/accounts/projects/:id/deliverables/:deliverableId/`, PDF subpaths from `pdf_download_paths`, optional attachment upload (admin)
-- **Description:** Deliverable hub: title, description, epic; linked commercial proposal PDFs; main file and attachments; link to kanban filtered by deliverable; admin can upload annex.
+- **Description:** Compatibility route for the retired standalone deliverable page; the resource itself is now opened from the project-scoped resources list.
 - **Steps:**
-  1. User navigates to deliverable detail URL (from list or deep link).
-  2. Detail loads → heading, Documents section, Requirements / board CTA.
-  3. If linked proposal exists → user clicks PDF comercial or PDF técnico → download.
-  4. **[Admin]** User may upload attachment via form (optional branch).
+  1. User opens a saved or deep link to `/platform/projects/:id/deliverables/:deliverableId`.
+  2. The compatibility page replaces the URL with `/platform/projects/:id/deliverables`.
+  3. The project resources list mounts without returning to the retired route or looping.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-deliverables.spec.js`
 
@@ -2409,7 +2407,7 @@ No active browser flow is registered for client profile editing at this time.
 
 **Routes:** `/panel/defaults` (with `?mode=proposal` or `?mode=diagnostic`).
 
-**Description:** Admin accesses a unified shell page that replaces the two separate defaults pages. A segmented mode switch toggles between the **Propuesta** panel and the **Diagnóstico** panel. The active mode is persisted via query param so reloads and direct links preserve it. The back link adapts to the active mode. Old routes `/panel/proposals/defaults` and `/panel/diagnostics/defaults` redirect here preserving existing `?tab=` params.
+**Description:** Admin accesses a unified shell page that replaces the two separate defaults pages. A segmented mode switch toggles between the **Propuesta** panel and the **Diagnóstico** panel. The active mode is persisted via query param so reloads and direct links preserve it. The back link adapts to the active mode. Old routes `/panel/proposals/defaults`, `/panel/proposals/email-templates` and `/panel/diagnostics/defaults` redirect here preserving their mode/tab intent.
 
 **Steps:**
 1. Admin clicks **"Defaults"** in the Sales section of the sidebar → navigates to `/panel/defaults` (defaults to proposal mode).
@@ -2423,7 +2421,8 @@ No active browser flow is registered for client profile editing at this time.
 - [Branch A — Direct diagnostic link] Navigating to `/panel/defaults?mode=diagnostic` starts in diagnostic mode.
 - [Branch B — Old URL redirect] `/panel/proposals/defaults?tab=sections` redirects to `/panel/defaults?mode=proposal&tab=sections`.
 - [Branch C — Old URL redirect] `/panel/diagnostics/defaults` redirects to `/panel/defaults?mode=diagnostic`.
-- [Branch D — Unknown mode] Unknown `?mode=` value falls back to proposal mode.
+- [Branch D — Email templates redirect] `/panel/proposals/email-templates` redirects to `/panel/defaults?mode=proposal&tab=emails`.
+- [Branch E — Unknown mode] Unknown `?mode=` value falls back to proposal mode.
 
 **Unit Tests:** `frontend/test/components/DefaultsShell.test.js` (9 cases — mode computed, setMode, backLink).
 **E2E Spec:** `e2e/admin/admin-defaults-unified.spec.js`.

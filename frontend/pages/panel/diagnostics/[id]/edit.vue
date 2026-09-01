@@ -107,7 +107,7 @@
 
       <!-- Sticky header: title + investment + status -->
       <div
-        class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6
+        class="sticky top-0 z-30 -mx-4 px-4 py-3 mb-6 sm:-mx-6 sm:px-6 panel-desktop:-mx-8 panel-desktop:px-8
                bg-surface/80 backdrop-blur-md
                border-b border-border-muted transition-all"
       >

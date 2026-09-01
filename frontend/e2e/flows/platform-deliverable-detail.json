@@ -7,6 +7,9 @@
     "platform-client"
   ],
   "priority": "P2",
-  "description": "View deliverable detail at /platform/projects/:id/deliverables/:deliverableId: linked proposal PDFs, main file, epic, board link; admin attachment upload.",
-  "expectedSpecs": 0
+  "description": "The retired standalone deliverable detail route /platform/projects/:id/deliverables/:deliverableId preserves compatibility by redirecting to the project resources list.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
 }

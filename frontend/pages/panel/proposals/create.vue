@@ -466,7 +466,7 @@
             <div
               v-for="(_, idx) in form.email_features"
               :key="`create-feature-${idx}`"
-              class="flex items-start gap-2 mb-2"
+              class="flex min-w-0 items-start gap-2 mb-2"
             >
               <span class="text-xs font-medium text-text-muted pt-2 w-6">
                 {{ String(idx + 1).padStart(2, '0') }}
@@ -474,7 +474,7 @@
               <textarea
                 v-model="form.email_features[idx]"
                 rows="2"
-                class="flex-1 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
+                class="min-w-0 flex-1 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
                 placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
               ></textarea>
               <BaseButton variant="danger-ghost" size="sm" @click="removeEmailFeature(idx)">
@@ -500,30 +500,30 @@
             <div
               v-for="(phase, idx) in form.email_method_phases"
               :key="`create-phase-${idx}`"
-              class="grid grid-cols-[60px,1fr,90px,1.5fr] gap-2 mb-2 items-start"
+              class="grid min-w-0 grid-cols-1 gap-2 mb-2 items-start sm:grid-cols-[60px_minmax(0,1fr)_90px_minmax(0,1.5fr)]"
             >
               <input
                 v-model="form.email_method_phases[idx].number"
-                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm text-center focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                class="min-w-0 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm text-center focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 placeholder="01"
                 maxlength="3"
               />
               <input
                 v-model="form.email_method_phases[idx].title"
-                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                class="min-w-0 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 placeholder="Diagnóstico"
                 maxlength="40"
               />
               <input
                 v-model="form.email_method_phases[idx].duration"
-                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                class="min-w-0 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 placeholder="5 días"
                 maxlength="20"
               />
               <textarea
                 v-model="form.email_method_phases[idx].description"
                 rows="2"
-                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
+                class="min-w-0 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
                 placeholder="Mapeo de procesos y alcance final."
                 maxlength="120"
               ></textarea>

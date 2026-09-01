@@ -233,7 +233,7 @@
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
                   <dd
                     class="min-w-0 text-text-muted"
-                    :class="detail.contentClass"
+                    :class="[detail.contentClass, detail.link ? 'relative' : '']"
                     :data-text-policy="detail.textPolicy"
                   >
                     <slot
@@ -261,7 +261,7 @@
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
                   <dd
                     class="min-w-0 text-text-muted"
-                    :class="detail.contentClass"
+                    :class="[detail.contentClass, detail.link ? 'relative' : '']"
                     :data-text-policy="detail.textPolicy"
                   >
                     <slot
@@ -289,7 +289,7 @@
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
                   <dd
                     class="min-w-0 text-text-muted"
-                    :class="detail.contentClass"
+                    :class="[detail.contentClass, detail.link ? 'relative' : '']"
                     :data-text-policy="detail.textPolicy"
                   >
                     <slot

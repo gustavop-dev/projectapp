@@ -20,6 +20,7 @@
         "public-contact-submit",
         "public-privacy-policy",
         "public-terms-conditions",
+        "public-route-not-found",
         "blog-list",
         "blog-detail"
       ]
@@ -262,6 +263,12 @@
         "admin-document-state-workflow",
         "admin-document-state-filters",
         "admin-document-observation-delete"
+      ]
+    },
+    {
+      "title": "Section 30 — Responsive Compatibility Routes (Sep 1, 2026)",
+      "flows": [
+        "platform-legacy-route-redirects"
       ]
     }
   ]
