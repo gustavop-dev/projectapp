@@ -69,6 +69,11 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   saca de la vista. Queda excluido del MCP igual que el de documentos, y la madre
   no se puede archivar. `list_threads` no expone `scope`: el conector ve siempre
   el ámbito activo.
+- Los hilos entre documentos (`DocumentThread` / `DocumentThreadItem`) son una
+  relación interna del modal del panel en su versión 1. Todos sus campos están
+  clasificados como exclusión deliberada del conector `documents`: no se
+  agregan herramientas para crear, editar, consultar ni disolver esos hilos y
+  el inventario permanece en 17 herramientas.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 
 ## Inventario vigente

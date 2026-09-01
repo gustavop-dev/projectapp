@@ -489,6 +489,11 @@
     <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
     <RenameDocumentModal v-model="showRenameModal" :document="renamingDoc" @changed="handleRenamed" />
     <SendDocumentEmailModal v-model="showEmailModal" :document="emailingDoc" />
+    <DocumentThreadModal
+      v-model="showThreadModal"
+      :document="threadDoc"
+      @saved="handleThreadSaved"
+    />
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
@@ -503,6 +508,7 @@
       @copy-markdown="handleCopyMarkdown(actionDoc.id)"
       @duplicate="handleDuplicate(actionDoc.id)"
       @send-email="handleSendEmail(actionDoc)"
+      @thread="handleOpenThread(actionDoc)"
       @delete="handleDelete(actionDoc)"
     />
 
@@ -541,6 +547,7 @@ import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModal.vue';
 import SendDocumentEmailModal from '~/components/panel/documents/SendDocumentEmailModal.vue';
 import DocumentActionsSheet from '~/components/panel/documents/DocumentActionsSheet.vue';
+import DocumentThreadModal from '~/components/panel/documents/DocumentThreadModal.vue';
 import DocumentListSkeleton from '~/components/panel/documents/DocumentListSkeleton.vue';
 import DocumentsToolbar from '~/components/panel/documents/DocumentsToolbar.vue';
 import DocumentsTable from '~/components/panel/documents/DocumentsTable.vue';
@@ -916,6 +923,7 @@ const deletingFolder = ref(null);
 const movingDoc = ref(null);
 const renamingDoc = ref(null);
 const emailingDoc = ref(null);
+const threadDoc = ref(null);
 const actionDoc = ref(null);
 const draggingDoc = ref(null);
 const draggingFolder = ref(null);
@@ -931,6 +939,10 @@ const showRenameModal = computed({
 const showEmailModal = computed({
   get: () => !!emailingDoc.value,
   set: (v) => { if (!v) emailingDoc.value = null; },
+});
+const showThreadModal = computed({
+  get: () => !!threadDoc.value,
+  set: (v) => { if (!v) threadDoc.value = null; },
 });
 const showActionsSheet = computed({
   get: () => !!actionDoc.value,
@@ -1480,6 +1492,19 @@ function handleRenamed() {
 
 function handleSendEmail(doc) {
   emailingDoc.value = doc;
+}
+
+function handleOpenThread(doc) {
+  if (doc) threadDoc.value = doc;
+}
+
+async function handleThreadSaved() {
+  await refreshView();
+  if (threadDoc.value) {
+    threadDoc.value = documentStore.documents.find(
+      item => item.id === threadDoc.value.id,
+    ) || threadDoc.value;
+  }
 }
 
 function handleDragStart(event, doc) {

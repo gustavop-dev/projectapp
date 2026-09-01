@@ -2,6 +2,21 @@
 
 ## Current State
 
+**2026-09-01 — hilos lineales entre documentos listos para integrar:** cada
+documento puede pertenecer como máximo a un hilo con nombre editable, aunque sus
+miembros vivan en carpetas, clientes o proyectos distintos. La cronología usa
+fecha de emisión o creación en Bogotá y desempata con posición estable. El modal
+compartido Relacionar/Detalle/Cronología abre desde listado y editor, busca con
+paginación y scope activo/todos, permite previsualizar markdown/PDF y muestra
+archivados o conflictos sin ocultarlos. Las listas enseñan `Hilo · N`; archivar
+preserva la relación, eliminar exige desvincular, dejar un único miembro disuelve
+el hilo y duplicar no hereda membresía. Los modelos están clasificados como
+panel-only y no amplían las 17 tools MCP. Fake data incorpora varios hilos
+coherentes, pero el refresh real se omitió por guardia de producción. Verificación
+focal: servicios/vistas/serializers/fake/MCP backend verdes; pruebas unitarias del
+store, modal, visor y acciones; E2E en cuatro outcomes y cinco viewports;
+Django/migración, build Nuxt, guards de diseño y flow-map en verde.
+
 **2026-09-01 — modal de cambio de estado de Proyectos ordenado:** el aviso
 amarillo sobre catálogo/contexto se conserva bajo el encabezado; estado destino,
 decisión por ingreso y nota muestran su requisito rojo junto al control y lo

@@ -94,6 +94,30 @@ def test_project_has_no_module_specific_catalog_opt_out():
     assert 'document_manager_enabled' not in project_contract.classified_fields
 
 
+def test_document_threads_are_deliberately_panel_only():
+    contracts = {
+        contract.model_label: contract
+        for contract in MCP_MODEL_CONTRACTS['documents']
+    }
+    expected_exclusions = {
+        'content.DocumentThread': {
+            'id', 'title', 'created_by', 'updated_by', 'created_at', 'updated_at',
+        },
+        'content.DocumentThreadItem': {
+            'id', 'thread', 'document', 'occurred_on', 'position', 'linked_by',
+            'updated_by', 'linked_at', 'updated_at',
+        },
+    }
+
+    for model_label, excluded_fields in expected_exclusions.items():
+        contract = contracts[model_label]
+        assert contract.read_only == frozenset()
+        assert contract.read_write == frozenset()
+        assert set(contract.excluded) == excluded_fields
+
+    assert len(TOOLS_BY_SLUG['documents']) == 17
+
+
 @pytest.mark.parametrize('slug', CONNECTOR_SLUGS)
 def test_model_fields_are_classified_for_connector(slug):
     assert _field_contract_problems(slug) == []

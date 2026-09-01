@@ -843,7 +843,15 @@ def assign_project_to_documents(document_ids, project, user):
     """
     documents = list(
         Document.objects
-        .select_related('project', 'client_user__profile', 'document_type')
+        .annotate(
+            thread_document_count=Count(
+                'thread_item__thread__items', distinct=True,
+            ),
+        )
+        .select_related(
+            'project', 'client_user__profile', 'document_type',
+            'thread_item__thread',
+        )
         .filter(pk__in=document_ids),
     )
     target_id = project.pk if project else None

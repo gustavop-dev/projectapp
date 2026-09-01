@@ -111,11 +111,21 @@ const meta = computed(() => {
         content-classes="text-sm font-semibold leading-snug text-text-default"
       />
       <div
-        v-if="document.folder_name"
+        v-if="document.folder_name || document.thread_summary"
         class="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-1"
         :data-testid="`document-card-title-meta-${document.id}`"
       >
+        <BaseBadge
+          v-if="document.thread_summary"
+          variant="info"
+          size="sm"
+          :title="document.thread_summary.title"
+          :data-testid="`document-card-thread-badge-${document.id}`"
+        >
+          Hilo · {{ document.thread_summary.document_count }}
+        </BaseBadge>
         <span
+          v-if="document.folder_name"
           class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded bg-surface-raised px-2 py-0.5 text-2xs font-medium text-text-muted [overflow-wrap:anywhere]"
           :title="`Carpeta: ${document.folder_name}`"
           :data-testid="`document-card-folder-badge-${document.id}`"

@@ -385,6 +385,25 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list and state-catalog management
+- **Document threads** relate a linear history without changing folders, clients
+  or projects. A document belongs to at most one thread; a new thread takes the
+  source document title as its editable name and needs at least two documents.
+  Removing members until only one remains dissolves the thread automatically.
+- Each membership owns an editable day-level chronology date. It defaults to the
+  document `issue_date`, or to the Bogotá date of `created_at` when the document
+  has no issue date; a stable position resolves equal dates deterministically.
+- The list action drawer and the editor open the same workspace modal. Its
+  **Relacionar**, **Detalle** and **Cronología** tabs search across folders and
+  organisational scopes, preview markdown/PDF, and show the ordered story.
+  List rows and cards expose `Hilo · N` without leaking the relationship into
+  folder navigation.
+- Archived documents keep their membership and are labelled in the thread.
+  Candidate search hides them by default and can include them explicitly.
+  Documents already assigned to another thread remain visible but disabled with
+  the reason. Deleting a linked document is blocked until it is unlinked;
+  duplicating a document never copies its membership.
+- Threads are internal panel metadata in v1. They are deliberately excluded from
+  the Documents MCP and from client-facing document payloads.
 - **Long-name containment**: list and gallery titles are always bounded by their
   cell/card. The collapsed state uses one line with ellipsis and exposes the same
   measured **Ver completo/Contraer** path for names with spaces or systematic

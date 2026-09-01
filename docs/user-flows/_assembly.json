@@ -156,6 +156,7 @@
         "admin-hour-packages-delete",
         "admin-document-create",
         "admin-document-edit",
+        "admin-document-thread",
         "proposal-view-paste-rendering",
         "proposal-sticky-bar-accept",
         "admin-diagnostic-create",

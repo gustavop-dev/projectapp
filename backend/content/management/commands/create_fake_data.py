@@ -25,6 +25,7 @@ BUSINESS_ROOT_MODELS = (
     'content.CommunicationThread',
     'content.Contact',
     'content.Document',
+    'content.DocumentThread',
     'content.EmailLog',
     'content.ExpenseRecord',
     'content.HostingRecord',
