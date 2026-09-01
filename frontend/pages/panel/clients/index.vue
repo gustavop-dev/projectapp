@@ -358,8 +358,9 @@
 
             <!-- Archive toggle button -->
             <BaseActionButton
-              :action="client.is_archived ? 'activate' : 'deactivate'"
+              :action="client.is_archived ? 'restore' : 'archive'"
               :label="client.is_archived ? 'Desarchivar cliente' : 'Archivar cliente'"
+              :tooltip="client.is_archived ? 'Desarchivar' : 'Archivar'"
               :data-testid="`client-toggle-archived-${client.id}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-warning-strong hover:bg-warning-soft transition-colors"
               @click.stop="openArchiveModal(client)"

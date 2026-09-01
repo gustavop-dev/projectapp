@@ -2,6 +2,15 @@
 
 ## Current State
 
+**2026-09-01 — acción Archivar de Clientes alineada y verificada:** el control
+de cada fila en `/panel/clients` usa las acciones canónicas `archive`/`restore`
+y muestra **Archivar** o **Desarchivar** en su ayuda visible. La acción conserva
+el flujo existente de vista previa, confirmación, cascada y filtro Archivados;
+no cambia API, modelo ni migraciones. **Desactivar acceso** en `/platform/clients`
+permanece intacto porque controla acceso a la plataforma, no el archivo del
+cliente. Verificación focal: 2 unitarias, 4 escenarios E2E y el guard de acciones
+del panel en verde.
+
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
 `update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
 el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o
