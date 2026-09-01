@@ -64,7 +64,13 @@ def global_history(admin_client, params=None):
     )
 
 
-def make_snapshot_log(*, attachment_bytes=None, format_kind='pdf', document=None):
+def make_snapshot_log(
+    *,
+    attachment_bytes=None,
+    format_kind='pdf',
+    business_kind='proposal',
+    document=None,
+):
     body = EmailBody.objects.create(
         text='Contenido exacto https://projectapp.co/proposal/abc',
         html='<p>Contenido exacto</p>',
@@ -91,7 +97,7 @@ def make_snapshot_log(*, attachment_bytes=None, format_kind='pdf', document=None
             sha256='0' * 64,
             position=0,
             format_kind=format_kind,
-            business_kind='proposal',
+            business_kind=business_kind,
             business_kind_label='Propuesta',
             source_document=document,
             source_document_type_code=(
@@ -290,6 +296,38 @@ def test_attachment_filters_use_presence_and_format(admin_client):
     )
 
     assert [row['id'] for row in response.data['results']] == [attached.pk]
+
+
+def test_attachment_filter_excludes_legacy_email_from_confirmed_zero(admin_client):
+    """Falla si un correo legado se muestra como confirmado sin adjuntos."""
+    captured_without_attachments = make_snapshot_log()
+    make_log('proposal_sent_client')
+
+    response = global_history(admin_client, {'has_attachments': 'false'})
+
+    assert response.status_code == 200
+    assert [row['id'] for row in response.data['results']] == [
+        captured_without_attachments.pk,
+    ]
+
+
+def test_attachment_filter_returns_only_requested_business_kind(admin_client):
+    """Falla si buscar una cuenta de cobro devuelve adjuntos de otro tipo."""
+    collection_account = make_snapshot_log(
+        attachment_bytes=b'collection-account',
+        business_kind='collection_account',
+    )
+    make_snapshot_log(attachment_bytes=b'proposal', business_kind='proposal')
+
+    response = global_history(
+        admin_client,
+        {'attachment_type': 'business:collection_account'},
+    )
+
+    assert response.status_code == 200
+    assert [row['id'] for row in response.data['results']] == [
+        collection_account.pk,
+    ]
 
 
 def test_attachment_download_uses_retained_bytes_after_source_changes(admin_client):
