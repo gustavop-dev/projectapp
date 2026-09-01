@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-09-01 — acciones del catálogo de estados de Proyectos organizadas:**
+cada estado activo separa la edición de la conservación del catálogo en dos
+bandas legibles. Nombre, color, efecto operativo, orden y Guardar comparten una
+grilla proporcionada; debajo, el destino de fusión, Fusionar y Retirar mantienen
+anchos coherentes y al menos 8 px de separación. En celular las acciones ocupan
+todo el ancho, en tableta vertical Guardar completa su fila y en anchos
+expandidos los botones conservan la misma proporción. El catálogo de Documentos,
+la API, el esquema y los mensajes inline de PA-120 no cambian. Verificación
+focal: 12 unitarias, 5 escenarios responsive (412/835/1195/1440/2560 px), 3
+regresiones E2E de Guardar/Fusionar/Retirar, design-token guard y build Nuxt en
+verde.
+
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
 `update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
 el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o

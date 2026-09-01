@@ -1,5 +1,10 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-09-01:** las acciones de cada estado de Proyecto
+> quedan divididas en una banda de edición/guardado y otra de fusión/retiro, con
+> proporciones consistentes y separación responsive en cinco viewports. El
+> catálogo de Documentos y la validación inline previa permanecen intactos.
+
 > **Listo para integrar — 2026-08-31:** el catálogo de estados de Proyectos
 > reemplaza las listas rojas por requisitos y errores bajo cada campo después
 > del intento. La fusión distingue la selección faltante, que se corrige inline,
@@ -67,6 +72,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Projects — proportional state-catalog actions | 🟡 Ready for merge | 2026-09-01. Active rows in `/panel/projects/statuses` use separate edit/save and merge/retire bands. Save, Merge and Retire are full-width on compact screens; portrait uses a full-row Save plus a 6/3/3 maintenance grid; landscape and wider screens use a 3/2/3/2/2 edit grid plus an 8/2/2 maintenance grid. Gaps stay at least 8 px, Documents keep their previous layout, and PA-120 field feedback is preserved. Twelve focused unit tests, five responsive E2E scenarios, three action regressions, the design-token guard and the Nuxt build are green. |
 | Projects — inline state-catalog validation | 🟡 Ready for merge | 2026-08-31. Create/edit/merge validation in `/panel/projects/statuses` uses `BaseFormField` beside the relevant control after an attempted action; required markers cover name, description and operational effect. Serializer field errors stay attached to their field and clear on input. A missing merge target is actionable inline feedback, while immutable seed restrictions remain accessible help on the disabled action. Documents retain their existing catalog behavior. Six unit tests, all 14 affected E2E scenarios, the disabled-control guard, Nuxt build and flow audit are green. |
 | Transversal — reacción visible de iconos interactivos | 🟡 Ready for merge | 2026-08-31. Todos los controles icon-only ejecutables de panel, plataforma y superficies públicas comparten una reacción inmediata; copiar confirma sólo después de escribir al portapapeles y diferencia éxito/fallo mediante estado visible y accesible. El glifo permanece estable, async conserva loading, touch/teclado tienen paridad y reduced motion reemplaza escala por halo. Verificación: 27 unitarias focales, 2 E2E, build, 536 SFC válidos, flow audit y guards en verde. |
 | Documents — safe project/client reconciliation | 🟡 Ready for merge | Updated 2026-08-30. Every canonical project appears even with zero content; a visit-local toggle reveals non-operational projects inclusively while the separate archive toggle still filters content. `DocumentFolder.managed_project` identifies the canonical root. Manifest v5 promotes G&M, Vástago, Xpandia, Kore and Tenndalux, creates roots for Mimittos, PRUEBA and Candle, nests Germán under Kore, files document 120 and explicitly assigns loose documents 1–5/135/157/154/159. Carlos, Gustavo, Aarón, Littigio, ProjectApp and Requirement Estimates stay untouched. Apply requires a reviewed hash, unchanged fingerprint, verified backup and inverse snapshot. Production remains untouched pending deploy and the operator runbook. |
