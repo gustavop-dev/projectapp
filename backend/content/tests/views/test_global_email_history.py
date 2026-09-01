@@ -292,9 +292,23 @@ def test_attachment_filters_use_presence_and_format(admin_client):
     assert [row['id'] for row in response.data['results']] == [attached.pk]
 
 
-def test_admin_downloads_retained_attachment_bytes(admin_client):
-    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+def test_attachment_download_uses_retained_bytes_after_source_changes(admin_client):
+    document_type, _ = DocumentType.objects.get_or_create(
+        code='proposal', defaults={'name': 'Propuesta'},
+    )
+    document = Document.objects.create(
+        title='Propuesta original',
+        content_markdown='# Versión original',
+        document_type=document_type,
+    )
+    log = make_snapshot_log(
+        attachment_bytes=b'pdf-original',
+        document=document,
+    )
     attachment = log.snapshot.attachments.get()
+    document.title = 'Propuesta modificada'
+    document.content_markdown = '# Versión modificada'
+    document.save(update_fields=['title', 'content_markdown', 'updated_at'])
 
     response = admin_client.get(reverse(
         'standalone-email-attachment',
