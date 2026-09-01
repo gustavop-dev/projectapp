@@ -1,5 +1,18 @@
 # Product Requirements Document — ProjectApp
 
+> **Aceptación 2026-09-01 — calendario contable:** ingresos esperados, gastos
+> recurrentes y vencimientos de hosting comparten un digest interno diario.
+> Ingresos y recurrentes usan hitos a 15 días, 7 días y el día previsto; hosting
+> conserva su calendario previo de 15/7 días y repetición cada 5 días. Los
+> ingresos vencidos continúan
+> semanal o quincenalmente —quincenal por defecto— hasta liquidarse o
+> silenciarse; la pausa puede ser indefinida o tener reanudación automática y
+> debe verse en la fila. El correo consolida todos los avisos del día y deja
+> trazabilidad por destinatario y registro. Los avisos al cliente siguen siendo
+> responsabilidad separada de las cuentas de cobro. Para recurrentes se usa la
+> próxima fecha proyectada vigente; este alcance no crea pagos históricos por
+> ciclo.
+
 > **Seguimiento 2026-09-01 — cierre del catálogo adicional:** las rutas públicas
 > del catálogo, tanto canónica como seleccionada, no muestran el encabezado
 > global. Todo enlace o PDF nuevo parte en español y conserva el selector ES/EN.

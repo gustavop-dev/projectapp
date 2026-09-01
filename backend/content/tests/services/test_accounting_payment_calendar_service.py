@@ -10,6 +10,7 @@ from django.core import mail
 from content.models import (
     AccountingSettings,
     EmailLog,
+    EmailLogTarget,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
@@ -369,18 +370,25 @@ class TestDelivery:
         assert metadata['incomes'][0]['id'] == record.pk
 
     def test_log_targets_link_every_record_in_the_digest(self):
+        """Fails if a sent digest leaves any internal recipient without a target."""
         income = make_expected(days_left=7)
         recurring = make_recurring(cycle_anchor_date=TODAY + timedelta(days=15))
         hosting = make_hosting(days_left=7)
 
         assert run_payment_calendar(TODAY) == 3
 
-        log = sent_logs().first()
-        assert set(log.targets.values_list('entity_type', 'object_id')) == {
-            ('income', income.pk),
-            ('recurring', recurring.pk),
-            ('hosting', hosting.pk),
-        }
+        logs = sent_logs()
+        assert logs.count() == 2
+        assert logs.filter(
+            targets__entity_type='income', targets__object_id=income.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='recurring', targets__object_id=recurring.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='hosting', targets__object_id=hosting.pk,
+        ).distinct().count() == 2
+        assert EmailLogTarget.objects.filter(email_log__in=logs).count() == 6
 
     def test_failed_delivery_does_not_advance_income_cadence(self, monkeypatch):
         def fail_send(*args, **kwargs):
@@ -396,11 +404,14 @@ class TestDelivery:
         assert record.reminder_count == 0
 
     def test_failed_delivery_is_diagnosable_from_the_log(self, monkeypatch):
+        """Fails if a failed digest omits targets from any internal recipient log."""
         def fail_send(*args, **kwargs):
             raise RuntimeError('SMTP unavailable')
 
         monkeypatch.setattr(EmailDeliveryGateway, 'send', fail_send)
-        record = make_expected(days_left=7)
+        income = make_expected(days_left=7)
+        recurring = make_recurring(cycle_anchor_date=TODAY + timedelta(days=15))
+        hosting = make_hosting(days_left=7)
 
         run_payment_calendar(TODAY)
 
@@ -412,9 +423,16 @@ class TestDelivery:
             'team@projectapp.co', 'carlos@projectapp.co',
         }
         assert 'SMTP unavailable' in logs.first().error_message
-        assert logs.first().targets.filter(
-            entity_type='income', object_id=record.pk,
-        ).exists()
+        assert logs.filter(
+            targets__entity_type='income', targets__object_id=income.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='recurring', targets__object_id=recurring.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='hosting', targets__object_id=hosting.pk,
+        ).distinct().count() == 2
+        assert EmailLogTarget.objects.filter(email_log__in=logs).count() == 6
 
     def test_without_recipients_nothing_is_sent_and_no_state_advances(self, _recipients):
         NotificationRecipient.objects.all().delete()

@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-09-01 — calendario de cobros y pagos listo para integrar:** el comportamiento
+vigente conserva un digest interno diario con hitos 15/7/día para ingresos y
+recurrentes; hosting mantiene su cadencia previa de 15/7 y cada 5 días. Los
+recordatorios de ingresos vencidos continúan semanales o quincenales hasta
+liquidar o pausar. El flujo de ingresos permite silencio indefinido, con fecha y
+reactivación, visible en la fila; cuentas de cobro mantiene separado cualquier
+contacto al cliente. La aceptación cubre las cuatro clases E2E, contenido y
+destinatarios del correo, targets por registro y la regla de no avanzar cadencia
+ante fallo. El nombre del cliente ahora usa el helper canónico y una carga
+relacional explícita. Sin migraciones ni historial nuevo de ciclos recurrentes.
+Verificación focal: 24 pytest, 35 unitarias y 6 escenarios Playwright sin
+retries; flow audit completo para las cuatro clases, quality gate sin errores
+nuevos y auditoría final con 0 tests basura.
+
 **2026-09-01 — aceptación de enlaces entre Proyectos y Plataforma estabilizada:**
 la auditoría confirmó que el mismo `Project.id` enlaza panel y plataforma, que
 el puente abre el espacio en otra pestaña, que la vuelta comercial es exclusiva
