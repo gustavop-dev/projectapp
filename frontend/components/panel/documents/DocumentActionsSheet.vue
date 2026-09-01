@@ -6,9 +6,9 @@
         class="fixed inset-0 z-[9990] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm panel-portrait:items-center panel-portrait:p-4"
         @click.self="close"
       >
-        <div class="w-full rounded-t-2xl bg-surface shadow-2xl panel-portrait:max-w-sm panel-portrait:rounded-2xl">
+        <div class="flex max-h-[100dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl panel-portrait:max-h-[calc(100dvh-2rem)] panel-portrait:max-w-sm panel-portrait:rounded-2xl">
           <!-- Header -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-border-muted">
+          <div class="flex shrink-0 items-center justify-between px-5 py-4 border-b border-border-muted">
             <div class="min-w-0">
               <h3 class="text-sm font-semibold text-text-default truncate">{{ document.title }}</h3>
               <p v-if="document.client_name" class="text-xs text-text-subtle mt-0.5 truncate">
@@ -24,7 +24,7 @@
           </div>
 
           <!-- Actions list -->
-          <div class="p-2" data-testid="document-actions-list">
+          <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2" data-testid="document-actions-list">
             <component
               :is="action.newTab ? 'a' : 'button'"
               v-for="action in actions"
@@ -50,7 +50,7 @@
           </div>
 
           <!-- Footer (mobile-only safe area + cancel) -->
-          <div class="px-5 py-3 border-t border-border-muted">
+          <div class="shrink-0 px-5 py-3 border-t border-border-muted">
             <BaseButton variant="ghost" size="md" class="w-full" @click="close">
               Cancelar
             </BaseButton>
