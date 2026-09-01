@@ -43,17 +43,27 @@ const documentEntryByProfile = Object.freeze({
   wide: (page) => page.getByRole('link', { name: 'Gestor Documental', exact: true }).click(),
 });
 
+async function exerciseFolderDrawer(page) {
+  const drawer = page.getByTestId('folder-drawer');
+  await page.getByTestId('folder-drawer-trigger').click();
+  await expect(drawer).toContainText('Futuros Requerimientos Internacionales');
+  await drawer.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await expect(drawer).toHaveCount(0);
+}
+
 const folderControlByProfile = Object.freeze({
-  compact: async (page) => { await page.getByTestId('folder-drawer-trigger').click(); await expect(page.getByTestId('folder-drawer')).toContainText('Futuros Requerimientos Internacionales'); },
-  portrait: async (page) => { await page.getByTestId('folder-drawer-trigger').click(); await expect(page.getByTestId('folder-drawer')).toContainText('Futuros Requerimientos Internacionales'); },
+  compact: exerciseFolderDrawer,
+  portrait: exerciseFolderDrawer,
   landscape: (page) => expect(page.getByTestId('folder-panel')).toContainText('Futuros Requerimientos Internacionales'),
   desktop: (page) => expect(page.getByTestId('folder-panel')).toContainText('Futuros Requerimientos Internacionales'),
   wide: (page) => expect(page.getByTestId('folder-panel')).toContainText('Futuros Requerimientos Internacionales'),
 });
 
 async function enterDocuments(page, profile) {
-  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.goto('/en-us/panel', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/en-us\/panel$/);
   await documentEntryByProfile[profile](page);
+  await expect(page).toHaveURL(/\/panel\/documents$/);
   await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true })).toHaveText('Gestor Documental');
 }
 
@@ -64,6 +74,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-document-list', '@outcome:display', '@responsive:documents', `@responsive-scenario:${listScenario.catalogKey}`, `@responsive-batch:${batchForScenario(listScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupDocuments(page);
+      // quality: allow-deep-link (the authenticated panel home is the canonical shell entry; this test then reaches Documents through the visible responsive navigation)
       await enterDocuments(page, profile);
       await expect(page.getByText('Informe responsivo de agosto', { exact: true })).toHaveText('Informe responsivo de agosto');
       await folderControlByProfile[profile](page);
@@ -81,6 +92,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-document-list', '@outcome:display', '@responsive:documents', `@responsive-scenario:${statusesScenario.catalogKey}`, `@responsive-batch:${batchForScenario(statusesScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupDocuments(page);
+      // quality: allow-deep-link (the authenticated panel home is the canonical shell entry; this test then reaches the state catalog through two visible navigation actions)
       await enterDocuments(page, profile);
       await page.getByTestId('document-state-catalog-link').click();
       await expect(page).toHaveURL(/\/panel\/documents\/statuses$/);

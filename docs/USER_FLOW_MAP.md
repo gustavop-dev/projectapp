@@ -3377,6 +3377,23 @@ Two transitions that were previously bundled into other flows now have their own
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/public/public-terms-conditions.spec.js`
 
+### FLOW: `public-route-not-found`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P3
+- **Routes:** `/:slug*`
+- **Description:** A guest reaches the public catch-all route after navigating to an unmatched URL. The terminal fallback renders “Page not found”.
+- **Steps:**
+  1. Guest opens an unmatched public URL.
+  2. The catch-all route renders the terminal not-found message.
+- **Branches:**
+  - [n/a — success] The view has no recovery action or successful completion.
+  - [n/a — error] It performs no request or validation that can display an error branch.
+  - [failure] An unmatched route resolves to the explicit not-found state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/responsive/public.spec.js`
+
 ### FLOW: `blog-list`
 
 - **Module:** blog
@@ -6329,6 +6346,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-portfolio` | public | P2 | display | 1 |
 | `public-portfolio-detail` | public | P2 | display,failure | 1 |
 | `public-privacy-policy` | public | P4 | display | 1 |
+| `public-route-not-found` | public | P3 | failure | 1 |
 | `public-terms-conditions` | public | P4 | display | 1 |
 
 

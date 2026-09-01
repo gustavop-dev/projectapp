@@ -1,0 +1,14 @@
+{
+  "id": "public-route-not-found",
+  "name": "Public Route Not Found",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "A guest visiting an unmatched public URL receives the terminal not-found page.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "failure"
+  ]
+}

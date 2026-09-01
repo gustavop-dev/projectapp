@@ -387,6 +387,7 @@ export const PUBLIC_LINKTREE_VIEW = ['@flow:public-linktree-view', '@module:publ
 export const PUBLIC_PORTFOLIO = ['@flow:public-portfolio', '@module:public', '@priority:P2'];
 export const PUBLIC_PORTFOLIO_DETAIL = ['@flow:public-portfolio-detail', '@module:public', '@priority:P2'];
 export const PUBLIC_PRIVACY_POLICY = ['@flow:public-privacy-policy', '@module:public', '@priority:P4'];
+export const PUBLIC_ROUTE_NOT_FOUND = ['@flow:public-route-not-found', '@module:public', '@priority:P3'];
 export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@module:public', '@priority:P4'];
 
 // ── authored extras (flow-tags.extra.js, appended verbatim) ──

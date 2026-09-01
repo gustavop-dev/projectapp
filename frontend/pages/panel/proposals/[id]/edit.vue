@@ -64,7 +64,7 @@
 
     <!-- Sticky header: title + investment + status -->
     <div v-if="proposal"
-         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-surface/80 backdrop-blur-md border-b border-border-muted transition-all">
+         class="sticky top-0 z-30 -mx-4 px-4 py-3 mb-6 bg-surface/80 backdrop-blur-md border-b border-border-muted transition-all sm:-mx-6 sm:px-6 panel-desktop:-mx-8 panel-desktop:px-8">
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <h1 class="text-lg sm:text-xl font-light text-text-default truncate">{{ proposal.title }}</h1>
         <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-text-subtle whitespace-nowrap">

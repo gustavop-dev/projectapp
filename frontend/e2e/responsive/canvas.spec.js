@@ -73,9 +73,12 @@ const canvasDocumentEntryByProfile = Object.freeze({
 });
 
 async function openDocuments(page, profile) {
-  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.goto('/en-us/panel', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/en-us\/panel\/?$/);
   await canvasDocumentEntryByProfile[profile](page);
-  await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true })).toHaveText('Gestor Documental');
+  await expect(page).toHaveURL(/\/panel\/documents(?:\?.*)?$/);
+  await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true }))
+    .toHaveText('Gestor Documental', { timeout: 35_000 });
 }
 
 for (const profile of RESPONSIVE_PROFILES) {
@@ -85,6 +88,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-document-create', '@outcome:display', '@responsive:canvas', `@responsive-scenario:${createScenario.catalogKey}`, `@responsive-batch:${batchForScenario(createScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupCanvas(page);
+      // quality: allow-deep-link (the authenticated panel home is the canonical shell entry; this test then reaches the canvas through the visible Documents navigation and create action)
       await openDocuments(page, profile);
       await page.getByRole('link', { name: /Nuevo Documento/i }).click();
       await page.getByLabel('Título *').fill('Documento responsive de prueba');
@@ -96,6 +100,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-document-edit', '@outcome:display', '@responsive:canvas', `@responsive-scenario:${editScenario.catalogKey}`, `@responsive-batch:${batchForScenario(editScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupCanvas(page);
+      // quality: allow-deep-link (the authenticated panel home is the canonical shell entry; this test then reaches the editor through the visible Documents navigation and row action)
       await openDocuments(page, profile);
       const documentItem = page
         .getByTestId(/^document-(?:row|card)-1$/)

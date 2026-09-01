@@ -14,6 +14,7 @@ import { RESPONSIVE_PROFILES, batchForScenario, getResponsiveScenario } from './
 
 const json = (body, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(body) });
 const platformProject = { id: 1, name: 'Portal de clientes responsive', description: 'Proyecto de prueba con datos concretos', status: 'active', status_label: 'Activo', progress: 65, client_id: 9002, client_name: 'Client E2E', client_email: 'client@e2e.test', client_company: 'ACME Corp', production_url: 'https://portal-responsive.test', staging_url: 'https://staging-responsive.test', repository_url: 'https://git.test/projectapp/portal', credentials: [{ label: 'Administración', username: 'ana', password: 'secreto-visible' }] };
+const projectPhase = { id: 1, order: 1, hosting_start_date: null, hosting_activated_at: null, proposal: { id: 1, title: 'Fase de diseño responsive', total_amount: '5000000.00', status: 'accepted', deliverable_id: null }, hosting_tiers: [] };
 const clientRow = { user_id: 9002, first_name: 'Client', last_name: 'E2E', email: 'client@e2e.test', company_name: 'ACME Corp', phone: '+57 300 000 0002', is_active: true, is_onboarded: true, created_at: '2026-01-01T00:00:00Z' };
 const clientFixture = { id: 101, name: 'Kore Healths', email: 'kore@test.com', phone: '+57 300 111 1111', company: 'Kore', is_onboarded: true, is_email_placeholder: false, total_proposals: 1, projects_count: 1, diagnostics_count: 1, is_orphan: false, is_archived: false, hostings_count: 2, active_hostings_count: 1, active_projects_count: 1, documents_count: 3, documents_no_project_count: 1, created_at: '2026-01-01T00:00:00Z' };
 const secondClientFixture = { ...clientFixture, id: 102, name: 'Mimittos SAS', email: 'mimittos@test.com', company: 'Mimittos', total_proposals: 0, hostings_count: 0, active_hostings_count: 0, documents_count: 0 };
@@ -23,36 +24,39 @@ const bugFixture = { id: 31, title: 'El botón no guarda', status: 'open', descr
 const changeFixture = { id: 41, title: 'Agregar reporte de auditoría', status: 'pending', description: 'El cliente puede pedir cambios desde la plataforma.', requirement_id: 11, created_at: '2026-08-21T00:00:00Z' };
 const notificationFixture = { id: 51, title: 'Entrega publicada', body: 'Manual de marca disponible.', is_read: false, created_at: '2026-08-22T00:00:00Z', route: '/platform/projects/1/deliverables' };
 const documentFixture = { id: 61, title: 'Contrato de implementación', status: 'pending_signature', signed: false, created_at: '2026-08-23T00:00:00Z', file_url: '/files/contract.pdf' };
-const deliverableFixture = { id: 71, title: 'Manual de marca', description: 'Guía para el equipo del cliente.', category: 'document', created_at: '2026-08-24T00:00:00Z', versions: [] };
-const collectionFixture = { id: 81, public_number: 'CC-001', status: 'issued', total: '1200000.00', issued_at: '2026-08-25T00:00:00Z' };
+const deliverableFixture = { id: 71, title: 'Manual de marca', description: 'Guía para el equipo del cliente.', category: 'documents', file_name: 'manual-marca.pdf', file_size: 2048, current_version: 1, uploaded_by_name: 'ProjectApp', updated_at: '2026-08-24T00:00:00Z', created_at: '2026-08-24T00:00:00Z', versions: [] };
+const collectionFixture = { id: 81, title: 'Implementación responsive', public_number: 'CC-001', commercial_status: 'Emitida', status: 'issued', total: '1200000.00', issued_at: '2026-08-25T00:00:00Z' };
+const subscriptionFixture = { id: 91, plan: 'quarterly', plan_display: 'Trimestral', status: 'active', status_display: 'Activa', start_date: '2026-08-01', next_billing_date: '2026-11-01', billing_amount: '1200000.00', has_payment_source: false, payments: [] };
 
-function platformHandler() {
+function platformHandler(user = mockPlatformAdmin) {
   return async ({ apiPath, method }) => {
-    if (apiPath === 'accounts/me/' && method === 'GET') return json(mockPlatformAdmin);
+    if (apiPath === 'accounts/me/' && method === 'GET') return json(user);
     if (apiPath === 'accounts/projects/' && method === 'GET') return json([platformProject]);
     if (apiPath === 'accounts/projects/1/' && method === 'GET') return json(platformProject);
-    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') return json([{ id: 1, name: 'Diseño', order: 1 }]);
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') return json([projectPhase]);
     if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') return json([boardRequirement]);
-    if (apiPath === 'accounts/projects/1/bugs/' && method === 'GET') return json([bugFixture]);
+    if (apiPath === 'accounts/projects/1/bug-reports/' && method === 'GET') return json([bugFixture]);
     if (apiPath === 'accounts/projects/1/change-requests/' && method === 'GET') return json([changeFixture]);
     if (apiPath === 'accounts/projects/1/collection-accounts/' && method === 'GET') return json([collectionFixture]);
     if (apiPath === 'accounts/projects/1/data-model-entities/' && method === 'GET') return json([{ id: 1, name: 'Cliente', description: 'Entidad principal del portal.' }]);
     if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') return json([deliverableFixture]);
-    if (apiPath === 'accounts/projects/1/subscription/' && method === 'GET') return json({ id: 1, plan_name: 'Hosting trimestral', status: 'active', has_payment_source: false, payments: [] });
+    if (apiPath === 'accounts/projects/1/subscription/' && method === 'GET') return json(subscriptionFixture);
     if (apiPath === 'accounts/notifications/' && method === 'GET') return json([notificationFixture]);
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') return json({ unread_count: 1 });
-    if (apiPath === 'accounts/documents/' && method === 'GET') return json([documentFixture]);
+    if (apiPath === 'accounts/documents/' && method === 'GET') return json({ documents: [documentFixture], email: 'client@e2e.test', email_verified: true });
     if (apiPath === 'accounts/clients/' && method === 'GET') return json([clientRow]);
     if (apiPath === 'accounts/clients/1/' && method === 'GET') return json({ ...clientRow, user_id: 1 });
     if (apiPath === 'accounts/clients/9002/' && method === 'GET') return json(clientRow);
     if (apiPath === 'accounts/profile/' && method === 'PATCH') return json({ ...mockPlatformClient, first_name: 'Ana Responsive' });
+    if (apiPath === 'accounts/password-reset/request/' && method === 'POST') return json({ reset_request_token: 'responsive-reset-request' });
+    if (apiPath === 'accounts/password-reset/verify-code/' && method === 'POST') return json({ reset_verified_token: 'responsive-reset-verified' });
     return null;
   };
 }
 
 async function setupPlatform(page, user = mockPlatformAdmin) {
   await setPlatformAuth(page, { user });
-  await mockApi(page, platformHandler());
+  await mockApi(page, platformHandler(user));
 }
 
 async function setupPanelClients(page) {
@@ -133,31 +137,53 @@ const flowForScenario = Object.freeze({
   'frontend/pages/platform/projects/[id]/access.vue': 'platform-access-view',
   'frontend/pages/platform/forgot-password.vue': 'platform-password-reset',
   'frontend/pages/platform/reset-password.vue': 'platform-password-reset',
-  'frontend/pages/platform/verify-code.vue': 'platform-verify-onboarding',
+  'frontend/pages/platform/verify-code.vue': 'platform-password-reset',
 });
+
+async function exercisePlatformSidebarToggle(page, initialName, toggledName) {
+  const toggle = page.getByRole('button', { name: initialName, exact: true });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  const toggled = page.getByRole('button', { name: toggledName, exact: true });
+  await expect(toggled).toBeVisible();
+}
 
 const platformNavigationByProfile = Object.freeze({
   compact: async (page) => {
     await page.getByRole('button', { name: 'Abrir navegación' }).click();
-    const projects = page.getByRole('link', { name: 'Proyectos', exact: true });
+    const drawer = page.locator('aside').filter({ has: page.getByRole('button', { name: 'Cerrar navegación' }) });
+    await expect(drawer).toBeVisible();
+    const projects = drawer.getByRole('link', { name: 'Proyectos', exact: true });
     await expect(projects).toHaveText('Proyectos');
-    await page.getByRole('button', { name: 'Cerrar navegación' }).click();
-    await expect(projects).toHaveCount(0);
+    await drawer.getByRole('button', { name: 'Cerrar navegación' }).click();
+    await expect(drawer).toHaveCount(0);
   },
-  portrait: (page) => page.getByRole('button', { name: /Colapsar barra lateral|Expandir barra lateral/ }).click(),
-  landscape: (page) => page.getByRole('button', { name: /Colapsar barra lateral|Expandir barra lateral/ }).click(),
-  desktop: (page) => page.getByRole('button', { name: /Colapsar barra lateral|Expandir barra lateral/ }).click(),
-  wide: (page) => page.getByRole('button', { name: /Colapsar barra lateral|Expandir barra lateral/ }).click(),
+  portrait: (page) => exercisePlatformSidebarToggle(page, 'Expandir barra lateral', 'Colapsar barra lateral'),
+  landscape: (page) => exercisePlatformSidebarToggle(page, 'Colapsar barra lateral', 'Expandir barra lateral'),
+  desktop: (page) => exercisePlatformSidebarToggle(page, 'Colapsar barra lateral', 'Expandir barra lateral'),
+  wide: (page) => exercisePlatformSidebarToggle(page, 'Colapsar barra lateral', 'Expandir barra lateral'),
 });
 
 async function exerciseCatalogView(page, scenario, profile) {
   if (scenario.catalogKey === 'frontend/pages/panel/clients/index.vue') {
     await setupPanelClients(page);
-    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel', { waitUntil: 'domcontentloaded' });
     if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) await page.getByRole('button', { name: 'Abrir menú' }).click();
     await page.getByRole('link', { name: 'Clientes', exact: true }).click();
-    await page.getByTestId('clients-module-hosting').click();
+    await expect(page).toHaveURL(/\/panel\/clients(?:\?.*)?$/);
+    await expect(page.getByTestId('client-row-102')).toContainText('Mimittos SAS');
+    if (['compact', 'portrait'].includes(profile)) {
+      await page.getByTestId('clients-mobile-filters').click();
+      await page.getByTestId('clients-module-selector-mobile').selectOption('hosting');
+      await page.getByTestId('clients-subfilter-selector-mobile').selectOption('hosting-charged');
+      await expect(page.getByTestId('clients-mobile-filter-results')).toHaveText('Ver 1 cliente');
+      await page.getByTestId('clients-mobile-filter-results').click();
+    } else {
+      await page.getByTestId('clients-module-hosting').click();
+      await page.getByTestId('filter-tabs-tab-hosting-charged').click();
+    }
     await expect(page.getByTestId('client-row-101')).toContainText('Kore Healths');
+    await expect(page.getByTestId('client-row-102')).toHaveCount(0);
     return page.getByTestId('client-row-101');
   }
 
@@ -203,9 +229,14 @@ async function exerciseCatalogView(page, scenario, profile) {
   }
 
   if (scenario.catalogKey === 'frontend/pages/platform/reset-password.vue') {
-    await setPlatformVerificationState(page, { email: 'ana@responsive.test' });
-    await mockApi(page, async () => null);
-    await page.goto(scenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
+    await mockApi(page, platformHandler());
+    await page.goto('/platform/forgot-password', { waitUntil: 'domcontentloaded' });
+    await page.getByLabel('Email').fill('ana@responsive.test');
+    await page.getByRole('button', { name: 'Enviar código', exact: true }).click();
+    await expect(page).toHaveURL(/\/platform\/verify-code$/);
+    await page.getByLabel('Código').fill('123456');
+    await page.getByRole('button', { name: 'Verificar', exact: true }).click();
+    await expect(page).toHaveURL(/\/platform\/reset-password$/);
     await page.getByLabel('Nueva contraseña').fill('secure123');
     await page.getByLabel('Confirmar contraseña').fill('secure123');
     await expect(page.getByLabel('Confirmar contraseña')).toHaveValue('secure123');
@@ -213,15 +244,22 @@ async function exerciseCatalogView(page, scenario, profile) {
   }
 
   if (scenario.catalogKey === 'frontend/pages/platform/verify-code.vue') {
-    await setPlatformVerificationState(page, { email: 'ana@responsive.test' });
-    await mockApi(page, async () => null);
-    await page.goto(scenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
+    await mockApi(page, platformHandler());
+    await page.goto('/platform/forgot-password', { waitUntil: 'domcontentloaded' });
+    await page.getByLabel('Email').fill('ana@responsive.test');
+    await page.getByRole('button', { name: 'Enviar código', exact: true }).click();
+    await expect(page).toHaveURL(/\/platform\/verify-code$/);
     await page.getByLabel('Código').fill('123456');
     await expect(page.getByLabel('Código')).toHaveValue('123456');
     return page.getByLabel('Código');
   }
 
-  await setupPlatform(page);
+  await setupPlatform(
+    page,
+    scenario.catalogKey === 'frontend/pages/platform/documents/index.vue'
+      ? mockPlatformClient
+      : mockPlatformAdmin,
+  );
   // quality: allow-deep-link (catalog dynamic pages need their resolved fixture id; each route then drives a visible UI control)
   await page.goto(scenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
   await platformNavigationByProfile[profile](page);
@@ -234,15 +272,17 @@ async function exerciseCatalogView(page, scenario, profile) {
     'frontend/pages/platform/projects/[id]/board.vue': 'Diseño de landing',
     'frontend/pages/platform/projects/[id]/bugs.vue': 'El botón no guarda',
     'frontend/pages/platform/projects/[id]/changes.vue': 'Agregar reporte de auditoría',
-    'frontend/pages/platform/projects/[id]/collection-accounts.vue': 'CC-001',
+    'frontend/pages/platform/projects/[id]/collection-accounts.vue': 'CC-001 · Emitida',
     'frontend/pages/platform/projects/[id]/data-model.vue': 'Cliente',
     'frontend/pages/platform/projects/[id]/deliverables/index.vue': 'Manual de marca',
-    'frontend/pages/platform/projects/[id]/payments.vue': 'Hosting trimestral',
+    'frontend/pages/platform/projects/[id]/payments.vue': 'Hosting Trimestral',
     'frontend/pages/platform/clients/index.vue': 'Client E2E',
     'frontend/pages/platform/clients/[id].vue': 'client@e2e.test',
     'frontend/pages/platform/projects/[id]/access.vue': 'https://portal-responsive.test',
   }[scenario.catalogKey];
-  const fixtureContent = page.getByText(expected, { exact: true });
+  const fixtureContent = scenario.catalogKey === 'frontend/pages/platform/projects/[id]/index.vue'
+    ? page.getByRole('heading', { level: 1, name: expected, exact: true })
+    : page.getByText(expected, { exact: true });
   await expect(fixtureContent).toHaveText(expected);
   return fixtureContent;
 }
@@ -254,6 +294,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       test(`${scenario.label} keeps its responsive fixture and actionable control`, {
         tag: [`@flow:${flowForScenario[scenario.catalogKey]}`, '@outcome:display', '@responsive:clients', `@responsive-scenario:${scenario.catalogKey}`, `@responsive-batch:${batchForScenario(scenario.catalogKey)}`, `@viewport:${profile}`],
       }, async ({ page }, testInfo) => {
+        // quality: allow-deep-link (the catalog matrix isolates each resolved platform route and fixture id; every cell still exercises its visible responsive navigation control before asserting route-specific data)
         const priorityLocator = await exerciseCatalogView(page, scenario, profile);
         // The route helper already asserts its fixture value; keeping this
         // direct count binds the generated catalog test to that concrete node.
@@ -266,19 +307,6 @@ for (const profile of RESPONSIVE_PROFILES) {
 
 test.describe('clients responsive special', () => {
   test.use(viewportUse('compact'));
-  test('two-level hosting filter leaves the first client card reachable before the fold', {
-    tag: ['@flow:admin-clients-filter-presets', '@outcome:success', '@responsive-special:clients', '@viewport:compact', '@responsive-batch:clients-special-1'],
-  }, async ({ page }) => {
-    await setupPanelClients(page);
-    // quality: allow-deep-link (the catalog client scenario covers sidebar entry; this pins the compact two-level filter regression)
-    await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
-    await page.getByTestId('clients-mobile-filters').click();
-    await page.getByTestId('clients-module-selector-mobile').selectOption('hosting');
-    await page.getByTestId('clients-subfilter-selector-mobile').selectOption('hosting-charged');
-    await page.getByTestId('clients-mobile-filter-results').click();
-    await expect(page.getByTestId('client-row-101')).toContainText('Kore Healths');
-  });
-
   test('client card moves a proposal through its explicit touch reassignment action', {
     tag: ['@flow:admin-client-drag-reassign', '@outcome:success', '@responsive-special:clients', '@viewport:compact', '@responsive-batch:clients-special-1'],
   }, async ({ page }) => {

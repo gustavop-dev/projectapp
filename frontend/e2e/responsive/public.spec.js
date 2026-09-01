@@ -16,8 +16,14 @@ const diagnostic = { uuid, title: 'Diagnóstico responsive', client_name: 'Clien
 const visualKeys = [
   'frontend/pages/index.vue', 'frontend/pages/landing-apps.vue', 'frontend/pages/landing-software.vue', 'frontend/pages/landing-web-design.vue', 'frontend/pages/about-us.vue', 'frontend/pages/contact.vue', 'frontend/pages/contact-success.vue', 'frontend/pages/portfolio-works/index.vue', 'frontend/pages/portfolio-works/[slug].vue', 'frontend/pages/blog/index.vue', 'frontend/pages/blog/[slug].vue', 'frontend/pages/lk/[handle].vue', 'frontend/pages/privacy-policy.vue', 'frontend/pages/terms-and-conditions.vue', 'frontend/pages/auth/linkedin/callback.vue', 'frontend/pages/[...slug].vue', 'frontend/pages/additional-modules/index.vue', 'frontend/pages/additional-modules/share/[uuid].vue', 'frontend/pages/proposal/[uuid]/index.vue', 'frontend/pages/diagnostic/[uuid]/index.vue',
 ].map(getResponsiveScenario);
+const linkedInCallbackScenario = getResponsiveScenario('frontend/pages/auth/linkedin/callback.vue');
+const fallbackScenario = getResponsiveScenario('frontend/pages/[...slug].vue');
+const interactiveVisualKeys = visualKeys.filter((scenario) => (
+  scenario.catalogKey !== linkedInCallbackScenario.catalogKey
+  && scenario.catalogKey !== fallbackScenario.catalogKey
+));
 const flows = {
-  'frontend/pages/index.vue': 'public-home', 'frontend/pages/landing-apps.vue': 'public-landing-apps', 'frontend/pages/landing-software.vue': 'public-landing-software', 'frontend/pages/landing-web-design.vue': 'public-landing-web-design', 'frontend/pages/about-us.vue': 'public-about-us', 'frontend/pages/contact.vue': 'public-contact-submit', 'frontend/pages/contact-success.vue': 'public-contact-submit', 'frontend/pages/portfolio-works/index.vue': 'public-portfolio', 'frontend/pages/portfolio-works/[slug].vue': 'public-portfolio-detail', 'frontend/pages/blog/index.vue': 'blog-list', 'frontend/pages/blog/[slug].vue': 'blog-detail', 'frontend/pages/lk/[handle].vue': 'public-linktree-view', 'frontend/pages/privacy-policy.vue': 'public-privacy-policy', 'frontend/pages/terms-and-conditions.vue': 'public-terms-conditions', 'frontend/pages/auth/linkedin/callback.vue': 'admin-blog-linkedin-connect', 'frontend/pages/[...slug].vue': 'proposal-slug-access', 'frontend/pages/additional-modules/index.vue': 'public-additional-modules-detail', 'frontend/pages/additional-modules/share/[uuid].vue': 'public-additional-modules-share', 'frontend/pages/proposal/[uuid]/index.vue': 'proposal-view-navigation', 'frontend/pages/diagnostic/[uuid]/index.vue': 'diagnostic-public-view',
+  'frontend/pages/index.vue': 'public-home', 'frontend/pages/landing-apps.vue': 'public-landing-apps', 'frontend/pages/landing-software.vue': 'public-landing-software', 'frontend/pages/landing-web-design.vue': 'public-landing-web-design', 'frontend/pages/about-us.vue': 'public-about-us', 'frontend/pages/contact.vue': 'public-contact-submit', 'frontend/pages/contact-success.vue': 'public-contact-submit', 'frontend/pages/portfolio-works/index.vue': 'public-portfolio', 'frontend/pages/portfolio-works/[slug].vue': 'public-portfolio-detail', 'frontend/pages/blog/index.vue': 'blog-list', 'frontend/pages/blog/[slug].vue': 'blog-detail', 'frontend/pages/lk/[handle].vue': 'public-linktree-view', 'frontend/pages/privacy-policy.vue': 'public-privacy-policy', 'frontend/pages/terms-and-conditions.vue': 'public-terms-conditions', 'frontend/pages/auth/linkedin/callback.vue': 'admin-blog-linkedin-connect', 'frontend/pages/[...slug].vue': 'public-route-not-found', 'frontend/pages/additional-modules/index.vue': 'public-additional-modules-detail', 'frontend/pages/additional-modules/share/[uuid].vue': 'public-additional-modules-share', 'frontend/pages/proposal/[uuid]/index.vue': 'proposal-view-navigation', 'frontend/pages/diagnostic/[uuid]/index.vue': 'diagnostic-public-view',
 };
 const outcomes = {
   'frontend/pages/auth/linkedin/callback.vue': 'error',
@@ -27,11 +33,14 @@ const resolvedRoutes = {
   'frontend/pages/portfolio-works/index.vue': '/en-us/portfolio-works',
   'frontend/pages/portfolio-works/[slug].vue': '/en-us/portfolio-works/responsive-fixture',
   'frontend/pages/blog/index.vue': '/en-us/blog',
-  'frontend/pages/blog/[slug].vue': '/en-us/blog',
+  'frontend/pages/blog/[slug].vue': '/en-us/blog/responsive-fixture',
+  'frontend/pages/proposal/[uuid]/index.vue': `/en-us/proposal/${uuid}`,
+  'frontend/pages/diagnostic/[uuid]/index.vue': `/en-us/diagnostic/${uuid}`,
   'frontend/pages/[...slug].vue': '/responsive-e2e-not-found',
 };
 
 async function setupPublic(page) {
+  await page.addInitScript(() => localStorage.setItem('proposal_onboarding_seen', 'true'));
   await mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'portfolio/' && method === 'GET') return json([work]);
     if (apiPath === 'portfolio/responsive-fixture/' && method === 'GET') return json(work);
@@ -95,20 +104,16 @@ async function exercise(page, scenario) {
     'frontend/pages/about-us.vue': { action: async () => { await switchToSpanish(page); return page.getByRole('heading', { level: 1, name: /Buscamos la\s+Perfección\s+Todo el Tiempo/ }); }, assert: (locator) => expect(locator).toContainText('Buscamos la') },
     'frontend/pages/contact.vue': { action: async () => { const fullName = page.getByPlaceholder('Full name'); await fullName.fill('Contacto responsive'); await page.getByRole('button', { name: /500-5K/ }).click(); return fullName; }, assert: (locator) => expect(locator).toHaveValue('Contacto responsive') },
     'frontend/pages/contact-success.vue': { action: async () => { await switchToSpanish(page); return page.getByRole('heading', { level: 1, name: '¡Gracias por contactarnos! ✨', exact: true }); }, assert: (locator) => expect(locator).toContainText('¡Gracias por contactarnos!') },
-    'frontend/pages/portfolio-works/index.vue': { action: async () => { await page.getByRole('link', { name: 'Proyecto responsive' }).click(); await expect(page).toHaveURL('/en-us/portfolio-works/responsive-fixture'); return page.getByRole('heading', { name: 'Proyecto responsive', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Proyecto responsive') },
-    'frontend/pages/portfolio-works/[slug].vue': { action: async () => { await page.getByRole('link', { name: 'All projects', exact: true }).click(); await expect(page).toHaveURL('/en-us/portfolio-works'); return page.getByRole('link', { name: 'Proyecto responsive' }); }, assert: (locator) => expect(locator).toContainText('Proyecto responsive') },
-    'frontend/pages/blog/index.vue': { action: async () => { await page.getByRole('link', { name: 'Artículo responsive' }).click(); await expect(page).toHaveURL('/en-us/blog/responsive-fixture'); return page.getByRole('heading', { name: 'Artículo responsive', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Artículo responsive') },
-    'frontend/pages/blog/[slug].vue': { action: async () => { await page.getByRole('link', { name: 'Artículo responsive' }).click(); await expect(page).toHaveURL('/en-us/blog/responsive-fixture'); await expect(page.getByRole('heading', { name: 'Artículo responsive', exact: true })).toBeVisible(); await page.getByRole('link', { name: 'Back to blog', exact: true }).click(); await expect(page).toHaveURL('/en-us/blog'); return page.getByRole('link', { name: 'Artículo responsive' }); }, assert: (locator) => expect(locator).toContainText('Artículo responsive') },
+    'frontend/pages/portfolio-works/index.vue': { action: async () => { await page.getByRole('list', { name: 'Portfolio projects' }).getByRole('link', { name: /^Proyecto responsive/ }).click(); await expect(page).toHaveURL('/en-us/portfolio-works/responsive-fixture'); await page.getByRole('link', { name: 'All projects', exact: true }).click(); await expect(page).toHaveURL('/en-us/portfolio-works'); return page.getByRole('list', { name: 'Portfolio projects' }).getByRole('link', { name: /^Proyecto responsive/ }); }, assert: (locator) => expect(locator).toContainText('Proyecto responsive') },
+    'frontend/pages/portfolio-works/[slug].vue': { action: async () => { await page.getByRole('link', { name: 'All projects', exact: true }).click(); await expect(page).toHaveURL('/en-us/portfolio-works'); await page.getByRole('list', { name: 'Portfolio projects' }).getByRole('link', { name: /^Proyecto responsive/ }).click(); await expect(page).toHaveURL('/en-us/portfolio-works/responsive-fixture'); return page.getByRole('heading', { name: 'Proyecto responsive', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Proyecto responsive') },
+    'frontend/pages/blog/index.vue': { action: async () => { await page.getByRole('link', { name: 'Artículo responsive', exact: true }).click(); await expect(page).toHaveURL('/en-us/blog/responsive-fixture'); await page.getByRole('link', { name: 'Back to blog', exact: true }).click(); await expect(page).toHaveURL('/en-us/blog'); return page.getByRole('link', { name: 'Artículo responsive', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Artículo responsive') },
+    'frontend/pages/blog/[slug].vue': { action: async () => { await page.getByRole('link', { name: 'Back to blog', exact: true }).click(); await expect(page).toHaveURL('/en-us/blog'); await page.getByRole('link', { name: 'Artículo responsive', exact: true }).click(); await expect(page).toHaveURL('/en-us/blog/responsive-fixture'); return page.getByRole('heading', { name: 'Artículo responsive', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Artículo responsive') },
     'frontend/pages/lk/[handle].vue': { action: () => downloadLinktreeContact(page), assert: (locator) => expect(locator).toHaveText('Guardar contacto') },
     'frontend/pages/privacy-policy.vue': { action: async () => { await switchToSpanish(page); return page.getByRole('heading', { level: 1, name: 'Política de Privacidad', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Política de Privacidad') },
     'frontend/pages/terms-and-conditions.vue': { action: async () => { await switchToSpanish(page); return page.getByRole('heading', { level: 1, name: 'Términos y Condiciones', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Términos y Condiciones') },
-    // quality: allow-no-interaction (OAuth callback failure is a terminal browser return with no safe in-page action)
-    'frontend/pages/auth/linkedin/callback.vue': { action: async () => page.getByText('No se recibió código de autorización.', { exact: true }), assert: (locator) => expect(locator).toHaveText('No se recibió código de autorización.') },
-    // quality: allow-no-interaction (catch-all is the terminal public layout state and intentionally has no control)
-    'frontend/pages/[...slug].vue': { action: async () => page.getByText('Page not found', { exact: true }), assert: (locator) => expect(locator).toHaveText('Page not found') },
     'frontend/pages/additional-modules/index.vue': { action: async () => { await page.getByTestId('additional-module-card-responsive-module').click(); return page.getByTestId('additional-module-detail-modal'); }, assert: (locator) => expect(locator).toContainText('Módulo responsive') },
     'frontend/pages/additional-modules/share/[uuid].vue': { action: async () => { await page.getByTestId('additional-module-card-responsive-module').click(); return page.getByTestId('additional-module-detail-modal'); }, assert: (locator) => expect(locator).toContainText('Módulo responsive') },
-    'frontend/pages/proposal/[uuid]/index.vue': { action: async () => { await openProposalExecutiveView(page); return page.getByTestId('nav-next'); }, assert: (locator) => expect(locator).toContainText('Siguiente') },
+    'frontend/pages/proposal/[uuid]/index.vue': { action: async () => { await openProposalExecutiveView(page); const next = page.getByTestId('nav-next'); await expect(next).toBeVisible({ timeout: 35_000 }); return next; }, assert: (locator) => expect(locator).toContainText('Siguiente') },
     'frontend/pages/diagnostic/[uuid]/index.vue': { action: async () => { await page.getByTestId('diagnostic-start-journey').click(); return page.getByText('Propósito', { exact: true }); }, assert: (locator) => expect(locator).toHaveText('Propósito') },
   }[scenario.catalogKey];
   const priorityLocator = await entries.action();
@@ -119,13 +124,31 @@ async function exercise(page, scenario) {
 for (const profile of RESPONSIVE_PROFILES) {
   test.describe(`public catalog · ${profile}`, { tag: [`@viewport:${profile}`] }, () => {
     test.use(viewportUse(profile));
-    for (const scenario of visualKeys) {
+    for (const scenario of interactiveVisualKeys) {
       test(`${scenario.label} keeps fixture content reachable after its CTA`, { tag: [`@flow:${flows[scenario.catalogKey]}`, `@outcome:${outcomes[scenario.catalogKey] ?? 'display'}`, '@responsive:public', `@responsive-scenario:${scenario.catalogKey}`, `@responsive-batch:${batchForScenario(scenario.catalogKey)}`, `@viewport:${profile}`] }, async ({ page }, testInfo) => {
         const priorityLocator = await exercise(page, scenario);
         await expect(priorityLocator).toHaveCount(1);
         await assertResponsiveScenario(page, testInfo, scenario, { profile, priorityLocator });
       });
     }
+
+    test('LinkedIn callback failure keeps its explicit browser-return message visible', { tag: ['@flow:admin-blog-linkedin-connect', '@outcome:error', '@responsive:public', `@responsive-scenario:${linkedInCallbackScenario.catalogKey}`, `@responsive-batch:${batchForScenario(linkedInCallbackScenario.catalogKey)}`, `@viewport:${profile}`] }, async ({ page }, testInfo) => {
+      await setupPublic(page);
+      // quality: allow-no-interaction (the query-free OAuth callback is a terminal browser return and has no safe in-page action)
+      await page.goto(linkedInCallbackScenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
+      const priorityLocator = page.getByText('No se recibió código de autorización.', { exact: true });
+      await expect(priorityLocator).toHaveText('No se recibió código de autorización.');
+      await assertResponsiveScenario(page, testInfo, linkedInCallbackScenario, { profile, priorityLocator });
+    });
+
+    test('catch-all keeps its public not-found state inside the responsive shell', { tag: ['@flow:public-route-not-found', '@outcome:failure', '@responsive:public', `@responsive-scenario:${fallbackScenario.catalogKey}`, `@responsive-batch:${batchForScenario(fallbackScenario.catalogKey)}`, `@viewport:${profile}`] }, async ({ page }, testInfo) => {
+      await setupPublic(page);
+      // quality: allow-no-interaction (the catch-all is a terminal public-layout state and intentionally exposes no control)
+      await page.goto(resolvedRoutes[fallbackScenario.catalogKey], { waitUntil: 'domcontentloaded' });
+      const priorityLocator = page.getByText('Page not found', { exact: true });
+      await expect(priorityLocator).toHaveText('Page not found');
+      await assertResponsiveScenario(page, testInfo, fallbackScenario, { profile, priorityLocator });
+    });
   });
 }
 
@@ -133,7 +156,7 @@ test.describe('public responsive CTA specials', () => {
   test.use(viewportUse('compact'));
   test('proposal next CTA advances past the fixture greeting', { tag: ['@flow:proposal-view-navigation', '@outcome:success', '@responsive-special:public', '@viewport:compact', '@responsive-batch:public-special-1'] }, async ({ page }) => {
     await setupPublic(page); await page.addInitScript(() => localStorage.setItem('proposal_onboarding_seen', 'true'));
-    await page.goto(`/proposal/${uuid}`, { waitUntil: 'domcontentloaded' }); await openProposalExecutiveView(page); await page.getByTestId('nav-next').click();
+    await page.goto(`/en-us/proposal/${uuid}`, { waitUntil: 'domcontentloaded' }); await openProposalExecutiveView(page); await page.getByTestId('nav-next').click();
     await expect(page.getByText('Resultado concreto', { exact: true })).toBeVisible();
   });
 });
