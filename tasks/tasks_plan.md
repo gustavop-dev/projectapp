@@ -1,5 +1,11 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-09-01:** la acción de fila de Clientes dice
+> **Archivar** o **Desarchivar** y usa el catálogo semántico correspondiente.
+> Conserva el mecanismo existente de Archivados y no modifica **Desactivar
+> acceso** en la plataforma. Dos unitarias, cuatro E2E y el guard del panel están
+> verdes.
+
 > **Listo para integrar — 2026-08-31:** el catálogo de estados de Proyectos
 > reemplaza las listas rojas por requisitos y errores bajo cada campo después
 > del intento. La fusión distingue la selección faltante, que se corrige inline,
@@ -67,6 +73,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Clients — archive row action semantics | 🟡 Ready for merge | 2026-09-01. `/panel/clients` uses the canonical `archive`/`restore` actions and displays the visible tooltips **Archivar**/**Desarchivar**. The existing preview, confirmation, cascade, archived filter and API contract stay unchanged; platform access deactivation remains a separate action. Two focused unit tests, all four archived-client E2E scenarios and the panel action guard pass. |
 | Projects — inline state-catalog validation | 🟡 Ready for merge | 2026-08-31. Create/edit/merge validation in `/panel/projects/statuses` uses `BaseFormField` beside the relevant control after an attempted action; required markers cover name, description and operational effect. Serializer field errors stay attached to their field and clear on input. A missing merge target is actionable inline feedback, while immutable seed restrictions remain accessible help on the disabled action. Documents retain their existing catalog behavior. Six unit tests, all 14 affected E2E scenarios, the disabled-control guard, Nuxt build and flow audit are green. |
 | Transversal — reacción visible de iconos interactivos | 🟡 Ready for merge | 2026-08-31. Todos los controles icon-only ejecutables de panel, plataforma y superficies públicas comparten una reacción inmediata; copiar confirma sólo después de escribir al portapapeles y diferencia éxito/fallo mediante estado visible y accesible. El glifo permanece estable, async conserva loading, touch/teclado tienen paridad y reduced motion reemplaza escala por halo. Verificación: 27 unitarias focales, 2 E2E, build, 536 SFC válidos, flow audit y guards en verde. |
 | Documents — safe project/client reconciliation | 🟡 Ready for merge | Updated 2026-08-30. Every canonical project appears even with zero content; a visit-local toggle reveals non-operational projects inclusively while the separate archive toggle still filters content. `DocumentFolder.managed_project` identifies the canonical root. Manifest v5 promotes G&M, Vástago, Xpandia, Kore and Tenndalux, creates roots for Mimittos, PRUEBA and Candle, nests Germán under Kore, files document 120 and explicitly assigns loose documents 1–5/135/157/154/159. Carlos, Gustavo, Aarón, Littigio, ProjectApp and Requirement Estimates stay untouched. Apply requires a reviewed hash, unchanged fingerprint, verified backup and inverse snapshot. Production remains untouched pending deploy and the operator runbook. |
