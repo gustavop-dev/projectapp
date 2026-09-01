@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-09-01:** el modal de cambio de estado de
+> Proyectos conserva los avisos amarillos de contexto, ordena estado → revisión
+> → impacto → acciones y ubica cada requisito rojo bajo su control. El footer
+> queda limpio con Cancelar/Confirmar. Verificación focal: 4 unitarias, 7
+> escenarios del flujo, 5 viewports responsive, guards de diseño y mapa E2E
+> fresco con las cuatro clases de outcome cubiertas.
+
 > **Calendario contable listo para integrar — 2026-09-01:** se auditó el calendario ya
 > implementado y se fijaron como contrato los hitos 15/7/día, la recurrencia
 > quincenal por defecto, la pausa individual visible y los destinatarios

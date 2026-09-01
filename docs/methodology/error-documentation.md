@@ -7,6 +7,12 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-01 — avisos bajo Confirmar cambio:** el modal de transición
+> acumulaba requisitos corregibles debajo del CTA y mezclaba contenido, impacto
+> y acciones. Ahora los mensajes viven bajo estado, decisión de ingreso o nota;
+> el preview conserva sus fallos en Revisar consecuencias, la confirmación los
+> muestra con el impacto y el footer sólo contiene las dos acciones finales.
+
 > **Resuelto 2026-09-01 — vistas internas y defaults del catálogo:** las
 > aperturas del propio equipo podían contaminar las señales comerciales, el
 > idioma inicial heredaba el locale del panel y el catálogo público conservaba
@@ -85,6 +91,13 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-051] El modal de cambio de estado acumulaba avisos bajo la confirmación
+- **Date**: 2026-09-01
+- **Context**: Panel de Proyectos, al revisar o intentar una transición con estado, decisiones de ingresos o nota pendientes.
+- **Root Cause**: `applyBlockReasons` se renderizaba como un bloque rojo global dentro del footer, aunque cada razón pertenecía a un control distinto.
+- **Resolution**: Mantener una única fuente de razones de bloqueo, proyectar cada mensaje mediante `BaseFormField`, separar errores de preview/aplicación y reservar `BaseModalActions` para Cancelar/Confirmar.
+- **Files Affected**: `frontend/components/panel/projects/ProjectStateTransitionModal.vue`, sus pruebas unitarias y el flujo E2E `admin-project-lifecycle-states`.
 
 ### [ERR-050] El digest mostraba la representación técnica del cliente
 - **Date**: 2026-09-01

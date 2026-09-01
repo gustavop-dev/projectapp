@@ -1,5 +1,12 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-09-01 — cambio de estado de Proyectos:** el modal presenta
+> el flujo en orden: nuevo estado, revisión de consecuencias, decisiones de
+> impacto y acciones finales. Los avisos amarillos del proyecto se conservan
+> como contexto bajo el encabezado; cada requisito corregible rojo aparece
+> junto al campo que lo origina y desaparece al resolverlo. La fila final queda
+> reservada exclusivamente para Cancelar y Confirmar cambio.
+
 > **Aceptación 2026-09-01 — calendario contable:** ingresos esperados, gastos
 > recurrentes y vencimientos de hosting comparten un digest interno diario.
 > Ingresos y recurrentes usan hitos a 15 días, 7 días y el día previsto; hosting
