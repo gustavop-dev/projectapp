@@ -173,7 +173,10 @@ test.describe('Admin Clients Archived Tab', () => {
     await gotoClients(page);
 
     await expect(page.getByText('Carlos López')).toBeVisible();
-    await page.getByTestId('client-toggle-archived-101').click();
+    const archiveToggle = page.getByTestId('client-toggle-archived-101');
+    await archiveToggle.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Archivar');
+    await archiveToggle.click();
 
     // The warning has to name the cost before the confirm turns on: suspending
     // the project cancels its future income and nothing brings it back.
@@ -228,7 +231,10 @@ test.describe('Admin Clients Archived Tab', () => {
     await archivedRequest;
     await expect(page.getByText('Dora Dormida')).toBeVisible();
 
-    await page.getByTestId('client-toggle-archived-104').click();
+    const unarchiveToggle = page.getByTestId('client-toggle-archived-104');
+    await unarchiveToggle.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Desarchivar');
+    await unarchiveToggle.click();
 
     // Unarchiving says out loud that the projects stay suspended: their
     // cancelled incomes do not come back, so reactivating is a separate call.
