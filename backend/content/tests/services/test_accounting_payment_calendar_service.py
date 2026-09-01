@@ -3,14 +3,16 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from accounts.models import Project
+from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 from django.core import mail
 
 from content.models import (
     AccountingSettings,
     EmailLog,
+    EmailLogTarget,
     ExpenseRecord,
+    HostingRecord,
     IncomeRecord,
     NotificationRecipient,
     RecurringPayment,
@@ -19,6 +21,7 @@ from content.services.accounting_payment_calendar_service import (
     TEMPLATE_KEY,
     run_payment_calendar,
 )
+from content.services.email_delivery_service import EmailDeliveryGateway
 
 pytestmark = pytest.mark.django_db
 
@@ -73,6 +76,21 @@ def make_recurring(**overrides):
     }
     fields.update(overrides)
     return RecurringPayment.objects.create(**fields)
+
+
+def make_hosting(days_left=7, **overrides):
+    fields = {
+        'client_name': 'German - Kore',
+        'domain_url': 'https://korehealths.com/',
+        'monthly_value': Decimal('91667.00'),
+        'payment_modality': 'semiannual',
+        'payment_per_cycle': Decimal('550002.00'),
+        'valid_from': TODAY - timedelta(days=180),
+        'valid_to': TODAY + timedelta(days=days_left),
+        'is_active': True,
+    }
+    fields.update(overrides)
+    return HostingRecord.objects.create(**fields)
 
 
 def sent_logs():
@@ -233,6 +251,14 @@ class TestRecurring:
         make_recurring(cycle_anchor_date=TODAY + timedelta(days=15))
         assert run_payment_calendar(TODAY) == 1
 
+    def test_announces_the_next_charge_at_7_days(self):
+        make_recurring(cycle_anchor_date=TODAY + timedelta(days=7))
+        assert run_payment_calendar(TODAY) == 1
+
+    def test_announces_the_next_charge_on_its_due_day(self):
+        make_recurring(cycle_anchor_date=TODAY)
+        assert run_payment_calendar(TODAY) == 1
+
     def test_goes_quiet_after_the_charge_day(self):
         payment = make_recurring(cycle_anchor_date=TODAY)
         assert run_payment_calendar(TODAY) == 1
@@ -305,6 +331,35 @@ class TestDelivery:
         assert 'INGRESOS ESPERADOS' in body
         assert 'GASTOS RECURRENTES' in body
 
+    def test_income_line_renders_complete_details(self):
+        user = User.objects.create_user(
+            username='ana@example.com', email='ana@example.com',
+            first_name='Ana', last_name='Perez',
+        )
+        client = UserProfile.objects.create(user=user, company_name='Acme')
+        make_expected(days_left=7, client=client)
+
+        run_payment_calendar(TODAY)
+
+        body = mail.outbox[0].body
+        assert 'Ana Perez' in body
+        assert "$1'000.000" in body
+        assert 'Vie, 17 jul 2026' in body
+
+    def test_client_address_is_not_a_calendar_recipient(self):
+        user = User.objects.create_user(
+            username='cliente@example.com', email='cliente@example.com',
+        )
+        client = UserProfile.objects.create(user=user, company_name='Acme')
+        make_expected(days_left=7, client=client)
+
+        run_payment_calendar(TODAY)
+
+        assert set(mail.outbox[0].to) == {
+            'team@projectapp.co', 'carlos@projectapp.co',
+        }
+        assert user.email not in mail.outbox[0].to
+
     def test_one_log_row_per_recipient_naming_every_record(self):
         record = make_expected(days_left=7)
         run_payment_calendar(TODAY)
@@ -313,6 +368,71 @@ class TestDelivery:
         assert metadata['counts']['incomes'] == 1
         assert metadata['overdue_every_days'] == 14
         assert metadata['incomes'][0]['id'] == record.pk
+
+    def test_log_targets_link_every_record_in_the_digest(self):
+        """Fails if a sent digest leaves any internal recipient without a target."""
+        income = make_expected(days_left=7)
+        recurring = make_recurring(cycle_anchor_date=TODAY + timedelta(days=15))
+        hosting = make_hosting(days_left=7)
+
+        assert run_payment_calendar(TODAY) == 3
+
+        logs = sent_logs()
+        assert logs.count() == 2
+        assert logs.filter(
+            targets__entity_type='income', targets__object_id=income.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='recurring', targets__object_id=recurring.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='hosting', targets__object_id=hosting.pk,
+        ).distinct().count() == 2
+        assert EmailLogTarget.objects.filter(email_log__in=logs).count() == 6
+
+    def test_failed_delivery_does_not_advance_income_cadence(self, monkeypatch):
+        def fail_send(*args, **kwargs):
+            raise RuntimeError('SMTP unavailable')
+
+        monkeypatch.setattr(EmailDeliveryGateway, 'send', fail_send)
+        record = make_expected(days_left=7)
+
+        assert run_payment_calendar(TODAY) == 0
+
+        record.refresh_from_db()
+        assert record.reminder_last_sent_at is None
+        assert record.reminder_count == 0
+
+    def test_failed_delivery_is_diagnosable_from_the_log(self, monkeypatch):
+        """Fails if a failed digest omits targets from any internal recipient log."""
+        def fail_send(*args, **kwargs):
+            raise RuntimeError('SMTP unavailable')
+
+        monkeypatch.setattr(EmailDeliveryGateway, 'send', fail_send)
+        income = make_expected(days_left=7)
+        recurring = make_recurring(cycle_anchor_date=TODAY + timedelta(days=15))
+        hosting = make_hosting(days_left=7)
+
+        run_payment_calendar(TODAY)
+
+        logs = EmailLog.objects.filter(
+            template_key=TEMPLATE_KEY, status=EmailLog.Status.FAILED,
+        )
+        assert logs.count() == 2
+        assert set(logs.values_list('recipient', flat=True)) == {
+            'team@projectapp.co', 'carlos@projectapp.co',
+        }
+        assert 'SMTP unavailable' in logs.first().error_message
+        assert logs.filter(
+            targets__entity_type='income', targets__object_id=income.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='recurring', targets__object_id=recurring.pk,
+        ).distinct().count() == 2
+        assert logs.filter(
+            targets__entity_type='hosting', targets__object_id=hosting.pk,
+        ).distinct().count() == 2
+        assert EmailLogTarget.objects.filter(email_log__in=logs).count() == 6
 
     def test_without_recipients_nothing_is_sent_and_no_state_advances(self, _recipients):
         NotificationRecipient.objects.all().delete()

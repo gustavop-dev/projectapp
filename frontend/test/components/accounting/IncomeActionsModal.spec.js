@@ -73,6 +73,15 @@ describe('IncomeActionsModal', () => {
       .toBe('Reactivar avisos');
   });
 
+  // Falla si un ingreso ya pagado vuelve a ofrecer seguimiento de cobro.
+  it('omits reminder controls for a paid expected income', () => {
+    const wrapper = mountModal({ ...EXPECTED, payment_status: 'paid' });
+    const actions = actionIds(wrapper);
+
+    expect(actions).toContain('detail');
+    expect(actions).not.toContain('toggle-mute');
+  });
+
   it('swaps generar for ver when the income already has a cuenta', () => {
     const wrapper = mountModal({
       ...EXPECTED,

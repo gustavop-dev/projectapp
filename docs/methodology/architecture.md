@@ -1,5 +1,24 @@
 # Architecture — ProjectApp
 
+> **Modal de transición ordenado 2026-09-01:**
+> `ProjectStateTransitionModal` compone `BaseFormField` para que estado destino,
+> decisión por ingreso y nota sean dueños de su validación visible y ARIA.
+> `reviewAttempted` delimita los errores previos al preview; las fallas del
+> preview y de la confirmación permanecen en la sección que ejecuta cada acción.
+> `BaseModalActions` contiene únicamente Cancelar/Confirmar y reutiliza las
+> mismas razones de bloqueo para su estado deshabilitado. Catálogo, endpoints y
+> reglas financieras no cambian.
+
+> **Calendario contable validado 2026-09-01:** la tarea Huey
+> `send_payment_calendar` ejecuta diariamente `run_payment_calendar` y reúne en
+> un solo digest los ingresos, recurrentes y hostings que alcanzan su hito. El
+> estado de cadencia sólo avanza después de una entrega aceptada; cada
+> destinatario interno recibe su propio `EmailLog` con `EmailLogTarget` para
+> todos los registros incluidos, también cuando el SMTP falla. La proyección de
+> ingresos carga `client__user` y usa `build_client_display_name`, única fuente
+> canónica para mostrar persona, empresa o correo sin caer en la representación
+> técnica de `UserProfile`.
+
 > **Seguimiento comercial 2026-09-01:** `content.utils.is_staff_session` es la
 > frontera común que consulta la sesión Django subyacente antes de cualquier
 > escritura de analytics comerciales. La usan catálogo adicional, propuestas y
