@@ -86,6 +86,18 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-050] El digest mostraba la representación técnica del cliente
+- **Date**: 2026-09-01
+- **Context**: Las líneas de ingresos esperados intentaban leer `full_name`
+  directamente de `UserProfile`.
+- **Root Cause**: Ese atributo no existe; el fallback `str(profile)` podía
+  producir correo y rol en lugar del nombre que usa el resto del sistema.
+- **Resolution**: Cargar `client__user` y resolver el texto mediante
+  `build_client_display_name`, que prioriza nombre, empresa y correo.
+- **Files Affected**:
+  `backend/content/services/accounting_payment_calendar_service.py`,
+  `backend/content/tests/services/test_accounting_payment_calendar_service.py`.
+
 ### [ERR-049] El catálogo de estados presentaba requisitos como una lista roja
 
 - **Date**: 2026-08-31
