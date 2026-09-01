@@ -1,5 +1,14 @@
 # Product Requirements Document — ProjectApp
 
+> **Seguimiento 2026-09-01 — cierre del catálogo adicional:** las rutas públicas
+> del catálogo, tanto canónica como seleccionada, no muestran el encabezado
+> global. Todo enlace o PDF nuevo parte en español y conserva el selector ES/EN.
+> Una apertura con sesión Django de staff no se registra en módulos adicionales,
+> propuestas —incluidos sus enlaces secundarios e interacciones— ni diagnósticos;
+> una visita sin esa sesión sí cuenta como externa. Las aperturas históricas se
+> conservan sin reclasificación y la política SEO sigue siendo catálogo canónico
+> indexable frente a selecciones `noindex`.
+
 > **Entregado — 2026-08-31:** todo icono ejecutable de panel, plataforma y
 > superficies públicas confirma de inmediato que recibió el clic, incluido si
 > navega, abre o alterna una vista. El glifo no cambia; touch y teclado conservan

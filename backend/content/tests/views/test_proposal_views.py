@@ -1667,6 +1667,25 @@ class TestRetrieveSharedProposal:
         assert share_link.recipient_name == 'Carlos'
         assert share_link.recipient_email == 'carlos@test.com'
 
+    def test_staff_session_leaves_share_tracking_unchanged(
+        self,
+        client,
+        admin_user,
+        share_link,
+    ):
+        client.force_login(admin_user)
+
+        response = client.get(
+            self._url(share_link.uuid) + '?name=Operador&email=team@projectapp.co',
+        )
+
+        share_link.refresh_from_db()
+        assert response.status_code == 200
+        assert share_link.view_count == 0
+        assert share_link.first_viewed_at is None
+        assert share_link.recipient_name == ''
+        assert share_link.recipient_email == ''
+
     def test_does_not_overwrite_existing_recipient(self, api_client, share_link):
         share_link.recipient_name = 'Original'
         share_link.save(update_fields=['recipient_name'])

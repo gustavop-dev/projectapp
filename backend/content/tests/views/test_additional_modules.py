@@ -227,6 +227,23 @@ def test_share_create_persists_fixed_selection(catalog, staff_client):
     assert landing.id not in list(share.selected_modules.values_list('id', flat=True))
 
 
+def test_share_create_defaults_to_spanish(catalog, staff_client):
+    _commerce, _experience, landing, _pwa = catalog
+
+    response = staff_client.post(
+        '/api/additional-modules/admin/shares/',
+        {
+            'recipient_label': 'Campaña en español',
+            'selected_module_ids': [landing.id],
+        },
+        format='json',
+    )
+
+    assert response.status_code == 201
+    assert response.data['language'] == 'es'
+    assert response.data['public_path'].startswith('/es-co/additional-modules/')
+
+
 def test_public_share_hides_internal_recipient_and_metrics(catalog, staff_client):
     _commerce, _experience, landing, _pwa = catalog
     share = create_share(staff_client.user, [landing], recipient_label='Cuenta privada')
@@ -383,6 +400,30 @@ def test_admin_pdf_respects_selected_modules(catalog, staff_client):
     assert landing.name_es in text
     assert pwa.name_es not in text
     assert all(currency not in text for currency in ('$', 'COP', 'USD'))
+
+
+def test_admin_pdf_defaults_to_spanish(catalog, staff_client):
+    _commerce, _experience, landing, _pwa = catalog
+
+    with patch(
+        'content.views.additional_modules.AdditionalModulePdfService.build',
+        return_value=b'%PDF-spanish-default',
+    ) as build_pdf:
+        response = staff_client.post(
+            '/api/additional-modules/admin/pdf/',
+            {'module_ids': [landing.id]},
+            format='json',
+        )
+
+    assert response.status_code == 200
+    assert response['Content-Disposition'] == (
+        'attachment; filename="catalogo-modulos-adicionales.pdf"'
+    )
+    build_pdf.assert_called_once_with(
+        language='es',
+        module_ids=[landing.id],
+        recipient_label='',
+    )
 
 
 def test_admin_pdf_prints_optional_recipient(catalog, staff_client):

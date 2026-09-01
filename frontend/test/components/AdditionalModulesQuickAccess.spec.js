@@ -67,6 +67,14 @@ describe('AdditionalModulesQuickAccess', () => {
     expect(wrapper.text()).not.toMatch(/COP|USD|\$/)
   })
 
+  it('keeps the canonical resource in Spanish inside an English panel', async () => {
+    const wrapper = mountQuickAccess({ language: 'en' })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="additional-modules-public-url"]').element.value)
+      .toBe('http://localhost/es-co/additional-modules')
+  })
+
   it('copies the canonical public URL', async () => {
     const wrapper = mountQuickAccess()
 
@@ -97,7 +105,7 @@ describe('AdditionalModulesQuickAccess', () => {
       data: pdf,
       headers: { 'content-disposition': 'attachment; filename="catalogo-vigente.pdf"' },
     })
-    const wrapper = mountQuickAccess()
+    const wrapper = mountQuickAccess({ language: 'en' })
 
     await wrapper.get('[data-testid="additional-modules-download-full-pdf"]').trigger('click')
     await flushPromises()

@@ -165,6 +165,52 @@ def test_public_retrieve_does_not_increment_view_count(api_client, diagnostic):
     assert diagnostic.view_events.count() == 1
 
 
+def test_staff_session_does_not_track_diagnostic_view(
+    client,
+    admin_user,
+    diagnostic,
+):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    client.force_login(admin_user)
+
+    response = client.post(
+        f'/api/diagnostics/public/{diagnostic.uuid}/track/',
+        {'session_id': 'internal-preview'},
+        content_type='application/json',
+    )
+
+    diagnostic.refresh_from_db()
+    assert response.status_code == 200
+    assert response.json()['status'] == 'skipped'
+    assert diagnostic.view_count == 0
+    assert diagnostic.last_viewed_at is None
+    assert diagnostic.view_events.count() == 0
+
+
+def test_staff_session_does_not_track_diagnostic_section(
+    client,
+    admin_user,
+    diagnostic,
+):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    client.force_login(admin_user)
+
+    response = client.post(
+        f'/api/diagnostics/public/{diagnostic.uuid}/track-section/',
+        {
+            'session_id': 'internal-preview',
+            'section_type': 'purpose',
+            'section_title': 'Propósito',
+            'time_spent_seconds': 8,
+        },
+        content_type='application/json',
+    )
+
+    assert response.status_code == 200
+    assert response.json()['status'] == 'skipped'
+    assert diagnostic.view_events.count() == 0
+
+
 def test_track_section_rejects_non_numeric_time_spent(api_client, diagnostic):
     """Passing a non-numeric time_spent_seconds returns 400, not 500."""
     diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)

@@ -2,6 +2,17 @@
 
 ## Current State
 
+**2026-09-01 — follow-up de Módulos adicionales listo para integrar:** todas las
+rutas públicas del catálogo omiten el Navbar global. El panel prepara URL, PDF
+completo, enlace seleccionado y PDF personalizado en español por defecto, sin
+quitar el selector ES/EN. `is_staff_session` unifica la exclusión de aperturas
+internas en módulos adicionales, propuestas —vista principal, enlaces
+secundarios e interacciones— y diagnósticos —visita y secciones—; no crea marcas
+alternas ni modifica aperturas históricas. Sin sesión iniciada, incluso para el
+equipo, la visita cuenta como externa. La indexación permanece canónica
+`index`/selecciones `noindex`. Verificación: 13 pytest focales, 12 unitarias, 4
+E2E directamente afectados y checks de Django/diseño verdes; sin migraciones.
+
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
 `update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
 el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o

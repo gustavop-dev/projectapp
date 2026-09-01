@@ -1,5 +1,13 @@
 # Task Plan — ProjectApp
 
+> **Follow-up de Módulos adicionales listo para integrar — 2026-09-01:** el
+> catálogo público ya no muestra el Navbar flotante; enlaces y PDF parten en
+> español con cambio explícito a inglés. La sesión staff queda excluida, sin
+> registro paralelo, de todo tracking comercial en catálogo, propuestas y
+> diagnósticos; el histórico permanece intacto y una apertura anónima sigue
+> contando. Verificación focal: 13 pruebas backend, 12 unitarias frontend, 4
+> escenarios E2E y checks de Django/diseño en verde; no requiere migración.
+
 > **Listo para integrar — 2026-08-31:** el catálogo de estados de Proyectos
 > reemplaza las listas rojas por requisitos y errores bajo cada campo después
 > del intento. La fusión distingue la selección faltante, que se corrige inline,

@@ -7,6 +7,15 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-01 — excluir previews en la frontera de escritura:** una
+> vista interna debe reconocerse por una credencial verificable —la sesión
+> Django staff— y detener toda mutación antes de crear eventos, incrementar
+> contadores o completar datos del destinatario. IP, navegador o URL no prueban
+> identidad; si el equipo abre el enlace sin sesión, el sistema debe contarlo
+> como externo. Centralizar la regla evita que catálogo, propuesta y diagnóstico
+> diverjan, y conservar el histórico evita inventar una reclasificación que los
+> datos anteriores no pueden sostener.
+
 > **Lección 2026-08-31 — editar un borrador no debe borrar su historia:** la
 > mutabilidad previa al envío y la trazabilidad no son opuestas. La operación
 > conserva la identidad del mensaje, bloquea la fila, valida el estado final y

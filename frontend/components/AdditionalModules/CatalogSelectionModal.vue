@@ -13,7 +13,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])
-const { locale, t } = useI18n()
+const { t } = useI18n()
 const selectedIds = ref([])
 const localError = ref('')
 const copied = ref(false)
@@ -40,7 +40,7 @@ watch(() => props.modelValue, (open) => {
   selectedIds.value = props.mode === 'pdf' ? activeModules.value.map((module) => module.id) : []
   form.recipient_label = ''
   form.client_id = ''
-  form.language = locale.value.startsWith('en') ? 'en' : 'es'
+  form.language = 'es'
   localError.value = ''
   copied.value = false
   autoRecipientLabel.value = ''
@@ -202,8 +202,8 @@ async function copyGeneratedUrl() {
                 id="additional-share-language"
                 v-model="form.language"
                 :options="[
-                  { value: 'es', label: t('additionalModules.spanish') },
-                  { value: 'en', label: t('additionalModules.english') },
+                  { value: 'es', label: t('additionalModules.spanish'), testId: 'additional-selection-language-es' },
+                  { value: 'en', label: t('additionalModules.english'), testId: 'additional-selection-language-en' },
                 ]"
               />
             </BaseFormField>

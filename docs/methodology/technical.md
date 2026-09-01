@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Follow-up técnico 2026-09-01:** los serializers de enlace seleccionado y
+> PDF administrativo aceptan `language` omitido y aplican `es`; el modal reinicia
+> cada apertura en español y permite elegir inglés, mientras `QuickAccess`
+> siempre proyecta el catálogo canónico y su PDF completo en español. El helper
+> `is_staff_session(request)` lee la sesión Django real aun en endpoints DRF
+> públicos y evita la escritura antes de validar o crear eventos. No hay
+> migración, backfill ni cambio en métricas ya persistidas.
+
 > **Icon feedback 2026-08-31:** `BaseButton` expone `unstyled` sin perder su
 > pulso de activación de 180 ms, foco, semántica ni mínimo táctil de 44 px.
 > `BaseTooltip.forceOpen` permite que `BaseActionButton.statusLabel` sea visible

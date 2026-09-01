@@ -365,6 +365,7 @@ test.describe('Additional modules admin catalog', () => {
     await expect(page.getByText('Enlace listo para compartir')).toBeVisible()
     expect(scenario.sharePayload.selected_module_ids).toEqual([10])
     expect(scenario.sharePayload.recipient_label).toBe('Acme — pagos')
+    expect(scenario.sharePayload.language).toBe('es')
   })
 
   test('shows link-generation server failures inside the selection modal', {
