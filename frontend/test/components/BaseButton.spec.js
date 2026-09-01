@@ -131,7 +131,7 @@ describe('BaseButton', () => {
     beforeEach(() => jest.useFakeTimers())
     afterEach(() => jest.useRealTimers())
 
-    it('keeps an icon visibly active for a short interval after click', async () => {
+    it('keeps an icon visibly active for the complete pulse', async () => {
       const wrapper = mount(BaseButton, {
         props: { iconOnly: true },
         attrs: { 'aria-label': 'Copiar' },
@@ -141,9 +141,58 @@ describe('BaseButton', () => {
       await wrapper.get('button').trigger('click')
       expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
 
-      jest.advanceTimersByTime(180)
+      jest.advanceTimersByTime(359)
+      await wrapper.vm.$nextTick()
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
+
+      jest.advanceTimersByTime(1)
       await wrapper.vm.$nextTick()
       expect(wrapper.get('button').attributes('data-activation-state')).toBe('idle')
+    })
+
+    it('restarts feedback when an icon is clicked again', async () => {
+      const wrapper = mount(BaseButton, {
+        props: { iconOnly: true },
+        attrs: { 'aria-label': 'Copiar' },
+        slots: { default: '<svg />' },
+      })
+
+      await wrapper.get('button').trigger('click')
+      jest.advanceTimersByTime(200)
+
+      await wrapper.get('button').trigger('click')
+      jest.advanceTimersByTime(359)
+      await wrapper.vm.$nextTick()
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
+
+      jest.advanceTimersByTime(1)
+      await wrapper.vm.$nextTick()
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('idle')
+    })
+
+    it.each([
+      ['anchor', 'a', {}],
+      ['NuxtLink', 'NuxtLink', {
+        global: {
+          stubs: {
+            NuxtLink: {
+              props: ['to'],
+              emits: ['click'],
+              template: '<a :href="to" @click="$emit(\'click\', $event)"><slot /></a>',
+            },
+          },
+        },
+      }],
+    ])('activates the %s icon control', async (_name, as, options) => {
+      const wrapper = mount(BaseButton, {
+        ...options,
+        props: { as, iconOnly: true, to: '/destination' },
+        attrs: { 'aria-label': 'Abrir' },
+        slots: { default: '<svg />' },
+      })
+
+      await wrapper.get('a').trigger('click')
+      expect(wrapper.get('a').attributes('data-activation-state')).toBe('active')
     })
 
     it('does not add activation state to text buttons', async () => {
@@ -156,6 +205,15 @@ describe('BaseButton', () => {
       const wrapper = mount(BaseButton, {
         props: { iconOnly: true, loading: true },
         attrs: { 'aria-label': 'Actualizar' },
+      })
+      await wrapper.get('button').trigger('click')
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('idle')
+    })
+
+    it('does not activate a disabled icon control', async () => {
+      const wrapper = mount(BaseButton, {
+        props: { iconOnly: true, disabled: true },
+        attrs: { 'aria-label': 'Eliminar' },
       })
       await wrapper.get('button').trigger('click')
       expect(wrapper.get('button').attributes('data-activation-state')).toBe('idle')
