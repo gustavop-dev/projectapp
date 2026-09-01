@@ -169,13 +169,27 @@ def allow_fake_data_for_tests(settings):
 
 @pytest.fixture(scope='session', autouse=True)
 def isolate_seeded_email_copy_recipient(django_db_setup, django_db_blocker):
-    """Keep recipient-dependent tests explicit while testing the seed separately."""
+    """Keep recipient-dependent tests explicit while testing the seed separately.
+
+    Tolerates an unmigrated database on purpose. This fixture is autouse and
+    session-scoped, so it also runs for a selection made entirely of tests that
+    never touch the database — and there the schema does not exist yet, so the
+    query raises instead of finding nothing to delete. That selection was
+    unreachable while the suite ran as one job; with the CI split into shards it
+    is one `pytest content/tests/utils` away.
+    """
+    from django.db import OperationalError, ProgrammingError
+
     from content.models import EmailCopyRecipient
 
     with django_db_blocker.unblock():
-        EmailCopyRecipient.objects.filter(
-            email='carlos18bp@gmail.com',
-        ).delete()
+        try:
+            EmailCopyRecipient.objects.filter(
+                email='carlos18bp@gmail.com',
+            ).delete()
+        except (OperationalError, ProgrammingError):
+            # No schema means no seeded row to isolate. Nothing to do.
+            pass
 
 
 @pytest.fixture
