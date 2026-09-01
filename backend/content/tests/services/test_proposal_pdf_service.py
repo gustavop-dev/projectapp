@@ -28,6 +28,7 @@ from content.services.proposal_pdf_service import (
     LEMON,
     MARGIN_B,
     MARGIN_L,
+    MARGIN_T,
     PAGE_H,
     SECTION_RENDERERS,
     ProposalPdfService,
@@ -1514,14 +1515,17 @@ class TestSectionRendererEdgeCases:
         )
 
     def test_exec_summary_no_highlights_renders(self, pdf_canvas, proposal):
-        """Executive summary with empty highlights uses full-width paragraphs."""
+        """Fails if empty highlights cause the summary paragraph to disappear."""
         data = {
             'index': '1', 'title': 'Summary',
             'paragraphs': ['Test paragraph.'],
             'highlightsTitle': '', 'highlights': [],
         }
         y = _render_executive_summary(pdf_canvas, data, proposal)
-        assert isinstance(y, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert y < PAGE_H - MARGIN_T
+        assert 'Summary' in draw_ops
+        assert 'Test paragraph' in draw_ops
 
     def test_context_diagnostic_no_issues_renders(self, pdf_canvas, proposal):
         """Context diagnostic with no issues renders paragraphs and opportunity."""
@@ -1930,8 +1934,10 @@ class TestSectionRendererNoPsBreaks:
             status='sent',
         )
 
-    def test_conversion_strategy_breaks_at_low_y_without_ps(self, pdf_canvas, proposal_obj):
-        """Conversion strategy loop breaks when y is below margin and no ps."""
+    def test_conversion_strategy_renders_all_steps_without_page_state(
+        self, pdf_canvas, proposal_obj,
+    ):
+        """Fails if no-page-state rendering drops configured strategy steps."""
         data = {
             'index': '3', 'title': 'Strategy',
             'intro': 'Build.',
@@ -1941,10 +1947,13 @@ class TestSectionRendererNoPsBreaks:
             ],
             'resultTitle': 'Result', 'result': 'More.',
         }
-        y = SECTION_RENDERERS['conversion_strategy'](
+        SECTION_RENDERERS['conversion_strategy'](
             pdf_canvas, data, proposal_obj, y=MARGIN_B + 60,
         )
-        assert isinstance(y, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert 'Strategy' in draw_ops
+        assert 'Step 0' in draw_ops
+        assert 'Step 19' in draw_ops
 
     def test_development_stages_breaks_at_low_y_without_ps(self, pdf_canvas, proposal_obj):
         """Development stages loop breaks when y is below margin and no ps."""
@@ -2024,7 +2033,7 @@ class TestInvestmentSelectedModulesAdv:
         )
 
     def test_adjusted_total_recalculates_payment_options(self, pdf_canvas, proposal_obj):
-        """Payment option amounts are recalculated when selected_modules changes the total."""
+        """Fails if selected modules leave stale payment-option amounts in the PDF."""
         from content.services.proposal_pdf_service import _render_investment
 
         ps = {
@@ -2046,7 +2055,11 @@ class TestInvestmentSelectedModulesAdv:
             ],
         )
         y = _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
-        assert isinstance(y, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert y < PAGE_H - MARGIN_T
+        assert '50% inicio' in draw_ops
+        assert '$1.500.000' in draw_ops
+        assert '$2.500.000' not in draw_ops
 
 
 # ── Helper unit tests ─────────────────────────────────────────
@@ -2376,7 +2389,7 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         assert 'Identidad Visual' not in text
 
     def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, proposal_obj):
-        """Adjusted duration text renders when base_weeks > 0 and modules are removed."""
+        """Fails if deselected modules do not emit the reduced duration tile."""
         from content.services.proposal_pdf_service import _render_investment
 
         ps = {
@@ -2399,7 +2412,10 @@ class TestRenderInvestmentEndToEndAdminDefaults:
             ],
         )
         y = _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
-        assert isinstance(y, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert y < PAGE_H - MARGIN_T
+        assert '9 semanas' in draw_ops
+        assert 'reducido de 12' in draw_ops
 
     def test_ai_scope_note_renders_for_invite_module(self, pdf_canvas, proposal_obj):
         """AI scope note renders when a calculator module with is_invite is selected."""
@@ -2558,26 +2574,43 @@ class TestGenerateCalculatorModules:
 
 class TestFinalNoteBadgeOverflow:
     def test_badge_pills_wrap_to_next_row(self, pdf_canvas, proposal):
-        """Many long badge titles cause pills to wrap to a new row."""
+        """Fails if overflowing badge pills stay on their original row."""
         many_badges = [
             {'title': f'Very Long Badge Title Number {i}'} for i in range(10)
         ]
         data = _final_note_data(personalNote='', commitmentBadges=many_badges)
         ps = {'num': 1, 'client': 'Test', 'total': None}
-        y = SECTION_RENDERERS['final_note'](pdf_canvas, data, proposal, ps=ps)
-        assert isinstance(y, (int, float))
+        SECTION_RENDERERS['final_note'](pdf_canvas, data, proposal, ps=ps)
+        draw_ops = '\n'.join(pdf_canvas._code)
+        first_badge_op = next(
+            op for op in pdf_canvas._code
+            if '(Very Long Badge Title Number 0)' in op
+        )
+        wrapped_badge_op = next(
+            op for op in pdf_canvas._code
+            if '(Very Long Badge Title Number 3)' in op
+        )
+        assert float(wrapped_badge_op.split()[6]) < float(first_badge_op.split()[6])
 
 
 class TestRenderRawTextBoldLine:
     def test_bold_line_type_renders_at_low_y_with_ps(self, pdf_canvas, proposal):
-        """Bold line markdown type renders correctly at low y with ps."""
+        """Fails if markdown bold-line and heading tokens are omitted from the PDF."""
         data = {
             'index': '1', 'title': 'Test',
             'rawText': '**Bold Title Line**\n\nSome paragraph.\n\n### H3 Heading\n\n#### H4 Heading',
         }
         ps = {'num': 1, 'client': 'Test', 'total': None}
-        y = _render_raw_text(pdf_canvas, data, proposal, ps=ps, y=MARGIN_B + 100)
-        assert isinstance(y, (int, float))
+        _render_raw_text(pdf_canvas, data, proposal, ps=ps, y=MARGIN_B + 100)
+        pdf_canvas.save()
+        rendered_text = '\n'.join(
+            page.extract_text() or ''
+            for page in PdfReader(pdf_canvas._test_buf).pages
+        )
+        assert ps['num'] >= 2
+        assert 'Bold Title Line' in rendered_text
+        assert 'H3 Heading' in rendered_text
+        assert 'H4 Heading' in rendered_text
 
 
 class TestInvestmentHostingRenewalContent:
@@ -2698,12 +2731,14 @@ class TestInvestmentHostingRenewalContent:
 
 class TestRequirementGroupEmptyItems:
     def test_group_with_no_items_returns_y(self, pdf_canvas):
-        """Requirement group with empty items returns y without rendering cards."""
+        """Fails if an empty requirement group omits its configured heading."""
         from content.services.proposal_pdf_service import _render_requirement_group_page
 
         grp = {'title': 'Empty Group', 'description': '', 'items': []}
         y = _render_requirement_group_page(pdf_canvas, grp)
-        assert isinstance(y, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert y < PAGE_H - MARGIN_T
+        assert 'Empty Group' in draw_ops
 
 
 # ── Phase 2g: Remaining uncovered lines ──────────────────────
@@ -2725,10 +2760,9 @@ class TestDrawParagraphsNewPageWithPs:
         """Multi-line paragraph near bottom with ps triggers _new_page (L368)."""
         ps = {'num': 1, 'client': 'Test'}
         long_text = 'A very long paragraph. ' * 20
-        end_y = _draw_paragraphs(
+        _draw_paragraphs(
             pdf_canvas, MARGIN_B + 15, [long_text], ps=ps,
         )
-        assert isinstance(end_y, (int, float))
         assert ps['num'] >= 2
 
 
@@ -2737,10 +2771,9 @@ class TestDrawBulletListNewPageWithPs:
         """Multi-line bullet item near bottom with ps triggers _new_page (L394)."""
         ps = {'num': 1, 'client': 'Test'}
         long_item = 'A bullet item with lots of text. ' * 15
-        end_y = _draw_bullet_list(
+        _draw_bullet_list(
             pdf_canvas, MARGIN_B + 15, [long_item], ps=ps,
         )
-        assert isinstance(end_y, (int, float))
         assert ps['num'] >= 2
 
 
@@ -2794,7 +2827,7 @@ class TestFinalNoteEmptyBadgeTitle:
 
 class TestNextStepsEmptyContactTitle:
     def test_contact_method_with_empty_title_is_skipped(self, pdf_canvas, proposal):
-        """Contact method with empty title is skipped in the loop (L1731)."""
+        """Fails if a blank contact title is emitted or Email is skipped."""
         from content.services.proposal_pdf_service import _render_next_steps
 
         data = {
@@ -2809,7 +2842,11 @@ class TestNextStepsEmptyContactTitle:
         }
         ps = {'num': 1, 'client': 'Test'}
         y = _render_next_steps(pdf_canvas, data, proposal, ps=ps)
-        assert isinstance(y, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert y < PAGE_H - MARGIN_T
+        assert 'Email' in draw_ops
+        assert 'team@test.com' in draw_ops
+        assert 'skip@test.com' not in draw_ops
 
 
 class TestCalculatorModuleInvalidPricePercent:

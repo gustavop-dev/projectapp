@@ -1,3 +1,4 @@
+// qa: draft-unvalidated (2026-09-01 — app_reachable=no)
 /**
  * E2E tests for platform hosting subscription flow.
  *
@@ -138,6 +139,18 @@ function setupMocksUnifiedPaymentsPage(page, { user, subscriptions }) {
   });
 }
 
+async function navigateFromProjectListToHosting(page) {
+  await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
+
+  const projectRow = page.getByTestId('project-row-1');
+  await expect(projectRow).toContainText('E-commerce Platform');
+  await projectRow.click();
+  await expect(page).toHaveURL(/\/platform\/projects\/1$/);
+
+  await page.getByRole('link', { name: 'Hosting' }).click();
+  await expect(page).toHaveURL(/\/platform\/projects\/1\/payments$/);
+}
+
 test.describe('Platform Hosting Subscription — Client selects plan', () => {
   test.setTimeout(60_000);
 
@@ -146,17 +159,18 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
   });
 
   test('client sees hosting plan selection when no subscription exists', {
-    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+    // Bug this catches: a broken project row or Hosting link can make plan
+    // selection unreachable even when the payments route itself still renders.
+    tag: ['@flow:platform-hosting-subscription', '@outcome:display', '@module:platform', '@priority:P1', '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksNoSubscription(page, { user: mockPlatformClient });
-    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
+    // quality: allow-deep-link (the authenticated platform root lands on the project list; this journey then clicks the project row and Hosting link through the UI)
+    await navigateFromProjectListToHosting(page);
 
-    await expect(page.getByRole('heading', { name: 'Activa tu plan de hosting' })).toBeVisible();
-    // exact: true — the "Activar plan <freq>" CTA also contains the frequency label.
-    await expect(page.getByRole('button', { name: 'Semestral', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Trimestral', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cada 9 meses', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Activa tu plan de hosting' })).toHaveText('Activa tu plan de hosting');
+    await expect(page.getByRole('button', { name: 'Trimestral', exact: true })).toHaveText('Trimestral');
+    await expect(page.getByRole('button', { name: 'Semestral', exact: true })).toHaveText('Semestral');
+    await expect(page.getByRole('button', { name: 'Cada 9 meses', exact: true })).toHaveText('Cada 9 meses');
   });
 
   test('client can select a plan and activate subscription', {
@@ -310,15 +324,17 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
   });
 
   test('active subscription shows auto-renewal up-to-date card', {
-    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+    // Bug this catches: navigation can reach a stale page that omits the
+    // active subscription and automatic-renewal state for the client.
+    tag: ['@flow:platform-hosting-subscription', '@outcome:display', '@module:platform', '@priority:P1', '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksWithSubscription(page, { user: mockPlatformClient });
-    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
+    // quality: allow-deep-link (the authenticated platform root lands on the project list; this journey then clicks the project row and Hosting link through the UI)
+    await navigateFromProjectListToHosting(page);
 
-    await expect(page.getByRole('heading', { name: /hosting trimestral/i })).toBeVisible();
-    await expect(page.getByText('Activa', { exact: true })).toBeVisible();
-    await expect(page.getByText(/se renueva y cobra automáticamente/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Hosting Trimestral' })).toHaveText('Hosting Trimestral');
+    await expect(page.getByText('Activa', { exact: true })).toHaveText('Activa');
+    await expect(page.getByText(/se renueva y cobra automáticamente/i)).toContainText('Se renueva y cobra automáticamente');
   });
 });
 
@@ -326,27 +342,32 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
   test.setTimeout(60_000);
 
   test('admin sees waiting message when no subscription exists', {
-    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
+    // Bug this catches: admin navigation may reach Hosting without the
+    // per-phase tier table or the no-subscription status for that client.
+    tag: ['@flow:platform-hosting-subscription', '@outcome:display', '@module:platform', '@priority:P1', '@role:platform-admin'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocksNoSubscription(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
+    // quality: allow-deep-link (the authenticated platform root lands on the project list; this journey then clicks the project row and Hosting link through the UI)
+    await navigateFromProjectListToHosting(page);
 
-    await expect(page.getByText(/no ha activado su plan de hosting/i)).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Trimestral', exact: true })).toHaveText('Trimestral');
+    await expect(page.getByText('El cliente aún no ha activado su plan de hosting.')).toHaveText('El cliente aún no ha activado su plan de hosting.');
     await expect(page.getByRole('button', { name: /activar plan/i })).not.toBeVisible();
   });
 
   test('admin sees subscription status when active', {
-    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
+    // Bug this catches: an admin can navigate to Hosting but lose the active
+    // subscription summary, masking a client's billing state.
+    tag: ['@flow:platform-hosting-subscription', '@outcome:display', '@module:platform', '@priority:P1', '@role:platform-admin'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocksWithSubscription(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
+    // quality: allow-deep-link (the authenticated platform root lands on the project list; this journey then clicks the project row and Hosting link through the UI)
+    await navigateFromProjectListToHosting(page);
 
-    await expect(page.getByRole('heading', { name: /hosting trimestral/i })).toBeVisible();
-    await expect(page.getByText('Activa', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Hosting Trimestral' })).toHaveText('Hosting Trimestral');
+    await expect(page.getByText('Activa', { exact: true })).toHaveText('Activa');
   });
 });
 

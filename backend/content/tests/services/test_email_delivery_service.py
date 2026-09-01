@@ -8,6 +8,8 @@ from django.core.exceptions import ValidationError
 from content.email_copy_families import COLLECTIONS, PROPOSALS, SECURITY
 from content.models import (
     ClientEmailCopyRecipient,
+    Document,
+    DocumentType,
     EmailBody,
     EmailDeliverySnapshot,
     EmailLog,
@@ -468,6 +470,31 @@ def test_gateway_archives_exact_attachment_bytes_before_delivery():
     assert attachment.filename == 'alcance.txt'
     assert attachment.size_bytes == len(b'contenido\n')
     assert snapshot.message_size_bytes > snapshot.attachment_size_bytes
+
+
+def test_gateway_archives_document_provenance_with_attachment():
+    """Falla si un adjunto enviado pierde su relación con el documento origen."""
+    document_type = DocumentType.objects.create(
+        code='proposal', name='Propuesta',
+    )
+    document = Document.objects.create(
+        title='Propuesta para cliente',
+        content_markdown='# Alcance',
+        document_type=document_type,
+    )
+
+    EmailDeliveryGateway.send(
+        build_message(),
+        template_key='proposal_sent_client',
+        attachment_sources=[{'document_id': document.pk}],
+    )
+
+    attachment = EmailDeliverySnapshot.objects.get().attachments.get()
+    assert attachment.source_document_id == document.pk
+    assert (
+        attachment.source_document_type_code,
+        attachment.source_document_type_name,
+    ) == ('proposal', 'Propuesta')
 
 
 def test_gateway_records_confirmed_zero_attachments():
