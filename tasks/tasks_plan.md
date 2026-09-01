@@ -1,5 +1,10 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-09-01:** las acciones de cada estado de Proyecto
+> quedan divididas en una banda de edición/guardado y otra de fusión/retiro, con
+> proporciones consistentes y separación responsive en cinco viewports. El
+> catálogo de Documentos y la validación inline previa permanecen intactos.
+
 > **Listo para integrar — 2026-09-01:** la acción de fila de Clientes dice
 > **Archivar** o **Desarchivar** y usa el catálogo semántico correspondiente.
 > Conserva el mecanismo existente de Archivados y no modifica **Desactivar
@@ -73,6 +78,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Projects — proportional state-catalog actions | 🟡 Ready for merge | 2026-09-01. Active rows in `/panel/projects/statuses` use separate edit/save and merge/retire bands. Save, Merge and Retire are full-width on compact screens; portrait uses a full-row Save plus a 6/3/3 maintenance grid; landscape and wider screens use a 3/2/3/2/2 edit grid plus an 8/2/2 maintenance grid. Gaps stay at least 8 px, Documents keep their previous layout, and PA-120 field feedback is preserved. Twelve focused unit tests, five responsive E2E scenarios, three action regressions, the design-token guard and the Nuxt build are green. |
 | Clients — archive row action semantics | 🟡 Ready for merge | 2026-09-01. `/panel/clients` uses the canonical `archive`/`restore` actions and displays the visible tooltips **Archivar**/**Desarchivar**. The existing preview, confirmation, cascade, archived filter and API contract stay unchanged; platform access deactivation remains a separate action. Two focused unit tests, all four archived-client E2E scenarios and the panel action guard pass. |
 | Projects — inline state-catalog validation | 🟡 Ready for merge | 2026-08-31. Create/edit/merge validation in `/panel/projects/statuses` uses `BaseFormField` beside the relevant control after an attempted action; required markers cover name, description and operational effect. Serializer field errors stay attached to their field and clear on input. A missing merge target is actionable inline feedback, while immutable seed restrictions remain accessible help on the disabled action. Documents retain their existing catalog behavior. Six unit tests, all 14 affected E2E scenarios, the disabled-control guard, Nuxt build and flow audit are green. |
 | Transversal — reacción visible de iconos interactivos | 🟡 Ready for merge | 2026-08-31. Todos los controles icon-only ejecutables de panel, plataforma y superficies públicas comparten una reacción inmediata; copiar confirma sólo después de escribir al portapapeles y diferencia éxito/fallo mediante estado visible y accesible. El glifo permanece estable, async conserva loading, touch/teclado tienen paridad y reduced motion reemplaza escala por halo. Verificación: 27 unitarias focales, 2 E2E, build, 536 SFC válidos, flow audit y guards en verde. |
