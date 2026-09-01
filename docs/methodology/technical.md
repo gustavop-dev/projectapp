@@ -938,6 +938,15 @@ confirmed by the operator or another integration.
 - Helpers: `frontend/e2e/helpers/`
 - Run: `npx playwright test e2e/<specific_file>.spec.js` (max 2 files per invocation)
 - Reuse running dev server: `E2E_REUSE_SERVER=1 npx playwright test ...`
+- Readiness SPA: después de `domcontentloaded`, usar
+  `e2e/helpers/navigation.js::waitForNuxtApp` y esperar el control propio de la
+  vista; una URL resuelta con `#__nuxt` vacío todavía no está lista.
+- `global-setup.js` calienta las rutas privadas críticas con URLs localizadas y
+  autenticación simulada; si una de ellas no monta, el setup falla en vez de
+  trasladar la compilación fría al primer escenario.
+- `BaseResponsiveTable` puede conservar varias representaciones del mismo
+  `data-testid`; las interacciones E2E deben seleccionar la variante visible con
+  `.filter({ visible: true })`.
 
 ### Quality Gate
 

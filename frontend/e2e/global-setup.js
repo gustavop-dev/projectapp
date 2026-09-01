@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import { chromium } from '@playwright/test';
+import { waitForNuxtApp } from './helpers/navigation.js';
 
 /**
  * Playwright globalSetup — ensures Chromium is installed before any test runs
@@ -18,6 +19,15 @@ export default async function globalSetup() {
   // Routes to warm up — includes SSR and SPA routes
   const warmupRoutes = [
     '/',                                    // SSR — triggers initial Vite client build
+    '/en-us/panel/projects',
+    '/en-us/panel/accounting/hostings',
+    '/en-us/panel/accounting/incomes',
+    '/en-us/panel/accounting/collections',
+    '/en-us/platform/login',
+    '/en-us/platform/dashboard',
+    '/en-us/platform/projects',
+    '/en-us/platform/projects/1',
+    '/en-us/platform/projects/1/board',
     '/panel/login',                         // SPA — admin panel login
     '/panel',                               // SPA — admin dashboard
     '/panel/admins',                        // SPA — admin management
@@ -47,11 +57,6 @@ export default async function globalSetup() {
     '/panel/proposals/email-deliverability', // SPA — email deliverability
     '/panel/tasks',                         // SPA — task list
     '/panel/views',                         // SPA — admin view map
-    '/platform/login',                      // SPA — platform login
-    '/platform/dashboard',                  // SPA — platform dashboard
-    '/platform/projects',                   // SPA — platform projects list
-    '/platform/projects/1',                 // SPA — platform project detail (dynamic)
-    '/platform/projects/1/board',           // SPA — platform project board (nested dynamic)
     '/proposal/warmup-prefetch',            // SPA — proposal viewer
     '/diagnostic/warmup-prefetch',          // SPA — diagnostic public viewer
     '/es-co/additional-modules',            // SSR — public additional modules catalog
@@ -62,21 +67,81 @@ export default async function globalSetup() {
     '/landing-web-design',                  // SSR — landing web design page
   ];
 
+  const requiredWarmupRoutes = new Set([
+    '/en-us/panel/projects',
+    '/en-us/panel/accounting/hostings',
+    '/en-us/panel/accounting/incomes',
+    '/en-us/panel/accounting/collections',
+    '/en-us/platform/login',
+    '/en-us/platform/projects/1',
+  ]);
+  const warmupFailures = [];
+
   let browser;
   try {
     browser = await chromium.launch();
     const page = await browser.newPage();
+    await page.addInitScript(() => {
+      const admin = {
+        id: 9001,
+        user_id: 9001,
+        email: 'admin@e2e-test.com',
+        role: 'admin',
+        is_staff: true,
+        is_superuser: true,
+        is_onboarded: true,
+        profile_completed: true,
+      };
+      localStorage.setItem('access_token', 'e2e-warmup-panel-token');
+      localStorage.setItem('refresh_token', 'e2e-warmup-panel-refresh');
+      localStorage.setItem('user', JSON.stringify(admin));
+      localStorage.setItem('platform_access_token', 'e2e-warmup-platform-token');
+      localStorage.setItem('platform_refresh_token', 'e2e-warmup-platform-refresh');
+      localStorage.setItem('platform_user', JSON.stringify(admin));
+    });
+    await page.route('**/api/auth/check/', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: { username: 'admin', is_staff: true, is_superuser: true },
+      }),
+    }));
+    await page.route('**/api/accounts/me/', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 9001,
+        user_id: 9001,
+        email: 'admin@e2e-test.com',
+        role: 'admin',
+        is_onboarded: true,
+        profile_completed: true,
+      }),
+    }));
     for (const route of warmupRoutes) {
+      const isRequired = requiredWarmupRoutes.has(route);
       try {
-        await page.goto(`${baseURL}${route}`, { timeout: 30000, waitUntil: 'load' });
-        // Allow Vite to finish on-demand compilation for the route module
-        await page.waitForTimeout(1500);
-      } catch (_e) { /* ignore — server may not be ready yet */ }
+        await page.goto(`${baseURL}${route}`, {
+          timeout: isRequired ? 45_000 : 10_000,
+          waitUntil: 'domcontentloaded',
+        });
+        if (isRequired) await waitForNuxtApp(page);
+      } catch (error) {
+        if (isRequired) {
+          const message = error instanceof Error ? error.message : String(error);
+          warmupFailures.push(`${route}: ${message}`);
+        }
+      }
     }
     await page.close();
-  } catch (_e) {
-    // Browser warmup is best-effort; tests will still compile routes on first visit
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    warmupFailures.push(`browser: ${message}`);
   } finally {
     if (browser) await browser.close();
+  }
+
+  if (warmupFailures.length > 0) {
+    throw new Error(`Required Nuxt warmup failed:\n${warmupFailures.join('\n')}`);
   }
 }
