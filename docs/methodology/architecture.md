@@ -1,11 +1,13 @@
 # Architecture — ProjectApp
 
-> **Interacción de iconos 2026-08-31:** `BaseButton` es la frontera transversal
+> **Interacción de iconos refinada 2026-09-01:** `BaseButton` es la frontera transversal
 > para la activación inmediata de controles icon-only, tanto botones como
-> enlaces; `BaseActionButton` agrega el glifo canónico y presenta estados
-> resueltos sin sustituirlo. `useClipboardFeedback` concentra la semántica real
-> de copiar y sus temporizadores por clave. Un guard estático cubre componentes,
-> layouts y páginas y evita que nuevos controles crudos eludan este contrato.
+> enlaces. Un contenedor interno aísla el pulso de 360 ms de cualquier transform
+> de posicionamiento del consumidor, y un ciclo alternado reinicia la animación
+> ante clics rápidos. `BaseActionButton` agrega el glifo canónico y presenta
+> estados resueltos sin sustituirlo; `useClipboardFeedback` concentra la
+> semántica real de copiar y sus temporizadores por clave. Un guard estático
+> cubre componentes, layouts y páginas.
 
 > **Acceso comercial 2026-08-31:** `AdditionalModules/QuickAccess` es la
 > superficie compartida entre `/panel/additional-modules` y `/panel/`.

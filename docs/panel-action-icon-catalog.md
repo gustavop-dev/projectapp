@@ -127,8 +127,9 @@ acciones diferentes.
 - El feedback transitorio se expresa con `statusLabel`, `statusTone` y una
   región viva. El mismo tooltip queda visible durante el estado y el glifo
   permanece estable para que la acción siga siendo reconocible.
-- La activación inmediata, el objetivo táctil y reduced motion pertenecen a
-  `BaseButton`; un estado async conserva su `loading` independiente.
+- La activación inmediata pertenece a `BaseButton`: pulso reiniciable de 360 ms
+  y halo expansivo, o halo estático con reduced motion. El objetivo táctil sigue
+  siendo 44 px y un estado async conserva su `loading` independiente.
 
 ## Catálogo canónico
 

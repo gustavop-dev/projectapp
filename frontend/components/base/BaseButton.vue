@@ -42,6 +42,8 @@ const props = defineProps({
 
 const emit = defineEmits(['click'])
 
+const ICON_ACTIVATION_DURATION = 360
+
 const attrs = useAttrs()
 const forwardedAttrs = computed(() => {
   const result = { ...attrs }
@@ -56,16 +58,20 @@ const disabledTitle = computed(() => {
 })
 
 const isActivated = ref(false)
+const activationCycle = ref(0)
 let activationTimer = null
 
 function handleClick(event) {
   if (props.iconOnly && !props.disabled && !props.loading) {
     clearTimeout(activationTimer)
+    // Alternate the animation name so a rapid second click visibly restarts
+    // the pulse instead of only extending the active-state timer.
+    activationCycle.value += 1
     isActivated.value = true
     activationTimer = setTimeout(() => {
       isActivated.value = false
       activationTimer = null
-    }, 180)
+    }, ICON_ACTIVATION_DURATION)
   }
   emit('click', event)
 }
@@ -113,6 +119,11 @@ const sizeClasses = computed(() => {
 const classes = computed(() => [
   'base-button',
   props.iconOnly && 'base-button--icon',
+  props.iconOnly && isActivated.value && (
+    activationCycle.value % 2
+      ? 'base-button--activation-odd'
+      : 'base-button--activation-even'
+  ),
   !props.unstyled && props.variant === 'link' && 'base-button--link',
   props.unstyled
     ? 'outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60'
@@ -152,7 +163,10 @@ if (process.env.NODE_ENV !== 'production') {
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
-    <slot />
+    <span v-if="iconOnly" class="base-button__icon-content">
+      <slot />
+    </span>
+    <slot v-else />
   </NuxtLink>
   <a
     v-else-if="as === 'a'"
@@ -172,7 +186,10 @@ if (process.env.NODE_ENV !== 'production') {
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
-    <slot />
+    <span v-if="iconOnly" class="base-button__icon-content">
+      <slot />
+    </span>
+    <slot v-else />
   </a>
   <button
     v-else
@@ -194,7 +211,10 @@ if (process.env.NODE_ENV !== 'production') {
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
     </svg>
-    <slot />
+    <span v-if="iconOnly" class="base-button__icon-content">
+      <slot />
+    </span>
+    <slot v-else />
   </button>
 </template>
 
@@ -204,15 +224,94 @@ if (process.env.NODE_ENV !== 'production') {
     color 150ms ease,
     background-color 150ms ease,
     border-color 150ms ease,
-    opacity 150ms ease,
-    transform 180ms ease;
+    opacity 150ms ease;
 }
 
-.base-button--icon:active,
-.base-button--icon[data-activation-state='active'] {
-  outline: 3px solid rgb(var(--color-focus-ring-rgb) / 0.38);
-  outline-offset: 2px;
-  transform: scale(0.94);
+.base-button__icon-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+}
+
+.base-button--icon:active {
+  outline: 3px solid rgb(var(--color-focus-ring-rgb) / 0.58);
+  outline-offset: 1px;
+}
+
+.base-button--icon:active .base-button__icon-content {
+  transform: scale(0.9);
+}
+
+.base-button--activation-odd,
+.base-button--activation-even {
+  outline: 3px solid transparent;
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.base-button--activation-odd {
+  animation-name: base-button-icon-halo-odd;
+}
+
+.base-button--activation-even {
+  animation-name: base-button-icon-halo-even;
+}
+
+.base-button--activation-odd .base-button__icon-content,
+.base-button--activation-even .base-button__icon-content {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.base-button--activation-odd .base-button__icon-content {
+  animation-name: base-button-icon-pulse-odd;
+}
+
+.base-button--activation-even .base-button__icon-content {
+  animation-name: base-button-icon-pulse-even;
+}
+
+@keyframes base-button-icon-pulse-odd {
+  0% { transform: scale(0.9); }
+  55% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes base-button-icon-pulse-even {
+  0% { transform: scale(0.9); }
+  55% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes base-button-icon-halo-odd {
+  0% {
+    outline-color: rgb(var(--color-focus-ring-rgb) / 0.58);
+    outline-offset: 1px;
+  }
+  55% {
+    outline-color: rgb(var(--color-focus-ring-rgb) / 0.32);
+    outline-offset: 4px;
+  }
+  100% {
+    outline-color: rgb(var(--color-focus-ring-rgb) / 0);
+    outline-offset: 7px;
+  }
+}
+
+@keyframes base-button-icon-halo-even {
+  0% {
+    outline-color: rgb(var(--color-focus-ring-rgb) / 0.58);
+    outline-offset: 1px;
+  }
+  55% {
+    outline-color: rgb(var(--color-focus-ring-rgb) / 0.32);
+    outline-offset: 4px;
+  }
+  100% {
+    outline-color: rgb(var(--color-focus-ring-rgb) / 0);
+    outline-offset: 7px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -221,7 +320,17 @@ if (process.env.NODE_ENV !== 'production') {
   }
 
   .base-button--icon:active,
-  .base-button--icon[data-activation-state='active'] {
+  .base-button--activation-odd,
+  .base-button--activation-even {
+    animation: none;
+    outline: 3px solid rgb(var(--color-focus-ring-rgb) / 0.58);
+    outline-offset: 3px;
+  }
+
+  .base-button--icon:active .base-button__icon-content,
+  .base-button--activation-odd .base-button__icon-content,
+  .base-button--activation-even .base-button__icon-content {
+    animation: none;
     transform: none;
   }
 }
