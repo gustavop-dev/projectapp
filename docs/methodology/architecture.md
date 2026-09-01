@@ -1,5 +1,16 @@
 # Architecture — ProjectApp
 
+> **Visor público de Módulos adicionales 2026-09-01:** `CatalogView` compone
+> `useAdditionalModulesTheme`, `AdditionalModules/Onboarding`,
+> `AdditionalModules/ShareButton` y el descargador PDF existente. Tema y guía
+> ocupan la banda flotante izquierda; compartir y PDF, la derecha. La descarga
+> de cabecera y la flotante comparten una sola operación y estado. `BaseModal`
+> acepta un tema local opcional porque su contenido teletransportado queda fuera
+> del árbol con `data-theme`; así el detalle mantiene el tema del catálogo sin
+> afectar otros consumidores. La guía filtra pasos cuyos targets no existen y
+> compartir toma la ubicación vigente del navegador para conservar el UUID. No
+> hay cambio de API, tracking, modelos ni esquema.
+
 > **Modal de transición ordenado 2026-09-01:**
 > `ProjectStateTransitionModal` compone `BaseFormField` para que estado destino,
 > decisión por ingreso y nota sean dueños de su validación visible y ARIA.

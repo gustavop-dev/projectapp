@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.93.0
+// Registry version: 2.94.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -378,8 +378,10 @@ export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:pr
 export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
 export const PUBLIC_ADDITIONAL_MODULES_CATALOG = ['@flow:public-additional-modules-catalog', '@module:public', '@priority:P1'];
 export const PUBLIC_ADDITIONAL_MODULES_DETAIL = ['@flow:public-additional-modules-detail', '@module:public', '@priority:P1'];
+export const PUBLIC_ADDITIONAL_MODULES_GUIDE = ['@flow:public-additional-modules-guide', '@module:public', '@priority:P2'];
 export const PUBLIC_ADDITIONAL_MODULES_PDF = ['@flow:public-additional-modules-pdf', '@module:public', '@priority:P2'];
 export const PUBLIC_ADDITIONAL_MODULES_SHARE = ['@flow:public-additional-modules-share', '@module:public', '@priority:P1'];
+export const PUBLIC_ADDITIONAL_MODULES_THEME = ['@flow:public-additional-modules-theme', '@module:public', '@priority:P2'];
 export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
 export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
 export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];

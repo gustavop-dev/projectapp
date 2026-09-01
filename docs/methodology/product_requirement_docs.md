@@ -1,5 +1,14 @@
 # Product Requirements Document — ProjectApp
 
+> **Cierre visual 2026-09-01 — paridad pública de Módulos adicionales:** el
+> catálogo canónico y cada selección conservan la experiencia sin encabezado
+> global, reducen el espacio superior y mantienen el PDF de la cabecera. Además
+> ofrecen controles flotantes de tema y guía a la izquierda, compartir y PDF a
+> la derecha, más el WhatsApp global. El tema se recuerda entre visitas, la guía
+> propia aparece una vez y puede reiniciarse, y compartir copia la URL exacta
+> abierta —incluido el UUID de una selección—. El español sigue siendo el idioma
+> inicial y todos los controles respetan anchos móviles y áreas seguras.
+
 > **Corrección 2026-09-01 — cambio de estado de Proyectos:** el modal presenta
 > el flujo en orden: nuevo estado, revisión de consecuencias, decisiones de
 > impacto y acciones finales. Los avisos amarillos del proyecto se conservan

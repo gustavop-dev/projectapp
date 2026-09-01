@@ -6361,8 +6361,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-about-us` | public | P3 | — | 0 |
 | `public-additional-modules-catalog` | public | P1 | success,display,failure | 5 |
 | `public-additional-modules-detail` | public | P1 | success | 1 |
+| `public-additional-modules-guide` | public | P2 | success,display | 2 |
 | `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
-| `public-additional-modules-share` | public | P1 | success,display,failure | 3 |
+| `public-additional-modules-share` | public | P1 | success,display,failure | 4 |
+| `public-additional-modules-theme` | public | P2 | success,display | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
@@ -7494,7 +7496,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P1
 - **Route:** `/:locale/additional-modules`
-- **Interaction:** Follow the footer link, read active modules in Spanish or English, choose card/list/accordion presentation and retry a failed live request. The chosen presentation is remembered separately from the panel.
+- **Interaction:** Follow the footer link, reach the catalog near the top without the panel/global header, read active modules in Spanish or English, choose card/list/accordion presentation, use the four catalog floating controls and retry a failed live request. The chosen presentation is remembered separately from the panel.
 - **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** public catalog page/component and `GET /api/additional-modules/public/`.
 
@@ -7504,9 +7506,23 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P1
 - **Route:** `/:locale/additional-modules`
-- **Interaction:** Open a module card, read what it is, purpose, problems, integrations and requirements, then close back to the opener.
+- **Interaction:** Open a module card, read what it is, purpose, problems, integrations and requirements in the active light/dark theme, then close back to the opener.
 - **Outcomes:** `success`
 - **Evidence:** `AdditionalModules/CatalogView.vue`.
+
+### FLOW: `public-additional-modules-guide`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Rutas:** `/:locale/additional-modules` y
+  `/:locale/additional-modules/share/:uuid`
+- **Interacción:** En la primera visita, recorrer una guía específica del
+  catálogo y cerrarla; en visitas posteriores, reiniciarla desde el control
+  flotante.
+- **Outcomes:** `success`, `display`
+- **Evidencia:** `AdditionalModules/Onboarding.vue` y
+  `e2e/public/additional-modules.spec.js`.
 
 ### FLOW: `public-additional-modules-pdf`
 
@@ -7514,7 +7530,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P2
 - **Routes:** canonical catalog and shared selection
-- **Interaction:** Download the full or selected no-price PDF in the active catalog language; unavailable shares return 410.
+- **Interaction:** Download the full or selected no-price PDF in the active catalog language from the header or floating action; unavailable shares return 410.
 - **Outcomes:** `success`, `failure`
 - **Evidence:** public PDF endpoints and the shared/catalog download control.
 
@@ -7524,6 +7540,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P1
 - **Route:** `/:locale/additional-modules/share/:uuid`
-- **Interaction:** Open a prepared selection, record one first-party browser session, read only selected live modules and switch between Spanish and English; revoked/empty selections show an unavailable state.
+- **Interaction:** Open a prepared selection, record one first-party browser session, read only selected live modules, switch between Spanish and English and copy the unchanged current URL without creating a new token; revoked/empty selections show an unavailable state.
 - **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** share page, public share and tracking endpoints.
+
+### FLOW: `public-additional-modules-theme`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Rutas:** `/:locale/additional-modules` y
+  `/:locale/additional-modules/share/:uuid`
+- **Interacción:** Alternar entre modo claro y oscuro, leer el índice y el
+  detalle con el mismo tema y recuperar esa preferencia en una visita posterior.
+- **Outcomes:** `success`, `display`
+- **Evidencia:** `useAdditionalModulesTheme.js`, `CatalogView.vue` y
+  `e2e/public/additional-modules.spec.js`.

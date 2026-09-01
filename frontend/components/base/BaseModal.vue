@@ -28,6 +28,12 @@ const props = defineProps({
   closeOnEsc: { type: Boolean, default: true },
   padding: { type: String, default: 'none' }, // none | md
   lockScroll: { type: Boolean, default: true },
+  /** Optional local theme for public viewers rendered through Teleport. */
+  theme: {
+    type: String,
+    default: '',
+    validator: oneOf(['', 'light', 'dark']),
+  },
   /** Pins the panel to a fixed 90vh column that never scrolls itself, so the
    * slot can own its scroll regions (fixed header/footer + independently
    * scrolling panes). Off by default: the panel grows to its content and
@@ -160,6 +166,7 @@ watch(
         v-if="modelValue"
         ref="dialogRef"
         tabindex="-1"
+        :data-theme="theme || undefined"
         class="fixed inset-0 z-[9999] flex items-center justify-center p-0 panel-portrait:p-4"
         role="dialog"
         aria-modal="true"

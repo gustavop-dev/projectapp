@@ -7,6 +7,12 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-01 — vacío superior tras retirar el encabezado:** la vista
+> pública ocultó correctamente el Navbar, pero conservó el padding que reservaba
+> su altura. El catálogo ahora usa un ritmo superior propio, deja espacio sólo
+> para su contenido y distribuye las acciones persistentes fuera del área útil
+> del móvil. La regresión se cubre en los cinco anchos canónicos.
+
 > **Resuelto 2026-09-01 — visor PDF extraído no resolvía en montaje aislado:**
 > `PdfPreviewModal` confiaba en el auto-registro de componentes de Nuxt, por lo
 > que Jest montaba el modal sin `PdfPreviewPane` y ocultaba iframe, error y probe.
@@ -99,6 +105,24 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-053] El catálogo público conservaba el hueco del encabezado eliminado
+
+- **Date**: 2026-09-01
+- **Context**: Las rutas pública canónica y seleccionada ya no renderizaban el
+  Navbar global, pero el índice comenzaba demasiado abajo, especialmente en
+  celular.
+- **Root Cause**: `CatalogView` conservó `pt-28 sm:pt-36`, espaciado heredado de
+  la composición con encabezado, aunque ese elemento ya no existía.
+- **Resolution**: Reducir el ritmo superior a `pt-12 sm:pt-16`, reservar espacio
+  inferior para las acciones flotantes y verificar que el título empiece dentro
+  de los primeros 150 px. Los controles usan áreas seguras y no reintroducen un
+  shell global.
+- **Files Affected**: `frontend/components/AdditionalModules/CatalogView.vue`,
+  `frontend/e2e/public/additional-modules.spec.js` y
+  `frontend/e2e/responsive/public.spec.js`.
+- **Verification**: 16 escenarios funcionales y la matriz oficial de 20 casos
+  en cinco viewports pasan sin retries.
 
 ### [ERR-052] El visor PDF extraído desaparecía fuera del runtime de Nuxt
 

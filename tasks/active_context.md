@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-09-01 — paridad pública de Módulos adicionales lista para integrar:** el
+catálogo canónico y las selecciones ya no conservan el hueco del Navbar
+retirado. Tema y guía quedan como acciones flotantes izquierdas; compartir y PDF
+como acciones derechas, además del WhatsApp global. El PDF de cabecera permanece
+y comparte loading/error con el flotante. El tema se recuerda, el modal de
+detalle lo hereda, la guía ES/EN aparece una vez y puede reiniciarse, y compartir
+copia exactamente la URL vigente para no perder el UUID de selección. Sin
+cambios backend, tracking, contenido, precios ni esquema. Verificación: 28
+unitarias, 16 E2E funcionales, matriz responsive 20/20, build Nuxt, flow-map
+fresco y flows de guía/tema/share cubiertos; el único `junk-only` global es la
+deuda previa ajena de suscripción de hosting.
+
 **2026-09-01 — aceptación responsiva consolidada y ejecutable:** las 107 vistas
 Nuxt quedan derivadas del catálogo real y repartidas entre 13 dueños, 92
 escenarios visuales y 15 redirects. La matriz única recorre los cinco perfiles

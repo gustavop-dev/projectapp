@@ -1,5 +1,17 @@
 # Technical Documentation — ProjectApp
 
+> **Paridad técnica del catálogo público — 2026-09-01:**
+> `useAdditionalModulesTheme` persiste `light|dark` en
+> `projectapp-additional-modules-theme`; la guía persiste su cierre en
+> `projectapp-additional-modules-guide-seen` y puede forzarse desde su botón
+> flotante. `CatalogView` aplica `data-theme` también al `BaseModal` de detalle,
+> comparte `downloadPdf()` entre ambas acciones PDF y reserva espacio inferior
+> para los controles con `env(safe-area-inset-bottom)`. `ShareButton` relee
+> `window.location.href` al abrir, usa Clipboard API con feedback visible y
+> ofrece Web Share cuando está disponible. La guía tiene copy ES/EN propio,
+> descarta targets ausentes y respeta `prefers-reduced-motion`. Todo el contrato
+> es frontend-local y reutiliza los endpoints públicos existentes.
+
 > **Transición de estado 2026-09-01:** el modal separa
 > `previewErrorMessage` de `applyErrorMessage` y activa la validación local con
 > `reviewAttempted`. `BaseFormField` enlaza cada error con su `select` o
