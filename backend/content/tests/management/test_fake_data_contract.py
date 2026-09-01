@@ -33,6 +33,8 @@ from content.models import (
     Contact,
     Document,
     DocumentCollectionAccount,
+    DocumentThread,
+    DocumentThreadItem,
     HostingRecord,
     IncomeRecord,
     LinkedInPost,
@@ -123,6 +125,11 @@ def complete_dataset_snapshot():
             'public_number', 'folder__name', 'project__name', 'client_user__email',
             'income_record__concept', 'income_record__period_date',
             'issue_date', 'due_date', 'subtotal', 'tax_total', 'total',
+        )),
+        'document_threads': list(DocumentThreadItem.objects.order_by(
+            'thread__title', 'occurred_on', 'position', 'document__title',
+        ).values_list(
+            'thread__title', 'document__title', 'occurred_on', 'position',
         )),
         'incomes': list(IncomeRecord.objects.filter(
             source_ref='fake:accounting',
@@ -352,6 +359,29 @@ def test_collection_account_seed_uses_automatic_filing(seeded_documents):
         root = document.folder.get_ancestors()[0]
         assert root.managed_project_id == document.project_id
         assert document.folder.system_key
+
+
+def test_document_seed_creates_representative_cross_scope_threads(seeded_documents):
+    cross_scope = DocumentThread.objects.get(
+        title='Entrega, revisión y aprobación',
+    )
+    association_signatures = set(cross_scope.items.values_list(
+        'document__folder_id',
+        'document__client_user_id',
+        'document__project_id',
+    ))
+
+    assert DocumentThread.objects.count() >= 2
+    assert min(
+        DocumentThread.objects.annotate(total=Count('items')).values_list(
+            'total', flat=True,
+        )
+    ) >= 2
+    assert len(association_signatures) >= 2
+    assert DocumentThreadItem.objects.filter(document__is_archived=True).exists()
+    assert DocumentThreadItem.objects.filter(
+        document__document_type__code='collection_account',
+    ).exists()
 
 
 def test_document_seed_honors_a_small_volume_target():

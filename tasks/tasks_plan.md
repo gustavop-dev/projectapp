@@ -13,6 +13,23 @@
 > redirects usan flows de compatibilidad honestos. RSP-F5-04 queda cerrado;
 > RSP-F5-01 permanece como certificación obligatoria en hardware real.
 
+> **Listo para integrar — 2026-09-01:** el modal de cambio de estado de
+> Proyectos conserva los avisos amarillos de contexto, ordena estado → revisión
+> → impacto → acciones y ubica cada requisito rojo bajo su control. El footer
+> queda limpio con Cancelar/Confirmar. Verificación focal: 4 unitarias, 7
+> escenarios del flujo, 5 viewports responsive, guards de diseño y mapa E2E
+> fresco con las cuatro clases de outcome cubiertas.
+
+> **Calendario contable listo para integrar — 2026-09-01:** se auditó el calendario ya
+> implementado y se fijaron como contrato los hitos 15/7/día, la recurrencia
+> quincenal por defecto, la pausa individual visible y los destinatarios
+> exclusivamente internos. La aceptación añade cobertura de digest, cadencia,
+> contenido, logging por target, fallo de entrega y el flujo P1 completo de
+> silenciar/reactivar; además corrige el nombre canónico del cliente sin cambiar
+> esquema ni crear historial de pagos recurrentes. Verificación focal: 24
+> pruebas backend, 35 unitarias, 6 E2E sin retries, mapa fresco y quality gate
+> sin errores nuevos; auditoría final: 0 tests basura.
+
 > **Aceptación lista para integrar — 2026-09-01:** los enlaces entre la ficha
 > comercial y el espacio de proyecto ya estaban completos; la entrega endurece
 > su aceptación E2E sin tocar producto. Nuxt tiene readiness explícita y warmup
@@ -211,6 +228,7 @@
 | Platform — Sidebar & Layout | ✅ Done | Collapsible sidebar, mobile drawer, theme toggle, role-based nav |
 | Platform — E2E Coverage | ✅ Done | Platform flows are registered and covered across auth, dashboard, projects, kanban, clients, collection accounts, data model, notifications, payments, and related routes |
 | Document System — Model + Admin CRUD | ✅ Done | `Document` model (uuid, title, slug, status, language, cover_type); panel pages (index, create, edit); `documents.js` store |
+| Documents — Linear cross-folder threads | 🟡 Ready for merge | 2026-09-01. One editable-name thread per document, with protected membership, date-only chronology (`issue_date` or Bogotá creation date) and stable tie position. The shared Relacionar/Detalle/Cronología modal opens from list and editor, searches across folder/client/project scopes, previews markdown/PDF, labels archived members and exposes `Hilo · N` in rows/cards. Archive preserves membership, delete returns 409 until unlink, one remaining member dissolves the thread, and duplicates stay independent. The relation is panel-only and explicitly excluded from MCP v1. Fake-data commands create coherent cross-scope examples; no production refresh was run. Verification: backend service/view/serializer/fake/MCP slices, frontend store/modal/PDF/action slices, 10 Playwright cases across four outcomes, both entry points and five viewports, migration/Django checks, flow sync/audit and Nuxt build are green. |
 | Documents — Private notes and client communication | ✅ Done | 2026-08-25. The create/edit modal is “Notas”: it retains the optional email subject, email body and WhatsApp fields, and supports ordered custom title/content notes. On edit, **Guardar cambios** persists the notes immediately with visible confirmation and leaves unrelated editor changes pending; on create, **Aplicar al borrador** explicitly says creation is still required. Every value remains individually copyable, issued collection accounts remain read-only, and PDF, list API and client portal never expose the private metadata. |
 | Document System — Project folders separated from personal folders | 🟡 Ready for merge | Updated 2026-08-29. Every project has one protected root with Cuentas de cobro, Propuestas, Entregables and QA; the two generated categories share stable keys with the filing service, so project accounts and proposal snapshots live under this root instead of a parallel tree. The sidebar diagnoses `no_projects`, pending reconciliation, an empty state filter and readiness failure while preserving partial results. Manifest v2 adds reviewable exact filing actions for eligible folderless project accounts, flags manual locations as conflicts and records inverse locations; neither live filing nor the general backfill can create an unreconciled historical root. No production conversion is automatic. Focused backend, unit and 3-outcome E2E slices plus the 356-flow audit are green with 0 missing/junk-only. |
 | Admin Panel — Internal Kanban Task Board | ✅ Done | `Task` model (status/priority TextChoices, position, assignee FK SET_NULL, due_date); migration `0087_task.py`; 5 FBV endpoints (`tasks/`, `tasks/create/`, `tasks/<id>/update/`, `tasks/<id>/reorder/`, `tasks/<id>/delete/`); `TaskListSerializer` (assignee_name, is_overdue via context today) + `TaskCreateUpdateSerializer`; `tasks.js` Pinia Options API store (fetchTasks, createTask, updateTask, moveTask, deleteTask, replaceTaskInPlace); `TaskCard.vue` (priority badge, due_date red if overdue), `TaskColumn.vue` (vuedraggable cross-column DnD), `TaskFormModal.vue`; `/panel/tareas` page with `useConfirmModal`; panel nav entry "Tareas" / "Kanban" as first section; 11 backend tests + 9 frontend unit tests + 2 E2E specs; `ADMIN_KANBAN_TASKS` flow tag registered |

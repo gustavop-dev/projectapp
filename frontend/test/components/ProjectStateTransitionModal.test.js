@@ -80,18 +80,34 @@ function mountModal() {
           props: ['modelValue'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
-        BaseAlert: { template: '<div><slot /></div>' },
+        BaseAlert: {
+          props: ['variant'],
+          template: '<div :role="variant === \'danger\' ? \'alert\' : undefined"><slot /></div>',
+        },
         BaseBadge: { template: '<span><slot /></span>' },
-        BaseFormField: { template: '<div><slot /></div>' },
+        BaseFormField: {
+          props: ['label', 'hint', 'required', 'error'],
+          template: `
+            <div>
+              <label v-if="label">{{ label }}<span v-if="required">*</span></label>
+              <slot :invalid="Boolean(error)" :error-id="error ? 'field-error' : undefined" />
+              <p v-if="error" id="field-error" role="alert">{{ error }}</p>
+              <p v-else-if="hint">{{ hint }}</p>
+            </div>
+          `,
+        },
+        BaseModalActions: {
+          template: '<div data-testid="base-modal-actions"><slot /></div>',
+        },
         BaseToggle: {
           props: ['modelValue', 'size'],
           emits: ['update:modelValue'],
           template: '<input type="checkbox" />',
         },
         BaseTextarea: {
-          props: ['modelValue'],
+          props: ['modelValue', 'error'],
           emits: ['update:modelValue'],
-          template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          template: '<textarea :value="modelValue" :aria-invalid="error || undefined" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseButton: {
           props: ['disabled'],
@@ -107,6 +123,30 @@ function mountModal() {
 describe('ProjectStateTransitionModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('places a missing state message beside the selector after impact review', async () => {
+    const { wrapper } = mountModal();
+    await wrapper.setProps({ open: true });
+
+    const target = wrapper.get('[data-testid="project-state-target"]');
+    expect(target.attributes('aria-invalid')).toBeUndefined();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="project-state-preview"]').trigger('click');
+
+    expect(create_request).not.toHaveBeenCalled();
+    expect(target.attributes('aria-invalid')).toBe('true');
+    expect(target.attributes('aria-describedby')).toBe('field-error');
+    expect(wrapper.get('[role="alert"]').text())
+      .toBe('Elige el nuevo estado del proyecto.');
+    expect(wrapper.get('[data-testid="base-modal-actions"]')
+      .find('[role="alert"]').exists()).toBe(false);
+
+    await target.setValue('4');
+
+    expect(target.attributes('aria-invalid')).toBeUndefined();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 
   it('previews suspension consequences before confirmation', async () => {
@@ -175,11 +215,27 @@ describe('ProjectStateTransitionModal', () => {
     await flushPromises();
 
     const apply = wrapper.get('[data-testid="project-state-apply"]');
+    const incomeDecision = wrapper.get('[data-testid="project-state-income-41"]');
+    const note = wrapper.get('[data-testid="project-state-note"]');
     expect(apply.attributes('disabled')).toBeDefined();
-    await wrapper.get('[data-testid="project-state-income-41"]')
-      .setValue('keep_receivable');
-    await wrapper.get('[data-testid="project-state-note"]')
-      .setValue('Baja directa confirmada por el cliente.');
+    expect(incomeDecision.attributes('aria-invalid')).toBe('true');
+    expect(note.attributes('aria-invalid')).toBe('true');
+    expect(wrapper.findAll('[role="alert"]').map((alert) => alert.text())).toEqual([
+      'Decide qué hacer con el ingreso "Hosting agosto".',
+      'Escribe una nota porque la baja omite el paso previo por Suspendido.',
+    ]);
+    expect(wrapper.get('[data-testid="base-modal-actions"]')
+      .find('[role="alert"]').exists()).toBe(false);
+
+    await incomeDecision.setValue('keep_receivable');
+    expect(incomeDecision.attributes('aria-invalid')).toBeUndefined();
+    expect(wrapper.findAll('[role="alert"]').map((alert) => alert.text())).toEqual([
+      'Escribe una nota porque la baja omite el paso previo por Suspendido.',
+    ]);
+
+    await note.setValue('Baja directa confirmada por el cliente.');
+    expect(note.attributes('aria-invalid')).toBeUndefined();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
     expect(apply.attributes('disabled')).toBeUndefined();
 
     await apply.trigger('click');

@@ -30,6 +30,7 @@ from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     Document,
     DocumentFolder,
+    DocumentThread,
     DocumentState,
     DocumentTag,
     DocumentType,
@@ -39,6 +40,7 @@ from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed
 from content.services import collection_account_service as ca_service
 from content.services import collection_account_create_service as ca_create_service
 from content.services.document_content import build_content_json
+from content.services.document_thread_service import create_document_thread
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
 from content.services.generated_document_filing_service import (
     file_collection_account,
@@ -358,10 +360,13 @@ class Command(BaseCommand):
         # ── Estado archivado de demo ────────────────────────────────────────
         archived = self._archive_demo_state(leaves, md_type, admin)
 
+        # ── Hilos documentales ──────────────────────────────────────────────
+        thread_count = self._create_document_threads(admin)
+
         self.stdout.write(self.style.SUCCESS(
             f'Documents created: {created_md} markdown + {created_ca} collection accounts. '
             f'Issuer "{issuer.name}", {len(leaves)} leaf folders, {len(tags)} tags. '
-            f'Archivados de demo: {archived}.'
+            f'Archivados de demo: {archived}. Hilos documentales: {thread_count}.'
         ))
 
     # ── helpers ────────────────────────────────────────────────────────────
@@ -541,6 +546,85 @@ class Command(BaseCommand):
                 )
 
         return ', '.join(summary) if summary else 'ninguno'
+
+    def _create_document_threads(self, actor):
+        """Create cross-folder histories with archived and generated records."""
+        if DocumentThread.objects.exists():
+            return DocumentThread.objects.count()
+
+        available = list(
+            Document.objects.select_related('document_type')
+            .order_by('id')
+        )
+        used = set()
+        scenarios = []
+
+        # Different association signatures prove that a thread is not owned by
+        # a folder, client or project.
+        cross_scope = []
+        signatures = set()
+        for document in available:
+            signature = (
+                document.folder_id,
+                document.client_user_id,
+                document.project_id,
+            )
+            if signature in signatures:
+                continue
+            cross_scope.append(document)
+            signatures.add(signature)
+            if len(cross_scope) == 3:
+                break
+        if len(cross_scope) >= 2:
+            scenarios.append(('Entrega, revisión y aprobación', cross_scope))
+            used.update(document.pk for document in cross_scope)
+
+        generated = next((
+            document for document in available
+            if document.pk not in used
+            and document.document_type
+            and document.document_type.code == COLLECTION_ACCOUNT
+            and document.commercial_status != Document.CommercialStatus.DRAFT
+        ), None)
+        ordinary = next((
+            document for document in available
+            if document.pk not in used
+            and document.document_type
+            and document.document_type.code == MARKDOWN
+            and not document.is_archived
+        ), None)
+        if generated and ordinary:
+            scenarios.append(('Soporte de entrega y cuenta emitida', [ordinary, generated]))
+            used.update((ordinary.pk, generated.pk))
+
+        archived = next((
+            document for document in available
+            if document.pk not in used and document.is_archived
+        ), None)
+        active = [
+            document for document in available
+            if document.pk not in used and not document.is_archived
+        ][:2]
+        if archived and active:
+            scenarios.append(('Antecedentes archivados y corrección', [archived, *active]))
+
+        offsets = (45, 18, 3)
+        for title, documents in scenarios:
+            create_document_thread(
+                title=title,
+                items=[
+                    {
+                        'document_id': document.pk,
+                        'occurred_on': (
+                            self.seed_context.anchor_date
+                            - timedelta(days=offsets[index % len(offsets)])
+                        ),
+                    }
+                    for index, document in enumerate(documents)
+                ],
+                actor=actor,
+            )
+        return len(scenarios)
 
     # Repeating cycle with business-realistic weights: ~1 draft, 4 issued,
     # 6 paid, 2 overdue, 1 cancelled per 14 accounts.

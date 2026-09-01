@@ -93,23 +93,50 @@ def audit_rows(entity_type, object_id):
 
 
 class TestDeterministicRule:
-    def test_links_income_and_hosting_of_a_single_project_client(
+    def test_single_project_client_links_eligible_records(
         self, make_client_profile,
     ):
+        """Falla si el backfill omite un registro elegible del cliente."""
         profile = make_client_profile()
         project = make_project(profile)
         income = make_income(profile)
         hosting = make_hosting(profile)
 
-        output = run_command('--apply')
+        run_command('--apply')
 
         income.refresh_from_db()
         hosting.refresh_from_db()
-        assert income.project_id == project.pk
-        assert hosting.project_id == project.pk
-        assert audit_rows(EntityType.INCOME, income.pk).count() == 1
-        assert audit_rows(EntityType.HOSTING, hosting.pk).count() == 1
-        assert 'Aplicado: 1 ingresos; 1 hostings; 0 documentos.' in output
+        assert (income.project_id, hosting.project_id) == (
+            project.pk, project.pk,
+        )
+
+    def test_income_backfill_audit_matches_system_diff(
+        self, make_client_profile,
+    ):
+        """Falla si el backfill registra un actor o diff distinto del sistema."""
+        profile = make_client_profile()
+        make_project(profile)
+        income = make_income(profile)
+
+        run_command('--apply')
+
+        income_audit = audit_rows(EntityType.INCOME, income.pk).get()
+        assert {
+            'action': income_audit.action,
+            'actor': income_audit.actor,
+            'actor_username': income_audit.actor_username,
+            'changes': income_audit.changes,
+        } == {
+            'action': AccountingChangeLog.Action.UPDATED,
+            'actor': None,
+            'actor_username': '',
+            'changes': [{
+                'field': 'project',
+                'label': 'Proyecto',
+                'old': '',
+                'new': 'Vastago',
+            }],
+        }
 
     def test_two_active_projects_skip_with_reason(self, make_client_profile):
         profile = make_client_profile()

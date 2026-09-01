@@ -1,5 +1,25 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-09-01 — cambio de estado de Proyectos:** el modal presenta
+> el flujo en orden: nuevo estado, revisión de consecuencias, decisiones de
+> impacto y acciones finales. Los avisos amarillos del proyecto se conservan
+> como contexto bajo el encabezado; cada requisito corregible rojo aparece
+> junto al campo que lo origina y desaparece al resolverlo. La fila final queda
+> reservada exclusivamente para Cancelar y Confirmar cambio.
+
+> **Aceptación 2026-09-01 — calendario contable:** ingresos esperados, gastos
+> recurrentes y vencimientos de hosting comparten un digest interno diario.
+> Ingresos y recurrentes usan hitos a 15 días, 7 días y el día previsto; hosting
+> conserva su calendario previo de 15/7 días y repetición cada 5 días. Los
+> ingresos vencidos continúan
+> semanal o quincenalmente —quincenal por defecto— hasta liquidarse o
+> silenciarse; la pausa puede ser indefinida o tener reanudación automática y
+> debe verse en la fila. El correo consolida todos los avisos del día y deja
+> trazabilidad por destinatario y registro. Los avisos al cliente siguen siendo
+> responsabilidad separada de las cuentas de cobro. Para recurrentes se usa la
+> próxima fecha proyectada vigente; este alcance no crea pagos históricos por
+> ciclo.
+
 > **Seguimiento 2026-09-01 — cierre del catálogo adicional:** las rutas públicas
 > del catálogo, tanto canónica como seleccionada, no muestran el encabezado
 > global. Todo enlace o PDF nuevo parte en español y conserva el selector ES/EN.
@@ -365,6 +385,25 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list and state-catalog management
+- **Document threads** relate a linear history without changing folders, clients
+  or projects. A document belongs to at most one thread; a new thread takes the
+  source document title as its editable name and needs at least two documents.
+  Removing members until only one remains dissolves the thread automatically.
+- Each membership owns an editable day-level chronology date. It defaults to the
+  document `issue_date`, or to the Bogotá date of `created_at` when the document
+  has no issue date; a stable position resolves equal dates deterministically.
+- The list action drawer and the editor open the same workspace modal. Its
+  **Relacionar**, **Detalle** and **Cronología** tabs search across folders and
+  organisational scopes, preview markdown/PDF, and show the ordered story.
+  List rows and cards expose `Hilo · N` without leaking the relationship into
+  folder navigation.
+- Archived documents keep their membership and are labelled in the thread.
+  Candidate search hides them by default and can include them explicitly.
+  Documents already assigned to another thread remain visible but disabled with
+  the reason. Deleting a linked document is blocked until it is unlinked;
+  duplicating a document never copies its membership.
+- Threads are internal panel metadata in v1. They are deliberately excluded from
+  the Documents MCP and from client-facing document payloads.
 - **Long-name containment**: list and gallery titles are always bounded by their
   cell/card. The collapsed state uses one line with ellipsis and exposes the same
   measured **Ver completo/Contraer** path for names with spaces or systematic

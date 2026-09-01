@@ -14,6 +14,40 @@ function invalidatePickerCache() {
   useAccountingStore().invalidateProjectsCache();
 }
 
+/** Keep already-mounted relation columns coherent after a project rename. */
+function syncLoadedProjectName(project) {
+  if (!project?.id || typeof project.name !== 'string') return;
+
+  const accounting = useAccountingStore();
+  const replaceName = (record, relationKey) => (
+    record[relationKey] === project.id
+      ? { ...record, project_name: project.name }
+      : record
+  );
+  if (accounting.hostings.length) {
+    accounting.hostings = accounting.hostings.map(
+      (record) => replaceName(record, 'project'),
+    );
+  }
+  if (accounting.incomes.length) {
+    accounting.incomes = accounting.incomes.map(
+      (record) => replaceName(record, 'project'),
+    );
+  }
+  if (accounting.collectionAccounts.length) {
+    accounting.collectionAccounts = accounting.collectionAccounts.map(
+      (record) => replaceName(record, 'project_id'),
+    );
+  }
+
+  const documentStore = useDocumentStore();
+  if (documentStore.documents.length) {
+    documentStore.documents = documentStore.documents.map(
+      (record) => replaceName(record, 'project'),
+    );
+  }
+}
+
 /**
  * Panel-side store for the Projects module (Plataforma space).
  *
@@ -90,6 +124,7 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       try {
         const response = await patch_request(`projects/${id}/update/`, payload);
         await this.fetchProjects();
+        syncLoadedProjectName(response.data);
         invalidatePickerCache();
         return { success: true, data: response.data };
       } catch (error) {
@@ -140,8 +175,7 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
             (record) => incomes.get(record.id) ?? record,
           );
         }
-        // Documents follow the same rule (F7). The cuentas list needs no
-        // map here: it refetches on every mount and on the global refresh.
+        // Documents follow the same rule (F7).
         const documents = new Map(
           (response.data.documents ?? []).map((row) => [row.id, row]),
         );
@@ -149,6 +183,23 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
         if (documents.size && documentStore.documents.length) {
           documentStore.documents = documentStore.documents.map(
             (record) => documents.get(record.id) ?? record,
+          );
+        }
+        // Cuentas are Documents too, but their accounting serializer names
+        // the live relation `project_id` while DocumentListSerializer returns
+        // `project`. Merge only the live relation fields so the open monitor
+        // updates immediately without losing its billing/status metadata.
+        if (documents.size && accounting.collectionAccounts.length) {
+          accounting.collectionAccounts = accounting.collectionAccounts.map(
+            (record) => {
+              const document = documents.get(record.id);
+              if (!document) return record;
+              return {
+                ...record,
+                project_id: document.project,
+                project_name: document.project_name,
+              };
+            },
           );
         }
         await this.fetchProjects();
@@ -192,8 +243,25 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
           `projects/${id}/change-client/`, payload,
         );
         const accounting = useAccountingStore();
-        if (accounting.hostings.length) accounting.fetchRecords('hostings');
-        if (accounting.incomes.length) accounting.fetchRecords('incomes');
+        const documentStore = useDocumentStore();
+        const refreshes = [];
+        if (accounting.hostings.length) {
+          refreshes.push(accounting.fetchRecords('hostings'));
+        }
+        if (accounting.incomes.length) {
+          refreshes.push(accounting.fetchRecords('incomes'));
+        }
+        const changedDraftAccounts = (
+          (response.data.moved?.draft_accounts ?? 0)
+          + (response.data.detached?.draft_accounts ?? 0)
+        );
+        if (changedDraftAccounts && accounting.collectionAccounts.length) {
+          refreshes.push(accounting.fetchCollectionAccounts());
+        }
+        if (changedDraftAccounts && documentStore.documents.length) {
+          refreshes.push(documentStore.fetchDocuments());
+        }
+        await Promise.all(refreshes);
         await this.fetchProjects();
         invalidatePickerCache();
         return { success: true, data: response.data };

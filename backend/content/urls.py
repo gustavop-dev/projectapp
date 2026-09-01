@@ -173,6 +173,12 @@ from content.views.document import (
     archive_document, unarchive_document, document_counts,
     document_email_usage, document_navigation, suggest_folder_client,
 )
+from content.views.document_thread import (
+    create_thread,
+    document_thread_candidates,
+    document_thread_detail,
+    update_or_delete_thread,
+)
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
     update_recurring_category, delete_recurring_category,
@@ -695,6 +701,11 @@ urlpatterns = [
     path('documents/create-from-markdown/', create_document_from_markdown, name='create-document-from-markdown'),
     path('documents/upload-markdown/', upload_document_markdown, name='upload-document-markdown'),
     path('documents/<int:document_id>/detail/', retrieve_document, name='retrieve-document'),
+    path(
+        'documents/<int:document_id>/thread/',
+        document_thread_detail,
+        name='document-thread-detail',
+    ),
     path('documents/<int:document_id>/update/', update_document, name='update-document'),
     path('documents/<int:document_id>/delete/', delete_document, name='delete-document'),
     path('documents/<int:document_id>/archive/', archive_document, name='archive-document'),
@@ -760,6 +771,17 @@ urlpatterns = [
         'documents/<int:document_id>/communications/',
         document_communication_usage,
         name='document-communication-usage',
+    ),
+    path(
+        'document-threads/candidates/',
+        document_thread_candidates,
+        name='document-thread-candidates',
+    ),
+    path('document-threads/', create_thread, name='create-document-thread'),
+    path(
+        'document-threads/<int:thread_id>/',
+        update_or_delete_thread,
+        name='update-or-delete-document-thread',
     ),
 
     # Document folders (flat, inline-managed)

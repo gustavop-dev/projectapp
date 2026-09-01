@@ -129,6 +129,9 @@ def list_documents(request):
         .annotate(
             _has_delivered_collection_email=Exists(delivered_targets),
             _has_failed_collection_email=Exists(failed_targets),
+            thread_document_count=Count(
+                'thread_item__thread__items', distinct=True,
+            ),
         )
         .prefetch_related(
             'tags',
@@ -143,6 +146,7 @@ def list_documents(request):
         )
         .select_related(
             'document_type', 'folder', 'project', 'client_user__profile',
+            'thread_item__thread',
         )
     )
 
@@ -514,8 +518,13 @@ def upload_document_markdown(request):
 def retrieve_document(request, document_id):
     """Get document detail."""
     document = get_object_or_404(
-        Document.objects.select_related(
+        Document.objects.annotate(
+            thread_document_count=Count(
+                'thread_item__thread__items', distinct=True,
+            ),
+        ).select_related(
             'document_type', 'folder', 'project', 'client_user__profile',
+            'thread_item__thread',
         ).prefetch_related(
             Prefetch(
                 'document_notes',
@@ -614,6 +623,13 @@ def delete_document(request, document_id):
     locked = _locked_collection_account_error(document)
     if locked:
         return locked
+    if hasattr(document, 'thread_item'):
+        return error_response(
+            'Este documento pertenece a un hilo y no se puede eliminar todavía.',
+            code='document_used_in_thread',
+            hint='Retíralo del hilo y vuelve a intentar la eliminación.',
+            status=status.HTTP_409_CONFLICT,
+        )
     if document.email_attachment_snapshots.exists():
         return Response(
             {

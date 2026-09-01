@@ -1,5 +1,24 @@
 # Architecture — ProjectApp
 
+> **Modal de transición ordenado 2026-09-01:**
+> `ProjectStateTransitionModal` compone `BaseFormField` para que estado destino,
+> decisión por ingreso y nota sean dueños de su validación visible y ARIA.
+> `reviewAttempted` delimita los errores previos al preview; las fallas del
+> preview y de la confirmación permanecen en la sección que ejecuta cada acción.
+> `BaseModalActions` contiene únicamente Cancelar/Confirmar y reutiliza las
+> mismas razones de bloqueo para su estado deshabilitado. Catálogo, endpoints y
+> reglas financieras no cambian.
+
+> **Calendario contable validado 2026-09-01:** la tarea Huey
+> `send_payment_calendar` ejecuta diariamente `run_payment_calendar` y reúne en
+> un solo digest los ingresos, recurrentes y hostings que alcanzan su hito. El
+> estado de cadencia sólo avanza después de una entrega aceptada; cada
+> destinatario interno recibe su propio `EmailLog` con `EmailLogTarget` para
+> todos los registros incluidos, también cuando el SMTP falla. La proyección de
+> ingresos carga `client__user` y usa `build_client_display_name`, única fuente
+> canónica para mostrar persona, empresa o correo sin caer en la representación
+> técnica de `UserProfile`.
+
 > **Seguimiento comercial 2026-09-01:** `content.utils.is_staff_session` es la
 > frontera común que consulta la sesión Django subyacente antes de cualquier
 > escritura de analytics comerciales. La usan catálogo adicional, propuestas y
@@ -360,6 +379,7 @@ branch before removing its now-empty parallel wrappers.
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
 | **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, is_client_visible, legacy status (expand/contract only), language (es/en), cover_type, content_json, private delivery copy, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
+| **DocumentThread / DocumentThreadItem** | Internal linear history spanning document folders and organisational scopes | thread title and audit actors; one protected membership per document, chronology `occurred_on`, stable `position`, link/update actors and timestamps |
 | **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect` and legacy read-only `show_in_document_manager` compatibility metadata; non-null `system_key` is database-unique per catalog and `NULL` remains repeatable |
 | **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document/project workflow and append-only audit | exactly one of document/project, state, opened_at/closed_at, actors, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
 | **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
@@ -469,6 +489,7 @@ flowchart TD
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
 | **DocumentNavigationService** | Small | Builds active/archived project and client facets from canonical folder/document associations, including independent unassigned buckets and constant-query recursive inventory totals. |
+| **DocumentThreadService** | Small | Atomically creates, updates and dissolves linear document histories; locks documents/memberships, enforces one thread per document and derives default chronology dates in Bogotá. |
 | **GeneratedDocumentFilingService** | Small | Owns deterministic project/client/type/year/month paths, Spanish month names, stable folder keys, collection-account/proposal titles, cancellation branches and proposal-snapshot moves on onboarding. |
 | **ProposalSnapshotService** | Small | Locks proposal rows, allocates monotonically increasing versions, renders every PDF before the first send, stores exact bytes and hash, files snapshots, and derives sent/needs-fix state from the delivery result. |
 | **CommunicationService** | Small | Transactional thread/message lifecycle, direction/channel/state validation, document-reference validation, derived last activity, annulment and append-only date corrections |
@@ -783,7 +804,7 @@ Charts are lazy and client-only: there is no global ApexCharts plugin in the Nux
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 41 total"]
+    subgraph Stores["Pinia Stores (Options API) — 42 total"]
         ProposalStore["proposals.js"]
         ProposalClientsStore["proposalClients.js"]
         DiagnosticsStore["diagnostics.js"]
@@ -793,6 +814,7 @@ flowchart LR
         DocumentFoldersStore["document_folders.js"]
         DocumentNavigationStore["document_navigation.js"]
         DocumentStatesStore["document_states.js"]
+        DocumentThreadsStore["document_threads.js"]
         PlatformDocumentsStore["platform-documents.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
@@ -1118,6 +1140,33 @@ live relation, preserve a different historical snapshot as `<name> (histórico)`
 and reserve a final unassigned group for a genuinely absent project. The global
 settings row persists both controls together; an optimistic save rolls the UI back
 when the PATCH fails.
+
+### Document → Independent Thread → Linear Chronology
+
+```mermaid
+flowchart LR
+    Source["Document action / editor"] --> Modal["Thread workspace"]
+    Modal --> Search["Cross-folder candidate search"]
+    Search --> Service["DocumentThreadService · atomic locks"]
+    Service --> Thread["DocumentThread"]
+    Thread --> Items["DocumentThreadItem · one per document"]
+    Items --> Date["issue_date or Bogotá created date"]
+    Date --> Stable["occurred_on + position"]
+    Stable --> Timeline["Linear chronology"]
+    Archive["Archive document"] -->|membership preserved| Timeline
+    Delete["Delete document"] -->|PROTECT / HTTP 409| Unlink["Unlink first"]
+    Unlink -->|one member remains| Dissolve["Dissolve thread"]
+```
+
+The relationship is orthogonal to `DocumentFolder`, client and project FKs.
+`DocumentThreadItem.document` is a protected one-to-one seam, so concurrent
+writers cannot place one document in two histories and deletion cannot silently
+break a thread. REST views remain thin FBVs over the transactional service. The
+Pinia store rejects stale thread and candidate responses; the modal rejects stale
+detail responses, while the shared PDF
+pane does the same for availability probes. The modal is the only management
+surface, while list/detail serializers expose only a compact `thread_summary`.
+The MCP registry classifies both models as deliberately panel-only.
 
 ### Document Event → Episode → Current State
 

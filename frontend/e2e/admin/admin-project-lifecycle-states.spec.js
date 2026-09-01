@@ -7,6 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { waitForNuxtApp } from '../helpers/navigation.js';
 import { viewportUse } from '../helpers/viewports.js';
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js';
 import {
@@ -191,10 +192,17 @@ function baseRoutes(apiPath, method, catalog, currentState) {
 
 async function openProjects(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await waitForNuxtApp(page);
   if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
     await page.getByRole('button', { name: 'Abrir menú' }).click();
   }
-  await page.getByRole('link', { name: 'Proyectos', exact: true }).click();
+  const projectsLink = page.getByRole('link', { name: 'Proyectos', exact: true });
+  await expect(projectsLink).toBeVisible({ timeout: 25_000 });
+  await Promise.all([
+    page.waitForURL(/\/panel\/projects(?:[/?#]|$)/, { timeout: 25_000 }),
+    projectsLink.click(),
+  ]);
+  await waitForNuxtApp(page);
   await expect(
     page.getByRole('heading', { name: 'Proyectos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
@@ -204,6 +212,19 @@ async function openProjects(page) {
     ? page.getByTestId('project-card-9')
     : page.getByTestId('accounting-row-9');
   await expect(projectRecord).toBeVisible({ timeout: 25_000 });
+}
+
+async function openStateTransition(page, projectId = 9) {
+  if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+    await page.getByTestId(`project-actions-${projectId}`).click();
+    const actionsDrawer = page.getByTestId('project-actions-drawer');
+    await expect(actionsDrawer).toBeVisible();
+    await actionsDrawer.getByRole('button', { name: 'Cambiar estado…' }).click();
+  } else {
+    await page.getByTestId(`project-change-state-${projectId}`).click();
+  }
+
+  await expect(page.getByTestId('project-state-transition-modal')).toBeVisible();
 }
 
 async function openCatalog(page) {
@@ -227,6 +248,13 @@ async function expectNoViewportOverflow(page) {
     );
     return widest - document.documentElement.clientWidth;
   })).toBeLessThanOrEqual(1);
+}
+
+async function expectInlineControlError(page, control, message) {
+  await expect(control).toHaveAttribute('aria-invalid', 'true');
+  const errorId = await control.getAttribute('aria-describedby');
+  expect(errorId).toBeTruthy();
+  await expect(page.locator(`[id="${errorId}"]`)).toHaveText(message);
 }
 
 function horizontalGap(first, second) {
@@ -264,6 +292,41 @@ test.describe('Admin project lifecycle states', () => {
     await expect(history).toContainText('Ana Admin');
   });
 
+  test('places missing state validation beside the selector', {
+    tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    let previewCalls = 0;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'projects/9/state-transitions/preview/' && method === 'POST') {
+        previewCalls += 1;
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openProjects(page);
+    await openStateTransition(page);
+
+    const target = page.getByTestId('project-state-target');
+    const actions = page.getByTestId('base-modal-actions');
+    await expect(target).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(actions.getByRole('button')).toHaveCount(2);
+    await expect(actions.getByRole('alert')).toHaveCount(0);
+
+    await page.getByTestId('project-state-preview').click();
+
+    await expectInlineControlError(
+      page,
+      target,
+      'Elige el nuevo estado del proyecto.',
+    );
+    expect(previewCalls).toBe(0);
+
+    await target.selectOption('4');
+    await expect(target).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
   test('previews suspension consequences before changing the row', {
     tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -293,7 +356,7 @@ test.describe('Admin project lifecycle states', () => {
     });
 
     await openProjects(page);
-    await page.getByTestId('project-change-state-9').click();
+    await openStateTransition(page);
     await page.getByTestId('project-state-target').selectOption('4');
     await page.getByTestId('project-state-preview').click();
 
@@ -334,7 +397,7 @@ test.describe('Admin project lifecycle states', () => {
     });
 
     await openProjects(page);
-    await page.getByTestId('project-change-state-9').click();
+    await openStateTransition(page);
     await page.getByTestId('project-state-target').selectOption('7');
     await expect(page.getByTestId('project-state-selected-help')).toContainText(
       'Está en producción mientras se desarrolla una ampliación.',
@@ -371,15 +434,31 @@ test.describe('Admin project lifecycle states', () => {
     });
 
     await openProjects(page);
-    await page.getByTestId('project-change-state-9').click();
+    await openStateTransition(page);
     await page.getByTestId('project-state-target').selectOption('6');
     await page.getByTestId('project-state-preview').click();
 
     const apply = page.getByTestId('project-state-apply');
+    const incomeDecision = page.getByTestId('project-state-income-41');
+    const note = page.getByTestId('project-state-note');
     await expect(apply).toBeDisabled();
-    await page.getByTestId('project-state-income-41').selectOption('keep_receivable');
+    await expectInlineControlError(
+      page,
+      incomeDecision,
+      'Decide qué hacer con el ingreso "Hosting agosto".',
+    );
+    await expectInlineControlError(
+      page,
+      note,
+      'Escribe una nota porque la baja omite el paso previo por Suspendido.',
+    );
+    await expect(page.getByTestId('base-modal-actions').getByRole('alert')).toHaveCount(0);
+
+    await incomeDecision.selectOption('keep_receivable');
+    await expect(incomeDecision).not.toHaveAttribute('aria-invalid', 'true');
     await expect(apply).toBeDisabled();
-    await page.getByTestId('project-state-note').fill('Baja directa confirmada.');
+    await note.fill('Baja directa confirmada.');
+    await expect(note).not.toHaveAttribute('aria-invalid', 'true');
     await expect(apply).toBeEnabled();
   });
 
@@ -411,7 +490,7 @@ test.describe('Admin project lifecycle states', () => {
     });
 
     await openProjects(page);
-    await page.getByTestId('project-change-state-9').click();
+    await openStateTransition(page);
     await page.getByTestId('project-state-target').selectOption('4');
     await page.getByTestId('project-state-preview').click();
     await page.getByTestId('project-state-apply').click();
@@ -421,6 +500,68 @@ test.describe('Admin project lifecycle states', () => {
     );
     await expect(page.getByTestId('project-state-transition-modal')).toBeVisible();
     await expect(page.getByTestId('accounting-row-9')).toContainText('Activo');
+  });
+
+  test('keeps state-change steps in reading order', {
+    tag: [
+      ...ADMIN_PROJECT_LIFECYCLE_STATES,
+      '@role:admin',
+      '@outcome:display',
+      '@responsive:projects',
+    ],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'projects/9/state-transitions/preview/' && method === 'POST') {
+        return json({
+          target_effect: 'decommissioned',
+          impact_token: 'd'.repeat(64),
+          effective_at: '2026-08-26T10:00:00Z',
+          pending_incomes: [{
+            id: 41,
+            concept: 'Hosting agosto',
+            pending_amount: '120000.00',
+          }],
+          future_incomes: [],
+          future_payments: [],
+          active_hostings: [],
+          blockers: [],
+        });
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openProjects(page);
+    await openStateTransition(page);
+    await page.getByTestId('project-state-target').selectOption('6');
+    await page.getByTestId('project-state-preview').click();
+
+    const modal = page.getByTestId('project-state-transition-modal');
+    const orderedTestIds = await modal.evaluate((root) => [
+      'project-state-target',
+      'project-state-review-step',
+      'project-state-impact',
+      'base-modal-actions',
+    ].filter((testId) => root.querySelector(`[data-testid="${testId}"]`))
+      .sort((first, second) => {
+        const firstNode = root.querySelector(`[data-testid="${first}"]`);
+        const secondNode = root.querySelector(`[data-testid="${second}"]`);
+        return firstNode.compareDocumentPosition(secondNode)
+          & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+      }));
+
+    expect(orderedTestIds).toEqual([
+      'project-state-target',
+      'project-state-review-step',
+      'project-state-impact',
+      'base-modal-actions',
+    ]);
+    const actions = page.getByTestId('base-modal-actions');
+    await actions.scrollIntoViewIfNeeded();
+    await expect(actions.getByRole('button')).toHaveCount(2);
+    await expect(actions.getByRole('alert')).toHaveCount(0);
+    await expectNoViewportOverflow(page);
   });
 });
 

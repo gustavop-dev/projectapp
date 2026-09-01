@@ -63,7 +63,7 @@ async function enterDocuments(page, profile) {
   await page.goto('/en-us/panel', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/en-us\/panel$/);
   await documentEntryByProfile[profile](page);
-  await expect(page).toHaveURL(/\/panel\/documents$/);
+  await expect(page).toHaveURL(/\/panel\/documents(?:\?.*)?$/);
   await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true })).toHaveText('Gestor Documental');
 }
 

@@ -5708,6 +5708,30 @@ Two transitions that were previously bundled into other flows now have their own
 - **Coverage:** ✅ Covered (las notas privadas satisfacen display/success/error/failure; el retorno cubre salida explícita, Back nativo y fallback no confiable; asociaciones, Markdown, estilos, PDF y guard tienen cobertura propia o compartida en los specs).
 - **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`, `e2e/admin/admin-document-return-navigation.spec.js`
 
+### FLOW: `admin-document-thread`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/documents`, `/panel/documents/:id/edit`
+- **API:** `GET /api/documents/:id/thread/`, `GET /api/document-threads/candidates/`, `POST /api/document-threads/`, `PATCH/DELETE /api/document-threads/:id/`
+- **Description:** El administrador forma una historia cronológica con documentos ubicados en cualquier carpeta, cliente o proyecto. Cada documento puede pertenecer a un solo hilo y la relación se consulta desde un espacio de trabajo con pestañas para asignación, detalle y cronología.
+- **Steps:**
+  1. El administrador abre las acciones de un documento y elige «Hilo de documentos», o usa el indicador del editor.
+  2. En «Relacionar» asigna un nombre, busca documentos por título, carpeta, cliente o proyecto y define la fecha de cada hito.
+  3. Guarda al menos dos documentos; el listado muestra «Hilo · N» y el modal abre luego en «Cronología».
+  4. Selecciona un hito para consultar su contenido markdown o su PDF en «Detalle».
+- **Branches:**
+  - [Branch A — Display] La cronología ordena por fecha ascendente y conserva la posición relativa cuando dos fechas coinciden; los archivados siguen visibles con su estado.
+  - [Branch B — Success] El hilo puede cruzar carpetas, clientes y proyectos; renombrar, cambiar fechas o miembros actualiza la misma relación.
+  - [Branch C — Error] Un documento ocupado aparece deshabilitado y el conflicto 409 mantiene el modal abierto con una explicación.
+  - [Branch D — Failure] Un fallo al consultar el hilo conserva el espacio de trabajo y presenta el error sin inventar una relación vacía.
+  - [Branch E — Lifecycle] Archivar conserva la membresía, eliminar se bloquea hasta retirar el documento y dejar un solo miembro disuelve el hilo con confirmación.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-thread.spec.js`
+- **Unit Tests:** `test/components/DocumentThreadModal.spec.js`, `test/stores/document_threads.test.js`, `test/components/DocumentActionsSheet.spec.js`
+- **Backend Tests:** `content/tests/services/test_document_thread_service.py`, `content/tests/views/test_document_thread_views.py`
+
 ### FLOW: `proposal-view-paste-rendering`
 
 - **Module:** proposal
@@ -6012,6 +6036,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-income-bulk-settle` | admin | P1 | success,error,failure,display | 8 |
 | `admin-accounting-income-client` | admin | P1 | display,success,failure,error | 10 |
 | `admin-accounting-income-crud` | admin | P1 | display,success,error,failure | 34 |
+| `admin-accounting-income-reminder-mute` | admin | P1 | display,success,error,failure | 6 |
 | `admin-accounting-list-error-retry` | admin | P3 | failure,display | 1 |
 | `admin-accounting-pocket` | admin | P2 | display,success,error | 6 |
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
@@ -6116,6 +6141,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-state-filters` | admin | P1 | display,success,failure | 1 |
 | `admin-document-state-workflow` | admin | P1 | display,success,error,failure | 1 |
 | `admin-document-states-manage` | admin | P1 | display,success,error,failure | 1 |
+| `admin-document-thread` | admin | P1 | display,success,error,failure | 1 |
 | `admin-document-title-column-resize` | admin | P2 | display,success | 1 |
 | `admin-document-unsaved-guard` | admin | P2 | display,success,failure | 1 |
 | `admin-email-deliverability` | admin | P3 | display | 1 |
@@ -6149,7 +6175,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
-| `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 5 |
+| `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 7 |
 | `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 9 |
 | `admin-proposal-actions-modal` | admin | P1 | display | 1 |
 | `admin-proposal-advanced-filters` | admin | P2 | display | 1 |
@@ -7161,6 +7187,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 
 ## Unsectioned flows
+
+### FLOW: `admin-accounting-income-reminder-mute`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes`
+- **API:** `POST /api/accounting/incomes/:id/mute/`
+- **Description:** An uncollected expected income exposes **Silenciar avisos** in its row menu. The modal defaults to a dated silence with a future date prefilled, also offers an explicit indefinite mode, and refuses empty or non-future resume dates. A successful write updates the row in place: **Silenciado** or **Silenciado hasta {fecha}** appears beside its collection state. Opening the same menu then offers **Reactivar avisos**, which clears both mute fields without a confirmation. API failures leave the modal open and the row unchanged. The dedicated endpoint writes the accounting audit trail but deliberately sends no accounting-change email.
+- **Steps:** navigate from the panel to Ingresos → open one pending expected income's actions → Silenciar avisos → choose a future date or Indefinidamente → save → verify the visible badge; reopen the row and reactivate when follow-up should resume.
+- **Branches:** a date that is empty, today or earlier is blocked inline; a failed request preserves the prior state; paid, liquid and lost rows do not expose the action.
+- **Coverage:** ✅ Covered — display, dated and indefinite success, manual reactivation, validation error and server failure.
+- **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-additional-modules-catalog`
 
