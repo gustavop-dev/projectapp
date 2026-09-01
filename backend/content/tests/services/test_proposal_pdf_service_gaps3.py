@@ -121,12 +121,22 @@ class TestDefaultSelectedModulesMissingGid:
 
 class TestRenderValueAddedModulesYNone:
     def test_y_none_defaults_to_page_top(self, pdf_canvas):
-        data = {'index': '05', 'title': 'Incluido', 'module_ids': []}
-        ps = {'_value_added_catalog': {}, 'num': 1, 'client': 'Test'}
+        """Fails if a default-y value-added section does not render its card."""
+        data = {'index': '05', 'title': 'Incluido', 'module_ids': ['admin']}
+        ps = {
+            '_value_added_catalog': {
+                'admin': {'title': 'Administración', 'items': []},
+            },
+            'num': 1,
+            'client': 'Test',
+        }
 
         result = _render_value_added_modules(pdf_canvas, data, None, ps=ps, y=None)
 
-        assert isinstance(result, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert result < PAGE_H - MARGIN_T
+        assert 'Incluido' in draw_ops
+        assert 'Administraci' in draw_ops
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +223,7 @@ class TestRenderInvestmentLinearLayout:
     def test_linear_layout_with_ps_and_options_renders_without_error(
         self, pdf_canvas, proposal,
     ):
+        """Fails if the linear investment layout omits its payment or included item."""
         ps = {
             'num': 1,
             'client': 'Test',
@@ -239,17 +250,21 @@ class TestRenderInvestmentLinearLayout:
         # Force linear layout by using small y
         small_y = MARGIN_B + 60
 
-        result = _render_investment(pdf_canvas, data, proposal, ps=ps, y=small_y)
+        _render_investment(pdf_canvas, data, proposal, ps=ps, y=small_y)
 
-        assert isinstance(result, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert 'Formas de Pago' in draw_ops
+        assert '50% Inicio' in draw_ops
+        assert 'Dise' in draw_ops
 
     def test_linear_layout_with_adjusted_total_recalculates_option_desc(
         self, pdf_canvas, proposal,
     ):
+        """Fails if the linear layout skips a recalculated payment option."""
         ps = {
             'num': 1,
             'client': 'Test',
-            'selected_modules': ['module-web'],
+            'selected_modules': ['web'],
             '_fr_items': [],
             '_calc_module_items': [],
             'base_weeks': 0,
@@ -266,15 +281,21 @@ class TestRenderInvestmentLinearLayout:
                 {'title': 'Soporte', 'description': 'Incluido'},
             ],
             'modules': [
-                {'id': 'web', 'name': 'Web', 'price': 5000000},
+                {'id': 'web', 'name': 'Web', 'price': 3000000},
+                {'id': 'seo', 'name': 'SEO', 'price': 2000000},
             ],
         }
 
         small_y = MARGIN_B + 60
 
-        result = _render_investment(pdf_canvas, data, proposal, ps=ps, y=small_y)
+        _render_investment(pdf_canvas, data, proposal, ps=ps, y=small_y)
 
-        assert isinstance(result, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert 'Formas de Pago' in draw_ops
+        assert '50% Inicio' in draw_ops
+        assert 'Soporte' in draw_ops
+        assert '$1.500.000' in draw_ops
+        assert '$2.500.000' not in draw_ops
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +335,7 @@ class TestRenderCreativeSupportTier2:
     def test_tier2_partial_two_column_renders_paragraphs_then_closing_below(
         self, pdf_canvas,
     ):
+        """Fails if the partial layout drops its sidebar or closing content."""
         # 7 short paragraphs give para_h ≈ 140, closing_h ≈ 20 (full_left_h ≈ 160).
         # 1 include item gives sb_h ≈ 51.
         # partial_need = max(51, 140) + 20 = 160; full_need = max(51, 160) + 20 = 180.
@@ -321,12 +343,16 @@ class TestRenderCreativeSupportTier2:
         data = {
             'index': None,
             'title': 'Soporte',
-            'paragraphs': ['Línea de texto.'] * 7,
+            'paragraphs': ['Visible content.'] * 7,
             'closing': 'Mensaje de cierre.',
             'includes': ['Elemento incluido'],
             'includesTitle': 'Incluye',
         }
 
-        result = _render_creative_support(pdf_canvas, data, None, ps=None, y=280)
+        _render_creative_support(pdf_canvas, data, None, ps=None, y=280)
 
-        assert isinstance(result, (int, float))
+        draw_ops = '\n'.join(pdf_canvas._code)
+        assert 'Soporte' in draw_ops
+        assert 'Visible content' in draw_ops
+        assert 'Elemento incluido' in draw_ops
+        assert 'Mensaje de cierre' in draw_ops
