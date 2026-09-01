@@ -1,5 +1,12 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-09-01 — cambio de estado de Proyectos:** el modal presenta
+> el flujo en orden: nuevo estado, revisión de consecuencias, decisiones de
+> impacto y acciones finales. Los avisos amarillos del proyecto se conservan
+> como contexto bajo el encabezado; cada requisito corregible rojo aparece
+> junto al campo que lo origina y desaparece al resolverlo. La fila final queda
+> reservada exclusivamente para Cancelar y Confirmar cambio.
+
 > **Seguimiento 2026-09-01 — cierre del catálogo adicional:** las rutas públicas
 > del catálogo, tanto canónica como seleccionada, no muestran el encabezado
 > global. Todo enlace o PDF nuevo parte en español y conserva el selector ES/EN.

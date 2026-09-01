@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Transición de estado 2026-09-01:** el modal separa
+> `previewErrorMessage` de `applyErrorMessage` y activa la validación local con
+> `reviewAttempted`. `BaseFormField` enlaza cada error con su `select` o
+> `textarea` mediante `aria-invalid`/`aria-describedby`; las decisiones de
+> ingresos pendientes y la nota de una transición excepcional se limpian de
+> forma independiente al corregirse. El footer usa `BaseModalActions` sticky y
+> no renderiza resúmenes rojos. No hay cambio de payload, API ni esquema.
+
 > **Follow-up técnico 2026-09-01:** los serializers de enlace seleccionado y
 > PDF administrativo aceptan `language` omitido y aplican `es`; el modal reinicia
 > cada apertura en español y permite elegir inglés, mientras `QuickAccess`

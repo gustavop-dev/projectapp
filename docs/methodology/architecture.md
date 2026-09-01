@@ -1,5 +1,14 @@
 # Architecture — ProjectApp
 
+> **Modal de transición ordenado 2026-09-01:**
+> `ProjectStateTransitionModal` compone `BaseFormField` para que estado destino,
+> decisión por ingreso y nota sean dueños de su validación visible y ARIA.
+> `reviewAttempted` delimita los errores previos al preview; las fallas del
+> preview y de la confirmación permanecen en la sección que ejecuta cada acción.
+> `BaseModalActions` contiene únicamente Cancelar/Confirmar y reutiliza las
+> mismas razones de bloqueo para su estado deshabilitado. Catálogo, endpoints y
+> reglas financieras no cambian.
+
 > **Seguimiento comercial 2026-09-01:** `content.utils.is_staff_session` es la
 > frontera común que consulta la sesión Django subyacente antes de cualquier
 > escritura de analytics comerciales. La usan catálogo adicional, propuestas y

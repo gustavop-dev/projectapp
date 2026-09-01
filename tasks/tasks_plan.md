@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-09-01:** el modal de cambio de estado de
+> Proyectos conserva los avisos amarillos de contexto, ordena estado → revisión
+> → impacto → acciones y ubica cada requisito rojo bajo su control. El footer
+> queda limpio con Cancelar/Confirmar. Verificación focal: 4 unitarias, 7
+> escenarios del flujo, 5 viewports responsive, guards de diseño y mapa E2E
+> fresco con las cuatro clases de outcome cubiertas.
+
 > **Aceptación lista para integrar — 2026-09-01:** los enlaces entre la ficha
 > comercial y el espacio de proyecto ya estaban completos; la entrega endurece
 > su aceptación E2E sin tocar producto. Nuxt tiene readiness explícita y warmup
