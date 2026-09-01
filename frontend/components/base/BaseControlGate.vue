@@ -60,7 +60,7 @@ const alignmentClass = computed(() => ({
     >
       <template #trigger>
         <div
-          class="inline-flex max-w-full"
+          :class="align === 'stretch' ? 'flex w-full' : 'inline-flex max-w-full'"
           :tabindex="blocked ? 0 : undefined"
           :aria-label="blocked ? label : undefined"
           :aria-describedby="blocked ? descriptionId : undefined"

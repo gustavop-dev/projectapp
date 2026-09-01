@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils';
 import StateCatalogManager from '../../components/panel/states/StateCatalogManager.vue';
 import BaseControlGate from '../../components/base/BaseControlGate.vue';
 import BaseFormField from '../../components/base/BaseFormField.vue';
+import BaseFormRow from '../../components/base/BaseFormRow.vue';
+import BaseFormRowAction from '../../components/base/BaseFormRowAction.vue';
 import BaseInput from '../../components/base/BaseInput.vue';
 import BaseTextarea from '../../components/base/BaseTextarea.vue';
 
@@ -108,6 +110,8 @@ function mountManager({ store = makeStore(), projectCatalog = true } = {}) {
     global: {
       components: {
         BaseFormField,
+        BaseFormRow,
+        BaseFormRowAction,
         BaseInput,
         BaseTextarea,
       },
@@ -237,5 +241,15 @@ describe('StateCatalogManager project field validation', () => {
     expect(wrapper.get('[data-testid="catalog-create-state"]').attributes('disabled'))
       .toBeDefined();
     expect(wrapper.find('form').text()).toContain('Escribe el nombre del estado.');
+  });
+
+  it('keeps project action bands out of the document catalog', async () => {
+    const wrapper = mountManager({ projectCatalog: false });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="catalog-state-edit-actions-2"]').exists())
+      .toBe(false);
+    expect(wrapper.find('[data-testid="catalog-state-maintenance-actions-2"]').exists())
+      .toBe(false);
   });
 });

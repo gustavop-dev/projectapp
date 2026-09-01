@@ -15,6 +15,27 @@ sin reintentos, build Nuxt, guards transversales, flow audit y quality gates sin
 errores. La observación E2E se arma antes del clic para capturar la reacción
 transitoria sin depender de clases internas ni de retries.
 
+**2026-09-01 — acciones del catálogo de estados de Proyectos organizadas:**
+cada estado activo separa la edición de la conservación del catálogo en dos
+bandas legibles. Nombre, color, efecto operativo, orden y Guardar comparten una
+grilla proporcionada; debajo, el destino de fusión, Fusionar y Retirar mantienen
+anchos coherentes y al menos 8 px de separación. En celular las acciones ocupan
+todo el ancho, en tableta vertical Guardar completa su fila y en anchos
+expandidos los botones conservan la misma proporción. El catálogo de Documentos,
+la API, el esquema y los mensajes inline de PA-120 no cambian. Verificación
+focal: 12 unitarias, 5 escenarios responsive (412/835/1195/1440/2560 px), 3
+regresiones E2E de Guardar/Fusionar/Retirar, design-token guard y build Nuxt en
+verde.
+
+**2026-09-01 — acción Archivar de Clientes alineada y verificada:** el control
+de cada fila en `/panel/clients` usa las acciones canónicas `archive`/`restore`
+y muestra **Archivar** o **Desarchivar** en su ayuda visible. La acción conserva
+el flujo existente de vista previa, confirmación, cascada y filtro Archivados;
+no cambia API, modelo ni migraciones. **Desactivar acceso** en `/platform/clients`
+permanece intacto porque controla acceso a la plataforma, no el archivo del
+cliente. Verificación focal: 2 unitarias, 4 escenarios E2E y el guard de acciones
+del panel en verde.
+
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
 `update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
 el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o
