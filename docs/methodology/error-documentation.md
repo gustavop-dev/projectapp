@@ -105,8 +105,16 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   reacción inmediata, paridad táctil/teclado y reduced motion. Copiar usa
   `useClipboardFeedback` y sólo confirma éxito al resolver Clipboard API; el
   fallo presenta tono visible y conserva la notificación accionable.
+- **Refinement (2026-09-01)**: La reacción común pasa de una contracción de
+  180 ms a un pulso de 360 ms con compresión, rebote y halo expansivo. El
+  movimiento vive en un wrapper interno para no desplazar controles posicionados,
+  cada clic reinicia el ciclo y reduced motion conserva sólo el halo estático.
 - **Verification**: 27 pruebas unitarias focales, dos escenarios Playwright de
   éxito/fallo, build Nuxt, parseo de 536 SFC y ambos guards de iconos en verde.
+- **Refinement verification (2026-09-01)**: 25 pruebas unitarias focales del
+  primitive, la acción canónica y clipboard; tres escenarios Playwright
+  (éxito, fallo y reduced motion) sin reintentos; build Nuxt, flow audit,
+  registry y quality gates en verde.
 
 ### [ERR-047] Los proyectos suspendidos ignoraban el control de archivados
 

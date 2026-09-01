@@ -227,12 +227,14 @@ explicit guard comment when they appear inside a selectable row.
 
 Every clickable icon across panel, platform and public views uses `BaseButton`
 with `icon-only`, or `BaseActionButton` when the action belongs to the canonical
-panel vocabulary. `BaseButton` owns the immediate 180 ms activation signal for
-buttons and links: a halo plus a small press scale. Coarse pointers receive a
-minimum 44 px target; `prefers-reduced-motion` keeps the color/halo signal and
-removes the scale and transition. Use `unstyled` only when a branded control
-must retain bespoke chrome—the interaction, accessibility and touch contract
-still remain active.
+panel vocabulary. `BaseButton` owns the immediate 360 ms activation signal for
+buttons and links: the icon compresses to 90%, rebounds to 105%, settles at
+100%, and a 3 px focus-token halo expands and fades around its control. Rapid
+clicks restart the pulse. Coarse pointers receive a minimum 44 px target;
+`prefers-reduced-motion` removes the keyframes and keeps a static high-contrast
+halo for the same state. Use `unstyled` only when a branded control must retain
+bespoke chrome—the interaction, accessibility and touch contract still remain
+active.
 
 Immediate activation only confirms that the input was registered. Existing
 `loading` state continues to represent pending asynchronous work. An outcome

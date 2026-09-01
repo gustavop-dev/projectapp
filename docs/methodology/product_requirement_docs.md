@@ -1,12 +1,13 @@
 # Product Requirements Document — ProjectApp
 
-> **Entregado — 2026-08-31:** todo icono ejecutable de panel, plataforma y
-> superficies públicas confirma de inmediato que recibió el clic, incluido si
-> navega, abre o alterna una vista. El glifo no cambia; touch y teclado conservan
-> la misma señal y reduced motion elimina la escala, no el halo. Las acciones
-> asíncronas mantienen su estado de carga. Copiar muestra éxito sólo después de
-> escribir realmente al portapapeles y muestra un estado de error visible si el
-> navegador lo bloquea, además del mensaje accionable de la pantalla.
+> **Refinado — 2026-09-01:** todo icono ejecutable de panel, plataforma y
+> superficies públicas confirma de inmediato que recibió el clic mediante un
+> pulso común de 360 ms: compresión, rebote y halo expansivo. El glifo no cambia;
+> touch y teclado conservan la misma señal y reduced motion reemplaza el
+> movimiento por un halo estático de alto contraste. Las acciones asíncronas
+> mantienen su estado de carga. Copiar muestra éxito sólo después de escribir
+> realmente al portapapeles y muestra un estado de error visible si el navegador
+> lo bloquea, además del mensaje accionable de la pantalla.
 
 > **Ajuste 2026-08-31 — acceso comercial visible:** Módulos adicionales abre
 > con un centro de acceso rápido que muestra la URL pública canónica, permite
@@ -178,7 +179,7 @@ authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 - **Defaults** (`/panel/proposals/defaults`): manage default section templates per language
 - **Email templates** (`/panel/proposals/email-templates`): view/edit/preview/reset email content
 - **Email deliverability** (`/panel/proposals/email-deliverability`): dashboard tracking email send/delivery/bounce rates
-- **Clients list** (`/panel/clients/`): real `UserProfile` (role=client) entities. Tabs (Todos / Activos / Huérfanos), live search, "+ Nuevo cliente" modal for standalone creation (no invitation email sent — that path is reserved for the platform onboarding flow). Orphan clients (zero proposals + zero platform projects) are deletable via a trash icon gated through `requestConfirm`. Each row expands lazily to load the client's full proposal history. Replaced the legacy "synthetic clients grouped by `(name, email)`" implementation on 2026-04-09.
+- **Clients list** (`/panel/clients/`): real `UserProfile` (role=client) entities. Status filters (Todos / Activos / Huérfanos / Archivados), live search, and a "+ Nuevo cliente" modal for standalone creation (no invitation email sent — that path is reserved for the platform onboarding flow). The row action is **Archivar** for an active client and **Desarchivar** for an archived client; it uses the same reviewed archive mechanism as the Archivados filter. Orphan clients (zero proposals + zero platform projects) are deletable via a trash icon gated through `requestConfirm`. Each row expands lazily to load the client's full proposal history. Replaced the legacy "synthetic clients grouped by `(name, email)`" implementation on 2026-04-09.
 
 #### Project lifecycle and operational consequences
 

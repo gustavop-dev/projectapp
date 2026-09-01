@@ -290,7 +290,26 @@ test.describe('Admin View Map', () => {
     await expect(tooltip).toHaveCount(1);
     await expect(tooltip).toHaveText('Copiar');
 
-    await copyButton.click();
+    const copyControl = viewCard.locator('[data-panel-action="copy"]');
+    await Promise.all([
+      expect.poll(() => copyControl.evaluate((control) => {
+        const controlStyle = window.getComputedStyle(control);
+        return {
+          activationState: control.dataset.activationState,
+          hasRunningAnimation: control
+            .getAnimations({ subtree: true })
+            .some(animation => animation.playState === 'running'),
+          outlineStyle: controlStyle.outlineStyle,
+          outlineWidth: controlStyle.outlineWidth,
+        };
+      })).toEqual({
+        activationState: 'active',
+        hasRunningAnimation: true,
+        outlineStyle: 'solid',
+        outlineWidth: '3px',
+      }),
+      copyButton.click(),
+    ]);
 
     const successButton = viewCard.getByRole('button', { name: 'Copiado: referencia' });
     await expect(successButton).toBeVisible({ timeout: 5000 });
@@ -327,6 +346,44 @@ test.describe('Admin View Map', () => {
     await expect(failedButton).toHaveAttribute('data-action-status', 'danger');
     await expect(page.getByRole('tooltip')).toHaveText('No se pudo copiar la referencia');
     await expect(page.getByRole('alert')).toContainText('No se pudo copiar la referencia');
+  });
+
+  test('icon feedback keeps a visible halo with reduced motion', {
+    tag: [...LAYOUT_ICON_INTERACTION_FEEDBACK, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    // quality: allow-deep-link (panel navigation is covered above; this test isolates reduced-motion feedback on the icon control)
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
+
+    const viewCard = page.locator('article').filter({ hasText: '/panel/views' });
+    const copyButton = viewCard.getByRole('button', { name: 'Copiar referencia' });
+    const copyControl = viewCard.locator('[data-panel-action="copy"]');
+    await Promise.all([
+      expect.poll(() => copyControl.evaluate((control) => {
+        const controlStyle = window.getComputedStyle(control);
+        return {
+          activationState: control.dataset.activationState,
+          animationName: controlStyle.animationName,
+          animationCount: control.getAnimations({ subtree: true }).length,
+          outlineStyle: controlStyle.outlineStyle,
+          outlineWidth: controlStyle.outlineWidth,
+        };
+      })).toEqual({
+        activationState: 'active',
+        animationName: 'none',
+        animationCount: 0,
+        outlineStyle: 'solid',
+        outlineWidth: '3px',
+      }),
+      copyButton.click(),
+    ]);
   });
 
   test('seeded filter tabs render and selecting Dashboards filters the catalog', {
