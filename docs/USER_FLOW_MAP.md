@@ -3191,11 +3191,11 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** guest / admin / platform-admin / platform-client
 - **Priority:** P2
 - **Routes:** Transversal; representative E2E route `/panel/views`
-- **Description:** Activate an icon-only action, navigation control, opener, or toggle and receive an immediate visible response. Copy actions additionally confirm the real clipboard result beside the originating control without replacing its icon.
+- **Description:** Activate an icon-only action, navigation control, opener, or toggle and receive an immediate balanced 360 ms press, rebound and expanding halo. Copy actions additionally confirm the real clipboard result beside the originating control without replacing its icon.
 - **Steps:**
   1. The user reaches a surface with an enabled icon-only control.
   2. The user activates the control with pointer, touch, or keyboard.
-  3. The control immediately shows the shared pressed halo/reaction.
+  3. The control immediately compresses, rebounds and settles while its shared halo expands and fades.
   4. For copy, the browser resolves the clipboard write.
   5. The same control shows a nearby success label and the clipboard contains the requested reference.
 - **Branches:**
@@ -6224,7 +6224,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `diagnostic-public-share` | diagnostic | P2 | success | 1 |
 | `diagnostic-public-view` | diagnostic | P1 | display,failure | 2 |
 | `layout-footer-navigation` | layout | P3 | success | 1 |
-| `layout-icon-interaction-feedback` | layout | P2 | success,failure | — |
+| `layout-icon-interaction-feedback` | layout | P2 | success,failure,display | — |
 | `layout-locale-switch` | layout | P2 | success | 1 |
 | `layout-navbar-navigation` | layout | P2 | success | 1 |
 | `platform-access-view` | platform | P2 | — | 0 |
@@ -7355,13 +7355,15 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Priority:** P1
 - **Routes:** `/panel/projects/statuses`
 - **API:** `GET|POST /api/project-states/`, `PATCH /api/project-states/<id>/`, `POST /api/project-states/<id>/retire/`, `POST /api/project-states/<id>/merge/`
-- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. Todo proyecto permanece en Documentos y Comunicaciones; el efecto operativo sólo lo agrupa entre activos o archivados, sin archivar sus documentos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
+- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles: En desarrollo, Activo, En evolución, Suspendido, Completado y Dado de baja. Suspendido es la única detención reversible y conserva la deuda causada mientras detiene cobros y avisos nuevos. El usuario puede descubrir otros con el uso, crearlos, renombrarlos, describirlos, recolorearlos, fusionarlos y retirarlos. Los campos obligatorios se identifican en su etiqueta y los mensajes locales/API aparecen junto a su control después del intento; una selección de fusión faltante sigue ese patrón, mientras la restricción permanente de los estados semilla permanece como ayuda accesible. Todo proyecto permanece en Documentos y Comunicaciones; el efecto operativo sólo lo agrupa entre activos o archivados, sin archivar sus documentos. La ayuda contextual combina la descripción editable con una consecuencia del sistema derivada del efecto operativo protegido que gobierna cobros y cierres.
 - **Interaction matrix:**
 
 | Interaction | Outcome | Start → end state |
 |---|---|---|
 | Abrir el catálogo desde Proyectos | display | Proyectos → Administrar estados → seis semillas, ayuda, usos e histórico |
 | Crear, renombrar o retirar un estado libre | success | Formulario/edición → catálogo refrescado sin perder histórico |
+| Intentar crear sin requisitos | error | Acción disponible → mensajes junto a nombre, efecto y descripción; sin request |
+| Intentar fusionar sin destino | error | Confirmar fusión → mensaje junto al selector; elegir destino lo limpia |
 | Retirar un estado usado | error | Confirmar retiro → explicación de proyectos activos → estado permanece |
 | Guardar durante una falla del servidor | failure | Editar nombre → HTTP 5xx visible → borrador permanece para reintentar |
 

@@ -74,6 +74,20 @@ describe('BaseActionButton', () => {
     expect(wrapper.get('button').attributes('data-testid')).toBe('copy-control')
   })
 
+  describe('activation feedback', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('persists when the action result appears', async () => {
+      const wrapper = factory()
+
+      await wrapper.get('button').trigger('click')
+      await wrapper.setProps({ statusLabel: 'Copiado: referencia', statusTone: 'success' })
+
+      expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
+    })
+  })
+
   it('forwards link semantics for navigational actions', () => {
     const wrapper = factory(
       { action: 'open-external', as: 'a', to: '/panel/views' },

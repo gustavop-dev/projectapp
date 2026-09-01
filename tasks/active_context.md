@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-09-01 — reacción expresiva de iconos interactivos implementada:** el
+primitive transversal conserva el contrato de activación/proceso/resultado y
+amplía la señal inmediata a un pulso balanceado de 360 ms: el icono comprime al
+90%, rebota al 105% y vuelve a reposo mientras un halo de 3 px se expande y
+desvanece. El movimiento queda aislado de los transforms de cada consumidor y
+se reinicia ante clics consecutivos. `prefers-reduced-motion` mantiene un halo
+estático de alto contraste; copiar conserva sus estados reales de éxito/fallo,
+sin cambiar el glifo ni añadir toasts genéricos.
+QA quedó aprobada con 25 pruebas unitarias focales, tres escenarios Playwright
+sin reintentos, build Nuxt, guards transversales, flow audit y quality gates sin
+errores. La observación E2E se arma antes del clic para capturar la reacción
+transitoria sin depender de clases internas ni de retries.
+
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
 `update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
 el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o

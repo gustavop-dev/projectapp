@@ -4,11 +4,11 @@
 - **Role:** guest / admin / platform-admin / platform-client
 - **Priority:** P2
 - **Routes:** Transversal; representative E2E route `/panel/views`
-- **Description:** Activate an icon-only action, navigation control, opener, or toggle and receive an immediate visible response. Copy actions additionally confirm the real clipboard result beside the originating control without replacing its icon.
+- **Description:** Activate an icon-only action, navigation control, opener, or toggle and receive an immediate balanced 360 ms press, rebound and expanding halo. Copy actions additionally confirm the real clipboard result beside the originating control without replacing its icon.
 - **Steps:**
   1. The user reaches a surface with an enabled icon-only control.
   2. The user activates the control with pointer, touch, or keyboard.
-  3. The control immediately shows the shared pressed halo/reaction.
+  3. The control immediately compresses, rebounds and settles while its shared halo expands and fades.
   4. For copy, the browser resolves the clipboard write.
   5. The same control shows a nearby success label and the clipboard contains the requested reference.
 - **Branches:**
