@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **Aceptación lista para integrar — 2026-09-01:** los enlaces entre la ficha
+> comercial y el espacio de proyecto ya estaban completos; la entrega endurece
+> su aceptación E2E sin tocar producto. Nuxt tiene readiness explícita y warmup
+> autenticado de rutas críticas, y hosting, ingreso y cuenta de cobro cuentan
+> con escenarios funcionales propios. Repeticiones, regresión de 10 casos y
+> quality gate focal están verdes.
+
 > **Refinamiento implementado — 2026-09-01:** la reacción transversal de iconos
 > usa un pulso reiniciable de 360 ms con compresión, rebote y halo expansivo.
 > Reduced motion conserva un halo estático; los resultados verificables y los
@@ -83,6 +90,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Projects — platform link acceptance | 🟡 Ready for merge | 2026-09-01. La auditoría confirmó el enlace bidireccional existente mediante el `Project.id` canónico, puente de sesión en pestaña nueva y retorno comercial sólo para administradores. La aceptación espera el montaje de Nuxt y calienta rutas privadas localizadas con identidad simulada; un spec nuevo recorre las referencias desde hosting, ingreso y cuenta de cobro. No cambia producto, API ni esquema. Tres casos inestables y tres nuevos pasaron dos veces, la regresión íntegra de 10 casos quedó verde y el quality gate focal cerró en 93/100 sin errores. |
 | Projects — proportional state-catalog actions | 🟡 Ready for merge | 2026-09-01. Active rows in `/panel/projects/statuses` use separate edit/save and merge/retire bands. Save, Merge and Retire are full-width on compact screens; portrait uses a full-row Save plus a 6/3/3 maintenance grid; landscape and wider screens use a 3/2/3/2/2 edit grid plus an 8/2/2 maintenance grid. Gaps stay at least 8 px, Documents keep their previous layout, and PA-120 field feedback is preserved. Twelve focused unit tests, five responsive E2E scenarios, three action regressions, the design-token guard and the Nuxt build are green. |
 | Clients — archive row action semantics | 🟡 Ready for merge | 2026-09-01. `/panel/clients` uses the canonical `archive`/`restore` actions and displays the visible tooltips **Archivar**/**Desarchivar**. The existing preview, confirmation, cascade, archived filter and API contract stay unchanged; platform access deactivation remains a separate action. Two focused unit tests, all four archived-client E2E scenarios and the panel action guard pass. |
 | Projects — inline state-catalog validation | 🟡 Ready for merge | 2026-08-31. Create/edit/merge validation in `/panel/projects/statuses` uses `BaseFormField` beside the relevant control after an attempted action; required markers cover name, description and operational effect. Serializer field errors stay attached to their field and clear on input. A missing merge target is actionable inline feedback, while immutable seed restrictions remain accessible help on the disabled action. Documents retain their existing catalog behavior. Six unit tests, all 14 affected E2E scenarios, the disabled-control guard, Nuxt build and flow audit are green. |
