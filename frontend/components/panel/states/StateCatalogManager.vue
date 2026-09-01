@@ -531,7 +531,16 @@ function activeCount(state) {
       </div>
       <div v-if="!group.states.length" class="p-5 text-sm text-text-muted">No hay estados en este grupo.</div>
       <div v-else class="divide-y divide-border-muted">
-        <article v-for="state in group.states" :key="state.id" class="space-y-3 p-4 sm:p-5" :class="!state.is_active ? 'opacity-60' : ''" :data-testid="`catalog-state-${state.id}`">
+        <article
+          v-for="state in group.states"
+          :key="state.id"
+          class="p-4 sm:p-5"
+          :class="[
+            hasOperationalEffects ? 'space-y-4' : 'space-y-3',
+            !state.is_active ? 'opacity-60' : '',
+          ]"
+          :data-testid="`catalog-state-${state.id}`"
+        >
           <div class="flex flex-wrap items-center gap-2">
             <BaseBadge :variant="stateBadgeVariant(state)">{{ state.name }}</BaseBadge>
             <ProjectStateHelpBadge
@@ -544,13 +553,20 @@ function activeCount(state) {
             <BaseBadge v-if="!state.is_active" variant="neutral" size="sm">Retirado</BaseBadge>
             <span class="text-xs text-text-muted">{{ activeCount(state) }} {{ activeCountLabel }} activos · {{ state.historical_episode_count }} episodios</span>
           </div>
-          <div v-if="state.is_active" class="space-y-2">
+          <div v-if="state.is_active" :class="hasOperationalEffects ? 'space-y-3' : 'space-y-2'">
             <template v-if="hasOperationalEffects">
-              <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_8rem_11rem_6rem_auto]">
+              <BaseFormRow
+                :cols="2"
+                :gap="3"
+                at="portrait"
+                class="panel-landscape:grid-cols-12"
+                :data-testid="`catalog-state-edit-actions-${state.id}`"
+              >
                 <BaseFormField
                   v-slot="{ invalid, errorId }"
                   label="Nombre del estado"
                   required
+                  class="panel-landscape:col-span-3"
                   :error="editFieldError(state, 'name')"
                 >
                   <BaseInput
@@ -561,8 +577,8 @@ function activeCount(state) {
                     @update:model-value="clearEditFieldError(state.id, 'name')"
                   />
                 </BaseFormField>
-                <BaseFormField label="Color">
-                  <select v-model="editDraft(state).color" aria-label="Color del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
+                <BaseFormField label="Color" class="panel-landscape:col-span-2">
+                  <select v-model="editDraft(state).color" aria-label="Color del estado" class="w-full rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
                     <option v-for="color in DOCUMENT_STATE_COLORS" :key="color.value" :value="color.value">{{ color.label }}</option>
                   </select>
                 </BaseFormField>
@@ -570,32 +586,35 @@ function activeCount(state) {
                   v-slot="{ errorId }"
                   label="Efecto operativo"
                   required
+                  class="panel-landscape:col-span-3"
                   :error="editFieldError(state, 'operational_effect')"
                 >
                   <select
                     v-model="editDraft(state).operational_effect"
                     aria-label="Efecto operativo del estado"
                     :aria-describedby="errorId"
-                    class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm"
+                    class="w-full rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm"
                     disabled
                     title="El efecto operativo es inmutable"
                   >
                     <option v-for="effect in operationalEffects" :key="effect.value" :value="effect.value">{{ effect.label }}</option>
                   </select>
                 </BaseFormField>
-                <BaseFormField label="Orden">
+                <BaseFormField label="Orden" class="panel-landscape:col-span-2">
                   <BaseInput v-model.number="editDraft(state).order" type="number" min="0" aria-label="Orden" />
                 </BaseFormField>
-                <BaseButton
-                  class="self-end"
-                  variant="secondary"
-                  size="sm"
-                  :data-testid="`catalog-save-state-${state.id}`"
-                  @click="saveState(state)"
-                >
-                  Guardar
-                </BaseButton>
-              </div>
+                <BaseFormRowAction class="panel-portrait:col-span-2 panel-landscape:col-span-2">
+                  <BaseButton
+                    class="w-full"
+                    variant="secondary"
+                    size="sm"
+                    :data-testid="`catalog-save-state-${state.id}`"
+                    @click="saveState(state)"
+                  >
+                    Guardar
+                  </BaseButton>
+                </BaseFormRowAction>
+              </BaseFormRow>
               <BaseFormField
                 v-slot="{ invalid, errorId }"
                 label="Descripción"
@@ -646,14 +665,21 @@ function activeCount(state) {
               </div>
             </template>
           </div>
-          <div v-if="state.is_active" class="flex flex-wrap items-center gap-2">
+          <div
+            v-if="state.is_active"
+            :class="hasOperationalEffects
+              ? 'grid grid-cols-1 items-start gap-3 border-t border-border-muted pt-4 panel-portrait:grid-cols-12'
+              : 'flex flex-wrap items-center gap-2'"
+            :data-testid="hasOperationalEffects ? `catalog-state-maintenance-actions-${state.id}` : undefined"
+          >
             <BaseFormField
               v-if="hasOperationalEffects"
               v-slot="{ errorId }"
               size="sm"
+              class="min-w-0 panel-portrait:col-span-6 panel-landscape:col-span-8"
               :error="mergeFieldError(state)"
             >
-              <select v-model="mergeTargets[state.id]" :aria-label="`Destino para fusionar ${state.name}`" :aria-describedby="errorId" class="rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-xs">
+              <select v-model="mergeTargets[state.id]" :aria-label="`Destino para fusionar ${state.name}`" :aria-describedby="errorId" class="w-full rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-xs">
                 <option value="">Fusionar con…</option>
                 <option v-for="target in stateStore.activeStates.filter((item) => item.id !== state.id && item.group === state.group && item.operational_effect === state.operational_effect)" :key="target.id" :value="target.id">{{ target.name }}</option>
               </select>
@@ -665,13 +691,17 @@ function activeCount(state) {
             <BaseControlGate
               :reasons="mergeBlockReasons(state)"
               label="Fusionar no disponible"
-              align="start"
+              :align="hasOperationalEffects ? 'stretch' : 'start'"
+              :class="hasOperationalEffects
+                ? 'w-full panel-portrait:col-span-3 panel-landscape:col-span-2'
+                : ''"
               :visible="!hasOperationalEffects"
             >
               <template #default="{ describedBy }">
                 <BaseButton
                   variant="ghost"
                   size="sm"
+                  :class="hasOperationalEffects ? 'w-full' : ''"
                   :data-testid="`catalog-merge-state-${state.id}`"
                   :disabled="Boolean(mergeBlockReasons(state).length)"
                   :disabled-reason="mergeBlockReasons(state).join(' ')"
@@ -682,7 +712,17 @@ function activeCount(state) {
                 </BaseButton>
               </template>
             </BaseControlGate>
-            <BaseButton variant="danger-ghost" size="sm" :data-testid="`catalog-retire-state-${state.id}`" @click="retire(state)">Retirar</BaseButton>
+            <BaseButton
+              variant="danger-ghost"
+              size="sm"
+              :class="hasOperationalEffects
+                ? 'w-full panel-portrait:col-span-3 panel-landscape:col-span-2'
+                : ''"
+              :data-testid="`catalog-retire-state-${state.id}`"
+              @click="retire(state)"
+            >
+              Retirar
+            </BaseButton>
           </div>
           <details v-if="state.is_active && !hasOperationalEffects" class="rounded-lg border border-border-muted bg-surface-raised px-3 py-2">
             <summary class="cursor-pointer text-xs font-medium text-text-muted">Combinaciones excluidas</summary>
