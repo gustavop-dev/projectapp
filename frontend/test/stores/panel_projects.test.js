@@ -12,6 +12,7 @@ jest.mock('../../stores/services/request_http', () => ({
 }));
 
 import { setActivePinia, createPinia } from 'pinia';
+import { flushPromises } from '@vue/test-utils';
 import { usePanelProjectsStore } from '../../stores/panel_projects';
 import { useAccountingStore } from '../../stores/accounting';
 import { useDocumentStore } from '../../stores/documents';
@@ -45,6 +46,107 @@ const LIST_RESPONSE = {
 };
 
 const apiError = (status, data) => ({ response: { status, data } });
+
+const createDeferredResponse = () => {
+  let resolve;
+  const promise = new Promise((complete) => { resolve = complete; });
+  return { promise, resolve };
+};
+
+const makeInitialCascadeSurfaces = () => ({
+  hostings: [
+    { id: 4, client_display_name: 'Pepito', domain: 'vastago.co' },
+    { id: 5, client_display_name: 'Mimittos', domain: 'mimittos.co' },
+  ],
+  incomes: [
+    { id: 8, client_display_name: 'Pepito', amount: '680000.00' },
+    { id: 9, client_display_name: 'Mimittos', amount: '350000.00' },
+  ],
+  collectionAccounts: [
+    {
+      id: 12,
+      client_display_name: 'Pepito',
+      public_number: 'PA-DEIVISRI-001',
+      commercial_status: 'draft',
+      total: '680000.00',
+    },
+    {
+      id: 20,
+      client_display_name: 'Mimittos',
+      public_number: 'PA-MIMITTOS-002',
+      commercial_status: 'issued',
+      total: '350000.00',
+    },
+  ],
+  documents: [
+    { id: 12, client_display_name: 'Pepito', title: 'Cobro Deivis' },
+    { id: 20, client_display_name: 'Mimittos', title: 'Cobro Mimittos' },
+  ],
+});
+
+const makeRefreshedCascadeSurfaces = () => ({
+  hostings: [
+    { id: 4, client_display_name: 'Juanito', domain: 'vastago.co' },
+    { id: 5, client_display_name: 'Mimittos', domain: 'mimittos.co' },
+  ],
+  incomes: [
+    { id: 8, client_display_name: 'Juanito', amount: '680000.00' },
+    { id: 9, client_display_name: 'Mimittos', amount: '350000.00' },
+  ],
+  collectionAccounts: [
+    {
+      id: 12,
+      client_display_name: 'Juanito',
+      public_number: 'PA-DEIVISRI-001',
+      commercial_status: 'draft',
+      total: '680000.00',
+    },
+    {
+      id: 20,
+      client_display_name: 'Mimittos',
+      public_number: 'PA-MIMITTOS-002',
+      commercial_status: 'issued',
+      total: '350000.00',
+    },
+  ],
+  documents: [
+    { id: 12, client_display_name: 'Juanito', title: 'Cobro Deivis' },
+    { id: 20, client_display_name: 'Mimittos', title: 'Cobro Mimittos' },
+  ],
+});
+
+const makeCascadeRefreshResponses = () => {
+  const refreshed = makeRefreshedCascadeSurfaces();
+  return {
+    hostings: { data: { results: refreshed.hostings, meta: {} } },
+    incomes: { data: { results: refreshed.incomes, meta: {} } },
+    collectionAccounts: { data: { results: refreshed.collectionAccounts, meta: {} } },
+    documents: { data: refreshed.documents },
+  };
+};
+
+const releaseEveryRefreshExcept = {
+  hostings: (pending, responses) => {
+    pending.incomes.resolve(responses.incomes);
+    pending.collectionAccounts.resolve(responses.collectionAccounts);
+    pending.documents.resolve(responses.documents);
+  },
+  incomes: (pending, responses) => {
+    pending.hostings.resolve(responses.hostings);
+    pending.collectionAccounts.resolve(responses.collectionAccounts);
+    pending.documents.resolve(responses.documents);
+  },
+  collectionAccounts: (pending, responses) => {
+    pending.hostings.resolve(responses.hostings);
+    pending.incomes.resolve(responses.incomes);
+    pending.documents.resolve(responses.documents);
+  },
+  documents: (pending, responses) => {
+    pending.hostings.resolve(responses.hostings);
+    pending.incomes.resolve(responses.incomes);
+    pending.collectionAccounts.resolve(responses.collectionAccounts);
+  },
+};
 
 describe('panel_projects store', () => {
   beforeEach(() => {
@@ -120,6 +222,80 @@ describe('panel_projects store', () => {
     expect(patch_request).toHaveBeenCalledWith('projects/1/update/', { name: 'Renombrado' });
     expect(get_request).toHaveBeenCalledWith('projects/?scope=all');
     expect(result.success).toBe(true);
+  });
+
+  it('updateRecord rebuilds loaded project labels after a rename', async () => {
+    const store = usePanelProjectsStore();
+    const accounting = useAccountingStore();
+    const documentStore = useDocumentStore();
+    accounting.hostings = [
+      { id: 4, project: 1, project_name: 'Vastago', domain: 'vastago.co' },
+      { id: 5, project: 2, project_name: 'Mimittos', domain: 'mimittos.co' },
+    ];
+    accounting.incomes = [
+      { id: 8, project: 1, project_name: 'Vastago', amount: '680000.00' },
+      { id: 9, project: 2, project_name: 'Mimittos', amount: '350000.00' },
+    ];
+    accounting.collectionAccounts = [
+      {
+        id: 12,
+        project_id: 1,
+        project_name: 'Vastago',
+        public_number: 'PA-DEIVISRI-001',
+        commercial_status: 'draft',
+        total: '680000.00',
+      },
+      {
+        id: 20,
+        project_id: 2,
+        project_name: 'Mimittos',
+        public_number: 'PA-MIMITTOS-002',
+        commercial_status: 'issued',
+        total: '350000.00',
+      },
+    ];
+    documentStore.documents = [
+      { id: 12, project: 1, project_name: 'Vastago', title: 'Cobro Deivis' },
+      { id: 20, project: 2, project_name: 'Mimittos', title: 'Cobro Mimittos' },
+    ];
+    patch_request.mockResolvedValueOnce({
+      data: { id: 1, name: 'Vastago Renombrado' },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+
+    await store.updateRecord('projects', 1, { name: 'Vastago Renombrado' });
+
+    // Falla si el renombre actualiza el listado de Proyectos pero deja columnas abiertas con el nombre anterior.
+    expect(accounting.hostings).toEqual([
+      { id: 4, project: 1, project_name: 'Vastago Renombrado', domain: 'vastago.co' },
+      { id: 5, project: 2, project_name: 'Mimittos', domain: 'mimittos.co' },
+    ]);
+    expect(accounting.incomes).toEqual([
+      { id: 8, project: 1, project_name: 'Vastago Renombrado', amount: '680000.00' },
+      { id: 9, project: 2, project_name: 'Mimittos', amount: '350000.00' },
+    ]);
+    expect(accounting.collectionAccounts).toEqual([
+      {
+        id: 12,
+        project_id: 1,
+        project_name: 'Vastago Renombrado',
+        public_number: 'PA-DEIVISRI-001',
+        commercial_status: 'draft',
+        total: '680000.00',
+      },
+      {
+        id: 20,
+        project_id: 2,
+        project_name: 'Mimittos',
+        public_number: 'PA-MIMITTOS-002',
+        commercial_status: 'issued',
+        total: '350000.00',
+      },
+    ]);
+    expect(documentStore.documents).toEqual([
+      { id: 12, project: 1, project_name: 'Vastago Renombrado', title: 'Cobro Deivis' },
+      { id: 20, project: 2, project_name: 'Mimittos', title: 'Cobro Mimittos' },
+    ]);
   });
 
   it('refreshAfterExternalMutation reloads lifecycle counts', async () => {
@@ -215,7 +391,68 @@ describe('panel_projects store', () => {
 
     await store.assignUnlinkedRecords(1, { document_ids: [12] });
 
-    expect(documentStore.documents.map((row) => row.project)).toEqual([1, null]);
+    // Falla si la reconstrucción conserva sólo el FK y la celda Proyecto queda en — hasta recargar.
+    expect(documentStore.documents).toEqual([
+      { id: 12, project: 1, project_name: 'Vastago' },
+      { id: 20, project: null, project_name: null },
+    ]);
+  });
+
+  it('assignUnlinkedRecords merges the project relation into an open collection account', async () => {
+    const store = usePanelProjectsStore();
+    const accounting = useAccountingStore();
+    accounting.collectionAccounts = [
+      {
+        id: 12,
+        public_number: 'PA-DEIVISRI-001',
+        commercial_status: 'issued',
+        commercial_status_label: 'Emitida',
+        total: '680000.00',
+        project_id: null,
+        project_name: null,
+      },
+      {
+        id: 20,
+        public_number: 'PA-MIMITTOS-002',
+        commercial_status: 'draft',
+        commercial_status_label: 'Borrador',
+        total: '350000.00',
+        project_id: null,
+        project_name: null,
+      },
+    ];
+    create_request.mockResolvedValueOnce({
+      data: {
+        assigned_documents: 1,
+        documents: [{ id: 12, project: 1, project_name: 'Vastago' }],
+        project: { id: 1 },
+      },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+
+    await store.assignUnlinkedRecords(1, { document_ids: [12] });
+
+    // Falla si Cuentas conserva el — o reemplaza sus metadatos con la fila DocumentList.
+    expect(accounting.collectionAccounts).toEqual([
+      {
+        id: 12,
+        public_number: 'PA-DEIVISRI-001',
+        commercial_status: 'issued',
+        commercial_status_label: 'Emitida',
+        total: '680000.00',
+        project_id: 1,
+        project_name: 'Vastago',
+      },
+      {
+        id: 20,
+        public_number: 'PA-MIMITTOS-002',
+        commercial_status: 'draft',
+        commercial_status_label: 'Borrador',
+        total: '350000.00',
+        project_id: null,
+        project_name: null,
+      },
+    ]);
   });
 
   it('a 409 on assign keeps the code so the modal can reload its preview', async () => {
@@ -273,6 +510,72 @@ describe('panel_projects store', () => {
     expect(accounting.fetchRecords).toHaveBeenCalledWith('hostings');
     expect(accounting.fetchRecords).not.toHaveBeenCalledWith('incomes');
     expect(result.success).toBe(true);
+  });
+
+  it.each([
+    ['hostings'],
+    ['incomes'],
+    ['collectionAccounts'],
+    ['documents'],
+  ])('changeClient waits for %s before succeeding', async (surface) => {
+    const store = usePanelProjectsStore();
+    const accounting = useAccountingStore();
+    const documentStore = useDocumentStore();
+    const initial = makeInitialCascadeSurfaces();
+    accounting.hostings = initial.hostings;
+    accounting.incomes = initial.incomes;
+    accounting.collectionAccounts = initial.collectionAccounts;
+    documentStore.documents = initial.documents;
+    const pending = {
+      hostings: createDeferredResponse(),
+      incomes: createDeferredResponse(),
+      collectionAccounts: createDeferredResponse(),
+      documents: createDeferredResponse(),
+    };
+    const projectRefresh = createDeferredResponse();
+    const responses = makeCascadeRefreshResponses();
+    const cascade = {
+      project: { id: 1, client_profile_id: 9 },
+      moved: { hostings: 1, incomes: 1, draft_accounts: 1 },
+      detached: { hostings: 0, incomes: 0, draft_accounts: 0 },
+      skipped: { issued_accounts: 0, clientless: 0, other_documents: 0 },
+    };
+    create_request.mockResolvedValueOnce({ data: cascade });
+    let projectRefreshStarted = false;
+    get_request
+      .mockImplementationOnce(() => pending.hostings.promise)
+      .mockImplementationOnce(() => pending.incomes.promise)
+      .mockImplementationOnce(() => pending.collectionAccounts.promise)
+      .mockImplementationOnce(() => pending.documents.promise)
+      .mockImplementationOnce(() => {
+        projectRefreshStarted = true;
+        return projectRefresh.promise;
+      });
+    const change = store.changeClient(1, {
+      client_profile_id: 9, mode: 'move', hosting_ids: [4], income_ids: [8],
+    });
+
+    await flushPromises();
+
+    releaseEveryRefreshExcept[surface](pending, responses);
+    await flushPromises();
+
+    // Falla si falta esta espera y fetchProjects empieza antes de que la superficie se reconstruya.
+    expect(projectRefreshStarted).toBe(false);
+
+    pending[surface].resolve(responses[surface]);
+    await flushPromises();
+    expect(projectRefreshStarted).toBe(true);
+    projectRefresh.resolve(LIST_RESPONSE);
+    const result = await change;
+
+    expect(result).toEqual({ success: true, data: cascade });
+    expect({
+      hostings: accounting.hostings,
+      incomes: accounting.incomes,
+      collectionAccounts: accounting.collectionAccounts,
+      documents: documentStore.documents,
+    }).toEqual(makeRefreshedCascadeSurfaces());
   });
 
   it('fetchClientsWithoutProjects loads the uncovered-clients panel', async () => {

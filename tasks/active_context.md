@@ -13,8 +13,12 @@ aplicación vinculó exactamente esos 102 ingresos y la segunda corrida encontr�
 0 filas asignables. Los ingresos 217/218 y las cuentas PA-DEIVISRI-001/002 ahora
 leen el proyecto Vástago (`Project.id=10`); no quedan cruces cliente/proyecto
 inconsistentes. Se registraron 102 auditorías de sistema, una por ingreso, y el
-digest de los documentos emitidos muestreados permaneció idéntico. No hubo
-cambios de código, API ni esquema. Verificación focal: 28 pruebas backend, 25
+digest de los documentos emitidos muestreados permaneció idéntico. La pasada no
+requirió cambios de API ni esquema. El cierre QA corrigió tres estados SPA que
+todavía podían quedar viejos: `assign-unlinked` reconstruye también una cuenta
+de cobro abierta, renombrar el proyecto actualiza las cuatro listas cargadas y
+la cascada de cliente espera los refrescos de hostings, ingresos, cuentas draft
+y documentos antes de resolver. Verificación focal: 29 pruebas backend, 31
 unitarias frontend y 9 escenarios E2E verdes, además de lectura directa de los
 serializers y salud de los tres servicios de producción.
 
