@@ -195,6 +195,28 @@ describe('panel/clients index page', () => {
     ]);
   });
 
+  // Fails if an active client's row control reverts to the former "Desactivar" label.
+  it('announces Archivar for an active client row control', async () => {
+    mockStore.clients = [LONG_CLIENT];
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const control = wrapper.get('button[data-testid="client-toggle-archived-99"]');
+
+    expect(control.attributes('aria-label')).toBe('Archivar cliente');
+  });
+
+  // Fails if an archived client's row control reverts to the former "Activar" label.
+  it('announces Desarchivar for an archived client row control', async () => {
+    mockStore.clients = [{ ...LONG_CLIENT, is_archived: true }];
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const control = wrapper.get('button[data-testid="client-toggle-archived-99"]');
+
+    expect(control.attributes('aria-label')).toBe('Desarchivar cliente');
+  });
+
   it('asks for the status counts with the same search as the list', async () => {
     const wrapper = mountPage();
     await flushPromises();

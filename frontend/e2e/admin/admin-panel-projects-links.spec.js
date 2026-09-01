@@ -14,6 +14,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PANEL_PROJECTS } from '../helpers/flow-tags.js';
+import { waitForNuxtApp } from '../helpers/navigation.js';
 
 test.setTimeout(60_000);
 
@@ -178,9 +179,10 @@ function buildHandler({ calls, state = { assigned: false }, bridgeStatus = 200 }
 
 async function gotoProjects(page) {
   await page.goto('/panel/projects', { waitUntil: 'domcontentloaded' });
+  await waitForNuxtApp(page);
   await expect(
     page.getByRole('heading', { name: 'Proyectos', exact: true }),
-  ).toBeVisible({ timeout: 25_000 });
+  ).toBeVisible({ timeout: 45_000 });
 }
 
 test.describe('Admin Panel Projects — space link and assign flow', () => {

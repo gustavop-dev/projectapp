@@ -114,8 +114,16 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   reacción inmediata, paridad táctil/teclado y reduced motion. Copiar usa
   `useClipboardFeedback` y sólo confirma éxito al resolver Clipboard API; el
   fallo presenta tono visible y conserva la notificación accionable.
+- **Refinement (2026-09-01)**: La reacción común pasa de una contracción de
+  180 ms a un pulso de 360 ms con compresión, rebote y halo expansivo. El
+  movimiento vive en un wrapper interno para no desplazar controles posicionados,
+  cada clic reinicia el ciclo y reduced motion conserva sólo el halo estático.
 - **Verification**: 27 pruebas unitarias focales, dos escenarios Playwright de
   éxito/fallo, build Nuxt, parseo de 536 SFC y ambos guards de iconos en verde.
+- **Refinement verification (2026-09-01)**: 25 pruebas unitarias focales del
+  primitive, la acción canónica y clipboard; tres escenarios Playwright
+  (éxito, fallo y reduced motion) sin reintentos; build Nuxt, flow audit,
+  registry y quality gates en verde.
 
 ### [ERR-047] Los proyectos suspendidos ignoraban el control de archivados
 
@@ -1063,21 +1071,29 @@ contracts, not conventions repeated in individual commands.
 - **Lesson**: Un target táctil hermano no debe flotar sobre contenido variable.
   Cuando la ayuda forma parte estable de una tarjeta, necesita un track propio.
 
-### [ERR-045] El flujo del catálogo actuaba antes de hidratar Nuxt
+### [ERR-045] Los flujos podían actuar antes de que Nuxt montara la aplicación
 
-- **Date**: 2026-08-30
+- **Date**: 2026-08-30; ampliado 2026-09-01
 - **Context**: La entrada al catálogo desde el footer podía hacer click sobre el
   HTML ya pintado antes de que Nuxt instalara sus listeners; en frío, el primer
-  import de una ruta administrativa también excedía el tiempo esperado.
+  import de una ruta administrativa también excedía el tiempo esperado. La
+  aceptación de enlaces de proyecto reprodujo la variante más temprana: URL y
+  `domcontentloaded` correctos, pero `#__nuxt` todavía vacío.
 - **Root Cause**: El flujo confundía contenido SSR visible con una aplicación ya
-  interactiva y el warmup preparaba rutas sin el prefijo de locale vigente.
+  montada, y el warmup preparaba rutas sin el prefijo de locale vigente ni una
+  identidad válida para las superficies privadas.
 - **Resolution**: Esperar que el selector de idioma esté habilitado antes de
-  navegar desde el footer y calentar las rutas administrativas localizadas.
-- **Files Affected**: E2E público de módulos adicionales y `global-setup.js`.
-- **Verification**: Los casos focales de navegación, lista y selector de idioma
-  pasan sin resultados inesperados ni flaky retries.
-- **Lesson**: En Nuxt, visible no implica hidratado; el readiness debe observar
-  un control interactivo y el warmup debe usar la URL canónica real.
+  navegar desde el footer; para rutas SPA, reutilizar `waitForNuxtApp`, calentar
+  las URLs localizadas con autenticación simulada y tratar como error que una
+  ruta crítica no llegue a montar.
+- **Files Affected**: E2E público de módulos adicionales, aceptación de enlaces
+  de proyecto, helper de navegación y `global-setup.js`.
+- **Verification**: Tres casos antes inestables y tres referencias contables
+  nuevas pasaron dos veces; la regresión completa de 10 casos y el slice final
+  de 4 casos pasaron sin retries.
+- **Lesson**: En Nuxt, `domcontentloaded` y una URL correcta no implican una app
+  montada; el readiness debe observar el árbol de `#__nuxt` y luego el control
+  visible propio de la vista. El warmup privado necesita URL canónica e identidad.
 
 ### [ERR-046] Pendientes operativos rompía la paridad de los indicadores de Proyectos
 

@@ -8,8 +8,12 @@
 > públicos y evita la escritura antes de validar o crear eventos. No hay
 > migración, backfill ni cambio en métricas ya persistidas.
 
-> **Icon feedback 2026-08-31:** `BaseButton` expone `unstyled` sin perder su
-> pulso de activación de 180 ms, foco, semántica ni mínimo táctil de 44 px.
+> **Icon feedback refinado 2026-09-01:** `BaseButton` expone `unstyled` sin
+> perder su pulso de activación de 360 ms, foco, semántica ni mínimo táctil de
+> 44 px. El contenido icon-only anima 90% → 105% → 100% sin sobrescribir el
+> transform del control; el halo de 3 px se expande y desvanece con el token de
+> foco, y nombres de animación alternados reinician clics consecutivos. Reduced
+> motion elimina keyframes y conserva el halo estático durante el mismo estado.
 > `BaseTooltip.forceOpen` permite que `BaseActionButton.statusLabel` sea visible
 > y anunciado con tono info/success/danger. `useClipboardFeedback` espera la
 > promesa de Clipboard API, conserva éxito 2 s y fallo 3 s, limpia timers al
@@ -942,6 +946,15 @@ confirmed by the operator or another integration.
 - Helpers: `frontend/e2e/helpers/`
 - Run: `npx playwright test e2e/<specific_file>.spec.js` (max 2 files per invocation)
 - Reuse running dev server: `E2E_REUSE_SERVER=1 npx playwright test ...`
+- Readiness SPA: después de `domcontentloaded`, usar
+  `e2e/helpers/navigation.js::waitForNuxtApp` y esperar el control propio de la
+  vista; una URL resuelta con `#__nuxt` vacío todavía no está lista.
+- `global-setup.js` calienta las rutas privadas críticas con URLs localizadas y
+  autenticación simulada; si una de ellas no monta, el setup falla en vez de
+  trasladar la compilación fría al primer escenario.
+- `BaseResponsiveTable` puede conservar varias representaciones del mismo
+  `data-testid`; las interacciones E2E deben seleccionar la variante visible con
+  `.filter({ visible: true })`.
 
 ### Quality Gate
 

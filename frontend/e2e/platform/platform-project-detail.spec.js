@@ -14,6 +14,7 @@ import {
   mockPlatformAdmin,
   mockPlatformClient,
 } from '../helpers/platform-auth.js';
+import { waitForNuxtApp } from '../helpers/navigation.js';
 
 const meResponse = (user) => ({
   status: 200,
@@ -62,6 +63,14 @@ function setupDetailMocks(page, { user, project = mockProject }) {
   });
 }
 
+async function gotoProjectDetail(page) {
+  await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+  await waitForNuxtApp(page);
+  await expect(
+    page.getByRole('heading', { name: 'E-commerce Platform', exact: true }),
+  ).toBeVisible({ timeout: 45_000 });
+}
+
 test.describe('Platform Project Detail — Admin', () => {
   // SPA routes need longer timeout for Vite on-demand compilation on dev server
   test.setTimeout(60_000);
@@ -75,11 +84,7 @@ test.describe('Platform Project Detail — Admin', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — project detail renders name, status and stats; the back-link interaction covers this flow)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
-
-    await expect(
-      page.getByRole('heading', { name: 'E-commerce Platform', exact: true }),
-    ).toBeVisible();
+    await gotoProjectDetail(page);
     await expect(page.getByText('Activo', { exact: true })).toBeVisible();
     await expect(page.getByText('Cliente: Client E2E')).toBeVisible();
 
@@ -93,7 +98,7 @@ test.describe('Platform Project Detail — Admin', () => {
   }, async ({ page }) => {
     // Fails if the project-detail back link stops routing to the projects list.
     await setupDetailMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+    await gotoProjectDetail(page);
 
     await page.locator('main').getByRole('link', { name: /proyectos/i }).click();
 
@@ -105,7 +110,7 @@ test.describe('Platform Project Detail — Admin', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the project nav exposes the board link with its href)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+    await gotoProjectDetail(page);
 
     const boardLink = page.getByRole('link', { name: 'Tablero', exact: true });
     await expect(boardLink).toBeVisible();
@@ -117,7 +122,7 @@ test.describe('Platform Project Detail — Admin', () => {
     tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupDetailMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+    await gotoProjectDetail(page);
 
     const backLink = page.getByTestId('project-back-to-panel');
     await expect(backLink).toBeVisible();
@@ -135,7 +140,7 @@ test.describe('Platform Project Detail — Admin', () => {
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — admin sees the Editar control)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+    await gotoProjectDetail(page);
 
     await expect(page.getByRole('button', { name: /editar/i })).toBeVisible();
   });
@@ -151,7 +156,7 @@ test.describe('Platform Project Detail — Client', () => {
     // quality: allow-no-interaction (permission display — client sees the detail without the edit control, by absence)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupDetailMocks(page, { user: mockPlatformClient });
-    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+    await gotoProjectDetail(page);
 
     await expect(
       page.getByRole('heading', { name: 'E-commerce Platform', exact: true }),

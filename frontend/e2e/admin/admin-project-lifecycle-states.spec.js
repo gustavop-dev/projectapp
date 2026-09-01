@@ -7,6 +7,8 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { viewportUse } from '../helpers/viewports.js';
+import { PANEL_BREAKPOINTS } from '../../config/responsive.js';
 import {
   ADMIN_PROJECT_LIFECYCLE_STATES,
   ADMIN_PROJECT_STATE_CATALOG,
@@ -189,19 +191,50 @@ function baseRoutes(apiPath, method, catalog, currentState) {
 
 async function openProjects(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+  }
   await page.getByRole('link', { name: 'Proyectos', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Proyectos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
-  // The SSR heading arrives before the client store. A populated row is the
-  // observable readiness boundary for lifecycle buttons and links.
-  await expect(page.getByTestId('accounting-row-9')).toBeVisible({ timeout: 25_000 });
+  // The SSR heading arrives before the client store. The populated desktop row
+  // or compact card is the observable readiness boundary for lifecycle actions.
+  const projectRecord = page.viewportSize().width < PANEL_BREAKPOINTS.landscape
+    ? page.getByTestId('project-card-9')
+    : page.getByTestId('accounting-row-9');
+  await expect(projectRecord).toBeVisible({ timeout: 25_000 });
 }
 
 async function openCatalog(page) {
   await openProjects(page);
   await page.getByTestId('projects-manage-states').click();
   await expect(page.getByTestId('project-state-catalog')).toBeVisible();
+}
+
+async function visibleBox(locator) {
+  await expect(locator).toBeVisible();
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  return box;
+}
+
+async function expectNoViewportOverflow(page) {
+  await expect.poll(() => page.evaluate(() => {
+    const widest = Math.max(
+      document.documentElement.scrollWidth,
+      document.body.scrollWidth,
+    );
+    return widest - document.documentElement.clientWidth;
+  })).toBeLessThanOrEqual(1);
+}
+
+function horizontalGap(first, second) {
+  return second.x - (first.x + first.width);
+}
+
+function verticalGap(first, second) {
+  return second.y - (first.y + first.height);
 }
 
 test.describe('Admin project lifecycle states', () => {
@@ -634,3 +667,110 @@ test.describe('Admin project state catalog', () => {
     await expect(name).toHaveValue('Garantía hoy');
   });
 });
+
+function expectCommonActionLayout({
+  editBandBox,
+  maintenanceBandBox,
+  mergeBox,
+  retireBox,
+}) {
+  expect(verticalGap(editBandBox, maintenanceBandBox)).toBeGreaterThanOrEqual(8);
+  expect(Math.abs(mergeBox.width - retireBox.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(mergeBox.height - retireBox.height)).toBeLessThanOrEqual(1);
+}
+
+function expectCompactActionLayout(boxes) {
+  expectCommonActionLayout(boxes);
+  expect(Math.abs(boxes.saveBox.width - boxes.editBandBox.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(boxes.mergeBox.width - boxes.maintenanceBandBox.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(boxes.retireBox.width - boxes.maintenanceBandBox.width)).toBeLessThanOrEqual(1);
+  expect(verticalGap(boxes.targetBox, boxes.mergeBox)).toBeGreaterThanOrEqual(8);
+  expect(verticalGap(boxes.mergeBox, boxes.retireBox)).toBeGreaterThanOrEqual(8);
+}
+
+function expectPortraitActionLayout(boxes) {
+  expectCommonActionLayout(boxes);
+  expect(Math.abs(boxes.saveBox.width - boxes.editBandBox.width)).toBeLessThanOrEqual(1);
+  expect(horizontalGap(boxes.targetBox, boxes.mergeBox)).toBeGreaterThanOrEqual(8);
+  expect(horizontalGap(boxes.mergeBox, boxes.retireBox)).toBeGreaterThanOrEqual(8);
+}
+
+function expectExpandedActionLayout(boxes) {
+  expectCommonActionLayout(boxes);
+  expect(horizontalGap(boxes.targetBox, boxes.mergeBox)).toBeGreaterThanOrEqual(8);
+  expect(horizontalGap(boxes.mergeBox, boxes.retireBox)).toBeGreaterThanOrEqual(8);
+  expect(Math.abs(boxes.saveBox.width - boxes.mergeBox.width)).toBeLessThanOrEqual(1);
+}
+
+const CATALOG_LAYOUT_VIEWPORTS = [
+  ['compact', 'celular', expectCompactActionLayout],
+  ['portrait', 'tableta vertical', expectPortraitActionLayout],
+  ['landscape', 'tableta horizontal', expectExpandedActionLayout],
+  ['desktop', 'portátil', expectExpandedActionLayout],
+  ['wide', 'monitor', expectExpandedActionLayout],
+];
+
+for (const [viewport, label, expectLayout] of CATALOG_LAYOUT_VIEWPORTS) {
+  test.describe(`Catálogo de estados — acciones en ${label}`, () => {
+    test.use(viewportUse(viewport));
+
+    test.beforeEach(async ({ page }) => {
+      await setAuthLocalStorage(page, {
+        token: 'e2e-token',
+        userAuth: { id: 9001, role: 'admin', is_staff: true },
+      });
+    });
+
+    test(`mantiene proporcionales las acciones en ${label}`, {
+      tag: [
+        ...ADMIN_PROJECT_STATE_CATALOG,
+        '@role:admin',
+        '@outcome:display',
+        '@responsive:projects',
+      ],
+    }, async ({ page }) => {
+      const catalog = initialCatalog();
+      const currentState = catalog[1];
+      await mockApi(page, async ({ apiPath, method }) => (
+        baseRoutes(apiPath, method, catalog, currentState)
+      ));
+
+      await openCatalog(page);
+      const row = page.getByTestId('catalog-state-8');
+      await row.scrollIntoViewIfNeeded();
+
+      const editBand = row.getByTestId('catalog-state-edit-actions-8');
+      const maintenanceBand = row.getByTestId('catalog-state-maintenance-actions-8');
+      const save = row.getByTestId('catalog-save-state-8');
+      const target = row.getByLabel('Destino para fusionar En garantía');
+      const merge = row.getByTestId('catalog-merge-state-8');
+      const retire = row.getByTestId('catalog-retire-state-8');
+      const [
+        editBandBox,
+        maintenanceBandBox,
+        saveBox,
+        targetBox,
+        mergeBox,
+        retireBox,
+      ] = await Promise.all([
+        visibleBox(editBand),
+        visibleBox(maintenanceBand),
+        visibleBox(save),
+        visibleBox(target),
+        visibleBox(merge),
+        visibleBox(retire),
+      ]);
+
+      expectLayout({
+        editBandBox,
+        maintenanceBandBox,
+        saveBox,
+        targetBox,
+        mergeBox,
+        retireBox,
+      });
+
+      await expectNoViewportOverflow(page);
+    });
+  });
+}

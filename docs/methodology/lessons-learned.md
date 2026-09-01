@@ -39,7 +39,11 @@ This file captures important patterns, preferences, and project intelligence tha
 > API, no al invocarla. Mantener el glifo estable preserva reconocimiento; el
 > tooltip temporal y la región viva comunican éxito o fallo. Un guard transversal
 > es necesario porque corregir únicamente el icono donde se detectó el problema
-> deja que el mismo defecto reaparezca en otras superficies.
+> deja que el mismo defecto reaparezca en otras superficies. Al hacer más
+> expresiva una reacción compartida, el movimiento debe aislarse del transform
+> del control: animar un wrapper interno evita desplazar botones posicionados o
+> pelear con escalas hover. Alternar el nombre del keyframe permite que clics
+> rápidos reinicien el pulso sin remount ni manipulación imperativa del DOM.
 
 > **Lección 2026-08-30 — catálogo, ubicación y archivo son dimensiones
 > distintas:** una migración de esquema no equivale a adoptar datos históricos,

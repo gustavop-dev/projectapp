@@ -2,6 +2,51 @@
 
 ## Current State
 
+**2026-09-01 — aceptación de enlaces entre Proyectos y Plataforma estabilizada:**
+la auditoría confirmó que el mismo `Project.id` enlaza panel y plataforma, que
+el puente abre el espacio en otra pestaña, que la vuelta comercial es exclusiva
+de administradores y que hosting, ingreso y cuenta de cobro ya exponen la misma
+acción. No fue necesario cambiar producto, API ni esquema. La aceptación E2E
+ahora espera el montaje real de Nuxt, calienta con autenticación las rutas
+localizadas críticas y prueba funcionalmente las tres referencias contables.
+Verificación: los 3 casos antes inestables pasaron dos veces, los 3 casos nuevos
+pasaron dos veces, la regresión completa de 10 casos quedó verde y el último
+slice de 4 casos confirmó las aserciones explícitas. Quality gate focal:
+93/100, cero errores y sin deuda nueva.
+
+**2026-09-01 — reacción expresiva de iconos interactivos implementada:** el
+primitive transversal conserva el contrato de activación/proceso/resultado y
+amplía la señal inmediata a un pulso balanceado de 360 ms: el icono comprime al
+90%, rebota al 105% y vuelve a reposo mientras un halo de 3 px se expande y
+desvanece. El movimiento queda aislado de los transforms de cada consumidor y
+se reinicia ante clics consecutivos. `prefers-reduced-motion` mantiene un halo
+estático de alto contraste; copiar conserva sus estados reales de éxito/fallo,
+sin cambiar el glifo ni añadir toasts genéricos.
+QA quedó aprobada con 25 pruebas unitarias focales, tres escenarios Playwright
+sin reintentos, build Nuxt, guards transversales, flow audit y quality gates sin
+errores. La observación E2E se arma antes del clic para capturar la reacción
+transitoria sin depender de clases internas ni de retries.
+
+**2026-09-01 — acciones del catálogo de estados de Proyectos organizadas:**
+cada estado activo separa la edición de la conservación del catálogo en dos
+bandas legibles. Nombre, color, efecto operativo, orden y Guardar comparten una
+grilla proporcionada; debajo, el destino de fusión, Fusionar y Retirar mantienen
+anchos coherentes y al menos 8 px de separación. En celular las acciones ocupan
+todo el ancho, en tableta vertical Guardar completa su fila y en anchos
+expandidos los botones conservan la misma proporción. El catálogo de Documentos,
+la API, el esquema y los mensajes inline de PA-120 no cambian. Verificación
+focal: 12 unitarias, 5 escenarios responsive (412/835/1195/1440/2560 px), 3
+regresiones E2E de Guardar/Fusionar/Retirar, design-token guard y build Nuxt en
+verde.
+
+**2026-09-01 — acción Archivar de Clientes alineada y verificada:** el control
+de cada fila en `/panel/clients` usa las acciones canónicas `archive`/`restore`
+y muestra **Archivar** o **Desarchivar** en su ayuda visible. La acción conserva
+el flujo existente de vista previa, confirmación, cascada y filtro Archivados;
+no cambia API, modelo ni migraciones. **Desactivar acceso** en `/platform/clients`
+permanece intacto porque controla acceso a la plataforma, no el archivo del
+cliente. Verificación focal: 2 unitarias, 4 escenarios E2E y el guard de acciones
+del panel en verde.
 **2026-09-01 — follow-up de Módulos adicionales listo para integrar:** todas las
 rutas públicas del catálogo omiten el Navbar global. El panel prepara URL, PDF
 completo, enlace seleccionado y PDF personalizado en español por defecto, sin

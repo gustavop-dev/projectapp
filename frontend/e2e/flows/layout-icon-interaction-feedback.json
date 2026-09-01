@@ -9,9 +9,10 @@
     "platform-client"
   ],
   "priority": "P2",
-  "description": "Activate an icon-only action and receive immediate visual acknowledgement. Clipboard actions add a nearby success or failure result only after the browser resolves the write, while preserving the canonical icon.",
+  "description": "Activate an icon-only action and receive a balanced 360 ms press, rebound and expanding halo. Reduced-motion users keep a static high-contrast halo. Clipboard actions add a nearby success or failure result only after the browser resolves the write, while preserving the canonical icon.",
   "outcomes": [
     "success",
-    "failure"
+    "failure",
+    "display"
   ]
 }
