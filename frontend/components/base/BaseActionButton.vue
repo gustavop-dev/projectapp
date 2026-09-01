@@ -41,19 +41,21 @@ const tooltipLabel = computed(() => (
   )) || props.tooltip || definition.value.label || accessibleLabel.value
 ))
 const displayedTooltip = computed(() => props.statusLabel || tooltipLabel.value)
+const displayedAction = computed(() => (
+  props.action === 'copy' && props.statusLabel && props.statusTone === 'success'
+    ? 'complete'
+    : props.action
+))
 const statusColors = {
-  info: { background: 'bg-info-soft', text: 'text-info-strong', ring: 'ring-info-strong/40' },
-  success: { background: 'bg-success-soft', text: 'text-success-strong', ring: 'ring-success-strong/40' },
-  danger: { background: 'bg-danger-soft', text: 'text-danger-strong', ring: 'ring-danger-strong/40' },
+  info: { background: 'bg-info-soft', text: 'text-info-strong' },
+  success: { background: 'bg-success-soft', text: 'text-success-strong' },
+  danger: { background: 'bg-danger-soft', text: 'text-danger-strong' },
 }
 const tooltipBackground = computed(() => (
   props.statusLabel ? statusColors[props.statusTone].background : 'bg-primary-strong'
 ))
 const tooltipTextColor = computed(() => (
   props.statusLabel ? statusColors[props.statusTone].text : 'text-white'
-))
-const statusRing = computed(() => (
-  props.statusLabel ? ['ring-2', statusColors[props.statusTone].ring] : []
 ))
 </script>
 
@@ -91,14 +93,15 @@ const statusRing = computed(() => (
           :to="to"
           icon-only
           :native-title="false"
-          :class="[disabled ? 'pointer-events-none' : undefined, statusRing]"
+          :class="disabled ? 'pointer-events-none' : undefined"
           :aria-label="accessibleLabel"
           :aria-describedby="tooltipId"
           :data-panel-action="action"
+          :data-displayed-action="displayedAction"
           :data-action-status="statusLabel ? statusTone : undefined"
           @click="emit('click', $event)"
         >
-          <BaseActionIcon v-if="!loading" :action="action" />
+          <BaseActionIcon v-if="!loading" :action="displayedAction" />
         </BaseButton>
         <span v-if="statusLabel" class="sr-only" role="status" aria-live="polite">
           {{ statusLabel }}

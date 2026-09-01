@@ -42,7 +42,7 @@ const props = defineProps({
 
 const emit = defineEmits(['click'])
 
-const ICON_ACTIVATION_DURATION = 360
+const ICON_ACTIVATION_DURATION = 420
 
 const attrs = useAttrs()
 const forwardedAttrs = computed(() => {
@@ -126,8 +126,8 @@ const classes = computed(() => [
   ),
   !props.unstyled && props.variant === 'link' && 'base-button--link',
   props.unstyled
-    ? 'outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60'
-    : 'inline-flex min-w-0 max-w-full flex-nowrap items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60',
+    ? 'outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60'
+    : 'inline-flex min-w-0 max-w-full flex-nowrap items-center justify-center gap-2 font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40 disabled:cursor-not-allowed disabled:opacity-60',
   !props.unstyled && (props.textPolicy === 'atomic' ? 'whitespace-nowrap' : 'whitespace-normal'),
   !props.unstyled && (variants[props.variant] || variants.primary),
   sizeClasses.value,
@@ -232,86 +232,41 @@ if (process.env.NODE_ENV !== 'production') {
   align-items: center;
   justify-content: center;
   transform-origin: center;
-}
-
-.base-button--icon:active {
-  outline: 3px solid rgb(var(--color-focus-ring-rgb) / 0.58);
-  outline-offset: 1px;
+  transition: transform 80ms ease-out;
 }
 
 .base-button--icon:active .base-button__icon-content {
-  transform: scale(0.9);
-}
-
-.base-button--activation-odd,
-.base-button--activation-even {
-  outline: 3px solid transparent;
-  animation-duration: 360ms;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.base-button--activation-odd {
-  animation-name: base-button-icon-halo-odd;
-}
-
-.base-button--activation-even {
-  animation-name: base-button-icon-halo-even;
+  transform: translateY(1px) scale(0.92);
 }
 
 .base-button--activation-odd .base-button__icon-content,
 .base-button--activation-even .base-button__icon-content {
-  animation-duration: 360ms;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .base-button--activation-odd .base-button__icon-content {
-  animation-name: base-button-icon-pulse-odd;
+  animation-name: base-button-icon-hop-odd;
 }
 
 .base-button--activation-even .base-button__icon-content {
-  animation-name: base-button-icon-pulse-even;
+  animation-name: base-button-icon-hop-even;
 }
 
-@keyframes base-button-icon-pulse-odd {
-  0% { transform: scale(0.9); }
-  55% { transform: scale(1.05); }
+@keyframes base-button-icon-hop-odd {
+  0% { transform: translateY(1px) scale(0.92); }
+  45% { transform: translateY(-3px) scale(1.08); }
+  70% { transform: translateY(0.75px) scale(0.98); }
+  85% { transform: translateY(-0.75px) scale(1.02); }
   100% { transform: scale(1); }
 }
 
-@keyframes base-button-icon-pulse-even {
-  0% { transform: scale(0.9); }
-  55% { transform: scale(1.05); }
+@keyframes base-button-icon-hop-even {
+  0% { transform: translateY(1px) scale(0.92); }
+  45% { transform: translateY(-3px) scale(1.08); }
+  70% { transform: translateY(0.75px) scale(0.98); }
+  85% { transform: translateY(-0.75px) scale(1.02); }
   100% { transform: scale(1); }
-}
-
-@keyframes base-button-icon-halo-odd {
-  0% {
-    outline-color: rgb(var(--color-focus-ring-rgb) / 0.58);
-    outline-offset: 1px;
-  }
-  55% {
-    outline-color: rgb(var(--color-focus-ring-rgb) / 0.32);
-    outline-offset: 4px;
-  }
-  100% {
-    outline-color: rgb(var(--color-focus-ring-rgb) / 0);
-    outline-offset: 7px;
-  }
-}
-
-@keyframes base-button-icon-halo-even {
-  0% {
-    outline-color: rgb(var(--color-focus-ring-rgb) / 0.58);
-    outline-offset: 1px;
-  }
-  55% {
-    outline-color: rgb(var(--color-focus-ring-rgb) / 0.32);
-    outline-offset: 4px;
-  }
-  100% {
-    outline-color: rgb(var(--color-focus-ring-rgb) / 0);
-    outline-offset: 7px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -319,19 +274,13 @@ if (process.env.NODE_ENV !== 'production') {
     transition: none;
   }
 
-  .base-button--icon:active,
-  .base-button--activation-odd,
-  .base-button--activation-even {
-    animation: none;
-    outline: 3px solid rgb(var(--color-focus-ring-rgb) / 0.58);
-    outline-offset: 3px;
-  }
-
   .base-button--icon:active .base-button__icon-content,
   .base-button--activation-odd .base-button__icon-content,
   .base-button--activation-even .base-button__icon-content {
     animation: none;
     transform: none;
+    opacity: 0.6;
+    transition: none;
   }
 }
 

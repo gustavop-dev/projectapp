@@ -293,20 +293,24 @@ test.describe('Admin View Map', () => {
     const copyControl = viewCard.locator('[data-panel-action="copy"]');
     await Promise.all([
       expect.poll(() => copyControl.evaluate((control) => {
-        const controlStyle = window.getComputedStyle(control);
+        const animations = control.getAnimations({ subtree: true });
         return {
           activationState: control.dataset.activationState,
-          hasRunningAnimation: control
-            .getAnimations({ subtree: true })
-            .some(animation => animation.playState === 'running'),
-          outlineStyle: controlStyle.outlineStyle,
-          outlineWidth: controlStyle.outlineWidth,
+          hasRunningAnimation: animations.some(animation => animation.playState === 'running'),
+          hasVerticalHop: animations.some(animation => (
+            animation.effect?.getKeyframes()
+              .some(frame => String(frame.transform).includes('translateY(-3px)'))
+          )),
+          hasAnimatedOutline: animations.some(animation => (
+            animation.effect?.getKeyframes()
+              .some(frame => frame.outlineColor || frame.outlineOffset)
+          )),
         };
       })).toEqual({
         activationState: 'active',
         hasRunningAnimation: true,
-        outlineStyle: 'solid',
-        outlineWidth: '3px',
+        hasVerticalHop: true,
+        hasAnimatedOutline: false,
       }),
       copyButton.click(),
     ]);
@@ -314,6 +318,7 @@ test.describe('Admin View Map', () => {
     const successButton = viewCard.getByRole('button', { name: 'Copiado: referencia' });
     await expect(successButton).toBeVisible({ timeout: 5000 });
     await expect(successButton).toHaveAttribute('data-action-status', 'success');
+    await expect(successButton).toHaveAttribute('data-displayed-action', 'complete');
     await expect(tooltip).toHaveText('Copiado: referencia');
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
       .toBe('[Panel administrativo] Mapa de vistas — /panel/views');
@@ -344,11 +349,12 @@ test.describe('Admin View Map', () => {
     const failedButton = viewCard.getByRole('button', { name: 'No se pudo copiar la referencia' });
     await expect(failedButton).toBeVisible({ timeout: 5000 });
     await expect(failedButton).toHaveAttribute('data-action-status', 'danger');
+    await expect(failedButton).toHaveAttribute('data-displayed-action', 'copy');
     await expect(page.getByRole('tooltip')).toHaveText('No se pudo copiar la referencia');
     await expect(page.getByRole('alert')).toContainText('No se pudo copiar la referencia');
   });
 
-  test('icon feedback keeps a visible halo with reduced motion', {
+  test('icon feedback uses a static contrast change with reduced motion', {
     tag: [...LAYOUT_ICON_INTERACTION_FEEDBACK, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -367,20 +373,19 @@ test.describe('Admin View Map', () => {
     const copyControl = viewCard.locator('[data-panel-action="copy"]');
     await Promise.all([
       expect.poll(() => copyControl.evaluate((control) => {
-        const controlStyle = window.getComputedStyle(control);
+        const iconContent = control.querySelector('.base-button__icon-content');
+        const iconStyle = window.getComputedStyle(iconContent);
         return {
           activationState: control.dataset.activationState,
-          animationName: controlStyle.animationName,
           animationCount: control.getAnimations({ subtree: true }).length,
-          outlineStyle: controlStyle.outlineStyle,
-          outlineWidth: controlStyle.outlineWidth,
+          iconOpacity: iconStyle.opacity,
+          iconTransform: iconStyle.transform,
         };
       })).toEqual({
         activationState: 'active',
-        animationName: 'none',
         animationCount: 0,
-        outlineStyle: 'solid',
-        outlineWidth: '3px',
+        iconOpacity: '0.6',
+        iconTransform: 'none',
       }),
       copyButton.click(),
     ]);

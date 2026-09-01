@@ -213,9 +213,11 @@ Use `BaseActionButton` for an icon-only control. It supplies one viewport-aware
 hover/focus tooltip from the short catalog label and a separate accessible name
 from `label`; it deliberately emits no native browser `title`. Pass `tooltip`
 only when intentional visual copy should override the catalog label.
-`statusLabel` forces that same tooltip visible and announces it without replacing
-the action glyph; pair it with `statusTone="success"` or `statusTone="danger"`
-when the action has a resolved outcome.
+`statusLabel` forces that same tooltip visible and announces it; pair it with
+`statusTone="success"` or `statusTone="danger"` when the action has a resolved
+outcome. A verified copy success temporarily renders the canonical completion
+check, then returns to the copy glyph when the status expires. Failed copies
+keep the copy glyph available for retry.
 Text buttons and menu items may render `BaseActionIcon` beside their visible
 label. Do not import a Heroicon,
 embed SVG, or use an emoji to represent an executable action. Run
@@ -227,14 +229,15 @@ explicit guard comment when they appear inside a selectable row.
 
 Every clickable icon across panel, platform and public views uses `BaseButton`
 with `icon-only`, or `BaseActionButton` when the action belongs to the canonical
-panel vocabulary. `BaseButton` owns the immediate 360 ms activation signal for
-buttons and links: the icon compresses to 90%, rebounds to 105%, settles at
-100%, and a 3 px focus-token halo expands and fades around its control. Rapid
-clicks restart the pulse. Coarse pointers receive a minimum 44 px target;
-`prefers-reduced-motion` removes the keyframes and keeps a static high-contrast
-halo for the same state. Use `unstyled` only when a branded control must retain
-bespoke chrome—the interaction, accessibility and touch contract still remain
-active.
+panel vocabulary. `BaseButton` owns the immediate 420 ms activation signal for
+buttons and links: the glyph presses down 1 px, hops up at most 3 px with a
+small scale overshoot, lands and settles without animating the control border.
+Rapid clicks restart the hop. Pointer activation does not paint a focus ring;
+the ring remains available through `focus-visible` for keyboard users. Coarse
+pointers receive a minimum 44 px target; `prefers-reduced-motion` removes the
+keyframes and briefly changes glyph contrast instead. Use `unstyled` only when
+a branded control must retain bespoke chrome—the interaction, accessibility and
+touch contract still remain active.
 
 Immediate activation only confirms that the input was registered. Existing
 `loading` state continues to represent pending asynchronous work. An outcome
