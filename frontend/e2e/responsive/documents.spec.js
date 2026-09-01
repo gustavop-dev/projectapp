@@ -109,7 +109,7 @@ test.describe('documents responsive special', () => {
   }, async ({ page }) => {
     await setupDocuments(page);
     // quality: allow-deep-link (the catalog scenario covers panel entry; this isolates the mixed archive switch and row action)
-    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/documents', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true })).toHaveText('Gestor Documental');
     // Regression: a narrow folder drawer used to hide the archive switch or
     // leave row actions behind the active-only list.

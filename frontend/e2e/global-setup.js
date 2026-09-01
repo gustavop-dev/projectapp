@@ -6,6 +6,19 @@ import { getResponsiveBatch, getResponsiveScenario } from './responsive/catalog-
 
 const WARMUP_UUID = '11111111-1111-4111-8111-111111111111';
 const RESPONSIVE_WARMUP_ROUTES = Object.freeze({
+  'frontend/pages/panel/documents/index.vue': ['/en-us/panel/documents'],
+  'frontend/pages/panel/documents/create.vue': [
+    '/en-us/panel/documents',
+    '/en-us/panel/documents/create',
+  ],
+  'frontend/pages/panel/documents/[id]/edit.vue': [
+    '/en-us/panel/documents',
+    '/en-us/panel/documents/1/edit',
+  ],
+  'frontend/pages/panel/documents/statuses.vue': [
+    '/en-us/panel/documents',
+    '/en-us/panel/documents/statuses',
+  ],
   'frontend/pages/portfolio-works/[slug].vue': [
     '/en-us/portfolio-works',
     '/en-us/portfolio-works/responsive-fixture',

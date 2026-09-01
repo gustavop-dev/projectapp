@@ -28,7 +28,7 @@ const projectEntryByProfile = Object.freeze({
 });
 
 async function enterProjects(page, profile) {
-  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.goto('/en-us/panel', { waitUntil: 'domcontentloaded' });
   await projectEntryByProfile[profile](page);
   await expect(page.getByRole('heading', { name: 'Proyectos', exact: true })).toHaveText('Proyectos');
 }
@@ -40,6 +40,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-panel-projects', '@outcome:display', '@responsive:projects', `@responsive-scenario:${projectsScenario.catalogKey}`, `@responsive-batch:${batchForScenario(projectsScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupProjects(page);
+      // quality: allow-deep-link (the authenticated panel home is the shell entry; this test reaches Projects through the visible responsive navigation)
       await enterProjects(page, profile);
       await page.getByTestId('projects-new-button').click();
       await expect(page.getByRole('dialog')).toContainText('Nuevo proyecto');
@@ -50,6 +51,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-project-state-catalog', '@outcome:display', '@responsive:projects', `@responsive-scenario:${statusesScenario.catalogKey}`, `@responsive-batch:${batchForScenario(statusesScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupProjects(page);
+      // quality: allow-deep-link (the authenticated panel home is the shell entry; this test reaches Projects through the visible responsive navigation)
       await enterProjects(page, profile);
       await page.getByTestId('projects-manage-states').click();
       await expect(page).toHaveURL(/\/panel\/projects\/statuses$/);
@@ -76,7 +78,7 @@ test.describe('projects responsive special', () => {
       return null;
     });
     // quality: allow-deep-link (the catalog test covers sidebar entry; this isolates the guided cascade special)
-    await page.goto('/panel/projects', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/projects', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('project-edit-1').click();
     await page.getByTestId('project-form-change-client').click();
     const dialog = page.getByRole('dialog', { name: 'Cambiar el cliente de "Vastago"', exact: true });

@@ -59,7 +59,7 @@ test.describe('accounting compact decision special', () => {
   test('pocket card preserves Saldo después after sorting the long movement', { tag: ['@flow:admin-accounting-pocket', '@outcome:success', '@responsive-special:accounting', '@viewport:compact', '@responsive-batch:accounting-special-1'] }, async ({ page }) => {
     await setup(page);
     // quality: allow-deep-link (the narrow pocket representation is the responsive decision under test)
-    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('pocket-card-sort-concept').click();
     await expect(page.getByTestId('pocket-card-1')).toContainText('Saldo después');
     await expect(page.getByTestId('pocket-running-balance-1')).toHaveText('$123.456.789');
@@ -71,7 +71,7 @@ test.describe('accounting portrait grouping and filters special', () => {
   test('grouped collections restore the client header with the long amount', { tag: ['@flow:admin-accounting-collection-grouping', '@outcome:success', '@responsive-special:accounting', '@viewport:portrait', '@responsive-batch:accounting-special-1'] }, async ({ page }) => {
     await setup(page);
     // quality: allow-deep-link (the special isolates grouped-header touch reachability)
-    await page.goto('/panel/accounting/collections', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/accounting/collections', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('collections-view-classic')).toHaveAttribute('aria-selected', 'true');
     await page.getByTestId('collections-view-grouped').click();
     await expect(page.getByTestId('collections-view-grouped')).toHaveAttribute('aria-selected', 'true');
@@ -84,7 +84,7 @@ test.describe('accounting portrait grouping and filters special', () => {
   test('saved expected filter remains selectable before the long income row', { tag: ['@flow:admin-accounting-filters', '@outcome:success', '@responsive-special:accounting', '@viewport:portrait', '@responsive-batch:accounting-special-1'] }, async ({ page }) => {
     await setup(page);
     // quality: allow-deep-link (saved filters are a route-owned responsive control)
-    await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('filter-tabs-select').selectOption('expected-only');
     await expect(page.getByTestId('filter-tabs-select')).toHaveValue('expected-only');
     await expect(page.getByTestId('accounting-row-1')).toContainText(longConcept);
@@ -122,7 +122,7 @@ const longModalFlows = Object.freeze([
     flow: 'admin-accounting-collection-create',
     dialog: (page) => page.getByRole('dialog', { name: 'Revisar antes de enviar', exact: true }),
     open: async (page) => {
-      await page.goto('/panel/accounting/collections', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/accounting/collections', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('collection-create-button').click();
       await page.getByTestId('collection-form-client').fill('Cliente con nombre muy largo');
       await page.getByTestId('client-autocomplete-option-1').click();
@@ -139,7 +139,7 @@ const longModalFlows = Object.freeze([
     flow: 'admin-accounting-income-crud',
     dialog: (page) => page.getByRole('dialog', { name: 'Liquidar ingreso esperado', exact: true }),
     open: async (page) => {
-      await page.goto('/panel/accounting/incomes?accounting_incomeTab=all', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/accounting/incomes?accounting_incomeTab=all', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('income-actions-1').click();
       await page.getByTestId('income-action-liquidate-1').click();
     },
@@ -150,7 +150,7 @@ const longModalFlows = Object.freeze([
     flow: 'admin-accounting-income-bulk-settle',
     dialog: (page) => page.getByRole('dialog', { name: 'Registrar abono', exact: true }),
     open: async (page) => {
-      await page.goto('/panel/accounting/incomes?accounting_incomeTab=all', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/accounting/incomes?accounting_incomeTab=all', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('accounting-row-1').getByRole('checkbox').click();
       await page.getByTestId('incomes-bulk-actions').click();
       await page.getByRole('menuitem', { name: 'Registrar abono', exact: true }).click();
@@ -162,7 +162,7 @@ const longModalFlows = Object.freeze([
     flow: 'admin-accounting-income-crud',
     dialog: (page) => page.getByRole('dialog', { name: 'Nuevo Ingreso', exact: true }),
     open: async (page, dialog) => {
-      await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('incomes-new-button').click();
       await dialog.getByTestId('income-form-origin').getByRole('tab', { name: 'Hosting', exact: true }).click();
     },
@@ -353,7 +353,7 @@ for (const profile of RESPONSIVE_PROFILES) {
     test('inline client creation keeps the hosting CTA reachable', { tag: ['@flow:admin-accounting-hostings', '@outcome:success', '@responsive-special:accounting', `@viewport:${profile}`, '@responsive-batch:accounting-special-3'] }, async ({ page }) => {
       const { calls } = await setupHostingSpecial(page);
       // quality: allow-deep-link (the special isolates a long form owned by the hostings list)
-      await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('hostings-new-button').click();
       const dialog = page.getByRole('dialog', { name: 'Nuevo Hosting', exact: true });
       await page.getByTestId('hosting-form-client').fill(inlineClient.name);
@@ -389,7 +389,7 @@ for (const profile of RESPONSIVE_PROFILES) {
     test('draft statement preserves the added purchase', { tag: ['@flow:admin-accounting-statements', '@outcome:success', '@responsive-special:accounting', `@viewport:${profile}`, '@responsive-batch:accounting-special-3'] }, async ({ page }) => {
       const { calls } = await setupStatementSpecial(page);
       // quality: allow-deep-link (the special begins at the statements grid, then opens the draft through its chip)
-      await page.goto('/panel/accounting/statements', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/accounting/statements', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('statement-chip-2').click();
       await expect(page.getByTestId('statement-detail')).toContainText('Junio 2026');
       await statementActionsByProfile[profile].openHeader(page);

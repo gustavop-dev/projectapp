@@ -35,7 +35,7 @@ test.describe('canvas responsive special', () => {
     }, async ({ page }) => {
       await setupCanvas(page);
       // quality: allow-deep-link (the catalog edit scenario reaches this canvas from its row action)
-      await page.goto('/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
       await expect(page.getByRole('textbox', { name: 'Contenido Markdown' })).toHaveValue(/Contrato/);
       // Regression: the responsive editor previously left the preview toggle
       // unreachable and the split preview without rendered content.
@@ -53,7 +53,7 @@ test.describe('canvas responsive special', () => {
     }, async ({ page }) => {
       await setupCanvas(page);
       // quality: allow-deep-link (the special isolates the leave guard after the catalog covers editor entry)
-      await page.goto('/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
+      await page.goto('/en-us/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
       await page.getByRole('textbox', { name: /^T[ií]tulo\s*\*?$/i }).fill('Contrato Actualizado');
       await expect(page.getByTestId('doc-unsaved-notice')).toContainText('Título sin guardar');
       await page.getByRole('link', { name: /Volver a documentos/i }).click();
