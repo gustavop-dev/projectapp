@@ -456,18 +456,28 @@ test('lets an admin inspect the retained full body of a security email', {
 test('shows exact attachment metadata and opens the retained PDF', {
   tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_ATTACHMENTS, '@role:admin', '@outcome:display'],
 }, async ({ page }) => {
+  // Catches regressions where provenance becomes plain text or sent links lose their group or target URL.
   await setupMocks(page, { history: exactHistory });
   await navigateToEmails(page);
   await page.getByRole('tab', { name: 'Historial' }).click();
   await page.getByText('Cuenta de cobro agosto', { exact: true }).first().click();
 
   const attachments = page.getByTestId('email-history-attachments-51');
+  const attachment = page.getByTestId('email-attachment-71');
   await expect(attachments).toContainText('cuenta-cobro-agosto.pdf');
   await expect(attachments).toContainText('Cuenta de cobro · PDF · 1.0 MB');
   await expect(attachments).toContainText('Envío total: 1.8 MB');
+  await expect(attachment.getByRole('link', { name: 'Cuenta de cobro agosto' }))
+    .toHaveAttribute('href', '/en-us/panel/documents/72/edit');
   await page.getByRole('button', { name: 'Previsualizar' }).click();
   await expect(page.getByTestId('email-pdf-preview-frame')).toBeVisible();
-  await expect(page.getByTestId('email-history-links-51')).toContainText('Pagar ahora');
+  const links = page.getByTestId('email-history-links-51');
+  await expect(links).toContainText('Contenido');
+  await expect(links).toContainText('Plantilla y firma');
+  await expect(links.getByRole('link', { name: 'Pagar ahora' }))
+    .toHaveAttribute('href', 'https://projectapp.co/platform/payments/7');
+  await expect(links.getByRole('link', { name: 'ProjectApp' }))
+    .toHaveAttribute('href', 'https://projectapp.co');
 });
 
 test('states explicitly that a captured email had no attachments', {
