@@ -1,5 +1,4 @@
 import { mount } from '@vue/test-utils'
-import { ref } from 'vue'
 import CatalogSelectionModal from '../../components/AdditionalModules/CatalogSelectionModal.vue'
 import BaseCheckbox from '../../components/base/BaseCheckbox.vue'
 import BaseFormField from '../../components/base/BaseFormField.vue'
@@ -8,7 +7,6 @@ import BaseSegmented from '../../components/base/BaseSegmented.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
 
 global.useI18n = jest.fn(() => ({
-  locale: ref('en-us'),
   t: (key, params = {}) => `${key}${params.count === undefined ? '' : `:${params.count}`}`,
 }))
 
@@ -59,9 +57,23 @@ describe('AdditionalModulesCatalogSelectionModal', () => {
     await wrapper.get('[data-testid="additional-selection-submit"]').trigger('click')
 
     expect(wrapper.emitted('submit')).toEqual([[{
-      language: 'en',
+      language: 'es',
       module_ids: [7],
       recipient_label: 'Acme · Colombia',
+    }]])
+  })
+
+  it('submits English after an explicit language choice', async () => {
+    const wrapper = mountModal()
+    await wrapper.setProps({ modelValue: true })
+
+    await wrapper.get('[data-testid="additional-selection-language-en"]').trigger('click')
+    await wrapper.get('[data-testid="additional-selection-submit"]').trigger('click')
+
+    expect(wrapper.emitted('submit')).toEqual([[{
+      language: 'en',
+      module_ids: [7],
+      recipient_label: '',
     }]])
   })
 })

@@ -1,13 +1,22 @@
 # Product Requirements Document — ProjectApp
 
+> **Seguimiento 2026-09-01 — cierre del catálogo adicional:** las rutas públicas
+> del catálogo, tanto canónica como seleccionada, no muestran el encabezado
+> global. Todo enlace o PDF nuevo parte en español y conserva el selector ES/EN.
+> Una apertura con sesión Django de staff no se registra en módulos adicionales,
+> propuestas —incluidos sus enlaces secundarios e interacciones— ni diagnósticos;
+> una visita sin esa sesión sí cuenta como externa. Las aperturas históricas se
+> conservan sin reclasificación y la política SEO sigue siendo catálogo canónico
+> indexable frente a selecciones `noindex`.
+
 > **Refinado — 2026-09-01:** todo icono ejecutable de panel, plataforma y
 > superficies públicas confirma de inmediato que recibió el clic mediante un
 > pulso común de 360 ms: compresión, rebote y halo expansivo. El glifo no cambia;
 > touch y teclado conservan la misma señal y reduced motion reemplaza el
-> movimiento por un halo estático de alto contraste. Las acciones asíncronas
-> mantienen su estado de carga. Copiar muestra éxito sólo después de escribir
-> realmente al portapapeles y muestra un estado de error visible si el navegador
-> lo bloquea, además del mensaje accionable de la pantalla.
+> movimiento por un halo estático de alto contraste. Las acciones
+> asíncronas mantienen su estado de carga. Copiar muestra éxito sólo después de
+> escribir realmente al portapapeles y muestra un estado de error visible si el
+> navegador lo bloquea, además del mensaje accionable de la pantalla.
 
 > **Ajuste 2026-08-31 — acceso comercial visible:** Módulos adicionales abre
 > con un centro de acceso rápido que muestra la URL pública canónica, permite

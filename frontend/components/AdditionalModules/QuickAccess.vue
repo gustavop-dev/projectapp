@@ -17,14 +17,13 @@ const emit = defineEmits(['share', 'customize-pdf', 'tracking', 'manage'])
 const { t } = useI18n()
 const feedback = ref(null)
 
-const languageRef = computed(() => props.language)
 const {
   publicPath,
   publicUrl,
   isDownloading,
   copyPublicUrl,
   downloadFullPdf,
-} = useAdditionalModulesPublicAccess(languageRef)
+} = useAdditionalModulesPublicAccess('es')
 
 const heading = computed(() => t(
   props.compact

@@ -11,7 +11,12 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status as http_status
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
@@ -49,7 +54,7 @@ from content.views._email_attachment import (
     inline_pdf_response,
     render_markdown_pdf_response,
 )
-from content.utils import get_client_ip
+from content.utils import get_client_ip, is_staff_session
 
 logger = logging.getLogger(__name__)
 
@@ -613,11 +618,17 @@ def _ensure_view_event(diagnostic, request, session_id):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 @throttle_classes([TrackingAnonThrottle])
 def track_public_diagnostic(request, diagnostic_uuid):
     """Create (or reuse) a DiagnosticViewEvent for this public visit."""
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
+    if is_staff_session(request):
+        return Response({
+            'status': 'skipped',
+            'view_count': diagnostic.view_count,
+        })
     session_id = (request.data.get('session_id') or '')[:64] or 'anonymous'
     _ensure_view_event(diagnostic, request, session_id)
     diagnostic_service.register_view(diagnostic)
@@ -625,11 +636,14 @@ def track_public_diagnostic(request, diagnostic_uuid):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 @throttle_classes([TrackingAnonThrottle])
 def track_diagnostic_section_view(request, diagnostic_uuid):
     """Record per-section time spent during a public visit."""
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
+    if is_staff_session(request):
+        return Response({'ok': True, 'status': 'skipped'})
     session_id = (request.data.get('session_id') or '')[:64]
     section_type = (request.data.get('section_type') or '')[:50]
     section_title = (request.data.get('section_title') or '')[:255]

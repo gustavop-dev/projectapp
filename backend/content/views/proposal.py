@@ -63,7 +63,7 @@ from content.throttles import (
     PublicProposalActionThrottle,
     TrackingAnonThrottle,
 )
-from content.utils import get_client_ip
+from content.utils import get_client_ip, is_staff_session
 
 from content.models import (
     BusinessProposal, ProposalAlert, ProposalSection,
@@ -175,10 +175,7 @@ def _serve_public_proposal(request, proposal):
 
     # Admin preview detection — skip all analytics when staff views
     # Detects by Django session cookie (automatic, no query param needed)
-    is_preview = (
-        request.user.is_authenticated
-        and request.user.is_staff
-    )
+    is_preview = is_staff_session(request)
 
     # Only record views/metrics for proposals that have been sent (not drafts)
     # Skip entirely for admin previews to avoid polluting analytics
@@ -2316,9 +2313,7 @@ def track_proposal_engagement(request, proposal_uuid):
         return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
     # Skip tracking for admin staff (detect via Django session cookie)
-    from django.contrib.auth import get_user
-    _user = get_user(request._request)
-    if _user.is_authenticated and _user.is_staff:
+    if is_staff_session(request):
         return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
     session_id = request.data.get('session_id', '')
@@ -2589,9 +2584,7 @@ def track_calculator_interaction(request, proposal_uuid):
     )
 
     # Skip tracking for admin staff
-    from django.contrib.auth import get_user
-    _user = get_user(request._request)
-    if _user.is_authenticated and _user.is_staff:
+    if is_staff_session(request):
         return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
     event = request.data.get('event', '')
@@ -2657,9 +2650,7 @@ def track_requirement_click(request, proposal_uuid):
     )
 
     # Skip tracking for admin staff
-    from django.contrib.auth import get_user
-    _user = get_user(request._request)
-    if _user.is_authenticated and _user.is_staff:
+    if is_staff_session(request):
         return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
     group_id = request.data.get('group_id', '')
@@ -2830,23 +2821,25 @@ def retrieve_shared_proposal(request, share_uuid):
             status=status.HTTP_410_GONE,
         )
 
-    # Record viewer info
-    viewer_name = request.query_params.get('name', '').strip()
-    viewer_email = request.query_params.get('email', '').strip()
-    update_fields = ['view_count']
+    # Internal previews return the public payload without mutating commercial
+    # engagement or filling recipient details from an operator's query string.
+    if not is_staff_session(request):
+        viewer_name = request.query_params.get('name', '').strip()
+        viewer_email = request.query_params.get('email', '').strip()
+        update_fields = ['view_count']
 
-    share_link.view_count += 1
-    if not share_link.first_viewed_at:
-        share_link.first_viewed_at = timezone.now()
-        update_fields.append('first_viewed_at')
-    if viewer_name and not share_link.recipient_name:
-        share_link.recipient_name = viewer_name
-        update_fields.append('recipient_name')
-    if viewer_email and not share_link.recipient_email:
-        share_link.recipient_email = viewer_email
-        update_fields.append('recipient_email')
+        share_link.view_count += 1
+        if not share_link.first_viewed_at:
+            share_link.first_viewed_at = timezone.now()
+            update_fields.append('first_viewed_at')
+        if viewer_name and not share_link.recipient_name:
+            share_link.recipient_name = viewer_name
+            update_fields.append('recipient_name')
+        if viewer_email and not share_link.recipient_email:
+            share_link.recipient_email = viewer_email
+            update_fields.append('recipient_email')
 
-    share_link.save(update_fields=update_fields)
+        share_link.save(update_fields=update_fields)
 
     serializer = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': False}

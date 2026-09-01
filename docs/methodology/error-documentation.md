@@ -7,6 +7,15 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-01 — vistas internas y defaults del catálogo:** las
+> aperturas del propio equipo podían contaminar las señales comerciales, el
+> idioma inicial heredaba el locale del panel y el catálogo público conservaba
+> el Navbar flotante. La corrección centraliza la detección de sesión staff en
+> el backend, omite por completo esas escrituras en catálogo, propuestas y
+> diagnósticos, fija español como punto de partida y oculta el Navbar en todas
+> las rutas públicas de módulos adicionales. No se alteraron registros previos;
+> un navegador sin sesión sigue siendo indistinguible de un cliente y se cuenta.
+
 > **Prevención verificada 2026-08-31 — edición MCP de borradores:** no se abrió
 > un incidente de producción. La herramienta rechaza mensajes enviados,
 > recibidos, fallidos, anulados o entrantes antes de escribir; documentos de

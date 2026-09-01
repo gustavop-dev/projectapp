@@ -89,6 +89,8 @@ class AdditionalModuleShareCreateSerializer(serializers.Serializer):
     )
     language = serializers.ChoiceField(
         choices=AdditionalModuleShareLink.Language.choices,
+        required=False,
+        default=AdditionalModuleShareLink.Language.SPANISH,
     )
     selected_module_ids = serializers.PrimaryKeyRelatedField(
         source='selected_modules',
@@ -150,6 +152,8 @@ class AdditionalModuleShareAdminSerializer(serializers.ModelSerializer):
 class AdditionalModulePdfSelectionSerializer(serializers.Serializer):
     language = serializers.ChoiceField(
         choices=AdditionalModuleShareLink.Language.choices,
+        required=False,
+        default=AdditionalModuleShareLink.Language.SPANISH,
     )
     recipient_label = serializers.CharField(
         max_length=255,
