@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-09-01 — aceptación de enlaces entre Proyectos y Plataforma estabilizada:**
+la auditoría confirmó que el mismo `Project.id` enlaza panel y plataforma, que
+el puente abre el espacio en otra pestaña, que la vuelta comercial es exclusiva
+de administradores y que hosting, ingreso y cuenta de cobro ya exponen la misma
+acción. No fue necesario cambiar producto, API ni esquema. La aceptación E2E
+ahora espera el montaje real de Nuxt, calienta con autenticación las rutas
+localizadas críticas y prueba funcionalmente las tres referencias contables.
+Verificación: los 3 casos antes inestables pasaron dos veces, los 3 casos nuevos
+pasaron dos veces, la regresión completa de 10 casos quedó verde y el último
+slice de 4 casos confirmó las aserciones explícitas. Quality gate focal:
+93/100, cero errores y sin deuda nueva.
+
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**
 `update_message` corrige asunto, contenido, fecha, respuesta o documentos sobre
 el mismo mensaje saliente activo, sin crear otro registro ni enviar por correo o

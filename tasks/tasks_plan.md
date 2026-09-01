@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **Aceptación lista para integrar — 2026-09-01:** los enlaces entre la ficha
+> comercial y el espacio de proyecto ya estaban completos; la entrega endurece
+> su aceptación E2E sin tocar producto. Nuxt tiene readiness explícita y warmup
+> autenticado de rutas críticas, y hosting, ingreso y cuenta de cobro cuentan
+> con escenarios funcionales propios. Repeticiones, regresión de 10 casos y
+> quality gate focal están verdes.
+
 > **Listo para integrar — 2026-08-31:** el catálogo de estados de Proyectos
 > reemplaza las listas rojas por requisitos y errores bajo cada campo después
 > del intento. La fusión distingue la selección faltante, que se corrige inline,
@@ -67,6 +74,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Projects — platform link acceptance | 🟡 Ready for merge | 2026-09-01. La auditoría confirmó el enlace bidireccional existente mediante el `Project.id` canónico, puente de sesión en pestaña nueva y retorno comercial sólo para administradores. La aceptación espera el montaje de Nuxt y calienta rutas privadas localizadas con identidad simulada; un spec nuevo recorre las referencias desde hosting, ingreso y cuenta de cobro. No cambia producto, API ni esquema. Tres casos inestables y tres nuevos pasaron dos veces, la regresión íntegra de 10 casos quedó verde y el quality gate focal cerró en 93/100 sin errores. |
 | Projects — inline state-catalog validation | 🟡 Ready for merge | 2026-08-31. Create/edit/merge validation in `/panel/projects/statuses` uses `BaseFormField` beside the relevant control after an attempted action; required markers cover name, description and operational effect. Serializer field errors stay attached to their field and clear on input. A missing merge target is actionable inline feedback, while immutable seed restrictions remain accessible help on the disabled action. Documents retain their existing catalog behavior. Six unit tests, all 14 affected E2E scenarios, the disabled-control guard, Nuxt build and flow audit are green. |
 | Transversal — reacción visible de iconos interactivos | 🟡 Ready for merge | 2026-08-31. Todos los controles icon-only ejecutables de panel, plataforma y superficies públicas comparten una reacción inmediata; copiar confirma sólo después de escribir al portapapeles y diferencia éxito/fallo mediante estado visible y accesible. El glifo permanece estable, async conserva loading, touch/teclado tienen paridad y reduced motion reemplaza escala por halo. Verificación: 27 unitarias focales, 2 E2E, build, 536 SFC válidos, flow audit y guards en verde. |
 | Documents — safe project/client reconciliation | 🟡 Ready for merge | Updated 2026-08-30. Every canonical project appears even with zero content; a visit-local toggle reveals non-operational projects inclusively while the separate archive toggle still filters content. `DocumentFolder.managed_project` identifies the canonical root. Manifest v5 promotes G&M, Vástago, Xpandia, Kore and Tenndalux, creates roots for Mimittos, PRUEBA and Candle, nests Germán under Kore, files document 120 and explicitly assigns loose documents 1–5/135/157/154/159. Carlos, Gustavo, Aarón, Littigio, ProjectApp and Requirement Estimates stay untouched. Apply requires a reviewed hash, unchanged fingerprint, verified backup and inverse snapshot. Production remains untouched pending deploy and the operator runbook. |
