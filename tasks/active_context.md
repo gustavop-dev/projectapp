@@ -10,7 +10,7 @@ internas en módulos adicionales, propuestas —vista principal, enlaces
 secundarios e interacciones— y diagnósticos —visita y secciones—; no crea marcas
 alternas ni modifica aperturas históricas. Sin sesión iniciada, incluso para el
 equipo, la visita cuenta como externa. La indexación permanece canónica
-`index`/selecciones `noindex`. Verificación: 13 pytest focales, 12 unitarias, 4
+`index`/selecciones `noindex`. Verificación: 14 pytest focales, 12 unitarias, 4
 E2E directamente afectados y checks de Django/diseño verdes; sin migraciones.
 
 **2026-08-31 — edición MCP de borradores de Comunicaciones implementada:**

@@ -5,7 +5,7 @@
 > español con cambio explícito a inglés. La sesión staff queda excluida, sin
 > registro paralelo, de todo tracking comercial en catálogo, propuestas y
 > diagnósticos; el histórico permanece intacto y una apertura anónima sigue
-> contando. Verificación focal: 13 pruebas backend, 12 unitarias frontend, 4
+> contando. Verificación focal: 14 pruebas backend, 12 unitarias frontend, 4
 > escenarios E2E y checks de Django/diseño en verde; no requiere migración.
 
 > **Listo para integrar — 2026-08-31:** el catálogo de estados de Proyectos

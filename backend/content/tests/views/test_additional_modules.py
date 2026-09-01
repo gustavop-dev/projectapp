@@ -317,6 +317,7 @@ def test_tracking_counts_one_open_per_session(catalog, staff_client):
 
 
 def test_staff_session_preview_is_not_tracked(catalog):
+    """Falla si el endpoint omite el evento pero modifica las métricas del enlace."""
     _commerce, _experience, landing, _pwa = catalog
     user = get_user_model().objects.create_user(
         username='preview-admin', password='preview-pass', is_staff=True,
@@ -331,8 +332,12 @@ def test_staff_session_preview_is_not_tracked(catalog):
         format='json',
     )
 
+    share.refresh_from_db()
     assert response.data['status'] == 'skipped'
     assert not AdditionalModuleShareView.objects.filter(share_link=share).exists()
+    assert share.view_count == 0
+    assert share.first_viewed_at is None
+    assert share.last_viewed_at is None
 
 
 def test_reorder_applies_category_and_module_positions(catalog, staff_client):

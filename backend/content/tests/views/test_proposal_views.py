@@ -42,6 +42,26 @@ class TestRetrievePublicProposal:
         response = api_client.get(url)
         assert response.status_code == 200
 
+    def test_staff_session_keeps_sent_proposal_untracked(
+        self,
+        client,
+        admin_user,
+        sent_proposal,
+    ):
+        """Falla si una vista interna incrementa o marca como vista una propuesta enviada."""
+        client.force_login(admin_user)
+        url = reverse(
+            'retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid},
+        )
+
+        response = client.get(url)
+
+        sent_proposal.refresh_from_db()
+        assert response.status_code == 200
+        assert sent_proposal.view_count == 0
+        assert sent_proposal.first_viewed_at is None
+        assert sent_proposal.status == BusinessProposal.Status.SENT
+
     def test_by_slug_returns_same_payload(self, api_client, sent_proposal):
         """The slug-based endpoint must serve the same body as the UUID one."""
         url_slug = reverse(
