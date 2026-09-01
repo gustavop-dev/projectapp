@@ -82,7 +82,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       }, async ({ page }, testInfo) => {
         // quality: allow-deep-link (the matrix setup opens the accounting hub, then the behavior under test uses its real subnav)
         await mockAccountingNavigation(page);
-        await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+        await page.goto('/en-us/panel/accounting', { waitUntil: 'domcontentloaded' });
         await waitForNuxtApp(page);
         await expect(page.getByRole('heading', { name: 'Resumen', level: 1 }))
           .toBeVisible({ timeout: 45_000 });

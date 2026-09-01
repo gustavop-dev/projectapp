@@ -312,7 +312,7 @@ test.describe('clients responsive special', () => {
   }, async ({ page }) => {
     await setupPanelClients(page);
     // quality: allow-deep-link (the special isolates the compact client-card action after the catalog list navigation)
-    await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/clients', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('client-header-101').click();
     await page.getByTestId('client-proposal-move-1').click();
     const dialog = page.getByRole('dialog', { name: 'Mover propuesta', exact: true });

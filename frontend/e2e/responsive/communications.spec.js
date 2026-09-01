@@ -45,7 +45,7 @@ const communicationsEntryByProfile = Object.freeze({
 });
 
 async function openCommunications(page, profile) {
-  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.goto('/en-us/panel', { waitUntil: 'domcontentloaded' });
   await communicationsEntryByProfile[profile](page);
   await expect(page.getByRole('heading', { name: 'Comunicaciones', exact: true })).toHaveText('Comunicaciones');
 }
@@ -73,7 +73,7 @@ test.describe('communications responsive special', () => {
   }, async ({ page }) => {
     await setupCommunications(page);
     // quality: allow-deep-link (the catalog scenario covers panel navigation; this isolates detail return state)
-    await page.goto('/panel/communications', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/communications', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('communications-order-oldest').click();
     await expect(page.getByTestId('communications-order-oldest')).toHaveAttribute('aria-selected', 'true');
     await page.getByTestId('communication-thread-row-41').click();

@@ -26,6 +26,30 @@ const RESPONSIVE_WARMUP_ROUTES = Object.freeze({
   'frontend/pages/proposal/[uuid]/index.vue': [`/en-us/proposal/${WARMUP_UUID}`],
   'frontend/pages/diagnostic/[uuid]/index.vue': [`/en-us/diagnostic/${WARMUP_UUID}`],
 });
+const RESPONSIVE_SPECIAL_WARMUP_ROUTES = Object.freeze({
+  'accounting-special': [
+    '/en-us/panel/accounting/pocket',
+    '/en-us/panel/accounting/collections',
+    '/en-us/panel/accounting/incomes',
+  ],
+  'accounting-special-2': [
+    '/en-us/panel/accounting/collections',
+    '/en-us/panel/accounting/incomes',
+  ],
+  'accounting-special-3': [
+    '/en-us/panel/accounting/hostings',
+    '/en-us/panel/accounting/statements',
+  ],
+  'canvas-special': ['/en-us/panel/documents/1/edit'],
+  'clients-special': ['/en-us/panel/clients'],
+  'commercial-special': ['/en-us/panel/proposals'],
+  'communications-special': ['/en-us/panel/communications'],
+  'documents-special': ['/en-us/panel/documents'],
+  'emails-special': ['/en-us/panel/emails'],
+  'mcp-special': ['/en-us/panel/mcps'],
+  'projects-special': ['/en-us/panel/projects'],
+  'public-special': [`/en-us/proposal/${WARMUP_UUID}`],
+});
 const json = (body) => ({
   status: 200,
   contentType: 'application/json',
@@ -261,16 +285,22 @@ export default async function globalSetup() {
   ]);
   const responsiveBatchId = process.env.E2E_RESPONSIVE_BATCH;
   const responsiveSpecialOwner = process.env.E2E_RESPONSIVE_SPECIAL_OWNER;
+  const responsiveSpecialBatchId = process.env.E2E_RESPONSIVE_SPECIAL_BATCH;
   const responsiveBatch = responsiveBatchId ? getResponsiveBatch(responsiveBatchId) : null;
   if (responsiveBatchId && !responsiveBatch) {
     throw new Error(`Unknown responsive batch: ${responsiveBatchId}`);
+  }
+  if (responsiveSpecialBatchId && !RESPONSIVE_SPECIAL_WARMUP_ROUTES[responsiveSpecialBatchId]) {
+    throw new Error(`Unknown responsive special warmup batch: ${responsiveSpecialBatchId}`);
   }
   const warmupRoutes = responsiveBatch
     ? [...new Set(responsiveBatch.scenarioKeys.flatMap((key) => (
       RESPONSIVE_WARMUP_ROUTES[key]
         ?? [getResponsiveScenario(key)?.resolvedUrl].filter(Boolean)
     )))]
-    : (responsiveSpecialOwner ? ['/'] : defaultWarmupRoutes);
+    : (responsiveSpecialOwner
+      ? (RESPONSIVE_SPECIAL_WARMUP_ROUTES[responsiveSpecialBatchId] ?? ['/'])
+      : defaultWarmupRoutes);
   const requiredWarmupRoutes = responsiveBatch || responsiveSpecialOwner
     ? new Set(warmupRoutes)
     : defaultRequiredWarmupRoutes;
@@ -303,11 +333,24 @@ export default async function globalSetup() {
     for (const route of warmupRoutes) {
       const isRequired = requiredWarmupRoutes.has(route);
       try {
-        await page.goto(`${baseURL}${route}`, {
-          timeout: isRequired ? 45_000 : 10_000,
-          waitUntil: 'domcontentloaded',
-        });
-        if (isRequired) await waitForNuxtApp(page);
+        const attempts = isRequired ? 2 : 1;
+        let lastError;
+        for (let attempt = 0; attempt < attempts; attempt += 1) {
+          try {
+            await page.goto(`${baseURL}${route}`, {
+              timeout: isRequired ? 45_000 : 10_000,
+              waitUntil: 'domcontentloaded',
+            });
+            if (isRequired) {
+              await waitForNuxtApp(page, { timeout: attempt === 0 ? 15_000 : 45_000 });
+            }
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        if (lastError) throw lastError;
       } catch (error) {
         if (isRequired) {
           const message = error instanceof Error ? error.message : String(error);

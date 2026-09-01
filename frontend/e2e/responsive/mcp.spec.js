@@ -40,7 +40,7 @@ test.describe('mcp responsive special', () => {
   test('connector dismisses its generated token dialog', { tag: ['@flow:admin-mcps', '@outcome:success', '@responsive-special:mcp', '@viewport:portrait', '@responsive-batch:mcp-special-1'] }, async ({ page }) => {
     await setup(page);
     // quality: allow-deep-link (the connector card is the responsive action surface under test)
-    await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/mcps', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('mcp-card-header-blog').click();
     await page.getByTestId('mcp-generate-token-blog').click();
     await expect(page.getByTestId('mcp-token-url')).toContainText('/api/mcp/blog/token/');
@@ -51,7 +51,7 @@ test.describe('mcp responsive special', () => {
   test('connector exposes its active state after the touch toggle', { tag: ['@flow:admin-mcps', '@outcome:success', '@responsive-special:mcp', '@viewport:portrait', '@responsive-batch:mcp-special-1'] }, async ({ page }) => {
     await setup(page);
     // quality: allow-deep-link (the connector card is the responsive action surface under test)
-    await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/mcps', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('mcp-card-header-blog').click();
     await page.getByTestId('mcp-toggle-blog').click();
     await expect(page.getByTestId('mcp-status-blog')).toHaveText('Activo');

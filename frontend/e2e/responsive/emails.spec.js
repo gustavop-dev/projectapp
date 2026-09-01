@@ -44,7 +44,7 @@ async function setupEmails(page) {
 async function openComposer(page) {
   const previewRequest = await setupEmails(page);
   // quality: allow-deep-link (the standalone composer is itself the cataloged route; its form and preview are exercised below)
-  await page.goto(composerScenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
+  await page.goto(`/en-us${composerScenario.resolvedUrl}`, { waitUntil: 'domcontentloaded' });
   await page.getByPlaceholder('correo@ejemplo.com').fill(responsiveRecipient);
   const subjectInput = page.getByPlaceholder('Asunto del correo');
   await subjectInput.fill('Seguimiento responsive');

@@ -141,6 +141,7 @@ for (const batch of batches) {
         E2E_RESPONSIVE: '1',
         E2E_RESPONSIVE_BATCH: isSpecial ? '' : batch.id,
         E2E_RESPONSIVE_SPECIAL_OWNER: isSpecial ? batch.owner : '',
+        E2E_RESPONSIVE_SPECIAL_BATCH: isSpecial ? batch.id : '',
       },
       stdio: 'inherit',
     },
