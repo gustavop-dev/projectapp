@@ -1,6 +1,6 @@
 ---
 name: "client-report"
-description: "Reportes de cambios para el cliente (docs/reports/): crea uno en español, no técnico, y prepara asunto, correo y WhatsApp como nota privada del documento. --list tabula; --find busca por tema. Publica al Gestor Documental (MCP) si está disponible, confirmando antes de crear/actualizar."
+description: "Reportes de cambios para el cliente (docs/reports/): crea uno en español, no técnico, y prepara asunto, correo y WhatsApp como nota privada del documento. --list tabula; --find busca por tema. Publica al Gestor de Documentos (MCP) si está disponible, confirmando antes de crear/actualizar."
 ---
 
 # Client Report — reportes de cambios para el cliente
@@ -16,6 +16,10 @@ pide además el reporte. Invocable suelta para crear/listar/buscar reportes; en 
 create siempre genera el par de comunicación, aunque la salida de esta skill siga
 siendo el estado del reporte. La coordenada del Gestor (`gestor:` en
 `config/client-comms/clients/<codebase>.yml`) se resuelve y persiste **acá**, no allá.
+
+Una respuesta a un mensaje entrante con discusión de etapa, alcance, aprobación o
+cambios pertenece a $client-response. Esa skill guarda su documento formal
+directamente en ProjectApp y no crea un archivo bajo `docs/reports/`.
 
 **Convención de almacenamiento (fleet-wide):**
 - Carpeta: `docs/reports/` — **versionada en git** (a diferencia de `docs/tmp/`,
@@ -232,14 +236,14 @@ byte con la nota guardada.
 
 ---
 
-## Phase 4 — Publicar en el Gestor Documental (MCP) — solo MODE=create
+## Phase 4 — Publicar en el Gestor de Documentos (MCP) — solo MODE=create
 
 Tras escribir el `.md` local (Phase 3), publicá el reporte en el **Gestor de
-Documentos** (MCP `Gestor Documental`), que lo versiona y genera el PDF con marca.
+Documentos** (MCP `Gestor de Documentos`), que lo versiona y genera el PDF con marca.
 El `.md` en `docs/reports/` sigue siendo la fuente; este paso lo sincroniza al gestor.
 
 **Precondición — disponibilidad del conector.** Este paso requiere las tools del
-conector "Gestor Documental" en la sesión — nombre MCP completo:
+conector "Gestor de Documentos" en la sesión — nombre MCP completo:
 `mcp__claude_ai_Gestor_de_Documentos__list_folders`, y con el mismo prefijo
 `…__list_documents`, `…__read_document`, `…__create_folder`, `…__create_document`,
 `…__update_document` — un conector claude.ai del operador. Si NO están disponibles
@@ -401,7 +405,7 @@ AskUserQuestion:
 |---|---|---|
 | Listar reportes existentes | tabla concisa de `docs/reports/` (read-only) | `$client-report --list` |
 | Buscar por tema | busca en qué reportes se tocó un tema | `$client-report --find <tema>` |
-| Publicar en Gestor Documental | sube el .md al gestor (pide confirmación como siempre antes de crear/actualizar) | `$client-report publicá en el Gestor el reporte recién creado` |
+| Publicar en Gestor de Documentos | sube el .md al gestor (pide confirmación como siempre antes de crear/actualizar) | `$client-report publicá en el Gestor el reporte recién creado` |
 | Commitear el reporte | add+commit+push+PR del reporte recién creado, desde el worktree de sesión | `$git-commit` |
 
 ---
@@ -418,7 +422,7 @@ Reportar siguiendo $output-protocol. Plantilla específica:
 | Phase 3 — Insumos | ✅ | N puntos (sesión + git log) |
 | Plantilla | ✅ | citas textuales + validación paso a paso |
 | Nota privada | ✅ | asunto + correo + WhatsApp guardados / generados sin persistir |
-| Phase 4 — Gestor Documental | ✅ | creado id=… / actualizado id=… / n/a (sin conector) / omitido por operador |
+| Phase 4 — Gestor de Documentos | ✅ | creado id=… / actualizado id=… / n/a (sin conector) / omitido por operador |
 | Git | ⚠️ | sin commitear (decisión del operador) |
 
 ## Next steps

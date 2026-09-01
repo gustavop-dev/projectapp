@@ -43,22 +43,6 @@ After completing this implementation or fix, the previously-created fake data ma
 
 **To execute the refresh:** invoke the `fake-data-refresh` skill on this project. It runs the project's own `delete_fake_data` then `create_fake_data` management commands and refuses on production environments.
 
-### MCP parity review
-
-If the changed model, serializer, service, lifecycle, or relation belongs to a
-module listed in `backend/content/mcp/contracts.py`, the same delivery MUST:
-
-- classify every added/changed field as read-only, read/write, or deliberately
-  excluded with a concrete reason;
-- compare tool descriptions, input schemas, handlers, filters, and response
-  payloads with the panel's current serializer/service contract;
-- preserve the shared token auth, actor attribution, audit, and throttle pattern;
-- update `docs/MCP_VALIDATION_RUNBOOK.md` and run the focused MCP contract plus
-  create/read/update/error tests.
-
-An unclassified model field or a tool that advertises data it silently drops is
-a failed checklist, even if the ordinary panel tests are green.
-
 ## 2. Test Coverage
 
 ### Create tests for the new functionality:
@@ -88,6 +72,25 @@ Per-test: `@flow:` + `@outcome:<success|error|failure|display>` tags (un spec si
 ## 3. Update User Flow Map
 
 Update the flow registry if new user flows are created — o invocar $e2e-user-flows-check, que lo mantiene en el layout del repo (sharded: un JSON por flow + doc por flow, agregados regenerados con `generate_flow_registry.py`; monolito: `docs/USER_FLOW_MAP.md` + `frontend/e2e/flow-definitions.json`).
+
+## 4. MCP contract parity
+
+Only for projects that expose MCP connectors — skip this section entirely when
+the project has no MCP contract registry. If the changed model, serializer,
+service, lifecycle or relation belongs to a module listed in that registry (in
+projectapp, `backend/content/mcp/contracts.py`), the same delivery MUST:
+
+- classify every added or changed field as read-only, read/write, or
+  deliberately excluded with a concrete reason;
+- compare tool descriptions, input schemas, handlers, filters and response
+  payloads against the panel's current serializer/service contract;
+- preserve the shared token auth, actor attribution, audit and throttle pattern;
+- update the project's MCP validation runbook (in projectapp,
+  `docs/MCP_VALIDATION_RUNBOOK.md`) and run the focused MCP contract tests plus
+  the create/read/update/error cases.
+
+An unclassified model field, or a tool that advertises data it silently drops,
+is a failed checklist even when the ordinary panel tests are green.
 
 ## Execution Order
 
@@ -120,6 +123,7 @@ Reportar siguiendo $output-protocol. Plantilla específica de
 | 2.b Frontend unit tests | ✅ | happy + edge + branches, selectores estables |
 | 2.c Frontend E2E tests | ✅ | @flow:<id> + @outcome:<clase>, real-user interactions, sin shortcuts |
 | 3 USER_FLOW_MAP.md | ✅ | nuevos flows registrados (si aplica) |
+| 4 Paridad MCP | ✅ | campos clasificados, tools/schemas/runbook al día — o n/a si el proyecto no expone MCP |
 | Suite no completa | ✅ | solo nuevos + regresión, batch ≤20, ciclos ≤3 |
 ```
 
