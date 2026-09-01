@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.92.0
+// Registry version: 2.93.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -39,6 +39,7 @@ export const ADMIN_ACCOUNTING_HOSTINGS = ['@flow:admin-accounting-hostings', '@m
 export const ADMIN_ACCOUNTING_INCOME_BULK_SETTLE = ['@flow:admin-accounting-income-bulk-settle', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_INCOME_CLIENT = ['@flow:admin-accounting-income-client', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_INCOME_CRUD = ['@flow:admin-accounting-income-crud', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_INCOME_REMINDER_MUTE = ['@flow:admin-accounting-income-reminder-mute', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_LIST_ERROR_RETRY = ['@flow:admin-accounting-list-error-retry', '@module:admin', '@priority:P3'];
 export const ADMIN_ACCOUNTING_POCKET = ['@flow:admin-accounting-pocket', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_PROJECT_BULK_ASSIGN = ['@flow:admin-accounting-project-bulk-assign', '@module:admin', '@priority:P1'];
