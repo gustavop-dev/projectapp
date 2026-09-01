@@ -1,6 +1,88 @@
 import { execSync } from 'child_process';
 import { chromium } from '@playwright/test';
+import { mockApi } from './helpers/api.js';
 import { waitForNuxtApp } from './helpers/navigation.js';
+import { getResponsiveBatch, getResponsiveScenario } from './responsive/catalog-scenarios.js';
+
+const WARMUP_UUID = '11111111-1111-4111-8111-111111111111';
+const json = (body) => ({
+  status: 200,
+  contentType: 'application/json',
+  body: JSON.stringify(body),
+});
+
+const warmupModule = {
+  slug: 'warmup-module',
+  icon: '◫',
+  name: 'Warmup module',
+  summary: 'Deterministic browser warmup fixture.',
+  what_is: 'Warmup fixture.',
+  purpose: 'Compile and hydrate the public route.',
+  problems_solved: [],
+  integrations: [],
+  implementation_requirements: [],
+};
+const warmupCatalog = {
+  language: 'en',
+  total_modules: 1,
+  categories: [{ slug: 'warmup', name: 'Warmup', modules: [warmupModule] }],
+};
+const warmupProposal = {
+  id: 1,
+  uuid: WARMUP_UUID,
+  title: 'Warmup proposal',
+  client_name: 'Warmup client',
+  status: 'sent',
+  language: 'en',
+  total_investment: '0',
+  currency: 'COP',
+  requirement_groups: [],
+  sections: [],
+};
+const warmupDiagnostic = {
+  uuid: WARMUP_UUID,
+  title: 'Warmup diagnostic',
+  client_name: 'Warmup client',
+  status: 'sent',
+  language: 'en',
+  sections: [],
+  render_context: { client_name: 'Warmup client', currency: 'COP' },
+};
+
+function warmupApiFixture({ apiPath, method }) {
+  if (apiPath === 'auth/check/' && method === 'GET') {
+    return json({ user: { username: 'admin', is_staff: true, is_superuser: true } });
+  }
+  if (apiPath === 'accounts/me/' && method === 'GET') {
+    return json({
+      id: 9001,
+      user_id: 9001,
+      email: 'admin@e2e-test.com',
+      role: 'admin',
+      is_onboarded: true,
+      profile_completed: true,
+    });
+  }
+  if (apiPath === 'additional-modules/public/' && method === 'GET') {
+    return json(warmupCatalog);
+  }
+  if (/^additional-modules\/public\/shares\/[^/]+\/$/.test(apiPath) && method === 'GET') {
+    return json({ ...warmupCatalog, is_shared: true });
+  }
+  if (/^additional-modules\/public\/shares\/[^/]+\/track\/$/.test(apiPath) && method === 'POST') {
+    return json({ status: 'recorded' });
+  }
+  if (/^proposals\/(?:by-slug\/)?[^/]+\/$/.test(apiPath) && method === 'GET') {
+    return json(warmupProposal);
+  }
+  if (/^diagnostics\/public\/(?:by-slug\/)?[^/]+\/$/.test(apiPath) && method === 'GET') {
+    return json(warmupDiagnostic);
+  }
+  if (/^diagnostics\/public\/[^/]+\/track(?:-section)?\/$/.test(apiPath) && method === 'POST') {
+    return json({ ok: true, view_count: 1 });
+  }
+  return null;
+}
 
 /**
  * Playwright globalSetup — ensures Chromium is installed before any test runs
@@ -16,8 +98,10 @@ export default async function globalSetup() {
   const PORT = process.env.E2E_PORT ? Number(process.env.E2E_PORT) : 3000;
   const baseURL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
 
-  // Routes to warm up — includes SSR and SPA routes
-  const warmupRoutes = [
+  // Routes to warm up — includes SSR and SPA routes.
+  // A responsive batch warms only the at-most-four resolved catalog routes;
+  // otherwise every small CI shard paid the cost of compiling the full app.
+  const defaultWarmupRoutes = [
     '/',                                    // SSR — triggers initial Vite client build
     '/en-us/panel/projects',
     '/en-us/panel/accounting/hostings',
@@ -67,7 +151,7 @@ export default async function globalSetup() {
     '/landing-web-design',                  // SSR — landing web design page
   ];
 
-  const requiredWarmupRoutes = new Set([
+  const defaultRequiredWarmupRoutes = new Set([
     '/en-us/panel/projects',
     '/en-us/panel/accounting/hostings',
     '/en-us/panel/accounting/incomes',
@@ -75,6 +159,18 @@ export default async function globalSetup() {
     '/en-us/platform/login',
     '/en-us/platform/projects/1',
   ]);
+  const responsiveBatchId = process.env.E2E_RESPONSIVE_BATCH;
+  const responsiveSpecialOwner = process.env.E2E_RESPONSIVE_SPECIAL_OWNER;
+  const responsiveBatch = responsiveBatchId ? getResponsiveBatch(responsiveBatchId) : null;
+  if (responsiveBatchId && !responsiveBatch) {
+    throw new Error(`Unknown responsive batch: ${responsiveBatchId}`);
+  }
+  const warmupRoutes = responsiveBatch
+    ? [...new Set(responsiveBatch.scenarioKeys.map((key) => getResponsiveScenario(key)?.resolvedUrl).filter(Boolean))]
+    : (responsiveSpecialOwner ? ['/'] : defaultWarmupRoutes);
+  const requiredWarmupRoutes = responsiveBatch || responsiveSpecialOwner
+    ? new Set(warmupRoutes)
+    : defaultRequiredWarmupRoutes;
   const warmupFailures = [];
 
   let browser;
@@ -98,26 +194,9 @@ export default async function globalSetup() {
       localStorage.setItem('platform_access_token', 'e2e-warmup-platform-token');
       localStorage.setItem('platform_refresh_token', 'e2e-warmup-platform-refresh');
       localStorage.setItem('platform_user', JSON.stringify(admin));
+      localStorage.setItem('preferred_locale', 'en-us');
     });
-    await page.route('**/api/auth/check/', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: { username: 'admin', is_staff: true, is_superuser: true },
-      }),
-    }));
-    await page.route('**/api/accounts/me/', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        id: 9001,
-        user_id: 9001,
-        email: 'admin@e2e-test.com',
-        role: 'admin',
-        is_onboarded: true,
-        profile_completed: true,
-      }),
-    }));
+    await mockApi(page, warmupApiFixture);
     for (const route of warmupRoutes) {
       const isRequired = requiredWarmupRoutes.has(route);
       try {

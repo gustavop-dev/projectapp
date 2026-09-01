@@ -54,6 +54,7 @@ const alignmentClass = computed(() => ({
     <BaseTooltip
       :disabled="!blocked"
       :position="position"
+      floating
       width="max-w-sm"
       min-width="min-w-[240px]"
       trigger-class=""

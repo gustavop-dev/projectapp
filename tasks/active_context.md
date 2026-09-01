@@ -2,6 +2,26 @@
 
 ## Current State
 
+**2026-09-01 — aceptación responsiva consolidada y ejecutable:** las 107 vistas
+Nuxt quedan derivadas del catálogo real y repartidas entre 13 dueños, 92
+escenarios visuales y 15 redirects. La matriz única recorre los cinco perfiles
+canónicos (535 celdas) en batches de máximo 20 casos, sin retries, y reporta
+`cumple`, `no cumple` o `cumple distinto` por vista/ancho. Los recorridos
+especiales prueban tablas, filtros, navegación, acciones y modales reales; los
+seis flujos contables largos pasan en sus 30 combinaciones: cuenta de cobro,
+liquidación, abono, ingreso, Hosting y edición/transacción de Extractos. La
+campaña detectó y corrigió cuatro fallos observables: el tooltip de un control
+bloqueado que salía del viewport, un enlace expandido de tabla que cubría la
+acción vecina, dos etiquetas de vigencia sin asociación accesible y los
+`fieldset`/controles LinkedIn del editor de Blog que desbordaban 30 px en
+compact. El auditor fusionó seis specials duplicados y aprobó los survivors;
+el gate final quedó sin errores ni warnings nuevos. Los
+redirects ya acreditan su comportamiento de compatibilidad, no el flow
+funcional de la pantalla destino. CI selecciona módulos afectados en PR y
+conserva la campaña completa mensual. La certificación en dispositivos físicos
+sigue separada como RSP-F5-01 porque viewport/touch emulados no reproducen
+teclado, barras de sistema ni safe areas.
+
 **2026-09-01 — aceptación de enlaces entre Proyectos y Plataforma estabilizada:**
 la auditoría confirmó que el mismo `Project.id` enlaza panel y plataforma, que
 el puente abre el espacio en otra pestaña, que la vuelta comercial es exclusiva

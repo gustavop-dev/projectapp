@@ -303,6 +303,7 @@ export const PLATFORM_KANBAN_BOARD = ['@flow:platform-kanban-board', '@module:pl
 export const PLATFORM_KANBAN_CARD_COMMENTS = ['@flow:platform-kanban-card-comments', '@module:platform', '@priority:P3'];
 export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
 export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mapping', '@module:platform', '@priority:P3'];
+export const PLATFORM_LEGACY_ROUTE_REDIRECTS = ['@flow:platform-legacy-route-redirects', '@module:platform', '@priority:P2'];
 export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
 export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
 export const PLATFORM_PASSWORD_RESET = ['@flow:platform-password-reset', '@module:platform', '@priority:P1'];

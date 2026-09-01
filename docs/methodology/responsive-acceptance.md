@@ -13,18 +13,19 @@ problema. La auditoría de Fase 5 y sus límites están en
 
 ## Estado de implementación
 
-El cierre del 2026-08-22 deja 101 páginas Nuxt asignadas sin ambigüedad a 12
-módulos de aceptación. Comercial, Emails, Canvas de Documentos, Dashboard,
-Contenido, MCP y Públicas completan la adopción iniciada por Fundamentos,
-Contabilidad, Documentos, Clientes y Proyectos. Las listas CRUD de exploración
+El catálogo vigente deja 107 páginas Nuxt asignadas sin ambigüedad a 13
+módulos de aceptación. Comercial, Emails, Comunicaciones, Canvas de Documentos,
+Dashboard, Contenido, MCP y Públicas completan la adopción iniciada por
+Fundamentos, Contabilidad, Documentos, Clientes y Proyectos. Las listas CRUD de exploración
 usan tarjetas debajo de 1024 px mediante `BaseExploratoryList`; las superficies
 comparativas usan `BaseResponsiveTable` y declaran la prioridad de cada columna.
 
 Las fichas PA-45, PA-61, PA-66, PA-69, PA-70 y PA-73 dejan de ser variantes
 independientes: su criterio de cierre es este contrato y sus primitives
-compartidas. La línea base quedó verificada con las matrices de los doce módulos,
-build de producción, contrato 101/12/5, catálogo 101/101 y flow-map fresco sin
-flows `junk-only` ni `missing`.
+compartidas. La línea base vigente se verifica con 107 escenarios explícitos,
+13 módulos, cinco perfiles y 535 celdas catálogo×perfil: 92 vistas visuales
+(460 celdas) y 15 redirects de compatibilidad (75 celdas), además del flow-map
+funcional sin flows `junk-only` ni `missing`.
 
 Esa línea base es automatizada: Playwright emula viewport y capacidades de
 entrada. No prueba por sí sola teclado en pantalla, barras del sistema, safe
@@ -53,12 +54,14 @@ La comprobación exige:
 5. ninguna acción disponible únicamente por hover o drag;
 6. targets táctiles de al menos 44 × 44 px cuando se declaran para aceptación;
 7. contenido del panel limitado a 1400 px en `wide`;
-8. un E2E de resultado real con tags `@flow:*` y `@responsive:<módulo>`.
+8. un E2E de resultado real con tags `@flow:*`, `@responsive:<módulo>`,
+   `@responsive-batch:*` y `@viewport:*`.
 
 `npm run check:responsive-contract` falla si una página Nuxt no está en el
-catálogo, si una vista no tiene dueño, si cambia la matriz de equipos o si un
-módulo pierde su E2E responsivo. El workflow de PR determina los módulos
-afectados por los archivos modificados y corre su tag en los cinco viewports.
+catálogo, si una vista no tiene exactamente un escenario, si cambia la matriz
+de equipos, si una ruta dinámica queda sin resolver o si un batch supera cuatro
+vistas. El workflow de PR determina los módulos afectados y ejecuta cada batch
+en los cinco perfiles, con un máximo de veinte pruebas por proceso.
 
 ## Guion repetible por módulo
 
@@ -74,6 +77,7 @@ mantengan listas divergentes. La matriz actual es:
 | Proyectos | `@responsive:projects` | Búsqueda, alcance, formulario y cambio de cliente |
 | Comercial | `@responsive:commercial` | Propuestas, diagnósticos, selección múltiple y paquetes |
 | Emails | `@responsive:emails` | Composición, adjuntos, preview e historial |
+| Comunicaciones | `@responsive:communications` | Orden, hilo, mensajes, estado, adjuntos y auditoría |
 | Canvas | `@responsive:canvas` | Metadata, editor/preview, guardado y guard de salida |
 | Dashboard | `@responsive:dashboard` | Pulso, radar, cifras, estadísticas y acciones rápidas |
 | Contenido | `@responsive:content` | Blog, calendario, LinkedIn, portafolio, QR y linktrees |
@@ -85,18 +89,19 @@ Para repetirlo localmente:
 ```bash
 cd frontend
 npm run check:responsive-contract
-npm run e2e:responsive -- --grep '@responsive:commercial'
+npm run e2e:responsive:batch -- --batch=commercial-visual-1
+npm run e2e:responsive:batch -- --batch=accounting-special-2
 npm run e2e:responsive:changed
 ```
 
-La segunda orden ejecuta un módulo en los cinco anchos. La tercera resuelve el
-diff contra `origin/main`; un cambio transversal ejecuta todos los módulos.
+La segunda orden ejecuta un batch (máximo cuatro vistas) en los cinco perfiles.
+La tercera ejecuta un sublote especial de hasta veinte interacciones; la cuarta
+resuelve el diff contra `origin/main`. Un cambio transversal ejecuta
+todos los batches. Cada perfil se declara en el spec mediante `test.use`, por lo
+que los tests no responsive ya no se multiplican mediante projects globales.
 
-La implementación actual materializa los cinco anchos como `projects` de
-Playwright. Funciona y es el contrato que ejecuta CI, pero difiere del estándar
-fleet, que pide matrices acotadas por spec. RSP-F5-04 debe migrar ese harness o
-versionar formalmente la excepción; mientras tanto no se replica este patrón en
-otro proyecto.
+El guion completo, incluidos los recorridos especiales y el formato del reporte,
+vive en [`docs/RESPONSIVE_QA_TEST_SCRIPT.md`](../RESPONSIVE_QA_TEST_SCRIPT.md).
 
 ## Cierre de fichas adelantadas
 
@@ -119,7 +124,7 @@ por haber llegado primero.
 `.github/workflows/responsive-acceptance.yml` aplica tres ritmos:
 
 - **Cada PR:** valida catálogo/propiedad y ejecuta sólo módulos afectados.
-- **Mensual:** ejecuta los doce guiones completos en los cinco viewports.
+- **Mensual:** ejecuta los trece módulos completos en los cinco viewports.
 - **Febrero y agosto:** abre una ficha de revisión semestral del estándar.
 
 La revisión semestral debe contrastar los equipos canónicos con analytics y

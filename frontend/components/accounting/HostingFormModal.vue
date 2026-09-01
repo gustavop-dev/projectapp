@@ -365,11 +365,11 @@ function onSubmit() {
       </BaseFormField>
 
       <BaseFormRow :cols="2" :gap="4">
-        <BaseFormField label="Vigente desde">
-          <BaseInput v-model="form.valid_from" type="date" />
+        <BaseFormField label="Vigente desde" for="hosting-form-valid-from">
+          <BaseInput id="hosting-form-valid-from" v-model="form.valid_from" type="date" />
         </BaseFormField>
-        <BaseFormField label="Vigente hasta">
-          <BaseInput v-model="form.valid_to" type="date" />
+        <BaseFormField label="Vigente hasta" for="hosting-form-valid-to">
+          <BaseInput id="hosting-form-valid-to" v-model="form.valid_to" type="date" />
         </BaseFormField>
       </BaseFormRow>
 

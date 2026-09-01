@@ -1,5 +1,10 @@
 # Guion repetible — módulo contable responsivo
 
+> **Documento histórico de PA-77.** El guion operativo vigente y consolidado
+> está en [`RESPONSIVE_QA_TEST_SCRIPT.md`](RESPONSIVE_QA_TEST_SCRIPT.md), que
+> incorpora esta matriz junto con los otros doce módulos. No mantener dos
+> resultados de ejecución separados.
+
 Este guion es el criterio de aceptación de PA-77. Se ejecuta completo después
 de cualquier cambio en componentes base, tablas, filtros, navegación o modales
 del panel. El resultado son **60 recorridos mínimos**: 12 secciones por los 5
@@ -80,9 +85,9 @@ cinco columnas de resultado.
 
 ## Recorrido de modales largos
 
-Ejecutar los siguientes casos, como mínimo, en Celular, Tableta vertical y
-Tableta horizontal. En Portátil y Monitor basta repetirlos cuando cambie el
-componente base o el propio modal.
+Ejecutar los siguientes casos en los cinco perfiles oficiales. Portátil y
+Monitor forman parte de la regresión obligatoria y no se reemplazan con el
+resultado de los tres anchos angostos.
 
 | Caso | Pasos y resultado esperado |
 |---|---|
@@ -116,5 +121,5 @@ para tabs que no se ejecutaron en esta corrección.
 | 2026-08-28 | `fix/28082026-responsive-accounting-pocket` | Auditoría de código | Otros nueve tabs contables | Revisado, ejecución pendiente | Resumen, Gastos, Hostings, Recurrentes, Ads y Tarjetas ya declaran prioridad `compact/portrait/landscape`; Extractos, Historial y Configuración usan layouts especializados. No se confirmó en ellos la tabla rígida de ocho columnas de Bolsillo. Conservan pendiente su recorrido visual dentro de la matriz PA-103 completa. |
 
 Una ejecución se considera completa cuando existen 60 resultados de sección y
-los seis casos de modal en los tres perfiles obligatorios. Si se corrige una
+los seis casos de modal en los cinco perfiles obligatorios. Si se corrige una
 falla, repetir la fila afectada y una fila vecina que use el mismo componente.

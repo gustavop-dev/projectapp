@@ -262,6 +262,12 @@
         "admin-document-state-filters",
         "admin-document-observation-delete"
       ]
+    },
+    {
+      "title": "Section 30 — Responsive Compatibility Routes (Sep 1, 2026)",
+      "flows": [
+        "platform-legacy-route-redirects"
+      ]
     }
   ]
 }

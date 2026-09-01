@@ -741,13 +741,13 @@ export const viewCatalogSections = [
     description: 'Vistas del portal autenticado para clientes y administradores de proyecto.',
     views: [
       {
-        label: 'Entrada de plataforma',
+        label: 'Entrada de plataforma (redirect)',
         url: '/platform',
         group: 'Acceso',
         file: 'frontend/pages/platform/index.vue',
-        reference: 'vista de entrada de plataforma',
+        reference: 'redirect de entrada hacia proyectos',
         audience: 'client',
-        viewType: 'auth',
+        viewType: 'redirect',
       },
       {
         label: 'Dashboard de plataforma (redirect)',
@@ -957,13 +957,13 @@ export const viewCatalogSections = [
         viewType: 'list',
       },
       {
-        label: 'Detalle de entregable',
+        label: 'Detalle de entregable (redirect)',
         url: '/platform/projects/:id/deliverables/:deliverableId',
         group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/deliverables/[deliverableId]/index.vue',
-        reference: 'vista de detalle de entregable',
+        reference: 'redirect hacia el listado de entregables del proyecto',
         audience: 'client',
-        viewType: 'detail',
+        viewType: 'redirect',
       },
       {
         label: 'Pagos de proyecto',
@@ -1002,13 +1002,13 @@ export const viewCatalogSections = [
         viewType: 'readonly',
       },
       {
-        label: 'Login de administrador (impersonación)',
+        label: 'Login de administrador (redirect de impersonación)',
         url: '/platform/admin-login',
         group: 'Acceso',
         file: 'frontend/pages/platform/admin-login.vue',
-        reference: 'vista de login de administrador via impersonacion',
+        reference: 'callback de impersonacion hacia login de plataforma',
         audience: 'client',
-        viewType: 'auth',
+        viewType: 'redirect',
       },
       {
         label: 'Olvide mi contraseña',
