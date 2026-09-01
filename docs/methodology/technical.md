@@ -821,8 +821,19 @@ confirmed by the operator or another integration.
   membership/thread and annotate the member count. Candidate search is paginated,
   limits text input, searches title/folder/client/project, defaults to active
   documents and returns a conflict reason for rows owned by another thread.
-  `DocumentThread` and `DocumentThreadItem` are explicitly classified as
-  panel-only in `content/mcp/contracts.py`; v1 adds no MCP tool.
+  `DocumentThread` and `DocumentThreadItem` are classified in
+  `content/mcp/contracts.py` with `position` as the single deliberate exclusion:
+  it is derived from the chronology, so callers send dates and the server keeps
+  the order stable.
+- **MCP edits membership incrementally** — the panel PATCH replaces the whole
+  member list and dissolves the thread at one member, which is right for a user
+  who sees every row while editing and wrong for a caller rebuilding that list
+  from memory. `edit_document_thread_members` expresses the change as
+  `link`/`unlink`, refuses to fall below two members and delegates to the same
+  replacement primitive, so dissolving stays an explicit, separate decision.
+  Linking is restricted to active markdown documents; reading and unlinking
+  accept any member, because a panel-built thread may hold an archived document
+  or a collection account.
 - **Backfill deployment order** — apply schema migrations first, preview with
   `python manage.py backfill_collection_account_filing`, review its paths, then
   run the same command with `--apply`. It only considers folderless collection

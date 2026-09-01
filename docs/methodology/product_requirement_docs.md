@@ -402,8 +402,12 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   Documents already assigned to another thread remain visible but disabled with
   the reason. Deleting a linked document is blocked until it is unlinked;
   duplicating a document never copies its membership.
-- Threads are internal panel metadata in v1. They are deliberately excluded from
-  the Documents MCP and from client-facing document payloads.
+- Threads stay out of client-facing document payloads, but the Documents MCP
+  reads and builds them: five tools cover reading a thread, listing threads,
+  creating one, editing its members incrementally and dissolving it. Membership
+  edits are `link`/`unlink` rather than a full replacement, so a caller cannot
+  destroy a history by omitting a member, and linking is limited to active
+  markdown documents.
 - **Long-name containment**: list and gallery titles are always bounded by their
   cell/card. The collapsed state uses one line with ellipsis and exposes the same
   measured **Ver completo/Contraer** path for names with spaces or systematic

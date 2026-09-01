@@ -43,9 +43,9 @@ _PANEL_ONLY = 'Configuración avanzada reservada al panel; no forma parte del co
 _COMMERCIAL_DOCUMENT = 'Campo exclusivo de cuentas de cobro; el MCP sólo opera documentos markdown.'
 _PLATFORM_PROFILE = 'Dato del perfil de plataforma fuera del alcance del gestor comercial de clientes.'
 _AUTOMATION_STATE = 'Estado interno de automatización; se observa por resultados, no se manipula por MCP.'
-_DOCUMENT_THREAD_PANEL_ONLY = (
-    'Los hilos documentales v1 se crean, reordenan y disuelven sólo desde el '
-    'modal del panel; no forman parte de las herramientas MCP de Documentos.'
+_DOCUMENT_THREAD_DERIVED_POSITION = (
+    'La posición se deriva de la cronología del hilo; el conector envía fechas, '
+    'nunca posiciones.'
 )
 
 
@@ -169,18 +169,14 @@ MCP_MODEL_CONTRACTS = {
         ),
         _contract(
             'content.DocumentThread',
-            excluded=_excluded(
-                _DOCUMENT_THREAD_PANEL_ONLY,
-                'id title created_by updated_by created_at updated_at',
-            ),
+            read_only='id created_by updated_by created_at updated_at',
+            read_write='title',
         ),
         _contract(
             'content.DocumentThreadItem',
-            excluded=_excluded(
-                _DOCUMENT_THREAD_PANEL_ONLY,
-                'id thread document occurred_on position linked_by updated_by '
-                'linked_at updated_at',
-            ),
+            read_only='id linked_by updated_by linked_at updated_at',
+            read_write='thread document occurred_on',
+            excluded=_excluded(_DOCUMENT_THREAD_DERIVED_POSITION, 'position'),
         ),
     ),
     'clients': (

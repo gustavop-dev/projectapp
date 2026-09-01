@@ -189,6 +189,129 @@ def update_document_thread(*, thread, actor, title=None, items=None):
 
 
 @transaction.atomic
+def edit_document_thread_members(*, thread, actor, link=None, unlink=None):
+    """Add, drop or re-date members without ever dissolving the thread.
+
+    `update_document_thread` replaces the whole membership list, and a list of
+    one dissolves the thread. That is right for the panel, where the user sees
+    every member while editing, and wrong for any caller that rebuilds the list
+    from memory: forgetting one entry would silently destroy the history. This
+    entry point expresses the change incrementally — `link` adds a document or
+    corrects its date, `unlink` removes one — and refuses to go below two
+    members, so dissolving stays an explicit, separate decision.
+
+    `link` items are `{'document_id': int, 'occurred_on': date|None}`.
+    Returns `(thread, dissolved=False)` to match `update_document_thread`.
+    """
+    link = list(link or [])
+    unlink = list(unlink or [])
+    if not link and not unlink:
+        raise DocumentThreadError(
+            'No se indicó ningún cambio de miembros.',
+            code='document_thread_no_changes',
+            hint='Envía link para agregar documentos o unlink_document_ids para retirarlos.',
+        )
+
+    thread = DocumentThread.objects.select_for_update().get(pk=thread.pk)
+    current = list(
+        DocumentThreadItem.objects.select_for_update()
+        .select_related('document')
+        .filter(thread=thread)
+        .order_by('occurred_on', 'position', 'id')
+    )
+    current_ids = {item.document_id for item in current}
+
+    unlink_ids = []
+    for document_id in unlink:
+        if document_id in unlink_ids:
+            continue
+        if document_id not in current_ids:
+            raise DocumentThreadError(
+                f'El documento con id={document_id} no pertenece a este hilo.',
+                code='document_not_in_thread',
+                hint='Usa get_document_thread para ver los documentos enlazados.',
+                status_code=404,
+            )
+        unlink_ids.append(document_id)
+
+    incoming = {}
+    for entry in link:
+        document_id = entry['document_id']
+        if document_id in incoming:
+            raise DocumentThreadError(
+                'Un documento no puede repetirse dentro del mismo hilo.',
+                code='duplicate_document_in_thread',
+            )
+        incoming[document_id] = entry
+
+    contradictory = sorted(set(incoming) & set(unlink_ids))
+    if contradictory:
+        raise DocumentThreadError(
+            f'El documento con id={contradictory[0]} aparece a la vez en link y '
+            'en unlink_document_ids.',
+            code='contradictory_thread_change',
+        )
+
+    merged = []
+    for item in current:
+        if item.document_id in unlink_ids:
+            continue
+        entry = incoming.pop(item.document_id, None)
+        merged.append({
+            'document_id': item.document_id,
+            'occurred_on': (entry or {}).get('occurred_on') or item.occurred_on,
+            'previous_position': item.position,
+        })
+    for document_id, entry in incoming.items():
+        merged.append({
+            'document_id': document_id,
+            'occurred_on': entry.get('occurred_on'),
+            'previous_position': None,
+        })
+
+    if len(merged) < 2:
+        raise DocumentThreadError(
+            f'La operación dejaría el hilo con {len(merged)} documento(s); un hilo '
+            'necesita al menos dos.',
+            code='document_thread_requires_two_documents',
+            hint='Disuelve el hilo si quieres deshacerlo por completo.',
+        )
+
+    undated_ids = [row['document_id'] for row in merged if row['occurred_on'] is None]
+    if undated_ids:
+        documents = {
+            document.pk: document
+            for document in Document.objects.filter(pk__in=undated_ids)
+        }
+        missing = [pk for pk in undated_ids if pk not in documents]
+        if missing:
+            raise DocumentThreadError(
+                'Uno de los documentos seleccionados ya no existe.',
+                code='document_not_found',
+            )
+        for row in merged:
+            if row['occurred_on'] is None:
+                row['occurred_on'] = default_occurred_on(documents[row['document_id']])
+
+    # `position` is derived, never sent by the caller: order by business date and
+    # keep the previous position as the tie-breaker so an edit does not reshuffle
+    # members that already shared a date. New members land after the retained ones.
+    merged.sort(key=lambda row: (
+        row['occurred_on'],
+        row['previous_position'] if row['previous_position'] is not None else len(merged),
+        row['document_id'],
+    ))
+    return update_document_thread(
+        thread=thread,
+        actor=actor,
+        items=[
+            {'document_id': row['document_id'], 'occurred_on': row['occurred_on']}
+            for row in merged
+        ],
+    )
+
+
+@transaction.atomic
 def dissolve_document_thread(*, thread):
     locked = DocumentThread.objects.select_for_update().get(pk=thread.pk)
     locked.delete()

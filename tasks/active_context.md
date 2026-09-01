@@ -30,8 +30,12 @@ compartido Relacionar/Detalle/Cronología abre desde listado y editor, busca con
 paginación y scope activo/todos, permite previsualizar markdown/PDF y muestra
 archivados o conflictos sin ocultarlos. Las listas enseñan `Hilo · N`; archivar
 preserva la relación, eliminar exige desvincular, dejar un único miembro disuelve
-el hilo y duplicar no hereda membresía. Los modelos están clasificados como
-panel-only y no amplían las 17 tools MCP. Fake data incorpora varios hilos
+el hilo y duplicar no hereda membresía. Mergeado en #347 y desplegado el mismo
+día (migración `0236` aplicada en producción). El conector de Documentos pasa de
+17 a 22 herramientas con los cinco verbos de hilo; la edición de miembros es
+incremental (`link`/`unlink_document_ids`) justamente porque el reemplazo total
+del panel disuelve el hilo al quedar uno solo, y un caller que reconstruya la
+lista de memoria borraría la historia sin querer. Fake data incorpora varios hilos
 coherentes, pero el refresh real se omitió por guardia de producción. Verificación
 focal: servicios/vistas/serializers/fake/MCP backend verdes; pruebas unitarias del
 store, modal, visor y acciones; E2E en cuatro outcomes y cinco viewports;
