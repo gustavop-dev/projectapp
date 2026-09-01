@@ -7,6 +7,23 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-01 — una historia documental merece una entidad propia:**
+> carpeta, cliente y proyecto describen ubicación o pertenencia; no deben
+> reutilizarse para representar secuencia. Un contenedor de hilo más una
+> membresía única protegida expresa la regla “máximo un hilo”, permite cruzar
+> scopes sin mover archivos y hace explícito el bloqueo de borrado. La fecha de
+> negocio y la posición estable deben vivir en la membresía, no inferirse en
+> cada lectura, porque el orden es parte de la historia editable.
+
+> **Lección 2026-09-01 — una respuesta asíncrona pertenece a su intención:**
+> stores, modales y probes de archivos necesitan un identificador de generación,
+> no sólo un booleano loading. Cuando cambia documento, búsqueda o fuente, una
+> respuesta anterior puede ser correcta para su request y aun así ser incorrecta
+> para la pantalla actual. El consumidor sólo aplica el resultado si la
+> generación sigue vigente; al extraer componentes usados fuera de Nuxt, sus
+> dependencias también deben importarse explícitamente para que el contrato sea
+> verificable en aislamiento.
+
 > **Lección 2026-09-01 — el orden del modal también expresa responsabilidad:**
 > contexto persistente, validación corregible y fallo de una acción no deben
 > competir junto al CTA. El contexto amarillo permanece cerca del encabezado;

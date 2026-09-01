@@ -39,6 +39,7 @@ from .email_delivery_snapshot import (
     EmailLinkSnapshot,
 )
 from .document import Document
+from .document_thread import DocumentThread, DocumentThreadItem
 from .document_type import DocumentType
 from .document_folder import DocumentFolder
 from .document_tag import DocumentTag

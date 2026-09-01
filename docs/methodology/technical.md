@@ -810,6 +810,19 @@ confirmed by the operator or another integration.
   naturally includes descendants without recursive queries. The response keeps
   active/archived and project/client unassigned buckets separate; the panel's own
   folder tree stays an independent structural axis.
+- **Thread membership is a protected one-to-one relation** —
+  `DocumentThreadItem.document` uses `PROTECT` and a unique relation rather than
+  an unconstrained self-M2M. `document_thread_service` locks both selected
+  documents and existing memberships inside one transaction, preserves retained
+  item identity during edits, and dissolves the container when an update leaves
+  one member. Day-level ordering uses `issue_date` or `created_at` converted to
+  `America/Bogota`, then `position` as a stable tie-breaker.
+- **Thread API payloads are bounded** — document list/detail queries select the
+  membership/thread and annotate the member count. Candidate search is paginated,
+  limits text input, searches title/folder/client/project, defaults to active
+  documents and returns a conflict reason for rows owned by another thread.
+  `DocumentThread` and `DocumentThreadItem` are explicitly classified as
+  panel-only in `content/mcp/contracts.py`; v1 adds no MCP tool.
 - **Backfill deployment order** — apply schema migrations first, preview with
   `python manage.py backfill_collection_account_filing`, review its paths, then
   run the same command with `--apply`. It only considers folderless collection
@@ -834,6 +847,15 @@ confirmed by the operator or another integration.
   `document_navigation.js` owns the persisted preference plus aggregate facets;
   `documents.js` continues to own transient list filters and
   `document_folders.js` continues to own the independent structural hierarchy.
+- **Thread workspace owns asynchronous freshness** — `document_threads.js`
+  keeps separate request generations for the current thread and candidates;
+  `DocumentThreadModal` also guards initialization/detail selection, and
+  `PdfPreviewPane` ignores probes that finish after a newer source. Closing or
+  switching documents therefore cannot repaint the modal with stale data.
+- **Reusable PDF surface** — `PdfPreviewPane.vue` owns loading, availability and
+  iframe/error states. `PdfPreviewModal.vue` composes it with an explicit import
+  so both Nuxt auto-registration and isolated Jest mounts resolve the same
+  component contract.
 - **Two independent archive axes in Documents** — the visit-local project
   lifecycle toggle defaults off and only expands the project catalog; hiding a
   selected non-active project resets that filter to All. The existing

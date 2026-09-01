@@ -144,6 +144,7 @@ export const ADMIN_DOCUMENT_SEND_EMAIL = ['@flow:admin-document-send-email', '@m
 export const ADMIN_DOCUMENT_STATE_FILTERS = ['@flow:admin-document-state-filters', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_STATE_WORKFLOW = ['@flow:admin-document-state-workflow', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_STATES_MANAGE = ['@flow:admin-document-states-manage', '@module:admin', '@priority:P1'];
+export const ADMIN_DOCUMENT_THREAD = ['@flow:admin-document-thread', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE = ['@flow:admin-document-title-column-resize', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_UNSAVED_GUARD = ['@flow:admin-document-unsaved-guard', '@module:admin', '@priority:P2'];
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];

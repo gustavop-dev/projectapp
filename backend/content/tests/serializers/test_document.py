@@ -43,12 +43,14 @@ class TestDocumentListSerializer:
             'document_type_code', 'commercial_status',
             'display_state', 'is_generated_snapshot',
             'source_proposal_id', 'source_version',
+            'issue_date',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
             'active_states',
             'content_excerpt', 'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
+            'thread_summary',
         }
         assert set(data.keys()) == expected
 
@@ -110,12 +112,14 @@ class TestDocumentDetailSerializer:
             'document_type_code', 'commercial_status',
             'display_state', 'is_generated_snapshot',
             'source_proposal_id', 'source_version',
+            'issue_date',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name',
             'tag_ids', 'tag_details', 'active_states', 'notes',
             'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
+            'thread_summary',
         }
         assert set(data.keys()) == expected
 
