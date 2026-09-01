@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Transición de estado 2026-09-01:** el modal separa
+> `previewErrorMessage` de `applyErrorMessage` y activa la validación local con
+> `reviewAttempted`. `BaseFormField` enlaza cada error con su `select` o
+> `textarea` mediante `aria-invalid`/`aria-describedby`; las decisiones de
+> ingresos pendientes y la nota de una transición excepcional se limpian de
+> forma independiente al corregirse. El footer usa `BaseModalActions` sticky y
+> no renderiza resúmenes rojos. No hay cambio de payload, API ni esquema.
+
 > **Contrato técnico del calendario contable — 2026-09-01:**
 > `AccountingSettings.overdue_reminder_frequency` acepta `weekly` o
 > `biweekly`; `IncomeRecord.reminders_muted` y

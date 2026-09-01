@@ -16,7 +16,9 @@ const useExactTime = ref(false);
 const effectiveAt = ref('');
 const note = ref('');
 const resolutions = ref({});
-const errorMessage = ref('');
+const reviewAttempted = ref(false);
+const previewErrorMessage = ref('');
+const applyErrorMessage = ref('');
 
 const selectedState = computed(() => stateStore.activeStates.find(
   (state) => state.id === Number(selectedStateId.value),
@@ -29,9 +31,24 @@ const isDirectDecommission = computed(() => (
   isDecommission.value
   && props.project?.current_state?.operational_effect !== 'suspended'
 ));
-const previewBlockReasons = computed(() => [
-  !selectedStateId.value ? 'Elige el nuevo estado del proyecto.' : '',
-].filter(Boolean));
+const stateError = computed(() => (
+  reviewAttempted.value && !selectedStateId.value
+    ? 'Elige el nuevo estado del proyecto.'
+    : ''
+));
+const noteError = computed(() => (
+  isDirectDecommission.value && !note.value.trim()
+    ? 'Escribe una nota porque la baja omite el paso previo por Suspendido.'
+    : ''
+));
+
+function incomeResolutionError(income) {
+  if (!isDecommission.value) return '';
+  return ['keep_receivable', 'write_off'].includes(resolutions.value[income.id])
+    ? ''
+    : `Decide qué hacer con el ingreso "${income.concept}".`;
+}
+
 const applyBlockReasons = computed(() => {
   const reasons = [];
   if (!selectedStateId.value) reasons.push('Elige el nuevo estado del proyecto.');
@@ -39,14 +56,11 @@ const applyBlockReasons = computed(() => {
   reasons.push(...(preview.value?.blockers || []).map((blocker) => blocker.message));
   if (isDecommission.value) {
     (preview.value?.pending_incomes || []).forEach((income) => {
-      if (!['keep_receivable', 'write_off'].includes(resolutions.value[income.id])) {
-        reasons.push(`Decide qué hacer con el ingreso "${income.concept}".`);
-      }
+      const error = incomeResolutionError(income);
+      if (error) reasons.push(error);
     });
   }
-  if (isDirectDecommission.value && !note.value.trim()) {
-    reasons.push('Escribe una nota porque la baja omite el paso previo por Suspendido.');
-  }
+  if (noteError.value) reasons.push(noteError.value);
   return reasons;
 });
 const canApply = computed(() => applyBlockReasons.value.length === 0);
@@ -83,14 +97,17 @@ watch(() => props.open, async (open) => {
   effectiveAt.value = '';
   note.value = '';
   resolutions.value = {};
-  errorMessage.value = '';
+  reviewAttempted.value = false;
+  previewErrorMessage.value = '';
+  applyErrorMessage.value = '';
   if (!stateStore.states.length) await stateStore.fetchCatalog();
 });
 
 watch([selectedStateId, useExactTime, effectiveAt], () => {
   stateStore.clearPreview();
   resolutions.value = {};
-  errorMessage.value = '';
+  previewErrorMessage.value = '';
+  applyErrorMessage.value = '';
 });
 
 function money(value) {
@@ -102,19 +119,21 @@ function money(value) {
 }
 
 async function reviewImpact() {
+  reviewAttempted.value = true;
   if (!selectedStateId.value || !props.project?.id) return;
-  errorMessage.value = '';
+  previewErrorMessage.value = '';
+  applyErrorMessage.value = '';
   const payload = { state_id: Number(selectedStateId.value) };
   if (useExactTime.value && effectiveAt.value) {
     payload.effective_at = new Date(effectiveAt.value).toISOString();
   }
   const result = await stateStore.previewTransition(props.project.id, payload);
-  if (!result.success) errorMessage.value = result.message;
+  if (!result.success) previewErrorMessage.value = result.message;
 }
 
 async function applyState() {
   if (!canApply.value || !props.project?.id) return;
-  errorMessage.value = '';
+  applyErrorMessage.value = '';
   const payload = {
     state_id: Number(selectedStateId.value),
     impact_token: preview.value.impact_token,
@@ -129,7 +148,7 @@ async function applyState() {
   };
   const result = await stateStore.applyTransition(props.project.id, payload);
   if (!result.success) {
-    errorMessage.value = result.message;
+    applyErrorMessage.value = result.message;
     return;
   }
   emit('changed', result.data.project);
@@ -159,10 +178,17 @@ async function applyState() {
         {{ project.state_suggestion.message }}
       </BaseAlert>
 
-      <BaseFormField label="Nuevo estado" required>
+      <BaseFormField
+        v-slot="{ invalid, errorId }"
+        label="Nuevo estado"
+        required
+        :error="stateError"
+      >
         <select
           v-model="selectedStateId"
           aria-label="Nuevo estado del proyecto"
+          :aria-invalid="invalid || undefined"
+          :aria-describedby="errorId"
           data-testid="project-state-target"
           class="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm"
         >
@@ -202,26 +228,36 @@ async function applyState() {
         class="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm"
       />
 
-      <BaseControlGate
-        :reasons="previewBlockReasons"
-        label="Revisar consecuencias no disponible"
-        align="stretch"
+      <section
+        class="space-y-3"
+        aria-labelledby="project-state-review-title"
+        data-testid="project-state-review-step"
       >
-        <template #default="{ describedBy }">
-          <BaseButton
-            variant="secondary"
-            class="w-full"
-            data-testid="project-state-preview"
-            :loading="stateStore.isUpdating"
-            :disabled="Boolean(previewBlockReasons.length)"
-            :disabled-reason="previewBlockReasons.join(' ')"
-            :aria-describedby="describedBy"
-            @click="reviewImpact"
-          >
-            {{ stateStore.isUpdating && !preview ? 'Calculando…' : 'Revisar consecuencias' }}
-          </BaseButton>
-        </template>
-      </BaseControlGate>
+        <div>
+          <h3 id="project-state-review-title" class="text-sm font-semibold text-text-default">
+            Revisar consecuencias
+          </h3>
+          <p id="project-state-confirm-help" class="mt-1 text-xs text-text-muted">
+            Calcula el impacto del estado elegido. La confirmación se habilita después de completar las decisiones necesarias.
+          </p>
+        </div>
+        <BaseAlert
+          v-if="previewErrorMessage"
+          variant="danger"
+          data-testid="project-state-error"
+        >
+          {{ previewErrorMessage }}
+        </BaseAlert>
+        <BaseButton
+          variant="secondary"
+          class="w-full"
+          data-testid="project-state-preview"
+          :loading="stateStore.isUpdating"
+          @click="reviewImpact"
+        >
+          {{ stateStore.isUpdating && !preview ? 'Calculando…' : 'Revisar consecuencias' }}
+        </BaseButton>
+      </section>
 
       <section v-if="preview" class="space-y-4 rounded-xl border border-border-default bg-surface-raised p-4" data-testid="project-state-impact">
         <h3 class="font-semibold text-text-default">Consecuencias antes de confirmar</h3>
@@ -240,59 +276,69 @@ async function applyState() {
               <span class="font-medium text-text-default">{{ income.concept }}</span>
               <span class="text-text-muted">Pendiente: {{ money(income.pending_amount) }}</span>
             </div>
-            <select
+            <BaseFormField
               v-if="isDecommission"
-              v-model="resolutions[income.id]"
-              :aria-label="`Decisión para ${income.concept}`"
-              class="mt-2 w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm"
-              :data-testid="`project-state-income-${income.id}`"
+              v-slot="{ invalid, errorId }"
+              class="mt-2"
+              :error="incomeResolutionError(income)"
             >
-              <option value="">Decide qué hacer…</option>
-              <option value="keep_receivable">Conservar por cobrar, sin avisos automáticos</option>
-              <option value="write_off">Dar el saldo por perdido</option>
-            </select>
+              <select
+                v-model="resolutions[income.id]"
+                :aria-label="`Decisión para ${income.concept}`"
+                :aria-invalid="invalid || undefined"
+                :aria-describedby="errorId"
+                class="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm"
+                :data-testid="`project-state-income-${income.id}`"
+              >
+                <option value="">Decide qué hacer…</option>
+                <option value="keep_receivable">Conservar por cobrar, sin avisos automáticos</option>
+                <option value="write_off">Dar el saldo por perdido</option>
+              </select>
+            </BaseFormField>
             <p v-else class="mt-1 text-xs text-text-subtle">La deuda se conserva.</p>
           </article>
         </div>
 
         <BaseFormField
+          v-slot="{ invalid, errorId }"
           label="Nota de la transición"
           :required="isDirectDecommission"
+          :error="noteError"
           :hint="isDirectDecommission ? 'Obligatoria porque la baja omite el paso previo por Suspendido.' : 'Queda registrada en el histórico.'"
         >
           <BaseTextarea
             v-model="note"
             :rows="3"
+            :error="invalid"
+            :aria-describedby="errorId"
             data-testid="project-state-note"
             placeholder="Contexto de la decisión…"
           />
         </BaseFormField>
+
+        <BaseAlert
+          v-if="applyErrorMessage"
+          variant="danger"
+          data-testid="project-state-error"
+        >
+          {{ applyErrorMessage }}
+        </BaseAlert>
       </section>
 
-      <BaseAlert v-if="errorMessage" variant="danger" data-testid="project-state-error">{{ errorMessage }}</BaseAlert>
-
-      <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
+      <BaseModalActions class="sticky bottom-0 z-10 -mx-6 -mb-5 bg-surface">
         <BaseButton variant="secondary" @click="emit('close')">Cancelar</BaseButton>
-        <BaseControlGate
-          :reasons="applyBlockReasons"
-          label="Confirmar cambio no disponible"
-          align="end"
+        <BaseButton
+          variant="primary"
+          data-testid="project-state-apply"
+          :loading="stateStore.isUpdating"
+          :disabled="Boolean(applyBlockReasons.length)"
+          :disabled-reason="applyBlockReasons.join(' ')"
+          aria-describedby="project-state-confirm-help"
+          @click="applyState"
         >
-          <template #default="{ describedBy }">
-            <BaseButton
-              variant="primary"
-              data-testid="project-state-apply"
-              :loading="stateStore.isUpdating"
-              :disabled="Boolean(applyBlockReasons.length)"
-              :disabled-reason="applyBlockReasons.join(' ')"
-              :aria-describedby="describedBy"
-              @click="applyState"
-            >
-              {{ stateStore.isUpdating && preview ? 'Aplicando…' : 'Confirmar cambio' }}
-            </BaseButton>
-          </template>
-        </BaseControlGate>
-      </div>
+          {{ stateStore.isUpdating && preview ? 'Aplicando…' : 'Confirmar cambio' }}
+        </BaseButton>
+      </BaseModalActions>
     </div>
   </BaseModal>
 </template>

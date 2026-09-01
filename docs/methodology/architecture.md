@@ -1,5 +1,14 @@
 # Architecture — ProjectApp
 
+> **Modal de transición ordenado 2026-09-01:**
+> `ProjectStateTransitionModal` compone `BaseFormField` para que estado destino,
+> decisión por ingreso y nota sean dueños de su validación visible y ARIA.
+> `reviewAttempted` delimita los errores previos al preview; las fallas del
+> preview y de la confirmación permanecen en la sección que ejecuta cada acción.
+> `BaseModalActions` contiene únicamente Cancelar/Confirmar y reutiliza las
+> mismas razones de bloqueo para su estado deshabilitado. Catálogo, endpoints y
+> reglas financieras no cambian.
+
 > **Calendario contable validado 2026-09-01:** la tarea Huey
 > `send_payment_calendar` ejecuta diariamente `run_payment_calendar` y reúne en
 > un solo digest los ingresos, recurrentes y hostings que alcanzan su hito. El

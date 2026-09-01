@@ -2,6 +2,16 @@
 
 ## Current State
 
+**2026-09-01 — modal de cambio de estado de Proyectos ordenado:** el aviso
+amarillo sobre catálogo/contexto se conserva bajo el encabezado; estado destino,
+decisión por ingreso y nota muestran su requisito rojo junto al control y lo
+limpian al corregirse. Revisar consecuencias queda después del estado y antes
+del impacto; los errores remotos permanecen con la acción correspondiente. La
+fila sticky final contiene sólo Cancelar y Confirmar cambio. No cambia backend,
+API, payload ni esquema. Verificación: 4 unitarias, 7 E2E del flujo y 5
+viewports responsive en verde; design tokens/disabled controls pasan y el flow
+audit declara display, success, error y failure cubiertos sin `junk-only`.
+
 **2026-09-01 — calendario de cobros y pagos listo para integrar:** el comportamiento
 vigente conserva un digest interno diario con hitos 15/7/día para ingresos y
 recurrentes; hosting mantiene su cadencia previa de 15/7 y cada 5 días. Los
