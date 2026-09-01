@@ -93,18 +93,19 @@ pasaron dos veces, la regresión completa de 10 casos quedó verde y el último
 slice de 4 casos confirmó las aserciones explícitas. Quality gate focal:
 93/100, cero errores y sin deuda nueva.
 
-**2026-09-01 — reacción expresiva de iconos interactivos implementada:** el
+**2026-09-01 — reacción caricaturesca de iconos interactivos implementada:** el
 primitive transversal conserva el contrato de activación/proceso/resultado y
-amplía la señal inmediata a un pulso balanceado de 360 ms: el icono comprime al
-90%, rebota al 105% y vuelve a reposo mientras un halo de 3 px se expande y
-desvanece. El movimiento queda aislado de los transforms de cada consumidor y
-se reinicia ante clics consecutivos. `prefers-reduced-motion` mantiene un halo
-estático de alto contraste; copiar conserva sus estados reales de éxito/fallo,
-sin cambiar el glifo ni añadir toasts genéricos.
-QA quedó aprobada con 25 pruebas unitarias focales, tres escenarios Playwright
-sin reintentos, build Nuxt, guards transversales, flow audit y quality gates sin
-errores. La observación E2E se arma antes del clic para capturar la reacción
-transitoria sin depender de clases internas ni de retries.
+reemplaza el halo por un salto contenido de 420 ms: el glifo presiona 1 px,
+asciende como máximo 3 px al 108%, aterriza y vuelve a reposo. El movimiento
+queda aislado de los transforms de cada consumidor y se reinicia ante clics
+consecutivos; el foco visible se reserva al teclado. `prefers-reduced-motion`
+usa un cambio estático de contraste. Copiar conserva sus estados reales: tras
+éxito muestra temporalmente check + “Copiado”, mientras un fallo mantiene el
+icono de copiar disponible para reintento. No añade toasts genéricos ni altera
+loading. Verificación focal: 19 pruebas unitarias, 3 escenarios Playwright sin
+reintentos, build Nuxt y tres guards estáticos en verde. El mapa E2E quedó
+regenerado y fresco; su auditoría acredita success, failure y display para el
+flujo transversal sin `junk-only`.
 
 **2026-09-01 — acciones del catálogo de estados de Proyectos organizadas:**
 cada estado activo separa la edición de la conservación del catálogo en dos

@@ -7,6 +7,13 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-01 — la reacción de iconos se percibía como un borde:**
+> el refinamiento previo dependía de un halo expansivo y sólo escalaba el glifo,
+> por lo que no expresaba el pequeño salto solicitado. El primitive ahora anima
+> presión, ascenso y aterrizaje exclusivamente sobre el contenido; el clic de
+> puntero no pinta foco y reduced motion usa contraste estático. Copiar cambia a
+> check únicamente después de que Clipboard API confirma la escritura.
+
 > **Resuelto 2026-09-01 — visor PDF extraído no resolvía en montaje aislado:**
 > `PdfPreviewModal` confiaba en el auto-registro de componentes de Nuxt, por lo
 > que Jest montaba el modal sin `PdfPreviewPane` y ocultaba iframe, error y probe.
@@ -161,16 +168,18 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   reacción inmediata, paridad táctil/teclado y reduced motion. Copiar usa
   `useClipboardFeedback` y sólo confirma éxito al resolver Clipboard API; el
   fallo presenta tono visible y conserva la notificación accionable.
-- **Refinement (2026-09-01)**: La reacción común pasa de una contracción de
-  180 ms a un pulso de 360 ms con compresión, rebote y halo expansivo. El
-  movimiento vive en un wrapper interno para no desplazar controles posicionados,
-  cada clic reinicia el ciclo y reduced motion conserva sólo el halo estático.
+- **Refinement (2026-09-01)**: La reacción común usa un ciclo de 420 ms con
+  presión, salto vertical contenido y aterrizaje sobre un wrapper interno, sin
+  desplazar el control ni animar su borde. Cada clic reinicia el ciclo,
+  `focus-visible` reserva el anillo al teclado y reduced motion conserva sólo
+  un cambio estático de contraste. Tras copiar con éxito, el glifo cambia
+  temporalmente a check; ante fallo permanece en copiar para permitir reintento.
 - **Verification**: 27 pruebas unitarias focales, dos escenarios Playwright de
   éxito/fallo, build Nuxt, parseo de 536 SFC y ambos guards de iconos en verde.
-- **Refinement verification (2026-09-01)**: 25 pruebas unitarias focales del
+- **Refinement verification (2026-09-01)**: 19 pruebas unitarias focales del
   primitive, la acción canónica y clipboard; tres escenarios Playwright
-  (éxito, fallo y reduced motion) sin reintentos; build Nuxt, flow audit,
-  registry y quality gates en verde.
+  (éxito, fallo y reduced motion) sin reintentos; build Nuxt, tres guards
+  estáticos, flow audit y registry en verde.
 
 ### [ERR-047] Los proyectos suspendidos ignoraban el control de archivados
 

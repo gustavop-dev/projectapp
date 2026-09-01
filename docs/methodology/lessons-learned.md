@@ -7,6 +7,12 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-01 — una reacción caricaturesca pertenece al glifo, no al
+> perímetro:** mover pocos píxeles el contenido comunica presión y aterrizaje sin
+> desplazar el layout ni competir con el foco accesible. El resultado de una
+> acción es otra capa: copiar puede mostrar un check sólo después de verificar la
+> escritura, mientras fallo conserva el affordance original para reintentar.
+
 > **Lección 2026-09-01 — una historia documental merece una entidad propia:**
 > carpeta, cliente y proyecto describen ubicación o pertenencia; no deben
 > reutilizarse para representar secuencia. Un contenedor de hilo más una
