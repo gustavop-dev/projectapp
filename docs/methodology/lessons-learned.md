@@ -13,6 +13,14 @@ This file captures important patterns, preferences, and project intelligence tha
 > acción es otra capa: copiar puede mostrar un check sólo después de verificar la
 > escritura, mientras fallo conserva el affordance original para reintentar.
 
+> **Lección 2026-09-01 — paridad no implica reintroducir el shell:** una vista
+> pública puede compartir capacidades con propuestas —tema, guía, compartir y
+> PDF— sin volver a montar su encabezado ni copiar su composición completa. Las
+> acciones deben compartir contrato, pero el contenido y la persistencia de la
+> guía pertenecen al dominio. Un modal teletransportado necesita recibir el tema
+> explícitamente; y una acción de compartir debe leer la URL actual, no
+> reconstruirla, porque el identificador de selección forma parte del alcance.
+
 > **Lección 2026-09-01 — una historia documental merece una entidad propia:**
 > carpeta, cliente y proyecto describen ubicación o pertenencia; no deben
 > reutilizarse para representar secuencia. Un contenedor de hilo más una

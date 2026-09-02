@@ -25,8 +25,16 @@ const categories = [{
 }]
 
 const ModalStub = {
-  props: ['modelValue'],
+  props: ['modelValue', 'theme'],
   template: '<div v-if="modelValue" data-testid="modal-stub"><slot /></div>',
+}
+
+const OnboardingStub = {
+  methods: {
+    start() {},
+    forceStart() {},
+  },
+  template: '<div data-testid="additional-modules-onboarding-stub" />',
 }
 
 function mountCatalog(props = {}) {
@@ -44,6 +52,10 @@ function mountCatalog(props = {}) {
         BaseModal: ModalStub,
         BaseCard: { template: '<article><slot /></article>' },
         NuxtLink: { template: '<a><slot /></a>' },
+        AdditionalModulesOnboarding: OnboardingStub,
+        AdditionalModulesShareButton: {
+          template: '<button data-testid="additional-modules-share-floating" />',
+        },
       },
     },
     attachTo: document.body,
@@ -53,6 +65,13 @@ function mountCatalog(props = {}) {
 describe('AdditionalModulesCatalogView', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    global.fetch = jest.fn()
+    URL.createObjectURL = jest.fn(() => 'blob:catalog')
+    URL.revokeObjectURL = jest.fn()
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   it('renders the one-screen category index without prices', () => {
@@ -128,5 +147,35 @@ describe('AdditionalModulesCatalogView', () => {
     await wrapper.get('[data-testid="additional-language-en"]').trigger('click')
 
     expect(wrapper.emitted('change-language')).toEqual([['en']])
+  })
+
+  it('remembers the selected public catalog theme', async () => {
+    const wrapper = mountCatalog()
+
+    await wrapper.get('[data-testid="additional-modules-theme-toggle"]').trigger('click')
+
+    expect(wrapper.get('[data-theme="dark"]').exists()).toBe(true)
+    expect(window.localStorage.getItem('projectapp-additional-modules-theme')).toBe('dark')
+
+    wrapper.unmount()
+    const restored = mountCatalog()
+    expect(restored.get('[data-theme="dark"]').exists()).toBe(true)
+  })
+
+  it('downloads through the floating PDF action', async () => {
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    global.fetch.mockResolvedValue({
+      ok: true,
+      blob: jest.fn().mockResolvedValue(new Blob(['pdf'])),
+      headers: { get: jest.fn(() => 'attachment; filename="catalogo.pdf"') },
+    })
+    const wrapper = mountCatalog()
+
+    await wrapper.get('[data-testid="additional-modules-download-pdf-floating"]').trigger('click')
+    await Promise.resolve()
+    await nextTick()
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/catalog.pdf', { credentials: 'same-origin' })
+    expect(clickSpy).toHaveBeenCalledTimes(1)
   })
 })

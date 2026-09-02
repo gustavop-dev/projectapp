@@ -1,0 +1,10 @@
+{
+  "id": "public-additional-modules-guide",
+  "name": "Public Additional Modules Guide",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "First-time visitor sees a catalog-specific guide once and can reopen it later from the floating restart control.",
+  "expectedSpecs": 2,
+  "outcomes": ["success", "display"]
+}

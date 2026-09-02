@@ -1,8 +1,11 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
+import { useAdditionalModulesTheme } from '~/composables/useAdditionalModulesTheme'
 import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
 import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
 import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
+import AdditionalModulesOnboarding from '~/components/AdditionalModules/Onboarding.vue'
+import AdditionalModulesShareButton from '~/components/AdditionalModules/ShareButton.vue'
 
 const props = defineProps({
   categories: { type: Array, default: () => [] },
@@ -16,12 +19,15 @@ const props = defineProps({
 const emit = defineEmits(['change-language'])
 const { t } = useI18n()
 const { viewMode } = useAdditionalModulesViewMode('public')
+const { isDark, toggle: toggleTheme } = useAdditionalModulesTheme()
 const selectedModule = ref(null)
 const detailOpen = ref(false)
 const opener = ref(null)
 const isDownloading = ref(false)
 const downloadError = ref(false)
 const expandedModuleSlug = ref('')
+const onboardingRef = ref(null)
+const guideStarted = ref(false)
 
 const hasModules = computed(() => props.totalModules > 0 && props.categories.length > 0)
 
@@ -71,11 +77,22 @@ watch(detailOpen, async (isOpen) => {
   await nextTick()
   opener.value?.focus?.()
 })
+
+watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
+  if (!modulesAvailable || !onboarding || guideStarted.value) return
+  guideStarted.value = true
+  await nextTick()
+  onboarding.start()
+}, { immediate: true, flush: 'post' })
 </script>
 
 <template>
-  <div class="w-full">
-    <header v-if="showHeader" class="px-4 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-36">
+  <div
+    class="min-h-screen w-full bg-surface"
+    :data-theme="isDark ? 'dark' : 'light'"
+    data-testid="additional-modules-catalog"
+  >
+    <header v-if="showHeader" class="px-4 pb-12 pt-12 sm:px-6 sm:pb-16 sm:pt-16">
       <div class="mx-auto max-w-[1400px] text-center">
         <p class="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-text-brand">
           {{ t('additionalModules.eyebrow') }}
@@ -116,16 +133,16 @@ watch(detailOpen, async (isOpen) => {
       </div>
     </header>
 
-    <div v-if="hasModules" class="mx-auto w-full max-w-[1400px] px-4 pb-20 sm:px-6">
+    <div v-if="hasModules" class="mx-auto w-full max-w-[1400px] px-4 pb-56 sm:px-6 lg:pb-24">
       <AdditionalModulesCatalogControls
         v-model="viewMode"
         :language="language"
-        class="mb-8"
+        class="additional-modules-controls mb-8"
         @change-language="emit('change-language', $event)"
       />
 
       <nav
-        class="mb-10 flex snap-x gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center sm:overflow-visible"
+        class="additional-modules-category-nav mb-10 flex snap-x gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:justify-center sm:overflow-visible"
         :aria-label="t('additionalModules.title')"
       >
         <a
@@ -162,7 +179,7 @@ watch(detailOpen, async (isOpen) => {
             :id="`module-${module.slug}`"
             :key="module.slug"
             type="button"
-            class="group min-h-52 rounded-2xl border border-border-default bg-surface p-5 text-left shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+            class="additional-module-entry group min-h-52 rounded-2xl border border-border-default bg-surface p-5 text-left shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
             :aria-label="t('additionalModules.openDetail', { name: module.name })"
             :data-testid="`additional-module-card-${module.slug}`"
             @click="openModule(module, $event)"
@@ -188,7 +205,7 @@ watch(detailOpen, async (isOpen) => {
             v-for="module in category.modules"
             :id="`module-${module.slug}`"
             :key="module.slug"
-            class="flex min-w-0 flex-col gap-4 rounded-2xl border border-border-default bg-surface p-4 shadow-card sm:flex-row sm:items-center"
+            class="additional-module-entry flex min-w-0 flex-col gap-4 rounded-2xl border border-border-default bg-surface p-4 shadow-card sm:flex-row sm:items-center"
             :data-testid="`additional-module-list-${module.slug}`"
           >
             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-xl" aria-hidden="true">
@@ -215,7 +232,7 @@ watch(detailOpen, async (isOpen) => {
             v-for="module in category.modules"
             :id="`module-${module.slug}`"
             :key="module.slug"
-            class="overflow-hidden rounded-2xl border border-border-default bg-surface shadow-card"
+            class="additional-module-entry overflow-hidden rounded-2xl border border-border-default bg-surface shadow-card"
             :data-testid="`additional-module-accordion-${module.slug}`"
           >
             <!-- design-tokens: allow-raw-button — disclosure header owns aria-expanded. -->
@@ -259,11 +276,13 @@ watch(detailOpen, async (isOpen) => {
       v-model="detailOpen"
       kind="detail"
       padding="none"
+      :theme="isDark ? 'dark' : 'light'"
       @close="closeDetail"
     >
       <div
         v-if="selectedModule"
-        class="flex min-h-0 flex-col"
+        class="flex min-h-0 flex-col bg-surface"
+        :data-theme="isDark ? 'dark' : 'light'"
         data-testid="additional-module-detail-modal"
       >
         <header class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border-default bg-surface px-5 py-5 sm:px-7">
@@ -293,5 +312,95 @@ watch(detailOpen, async (isOpen) => {
         </div>
       </div>
     </BaseModal>
+
+    <template v-if="hasModules">
+      <AdditionalModulesShareButton :is-dark="isDark" />
+
+      <BaseButton
+        v-if="downloadUrl"
+        unstyled
+        icon-only
+        type="button"
+        class="additional-modules-pdf-fab pdf-download fixed bottom-[4.75rem] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-border-default bg-surface text-text-muted shadow-lg transition-colors hover:bg-surface-muted hover:text-text-brand disabled:cursor-wait disabled:opacity-70"
+        :disabled="isDownloading"
+        :title="isDownloading ? t('additionalModules.generatingPdf') : t('additionalModules.downloadPdf')"
+        :aria-label="isDownloading ? t('additionalModules.generatingPdf') : t('additionalModules.downloadPdf')"
+        data-testid="additional-modules-download-pdf-floating"
+        @click="downloadPdf"
+      >
+        <svg v-if="isDownloading" class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+        <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0-3-3m3 3 3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2Z" />
+        </svg>
+      </BaseButton>
+
+      <BaseButton
+        unstyled
+        icon-only
+        type="button"
+        class="additional-modules-restart-guide restart-tutorial-btn fixed bottom-[4.5rem] left-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-text-brand shadow-raised transition-colors hover:bg-surface-muted"
+        :title="t('additionalModules.restartGuide')"
+        :aria-label="t('additionalModules.restartGuide')"
+        data-testid="additional-modules-guide-restart"
+        @click="onboardingRef?.forceStart()"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0Z" />
+        </svg>
+      </BaseButton>
+
+      <BaseButton
+        unstyled
+        icon-only
+        type="button"
+        class="additional-modules-theme-toggle dark-mode-toggle fixed bottom-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-lg text-text-muted shadow-raised transition-colors hover:bg-surface-muted hover:text-text-brand"
+        :title="t('additionalModules.toggleTheme')"
+        :aria-label="t('additionalModules.toggleTheme')"
+        :aria-pressed="isDark"
+        data-testid="additional-modules-theme-toggle"
+        @click="toggleTheme"
+      >
+        <span aria-hidden="true">{{ isDark ? '☀️' : '🌙' }}</span>
+      </BaseButton>
+
+      <AdditionalModulesOnboarding
+        ref="onboardingRef"
+        :is-dark="isDark"
+      />
+    </template>
   </div>
 </template>
+
+<style scoped>
+.additional-modules-pdf-fab {
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+}
+
+.additional-modules-theme-toggle,
+.additional-modules-restart-guide {
+  left: max(1rem, env(safe-area-inset-left));
+}
+
+.additional-modules-theme-toggle {
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.additional-modules-restart-guide {
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .additional-modules-theme-toggle,
+  .additional-modules-restart-guide {
+    left: max(1.5rem, env(safe-area-inset-left));
+  }
+
+  .additional-modules-theme-toggle {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+}
+</style>
