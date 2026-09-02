@@ -217,21 +217,25 @@ def test_collection_account_download_uses_account_pdf(admin_client):
     generate.assert_called_once_with(document)
 
 
-def test_managed_folder_lists_titles_alphabetically(admin_client):
+def test_managed_folder_lists_newest_documents_first(admin_client):
     folder = DocumentFolder.objects.create(
         name='08 - Agosto',
         system_key='generated:test:2026:08',
     )
     document_type = get_markdown_document_type()
-    Document.objects.create(title='Zulu', document_type=document_type, folder=folder)
-    Document.objects.create(title='Alpha', document_type=document_type, folder=folder)
+    older = Document.objects.create(
+        title='Zulu', document_type=document_type, folder=folder,
+    )
+    newer = Document.objects.create(
+        title='Alpha', document_type=document_type, folder=folder,
+    )
 
     response = admin_client.get(
         reverse('list-documents'),
         {'folder': folder.pk},
     )
 
-    assert [row['title'] for row in response.json()] == ['Alpha', 'Zulu']
+    assert [row['id'] for row in response.json()] == [newer.id, older.id]
 
 
 def test_markdown_creation_rejects_managed_folder(admin_client):

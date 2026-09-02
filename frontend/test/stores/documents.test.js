@@ -360,22 +360,31 @@ describe('useDocumentStore', () => {
       expect(store.documents).toEqual([{ id: 9, title: 'Viejo' }])
     })
 
-    it('asks for the oldest first when the archived order says so', async () => {
-      store.archivedOrder = 'oldest'
+    it('asks for the oldest first when the date order says so', async () => {
+      store.dateOrder = 'oldest'
       get_request.mockResolvedValueOnce({ data: [] })
 
-      await store.fetchDocuments({ scope: 'archived' })
+      await store.setFilters({ scope: 'archived' })
 
       expect(get_request).toHaveBeenCalledWith('documents/?scope=archived&order=oldest')
     })
 
-    it('ignores the archived order outside the archived scope', async () => {
-      store.archivedOrder = 'oldest'
+    it('applies the date order outside the archived scope', async () => {
+      store.dateOrder = 'oldest'
       get_request.mockResolvedValueOnce({ data: [] })
 
-      await store.fetchDocuments({ scope: 'all' })
+      await store.setFilters({ scope: 'all' })
 
-      expect(get_request).toHaveBeenCalledWith('documents/?scope=all')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=all&order=oldest')
+    })
+
+    it('does not leak the manager order into shared callers', async () => {
+      store.dateOrder = 'oldest'
+      get_request.mockResolvedValueOnce({ data: [] })
+
+      await store.fetchDocuments()
+
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active')
     })
 
     it('composes the archived scope with the active tag filter', async () => {
@@ -487,6 +496,16 @@ describe('useDocumentStore', () => {
       expect(get_request).toHaveBeenCalledWith('documents/?scope=all&search=mapeo')
       expect(result.success).toBe(true)
       expect(store.searchResults).toEqual([{ id: 9, is_archived: true }])
+    })
+
+    it('requests the oldest search results when selected', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+
+      await store.searchDocuments('mapeo', { order: 'oldest' })
+
+      expect(get_request).toHaveBeenCalledWith(
+        'documents/?scope=all&search=mapeo&order=oldest',
+      )
     })
 
     it('discards a stale search response', async () => {

@@ -1,4 +1,5 @@
 """Tests for content/views/document.py — generic document CRUD + PDF download."""
+from datetime import datetime, timezone as dt_timezone
 from io import BytesIO
 from unittest.mock import patch
 
@@ -51,6 +52,24 @@ class TestListDocuments:
         response = api_client.get(url)
 
         assert response.status_code == 401
+
+    def test_default_listing_orders_created_at_desc(self, admin_client, markdown_doc_type):
+        older = Document.objects.create(title='Anterior', document_type=markdown_doc_type)
+        newer = Document.objects.create(title='Reciente', document_type=markdown_doc_type)
+
+        response = admin_client.get(reverse('list-documents'))
+
+        assert [row['id'] for row in response.json()] == [newer.id, older.id]
+
+    def test_order_oldest_orders_active_documents_ascending(
+        self, admin_client, markdown_doc_type,
+    ):
+        older = Document.objects.create(title='Anterior', document_type=markdown_doc_type)
+        newer = Document.objects.create(title='Reciente', document_type=markdown_doc_type)
+
+        response = admin_client.get(reverse('list-documents'), {'order': 'oldest'})
+
+        assert [row['id'] for row in response.json()] == [older.id, newer.id]
 
 
 # ── Filtros de asociación cliente/proyecto ──
@@ -758,6 +777,78 @@ class TestListDocumentsScopeParam:
         response = admin_client.get(reverse('list-documents'), {'scope': 'archived'})
 
         assert [d['title'] for d in response.json()] == ['Viejo']
+
+    def test_scope_all_orders_by_each_row_visible_date(
+        self, admin_client, markdown_doc_type,
+    ):
+        active = Document.objects.create(
+            title='Orden visible activo', document_type=markdown_doc_type,
+        )
+        archived = Document.objects.create(
+            title='Orden visible archivado', document_type=markdown_doc_type,
+            is_archived=True,
+        )
+        Document.objects.filter(pk=active.pk).update(
+            created_at=datetime(2026, 1, 3, tzinfo=dt_timezone.utc),
+        )
+        Document.objects.filter(pk=archived.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
+            archived_at=datetime(2026, 1, 4, tzinfo=dt_timezone.utc),
+        )
+
+        response = admin_client.get(reverse('list-documents'), {'scope': 'all'})
+
+        assert [row['id'] for row in response.json()] == [archived.id, active.id]
+
+    def test_search_honors_the_oldest_visible_date(
+        self, admin_client, markdown_doc_type,
+    ):
+        active = Document.objects.create(
+            title='Orden buscado activo', document_type=markdown_doc_type,
+        )
+        archived = Document.objects.create(
+            title='Orden buscado archivado', document_type=markdown_doc_type,
+            is_archived=True,
+        )
+        Document.objects.filter(pk=active.pk).update(
+            created_at=datetime(2026, 1, 3, tzinfo=dt_timezone.utc),
+        )
+        Document.objects.filter(pk=archived.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
+            archived_at=datetime(2026, 1, 4, tzinfo=dt_timezone.utc),
+        )
+
+        response = admin_client.get(
+            reverse('list-documents'),
+            {'scope': 'all', 'search': 'Orden buscado', 'order': 'oldest'},
+        )
+
+        assert [row['id'] for row in response.json()] == [active.id, archived.id]
+
+    def test_archived_null_date_falls_back_to_creation(
+        self, admin_client, markdown_doc_type,
+    ):
+        legacy = Document.objects.create(
+            title='Archivado legado', document_type=markdown_doc_type,
+            is_archived=True, archived_at=None,
+        )
+        dated = Document.objects.create(
+            title='Archivado fechado', document_type=markdown_doc_type,
+            is_archived=True,
+        )
+        Document.objects.filter(pk=legacy.pk).update(
+            created_at=datetime(2026, 1, 4, tzinfo=dt_timezone.utc),
+        )
+        Document.objects.filter(pk=dated.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
+            archived_at=datetime(2026, 1, 3, tzinfo=dt_timezone.utc),
+        )
+
+        response = admin_client.get(
+            reverse('list-documents'), {'scope': 'archived'},
+        )
+
+        assert [row['id'] for row in response.json()] == [legacy.id, dated.id]
 
     def test_scope_wins_over_the_legacy_archived_param(
         self, admin_client, document, markdown_doc_type,

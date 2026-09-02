@@ -1,5 +1,15 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-02 — orden por fecha del Gestor Documental:** la columna
+> **Creado** permite alternar entre más nuevos y más antiguos mediante un icono
+> accesible. El listado abre con los más nuevos primero; conserva el orden al
+> buscar, filtrar, cambiar de carpeta, ámbito o vista durante la navegación, pero
+> no lo guarda como preferencia entre visitas. Las filas activas usan creación,
+> las archivadas usan archivo con fallback a creación y las listas mixtas ordenan
+> por la fecha que cada fila muestra. Galería y móvil ofrecen el mismo control
+> compacto; las carpetas permanecen antes de los documentos y ninguna otra
+> columna se vuelve ordenable en este alcance.
+
 > **Cierre visual 2026-09-01 — paridad pública de Módulos adicionales:** el
 > catálogo canónico y cada selección conservan la experiencia sin encabezado
 > global, reducen el espacio superior y mantienen el PDF de la cabecera. Además

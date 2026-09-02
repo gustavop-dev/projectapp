@@ -7,6 +7,13 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-02 — Creado no permitía ordenar el Gestor Documental:** el
+> encabezado era estático y el backend sólo interpretaba `order=oldest` dentro
+> de Archivados. La fecha visible ahora es también la clave canónica de orden,
+> el icono alterna ambos sentidos en tabla y el control compacto conserva esa
+> capacidad en Galería/móvil. Un refresh fallido no confirma ni la dirección ni
+> la URL solicitadas.
+
 > **Resuelto 2026-09-01 — la reacción de iconos se percibía como un borde:**
 > el refinamiento previo dependía de un halo expansivo y sólo escalaba el glifo,
 > por lo que no expresaba el pequeño salto solicitado. El primitive ahora anima
@@ -112,6 +119,24 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-054] La columna Creado no ordenaba el listado documental
+
+- **Date**: 2026-09-02
+- **Context**: El Gestor Documental mostraba una fecha por documento, pero el
+  encabezado no tenía una acción de orden y `order=oldest` sólo afectaba el
+  scope archivado.
+- **Root Cause**: La UI trataba el orden como un control exclusivo de Archivados
+  y la vista backend elegía la cláusula de orden a partir del scope, no de la
+  fecha que la fila realmente exponía.
+- **Resolution**: Unificar la semántica en `_display_sort_date`, aceptar
+  `recent|oldest` en todos los scopes, propagar el estado explícitamente por las
+  recargas del gestor y ofrecer controles accesibles en tabla y compacto. La UI
+  sólo confirma el nuevo estado después de que la consulta termina bien.
+- **Files Affected**: vista REST y pruebas de documentos, store/composable del
+  gestor, página, `DocumentsTable`, specs unitarias/E2E y registro de flujos.
+- **Verification**: 9 pruebas backend, 13 unitarias y 4 escenarios E2E focales;
+  `admin-document-list` cubre `display`, `success` y `failure`, sin brechas.
 
 ### [ERR-053] El catálogo público conservaba el hueco del encabezado eliminado
 
