@@ -7,13 +7,16 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
-> **En revisión 2026-09-02 — paridad MCP desigual:** `update_document` ya edita
+> **Resuelto 2026-09-02 — paridad MCP desigual:** `update_document` ya editaba
 > Markdown correctamente, pero la capacidad era difícil de descubrir y los
 > módulos no compartían contratos de riesgo, concurrencia, credenciales ni
 > auditoría. Proyectos y varias superficies comerciales/de contenido carecían
 > de conector, mientras Contabilidad concentraba un catálogo demasiado amplio.
-> La corrección transversal está en implementación y no debe resolverse con
-> escrituras ORM paralelas a los servicios del Panel.
+> La plataforma común ahora agrupa las áreas, declara riesgo y resultados,
+> limita credenciales por herramienta, confirma efectos sensibles y reutiliza
+> las vistas, serializers y servicios del Panel en vez de abrir escrituras ORM
+> paralelas. La regresión contractual deja propagar errores inesperados de
+> resolución de rutas para evitar falsos verdes.
 
 > **Resuelto 2026-09-02 — Compartir quedaba debajo del WhatsApp global:** las
 > acciones flotantes del módulo de financiación y el acceso global ocupaban la

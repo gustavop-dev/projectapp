@@ -347,6 +347,9 @@ test.describe('Panel MCPs', () => {
     await mockApi(page, buildHandler({ isSuperuser: false }));
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
 
-    await expect(page).not.toHaveURL(/\/panel\/mcps/, { timeout: 25_000 });
+    await expect(page).toHaveURL(
+      /\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?panel\/?(?:[?#].*)?$/,
+      { timeout: 25_000 },
+    );
   });
 });

@@ -1,6 +1,6 @@
 # Technical Documentation — ProjectApp
 
-> **Trabajo activo — contrato MCP operativo 2026-09-02:** la ampliación conserva
+> **Contrato implementado — MCP operativo 2026-09-02:** la ampliación conserva
 > JSON-RPC y los clientes 2025, añade `structuredContent`, `outputSchema`,
 > anotaciones de riesgo, credenciales Bearer con alcance y trazas por request.
 > Las mutaciones reversibles admiten un `if_match` opcional compatible; las

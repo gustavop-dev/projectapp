@@ -716,3 +716,31 @@ El cambio es backend/MCP y no altera modelos, relaciones, reglas de fake data ni
 un flujo humano del frontend; por eso no requiere refresh de datos ni cambios en
 USER_FLOW_MAP/E2E. El CI, que instala su toolchain de lint, conserva la última
 validación del warning local.
+
+## Ejecución focal — 2026-09-02 (plataforma operativa)
+
+| Verificación | Resultado |
+|---|---|
+| Fundamento de credenciales, confirmación, uploads, actor y auditoría | 25 casos verdes |
+| Protocolo MCP moderno + compatibilidad heredada | 14/14 tests verdes |
+| Resolución de rutas y métodos de adaptadores | 12/12 tests verdes |
+| Edición documental y validación de contenido binario | 3 regresiones nuevas verdes |
+| Store de administración MCP | 8/8 tests verdes |
+| Flujo `/panel/mcps` | 10/10 E2E verdes en servidor local aislado |
+| Build Nuxt | aprobado; warnings preexistentes no bloqueantes |
+| Django system check | 0 issues |
+| `makemigrations --check --dry-run` | sin cambios detectados |
+| Quality gate del lote QA | 0 errores; `ruff` ausente como warning ambiental conocido |
+
+El mapa global quedó en 304 flows cubiertos, 34 parciales, 0 faltantes y 33
+exentos; `admin-mcps` cubre `display`, `success`, `error` y `failure`. El único
+`junk-only`, `platform-hosting-subscription`, es un draft preexistente ajeno a
+esta entrega y requiere validación live antes de retirar su marcador. El
+Arquitecto, el Verificador y el Auditor aprobaron el corpus MCP; el Auditor no
+dejó candidatos `DELETE`, `MERGE` ni `REWRITE`.
+
+La migración conserva tokens, prefijos, activación y `last_used_at` de los
+conectores existentes. Los conectores canónicos nuevos nacen inactivos. La
+rotación de las credenciales compartidas entregadas al inicio se realiza sólo
+después de merge, migración y verificación del corte; nunca dentro de esta
+corrida de desarrollo.

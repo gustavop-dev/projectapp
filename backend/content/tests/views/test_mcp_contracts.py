@@ -1,10 +1,11 @@
 """Contracts that make model/tool drift fail loudly during delivery."""
 from itertools import product
 import re
+from unittest.mock import Mock, call
 
 import pytest
 from django.apps import apps
-from django.urls import resolve, reverse
+from django.urls import NoReverseMatch, resolve, reverse
 
 from content.mcp.contracts import MCP_MODEL_CONTRACTS
 from content.views.mcp_blog import TOOLS_BY_SLUG
@@ -96,6 +97,16 @@ def _tool_contract_problems(slug):
     if invalid_outputs:
         problems.append(f'output schemas inválidos: {invalid_outputs}')
     return problems
+
+
+def _resolve_panel_adapter_url(operation):
+    candidate_uuid = '12345678-1234-1234-1234-123456789abc'
+    for args in product((1, candidate_uuid), repeat=len(operation['path_params'])):
+        try:
+            return reverse(operation['route_name'], args=args)
+        except NoReverseMatch:
+            continue
+    return None
 
 
 def test_registry_and_field_contracts_cover_the_same_connectors():
@@ -194,19 +205,12 @@ def test_canonical_sensitive_tools_require_confirmation(slug):
 
 @pytest.mark.parametrize('slug', CANONICAL_CONNECTOR_SLUGS)
 def test_panel_adapters_resolve_to_a_view_supporting_the_declared_method(slug):
-    candidate_uuid = '12345678-1234-1234-1234-123456789abc'
     problems = []
     for tool in TOOLS_BY_SLUG[slug]:
         operation = tool.get('_panel_operation')
         if not operation:
             continue
-        url = None
-        for args in product((1, candidate_uuid), repeat=len(operation['path_params'])):
-            try:
-                url = reverse(operation['route_name'], args=args)
-                break
-            except Exception:
-                continue
+        url = _resolve_panel_adapter_url(operation)
         if url is None:
             problems.append(f"{tool['name']}: ruta {operation['route_name']} no resuelve")
             continue
@@ -222,3 +226,45 @@ def test_panel_adapters_resolve_to_a_view_supporting_the_declared_method(slug):
             )
 
     assert problems == []
+
+
+def test_panel_adapter_url_resolver_tries_next_candidate_after_no_reverse_match(monkeypatch):
+    """Falla si una ruta UUID válida deja de probarse tras un NoReverseMatch inicial."""
+    candidate_uuid = '12345678-1234-1234-1234-123456789abc'
+    expected_url = '/panel/blog/12345678-1234-1234-1234-123456789abc/'
+    reverse_mock = Mock(
+        side_effect=(NoReverseMatch('integer is not accepted'), expected_url),
+    )
+    monkeypatch.setattr(
+        'content.tests.views.test_mcp_contracts.reverse',
+        reverse_mock,
+    )
+
+    url = _resolve_panel_adapter_url({
+        'route_name': 'panel-blog-detail',
+        'path_params': ('blog_id',),
+    })
+
+    assert url == expected_url
+    reverse_mock.assert_called_with('panel-blog-detail', args=(candidate_uuid,))
+    assert reverse_mock.call_args_list == [
+        call('panel-blog-detail', args=(1,)),
+        call('panel-blog-detail', args=(candidate_uuid,)),
+    ]
+
+
+def test_panel_adapter_url_resolver_propagates_unexpected_reverse_error(monkeypatch):
+    """Falla si un error de configuración de reverse queda oculto como ruta ausente."""
+    reverse_mock = Mock(side_effect=RuntimeError('invalid route configuration'))
+    monkeypatch.setattr(
+        'content.tests.views.test_mcp_contracts.reverse',
+        reverse_mock,
+    )
+
+    with pytest.raises(RuntimeError, match='invalid route configuration'):
+        _resolve_panel_adapter_url({
+            'route_name': 'panel-blog-detail',
+            'path_params': ('blog_id',),
+        })
+
+    reverse_mock.assert_called_once_with('panel-blog-detail', args=(1,))
