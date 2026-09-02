@@ -521,6 +521,8 @@ test.describe('Admin Document Edit', () => {
   test('a legacy issued account previews as PDF before backfill', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; from
+    // there this test follows the real list → editor interaction)
     const legacyAccount = {
       ...issuedCollectionAccount,
       is_generated_snapshot: false,
