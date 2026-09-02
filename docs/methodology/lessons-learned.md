@@ -7,6 +7,14 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-02 — ordenar una fecha visible exige una sola proyección:**
+> si activos y archivados muestran fechas distintas, el servidor debe construir
+> una clave por fila con esa misma semántica y ordenar antes de paginar; ordenar
+> el arreglo del navegador sólo reacomodaría la página actual. El estado de una
+> vista compartida debe propagarse explícitamente para no filtrarse a otros
+> consumidores del store. Y una dirección solicitada no es todavía una dirección
+> activa: ante un fallo de recarga se conservan datos, URL y affordance previos.
+
 > **Lección 2026-09-02 — carpeta y entidad pueden ser un mismo recorrido:**
 > no toda carpeta manual representa un cambio hacia Carpetas propias. La
 > pertenencia real (`folder.project`/`folder.client`) decide si el eje activo se

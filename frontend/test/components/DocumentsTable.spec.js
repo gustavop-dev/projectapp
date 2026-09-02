@@ -8,6 +8,7 @@
 
 import { mount } from '@vue/test-utils';
 import DocumentsTable from '../../components/panel/documents/DocumentsTable.vue';
+import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
 import BaseRowLink from '../../components/base/BaseRowLink.vue';
 
 const BaseTooltipStub = {
@@ -132,11 +133,49 @@ describe('DocumentsTable — archived mode', () => {
     expect(wrapper.find('thead').text()).not.toContain('Archivado');
   });
 
+  it('exposes the recent date order from the column header', () => {
+    const wrapper = mountTable();
+    const header = wrapper.get('[data-testid="documents-column-date"]');
+    const button = wrapper.get('[data-testid="documents-date-sort"]');
+
+    expect(header.attributes('aria-sort')).toBe('descending');
+    expect(button.attributes('aria-label')).toContain('más nuevos primero');
+    expect(button.findComponent(BaseActionIcon).props('action')).toBe('sort-descending');
+  });
+
+  it('requests the oldest order from the date header', async () => {
+    const wrapper = mountTable();
+
+    await wrapper.get('[data-testid="documents-date-sort"]').trigger('click');
+
+    expect(wrapper.emitted('sort-date')).toEqual([['oldest']]);
+  });
+
+  it('requests the recent order from an ascending date header', async () => {
+    const wrapper = mountTable({ dateOrder: 'oldest' });
+    const header = wrapper.get('[data-testid="documents-column-date"]');
+    const button = wrapper.get('[data-testid="documents-date-sort"]');
+
+    expect(header.attributes('aria-sort')).toBe('ascending');
+    expect(button.findComponent(BaseActionIcon).props('action')).toBe('sort-ascending');
+    await button.trigger('click');
+    expect(wrapper.emitted('sort-date')).toEqual([['recent']]);
+  });
+
   it('labels the date column Archivado and renders archived_at in the archived scope', () => {
     const wrapper = mountTable({ documents: [archivedDoc], scope: 'archived' });
 
     expect(wrapper.find('thead').text()).toContain('Archivado');
     expect(wrapper.find('[data-testid="doc-archived-at"]').text()).toContain('2020');
+  });
+
+  it('falls back to created_at when an archived row has no archive timestamp', () => {
+    const wrapper = mountTable({
+      documents: [{ ...archivedDoc, archived_at: null, created_at: '2019-06-02T12:00:00Z' }],
+      scope: 'archived',
+    });
+
+    expect(wrapper.get('[data-testid="doc-archived-at"]').text()).toContain('2019');
   });
 
   it('labels the date column neutrally in the mixed scope', () => {

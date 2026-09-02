@@ -7,6 +7,7 @@ import { computed, ref } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
 import { isPlainActivation } from '~/utils/rowNavigation'
 import BaseActionButton from '~/components/base/BaseActionButton.vue'
+import BaseActionIcon from '~/components/base/BaseActionIcon.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue'
 import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
@@ -29,6 +30,12 @@ const props = defineProps({
   // fecha, arrastre) lo decide `is_archived` de cada fila: con `scope='all'` y
   // con la búsqueda global la lista es mixta.
   scope: { type: String, default: 'active' },
+  dateOrder: {
+    type: String,
+    default: 'recent',
+    validator: (value) => ['recent', 'oldest'].includes(value),
+  },
+  sorting: { type: Boolean, default: false },
   // Mutación en vuelo: los botones de restaurar giran y quedan inertes.
   updating: { type: Boolean, default: false },
   // Inventario de una fila de subcarpeta. Llega como función y no se consulta
@@ -42,7 +49,7 @@ const emit = defineEmits([
   'open', 'action', 'select-folder', 'unarchive-folder', 'view-archived-folder',
   'doc-dragstart', 'doc-dragend',
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
-  'drop-on-folder',
+  'drop-on-folder', 'sort-date',
 ])
 
 function isDocumentDraggable(document) {
@@ -56,6 +63,24 @@ function isDocumentDraggable(document) {
 const dateHeader = computed(() => {
   if (props.scope === 'archived') return 'Archivado'
   return props.scope === 'all' ? 'Fecha' : 'Creado'
+})
+const dateAriaSort = computed(() => (
+  props.dateOrder === 'oldest' ? 'ascending' : 'descending'
+))
+const nextDateOrder = computed(() => (
+  props.dateOrder === 'oldest' ? 'recent' : 'oldest'
+))
+const dateOrderAction = computed(() => (
+  props.dateOrder === 'oldest' ? 'sort-ascending' : 'sort-descending'
+))
+const dateOrderButtonLabel = computed(() => {
+  const current = props.dateOrder === 'oldest'
+    ? 'más antiguos primero'
+    : 'más nuevos primero'
+  const next = nextDateOrder.value === 'oldest'
+    ? 'más antiguos primero'
+    : 'más nuevos primero'
+  return `${dateHeader.value}: ${current}. Ordenar con ${next}.`
 })
 
 /**
@@ -210,9 +235,30 @@ function onFolderLink(event, sub) {
           >Estados</th>
           <th
             :style="columnStyle('date')"
-            class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
+            class="px-3 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
             data-testid="documents-column-date"
-          >{{ dateHeader }}</th>
+            :aria-sort="dateAriaSort"
+          >
+            <!-- design-tokens: allow-raw-button — sortable table header, not a form CTA. -->
+            <button
+              type="button"
+              class="inline-flex min-h-8 w-full items-center gap-1.5 rounded-md px-3 text-left
+                     transition-colors hover:bg-surface-raised hover:text-text-default
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40
+                     disabled:cursor-wait disabled:opacity-60"
+              :aria-label="dateOrderButtonLabel"
+              :disabled="sorting"
+              :title="sorting ? 'Se está actualizando el orden de los documentos.' : undefined"
+              data-testid="documents-date-sort"
+              @click="emit('sort-date', nextDateOrder)"
+            >
+              <span>{{ dateHeader }}</span>
+              <BaseActionIcon
+                :action="dateOrderAction"
+                class="h-3.5 w-3.5 flex-shrink-0"
+              />
+            </button>
+          </th>
           <th :style="columnStyle('client')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
           <th :style="columnStyle('project')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
         </tr>
@@ -389,8 +435,8 @@ function onFolderLink(event, sub) {
             :data-testid="`doc-date-cell-${doc.id}`"
           >
             <template v-if="doc.is_archived">
-              <span data-testid="doc-archived-at">{{ formatDateTime(doc.archived_at) }}</span>
-              <span class="block text-xs text-text-subtle">{{ archivedAgeLabel(doc.archived_at) }}</span>
+              <span data-testid="doc-archived-at">{{ formatDateTime(doc.archived_at || doc.created_at) }}</span>
+              <span class="block text-xs text-text-subtle">{{ archivedAgeLabel(doc.archived_at || doc.created_at) }}</span>
             </template>
             <template v-else>{{ formatDocumentDate(doc.created_at) }}</template>
           </td>

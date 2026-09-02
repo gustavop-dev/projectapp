@@ -1,5 +1,16 @@
 # Architecture — ProjectApp
 
+> **Orden documental por fecha 2026-09-02:** el endpoint de listado anota
+> `_display_sort_date` con la misma fecha que serializa cada fila —`created_at`
+> en activos y `Coalesce(archived_at, created_at)` en archivados— y aplica en el
+> servidor `recent|oldest` con desempates estables. Pinia mantiene `dateOrder`
+> para la vista del Gestor, mientras `useDocumentFilterQuery` proyecta únicamente
+> el estado no predeterminado como `?order=oldest`; cada recarga por búsqueda,
+> filtros, carpeta, scope o vista lo pasa de forma explícita para no contaminar
+> otros consumidores del store. Tabla y control compacto comparten la misma
+> acción. El estado y la URL sólo se confirman después de una respuesta exitosa,
+> de modo que un fallo conserva filas, dirección y navegación previas.
+
 > **Visor público de Módulos adicionales 2026-09-01:** `CatalogView` compone
 > `useAdditionalModulesTheme`, `AdditionalModules/Onboarding`,
 > `AdditionalModules/ShareButton` y el descargador PDF existente. Tema y guía

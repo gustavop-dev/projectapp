@@ -577,7 +577,7 @@ test.describe('Admin Document Archive', () => {
     await page.getByTestId('folder-archived-entry').click();
 
     await expect(page.getByRole('table').getByText('Acta de cierre')).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Archivado' })).toBeVisible();
+    await expect(page.getByTestId('documents-column-date')).toContainText('Archivado');
     await expect(page.getByTestId('doc-archived-at')).toContainText('2025');
     expect(archivedRequested).toBe(true);
   });
@@ -596,7 +596,7 @@ test.describe('Admin Document Archive', () => {
     await page.getByTestId('folder-archived-entry').click();
     await expect(page.getByRole('table').getByText('Acta de cierre')).toBeVisible();
 
-    await page.getByTestId('archived-order-oldest').click();
+    await page.getByTestId('documents-date-sort').click();
 
     await expect.poll(() => oldestRequested).toBe(true);
   });

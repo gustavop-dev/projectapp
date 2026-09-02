@@ -1,5 +1,14 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — 2026-09-02:** la fecha del Gestor Documental se ordena
+> en ambos sentidos desde el icono de Creado y desde un control compacto en
+> Galería/móvil. Activos usan creación, Archivados usan archivo con fallback y
+> las listas mixtas usan la fecha que cada fila muestra. El default permanece
+> en más nuevos primero; `?order=oldest` viaja con filtros, carpetas, búsqueda,
+> scope y vistas sin convertirse en preferencia permanente. Un fallo conserva
+> el estado previo. Verificación: 9 backend, 13 unitarias, 4 E2E y el flow
+> `admin-document-list` cubierto en `display`, `success` y `failure`.
+
 > **Corrección lista para integrar — 2026-09-02:** proyecto o cliente permanecen
 > seleccionados al navegar dentro de sus carpetas y el origen completo vuelve
 > desde el editor con foco. Carpetas propias o ajenas siguen limpiando ambos

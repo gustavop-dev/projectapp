@@ -39,7 +39,9 @@ export const useDocumentStore = defineStore('documents', {
     activeFolderId: 'all',
     // Estado, eje independiente de la carpeta: 'active' | 'archived' | 'all'
     archiveScope: DEFAULT_SCOPE,
-    archivedOrder: 'recent',
+    // Sentido común de la fecha visible: creación para activos, archivado para
+    // archivados y la fecha correspondiente de cada fila en listas mixtas.
+    dateOrder: 'recent',
     activeTagIds: [],
     activeStateIds: [],
     withoutStateIds: [],
@@ -81,7 +83,10 @@ export const useDocumentStore = defineStore('documents', {
           : this.withoutStateIds;
         const preset = overrides.preset !== undefined ? overrides.preset : this.activeStatePreset;
         const scope = normalizeScope(overrides.scope);
-        const order = overrides.order !== undefined ? overrides.order : this.archivedOrder;
+        // Igual que scope, el orden no se hereda implícitamente del store:
+        // create/editor/proyectos/comunicaciones comparten esta acción y una
+        // preferencia transitoria del gestor no debe reordenar sus consultas.
+        const order = overrides.order !== undefined ? overrides.order : 'recent';
         const client = overrides.client !== undefined ? overrides.client : this.activeClientId;
         const project = overrides.project !== undefined ? overrides.project : this.activeProjectId;
 
@@ -108,7 +113,7 @@ export const useDocumentStore = defineStore('documents', {
         if (project != null) {
           params.set('project', project === 'none' ? 'none' : String(project));
         }
-        if (scope === 'archived' && order === 'oldest') params.set('order', 'oldest');
+        if (order === 'oldest') params.set('order', 'oldest');
 
         const response = await get_request(`documents/?${params.toString()}`);
         // Con búsqueda debounced y refrescos por mutación, las respuestas fuera
@@ -136,12 +141,14 @@ export const useDocumentStore = defineStore('documents', {
      * encontrar algo cuya ubicación no se recuerda, y acotarlo al scope visible
      * es justo lo que impedía dar con lo archivado.
      */
-    async searchDocuments(term) {
+    async searchDocuments(term, overrides = {}) {
       const token = ++searchToken;
       this.isSearchLoading = true;
       this.error = null;
       try {
         const params = new URLSearchParams({ scope: 'all', search: term });
+        const order = overrides.order !== undefined ? overrides.order : 'recent';
+        if (order === 'oldest') params.set('order', 'oldest');
         const response = await get_request(`documents/?${params.toString()}`);
         if (token === searchToken) this.searchResults = response.data;
         return { success: true, data: response.data };
@@ -317,7 +324,7 @@ export const useDocumentStore = defineStore('documents', {
     } = {}) {
       if (folder !== undefined) this.activeFolderId = folder;
       if (scope !== undefined) this.archiveScope = normalizeScope(scope);
-      if (order !== undefined) this.archivedOrder = order;
+      if (order !== undefined) this.dateOrder = order;
       if (tags !== undefined) this.activeTagIds = Array.isArray(tags) ? [...tags] : [];
       if (states !== undefined) this.activeStateIds = Array.isArray(states) ? [...states] : [];
       if (withoutStates !== undefined) {
@@ -326,7 +333,7 @@ export const useDocumentStore = defineStore('documents', {
       if (preset !== undefined) this.activeStatePreset = preset || '';
       if (client !== undefined) this.activeClientId = client;
       if (project !== undefined) this.activeProjectId = project;
-      return this.fetchDocuments({ scope: this.archiveScope });
+      return this.fetchDocuments({ scope: this.archiveScope, order: this.dateOrder });
     },
 
     /**
@@ -338,7 +345,7 @@ export const useDocumentStore = defineStore('documents', {
       else this.activeTagIds.splice(idx, 1);
       // El scope viaja explícito, como en setFilters: fetchDocuments no lo
       // hereda del store, y omitirlo aquí sacaba al usuario de Archivados.
-      return this.fetchDocuments({ scope: this.archiveScope });
+      return this.fetchDocuments({ scope: this.archiveScope, order: this.dateOrder });
     },
 
     async toggleStateFilter(stateId) {
@@ -346,7 +353,7 @@ export const useDocumentStore = defineStore('documents', {
       if (idx === -1) this.activeStateIds.push(stateId);
       else this.activeStateIds.splice(idx, 1);
       this.activeStatePreset = '';
-      return this.fetchDocuments({ scope: this.archiveScope });
+      return this.fetchDocuments({ scope: this.archiveScope, order: this.dateOrder });
     },
 
     async toggleStateAbsenceFilter(stateId) {
@@ -354,14 +361,14 @@ export const useDocumentStore = defineStore('documents', {
       if (idx === -1) this.withoutStateIds.push(stateId);
       else this.withoutStateIds.splice(idx, 1);
       this.activeStatePreset = '';
-      return this.fetchDocuments({ scope: this.archiveScope });
+      return this.fetchDocuments({ scope: this.archiveScope, order: this.dateOrder });
     },
 
     async setStatePreset(preset) {
       this.activeStatePreset = preset || '';
       this.activeStateIds = [];
       this.withoutStateIds = [];
-      return this.fetchDocuments({ scope: this.archiveScope });
+      return this.fetchDocuments({ scope: this.archiveScope, order: this.dateOrder });
     },
 
     /**

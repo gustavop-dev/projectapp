@@ -24,14 +24,20 @@
       style="--enter-delay: 60ms"
       @update:scope="handleScopeChange"
     >
-      <template v-if="isArchived && !isSearching" #actions>
-        <BaseSegmented
-          :model-value="archivedOrder"
-          :options="ARCHIVED_ORDER_OPTIONS"
+      <template v-if="showToolbarDateOrderControl" #actions>
+        <BaseButton
+          variant="secondary"
           size="sm"
-          aria-label="Orden por fecha de archivado"
-          @update:model-value="handleArchivedOrderChange"
-        />
+          class="flex-shrink-0"
+          :disabled="isListLoading"
+          disabled-reason="Se está actualizando el orden de los documentos."
+          :aria-label="dateOrderButtonLabel"
+          data-testid="documents-date-sort-compact"
+          @click="toggleDateOrder"
+        >
+          <BaseActionIcon :action="dateOrderAction" />
+          {{ dateOrderCompactLabel }}
+        </BaseButton>
       </template>
     </DocumentsToolbar>
 
@@ -361,6 +367,8 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="effectiveScope"
+            :date-order="dateOrder"
+            :sorting="isListLoading"
             :folder-summary="subfolderSummary"
             :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
@@ -375,6 +383,7 @@
             @folder-dragover="onFolderRowDragOver"
             @folder-dragleave="dragOverFolderId = null"
             @drop-on-folder="handleDropOnFolder"
+            @sort-date="handleDateOrderChange"
           />
           <!-- En compacto la tarjeta es la única representación interactiva. -->
           <DocumentsGrid
@@ -638,11 +647,30 @@ const isSearching = computed(() => searchQuery.value.trim().length > 0);
 // al limpiar el término o al volver desde el editor.
 const effectiveScope = computed(() => (isSearching.value ? 'all' : documentStore.archiveScope));
 const isArchived = computed(() => effectiveScope.value === 'archived');
-const archivedOrder = computed(() => documentStore.archivedOrder);
-const ARCHIVED_ORDER_OPTIONS = [
-  { value: 'recent', label: 'Recientes', testId: 'archived-order-recent' },
-  { value: 'oldest', label: 'Más antiguos', testId: 'archived-order-oldest' },
-];
+const dateOrder = computed(() => documentStore.dateOrder);
+const nextDateOrder = computed(() => (dateOrder.value === 'oldest' ? 'recent' : 'oldest'));
+const dateOrderAction = computed(() => (
+  dateOrder.value === 'oldest' ? 'sort-ascending' : 'sort-descending'
+));
+const dateOrderCompactLabel = computed(() => (
+  dateOrder.value === 'oldest' ? 'Más antiguos' : 'Más nuevos'
+));
+const dateColumnLabel = computed(() => {
+  if (effectiveScope.value === 'archived') return 'Archivado';
+  return effectiveScope.value === 'all' ? 'Fecha' : 'Creado';
+});
+const dateOrderButtonLabel = computed(() => {
+  const current = dateOrder.value === 'oldest'
+    ? 'más antiguos primero'
+    : 'más nuevos primero';
+  const next = nextDateOrder.value === 'oldest'
+    ? 'más antiguos primero'
+    : 'más nuevos primero';
+  return `${dateColumnLabel.value}: ${current}. Ordenar con ${next}.`;
+});
+const showToolbarDateOrderControl = computed(() => (
+  isPanelStacked.value || viewMode.value === 'grid'
+));
 
 const showBreadcrumb = computed(
   () => !isSearching.value
@@ -825,7 +853,7 @@ watch(viewMode, (mode) => {
 });
 
 watch(searchQuery, resetDocumentListPosition);
-watch(archivedOrder, resetDocumentListPosition);
+watch(dateOrder, resetDocumentListPosition);
 watch(() => documentStore.activeFolderId, resetDocumentListPosition);
 watch(() => documentStore.archiveScope, resetDocumentListPosition);
 watch(() => documentStore.activeStateIds, resetDocumentListPosition, { deep: true });
@@ -858,7 +886,7 @@ let searchTimer = null;
 
 async function runSearch(term) {
   const [docs, folders] = await Promise.all([
-    documentStore.searchDocuments(term),
+    documentStore.searchDocuments(term, { order: documentStore.dateOrder }),
     folderStore.searchFolders(term),
   ]);
   searchFolders.value = folders.data || [];
@@ -984,7 +1012,10 @@ const loadError = ref(null);
 async function refreshView({ states = false } = {}) {
   loadError.value = null;
   const [docsResult] = await Promise.all([
-    documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
+    documentStore.fetchDocuments({
+      scope: documentStore.archiveScope,
+      order: documentStore.dateOrder,
+    }),
     folderStore.fetchFolders(),
     documentStore.fetchCounts(),
     navigationStore.fetchNavigation(),
@@ -1018,7 +1049,10 @@ async function restoreFocusedDocument() {
 async function handleQueryNavigation(summary) {
   clearTimeout(searchTimer);
   if (summary.filtersChanged) {
-    await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
+    await documentStore.fetchDocuments({
+      scope: documentStore.archiveScope,
+      order: documentStore.dateOrder,
+    });
   }
   if (isSearching.value) {
     await runSearch(searchQuery.value.trim());
@@ -1054,7 +1088,10 @@ onMounted(async () => {
   }
   // La carpeta del deep link ya no existe: se cae a Todos y se refetchea.
   if (filterQuery.validateFolder(folderStore)) {
-    await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
+    await documentStore.fetchDocuments({
+      scope: documentStore.archiveScope,
+      order: documentStore.dateOrder,
+    });
   }
   docGoTo(docPage.value);
   await restoreFocusedDocument();
@@ -1217,8 +1254,28 @@ function handleScopeChange(scope) {
   documentStore.setFilters({ scope });
 }
 
-function handleArchivedOrderChange(order) {
-  documentStore.setFilters({ order });
+async function handleDateOrderChange(order) {
+  if (!['recent', 'oldest'].includes(order) || order === documentStore.dateOrder) return;
+
+  const result = isSearching.value
+    ? await documentStore.searchDocuments(searchQuery.value.trim(), { order })
+    : await documentStore.fetchDocuments({
+      scope: documentStore.archiveScope,
+      order,
+    });
+
+  if (result.success) {
+    documentStore.dateOrder = order;
+    return;
+  }
+  notify.error({
+    title: 'No se pudo cambiar el orden',
+    detail: result.message,
+  });
+}
+
+function toggleDateOrder() {
+  return handleDateOrderChange(nextDateOrder.value);
 }
 
 async function handleArchiveDoc(doc) {
