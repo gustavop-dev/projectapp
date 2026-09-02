@@ -38,6 +38,27 @@ const PROJECT_ROOT = {
   archived_children_count: 0,
 };
 
+const PROJECT_PHASE = {
+  id: 23,
+  name: 'Fase 1.5',
+  slug: 'fase-1-5',
+  parent: PROJECT_ROOT.id,
+  order: 0,
+  project: 41,
+  client: 7,
+  managed_project: null,
+  folder_kind: 'manual',
+  is_project_visible: true,
+  is_system_managed: false,
+  is_archived: false,
+  document_count: 1,
+  children_count: 0,
+  active_document_count: 1,
+  active_children_count: 0,
+  archived_document_count: 0,
+  archived_children_count: 0,
+};
+
 const OWN_FOLDER = {
   id: 31,
   name: 'Archivo interno',
@@ -93,6 +114,16 @@ const ownFolderDocument = {
   title: 'Manual interno',
   folder: OWN_FOLDER.id,
   folder_name: OWN_FOLDER.name,
+};
+
+const projectPhaseDocument = {
+  ...entityDocument,
+  id: 504,
+  title: 'Documento de Fase 1.5',
+  status: 'draft',
+  content_markdown: '# Fase 1.5',
+  folder: PROJECT_PHASE.id,
+  folder_name: PROJECT_PHASE.name,
 };
 
 const navigationPayload = {
@@ -201,7 +232,10 @@ async function setupNavigationApi(page, { navigationFailures = 0 } = {}) {
       }
       return jsonResponse(navigationPayload);
     }
-    if (apiPath === 'document-folders/') return jsonResponse([PROJECT_ROOT, OWN_FOLDER]);
+    if (apiPath === 'documents/504/detail/') return jsonResponse(projectPhaseDocument);
+    if (apiPath === 'document-folders/') {
+      return jsonResponse([PROJECT_ROOT, PROJECT_PHASE, OWN_FOLDER]);
+    }
     if (apiPath === 'documents/counts/') {
       return jsonResponse({
         documents: {
@@ -217,6 +251,9 @@ async function setupNavigationApi(page, { navigationFailures = 0 } = {}) {
       const requestUrl = route.request().url();
       documentRequests.push(requestUrl);
       const query = new URL(requestUrl).searchParams;
+      if (query.get('folder') === String(PROJECT_PHASE.id)) {
+        return jsonResponse([projectPhaseDocument]);
+      }
       if (query.get('folder') === String(OWN_FOLDER.id)) {
         return jsonResponse([ownFolderDocument]);
       }
@@ -256,6 +293,13 @@ async function openDocumentsFromPanel(page) {
   await documentsLink.click();
   await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true }))
     .toBeVisible({ timeout: 35_000 });
+}
+
+function expectListContext(page, expected) {
+  return expect.poll(() => {
+    const url = new URL(page.url());
+    return Object.fromEntries([...url.searchParams.entries()].filter(([key]) => key in expected));
+  }).toEqual(expected);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -362,6 +406,38 @@ test.describe('Admin document project/client navigation', () => {
     await expect.poll(() => api.documentRequests.at(-1)).toContain('folder=31');
     expect(api.documentRequests.at(-1)).not.toContain('project=');
     expect(api.documentRequests.at(-1)).not.toContain('client=');
+  });
+
+  test('restores project-owned folder context after document editing', {
+    tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupNavigationApi(page);
+    await openDocuments(page);
+
+    await page.getByTestId('documents-navigation-project-41').click();
+    const phaseLink = page.getByTestId(`folder-open-${PROJECT_PHASE.id}`);
+    await expect(phaseLink).toHaveAttribute('href', /project=41/);
+    await phaseLink.click();
+
+    await expectListContext(page, { folder: String(PROJECT_PHASE.id), project: '41' });
+    await expect(page.getByTestId('documents-navigation-project-41'))
+      .toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('documents-navigation-all'))
+      .not.toHaveAttribute('aria-current', 'page');
+
+    await page.getByTestId(`document-open-${projectPhaseDocument.id}`).click();
+    await page.getByRole('link', { name: 'Volver a «Fase 1.5»' }).first().click();
+    await page.getByTestId('confirm-modal-secondary').click();
+
+    await expectListContext(page, {
+      folder: String(PROJECT_PHASE.id),
+      project: '41',
+      focus: String(projectPhaseDocument.id),
+    });
+    await expect(page.getByTestId('documents-navigation-project-41'))
+      .toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId(`document-open-${projectPhaseDocument.id}`))
+      .toBeFocused();
   });
 
   test('filters documents by selected client', {

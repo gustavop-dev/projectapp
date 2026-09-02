@@ -3,8 +3,10 @@ import json
 import logging
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Exists, OuterRef, Prefetch, Q
-from django.db.models.functions import Lower
+from django.db.models import (
+    Case, Count, DateTimeField, Exists, F, OuterRef, Prefetch, Q, When,
+)
+from django.db.models.functions import Coalesce
 from django.db.models.deletion import ProtectedError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -45,7 +47,7 @@ from content.utils import safe_slug
 
 logger = logging.getLogger(__name__)
 
-_ARCHIVE_ORDER = {'newest': '-archived_at', 'oldest': 'archived_at'}
+_ARCHIVE_ORDER = {'recent': '-archived_at', 'oldest': 'archived_at'}
 
 _SCOPES = ('active', 'archived', 'all')
 
@@ -89,14 +91,19 @@ def search_term(request):
     return str(request.query_params.get('search') or '').strip()[:_SEARCH_MAX_LENGTH]
 
 
-def archived_order_field(request):
-    """Campo de orden para el scope archivado; `order` inválido cae a newest.
+def date_order(request):
+    """Sentido de fecha solicitado; cualquier valor inválido cae a recent.
 
     A diferencia de `folder`/`tags`, que seleccionan datos y por eso responden
     400, `order` sólo los presenta: un valor raro no justifica romper la vista.
     """
     raw = str(request.query_params.get('order') or '').strip().lower()
-    return _ARCHIVE_ORDER.get(raw, _ARCHIVE_ORDER['newest'])
+    return 'oldest' if raw == 'oldest' else 'recent'
+
+
+def archived_order_field(request):
+    """Campo legado para ordenar carpetas archivadas con el sentido común."""
+    return _ARCHIVE_ORDER[date_order(request)]
 
 
 @api_view(['GET'])
@@ -150,7 +157,6 @@ def list_documents(request):
         )
     )
 
-    selected_system_folder = False
     folder_param = request.query_params.get('folder')
     if folder_param == 'none':
         documents = documents.filter(folder__isnull=True)
@@ -158,10 +164,6 @@ def list_documents(request):
         try:
             folder_id = int(folder_param)
             documents = documents.filter(folder_id=folder_id)
-            selected_system_folder = DocumentFolder.objects.filter(
-                pk=folder_id,
-                system_key__isnull=False,
-            ).exists()
         except (TypeError, ValueError):
             return Response(
                 {'folder': 'El identificador de carpeta no es válido.'},
@@ -285,14 +287,25 @@ def list_documents(request):
             Q(title__icontains=search) | Q(client_name__icontains=search),
         )
 
-    if scope == 'archived':
-        # `-created_at` desempata y protege el orden si alguna fila quedara sin
-        # `archived_at` (datos antiguos migrados a mano). Con `scope=all` no se
-        # aplica: las filas activas tienen `archived_at` en NULL y el orden
-        # mentiría; ahí manda el `-created_at` del modelo.
-        documents = documents.order_by(archived_order_field(request), '-created_at')
-    elif selected_system_folder:
-        documents = documents.order_by(Lower('title'), 'pk')
+    # La columna cambia con el scope: activos muestran creación, archivados
+    # muestran archivado y una lista mixta decide por fila. Coalesce conserva
+    # navegables los archivados históricos cuyo timestamp pudiera ser NULL.
+    documents = documents.annotate(
+        _display_sort_date=Case(
+            When(
+                is_archived=True,
+                then=Coalesce(F('archived_at'), F('created_at')),
+            ),
+            default=F('created_at'),
+            output_field=DateTimeField(),
+        ),
+    )
+    prefix = '' if date_order(request) == 'oldest' else '-'
+    documents = documents.order_by(
+        f'{prefix}_display_sort_date',
+        f'{prefix}created_at',
+        f'{prefix}pk',
+    )
 
     serializer = DocumentListSerializer(documents, many=True)
     return Response(serializer.data)

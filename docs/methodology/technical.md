@@ -1,5 +1,24 @@
 # Technical Documentation — ProjectApp
 
+> **Orden técnico del Gestor Documental — 2026-09-02:**
+> `GET /api/documents/?order=oldest` invierte el orden predeterminado `recent`;
+> valores ausentes o desconocidos degradan a `recent`. La consulta ordena por
+> `_display_sort_date`, luego `created_at` y `pk`, todos en la misma dirección,
+> para conservar paginación determinística. En el frontend `dateOrder` no se
+> reutiliza implícitamente en `fetchDocuments`/`searchDocuments`: la página del
+> gestor lo propaga en cada intención y los consumidores compartidos conservan
+> su default. La URL limpia representa más nuevos; sólo más antiguos escribe
+> `order=oldest`. `DocumentsTable` publica `aria-sort` y el botón informa la
+> siguiente acción, no sólo el estado actual.
+
+> **Navegación contextual de Documentos — 2026-09-02:**
+> `contextualFolderFilters` conserva `project` o `client` cuando la carpeta
+> destino pertenece a la entidad seleccionada, incluida su raíz lógica, y limpia
+> ambos ejes para Carpetas propias o destinos ajenos. `index.vue` usa esa única
+> decisión tanto en el clic simple como en el `href` real de la carpeta; el
+> origen serializado por el editor recibe así `folder` + entidad y puede restaurar
+> el recorrido completo con `focus`. No cambia API, backend ni esquema.
+
 > **Paridad técnica del catálogo público — 2026-09-01:**
 > `useAdditionalModulesTheme` persiste `light|dark` en
 > `projectapp-additional-modules-theme`; la guía persiste su cierre en
@@ -849,9 +868,9 @@ confirmed by the operator or another integration.
   cancel + reissue rather than file replacement.
 - **Generated branches are server-owned** — REST serializers/views, folder
   endpoints and the Documents MCP reject manual targets or structural mutations
-  with an explicit conflict. The list sorts a selected generated folder by
-  case-insensitive title; collection accounts expose a derived lifecycle/email
-  state instead of workflow episodes.
+  with an explicit conflict. Generated-folder documents follow the same visible
+  date order as every other folder; collection accounts expose a derived
+  lifecycle/email state instead of workflow episodes.
 - **Document entity navigation is aggregation-only** —
   `document_navigation_service` groups the canonical direct project/client foreign
   keys of every folder and document in a constant query set. Counting each row once

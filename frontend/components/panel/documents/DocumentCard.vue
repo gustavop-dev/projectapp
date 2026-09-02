@@ -32,7 +32,8 @@ const isReadOnlyDocument = computed(() => (
 const meta = computed(() => {
   const parts = []
   if (props.archived) {
-    parts.push(`Archivado · ${archivedAgeLabel(props.document.archived_at) || '—'}`)
+    const archivedDate = props.document.archived_at || props.document.created_at
+    parts.push(`Archivado · ${archivedAgeLabel(archivedDate) || '—'}`)
   } else {
     parts.push(formatDocumentDate(props.document.created_at))
   }

@@ -1,5 +1,15 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-02 — orden por fecha del Gestor Documental:** la columna
+> **Creado** permite alternar entre más nuevos y más antiguos mediante un icono
+> accesible. El listado abre con los más nuevos primero; conserva el orden al
+> buscar, filtrar, cambiar de carpeta, ámbito o vista durante la navegación, pero
+> no lo guarda como preferencia entre visitas. Las filas activas usan creación,
+> las archivadas usan archivo con fallback a creación y las listas mixtas ordenan
+> por la fecha que cada fila muestra. Galería y móvil ofrecen el mismo control
+> compacto; las carpetas permanecen antes de los documentos y ninguna otra
+> columna se vuelve ordenable en este alcance.
+
 > **Cierre visual 2026-09-01 — paridad pública de Módulos adicionales:** el
 > catálogo canónico y cada selección conservan la experiencia sin encabezado
 > global, reducen el espacio superior y mantienen el PDF de la cabecera. Además
@@ -318,12 +328,17 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   before **Own folders**. Neither toggle changes or persists the other.
 - **Without project** and **Without client** are permanent destinations in their
   respective modes. Selecting an entity or unassigned bucket scopes the document
-  list; the chosen grouping persists per staff account between visits.
+  list; the chosen grouping persists per staff account between visits. Descending
+  into a folder owned by that project or client keeps the entity selected and
+  represents both coordinates in the URL, so the sidebar never claims **All**
+  while the user is still inside the entity's hierarchy.
 - **Own folders** remains a separate, always reachable section. It contains
   only manual roots with neither project nor client. Assigning a root to either
   entity removes it from this section without moving its tree. Managed project
   roots remain valid structural parents but do not appear as editable manual
-  folders. Opening a manual root clears both entity filters.
+  folders. Opening an own or unrelated root clears both entity filters; a
+  descendant with `folder_kind=manual` does not clear them when it still belongs
+  to the selected project or client.
 - Every project belongs to the Document and Communication catalogs and owns at
   most one managed root, identified by `DocumentFolder.managed_project`. New
   projects provision their standard root at creation; ordinary edits to
@@ -499,6 +514,8 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   folder, normal/archived scope, workflow states, client/project, global search,
   ordering, view mode, page and focused document. Every editor exit returns to that validated list
   URL and identifies its destination; browser Back restores the same list state.
+  Entity-owned descendant folders therefore preserve both `folder` and the active
+  `project`/`client` through the edit-and-return cycle.
   Direct or untrusted editor entries have no valid origin and fall back to the
   localized Documents root.
   - Collection accounts keep their separate commercial lifecycle and are excluded

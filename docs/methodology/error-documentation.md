@@ -7,6 +7,20 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-02 — Creado no permitía ordenar el Gestor Documental:** el
+> encabezado era estático y el backend sólo interpretaba `order=oldest` dentro
+> de Archivados. La fecha visible ahora es también la clave canónica de orden,
+> el icono alterna ambos sentidos en tabla y el control compacto conserva esa
+> capacidad en Galería/móvil. Un refresh fallido no confirma ni la dirección ni
+> la URL solicitadas.
+
+> **Resuelto 2026-09-02 — una subcarpeta de proyecto encendía «Todos»:** el clic
+> simple clasificaba cualquier subcarpeta como carpeta independiente y borraba
+> `project`/`client`, aunque el usuario seguía dentro de esa entidad. Carpeta y
+> entidad ahora se conservan juntas cuando su asociación coincide; sólo
+> Carpetas propias o ajenas limpian los ejes, y el regreso del editor reutiliza
+> ese origen completo.
+
 > **Resuelto 2026-09-01 — la reacción de iconos se percibía como un borde:**
 > el refinamiento previo dependía de un halo expansivo y sólo escalaba el glifo,
 > por lo que no expresaba el pequeño salto solicitado. El primitive ahora anima
@@ -113,7 +127,45 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-054] Una cuenta de cobro emitida aparecía como un documento vacío
+### [ERR-054] La columna Creado no ordenaba el listado documental
+
+- **Date**: 2026-09-02
+- **Context**: El Gestor Documental mostraba una fecha por documento, pero el
+  encabezado no tenía una acción de orden y `order=oldest` sólo afectaba el
+  scope archivado.
+- **Root Cause**: La UI trataba el orden como un control exclusivo de Archivados
+  y la vista backend elegía la cláusula de orden a partir del scope, no de la
+  fecha que la fila realmente exponía.
+- **Resolution**: Unificar la semántica en `_display_sort_date`, aceptar
+  `recent|oldest` en todos los scopes, propagar el estado explícitamente por las
+  recargas del gestor y ofrecer controles accesibles en tabla y compacto. La UI
+  sólo confirma el nuevo estado después de que la consulta termina bien.
+- **Files Affected**: vista REST y pruebas de documentos, store/composable del
+  gestor, página, `DocumentsTable`, specs unitarias/E2E y registro de flujos.
+- **Verification**: 9 pruebas backend, 13 unitarias y 4 escenarios E2E focales;
+  `admin-document-list` cubre `display`, `success` y `failure`, sin brechas.
+
+### [ERR-055] Una carpeta asociada perdía el proyecto al navegar y volver
+
+- **Date**: 2026-09-02
+- **Context**: En el Gestor Documental, después de elegir un proyecto como
+  Vástago, abrir una subcarpeta resaltaba «Todos». El origen incompleto se
+  propagaba al editor y reaparecía al usar «Volver».
+- **Root Cause**: El clic simple llamaba `manualFolderFilters` para todas las
+  carpetas. Esa decisión borraba los ejes de entidad basándose en el tipo de
+  interacción, sin comprobar que la carpeta destino seguía asociada al proyecto
+  o cliente seleccionado; además divergía del `href` navegable de la fila.
+- **Resolution**: Centralizar la decisión en `contextualFolderFilters`, conservar
+  la entidad sólo cuando coincide con la asociación real de la carpeta y usar el
+  mismo resultado para el estado y el enlace. Las Carpetas propias y las ajenas
+  conservan la limpieza anterior.
+- **Files Affected**: `frontend/utils/documentNavigationFilters.js`,
+  `frontend/pages/panel/documents/index.vue` y sus pruebas focales.
+- **Verification**: 20 pruebas unitarias, los 12 escenarios E2E de navegación y
+  el build Nuxt pasan; el flujo P1 conserva cobertura `display`, `success` y
+  `failure`.
+
+### [ERR-056] Una cuenta de cobro emitida aparecía como un documento vacío
 
 - **Date**: 2026-09-02
 - **Context**: Liquidar una cuenta creaba correctamente el `Document` y su ruta,

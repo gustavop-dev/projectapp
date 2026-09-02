@@ -10,6 +10,8 @@ import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_DOCUMENT_LIST } from '../helpers/flow-tags.js';
 
+test.setTimeout(60_000);
+
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
 const mockDocuments = [
@@ -72,6 +74,126 @@ test.describe('Admin Document List', () => {
     await expect(page.getByRole('table').getByText('Contrato de Servicios')).toBeVisible();
     await expect(page.getByRole('table').getByText('Propuesta Técnica')).toBeVisible();
     await expect(page.getByRole('link', { name: /Nuevo Documento/i })).toBeVisible();
+  });
+
+  test('sorts the Created column in both directions', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const listRequests = [];
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        const params = new URL(route.request().url()).searchParams;
+        listRequests.push(params.toString());
+        const rows = params.get('order') === 'oldest'
+          ? mockDocuments
+          : [...mockDocuments].reverse();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(rows) };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+
+    const header = page.getByTestId('documents-column-date');
+    const rows = page.locator('[data-testid^="document-row-"]');
+    await expect(header).toHaveAttribute('aria-sort', 'descending');
+    await expect(rows.first()).toContainText('Propuesta Técnica');
+
+    await page.getByTestId('documents-date-sort').click();
+
+    await expect(page).toHaveURL(/order=oldest/);
+    await expect(header).toHaveAttribute('aria-sort', 'ascending');
+    await expect(rows.first()).toContainText('Contrato de Servicios');
+    await page.getByTestId('doc-state-all').click();
+    await expect(page).toHaveURL(/scope=all/);
+    await expect(page).toHaveURL(/order=oldest/);
+    await expect.poll(() => listRequests.some((query) => (
+      query.includes('scope=all') && query.includes('order=oldest')
+    ))).toBe(true);
+
+    await page.getByTestId('documents-date-sort').click();
+    await expect(page).not.toHaveURL(/order=oldest/);
+    await expect(header).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  test('offers the date order control in the compact document grid', {
+    tag: [
+      ...ADMIN_DOCUMENT_LIST,
+      '@role:admin',
+      '@outcome:success',
+      '@responsive:documents',
+    ],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        const params = new URL(route.request().url()).searchParams;
+        const rows = params.get('order') === 'oldest'
+          ? mockDocuments
+          : [...mockDocuments].reverse();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(rows) };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+
+    const control = page.getByTestId('documents-date-sort-compact');
+    const cards = page.locator('article[data-testid^="document-card-"]');
+    await expect(control).toBeVisible();
+    await expect(control).toContainText('Más nuevos');
+    await expect(cards.first()).toContainText('Propuesta Técnica');
+
+    await control.click();
+
+    await expect(page).toHaveURL(/order=oldest/);
+    await expect(control).toContainText('Más antiguos');
+    await expect(cards.first()).toContainText('Contrato de Servicios');
+  });
+
+  test('keeps the current date order when the refresh fails', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        const params = new URL(route.request().url()).searchParams;
+        if (params.get('order') === 'oldest') {
+          return {
+            status: 500,
+            contentType: 'application/json',
+            body: JSON.stringify({ detail: 'temporary failure' }),
+          };
+        }
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([...mockDocuments].reverse()),
+        };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+
+    const header = page.getByTestId('documents-column-date');
+    const rows = page.locator('[data-testid^="document-row-"]');
+    await expect(rows.first()).toContainText('Propuesta Técnica');
+
+    await page.getByTestId('documents-date-sort').click();
+
+    await expect(page.getByText('No se pudo cambiar el orden')).toBeVisible();
+    await expect(page).not.toHaveURL(/order=oldest/);
+    await expect(header).toHaveAttribute('aria-sort', 'descending');
+    await expect(rows.first()).toContainText('Propuesta Técnica');
   });
 
   test('renders actions as the leading unlabeled column', {

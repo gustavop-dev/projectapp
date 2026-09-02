@@ -140,6 +140,17 @@ describe('DocumentCard', () => {
     expect(text.indexOf('ACME Corp')).toBeLessThan(text.indexOf('Proyecto Atlas'))
   })
 
+  it('falls back to created_at for archived metadata without an archive timestamp', async () => {
+    const wrapper = await mountCard({
+      archived: true,
+      document: { ...baseDocument, archived_at: null },
+    })
+    const metadata = wrapper.get('[data-testid="document-card-secondary-meta-7"]').text()
+
+    expect(metadata).toMatch(/Archivado · hace /)
+    expect(metadata).not.toContain('Archivado · —')
+  })
+
   it('emits open on card click and action on the kebab', async () => {
     const wrapper = await mountCard()
 

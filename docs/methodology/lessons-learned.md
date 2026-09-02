@@ -7,6 +7,21 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-02 — ordenar una fecha visible exige una sola proyección:**
+> si activos y archivados muestran fechas distintas, el servidor debe construir
+> una clave por fila con esa misma semántica y ordenar antes de paginar; ordenar
+> el arreglo del navegador sólo reacomodaría la página actual. El estado de una
+> vista compartida debe propagarse explícitamente para no filtrarse a otros
+> consumidores del store. Y una dirección solicitada no es todavía una dirección
+> activa: ante un fallo de recarga se conservan datos, URL y affordance previos.
+
+> **Lección 2026-09-02 — carpeta y entidad pueden ser un mismo recorrido:**
+> no toda carpeta manual representa un cambio hacia Carpetas propias. La
+> pertenencia real (`folder.project`/`folder.client`) decide si el eje activo se
+> conserva; `folder_kind` describe gestión, no contexto de navegación. El clic
+> interceptado y el `href` deben consumir la misma función pura, porque cualquier
+> divergencia degrada también el origen que luego restaura un editor.
+
 > **Lección 2026-09-01 — una reacción caricaturesca pertenece al glifo, no al
 > perímetro:** mover pocos píxeles el contenido comunica presión y aterrizaje sin
 > desplazar el layout ni competir con el foco accesible. El resultado de una
@@ -103,8 +118,11 @@ This file captures important patterns, preferences, and project intelligence tha
 > contra drift; una rama histórica relacionada sólo se anida con una directiva
 > explícita. Ciclo de proyecto y archivo de contenido también son ejes distintos:
 > dos toggles independientes deben nombrarlos, y ocultar una opción seleccionada
-> exige volver a un destino visible. En la interfaz, proyecto, cliente y carpeta propia son filtros mutuamente excluyentes:
-> cambiar de eje debe limpiar los otros, no acumular una intersección invisible.
+> exige volver a un destino visible. En la interfaz, proyecto, cliente y carpeta
+> propia son ejes excluyentes, pero una carpeta descendiente asociada pertenece
+> al mismo recorrido que su entidad: sólo cambiar a Carpetas propias o a una
+> entidad distinta debe limpiar el contexto, no acumular una intersección
+> invisible.
 
 > **Lección 2026-08-30 — una directiva explícita completa la autoridad del
 > manifiesto:** los documentos sueltos no deben inferirse por nombre. Una pareja
