@@ -13,6 +13,18 @@
 > `Financing/ProgramView` concentra idioma, tema, acordeones, acciones PDF,
 > compartir y CTA, de modo que Panel y público no diverjan en las condiciones.
 
+> **Tracking confiable de propuestas 2026-09-02:** el `GET` público conserva
+> expiración y presentación, pero no escribe métricas comerciales. El navegador
+> confirma una vista mediante un heartbeat validado después de cinco segundos
+> visibles; `ProposalTrackingService` serializa por propuesta, crea o actualiza
+> sesión/secciones y mueve contador, primera vista, estado comercial, actividad y
+> alerta persistente dentro de una sola transacción. `ProposalViewEvent` conserva
+> `last_seen_at` y `finalized_at`. La alerta por email usa un estado durable en
+> `BusinessProposal`, reintentos Huey y reconciliación cada cinco minutos; el tab
+> Analítica muestra intentos/error/confirmación y permite reintentar sólo fallos.
+> La migración marca vistas históricas como `legacy_unverified`, sin enviar
+> correos retroactivos.
+
 > **Tono financiero de correos contables 2026-09-02:**
 > `accounting_email_service` clasifica cada `AccountingChangeLog` como ingreso,
 > egreso o neutral antes de renderizar `accounting_change.html`. Las entidades
@@ -291,13 +303,14 @@ Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates
 
 `TOOLS_BY_SLUG` dispatches nine module catalogs: blog, documents, proposals,
 diagnostics, clients, tasks, accounting, LinkedIn personal and communications.
-The Communications catalog exposes six tools: list/open a thread, create a
-thread, append a message, edit one active outgoing draft in place and mark it as
-sent. Its writes delegate to `communication_service.py`, so client ownership,
-project scope, direction/channel/status transitions, reply linkage and protected
-Document references are identical to the panel. Draft edits lock the row and
-append `CommunicationMessageRevision` inside the same transaction. Editing and
-recording a confirmed send never invoke provider delivery.
+The Communications catalog exposes fourteen tools: list/open/create/edit,
+close/reopen and archive/restore threads; create/edit/delete outgoing drafts;
+record a confirmed send; annul historical messages; and correct their date. Its
+writes delegate to `communication_service.py`, so client ownership, project
+scope, thread lifecycle, direction/channel/status transitions, reply linkage,
+audit history and protected Document references are identical to the panel.
+Draft edits lock the row and append `CommunicationMessageRevision` inside the
+same transaction. No message tool invokes provider delivery.
 
 MCP parity is an architectural boundary, not informal documentation.
 `content/mcp/contracts.py` classifies every concrete field of every exposed model
@@ -423,12 +436,12 @@ branch before removing its now-empty parallel wrappers.
 
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| **BusinessProposal** | Core proposal entity | uuid, title, **client (FK→accounts.UserProfile, PROTECT)**, client_name (snapshot), client_email (snapshot), client_phone (snapshot), status, total_investment, currency, language, show_contract_terms, expires_at, view_count, cached_heat_score. Snapshots are write-through, kept in sync via `proposal_client_service.sync_snapshot()`. |
+| **BusinessProposal** | Core proposal entity | uuid, title, **client (FK→accounts.UserProfile, PROTECT)**, client_name (snapshot), client_email (snapshot), client_phone (snapshot), status, total_investment, currency, language, show_contract_terms, expires_at, view_count, cached_heat_score, durable first-view notification status/attempts/timestamps/error. Snapshots are write-through, kept in sync via `proposal_client_service.sync_snapshot()`. |
 | **ProposalSection** | Individual section within a proposal | proposal_fk, section_type (18 types — incl. `roi_projection`, web-only), title, order, is_enabled, content_json, is_wide_panel |
 | **ProposalRequirementGroup** | Functional requirements group | proposal_fk, group_id, title, description, order |
 | **ProposalRequirementItem** | Individual requirement item | group_fk, name, description, icon |
-| **ProposalAlert** | Manual/auto alerts for sellers | proposal_fk, alert_type (12 types), message, alert_date, priority, is_dismissed |
-| **ProposalViewEvent** | Each client page-load | proposal_fk, session_id, ip_address, user_agent, view_mode (`executive`/`detailed`/`technical`/`legal`) |
+| **ProposalAlert** | Manual/auto alerts for sellers | proposal_fk, alert_type (including persistent `first_view`), message, alert_date, priority, is_dismissed |
+| **ProposalViewEvent** | Each qualified browser session | proposal_fk, session_id, ip_address, user_agent, view_mode (`executive`/`detailed`/`technical`/`legal`), viewed_at, last_seen_at, finalized_at |
 | **ProposalSectionView** | Per-section time tracking | view_event_fk, section_type, subsection_key (technical fragment or legal clause), time_spent_seconds, entered_at, view_mode |
 | **ProposalChangeLog** | Full audit trail | proposal_fk, change_type (20 types), field_name, old_value, new_value |
 | **ProposalShareLink** | Multi-stakeholder sharing | proposal_fk, uuid, shared_by_name, recipient_name, view_count |
@@ -543,6 +556,7 @@ flowchart TD
 | Service | Footprint | Responsibilities |
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
+| **ProposalTrackingService** | Small | Atomic write-side contract for validated public heartbeats: session deduplication, section upserts, first-view state/alert, finalization, commercial signals and cached heat refresh. |
 | **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Initial/resend flows pass a prepared snapshot to `_attach_commercial_pdf`, so the retained bytes and attached bytes are identical; the generation fallback remains for non-send compatibility callers. Shared helpers also include `_build_initial_email_context(proposal)` and `_send_stage_notification`. |
 | **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires every key in the universal inventory plus explicit client/internal/security classification, captures an immutable body/link/attachment snapshot before transport and blocks SMTP if archival fails, persists baseline history, sends the primary envelope first, resolves segmented BCC recipients only after success, deduplicates original recipients, isolates copy failures and exposes one shared delivery trace/snapshot to `EmailLog`. |
 | **OutboundEmailInventory** | Small | Authoritative mapping of all 56 outbound template keys to one of eight configurable copy families. Unknown keys fail closed; static tests reject mail calls outside the gateway. `ClientEmailInventory` remains the exact client-only compatibility subset. |
@@ -1142,10 +1156,10 @@ The explicit `$proposal-create` / `/proposal-create` workflow can precede the pa
 3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF). Functional requirements begin with the four core cards `views` → `components` → `features` → `cross_cutting_features`; the fourth container is stable while its quality items are contextual. The frontend seller prompt and backend `_seller_prompt.bold_formatting` share the same 14-field lead-copy emphasis contract; both must remain aligned. `show_contract_terms` remains separate top-level metadata, so enabling the fourth reading mode does not mutate this section snapshot or its prompt/JSON shape.
 4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
 5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
-6. Client opens unique link `/proposal/{uuid}`
+6. Client opens unique link `/proposal/{uuid}`; this document `GET` does not count as a commercial view, and staff sessions or drafts never enter tracking.
 7. The gateway offers executive, detailed and technical views; eligible Spanish proposals also offer **Contrato y condiciones**. That legal mode lazily loads the current masked global template into a full-content-width intro/index panel followed by one continuous vertical contract panel contained in one semantic, accessible paper surface. PDF download remains a persistent floating proposal action and is not duplicated inside the introduction.
-8. Engagement tracked: view events, section time, session ID, reading mode, and the active technical fragment or legal clause in `subsection_key`
-9. Automated emails triggered based on behavior (reminder, urgency, abandonment, etc.) — every client-facing send checks `_is_unsendable_client_email()` first, so placeholder accounts never receive mail
+8. After five visible seconds the browser sends the first validated heartbeat; subsequent 30-second heartbeats update the same session and hide/unload sends a final beacon. The transaction records section time, reading mode and active technical fragment or legal clause in `subsection_key` without double-counting the session.
+9. The first qualified view creates a persistent panel alert and durable email delivery state. Huey retries transport failures and a five-minute reconciler recovers pending/failed/stale claims; historical unverified views never generate retroactive mail. Other automated emails continue based on behavior — every client-facing send checks `_is_unsendable_client_email()` first, so placeholder accounts never receive mail.
 10. Client responds: accept / reject (with reason) / negotiate / comment. Acceptance fires `ProposalEmailService.send_acceptance_confirmation()` to the client (this branch was added 2026-04-09 — see ERR-007).
 11. Admin monitors via dashboard, alerts, analytics, scorecard. Orphan clients (zero proposals, zero projects) can be cleaned up from `/panel/clients` Huérfanos tab.
 
@@ -1334,8 +1348,11 @@ suggestion only; no timer automatically moves Suspendido to Dado de baja.
 
 ```mermaid
 flowchart LR
+    Managers["Panel + MCP"] --> Thread
     Thread["Client thread + optional project"] --> Draft["Outgoing draft"]
+    Thread --> Lifecycle["Edit · close/reopen · archive/restore"]
     Draft --> Copy["Operator copies/sends outside ProjectApp"]
+    Draft --> Delete["Delete active draft"]
     Copy --> Sent["Mark sent with occurred_at"]
     Sent --> Reply["Register incoming reply_to"]
     Reply --> Responded["UI derives Respondido"]
@@ -1350,6 +1367,13 @@ WhatsApp delivery receipt. This is the chosen workflow, so the interface does
 not present automatic delivery as a pending phase. Historical conversations
 keep their original client: when a project changes owner, its threads are
 detached from the project rather than reassigned.
+
+Panel and MCP share `communication_service.py` as the only write boundary. MCP
+exposes lifecycle verbs instead of writable state flags: thread archive fields
+remain read-only in the generic model contract, historical messages can only be
+annulled or date-corrected, and only active outgoing drafts can be edited or
+deleted. The connector therefore reaches panel parity without acquiring a
+lower-level bypass around transition or audit rules.
 
 Read navigation has one shared boundary. The panel sends its project/client
 selection, multi-value filters and order to `communication_query_service`; the

@@ -211,6 +211,7 @@ export const ADMIN_PROPOSAL_DUPLICATE = ['@flow:admin-proposal-duplicate', '@mod
 export const ADMIN_PROPOSAL_EDIT = ['@flow:admin-proposal-edit', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_ENGAGEMENT_DECAY_ALERT = ['@flow:admin-proposal-engagement-decay-alert', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_ENGAGEMENT_SCORE = ['@flow:admin-proposal-engagement-score', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_FIRST_VIEW_RETRY = ['@flow:admin-proposal-first-view-retry', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM = ['@flow:admin-proposal-functional-requirements-form', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE = ['@flow:admin-proposal-functional-requirements-paste', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_HOUR_RATE = ['@flow:admin-proposal-hour-rate', '@module:admin', '@priority:P1'];

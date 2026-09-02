@@ -1108,6 +1108,7 @@ const ALERT_ICON_MAP = {
   manual_discount_suggestion: '💰', discount_suggestion: '💰',
   manual_post_expiration_visit: '🔥🕰️', post_expiration_visit: '🔥🕰️',
   manual_engagement_decay: '📉', engagement_decay: '📉',
+  manual_first_view: '👁️',
 };
 function alertIcon(type) {
   return ALERT_ICON_MAP[type] || '⚠️';

@@ -363,6 +363,46 @@ class TestSendFirstViewNotification:
         result = ProposalEmailService.send_first_view_notification(email_proposal)
         assert result is False
 
+    @patch(
+        'content.services.proposal_email_service.EmailDeliveryGateway.send',
+        return_value=0,
+    )
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_returns_false_when_backend_rejects_delivery(
+        self, mock_render, mock_email_cls, mock_send, email_proposal,
+    ):
+        mock_render.return_value = '<html>First view</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        result = ProposalEmailService.send_first_view_notification(email_proposal)
+
+        assert result is False
+
+    @patch(
+        'content.services.email_log_service.record_send',
+        side_effect=RuntimeError('database unavailable'),
+    )
+    @patch(
+        'content.services.proposal_email_service.EmailDeliveryGateway.send',
+        return_value=1,
+    )
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_logging_failure_does_not_reinterpret_successful_delivery(
+        self, mock_render, mock_email_cls, mock_send, mock_record,
+        email_proposal,
+    ):
+        mock_render.return_value = '<html>First view</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        result = ProposalEmailService.send_first_view_notification(
+            email_proposal,
+            raise_on_error=True,
+        )
+
+        assert result is True
+
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
     def test_context_without_additional_modules_matches_base(

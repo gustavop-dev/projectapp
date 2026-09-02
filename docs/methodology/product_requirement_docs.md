@@ -180,7 +180,7 @@ The proposal system is the most complex and central feature. It allows the admin
 - **Choose a reading mode** — the public gateway offers executive, detailed, technical, and **Contrato y condiciones**. The legal mode is a separate, generic document surface rather than another proposal section.
 - **Readable proposal presentation** — closing cards use two columns only when each retains a comfortable reading width; payment amounts keep number, currency, and tax suffix together on laptop/desktop screens. Non-empty lead copy below section titles contains one or two short, safe bold fragments for scanability.
 - **Send to client** — triggers email with unique UUID link, schedules automated reminders
-- **Track engagement** — view count, first viewed date, per-section or per-contract-clause time analytics, session tracking, reading mode, engagement scoring (heat score 1-10)
+- **Track qualified engagement** — the document `GET` is read-only for commercial metrics; after five visible seconds a validated heartbeat records view count, first viewed date, per-section or per-contract-clause time, deduplicated session, reading mode, finalization and engagement score (heat score 1-10)
 - **Share links** — clients can share proposals with stakeholders, each share link tracked independently
 - **PDF generation** — downloadable PDF version via ReportLab
 - **Investment calculator** — interactive modal for clients to explore payment options (hosting plans, discounts)
@@ -208,6 +208,7 @@ DRAFT → SENT → VIEWED → ACCEPTED
 |-------|---------|--------|
 | Proposal sent (client) | Admin clicks "Send" | Immediate |
 | Proposal sent (admin notification) | Admin clicks "Send" | Immediate |
+| First qualified view (internal team) | Public proposal remains visible for 5 seconds | Immediate, durable retries |
 | Reminder | Proposal still SENT/VIEWED | Day N (configurable, default 10) |
 | Urgency / discount | Proposal still SENT/VIEWED | Day N (configurable, default 15) |
 | Abandonment | Proposal viewed but no return | After inactivity period |
@@ -219,7 +220,7 @@ DRAFT → SENT → VIEWED → ACCEPTED
 | Stage warning (internal team) | Project stage 70% elapsed (Cronograma) | Daily 08:30 Bogotá, sent once per stage |
 | Stage overdue (internal team) | Project stage past `end_date` (Cronograma) | Daily 08:30 Bogotá, repeats every 3 days while uncompleted |
 
-**24h cooldown** enforced between automated client-facing emails per proposal. **Automations can be paused** per proposal (`automations_paused` flag). **Internal team notifications** (stage warning, stage overdue, first view, comment, seller inactivity, etc.) bypass the cooldown — per-event dedup is handled by dedicated timestamp fields on the source model.
+**24h cooldown** enforced between automated client-facing emails per proposal. **Automations can be paused** per proposal (`automations_paused` flag). **Internal team notifications** (stage warning, stage overdue, first view, comment, seller inactivity, etc.) bypass the cooldown. First view uses a durable status/attempt/error state plus reconciliation; other per-event dedup remains on dedicated source fields.
 
 **Internal team recipients** are read from the `NOTIFICATION_EMAIL` env var (CSV-supported). One env var, all internal notifications. To target a different audience for stage tracking specifically, change the env var — there is no per-feature recipient setting.
 
@@ -734,12 +735,17 @@ Remote Model-Context-Protocol connectors that expose panel modules to claude.ai 
   registered slug.
 - **Management**: generate/rotate a one-time connector URL (plaintext token shown once, only its SHA-256 hash stored), toggle active, and watch a connection-activity feed (handshake / tool_call / auth_error / origin_rejected).
 - **Security**: Origin validation (DNS-rebinding defense), per-connector token, active-state gate.
-- **Communications**: lists threads by client/project, opens the ordered message
-  history, creates client-owned threads, records incoming/outgoing messages with
-  existing Document references and marks an outgoing draft as sent. It reuses the
-  panel services and invariants; it records delivery facts but does not send through
-  a provider. Migration `content.0212_seed_communications_mcp` creates this connector
-  disabled and without a token so activation remains an explicit operator action.
+- **Communications**: exposes the panel's administrative lifecycle through
+  fourteen explicit tools. It lists and opens active/archived threads; creates
+  and edits manual threads; closes, reopens, archives and restores them; records
+  incoming messages and outgoing drafts; edits or deletes eligible drafts;
+  confirms external delivery; and annuls or date-corrects historical messages
+  with audit evidence. Project/document ownership, immutable client history and
+  state rules come from the same serializers and services as the panel. It never
+  sends through a provider. Migration `content.0212_seed_communications_mcp`
+  creates the connector disabled and tokenless; migration
+  `content.0239_expand_communications_mcp_parity` only refreshes its description,
+  so activation and existing credentials remain under operator control.
 - **Parity**: Documents exposes client, project and workflow states; Accounting
   exposes hosting periods, allocations, partial payments and settlement history.
   `content/mcp/contracts.py`, focused tests and `docs/MCP_VALIDATION_RUNBOOK.md`
@@ -849,6 +855,7 @@ The canonical counts, commands and exceptions are maintained in
 8. Email templates are editable and resettable via admin panel
 9. Share links track independent view counts from main proposal views
 10. Change logs record full audit trail of proposal lifecycle events
+10a. **Qualified first view**: loading a public proposal does not change commercial metrics. A non-draft, non-staff browser must remain visible for five seconds and submit a valid heartbeat. The `(proposal, session_id)` pair is idempotent; historical views without delivery evidence are never retroactively emailed.
 11. **Project stage notifications**: Stage rows are admin-managed (not auto-derived from JSON timeline). Warning fires once at 70% elapsed; overdue alert fires immediately when `today > end_date` and repeats every 3 days until `completed_at` is set. All day-level arithmetic uses Bogotá time (`today_bogota()` from `content/utils.py`). Internal team recipients live in `NOTIFICATION_EMAIL` CSV.
 12. **Proposal client identity**: `BusinessProposal.client` is a FK to `accounts.UserProfile` filtered to `role='client'` (`on_delete=PROTECT`). Legacy denormalized fields `client_name` / `client_email` / `client_phone` are kept as write-through snapshots, synced via `proposal_client_service.sync_snapshot()` after every FK assignment. Empty client emails get a placeholder `cliente_<profile_id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save. Clients with placeholder emails are excluded from **all 13 client-facing email methods** in `ProposalEmailService` and from the 4 huey reminder/urgency/abandonment tasks via `_is_unsendable_client_email(email)`. Two candidate-selection querysets (`abandonment_candidates`, `interest_candidates`) also exclude placeholders directly via `.exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)`. Shipped 2026-04-09.
 13. **Project scope items**: an accepted proposal's functional-requirement groups are mirrored into `ProjectScopeItem` rows (chain Project → ProjectPhase → ProjectScopeItem → Requirement) by `technical_requirements_sync`. Re-sync overwrites proposal-authored content unless an admin took over a card (`Requirement.content_overridden=True`); removed items are archived and re-added ones resurrected.

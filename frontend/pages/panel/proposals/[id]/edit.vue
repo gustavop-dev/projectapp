@@ -181,7 +181,12 @@
 
       <!-- Tab: Analytics -->
       <div v-if="visitedTabs.has('analytics')" v-show="activeTab === 'analytics'" class="max-w-screen-2xl mx-auto">
-        <ProposalAnalytics :proposalId="proposal.id" :proposal="proposal" />
+        <ProposalAnalytics
+          :proposal-id="proposal.id"
+          :proposal="proposal"
+          :refresh-key="analyticsRefreshKey"
+          @retried="refreshData"
+        />
       </div>
 
       <!-- Tab: Detalle técnico -->
@@ -530,8 +535,9 @@ const technicalSubTab = ref('editor');
 // did under v-show. That is also why this is a plain v-if and not
 // <KeepAlive> — nothing ever unmounts, so there is nothing to cache.
 const visitedTabs = ref(new Set([activeTab.value]));
+const analyticsRefreshKey = ref(0);
 
-watch(activeTab, (tab) => {
+watch(activeTab, async (tab) => {
   visitedTabs.value.add(tab);
   // The tab was read from ?tab= on load but never written back, so a reload
   // or a shared link always dropped the user on General.
@@ -550,6 +556,13 @@ watch(activeTab, (tab) => {
       else url.searchParams.delete('tab');
       window.history.replaceState(window.history.state, '', url);
     }
+  }
+  if (tab === 'analytics') {
+    analyticsRefreshKey.value += 1;
+  }
+  if (tab === 'activity' && !hasUnsavedEdits.value) {
+    await proposalStore.fetchProposal(route.params.id);
+    hydrateFormFromProposal();
   }
 });
 const hasSendEmailTab = computed(() =>
@@ -1180,6 +1193,9 @@ async function refreshData() {
   try {
     await proposalStore.fetchProposal(route.params.id);
     hydrateFormFromProposal();
+    if (visitedTabs.value.has('analytics')) {
+      analyticsRefreshKey.value += 1;
+    }
   } finally {
     isRefreshing.value = false;
   }

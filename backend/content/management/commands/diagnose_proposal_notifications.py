@@ -15,8 +15,13 @@ Usage:
     python manage.py diagnose_proposal_notifications --proposal-id 123 --send
 """
 
+import os
+from datetime import timedelta
+
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Count
+from django.utils import timezone
 
 from content.models import BusinessProposal
 from content.services.email_delivery_service import (
@@ -53,6 +58,11 @@ class Command(BaseCommand):
             help='Also exercise the real first-view notification template '
                  'path for this proposal id.',
         )
+        parser.add_argument(
+            '--allow-non-production',
+            action='store_true',
+            help='Run diagnostics against non-production settings explicitly.',
+        )
 
     # -- helpers ---------------------------------------------------------
 
@@ -72,6 +82,17 @@ class Command(BaseCommand):
     # -- handle ----------------------------------------------------------
 
     def handle(self, *args, **options):
+        settings_module = os.environ.get('DJANGO_SETTINGS_MODULE', '')
+        if (
+            not settings_module.endswith('settings_prod')
+            and not options['allow_non_production']
+        ):
+            raise CommandError(
+                'Refusing to diagnose with non-production settings '
+                f'({settings_module or "unset"}). Set '
+                'DJANGO_SETTINGS_MODULE=projectapp.settings_prod or pass '
+                '--allow-non-production intentionally.'
+            )
         self.stdout.write(
             self.style.HTTP_INFO('Proposal notification pipeline diagnosis')
         )
@@ -80,6 +101,7 @@ class Command(BaseCommand):
         self._check_email_settings()
         recipients = self._check_recipients()
         self._check_templates()
+        self._check_delivery_state()
 
         if options['proposal_id']:
             self._check_template_render(options['proposal_id'])
@@ -175,8 +197,40 @@ class Command(BaseCommand):
                 self._warn(f'{key}: DISABLED — notifications of this type are '
                            'skipped before any send is attempted.')
 
+    def _check_delivery_state(self):
+        self._section('4b. Durable first-view delivery state')
+        try:
+            rows = {
+                row['first_view_notification_status']: row['count']
+                for row in (
+                    BusinessProposal.objects
+                    .values('first_view_notification_status')
+                    .annotate(count=Count('id'))
+                )
+            }
+            stale = BusinessProposal.objects.filter(
+                first_view_notification_status='sending',
+                first_view_notification_attempted_at__lt=(
+                    timezone.now() - timedelta(minutes=10)
+                ),
+            ).count()
+        except Exception as exc:
+            self._err(f'Could not query durable delivery state: {exc}')
+            return
+        for status_name in (
+            'pending', 'sending', 'failed', 'sent', 'skipped',
+            'legacy_unverified', 'not_started',
+        ):
+            self.stdout.write(f'  {status_name}: {rows.get(status_name, 0)}')
+        if stale:
+            self._warn(f'{stale} delivery claim(s) stale for more than 10 minutes.')
+        elif rows.get('pending', 0) or rows.get('failed', 0):
+            self._warn('Pending or failed deliveries require reconciliation.')
+        else:
+            self._ok('No pending, failed, or stale delivery state detected.')
+
     def _check_template_render(self, proposal_id):
-        self._section(f'4b. Render first-view template for proposal {proposal_id}')
+        self._section(f'4c. Render first-view template for proposal {proposal_id}')
         try:
             proposal = BusinessProposal.objects.get(pk=proposal_id)
         except BusinessProposal.DoesNotExist:

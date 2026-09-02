@@ -30,6 +30,15 @@ class BusinessProposal(models.Model):
         EXPIRED = 'expired', 'Expired'
         FINISHED = 'finished', 'Finished'
 
+    class FirstViewNotificationStatus(models.TextChoices):
+        NOT_STARTED = 'not_started', 'Not started'
+        PENDING = 'pending', 'Pending'
+        SENDING = 'sending', 'Sending'
+        SENT = 'sent', 'Sent'
+        FAILED = 'failed', 'Failed'
+        SKIPPED = 'skipped', 'Skipped'
+        LEGACY_UNVERIFIED = 'legacy_unverified', 'Legacy unverified'
+
     # Natural status transitions of the proposal lifecycle. Admins may force
     # ANY status from the panel (see proposal_status_service.change_status);
     # this map now gates side effects (emails, onboarding) and feeds
@@ -259,6 +268,16 @@ class BusinessProposal(models.Model):
     last_activity_at = models.DateTimeField(null=True, blank=True)
     view_count = models.PositiveIntegerField(default=0)
     first_viewed_at = models.DateTimeField(null=True, blank=True)
+    first_view_notification_status = models.CharField(
+        max_length=20,
+        choices=FirstViewNotificationStatus.choices,
+        default=FirstViewNotificationStatus.NOT_STARTED,
+        help_text='Durable delivery state for the internal first-view email.',
+    )
+    first_view_notification_attempts = models.PositiveSmallIntegerField(default=0)
+    first_view_notification_attempted_at = models.DateTimeField(null=True, blank=True)
+    first_view_notification_sent_at = models.DateTimeField(null=True, blank=True)
+    first_view_notification_last_error = models.TextField(blank=True, default='')
     sent_at = models.DateTimeField(null=True, blank=True)
     responded_at = models.DateTimeField(null=True, blank=True)
     revisit_alert_sent_at = models.DateTimeField(null=True, blank=True)
@@ -426,6 +445,7 @@ class ProposalAlert(models.Model):
         ('calculator_followup', 'Seguimiento calculadora'),
         ('engagement_decay', 'Pérdida de engagement'),
         ('post_rejection_revisit', 'Revisita post-rechazo'),
+        ('first_view', 'Primera vista confirmada'),
     ]
 
     proposal = models.ForeignKey(
@@ -449,6 +469,7 @@ class ProposalAlert(models.Model):
         'engagement_decay': 'critical',
         'post_expiration_visit': 'critical',
         'post_rejection_revisit': 'critical',
+        'first_view': 'high',
         'discount_suggestion': 'high',
         'high_engagement_today': 'high',
         'calculator_followup': 'high',
