@@ -442,7 +442,7 @@ def test_description_refresh_preserves_connector_credentials(
     connector.last_used_at = OCCURRED_AT
     connector.save(update_fields=['token_hash', 'token_prefix', 'last_used_at'])
     migration = import_module(
-        'content.migrations.0237_expand_communications_mcp_parity',
+        'content.migrations.0239_expand_communications_mcp_parity',
     )
 
     migration.update_communications_description(django_apps, None)

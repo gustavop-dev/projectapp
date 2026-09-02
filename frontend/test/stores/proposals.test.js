@@ -1266,6 +1266,21 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('retryFirstViewNotification', () => {
+    it('posts to the durable first-view retry endpoint', async () => {
+      const notification = { status: 'pending', attempts: 0 };
+      create_request.mockResolvedValue({ data: notification });
+
+      const result = await store.retryFirstViewNotification(17);
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/17/notifications/first-view/retry/',
+        {},
+      );
+      expect(result).toEqual({ success: true, data: notification });
+    });
+  });
+
   describe('fetchProposalDashboard', () => {
     it('fetches dashboard KPIs', async () => {
       const dashboard = { total_proposals: 5, acceptance_rate: 0.6 };

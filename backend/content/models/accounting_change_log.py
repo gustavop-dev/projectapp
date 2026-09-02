@@ -49,10 +49,23 @@ class AccountingChangeLog(models.Model):
         UPDATED = 'updated', 'Actualizado'
         DELETED = 'deleted', 'Eliminado'
 
+    class MovementDirection(models.TextChoices):
+        IN = 'in', 'Ingreso'
+        OUT = 'out', 'Egreso'
+
     entity_type = models.CharField(max_length=30, choices=EntityType.choices)
     object_id = models.PositiveIntegerField()
     object_repr = models.CharField(max_length=255)
     action = models.CharField(max_length=10, choices=Action.choices)
+    # Immutable event context for Pocket rows.  The notification task runs
+    # asynchronously in production, so reading the current movement would let
+    # a later edit (or deletion) recolor an older email incorrectly.
+    movement_direction = models.CharField(
+        max_length=3,
+        choices=MovementDirection.choices,
+        null=True,
+        blank=True,
+    )
     # List of {'field': str, 'label': str, 'old': str, 'new': str}.
     changes = models.JSONField(default=list, blank=True)
     actor = models.ForeignKey(

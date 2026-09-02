@@ -124,19 +124,33 @@
             <div v-else class="mt-4 space-y-2" data-testid="document-thread-candidates">
               <!-- design-tokens: allow-raw-button — selectable document row -->
               <button
-                v-for="candidate in threadStore.candidates"
-                :key="candidate.id"
+                v-for="row in candidateRows"
+                :key="row.candidate.id"
                 type="button"
-                class="w-full rounded-xl border border-border-muted bg-surface p-3 text-left transition-colors hover:border-border-default disabled:cursor-not-allowed disabled:opacity-55"
-                :disabled="!candidate.available || selectedIds.has(candidate.id)"
-                :title="candidate.unavailable_reason || undefined"
-                :data-testid="`thread-candidate-${candidate.id}`"
-                @click="addCandidate(candidate)"
+                class="w-full rounded-xl border border-border-muted bg-surface p-3 text-left transition-colors"
+                :class="row.blocked ? 'cursor-not-allowed opacity-55' : 'hover:border-border-default'"
+                :aria-disabled="row.blocked || undefined"
+                :aria-describedby="row.blocked ? `thread-candidate-reason-${row.candidate.id}` : undefined"
+                :data-testid="`thread-candidate-${row.candidate.id}`"
+                @click="addCandidate(row.candidate)"
               >
-                <span class="block truncate text-sm font-medium text-text-default">{{ candidate.title }}</span>
-                <span class="mt-0.5 block truncate text-xs text-text-subtle">{{ metadataLine(candidate) }}</span>
-                <span v-if="candidate.unavailable_reason" class="mt-1 block text-xs text-warning-strong">
-                  {{ candidate.unavailable_reason }}
+                <span class="block truncate text-sm font-medium text-text-default">{{ row.candidate.title }}</span>
+                <span class="mt-0.5 block truncate text-xs text-text-subtle">{{ metadataLine(row.candidate) }}</span>
+                <span
+                  v-if="row.candidate.thread_summary || row.candidate.is_archived"
+                  class="mt-2 flex flex-wrap items-center gap-1"
+                >
+                  <BaseBadge v-if="row.candidate.thread_summary" variant="info" size="sm">
+                    Hilo · {{ row.candidate.thread_summary.document_count }}
+                  </BaseBadge>
+                  <BaseBadge v-if="row.candidate.is_archived" variant="warning" size="sm">Archivado</BaseBadge>
+                </span>
+                <span
+                  v-if="row.blocked"
+                  :id="`thread-candidate-reason-${row.candidate.id}`"
+                  class="mt-1 block text-xs text-warning-strong"
+                >
+                  {{ row.reason }}
                 </span>
               </button>
             </div>
@@ -297,6 +311,15 @@ const tabs = computed(() => [
   { id: 'timeline', label: 'Cronología', badge: members.value.length },
 ]);
 const selectedIds = computed(() => new Set(members.value.map(item => item.document.id)));
+// El backend es dueño de la copia del bloqueo permanente («ya pertenece a otro hilo»):
+// esa frase acompaña al 409 del servicio y no se reescribe acá. El borrador local es el
+// único que sabe qué agregaste en esta sesión, así que ese motivo —y sólo ese— nace acá.
+const IN_DRAFT_REASON = 'Ya está en este hilo.';
+const candidateRows = computed(() => threadStore.candidates.map((candidate) => {
+  const reason = candidate.unavailable_reason
+    || (selectedIds.value.has(candidate.id) ? IN_DRAFT_REASON : '');
+  return { candidate, reason, blocked: Boolean(reason) };
+}));
 const candidateTotalPages = computed(() => Math.max(1, Math.ceil(threadStore.candidateCount / 20)));
 const candidateRangeFrom = computed(() => (
   threadStore.candidateCount ? ((candidatePage.value - 1) * 20) + 1 : 0

@@ -28,7 +28,7 @@ def restore_communications_description(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('content', '0236_document_threads'),
+        ('content', '0238_proposal_first_view_reliability'),
     ]
 
     operations = [

@@ -25,7 +25,10 @@ from django.utils.dateparse import parse_date
 from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
 from content.models import Document, DocumentThread
-from content.serializers.document_thread import DocumentThreadSerializer
+from content.serializers.document_thread import (
+    DocumentThreadListSerializer,
+    DocumentThreadSerializer,
+)
 from content.services.document_thread_query import (
     THREAD_LIST_ORDERS,
     thread_detail_queryset,
@@ -39,9 +42,6 @@ from content.services.document_thread_service import (
     edit_document_thread_members as service_edit_members,
     update_document_thread as service_update_thread,
 )
-
-MEMBER_PREVIEW_LIMIT = 5
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -156,35 +156,11 @@ def _thread_payload(thread):
     return DocumentThreadSerializer(hydrated).data
 
 
-def _iso(value):
-    return value.isoformat() if value else None
-
-
-def _member_row(item):
-    document = item.document
-    return {
-        'document_id': document.id,
-        'title': document.title,
-        'occurred_on': _iso(item.occurred_on),
-        'folder_name': document.folder.name if document.folder_id else None,
-        'is_archived': document.is_archived,
-    }
-
-
+# La forma de la fila vive en el serializer del panel: `thread_list_queryset`
+# existe para que ambas superficies lean igual, y tener dos armadores de payload
+# era justamente la deriva que esa capa compartida busca evitar.
 def _thread_summary(thread):
-    items = list(thread.items.all())
-    latest = items[-1] if items else None
-    return {
-        'id': thread.id,
-        'title': thread.title,
-        'document_count': getattr(thread, 'document_count', None) or len(items),
-        'first_occurred_on': _iso(getattr(thread, 'first_occurred_on', None)),
-        'last_occurred_on': _iso(getattr(thread, 'last_occurred_on', None)),
-        'latest_item': _member_row(latest) if latest else None,
-        'documents': [_member_row(item) for item in items[:MEMBER_PREVIEW_LIMIT]],
-        'documents_truncated': len(items) > MEMBER_PREVIEW_LIMIT,
-        'updated_at': _iso(thread.updated_at),
-    }
+    return DocumentThreadListSerializer(thread).data
 
 
 # ── Handlers ─────────────────────────────────────────────────────────────────

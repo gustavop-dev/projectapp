@@ -237,3 +237,80 @@ def test_duplicate_does_not_inherit_thread_membership(admin_client, documents, t
 
     assert response.status_code == 201
     assert response.json()['thread_summary'] is None
+
+
+# ── Índice de hilos ──────────────────────────────────────────────────────────
+
+@pytest.fixture
+def second_thread(documents, admin_user):
+    return create_document_thread(
+        title='Anexos del cierre',
+        items=[
+            {'document_id': documents[2].pk},
+            {'document_id': documents[3].pk},
+        ],
+        actor=admin_user,
+    )
+
+
+def test_thread_index_requires_an_admin(api_client, thread):
+    response = api_client.get(reverse('create-document-thread'))
+
+    assert response.status_code in (401, 403)
+
+
+def test_thread_index_lists_threads_with_their_span(admin_client, thread):
+    response = admin_client.get(reverse('create-document-thread'))
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['count'] == 1
+    row = payload['results'][0]
+    assert row['id'] == thread.pk
+    assert row['title'] == 'Entrega del proyecto'
+    assert row['document_count'] == 2
+    assert row['first_occurred_on'] == '2026-08-01'
+    assert row['last_occurred_on'] == '2026-08-02'
+    assert row['latest_item']['title'] == 'Corrección'
+    assert [member['title'] for member in row['documents']] == [
+        'Acta inicial', 'Corrección',
+    ]
+    assert row['documents_truncated'] is False
+
+
+def test_thread_index_orders_alphabetically_on_request(
+    admin_client, thread, second_thread,
+):
+    response = admin_client.get(reverse('create-document-thread'), {'order': 'title'})
+
+    assert response.status_code == 200
+    assert [row['title'] for row in response.json()['results']] == [
+        'Anexos del cierre', 'Entrega del proyecto',
+    ]
+
+
+def test_thread_index_rejects_an_unknown_order(admin_client, thread):
+    response = admin_client.get(reverse('create-document-thread'), {'order': 'chaos'})
+
+    assert response.status_code == 400
+    assert 'order' in response.json()
+
+
+def test_thread_index_rejects_a_malformed_client_id(admin_client, thread):
+    response = admin_client.get(reverse('create-document-thread'), {'client_id': 'abc'})
+
+    assert response.status_code == 400
+    assert 'client_id' in response.json()
+
+
+def test_thread_index_searches_by_member_document_title(
+    admin_client, thread, second_thread,
+):
+    response = admin_client.get(
+        reverse('create-document-thread'), {'search': 'Aprobación'},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['count'] == 1
+    assert payload['results'][0]['title'] == 'Anexos del cierre'

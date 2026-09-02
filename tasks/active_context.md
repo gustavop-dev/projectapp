@@ -16,6 +16,28 @@ administrativos, 19 de edición, 19 de regresión base, 23 de contratos y 17 de
 paridad transversal; Django y migraciones sin drift, quality gate 93/100 con 0
 errores/0 junk y un warning local porque `ruff` no está instalado.
 
+**2026-09-02 — tracking de propuestas y alerta de primera vista listo para
+integrar:** abrir el enlace ya no incrementa métricas. Una vista se confirma tras
+cinco segundos visibles, se deduplica por sesión, actualiza heartbeats/final y
+persiste contador, primera vista, estado comercial, actividad y alerta dentro de
+una transacción. La entrega por email tiene estado/intentos/error durable,
+reintentos Huey, reconciliación y reintento manual observable en Analítica; el
+histórico queda marcado sin correos retroactivos. Payloads anónimos tienen límites
+y un draft o sesión staff no escribe. Verificación: checks/migración, cortes
+backend focales, 43 unitarias frontend focales, 10 E2E y flow audit completo para
+heartbeat, display y retry success/failure.
+
+**2026-09-02 — colores semánticos de correos contables listos para integrar:**
+`accounting_change` usa verde para ingresos/entradas, naranja para
+gastos/salidas/recurrentes/Ads/deuda y azul para entidades neutrales. Cabecera y
+valores nuevos comparten el tono; valores anteriores siguen rojos. Los eventos
+de Bolsillo guardan `movement_direction` para que Huey y los reintentos no lean
+estado posterior; `content.0237` hace backfill sólo con evidencia del diff. Sin
+cambio de REST, MCP, panel ni otros correos. Verificación focal: 17 casos de
+clasificación/render, 3 de migración y 8 de regresión del envío, todos verdes;
+`makemigrations --check --dry-run` no detecta drift y el quality gate focal
+cerró en 93/100 sin errores ni advertencias.
+
 **2026-09-02 — orden por fecha del Gestor Documental listo para integrar:** la
 columna Creado alterna entre más nuevos y más antiguos con icono, `aria-sort` y
 estado de carga; Galería y móvil conservan la misma capacidad mediante un

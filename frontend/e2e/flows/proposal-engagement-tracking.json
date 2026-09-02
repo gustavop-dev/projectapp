@@ -6,11 +6,9 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "Automatic section-level engagement tracking with stakeholder detection and follow-up alerts.",
+  "description": "After five visible seconds, the public proposal sends a validated heartbeat; the backend records the session and durable first-view alert without counting the document GET.",
   "expectedSpecs": 1,
-  "knownGaps": [
-    "Only nav button visibility; the section engagement POST is never asserted (2026-07 audit)."
-  ],
+  "knownGaps": [],
   "outcomes": [
     "success"
   ]

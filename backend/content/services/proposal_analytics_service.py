@@ -543,7 +543,7 @@ def build_proposal_analytics(proposal):
 
     # Per-session summary
     sessions_data = []
-    for event in view_events.order_by('-viewed_at')[:50]:
+    for event in view_events.order_by('-last_seen_at')[:50]:
         sv = event.section_views.all()
         sections_viewed = sv.count()
         total_time = sum(s.time_spent_seconds for s in sv)
@@ -551,6 +551,11 @@ def build_proposal_analytics(proposal):
             'session_id': event.session_id,
             'ip_address': event.ip_address or '',
             'viewed_at': event.viewed_at.isoformat(),
+            'last_seen_at': event.last_seen_at.isoformat(),
+            'finalized_at': (
+                event.finalized_at.isoformat() if event.finalized_at else None
+            ),
+            'is_final': event.finalized_at is not None,
             'sections_viewed': sections_viewed,
             'total_time_seconds': round(total_time, 1),
             'view_mode': event.view_mode,
@@ -761,8 +766,8 @@ def build_proposal_analytics(proposal):
         }
 
     last_viewed_at = (
-        view_events.order_by('-viewed_at')
-        .values_list('viewed_at', flat=True)
+        view_events.order_by('-last_seen_at')
+        .values_list('last_seen_at', flat=True)
         .first()
     )
 
@@ -794,6 +799,23 @@ def build_proposal_analytics(proposal):
         'engagement_score': engagement_score,
         'by_view_mode': by_view_mode,
         'technical_engagement': technical_engagement,
+        'first_view_notification': {
+            'status': proposal.first_view_notification_status,
+            'attempts': proposal.first_view_notification_attempts,
+            'attempted_at': (
+                proposal.first_view_notification_attempted_at.isoformat()
+                if proposal.first_view_notification_attempted_at else None
+            ),
+            'sent_at': (
+                proposal.first_view_notification_sent_at.isoformat()
+                if proposal.first_view_notification_sent_at else None
+            ),
+            'last_error': proposal.first_view_notification_last_error,
+            'can_retry': (
+                proposal.first_view_notification_status
+                == BusinessProposal.FirstViewNotificationStatus.FAILED
+            ),
+        },
     }
 
 

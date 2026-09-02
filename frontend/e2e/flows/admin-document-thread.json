@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "El administrador enlaza documentos en una historia lineal independiente de carpetas, clientes y proyectos. El modal se abre desde la lista o el editor y ofrece Relacionar, Detalle y Cronología; permite buscar metadatos, incluir archivados, editar la fecha de cada hito y consultar markdown o PDF. Cada documento pertenece como máximo a un hilo, los resultados ocupados explican el conflicto, el orden usa la fecha de negocio con posición estable, archivar conserva la relación y eliminar exige retirar primero el documento. Un hilo requiere dos documentos: si una edición deja sólo uno, se disuelve tras confirmación. La lista y el editor muestran Hilo · N, mientras una copia duplicada nace independiente.",
+  "description": "El administrador enlaza documentos en una historia lineal independiente de carpetas, clientes y proyectos. El modal se abre desde la lista o el editor y ofrece Relacionar, Detalle y Cronología; permite buscar metadatos, incluir archivados, editar la fecha de cada hito y consultar markdown o PDF. Cada documento pertenece como máximo a un hilo, y todo candidato bloqueado se explica: el ocupado por otro hilo nombra ese hilo y su tamaño, y el ya agregado al borrador lo dice también. El orden usa la fecha de negocio con posición estable, archivar conserva la relación y eliminar exige retirar primero el documento. Un hilo requiere dos documentos: si una edición deja sólo uno, se disuelve tras confirmación. El índice de hilos los enumera con búsqueda, orden y rango de fechas, y abre cada uno por su primer miembro; en la lista y el editor el badge Hilo · N también abre el hilo, mientras una copia duplicada nace independiente.",
   "expectedSpecs": 1,
   "outcomes": [
     "display",

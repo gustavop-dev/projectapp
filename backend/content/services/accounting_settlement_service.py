@@ -556,6 +556,7 @@ def bulk_settle_expected_incomes(data, user):
             accounting_service.snapshot_values(movement, EntityType.POCKET),
         ),
         actor=user,
+        movement_direction=movement.direction,
     )
 
     children = [

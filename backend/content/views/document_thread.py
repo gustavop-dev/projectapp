@@ -13,10 +13,15 @@ from content.models import Document, DocumentThread, DocumentThreadItem
 from content.serializers.document_thread import (
     DocumentThreadCandidateSerializer,
     DocumentThreadCreateSerializer,
+    DocumentThreadListSerializer,
     DocumentThreadSerializer,
     DocumentThreadUpdateSerializer,
 )
-from content.services.document_thread_query import thread_detail_queryset
+from content.services.document_thread_query import (
+    THREAD_LIST_ORDERS,
+    thread_detail_queryset,
+    thread_list_queryset,
+)
 from content.services.document_thread_service import (
     DocumentThreadError,
     create_document_thread,
@@ -26,6 +31,12 @@ from content.services.document_thread_service import (
 
 
 class DocumentThreadCandidatePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
+
+class DocumentThreadListPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 50
@@ -135,9 +146,52 @@ def document_thread_candidates(request):
     return paginator.get_paginated_response(serializer.data)
 
 
-@api_view(['POST'])
+def _optional_int(request, key):
+    raw = request.query_params.get(key)
+    if raw in (None, ''):
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(key)
+
+
+def _list_threads(request):
+    """Paginate the thread index through the read layer the MCP tools share."""
+    order = str(request.query_params.get('order') or 'recent').strip().lower()
+    if order not in THREAD_LIST_ORDERS:
+        return Response(
+            {'order': f'El orden solicitado no es válido. Usa {", ".join(THREAD_LIST_ORDERS)}.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        client_id = _optional_int(request, 'client_id')
+        project_id = _optional_int(request, 'project_id')
+    except ValueError as exc:
+        return Response(
+            {str(exc): 'El identificador no es válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    threads = thread_list_queryset(
+        search=str(request.query_params.get('search') or '').strip()[:200],
+        client_id=client_id,
+        project_id=project_id,
+        order=order,
+    )
+    paginator = DocumentThreadListPagination()
+    page = paginator.paginate_queryset(threads, request)
+    return paginator.get_paginated_response(
+        DocumentThreadListSerializer(page, many=True).data,
+    )
+
+
+@api_view(['GET', 'POST'])
 @permission_classes([IsAdminUser])
 def create_thread(request):
+    if request.method == 'GET':
+        return _list_threads(request)
+
     serializer = DocumentThreadCreateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

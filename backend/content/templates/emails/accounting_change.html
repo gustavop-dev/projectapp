@@ -12,7 +12,7 @@
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; max-width:600px; width:100%;">
           <tr>
-            <td style="padding:20px 32px; background-color:{% if is_deleted %}#b91c1c{% elif is_created %}#15803d{% else %}#1d4ed8{% endif %}; color:#ffffff;">
+            <td style="padding:20px 32px; background-color:{{ accent_color }}; color:#ffffff;">
               <h1 style="margin:0; font-size:18px; font-weight:bold;">
                 Contabilidad · {{ entity_label }} {{ action_label|lower }}
               </h1>
@@ -59,7 +59,7 @@
                   <td style="padding:8px; border-bottom:1px solid #f3f4f6; color:#b91c1c;">{{ change.old|default:'(vacío)' }}</td>
                   {% endif %}
                   {% if not is_deleted %}
-                  <td style="padding:8px; border-bottom:1px solid #f3f4f6; color:#15803d;">{{ change.new|default:'(vacío)' }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6; color:{{ accent_color }};">{{ change.new|default:'(vacío)' }}</td>
                   {% endif %}
                 </tr>
                 {% endfor %}

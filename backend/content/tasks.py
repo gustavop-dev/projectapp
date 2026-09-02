@@ -1132,37 +1132,153 @@ def refresh_cached_heat_scores():
         logger.info('Refreshed cached_heat_score for %d proposals.', updated)
 
 
-@task()
+@task(retries=3, retry_delay=60)
 def notify_first_view(proposal_id):
     """
     Huey task: send real-time notification to the sales team when a
     client opens a proposal for the first time.
 
-    Called asynchronously from retrieve_public_proposal so the client's
-    page load is not blocked by email delivery.
+    Uses a row-level delivery state machine. Huey retries transport failures,
+    while ``reconcile_first_view_notifications`` recovers broker outages and
+    workers that died after claiming a row.
     """
+    from django.db import transaction
+
     from content.models import BusinessProposal
     from content.services.proposal_email_service import ProposalEmailService
     from content.services.proposal_service import ProposalService
 
+    state = BusinessProposal.FirstViewNotificationStatus
+    max_attempts = 4
+    now = timezone.now()
+
+    with transaction.atomic():
+        try:
+            proposal = BusinessProposal.objects.select_for_update().get(
+                pk=proposal_id,
+            )
+        except BusinessProposal.DoesNotExist:
+            logger.warning(
+                'Proposal %s not found for first-view notification task.',
+                proposal_id,
+            )
+            return
+
+        if proposal.first_view_notification_status in (
+            state.SENT,
+            state.SKIPPED,
+            state.LEGACY_UNVERIFIED,
+        ):
+            return
+        # Never infer a historical first view from old rows. Only the tracking
+        # transaction is allowed to move not_started -> pending.
+        if (
+            not proposal.first_viewed_at
+            or proposal.first_view_notification_status == state.NOT_STARTED
+        ):
+            return
+        if ProposalService.open_notifications_suppressed(proposal):
+            proposal.first_view_notification_status = state.SKIPPED
+            proposal.first_view_notification_last_error = (
+                f'Suppressed for proposal status {proposal.status}.'
+            )
+            proposal.save(update_fields=[
+                'first_view_notification_status',
+                'first_view_notification_last_error',
+            ])
+            return
+        if not ProposalEmailService._is_template_active(
+            'proposal_first_view_notification',
+        ):
+            proposal.first_view_notification_status = state.SKIPPED
+            proposal.first_view_notification_last_error = 'Email template disabled.'
+            proposal.save(update_fields=[
+                'first_view_notification_status',
+                'first_view_notification_last_error',
+            ])
+            return
+        if (
+            proposal.first_view_notification_status == state.SENDING
+            and proposal.first_view_notification_attempted_at
+            and proposal.first_view_notification_attempted_at
+            > now - timedelta(minutes=10)
+        ):
+            return
+        if proposal.first_view_notification_attempts >= max_attempts:
+            return
+
+        proposal.first_view_notification_status = state.SENDING
+        proposal.first_view_notification_attempts += 1
+        proposal.first_view_notification_attempted_at = now
+        proposal.first_view_notification_last_error = ''
+        proposal.save(update_fields=[
+            'first_view_notification_status',
+            'first_view_notification_attempts',
+            'first_view_notification_attempted_at',
+            'first_view_notification_last_error',
+        ])
+
     try:
-        proposal = BusinessProposal.objects.get(pk=proposal_id)
-    except BusinessProposal.DoesNotExist:
-        logger.warning(
-            'Proposal %s not found for first-view notification task.',
-            proposal_id,
+        sent = ProposalEmailService.send_first_view_notification(
+            proposal,
+            raise_on_error=True,
         )
-        return
-
-    # Defense in depth: never notify opens on closed proposals.
-    if ProposalService.open_notifications_suppressed(proposal):
-        logger.info(
-            'Skipping first-view notification for proposal %s (status=%s).',
-            proposal.uuid, proposal.status,
+        if not sent:
+            raise RuntimeError('First-view notification was not delivered.')
+    except Exception as exc:
+        sanitized_error = ' '.join(str(exc).split())[:1000]
+        BusinessProposal.objects.filter(pk=proposal_id).update(
+            first_view_notification_status=state.FAILED,
+            first_view_notification_last_error=sanitized_error,
         )
-        return
+        raise
 
-    ProposalEmailService.send_first_view_notification(proposal)
+    sent_at = timezone.now()
+    BusinessProposal.objects.filter(pk=proposal_id).update(
+        first_view_notification_status=state.SENT,
+        first_view_notification_sent_at=sent_at,
+        first_view_notification_last_error='',
+    )
+
+
+@periodic_task(crontab(minute='*/5'))
+def reconcile_first_view_notifications():
+    """Re-enqueue pending, failed, or stale first-view deliveries."""
+    from django.db.models import Q
+
+    from content.models import BusinessProposal
+
+    state = BusinessProposal.FirstViewNotificationStatus
+    stale_before = timezone.now() - timedelta(minutes=10)
+    candidates = (
+        BusinessProposal.objects
+        .filter(first_viewed_at__isnull=False)
+        .filter(
+            Q(first_view_notification_status=state.PENDING)
+            | Q(
+                first_view_notification_status=state.FAILED,
+                first_view_notification_attempts__lt=4,
+            )
+            | Q(
+                first_view_notification_status=state.SENDING,
+                first_view_notification_attempted_at__lt=stale_before,
+                first_view_notification_attempts__lt=4,
+            )
+        )
+        .values_list('id', flat=True)[:100]
+    )
+    queued = 0
+    for proposal_id in candidates:
+        try:
+            notify_first_view(proposal_id)
+            queued += 1
+        except Exception:
+            logger.exception(
+                'Failed to reconcile first-view notification for proposal %s',
+                proposal_id,
+            )
+    if queued:
+        logger.info('Re-enqueued %d first-view notification(s).', queued)
 
 
 @task()

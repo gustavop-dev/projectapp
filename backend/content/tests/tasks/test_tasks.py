@@ -999,6 +999,8 @@ class TestNotifyFirstViewTask:
             client_name='Client',
             client_email='client@test.com',
             status='sent',
+            first_viewed_at=timezone.now(),
+            first_view_notification_status='pending',
         )
 
         import content.tasks as tasks_module
@@ -1006,6 +1008,8 @@ class TestNotifyFirstViewTask:
 
         mock_send.assert_called_once()
         assert mock_send.call_args[0][0].pk == proposal.pk
+        proposal.refresh_from_db()
+        assert proposal.first_view_notification_status == 'sent'
 
     def test_skips_when_proposal_not_found(self):
         """Task returns early when proposal ID does not exist."""
