@@ -579,7 +579,7 @@ import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { documentOriginWithFocus } from '~/utils/documentReturnNavigation';
 import {
-  manualFolderFilters,
+  contextualFolderFilters,
   navigationEntityFilters,
 } from '~/utils/documentNavigationFilters';
 import {
@@ -1164,8 +1164,17 @@ function selectNavigationEntityFromDrawer(value) {
   return result;
 }
 
+function filtersForFolder(id) {
+  return contextualFolderFilters({
+    folderId: id,
+    folder: typeof id === 'number' ? folderStore.folderById(id) : null,
+    mode: navigationMode.value,
+    selection: navigationSelection.value,
+  });
+}
+
 function handleSelectFolder(id) {
-  const filters = manualFolderFilters(id);
+  const filters = filtersForFolder(id);
   if (isSearching.value) {
     // Elegir una carpeta en plena búsqueda es navegación: se sale de la
     // búsqueda hacia esa carpeta. Antes el filtro cambiaba por debajo y la
@@ -1523,10 +1532,16 @@ function editToFor(doc) {
  */
 function folderToFor(sub) {
   if (!sub || isSearching.value) return null;
+  const filters = filtersForFolder(sub.id);
   const query = { ...route.query };
   delete query.page;
   delete query.focus;
-  return localePath({ path: route.path, query: { ...query, folder: String(sub.id) } });
+  query.folder = String(sub.id);
+  if (filters.project == null) delete query.project;
+  else query.project = String(filters.project);
+  if (filters.client == null) delete query.client;
+  else query.client = String(filters.client);
+  return localePath({ path: route.path, query });
 }
 
 function handleEditDoc(doc) {
