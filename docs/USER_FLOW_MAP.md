@@ -3190,16 +3190,16 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** guest / admin / platform-admin / platform-client
 - **Priority:** P2
 - **Routes:** Transversal; representative E2E route `/panel/views`
-- **Description:** Activate an icon-only action, navigation control, opener, or toggle and receive an immediate balanced 360 ms press, rebound and expanding halo. Copy actions additionally confirm the real clipboard result beside the originating control without replacing its icon.
+- **Description:** Activate an icon-only action, navigation control, opener, or toggle and receive an immediate restrained 420 ms press, upward hop and landing without a border effect. Copy actions additionally confirm the real clipboard result beside the originating control and temporarily replace the copy glyph with a check.
 - **Steps:**
   1. The user reaches a surface with an enabled icon-only control.
   2. The user activates the control with pointer, touch, or keyboard.
-  3. The control immediately compresses, rebounds and settles while its shared halo expands and fades.
+  3. The glyph immediately presses down, hops upward and settles without moving the control or animating its border.
   4. For copy, the browser resolves the clipboard write.
-  5. The same control shows a nearby success label and the clipboard contains the requested reference.
+  5. The same control shows a check plus a nearby success label, then returns to the copy glyph; the clipboard contains the requested reference.
 - **Branches:**
-  - [Branch A — Clipboard denied] The control shows a nearby error label and the owning surface keeps its normal error notification.
-  - [Branch B — Reduced motion] The halo/color reaction remains visible without scale animation.
+  - [Branch A — Clipboard denied] The control keeps the copy glyph, shows a nearby error label and the owning surface keeps its normal error notification.
+  - [Branch B — Reduced motion] A static contrast reaction remains visible without transform animation.
   - [Branch C — Coarse pointer] The interactive target is at least 44 × 44 px.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-view-map.spec.js`

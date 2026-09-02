@@ -131,7 +131,7 @@ describe('BaseButton', () => {
     beforeEach(() => jest.useFakeTimers())
     afterEach(() => jest.useRealTimers())
 
-    it('keeps an icon visibly active for the complete pulse', async () => {
+    it('keeps an icon visibly active for the complete hop', async () => {
       const wrapper = mount(BaseButton, {
         props: { iconOnly: true },
         attrs: { 'aria-label': 'Copiar' },
@@ -141,7 +141,7 @@ describe('BaseButton', () => {
       await wrapper.get('button').trigger('click')
       expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
 
-      jest.advanceTimersByTime(359)
+      jest.advanceTimersByTime(419)
       await wrapper.vm.$nextTick()
       expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
 
@@ -161,7 +161,7 @@ describe('BaseButton', () => {
       jest.advanceTimersByTime(200)
 
       await wrapper.get('button').trigger('click')
-      jest.advanceTimersByTime(359)
+      jest.advanceTimersByTime(419)
       await wrapper.vm.$nextTick()
       expect(wrapper.get('button').attributes('data-activation-state')).toBe('active')
 
@@ -297,10 +297,11 @@ describe('BaseButton', () => {
     expect(wrapper.attributes('type')).toBeUndefined()
   })
 
-  it('always includes focus-ring token class', () => {
+  it('shows the focus ring only for keyboard-visible focus', () => {
     const wrapper = mount(BaseButton, { slots: { default: 'x' } })
     const cls = wrapper.find('button').attributes('class') || ''
-    expect(cls).toContain('focus:ring-focus-ring/40')
+    expect(cls).toContain('focus-visible:ring-focus-ring/40')
+    expect(cls).not.toContain('focus:ring-focus-ring/40')
   })
 
   it('keeps icon and short text atomic by default', () => {
