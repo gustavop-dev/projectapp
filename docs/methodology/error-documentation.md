@@ -7,6 +7,13 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-02 — una subcarpeta de proyecto encendía «Todos»:** el clic
+> simple clasificaba cualquier subcarpeta como carpeta independiente y borraba
+> `project`/`client`, aunque el usuario seguía dentro de esa entidad. Carpeta y
+> entidad ahora se conservan juntas cuando su asociación coincide; sólo
+> Carpetas propias o ajenas limpian los ejes, y el regreso del editor reutiliza
+> ese origen completo.
+
 > **Resuelto 2026-09-01 — la reacción de iconos se percibía como un borde:**
 > el refinamiento previo dependía de un halo expansivo y sólo escalaba el glifo,
 > por lo que no expresaba el pequeño salto solicitado. El primitive ahora anima
@@ -112,6 +119,26 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-054] Una carpeta asociada perdía el proyecto al navegar y volver
+
+- **Date**: 2026-09-02
+- **Context**: En el Gestor Documental, después de elegir un proyecto como
+  Vástago, abrir una subcarpeta resaltaba «Todos». El origen incompleto se
+  propagaba al editor y reaparecía al usar «Volver».
+- **Root Cause**: El clic simple llamaba `manualFolderFilters` para todas las
+  carpetas. Esa decisión borraba los ejes de entidad basándose en el tipo de
+  interacción, sin comprobar que la carpeta destino seguía asociada al proyecto
+  o cliente seleccionado; además divergía del `href` navegable de la fila.
+- **Resolution**: Centralizar la decisión en `contextualFolderFilters`, conservar
+  la entidad sólo cuando coincide con la asociación real de la carpeta y usar el
+  mismo resultado para el estado y el enlace. Las Carpetas propias y las ajenas
+  conservan la limpieza anterior.
+- **Files Affected**: `frontend/utils/documentNavigationFilters.js`,
+  `frontend/pages/panel/documents/index.vue` y sus pruebas focales.
+- **Verification**: 20 pruebas unitarias, los 12 escenarios E2E de navegación y
+  el build Nuxt pasan; el flujo P1 conserva cobertura `display`, `success` y
+  `failure`.
 
 ### [ERR-053] El catálogo público conservaba el hueco del encabezado eliminado
 

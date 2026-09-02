@@ -2,6 +2,15 @@
 
 ## Current State
 
+**2026-09-02 — contexto proyecto→carpeta de Documentos listo para integrar:**
+el clic simple y el enlace real de una carpeta usan ya la misma decisión. Una
+subcarpeta de Vástago conserva `project` junto con `folder`, mantiene el proyecto
+seleccionado y entrega ese origen completo al editor; «Volver» restaura carpeta,
+proyecto y foco. La paridad cubre clientes, mientras Carpetas propias o ajenas
+siguen limpiando ambos ejes. Sin cambios de API, backend ni esquema.
+Verificación: 20 unitarias focales, los 12 escenarios E2E del flujo, build Nuxt,
+quality gate 100/100 y auditoría P1 (`display`, `success`, `failure`) en verde.
+
 **2026-09-01 — paridad pública de Módulos adicionales lista para integrar:** el
 catálogo canónico y las selecciones ya no conservan el hueco del Navbar
 retirado. Tema y guía quedan como acciones flotantes izquierdas; compartir y PDF

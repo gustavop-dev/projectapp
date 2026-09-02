@@ -1,5 +1,11 @@
 # Task Plan — ProjectApp
 
+> **Corrección lista para integrar — 2026-09-02:** proyecto o cliente permanecen
+> seleccionados al navegar dentro de sus carpetas y el origen completo vuelve
+> desde el editor con foco. Carpetas propias o ajenas siguen limpiando ambos
+> ejes. Sin cambios de API, backend ni esquema; 20 unitarias, 12 E2E, build,
+> quality gate 100/100 y el flujo P1 en sus tres outcomes están verdes.
+
 > **Paridad pública de Módulos adicionales lista para integrar — 2026-09-01:**
 > se cerró el hueco superior dejado por el Navbar retirado y se añadieron tema
 > persistente, guía propia reiniciable, compartir la URL exacta y PDF flotante,

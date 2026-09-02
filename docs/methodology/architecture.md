@@ -216,6 +216,10 @@ flowchart TD
 The Documents list owns its navigation state in the route query. Filters, global
 search, normal/archived scope, list/grid mode and pagination are therefore
 shareable and restorable browser history entries rather than component memory.
+Project/client and folder are complementary coordinates while the folder belongs
+to the selected entity. Only moving to an own or unrelated folder drops both
+entity axes; this prevents the sidebar from selecting **All** inside a project
+hierarchy.
 Opening an editor copies the complete localized list route into `from` and adds the
 document id as `focus` for the explicit return path.
 
@@ -230,8 +234,10 @@ flowchart LR
 `frontend/utils/documentReturnNavigation.js` accepts only same-application routes
 whose localized path resolves to `/panel/documents`; it rejects protocol-relative,
 external and cross-module destinations. `useDocumentFilterQuery` owns bidirectional
-route/state synchronization. This flow is frontend-only and does not change the
-Documents API or schema.
+route/state synchronization. `contextualFolderFilters` classifies the destination
+from its actual `project`/`client` association rather than `folder_kind`, and the
+same result feeds plain-click state and the real folder-link URL. This flow is
+frontend-only and does not change the Documents API or schema.
 
 ### MCP ingress and throttling
 

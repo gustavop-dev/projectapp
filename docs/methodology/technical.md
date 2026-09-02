@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Navegación contextual de Documentos — 2026-09-02:**
+> `contextualFolderFilters` conserva `project` o `client` cuando la carpeta
+> destino pertenece a la entidad seleccionada, incluida su raíz lógica, y limpia
+> ambos ejes para Carpetas propias o destinos ajenos. `index.vue` usa esa única
+> decisión tanto en el clic simple como en el `href` real de la carpeta; el
+> origen serializado por el editor recibe así `folder` + entidad y puede restaurar
+> el recorrido completo con `focus`. No cambia API, backend ni esquema.
+
 > **Paridad técnica del catálogo público — 2026-09-01:**
 > `useAdditionalModulesTheme` persiste `light|dark` en
 > `projectapp-additional-modules-theme`; la guía persiste su cierre en
