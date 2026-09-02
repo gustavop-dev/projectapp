@@ -59,6 +59,10 @@ from content.services.collection_account_service import (
     mark_collection_account_cancelled,
     mark_collection_account_paid,
 )
+from content.services.collection_account_snapshot_service import (
+    CollectionAccountSnapshotError,
+    stored_collection_account_pdf,
+)
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 
 # What a single URL path segment can carry without needing escaping.
@@ -175,7 +179,9 @@ def preview_collection_account_view(request):
         with transaction.atomic():
             document = (
                 collection_account_create_service.create_income_collection_account(
-                    serializer.validated_data, acting_user=request.user,
+                    serializer.validated_data,
+                    acting_user=request.user,
+                    persist_snapshot=False,
                 )
             )
             document = _get_document(document.pk)
@@ -347,9 +353,10 @@ def retrieve_collection_account(request, doc_id):
 @permission_classes([IsSuperUser])
 def collection_account_pdf(request, doc_id):
     document = _get_document(doc_id)
-    pdf_bytes = CollectionAccountPdfService.generate(document)
-    if not pdf_bytes:
-        return error_response('No se pudo generar el PDF.', status=500)
+    try:
+        pdf_bytes = stored_collection_account_pdf(document)
+    except CollectionAccountSnapshotError as exc:
+        return error_response(str(exc), status=500)
     filename = f'{document.public_number or document.pk}.pdf'
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     # `?inline=1` lets the panel embed the document in a viewer instead of

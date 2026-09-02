@@ -344,7 +344,9 @@ def test_collection_account_seed_uses_automatic_filing(seeded_documents):
     for document in accounts:
         if document.commercial_status == Document.CommercialStatus.DRAFT:
             assert document.folder_id is None
+            assert not document.generated_file
             continue
+        assert document.generated_file
         path = [
             *(folder.name for folder in document.folder.get_ancestors()),
             document.folder.name,

@@ -306,6 +306,7 @@ describe('DocumentActionsSheet — issued collection accounts', () => {
         ...baseDocument,
         document_type_code: 'collection_account',
         commercial_status: 'issued',
+        is_generated_snapshot: true,
       },
       editTo: '/es-co/panel/documents/7/edit',
     });

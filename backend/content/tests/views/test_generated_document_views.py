@@ -201,20 +201,28 @@ def test_generated_snapshot_downloads_stored_bytes(
     assert response.content == b'%PDF stored-version'
 
 
-def test_collection_account_download_uses_account_pdf(admin_client):
+def test_collection_account_download_uses_stored_account_pdf(
+    admin_client, settings, tmp_path,
+):
+    settings.MEDIA_ROOT = tmp_path
     document = make_account(Document.CommercialStatus.ISSUED)
+    document.public_number = 'PA-ACME-001'
+    document.generated_file.save(
+        'PA-ACME-001.pdf', ContentFile(b'%PDF-1.4 stored-collection-account'),
+        save=True,
+    )
 
     with patch(
         'content.services.collection_account_pdf_service.CollectionAccountPdfService.generate',
-        return_value=b'%PDF collection-account',
+        side_effect=AssertionError('stored accounts must not regenerate'),
     ) as generate:
         response = admin_client.get(
             reverse('download-document-pdf', kwargs={'document_id': document.pk}),
         )
 
     assert response.status_code == 200
-    assert response.content == b'%PDF collection-account'
-    generate.assert_called_once_with(document)
+    assert response.content == b'%PDF-1.4 stored-collection-account'
+    generate.assert_not_called()
 
 
 def test_managed_folder_lists_newest_documents_first(admin_client):

@@ -14,6 +14,7 @@ it from the Cobros tab.
 """
 import logging
 
+from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
@@ -36,6 +37,11 @@ from content.services.collection_account_service import (
     get_default_issuer,
     issue_collection_account,
     seed_default_payment_methods,
+)
+from content.services.collection_account_snapshot_service import (
+    CollectionAccountSnapshotError,
+    discard_stored_collection_account_pdf,
+    persist_collection_account_pdf,
 )
 from content.services.document_type_utils import (
     get_collection_account_document_type,
@@ -149,7 +155,6 @@ def send_hosting_collection_account(hosting, *, acting_user=None):
         )
 
     issuer = _default_issuer()
-    document = create_hosting_collection_account(hosting, acting_user=acting_user)
     profile = hosting.client
     # With a client linked the cuenta joins that client's own series, so
     # "how many cuentas have I issued to them" finally counts its hostings.
@@ -174,33 +179,44 @@ def send_hosting_collection_account(hosting, *, acting_user=None):
             '',
             hosting.client_contact_name,
         )
+    stored = None
     try:
-        issue_collection_account(
-            document,
-            issuer=issuer,
-            acting_user=acting_user,
-            customer={
-                'name': legal_name,
-                'email': recipient,
-                'identification': hosting.client_identification or legal_id,
-                'identification_type': legal_id_type,
-                'contact_name': hosting.client_contact_name or contact,
-                'project_name': (
-                    hosting.project.name if hosting.project_id else ''
-                ),
-            },
-            number_allocator=allocator,
-        )
-    except CollectionAccountError as exc:
-        raise HostingBillingError(str(exc)) from exc
+        with transaction.atomic():
+            document = create_hosting_collection_account(
+                hosting, acting_user=acting_user,
+            )
+            issue_collection_account(
+                document,
+                issuer=issuer,
+                acting_user=acting_user,
+                customer={
+                    'name': legal_name,
+                    'email': recipient,
+                    'identification': hosting.client_identification or legal_id,
+                    'identification_type': legal_id_type,
+                    'contact_name': hosting.client_contact_name or contact,
+                    'project_name': (
+                        hosting.project.name if hosting.project_id else ''
+                    ),
+                },
+                number_allocator=allocator,
+            )
 
-    # Re-read: the in-memory document may cache the pre-issue extension
-    # (empty customer snapshot) via the reverse one-to-one descriptor.
-    document = (
-        Document.objects.select_related('collection_account')
-        .prefetch_related('items', 'payment_methods')
-        .get(pk=document.pk)
-    )
+            # Re-read: the in-memory document may cache the pre-issue extension
+            # (empty customer snapshot) via the reverse one-to-one descriptor.
+            document = (
+                Document.objects.select_related('collection_account')
+                .prefetch_related('items', 'payment_methods')
+                .get(pk=document.pk)
+            )
+            stored = persist_collection_account_pdf(document)
+    except (CollectionAccountError, CollectionAccountSnapshotError) as exc:
+        discard_stored_collection_account_pdf(stored)
+        raise HostingBillingError(str(exc)) from exc
+    except Exception:
+        discard_stored_collection_account_pdf(stored)
+        raise
+
     email_sent = _send_client_email(document, hosting=hosting)
 
     # Silence the expiry cadence for this period even if the email failed:

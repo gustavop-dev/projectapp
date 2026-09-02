@@ -81,6 +81,20 @@ describe('MarkdownPreviewModal', () => {
     wrapper.unmount();
   });
 
+  it('constrains the preview surface when requested', () => {
+    const wrapper = mountModal(
+      { contained: true },
+      { default: '<p data-testid="slot-content">Contenido</p>' },
+    );
+
+    const panel = wrapper.get('[data-testid="markdown-preview-modal-panel"]');
+    expect(panel.classes()).toContain('max-w-4xl');
+    expect(panel.classes()).not.toContain('flex-1');
+    expect(wrapper.get('[data-testid="slot-content"]').element.parentElement.className)
+      .toContain('max-w-3xl');
+    wrapper.unmount();
+  });
+
   it('adds overflow:hidden to document.body when modelValue becomes true', async () => {
     const wrapper = mountModal({ modelValue: false });
 

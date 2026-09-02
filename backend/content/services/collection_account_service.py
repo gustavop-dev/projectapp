@@ -215,7 +215,13 @@ def _fill_customer_from_user(extension, user, project=None):
 
 @transaction.atomic
 def issue_collection_account(
-    document, *, issuer, acting_user=None, customer=None, number_allocator=None,
+    document,
+    *,
+    issuer,
+    acting_user=None,
+    customer=None,
+    number_allocator=None,
+    issued_on=None,
 ):
     """
     Transition draft -> issued: allocate public number, set dates, snapshot payer/customer.
@@ -250,7 +256,7 @@ def issue_collection_account(
             ext, client_user, project=document.project if document.project_id else None,
         )
 
-    today = today_bogota()
+    today = issued_on or today_bogota()
     document.issue_date = today
     document.issuer = issuer
     if not document.city:
@@ -411,7 +417,18 @@ def delete_collection_account(document, *, acting_user=None):
         document,
         acting_user,
     )
+    generated_storage = (
+        document.generated_file.storage if document.generated_file else None
+    )
+    generated_name = document.generated_file.name if document.generated_file else ''
     document.delete()
+    if generated_storage is not None and generated_name:
+        # Filesystem/object storage is not transactional. Delete only after the
+        # database removal commits; a rollback must leave the immutable PDF.
+        transaction.on_commit(
+            lambda: generated_storage.delete(generated_name),
+            robust=True,
+        )
 
 
 def assert_draft_for_mutation(document):

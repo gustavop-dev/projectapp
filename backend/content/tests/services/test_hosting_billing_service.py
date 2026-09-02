@@ -210,6 +210,25 @@ class TestResend:
         assert resend_collection_account_email(document) is True
         assert len(mail.outbox) == 1
 
+    def test_resend_reuses_the_archived_pdf(self, settings, tmp_path):
+        settings.MEDIA_ROOT = tmp_path
+        result = send_hosting_collection_account(make_hosting())
+        document = Document.objects.get(pk=result['document'].pk)
+        with document.generated_file.open('rb') as stored_file:
+            stored_pdf = stored_file.read()
+        mail.outbox.clear()
+
+        with patch(
+            'content.services.collection_account_pdf_service'
+            '.CollectionAccountPdfService.generate',
+            side_effect=AssertionError('resends must not regenerate'),
+        ) as generate:
+            sent = resend_collection_account_email(document)
+
+        assert sent is True
+        assert mail.outbox[0].attachments[0][1] == stored_pdf
+        generate.assert_not_called()
+
     def test_resend_rejects_drafts_without_customer(self):
         hosting = make_hosting()
         document = create_hosting_collection_account(hosting)

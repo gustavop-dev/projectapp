@@ -165,6 +165,27 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   el build Nuxt pasan; el flujo P1 conserva cobertura `display`, `success` y
   `failure`.
 
+### [ERR-056] Una cuenta de cobro emitida aparecía como un documento vacío
+
+- **Date**: 2026-09-02
+- **Context**: Liquidar una cuenta creaba correctamente el `Document` y su ruta,
+  pero al abrirlo desde el Gestor Documental se mostraba el editor Markdown sin
+  contenido.
+- **Root Cause**: La cuenta se modela con snapshots contables y se renderizaba a
+  PDF bajo demanda; nunca tuvo `content_markdown`. El gestor interpretaba la
+  ausencia de `generated_file` como un documento editable ordinario y cada
+  descarga podía volver a renderizar datos o plantillas posteriores.
+- **Resolution**: Archivar un PDF con hash en la misma transacción de emisión y
+  convertirlo en la única fuente para vista previa, descarga y correos. El
+  editor reconoce el artefacto, muestra sus datos y conserva sólo las funciones
+  ortogonales. Un backfill prioriza el adjunto exacto del historial de correo.
+  También se acotó la geometría de los visores y se añadió navegación por la
+  jerarquía de carpetas bajo el título.
+- **Files Affected**: servicios/vistas de cuentas de cobro y Documentos,
+  `collection_account_snapshot_service.py`, comando de backfill y editor Nuxt.
+- **Verification**: pruebas focales backend/MCP/unit/E2E, build, contratos
+  visuales, Django check y migración dry-run en verde.
+
 ### [ERR-053] El catálogo público conservaba el hueco del encabezado eliminado
 
 - **Date**: 2026-09-01

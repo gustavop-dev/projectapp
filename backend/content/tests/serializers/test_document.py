@@ -7,7 +7,7 @@ import pytest
 from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 
-from content.models import Document, DocumentFolder
+from content.models import Document, DocumentCollectionAccount, DocumentFolder
 from content.serializers.document import (
     DocumentCreateUpdateSerializer,
     DocumentDetailSerializer,
@@ -112,7 +112,8 @@ class TestDocumentDetailSerializer:
             'document_type_code', 'commercial_status',
             'display_state', 'is_generated_snapshot',
             'source_proposal_id', 'source_version',
-            'issue_date',
+            'public_number', 'issue_date', 'due_date', 'currency', 'total',
+            'billing_notes', 'collection_account_observations',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name',
@@ -122,6 +123,22 @@ class TestDocumentDetailSerializer:
             'thread_summary',
         }
         assert set(data.keys()) == expected
+
+    def test_includes_collection_account_annotations(self):
+        document = Document.objects.create(
+            title='Cuenta de cobro', notes='Pago por transferencia.',
+        )
+        DocumentCollectionAccount.objects.create(
+            document=document, observations='Emitida desde ingreso mensual.',
+        )
+
+        data = DocumentDetailSerializer(document).data
+
+        assert data['billing_notes'] == 'Pago por transferencia.'
+        assert (
+            data['collection_account_observations']
+            == 'Emitida desde ingreso mensual.'
+        )
 
 
 # ── DocumentCreateUpdateSerializer ────────────────────────────────────────────
