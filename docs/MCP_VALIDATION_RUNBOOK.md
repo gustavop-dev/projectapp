@@ -90,6 +90,12 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
     miembro de un hilo creado desde el panel.
   - **`position` es derivada** de la cronología: el conector envía fechas y el
     servidor mantiene el orden estable. Es la única exclusión del contrato.
+  - **La fila del listado es una sola.** `list_document_threads` y el índice de
+    hilos del panel (`GET /api/document-threads/`) comparten
+    `DocumentThreadListSerializer` sobre `thread_list_queryset`, igual que ya
+    compartían la consulta. Al tocar esa fila hay que verificar ambas
+    superficies: las fechas se serializan con `isoformat()` (`+00:00`), no con
+    los campos de fecha de DRF, que emitirían `Z` y romperían al conector.
   `dissolve_document_thread` es irreversible —se pierde `linked_by`/`linked_at`—
   y por eso devuelve el hilo completo previo más `released_document_ids`, con lo
   que se puede recrear con `create_document_thread`.

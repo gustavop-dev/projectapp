@@ -24,8 +24,9 @@
       style="--enter-delay: 60ms"
       @update:scope="handleScopeChange"
     >
-      <template v-if="showToolbarDateOrderControl" #actions>
+      <template #actions>
         <BaseButton
+          v-if="showToolbarDateOrderControl"
           variant="secondary"
           size="sm"
           class="flex-shrink-0"
@@ -37,6 +38,16 @@
         >
           <BaseActionIcon :action="dateOrderAction" />
           {{ dateOrderCompactLabel }}
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          class="flex-shrink-0"
+          aria-label="Ver los hilos de documentos"
+          data-testid="documents-threads-index"
+          @click="showThreadIndex = true"
+        >
+          Hilos
         </BaseButton>
       </template>
     </DocumentsToolbar>
@@ -505,6 +516,10 @@
       :document="threadDoc"
       @saved="handleThreadSaved"
     />
+    <DocumentThreadIndexModal
+      v-model="showThreadIndex"
+      @open-thread="handleOpenThreadFromIndex"
+    />
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
@@ -559,6 +574,7 @@ import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModa
 import SendDocumentEmailModal from '~/components/panel/documents/SendDocumentEmailModal.vue';
 import DocumentActionsSheet from '~/components/panel/documents/DocumentActionsSheet.vue';
 import DocumentThreadModal from '~/components/panel/documents/DocumentThreadModal.vue';
+import DocumentThreadIndexModal from '~/components/panel/documents/DocumentThreadIndexModal.vue';
 import DocumentListSkeleton from '~/components/panel/documents/DocumentListSkeleton.vue';
 import DocumentsToolbar from '~/components/panel/documents/DocumentsToolbar.vue';
 import DocumentsTable from '~/components/panel/documents/DocumentsTable.vue';
@@ -954,6 +970,7 @@ const movingDoc = ref(null);
 const renamingDoc = ref(null);
 const emailingDoc = ref(null);
 const threadDoc = ref(null);
+const showThreadIndex = ref(false);
 const actionDoc = ref(null);
 const draggingDoc = ref(null);
 const draggingFolder = ref(null);
@@ -1570,6 +1587,13 @@ function handleSendEmail(doc) {
 
 function handleOpenThread(doc) {
   if (doc) threadDoc.value = doc;
+}
+
+// Dos modales de workspace apilados no se turnan: el índice queda encima y se
+// come los clics del hilo. El índice cede el paso y se reabre desde «Hilos».
+function handleOpenThreadFromIndex(doc) {
+  showThreadIndex.value = false;
+  handleOpenThread(doc);
 }
 
 async function handleThreadSaved() {

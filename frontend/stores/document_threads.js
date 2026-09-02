@@ -9,16 +9,20 @@ import { normalizeApiError } from './services/normalize_api_error';
 
 let candidateToken = 0;
 let threadToken = 0;
+let threadListToken = 0;
 
 export const useDocumentThreadStore = defineStore('document-threads', {
   state: () => ({
     currentThread: null,
+    threads: [],
+    threadCount: 0,
     candidates: [],
     candidateCount: 0,
     candidateNext: null,
     candidatePrevious: null,
     detailCache: {},
     isLoadingThread: false,
+    isLoadingThreads: false,
     isLoadingCandidates: false,
     isLoadingDetail: false,
     isSaving: false,
@@ -46,6 +50,42 @@ export const useDocumentThreadStore = defineStore('document-threads', {
         };
       } finally {
         if (token === threadToken) this.isLoadingThread = false;
+      }
+    },
+
+    async fetchThreads({
+      search = '',
+      order = 'recent',
+      page = 1,
+      pageSize = 20,
+    } = {}) {
+      const token = ++threadListToken;
+      this.isLoadingThreads = true;
+      this.error = null;
+      try {
+        const params = new URLSearchParams({
+          order,
+          page: String(page),
+          page_size: String(pageSize),
+        });
+        if (search.trim()) params.set('search', search.trim());
+        const response = await get_request(`document-threads/?${params.toString()}`);
+        if (token === threadListToken) {
+          this.threads = response.data?.results || [];
+          this.threadCount = response.data?.count || 0;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        const stale = token !== threadListToken;
+        if (!stale) this.error = 'thread_list_failed';
+        return {
+          success: false,
+          stale,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudieron cargar los hilos.'),
+        };
+      } finally {
+        if (token === threadListToken) this.isLoadingThreads = false;
       }
     },
 

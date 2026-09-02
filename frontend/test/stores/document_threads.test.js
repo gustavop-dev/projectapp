@@ -48,6 +48,51 @@ describe('useDocumentThreadStore', () => {
     expect(store.currentThread).toEqual({ id: 22, title: 'Hilo vigente' });
   });
 
+  it('loads the thread index with its order and search', async () => {
+    get_request.mockResolvedValueOnce({
+      data: { count: 2, results: [{ id: 7, title: 'Entrega' }] },
+    });
+
+    await store.fetchThreads({ search: '  acta ', order: 'title', page: 3 });
+
+    const url = get_request.mock.calls[0][0];
+    expect(url).toContain('document-threads/?');
+    expect(url).toContain('order=title');
+    expect(url).toContain('search=acta');
+    expect(url).toContain('page=3');
+    expect(store.threads).toEqual([{ id: 7, title: 'Entrega' }]);
+    expect(store.threadCount).toBe(2);
+  });
+
+  it('omits a blank search from the thread index query', async () => {
+    get_request.mockResolvedValueOnce({ data: { count: 0, results: [] } });
+
+    await store.fetchThreads({ search: '   ' });
+
+    const url = get_request.mock.calls[0][0];
+    expect(url).toContain('order=recent');
+    expect(url).not.toContain('search=');
+  });
+
+  it('ignores a stale thread index response', async () => {
+    let resolveFirst;
+    get_request.mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }));
+    get_request.mockResolvedValueOnce({
+      data: { count: 1, results: [{ id: 2, title: 'Vigente' }] },
+    });
+
+    const first = store.fetchThreads({ search: 'a' });
+    await store.fetchThreads({ search: 'ab' });
+    resolveFirst({ data: { count: 9, results: [{ id: 1, title: 'Obsoleto' }] } });
+
+    await first;
+
+    // Falla si una respuesta que llega tarde pisa la búsqueda vigente.
+    expect(store.threads).toEqual([{ id: 2, title: 'Vigente' }]);
+    expect(store.threadCount).toBe(1);
+    expect(store.isLoadingThreads).toBe(false);
+  });
+
   it('loads paginated candidates with the selected scope', async () => {
     get_request.mockResolvedValueOnce({
       data: { count: 1, next: null, previous: null, results: [{ id: 3 }] },
