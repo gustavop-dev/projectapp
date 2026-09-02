@@ -26,6 +26,7 @@ from content.mcp.accounting_tools import ACCOUNTING_TOOLS
 from content.mcp.client_tools import CLIENT_TOOLS
 from content.mcp.communication_tools import COMMUNICATION_TOOLS
 from content.mcp.diagnostic_tools import DIAGNOSTIC_TOOLS
+from content.mcp.document_thread_tools import DOCUMENT_THREAD_TOOLS
 from content.mcp.document_tools import DOCUMENT_TOOLS
 from content.mcp.linkedin_tools import LINKEDIN_TOOLS
 from content.mcp.proposal_tools import PROPOSAL_TOOLS
@@ -41,7 +42,9 @@ LAST_USED_TOUCH_SECONDS = 60
 # One entry per exposed MCP connector: slug -> tool registry.
 TOOLS_BY_SLUG = {
     'blog': BLOG_TOOLS,
-    'documents': DOCUMENT_TOOLS,
+    # Los hilos viven en su propio registro: son una relación entre documentos,
+    # no una operación sobre uno, y así el catálogo base queda legible.
+    'documents': DOCUMENT_TOOLS + DOCUMENT_THREAD_TOOLS,
     'clients': CLIENT_TOOLS,
     'communications': COMMUNICATION_TOOLS,
     'tasks': TASK_TOOLS,

@@ -69,11 +69,24 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   saca de la vista. Queda excluido del MCP igual que el de documentos, y la madre
   no se puede archivar. `list_threads` no expone `scope`: el conector ve siempre
   el ámbito activo.
-- Los hilos entre documentos (`DocumentThread` / `DocumentThreadItem`) son una
-  relación interna del modal del panel en su versión 1. Todos sus campos están
-  clasificados como exclusión deliberada del conector `documents`: no se
-  agregan herramientas para crear, editar, consultar ni disolver esos hilos y
-  el inventario permanece en 17 herramientas.
+- Los hilos entre documentos (`DocumentThread` / `DocumentThreadItem`) sí forman
+  parte del conector `documents`. Tres reglas los gobiernan y ninguna se puede
+  relajar desde una herramienta:
+  - **La edición de miembros es incremental.** El PATCH del panel reemplaza la
+    lista completa y disuelve el hilo cuando queda un solo miembro; un conector
+    que reconstruyera esa lista destruiría la historia al olvidar una entrada.
+    Por eso `update_document_thread` expone `link` / `unlink_document_ids`, se
+    rechaza antes de bajar de dos documentos, y disolver es una herramienta
+    aparte.
+  - **Enlazar acepta sólo documentos markdown activos**, la misma regla del
+    resto del conector. Leer y desenlazar aceptan cualquier miembro, porque un
+    hilo armado desde el panel puede contener una cuenta de cobro o un
+    documento archivado.
+  - **`position` es derivada** de la cronología: el conector envía fechas y el
+    servidor mantiene el orden estable. Es la única exclusión del contrato.
+  `dissolve_document_thread` es irreversible —se pierde `linked_by`/`linked_at`—
+  y por eso devuelve el hilo completo previo más `released_document_ids`, con lo
+  que se puede recrear con `create_document_thread`.
 - Nunca copiar tokens reales en tickets, fixtures, logs, commits o este guion.
 
 ## Inventario vigente
@@ -81,7 +94,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | Slug | Herramientas | Alcance |
 |---|---:|---|
 | `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
-| `documents` | 17 | Carpetas manuales, markdown, cliente/proyecto, estados y observaciones recuperables; jerarquías generadas visibles pero protegidas |
+| `documents` | 22 | Carpetas manuales, markdown, cliente/proyecto, estados, observaciones recuperables e hilos entre documentos; jerarquías generadas visibles pero protegidas |
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
 | `communications` | 6 | Hilos, borradores editables y registro conversacional de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
@@ -280,6 +293,63 @@ estados o un estado retirado debe revertir toda la operación y conservar la
 observación en la papelera. Restaurar una fila activa o de otro documento debe
 fallar de forma explícita.
 
+## Documentos: hilos entre documentos
+
+Usar tres documentos markdown activos en carpetas distintas —el punto del hilo
+es que la historia cruza carpetas, clientes y proyectos— y un cuarto que ya
+pertenezca a otro hilo. Las herramientas reutilizan `document_thread_service`,
+el mismo servicio transaccional que el modal del panel.
+
+### 1. `create_document_thread`
+
+```json
+{"title": "Etapa 2 · Conteo Diario",
+ "items": [{"document_id": 138, "occurred_on": "2026-08-16"},
+           {"document_id": 146, "occurred_on": "2026-08-24"}]}
+```
+
+Verificar que el hilo nace con los documentos ordenados **por fecha**, no por el
+orden en que se enviaron, y que `occurred_on` omitido cae en `issue_date` o en
+el día Bogotá de `created_at`. Sin `title`, el nombre es el del primer documento.
+
+Deben fallar sin crear nada: un solo documento, un documento repetido, uno que
+ya pertenece a otro hilo (el mensaje nombra el hilo dueño), una cuenta de cobro,
+un documento archivado y una fecha que no sea `YYYY-MM-DD`.
+
+### 2. `get_document_thread` y `list_document_threads`
+
+```json
+{"document_id": 146}
+```
+
+Verificar que un documento suelto responde `thread: null` —no un error— y que
+`thread_id` abre el mismo hilo. En el listado, comprobar `document_count`,
+`first_occurred_on`, `last_occurred_on`, `latest_item` y que `search` encuentra
+el hilo tanto por su nombre como por el título de cualquiera de sus documentos.
+
+### 3. `update_document_thread`
+
+```json
+{"thread_id": 4, "link": [{"document_id": 162, "occurred_on": "2026-08-27"}]}
+```
+
+**La verificación que importa**: los miembros no mencionados siguen ahí. Un
+`link` agrega o re-fecha; `unlink_document_ids` retira sin borrar el documento.
+La operación que dejaría el hilo con menos de dos documentos debe rechazarse y
+el hilo quedar intacto — ésa es la diferencia con el PATCH del panel, que ahí sí
+disuelve. Renombrar y mover miembros en la misma llamada es atómico: si el
+nombre falla, la membresía tampoco cambia.
+
+### 4. `dissolve_document_thread`
+
+```json
+{"thread_id": 4}
+```
+
+Verificar que los documentos sobreviven y quedan disponibles para otro hilo, que
+la respuesta trae el hilo completo previo y `released_document_ids`, y que un
+documento antes enlazado ya se puede eliminar (el `PROTECT` lo bloqueaba).
+
 ## Revalidación de conectores existentes
 
 | Conector | Lectura que debe comprobarse | Escritura/acción que debe comprobarse | Error representativo |
@@ -361,8 +431,8 @@ qué queda fuera del MCP.
 - Comunicaciones cubre las seis operaciones vigentes y todos sus rechazos dejan
   la base consistente.
 - Los MCP existentes devuelven y aceptan los campos descritos en su contrato;
-  Documentos expone 17 herramientas y conserva paridad para borrar, listar la
-  papelera y restaurar observaciones.
+  Documentos expone 22 herramientas y conserva paridad para borrar, listar la
+  papelera, restaurar observaciones y operar hilos entre documentos.
 - No se alteraron tokens ni estados activos de conectores existentes durante la
   migración; Comunicaciones sigue inactivo/sin token hasta activación manual.
 - Tests focales, regresión, Django check, migraciones sin drift y quality gate
