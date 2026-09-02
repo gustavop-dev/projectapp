@@ -1324,6 +1324,9 @@ class Command(BaseCommand):
             mark_collection_account_paid,
             recalculate_document_totals,
         )
+        from content.services.collection_account_snapshot_service import (
+            persist_collection_account_pdf,
+        )
         from content.services.document_type_utils import get_collection_account_document_type
 
         if not ecommerce_project:
@@ -1356,7 +1359,15 @@ class Command(BaseCommand):
 
         today = self.seed_context.anchor_date
 
-        def new_draft(title, project, *, billing_concept, payment_term_days=30, support_ref=''):
+        def new_draft(
+            title,
+            project,
+            *,
+            billing_concept,
+            payment_term_days=30,
+            due_date=None,
+            support_ref='',
+        ):
             doc = Document.objects.create(
                 uuid=self.seed_context.uuid(f'platform-collection-{title}'),
                 title=title,
@@ -1367,17 +1378,34 @@ class Command(BaseCommand):
                 currency='COP',
                 city='Bogotá',
                 notes='Demo seed data for platform tests.',
+                due_date=due_date,
                 created_by=admin_user,
                 updated_by=admin_user,
             )
             DocumentCollectionAccount.objects.create(
                 document=doc,
                 billing_concept=billing_concept,
-                payment_term_type=DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE,
-                payment_term_days=payment_term_days,
+                payment_term_type=(
+                    DocumentCollectionAccount.PaymentTermType.FIXED_DATE
+                    if due_date
+                    else DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE
+                ),
+                payment_term_days=None if due_date else payment_term_days,
                 support_reference=support_ref or f'DEMO-PROJ-{project.id}',
             )
             return doc
+
+        def issue_demo_collection_account(doc):
+            issue_collection_account(
+                doc, issuer=issuer, acting_user=admin_user,
+            )
+            issued = (
+                Document.objects.select_related('collection_account')
+                .prefetch_related('items', 'payment_methods')
+                .get(pk=doc.pk)
+            )
+            persist_collection_account_pdf(issued)
+            return issued
 
         def add_items(doc, rows):
             for idx, row in enumerate(rows):
@@ -1462,7 +1490,7 @@ class Command(BaseCommand):
         )
         add_bank_transfer(d2)
         d2 = Document.objects.get(pk=d2.pk)
-        issue_collection_account(d2, issuer=issuer, acting_user=admin_user)
+        d2 = issue_demo_collection_account(d2)
 
         # 3) Paid (terminal state)
         d3 = new_draft(
@@ -1483,7 +1511,7 @@ class Command(BaseCommand):
         )
         add_bank_transfer(d3)
         d3 = Document.objects.get(pk=d3.pk)
-        issue_collection_account(d3, issuer=issuer, acting_user=admin_user)
+        d3 = issue_demo_collection_account(d3)
         mark_collection_account_paid(d3, acting_user=admin_user)
 
         # 4) Cancelled from draft
@@ -1504,7 +1532,7 @@ class Command(BaseCommand):
             '[Demo] Overdue collection account',
             ecommerce_project,
             billing_concept='Balance due — integration phase',
-            payment_term_days=14,
+            due_date=today - timedelta(days=20),
         )
         add_items(
             d5,
@@ -1518,8 +1546,7 @@ class Command(BaseCommand):
         )
         add_bank_transfer(d5)
         d5 = Document.objects.get(pk=d5.pk)
-        issue_collection_account(d5, issuer=issuer, acting_user=admin_user)
-        Document.objects.filter(pk=d5.pk).update(due_date=today - timedelta(days=20))
+        d5 = issue_demo_collection_account(d5)
 
         # 6) Issued then cancelled (voided after issue)
         d6 = new_draft(
@@ -1533,8 +1560,7 @@ class Command(BaseCommand):
             [{'description': 'Duplicate billing correction', 'quantity': '1', 'unit_price': '500000'}],
         )
         d6 = Document.objects.get(pk=d6.pk)
-        issue_collection_account(d6, issuer=issuer, acting_user=admin_user)
-        d6 = Document.objects.get(pk=d6.pk)
+        d6 = issue_demo_collection_account(d6)
         mark_collection_account_cancelled(d6, acting_user=admin_user)
 
         # 7) Second project — small issued document
@@ -1550,7 +1576,7 @@ class Command(BaseCommand):
                 [{'description': 'Workshop + backlog', 'quantity': '2', 'unit_price': '800000'}],
             )
             d7 = Document.objects.get(pk=d7.pk)
-            issue_collection_account(d7, issuer=issuer, acting_user=admin_user)
+            d7 = issue_demo_collection_account(d7)
 
         self.stdout.write(
             self.style.SUCCESS(

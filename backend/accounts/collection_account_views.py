@@ -3,6 +3,7 @@ JWT API views for collection accounts (platform).
 """
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -33,6 +34,12 @@ from content.services.collection_account_service import (
     recalculate_document_totals,
 )
 from content.services.collection_account_numbering import client_number_allocator
+from content.services.collection_account_snapshot_service import (
+    CollectionAccountSnapshotError,
+    discard_stored_collection_account_pdf,
+    persist_collection_account_pdf,
+    stored_collection_account_pdf,
+)
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_collection_account_document_type
 
@@ -318,17 +325,25 @@ def collection_account_issue_view(request, account_id):
             {'detail': 'No issuer profile configured.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    stored = None
     try:
-        # Same series as the panel and hosting flows: one client, one
-        # consecutivo, instead of a second numbering living in parallel.
-        issue_collection_account(
-            doc,
-            issuer=issuer,
-            acting_user=request.user,
-            number_allocator=client_number_allocator(doc, issuer),
-        )
-    except CollectionAccountError as e:
+        with transaction.atomic():
+            # Same series as the panel and hosting flows: one client, one
+            # consecutivo, instead of a second numbering living in parallel.
+            issue_collection_account(
+                doc,
+                issuer=issuer,
+                acting_user=request.user,
+                number_allocator=client_number_allocator(doc, issuer),
+            )
+            doc = _base_collection_qs().get(pk=doc.pk)
+            stored = persist_collection_account_pdf(doc)
+    except (CollectionAccountError, CollectionAccountSnapshotError) as e:
+        discard_stored_collection_account_pdf(stored)
         return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        discard_stored_collection_account_pdf(stored)
+        raise
     doc = _base_collection_qs().get(pk=doc.pk)
     return Response(CollectionAccountDetailSerializer(doc).data)
 
@@ -382,12 +397,11 @@ def collection_account_pdf_view(request, account_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    from content.services.collection_account_pdf_service import CollectionAccountPdfService
-
-    pdf_bytes = CollectionAccountPdfService.generate(doc)
-    if not pdf_bytes:
+    try:
+        pdf_bytes = stored_collection_account_pdf(doc)
+    except CollectionAccountSnapshotError as exc:
         return Response(
-            {'detail': 'Failed to generate PDF.'},
+            {'detail': str(exc)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     from django.http import HttpResponse

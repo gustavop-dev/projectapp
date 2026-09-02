@@ -524,7 +524,7 @@ def retrieve_document(request, document_id):
             ),
         ).select_related(
             'document_type', 'folder', 'project', 'client_user__profile',
-            'thread_item__thread',
+            'thread_item__thread', 'collection_account',
         ).prefetch_related(
             Prefetch(
                 'document_notes',
@@ -832,6 +832,27 @@ def download_document_pdf(request, document_id):
     """
     document = get_object_or_404(Document, pk=document_id)
 
+    if is_collection_account(document):
+        from content.services.collection_account_snapshot_service import (
+            CollectionAccountSnapshotError,
+            stored_collection_account_pdf,
+        )
+
+        try:
+            pdf_bytes = stored_collection_account_pdf(document)
+        except CollectionAccountSnapshotError as exc:
+            return Response(
+                {'detail': str(exc)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        filename = f'{safe_slug(document.public_number or document.title)}.pdf'
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = content_disposition_header(
+            not request.query_params.get('inline'),
+            filename,
+        )
+        return response
+
     if document.generated_file:
         try:
             with document.generated_file.open('rb') as stored_pdf:
@@ -845,25 +866,6 @@ def download_document_pdf(request, document_id):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         filename = f'{safe_slug(document.title)}.pdf'
-        response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = content_disposition_header(
-            not request.query_params.get('inline'),
-            filename,
-        )
-        return response
-
-    if is_collection_account(document):
-        from content.services.collection_account_pdf_service import (
-            CollectionAccountPdfService,
-        )
-
-        pdf_bytes = CollectionAccountPdfService.generate(document)
-        if not pdf_bytes:
-            return Response(
-                {'detail': 'No se pudo generar el PDF.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        filename = f'{safe_slug(document.public_number or document.title)}.pdf'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = content_disposition_header(
             not request.query_params.get('inline'),

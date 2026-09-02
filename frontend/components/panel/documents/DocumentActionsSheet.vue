@@ -225,10 +225,12 @@ const isIssuedAccount = computed(() => (
 ));
 
 const actions = computed(() => {
-  if (props.document?.is_generated_snapshot || isIssuedAccount.value) {
-    const readOnlyActions = props.document?.is_generated_snapshot
-      ? GENERATED_ACTIONS
-      : ISSUED_ACCOUNT_ACTIONS;
+  if (isIssuedAccount.value || props.document?.is_generated_snapshot) {
+    // A stored account is both an issued account and a generated snapshot;
+    // its accounting identity wins over the generic proposal-version copy.
+    const readOnlyActions = isIssuedAccount.value
+      ? ISSUED_ACCOUNT_ACTIONS
+      : GENERATED_ACTIONS;
     if (isArchived.value) {
       return [
         UNARCHIVE_ACTION,

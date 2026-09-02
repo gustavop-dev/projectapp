@@ -21,7 +21,7 @@ const authCheck = { status: 200, contentType: 'application/json', body: JSON.str
 
 const mockDocument = {
   id: 1, title: 'Contrato de Servicios', status: 'draft',
-  content: '# Contrato\n\nEste es el contenido del contrato.',
+  content_markdown: '# Contrato\n\nEste es el contenido del contrato.',
   client_name: 'ACME Corp', created_at: '2026-03-01T10:00:00Z',
 };
 
@@ -38,6 +38,16 @@ const issuedCollectionAccount = {
   ...mockDocument,
   document_type_code: 'collection_account',
   commercial_status: 'issued',
+  is_generated_snapshot: true,
+  public_number: 'PA-ACME-001',
+  issue_date: '2026-03-01',
+  due_date: '2026-03-09',
+  currency: 'COP',
+  total: '1490000.00',
+  billing_notes: 'Pagar por transferencia.',
+  collection_account_observations: 'Emitida desde el ingreso mensual.',
+  folder: 30,
+  folder_name: '08 - Agosto',
   client_email_subject: 'Cuenta emitida',
   client_custom_notes: [
     { title: 'Conciliación', content: 'Pago pendiente de confirmar.' },
@@ -46,6 +56,12 @@ const issuedCollectionAccount = {
     { id: 21, title: 'Conciliación', content: 'Pago pendiente de confirmar.', status: 'open', order: 0 },
   ],
 };
+
+const documentFolderTree = [
+  { id: 10, name: 'Acme', parent: null, is_archived: false },
+  { id: 20, name: 'Portal', parent: 10, is_archived: false },
+  { id: 30, name: '08 - Agosto', parent: 20, is_archived: false },
+];
 
 const generatedProposalSnapshot = {
   ...mockDocument,
@@ -250,6 +266,39 @@ test.describe('Admin Document Edit', () => {
         expect(layout.title.right).toBeLessThanOrEqual(layout.actions.x);
         expect(layout.actions.right).toBeGreaterThan(layout.actions.x);
       });
+
+      test('wide editor constrains short previews to document proportions', {
+        tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display', '@responsive:canvas'],
+      }, async ({ page }) => {
+        // quality: allow-duplicate (wide-only geometry contract for preview surfaces)
+        // quality: allow-deep-link (the editor preview is the documented display surface)
+        await mockResponsiveHeaderApi(page);
+        await page.goto('/en-us/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
+        await expect(page.getByTestId('doc-markdown-preview-pane')).toBeVisible();
+
+        const inlineLayout = await page.evaluate(() => {
+          const preview = document.querySelector('[data-testid="doc-markdown-preview-pane"]')
+            .getBoundingClientRect();
+          const textarea = document.querySelector('#edit-markdown').getBoundingClientRect();
+          return {
+            previewWidth: preview.width,
+            previewHeight: preview.height,
+            textareaHeight: textarea.height,
+          };
+        });
+        expect(inlineLayout.previewWidth).toBeLessThanOrEqual(896);
+        expect(inlineLayout.previewHeight).toBeLessThan(inlineLayout.textareaHeight);
+
+        await page.getByRole('button', { name: 'Vista completa' }).click();
+        const modalLayout = await page.getByTestId('markdown-preview-modal-panel')
+          .evaluate((panel) => {
+            const panelBox = panel.getBoundingClientRect();
+            const contentBox = panel.querySelector('.markdown-preview').getBoundingClientRect();
+            return { panelWidth: panelBox.width, contentWidth: contentBox.width };
+          });
+        expect(modalLayout.panelWidth).toBeLessThanOrEqual(896);
+        expect(modalLayout.contentWidth).toBeLessThanOrEqual(768);
+      });
     });
   });
 
@@ -404,7 +453,7 @@ test.describe('Admin Document Edit', () => {
       .toContainText('contrato.pdf');
   });
 
-  test('an issued collection account keeps the Ver notas action', {
+  test('a stored collection account previews its PDF with editable observations', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (/panel/documents is the module entry; from
@@ -415,15 +464,24 @@ test.describe('Admin Document Edit', () => {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
       }
       if (
-        apiPath === 'document-folders/'
-        || apiPath === 'document-tags/'
+        apiPath === 'document-tags/'
         || apiPath === 'document-states/'
         || apiPath === 'document-state-groups/'
       ) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
+      if (apiPath === 'document-folders/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(documentFolderTree),
+        };
+      }
       if (apiPath === 'documents/1/detail/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(issuedCollectionAccount) };
+      }
+      if (apiPath === 'documents/1/pdf/') {
+        return { status: 200, contentType: 'application/pdf', body: '%PDF-1.4 stored account' };
       }
       return null;
     });
@@ -432,16 +490,118 @@ test.describe('Admin Document Edit', () => {
       .toBeVisible({ timeout: 30000 });
     await page.getByTestId('document-open-1').click();
 
+    await expect(page.getByTestId('doc-generated-snapshot-alert'))
+      .toContainText('Cuenta de cobro archivada como PDF inmutable');
+    await expect(page.getByTestId('doc-collection-account-facts'))
+      .toContainText('PA-ACME-001');
+    await expect(page.getByTestId('doc-collection-account-facts'))
+      .toContainText('$1.490.000 COP');
+    await expect(page.getByTestId('doc-generated-pdf-frame')).toBeVisible();
+    const generatedPreview = await page.getByTestId('doc-generated-snapshot-panel')
+      .evaluate((panel) => {
+        const panelBox = panel.getBoundingClientRect();
+        const frameBox = panel.querySelector('[data-testid="doc-generated-pdf-frame"]')
+          .getBoundingClientRect();
+        return { panelWidth: panelBox.width, frameHeight: frameBox.height };
+      });
+    expect(generatedPreview.panelWidth).toBeLessThanOrEqual(896);
+    expect(generatedPreview.frameHeight).toBeLessThanOrEqual(544);
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveAccessibleName('Ver notas');
+    await expect(noteButton).toHaveAccessibleName('Gestionar observaciones privadas');
     await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
     await expect(page.getByTestId('client-note-subject')).toBeDisabled();
     await expect(page.getByTestId('document-observation-21')).toContainText('Pago pendiente de confirmar.');
     await expect(page.getByTestId('document-observation-delete-21')).toBeVisible();
-    await expect(page.getByTestId('document-observation-edit-21')).toHaveCount(0);
+    await expect(page.getByTestId('document-observation-edit-21')).toBeVisible();
     await expect(page.getByTestId('client-note-submit')).toHaveCount(0);
     await expect(page.getByTestId('client-note-add-custom')).toHaveCount(0);
+  });
+
+  test('a legacy issued account previews as PDF before backfill', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    const legacyAccount = {
+      ...issuedCollectionAccount,
+      is_generated_snapshot: false,
+    };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([legacyAccount]) };
+      }
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(legacyAccount) };
+      }
+      if (apiPath === 'document-folders/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentFolderTree) };
+      }
+      if (
+        apiPath === 'document-tags/'
+        || apiPath === 'document-states/'
+        || apiPath === 'document-state-groups/'
+      ) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'documents/1/pdf/') {
+        return { status: 200, contentType: 'application/pdf', body: '%PDF-1.4 legacy fallback' };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('document-open-1').click();
+
+    await expect(page.getByTestId('doc-generated-snapshot-panel'))
+      .toContainText('mientras se completa su archivado definitivo');
+    await expect(page.getByTestId('doc-generated-pdf-frame')).toBeVisible();
+    await expect(page.getByTestId('doc-markdown-editor-panel')).toHaveCount(0);
+    await expect(page.getByTestId('doc-client-note-open'))
+      .toHaveAccessibleName('Gestionar observaciones privadas');
+  });
+
+  test('the folder path navigates to an ancestor', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const locatedDocument = {
+      ...mockDocument,
+      folder: 30,
+      folder_name: '08 - Agosto',
+    };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([locatedDocument]) };
+      }
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(locatedDocument) };
+      }
+      if (apiPath === 'document-folders/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentFolderTree) };
+      }
+      if (
+        apiPath === 'document-tags/'
+        || apiPath === 'document-states/'
+        || apiPath === 'document-state-groups/'
+      ) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('document-open-1').click();
+
+    await expect(page.getByTestId('doc-location-path'))
+      .toHaveAttribute('title', 'Documentos / Acme / Portal / 08 - Agosto');
+    await expect(page.getByTestId('doc-location-segment-0'))
+      .toHaveAttribute('href', /folder=root/);
+    const projectFolder = page.getByTestId('doc-location-segment-2');
+    await expect(projectFolder).toHaveAttribute('href', /folder=20/);
+    await expect.poll(() => projectFolder.evaluate(
+      (element) => getComputedStyle(element).cursor,
+    )).toBe('pointer');
+    await projectFolder.click();
+
+    await expect(page).toHaveURL(/\/panel\/documents\?.*folder=20/);
   });
 
   test('a generated proposal version is immutable while observations remain editable', {

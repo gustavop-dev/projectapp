@@ -22,6 +22,7 @@ from content.services.collection_account_service import (
     CollectionAccountError,
     get_default_issuer,
     issue_collection_account,
+    recalculate_document_totals,
     seed_default_payment_methods,
 )
 from content.services.document_type_utils import (
@@ -102,9 +103,10 @@ def _resolve_customer(profile, overrides):
     return customer
 
 
-@transaction.atomic
-def create_income_collection_account(data, *, acting_user=None):
-    """Draft + issue in one transaction. Returns the issued Document."""
+def _create_income_collection_account(
+    data, *, acting_user=None, issue_document=True, issued_on=None,
+):
+    """Build an income-linked account inside the public wrapper transaction."""
     issuer = get_default_issuer()
 
     profile = (
@@ -165,19 +167,25 @@ def create_income_collection_account(data, *, acting_user=None):
         (data.get('billing_concept') or '').strip() or income.concept
     )
 
+    document_fields = {
+        'title': f'Cuenta de cobro — {billing_concept}',
+        'document_type': get_collection_account_document_type(),
+        'commercial_status': Document.CommercialStatus.DRAFT,
+        'client_user': client,
+        'income_record': income,
+        'project': income.project,
+        'client_name': customer['name'],
+        'currency': (data.get('currency') or 'COP').upper(),
+        'city': data.get('city') or '',
+        'notes': data.get('notes') or '',
+        'terms_and_conditions': data.get('terms_and_conditions') or '',
+        'created_by': acting_user,
+        'updated_by': acting_user,
+    }
+    if data.get('uuid'):
+        document_fields['uuid'] = data['uuid']
     document = Document.objects.create(
-        title=f'Cuenta de cobro — {billing_concept}',
-        document_type=get_collection_account_document_type(),
-        commercial_status=Document.CommercialStatus.DRAFT,
-        client_user=client,
-        income_record=income,
-        project=income.project,
-        client_name=customer['name'],
-        currency=(data.get('currency') or 'COP').upper(),
-        city=data.get('city') or '',
-        notes=data.get('notes') or '',
-        created_by=acting_user,
-        updated_by=acting_user,
+        **document_fields,
     )
     due_date = data.get('due_date')
     if due_date:
@@ -219,15 +227,22 @@ def create_income_collection_account(data, *, acting_user=None):
     seed_default_payment_methods(document, issuer)
 
     manual_number = (data.get('public_number') or '').strip() or None
-    issue_collection_account(
-        document,
-        issuer=issuer,
-        acting_user=acting_user,
-        customer=customer,
-        number_allocator=lambda: allocate_client_number(
-            profile, issuer, manual_number=manual_number,
-        ),
-    )
+    if issue_document:
+        issue_collection_account(
+            document,
+            issuer=issuer,
+            acting_user=acting_user,
+            customer=customer,
+            number_allocator=lambda: allocate_client_number(
+                profile, issuer, manual_number=manual_number,
+            ),
+            issued_on=issued_on,
+        )
+    else:
+        recalculate_document_totals(document)
+        document.save(
+            update_fields=['subtotal', 'tax_total', 'total', 'updated_at'],
+        )
     # Re-read: creating the extension above primed the reverse one-to-one
     # cache on `document` with the pre-issue row (empty customer snapshot);
     # issue_collection_account saved a different instance.
@@ -235,4 +250,45 @@ def create_income_collection_account(data, *, acting_user=None):
         Document.objects.select_related('collection_account')
         .prefetch_related('items', 'payment_methods')
         .get(pk=document.pk)
+    )
+
+
+def create_income_collection_account(
+    data, *, acting_user=None, persist_snapshot=True, issued_on=None,
+):
+    """Draft + issue atomically, archiving the definitive PDF by default.
+
+    The preview endpoint opts out because its surrounding transaction is
+    deliberately rolled back and filesystem writes are not transactional.
+    """
+    from content.services.collection_account_snapshot_service import (
+        CollectionAccountSnapshotError,
+        discard_stored_collection_account_pdf,
+        persist_collection_account_pdf,
+    )
+
+    stored = None
+    try:
+        with transaction.atomic():
+            document = _create_income_collection_account(
+                data, acting_user=acting_user, issued_on=issued_on,
+            )
+            if persist_snapshot:
+                stored = persist_collection_account_pdf(document)
+        return document
+    except CollectionAccountSnapshotError as exc:
+        discard_stored_collection_account_pdf(stored)
+        raise CollectionAccountError(str(exc)) from exc
+    except Exception:
+        discard_stored_collection_account_pdf(stored)
+        raise
+
+
+@transaction.atomic
+def create_income_collection_account_draft(data, *, acting_user=None):
+    """Create a coherent editable draft without allocating or archiving a PDF."""
+    return _create_income_collection_account(
+        data,
+        acting_user=acting_user,
+        issue_document=False,
     )

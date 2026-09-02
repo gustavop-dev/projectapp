@@ -1668,3 +1668,26 @@ content stores. Persist only an allow-listed mode and namespace it by surface so
 an operator's dense panel preference cannot surprise a public visitor. For
 Nuxt E2E, treat an enabled interactive control as the hydration boundary before
 clicking links that rely on client-side routing.
+
+## 65. A lifecycle artifact needs one byte source after issuance
+
+A renderable aggregate and an issued artifact are different facts. Before
+issuance, relational rows are the editable source and an ephemeral preview may
+render them repeatedly. At issuance, render once, validate and persist the exact
+bytes with a hash; every viewer, downloader and sender must read that file. If a
+stored reference loses its object, surface corruption instead of constructing a
+plausible but historically false replacement.
+
+Database rollback cannot undo object storage. The lifecycle owner therefore
+keeps a compensation handle until the outer transaction commits, while preview
+flows opt out of persistence before forcing rollback. Historical repair follows
+an evidence hierarchy: exact retained delivery attachment first, reconstruction
+only when evidence is absent, and explicit provenance for both. Fake-data
+generators must obey the same boundary: anything visible in the PDF is set before
+the snapshot and never edited afterward.
+
+The UI should project that domain honestly. An artifact gets a PDF viewer and
+read-only facts, not an empty Markdown editor; orthogonal observations, archive
+state and relationships can remain mutable. Preview geometry is also part of the
+contract: constrain short content near document width/height and reserve internal
+scroll for long content instead of stretching every viewer to its container.

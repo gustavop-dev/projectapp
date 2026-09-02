@@ -466,6 +466,22 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   state is derived from the commercial lifecycle plus real email delivery
   history, so draft/issued/sent/send-failed/paid/cancelled never depend on a
   loose manual workflow episode and never appear in Por clasificar.
+- Issuance stores the collection account as one immutable PDF artifact. The
+  exact retained bytes power its Documents preview, every download and both
+  initial/retry email attachments; a later template or accounting edit may not
+  regenerate or replace them. The document intentionally has no artificial
+  Markdown body. Title, associations, canonical folder and accounting facts are
+  read-only after issuance; private observations, archive/restore and document
+  threads remain available. Corrections use cancel + reissue.
+- Historical issued accounts are repaired by a dry-run-first backfill. The
+  earliest exact PDF attachment retained in email history wins; current-data
+  reconstruction is used only when no attachment evidence exists, and its
+  provenance is recorded separately.
+- The editor displays a discreet slash-separated path below the title. Root and
+  every folder segment are links to that location and expose normal pointer,
+  hover and keyboard focus feedback. Inline/full Markdown previews and immutable
+  PDF previews are centered at document-like widths, use bounded viewport-aware
+  heights and scroll internally for long content.
 - Every initial proposal send, resend and multi-send stores the exact PDF bytes
   attached to the email as an immutable `vNN` Document snapshot, named
   `YYYY-MM-DD · Propuesta comercial · title · vNN` and filed under the parallel

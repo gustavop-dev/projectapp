@@ -42,9 +42,6 @@ from content.services import collection_account_create_service as ca_create_serv
 from content.services.document_content import build_content_json
 from content.services.document_thread_service import create_document_thread
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
-from content.services.generated_document_filing_service import (
-    file_collection_account,
-)
 from content.services.document_note_service import (
     create_note,
     delete_notes,
@@ -324,32 +321,43 @@ class Command(BaseCommand):
             concept = BILLING_CONCEPTS[i % len(BILLING_CONCEPTS)]
             currency = 'COP'
             base_amount = income.total_amount
-            doc = ca_create_service.create_income_collection_account(
-                {
-                    'client_profile_id': income.client_id,
-                    'income_record_id': income.pk,
-                    'billing_concept': concept,
-                    'currency': currency,
-                    'city': 'Bogotá',
-                    'notes': 'Generado para demo local.',
-                    'payment_term_days': rng.choice([8, 15, 30]),
-                    'items': [{
-                        'description': concept,
-                        'quantity': Decimal('1'),
-                        'unit_price': base_amount,
-                    }],
-                },
-                acting_user=admin,
-            )
-            doc.uuid = self.seed_context.uuid(f'collection-account-{i}')
-            doc.terms_and_conditions = (
-                'Pago dentro del plazo indicado. Valores en pesos colombianos.'
-            )
-            doc.save(update_fields=[
-                'uuid', 'terms_and_conditions', 'updated_at',
-            ])
+            account_data = {
+                'uuid': self.seed_context.uuid(f'collection-account-{i}'),
+                'client_profile_id': income.client_id,
+                'income_record_id': income.pk,
+                'billing_concept': concept,
+                'currency': currency,
+                'city': 'Bogotá',
+                'notes': 'Generado para demo local.',
+                'terms_and_conditions': (
+                    'Pago dentro del plazo indicado. Valores en pesos colombianos.'
+                ),
+                'payment_term_days': rng.choice([8, 15, 30]),
+                'items': [{
+                    'description': concept,
+                    'quantity': Decimal('1'),
+                    'unit_price': base_amount,
+                }],
+            }
+            if lifecycle == 'draft':
+                doc = ca_create_service.create_income_collection_account_draft(
+                    account_data,
+                    acting_user=admin,
+                )
+            else:
+                issue_age_days = {
+                    'issued': 5,
+                    'overdue': rng.choice([45, 90]),
+                }.get(lifecycle, rng.choice([15, 45, 90]))
+                doc = ca_create_service.create_income_collection_account(
+                    account_data,
+                    acting_user=admin,
+                    issued_on=self.seed_context.anchor_date - timedelta(
+                        days=issue_age_days,
+                    ),
+                )
             doc.tags.add(*rng.sample(tags, k=rng.randint(1, 2)))
-            self._apply_income_lifecycle(doc, lifecycle, admin, rng)
+            self._apply_income_lifecycle(doc, lifecycle, admin)
             created_ca += 1
 
         # ── Client-portal signable contracts (unsigned + signed) ─────────────
@@ -637,28 +645,8 @@ class Command(BaseCommand):
         cycle = self._LIFECYCLE_CYCLE
         return [cycle[i % len(cycle)] for i in range(n)]
 
-    def _apply_income_lifecycle(self, document, lifecycle, actor, rng):
-        """Place a service-created income account in a deterministic demo state."""
-
-        anchor = self.seed_context.anchor_date
-        if lifecycle == 'draft':
-            Document.objects.filter(pk=document.pk).update(
-                commercial_status=Document.CommercialStatus.DRAFT,
-                public_number='', issue_date=None, due_date=None, folder=None,
-                title=f'Cuenta de cobro — {document.collection_account.billing_concept}',
-            )
-            return
-
-        issue_date = anchor - timedelta(days=rng.choice([5, 15, 45, 90]))
-        due_date = issue_date + timedelta(days=rng.choice([8, 15, 30]))
-        if lifecycle == 'overdue':
-            due_date = anchor - timedelta(days=rng.choice([5, 15, 40]))
-        Document.objects.filter(pk=document.pk).update(
-            issue_date=issue_date,
-            due_date=due_date,
-        )
-        document.refresh_from_db()
-        file_collection_account(document)
+    def _apply_income_lifecycle(self, document, lifecycle, actor):
+        """Apply only real post-issuance transitions to a coherent fixture."""
         if lifecycle == 'paid':
             ca_service.mark_collection_account_paid(document, acting_user=actor)
         elif lifecycle == 'cancelled':

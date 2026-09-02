@@ -82,6 +82,12 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
     resto del conector. Leer y desenlazar aceptan cualquier miembro, porque un
     hilo armado desde el panel puede contener una cuenta de cobro o un
     documento archivado.
+  - **Las cuentas de cobro emitidas siguen excluidas del contrato documental
+    MCP.** Su `generated_file`, hash/procedencia y datos contables son artefactos
+    comerciales de sólo lectura en el panel; `list_documents`/`read_document`
+    continúan operando únicamente Markdown y no prometen vista previa, descarga
+    ni reemplazo del PDF. Esta exclusión no impide leer una cuenta que ya sea
+    miembro de un hilo creado desde el panel.
   - **`position` es derivada** de la cronología: el conector envía fechas y el
     servidor mantiene el orden estable. Es la única exclusión del contrato.
   `dissolve_document_thread` es irreversible —se pierde `linked_by`/`linked_at`—

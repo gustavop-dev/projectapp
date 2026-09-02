@@ -1,5 +1,17 @@
 # Architecture — ProjectApp
 
+> **Cuenta de cobro como artefacto documental 2026-09-02:** la emisión cruza el
+> límite editable y llama a `collection_account_snapshot_service`, que renderiza
+> una vez, valida los bytes, guarda `Document.generated_file` y registra SHA-256
+> y procedencia. Las vistas de Contabilidad, Plataforma y Documentos, además del
+> envío/reenvío, leen ese archivo; sólo las filas históricas sin referencia usan
+> el fallback transitorio. El backfill elige primero el
+> `EmailAttachmentSnapshot` exacto y marca aparte cualquier reconstrucción. El
+> editor reconoce `is_generated_snapshot`, presenta datos contables + visor PDF
+> de sólo lectura, conserva observaciones/hilos/archivo y añade una ruta de
+> carpetas navegable. Las superficies Markdown/PDF comparten límites de ancho y
+> alto cercanos a una página, con scroll interno.
+
 > **Visor público de Módulos adicionales 2026-09-01:** `CatalogView` compone
 > `useAdditionalModulesTheme`, `AdditionalModules/Onboarding`,
 > `AdditionalModules/ShareButton` y el descargador PDF existente. Tema y guía
@@ -509,6 +521,7 @@ flowchart TD
 | **MarkdownParser** | Small | Parses markdown content for Document PDF rendering |
 | **CollectionAccountService** | Small | Collection account business logic |
 | **CollectionAccountPdfService** | Small | PDF generation for collection account documents |
+| **CollectionAccountSnapshotService** | Small | Owns immutable issue-time PDF storage, SHA-256/provenance, exact-byte reads, rollback compensation and email-first historical recovery. |
 | **TechnicalDocumentPdf** | Medium | PDF generation for technical documents |
 | **TechnicalDocumentFilter** | Small | Filtering logic for technical document modules |
 | **PlatformOnboardingPdf** | Small | PDF generation for platform onboarding documents |

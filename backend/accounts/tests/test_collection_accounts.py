@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 
@@ -165,8 +166,9 @@ def test_get_collection_account_detail_returns_404_for_unknown_id(api_client, ad
 
 @pytest.mark.django_db
 def test_get_collection_account_pdf_returns_pdf_attachment_when_issued(
-    api_client, admin_headers, project,
+    api_client, admin_headers, project, settings, tmp_path,
 ):
+    settings.MEDIA_ROOT = tmp_path
     create = api_client.post(
         '/api/accounts/collection-accounts/',
         {'title': 'PDF doc', 'project_id': project.id},
@@ -180,14 +182,23 @@ def test_get_collection_account_pdf_returns_pdf_attachment_when_issued(
         **admin_headers,
     )
 
-    resp = api_client.get(
-        f'/api/accounts/collection-accounts/{aid}/pdf/',
-        **admin_headers,
-    )
+    document = Document.objects.get(pk=aid)
+    with document.generated_file.open('rb') as archived_file:
+        archived_pdf = archived_file.read()
+    with patch(
+        'content.services.collection_account_pdf_service'
+        '.CollectionAccountPdfService.generate',
+        side_effect=AssertionError('issued PDF must come from storage'),
+    ) as generate:
+        resp = api_client.get(
+            f'/api/accounts/collection-accounts/{aid}/pdf/',
+            **admin_headers,
+        )
 
     assert resp.status_code == 200
     assert resp['Content-Type'] == 'application/pdf'
-    assert resp.content[:4] == b'%PDF'
+    assert resp.content == archived_pdf
+    generate.assert_not_called()
     # The client saves the file under the consecutivo, exactly as the panel and
     # the email attachment name it — not a lowercased slug of it.
     public_number = issued.json()['public_number']
