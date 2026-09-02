@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **En implementación — paridad operativa MCP 2026-09-02:** convertir los
+> conectores actuales en una plataforma común y completar el acceso al Panel por
+> áreas. Orden: fundamento/seguridad, Documentos, Comunicaciones, Comercial y
+> Proyectos, división Contable, Contenido/Operaciones, QA y corte de credenciales.
+> La entrega conserva herramientas existentes, deja conectores nuevos inactivos
+> y exige preview+confirm para efectos externos, financieros o irreversibles.
+
 > **Módulo de financiación listo para integrar — 2026-09-02:** Comercial ya
 > incorpora una vista de distribución y las rutas públicas ES/EN presentan las
 > dos alternativas, las cuatro condiciones, la calculadora en lenguaje de

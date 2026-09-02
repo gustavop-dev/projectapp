@@ -149,11 +149,15 @@ from content.views.blog import (
     duplicate_blog_post, upload_blog_cover_image, blog_calendar,
 )
 from content.views.mcp_blog import (
+    create_mcp_credential,
     generate_mcp_connector_token,
     list_mcp_connectors,
+    mcp_credential_detail,
     mcp_endpoint,
+    rotate_mcp_credential,
     update_mcp_connector,
 )
+from content.views.mcp_upload import mcp_signed_asset, mcp_signed_upload
 from content.views.linkedin import (
     linkedin_auth_url, linkedin_callback, linkedin_status,
     publish_to_linkedin,
@@ -604,9 +608,24 @@ urlpatterns = [
     # the trailing slash is the first thing that gets lost.
     path('mcp/<slug:slug>/<str:token>/', mcp_endpoint, name='mcp-endpoint'),
     path('mcp/<slug:slug>/<str:token>', mcp_endpoint, name='mcp-endpoint-noslash'),
+    path('mcp/<slug:slug>/', mcp_endpoint, name='mcp-bearer-endpoint'),
+    path('mcp/<slug:slug>', mcp_endpoint, name='mcp-bearer-endpoint-noslash'),
+    path(
+        'mcp-uploads/<uuid:upload_id>/<str:signature>/',
+        mcp_signed_upload,
+        name='mcp-signed-upload',
+    ),
+    path(
+        'mcp-assets/<uuid:asset_id>/<str:signature>/',
+        mcp_signed_asset,
+        name='mcp-signed-asset',
+    ),
     path('mcp-connectors/', list_mcp_connectors, name='list-mcp-connectors'),
     path('mcp-connectors/<slug:slug>/', update_mcp_connector, name='update-mcp-connector'),
     path('mcp-connectors/<slug:slug>/generate-token/', generate_mcp_connector_token, name='generate-mcp-connector-token'),
+    path('mcp-connectors/<slug:slug>/credentials/', create_mcp_credential, name='create-mcp-credential'),
+    path('mcp-connectors/<slug:slug>/credentials/<int:credential_id>/', mcp_credential_detail, name='mcp-credential-detail'),
+    path('mcp-connectors/<slug:slug>/credentials/<int:credential_id>/rotate/', rotate_mcp_credential, name='rotate-mcp-credential'),
     path('blog/admin/<int:post_id>/publish-linkedin/', publish_to_linkedin, name='publish-to-linkedin'),
 
     # LinkedIn OAuth

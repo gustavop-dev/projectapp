@@ -66,12 +66,24 @@ def _call(api_client, token, name, arguments):
     )
 
 
+def _call_confirmed(api_client, token, name, arguments):
+    preview = _call(api_client, token, name, arguments)
+    confirmation_id = preview.data['result']['structuredContent']['confirmation_id']
+    return _call(
+        api_client,
+        token,
+        'confirm_action',
+        {'confirmation_id': confirmation_id},
+    )
+
+
 def _payload(response):
     """The tool result, decoded. Fails loudly when the tool reported an error."""
     result = response.data['result']
     text = result['content'][0]['text']
     assert result['isError'] is False, text
-    return json.loads(text)
+    payload = json.loads(text)
+    return payload.get('result', payload) if payload.get('confirmed') else payload
 
 
 def _error_text(response):
@@ -454,7 +466,7 @@ class TestListAndDissolve:
     ):
         _, token = documents_connector
 
-        _call(api_client, token, 'dissolve_document_thread', {
+        _call_confirmed(api_client, token, 'dissolve_document_thread', {
             'thread_id': dissolvable_thread['id'],
         })
 
@@ -471,7 +483,7 @@ class TestListAndDissolve:
         """Irreversible, so the payload has to be enough to recreate the thread."""
         _, token = documents_connector
 
-        payload = _payload(_call(api_client, token, 'dissolve_document_thread', {
+        payload = _payload(_call_confirmed(api_client, token, 'dissolve_document_thread', {
             'thread_id': dissolvable_thread['id'],
         }))
 

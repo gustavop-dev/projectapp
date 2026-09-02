@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **Trabajo activo — contrato MCP operativo 2026-09-02:** la ampliación conserva
+> JSON-RPC y los clientes 2025, añade `structuredContent`, `outputSchema`,
+> anotaciones de riesgo, credenciales Bearer con alcance y trazas por request.
+> Las mutaciones reversibles admiten un `if_match` opcional compatible; las
+> sensibles usan un intent efímero, ligado a credencial y huella de argumentos,
+> antes de `confirm_action`. Los uploads binarios usan handles temporales con
+> tamaño, MIME y SHA-256 verificados.
+
 > **Contrato técnico de financiación — 2026-09-02:**
 > `GET /api/financing/public/?lang=es|en` entrega el programa informativo y
 > `GET /api/financing/public/pdf/?lang=es|en` responde el PDF localizado con

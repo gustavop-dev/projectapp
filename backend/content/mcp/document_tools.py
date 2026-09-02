@@ -21,6 +21,7 @@ receive the raw `arguments` dict, return a JSON-serializable dict, and raise
 ToolError for business errors. They reuse the exact same parser and
 document_type helpers as the panel so the PDF pipeline stays identical.
 """
+import hashlib
 import json
 
 from django.utils import timezone
@@ -86,9 +87,30 @@ def _get_markdown_doc_or_error(document_id):
     try:
         return _markdown_qs().get(pk=int(document_id))
     except (Document.DoesNotExist, TypeError, ValueError):
+        try:
+            document = Document.objects.select_related('document_type').get(
+                pk=int(document_id),
+            )
+        except (Document.DoesNotExist, TypeError, ValueError):
+            document = None
+        if document is not None:
+            if document.is_archived:
+                raise ToolError(
+                    'El documento está archivado y no admite edición.',
+                    code='NOT_EDITABLE',
+                    details={'edit_blockers': ['archived']},
+                )
+            raise ToolError(
+                'El documento es un snapshot generado y no contiene Markdown '
+                'editable. Corrige su fuente de negocio; una cuenta emitida '
+                'se anula y se vuelve a emitir.',
+                code='NOT_EDITABLE',
+                details={'edit_blockers': ['generated_snapshot']},
+            )
         raise ToolError(
             f'No existe un documento markdown con id={document_id}. '
-            'Usa list_documents para ver los disponibles.'
+            'Usa list_documents para ver los disponibles.',
+            code='NOT_FOUND',
         )
 
 
@@ -257,6 +279,9 @@ def _doc_summary(doc):
         )),
         'updated_at': doc.updated_at.isoformat() if doc.updated_at else None,
         'created_at': doc.created_at.isoformat() if doc.created_at else None,
+        'etag': _document_etag(doc),
+        'editable': not doc.is_archived and doc.document_type.code == MARKDOWN,
+        'edit_blockers': [],
     }
 
 
@@ -268,6 +293,7 @@ def _doc_detail(doc):
     )
     return {
         **_doc_summary(doc),
+        'markdown': doc.content_markdown,
         'content_markdown': doc.content_markdown,
         'client_email_subject': doc.client_email_subject,
         'client_email_body': doc.client_email_body,
@@ -292,6 +318,24 @@ def _doc_detail(doc):
         'include_subportada': doc.include_subportada,
         'include_contraportada': doc.include_contraportada,
     }
+
+
+def _document_etag(doc):
+    source = f'document:{doc.pk}:{doc.updated_at.isoformat() if doc.updated_at else ""}'
+    return hashlib.sha256(source.encode('utf-8')).hexdigest()
+
+
+def _check_document_etag(doc, arguments):
+    expected = arguments.get('if_match')
+    if expected and expected != _document_etag(doc):
+        raise ToolError(
+            'El documento cambió desde la última lectura.',
+            code='STALE_VERSION',
+            details={
+                'expected': expected,
+                'current': _document_etag(doc),
+            },
+        )
 
 
 COVER_FLAGS = ('include_portada', 'include_subportada', 'include_contraportada')
@@ -515,6 +559,15 @@ def create_document(arguments):
 
 def update_document(arguments):
     doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    _check_document_etag(doc, arguments)
+
+    if 'markdown' in arguments and 'content_markdown' in arguments:
+        if arguments['markdown'] != arguments['content_markdown']:
+            raise ToolError(
+                'markdown y content_markdown no pueden contener valores distintos.'
+            )
+    if 'content_markdown' in arguments and 'markdown' not in arguments:
+        arguments = {**arguments, 'markdown': arguments['content_markdown']}
 
     update_fields = set()
     if 'title' in arguments:
@@ -602,6 +655,7 @@ def append_document(arguments):
     the full markdown.
     """
     doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    _check_document_etag(doc, arguments)
 
     markdown_text = arguments.get('markdown')
     if not isinstance(markdown_text, str) or not markdown_text.strip():
@@ -1002,6 +1056,14 @@ DOCUMENT_TOOLS = [
                 **_DOCUMENT_ID_PROP,
                 'title': {'type': 'string'},
                 'markdown': {'type': 'string'},
+                'content_markdown': {
+                    'type': 'string',
+                    'description': 'Alias compatible obsoleto de markdown.',
+                },
+                'if_match': {
+                    'type': 'string',
+                    'description': 'ETag devuelto por read_document.',
+                },
                 'folder_id': {
                     'type': ['integer', 'null'],
                     'description': 'Carpeta destino (null para mover a la raíz).',
@@ -1043,6 +1105,10 @@ DOCUMENT_TOOLS = [
                         'Texto entre el contenido existente y el fragmento '
                         '(default: línea en blanco "\\n\\n").'
                     ),
+                },
+                'if_match': {
+                    'type': 'string',
+                    'description': 'ETag devuelto por read_document.',
                 },
             },
             'required': ['document_id', 'markdown'],

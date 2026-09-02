@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección en validación 2026-09-02 — paridad MCP es un contrato, no una lista
+> de tools:** sumar handlers aislados deja módulos con reglas y riesgos
+> diferentes. La unidad mantenible es un manifiesto que relaciona operación del
+> Panel, servicio compartido, esquema, riesgo, permiso, auditoría y compatibilidad.
+> Una edición documental existente puede parecer ausente cuando el catálogo no
+> explica editabilidad, bloqueos y nombre canónico del campo.
+
 > **Lección 2026-09-02 — una oferta informativa necesita una sola fuente
 > comercial:** JSON público, vista de distribución y PDF deben proyectar el
 > mismo contenido canónico; duplicar copy entre capas convertiría una condición

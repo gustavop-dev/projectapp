@@ -7,17 +7,45 @@ con los contratos de modelo antes de publicar cambios del gestor.
 
 Última revisión integral: 2026-09-02.
 
-Este documento es el procedimiento repetible para validar los conectores MCP de
-ProjectApp. Cubre el transporte compartido, las catorce herramientas de
-Comunicaciones, el ciclo recuperable de observaciones en Documentos y la
-paridad de los ocho conectores preexistentes. La fuente
-ejecutable del inventario está en `backend/content/views/mcp_blog.py`; la
-clasificación de campos vive en `backend/content/mcp/contracts.py`.
+Este documento es el procedimiento repetible para validar la plataforma MCP de
+ProjectApp: transporte moderno y compatible, credenciales con alcance,
+confirmación de operaciones sensibles, uploads temporales y paridad operativa
+con las áreas del Panel. La fuente ejecutable del inventario está en
+`backend/content/views/mcp_blog.py`; los adaptadores de paridad viven en
+`backend/content/mcp/operation_catalogs.py` y la clasificación de campos en
+`backend/content/mcp/contracts.py`.
+
+## Plataforma operativa común
+
+- El endpoint canónico acepta `Authorization: Bearer <credencial>` en
+  `/api/mcp/<slug>/`. La URL histórica `/api/mcp/<slug>/<token>/` permanece
+  disponible para no romper conectores instalados.
+- El contrato stateless MCP `2026-07-28` usa `server/discover`, metadata por
+  request, `MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name` para `tools/call`,
+  `resultType` y hints de caché privada. Los handshakes 2025 y 2024 siguen
+  admitidos por compatibilidad.
+- Cada credencial tiene etiqueta, alcance de herramientas, vencimiento y
+  revocación propios. El secreto sólo se muestra al crear o rotar; la base
+  conserva únicamente SHA-256 y un prefijo enmascarado.
+- Cada conector ejecuta como un principal técnico no interactivo
+  `mcp_<slug>`, con contraseña inutilizable. No toma prestada la identidad del
+  primer superusuario humano.
+- Las lecturas y ediciones reversibles se ejecutan directamente. Toda acción
+  externa, financiera o irreversible responde primero con
+  `confirmation_id`, impacto y vencimiento; `confirm_action` ejecuta una sola
+  vez los mismos argumentos y `cancel_action` descarta el intent.
+- Los módulos con archivos exponen `begin_upload`, PUT firmado o
+  `upload_asset_chunk`, `complete_upload` y `abort_upload`. Tamaño, MIME y
+  SHA-256 se verifican antes de que un `asset_id` pueda consumirse; descargas y
+  exports se entregan como artefactos firmados temporales.
+- La auditoría conserva las 200 entradas más recientes por conector con
+  request ID, credencial, herramienta, riesgo, resultado/error, duración e IDs
+  de objetos afectados. No persiste cuerpos completos ni secretos.
 
 ## Invariantes
 
-- Cada conector usa `/api/mcp/<slug>/<token>/`, un token propio almacenado sólo
-  como hash, el mismo control de Origin, throttle, actor y registro de actividad.
+- Todos los conectores comparten control de Origin, throttle por conector,
+  principal técnico, registro de actividad y los dos transportes de credencial.
 - Un conector nuevo nace inactivo y sin token. Activarlo y emitir la URL es una
   decisión explícita del superusuario en `/panel/mcps`.
 - Los handlers MCP reutilizan serializers y servicios del panel. Una regla que
@@ -57,7 +85,9 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   visibilidad y sí está expuesto mediante una acción de dominio específica.
 - `update_message` edita sólo un borrador saliente activo;
   `delete_draft` aplica la misma condición; `mark_message_sent` registra un
-  hecho externo. Ninguna herramienta envía correo ni WhatsApp.
+  hecho externo y no contacta proveedores. El envío real pertenece a las
+  herramientas separadas `send_email`/`resend_email`, clasificadas como
+  sensibles y ejecutables únicamente después de vista previa y confirmación.
 - `CommunicationThread.managed_project` / `managed_client` identifican la
   **comunicación madre** de un proyecto o un cliente, en paralelo con
   `DocumentFolder.managed_project` / `managed_client`. Son read-only para el MCP:
@@ -106,34 +136,62 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 
 | Slug | Herramientas | Alcance |
 |---|---:|---|
-| `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
-| `documents` | 22 | Carpetas manuales, markdown, cliente/proyecto, estados, observaciones recuperables e hilos entre documentos; jerarquías generadas visibles pero protegidas |
-| `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
-| `communications` | 14 | Consulta y ciclo de vida de hilos; creación, edición, eliminación de borradores, envío confirmado, anulación y corrección de mensajes |
-| `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
-| `accounting` | 69 | Libros, hosting, pagos/abonos, recurrentes, bolsillo, tarjetas y extractos |
-| `diagnostics` | 13 | Diagnósticos, metadatos, secciones, estados y envíos |
-| `proposals` | 11 | Propuestas JSON, ciclo, duplicación, envío y enlaces |
-| `linkedin-personal` | 7 | Conexión, borradores, programación y publicación de texto |
+| `operations` | 4 | Dashboard, indicadores, alertas y conteos globales de sólo lectura |
+| `commercial` | 132 | Clientes, propuestas, diagnósticos, módulos adicionales, horas, financiación, archivos y correos comerciales |
+| `projects` | 21 | Proyectos, asignaciones, estados, transiciones, documentos asociados e historial |
+| `documents` | 64 | Documentos Markdown editables, carpetas, estados, tags, observaciones, hilos, correo, imports y exports |
+| `communications` | 33 | Hilos, mensajes, compositor, previews, envío/reenvío, adjuntos, historial, templates y entregabilidad |
+| `content` | 43 | Blog, portafolio, QR, Linktrees, LinkedIn y activos relacionados |
+| `tasks` | 20 | Tareas, archivo, comentarios, alertas, orden y controles comunes |
+| `accounting-ledger` | 55 | Ingresos, gastos, bolsillo, recurrentes, Ads, categorías, liquidaciones y exports |
+| `accounting-billing` | 35 | Cuentas de cobro, hosting, ciclos, ajustes, destinatarios y correo contable |
+| `accounting-cards` | 38 | Tarjetas, snapshots, extractos, transacciones, alias, imports y recordatorios |
+| `blog` | 7 | Conector de compatibilidad: plantilla, CRUD y calendario editorial |
+| `clients` | 6 | Conector de compatibilidad: búsqueda, detalle y CRUD de clientes |
+| `accounting` | 69 | Conector de compatibilidad: catálogo contable monolítico anterior |
+| `diagnostics` | 13 | Conector de compatibilidad: diagnósticos y secciones |
+| `proposals` | 11 | Conector de compatibilidad: propuestas y enlaces |
+| `linkedin-personal` | 7 | Conector de compatibilidad: LinkedIn personal |
+
+Los conectores canónicos nuevos nacen inactivos. Los seis slugs marcados como
+compatibilidad no se eliminan ni cambian de URL; permiten una transición gradual
+hacia los conectores agrupados por área.
 
 ## Preparación segura
 
 1. Ejecutar en una base de test o staging. Producción sólo admite consultas
    read-only hasta que el operador autorice una mutación concreta.
-2. Confirmar que existe un superusuario activo: las escrituras MCP quedan
-   atribuidas a ese actor y fallan de forma explícita si no existe.
-3. Generar un token temporal para el conector bajo prueba y activarlo.
-4. Inicializar con `initialize`, consultar `tools/list` y comparar nombres,
-   descripciones y schemas con el inventario esperado.
-5. Al terminar, desactivar el conector y rotar/revocar el token temporal.
+2. Crear una credencial temporal, preferentemente Bearer y limitada a las
+   herramientas del caso. Verificar que se le asignó el principal técnico del
+   conector y que el secreto no reaparece al recargar.
+3. Activar el conector bajo prueba. No reutilizar credenciales reales en
+   capturas, comandos compartidos ni fixtures.
+4. En contrato moderno, empezar con `server/discover`; en compatibilidad,
+   inicializar con `initialize`. Consultar `tools/list` y comparar nombres,
+   riesgos, schemas y alcance con el inventario esperado.
+5. Para una acción sensible, validar primero el preview, luego confirmar una
+   sola vez y repetir `confirm_action` para comprobar respuesta replay-safe.
+6. Al terminar, desactivar el conector y revocar la credencial temporal.
 
-Petición base para una llamada manual (sustituir los marcadores localmente):
+Petición base compatible para una llamada manual (sustituir los marcadores
+localmente y no guardarlos en el historial del shell):
 
 ```bash
 curl -sS -X POST 'https://<host>/api/mcp/<slug>/<token>/' \
   -H 'Content-Type: application/json' \
   -H 'Origin: https://claude.ai' \
   --data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Descubrimiento stateless `2026-07-28` por Bearer:
+
+```bash
+curl -sS -X POST 'https://<host>/api/mcp/<slug>/' \
+  -H 'Authorization: Bearer <credencial>' \
+  -H 'Content-Type: application/json' \
+  -H 'MCP-Protocol-Version: 2026-07-28' \
+  -H 'Mcp-Method: server/discover' \
+  --data '{"jsonrpc":"2.0","id":"discover-1","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"manual-validation","version":"1.0.0"}}}}'
 ```
 
 Para invocar una herramienta:
@@ -150,9 +208,65 @@ Para invocar una herramienta:
 }
 ```
 
-Toda llamada válida responde HTTP 200. Un error de negocio también usa HTTP
-200, con `result.isError=true` y texto accionable. Token o slug inválido e
-inactividad responden 404 para no revelar conectores.
+Una llamada de negocio válida responde HTTP 200. Un rechazo de negocio también
+usa HTTP 200, con `result.isError=true`, `structuredContent.error.code` y texto
+accionable. Un envelope moderno inválido responde HTTP 400; token, slug inválido
+o inactividad responden 404 para no revelar conectores.
+
+Toda herramienta marcada `requires_confirmation=true` usa dos llamadas. La
+primera invocación devuelve un `confirmation_id` sin ejecutar; la segunda llama
+`confirm_action` con ese ID. El intent vence a los diez minutos, queda ligado a
+conector y credencial, conserva la huella exacta de argumentos y no vuelve a
+ejecutarse ante un replay.
+
+## Caso crítico: editar un documento en borrador
+
+1. Invocar `list_documents` y luego `read_document` con el ID elegido.
+2. Exigir `editable=true`, guardar `etag` y leer `edit_blockers`. Un documento
+   archivado o un artefacto generado no se fuerza: responde `NOT_EDITABLE`.
+3. Editar con el nombre canónico `markdown` y el ETag leído:
+
+```json
+{
+  "document_id": 40,
+  "markdown": "# Borrador actualizado\n\nContenido revisado.",
+  "if_match": "<etag-de-read_document>"
+}
+```
+
+4. Volver a leer y comprobar `markdown`, `content_markdown`, `content_json` y
+   un ETag nuevo. `content_markdown` se acepta como alias de compatibilidad,
+   pero no puede enviarse con un valor distinto a `markdown`.
+5. Repetir la edición con el ETag anterior: debe fallar con `STALE_VERSION` sin
+   sobrescribir el cambio vigente.
+
+Esta operación es una escritura reversible y no requiere confirmación. Borrar,
+disolver o reemplazar evidencia sí conserva el flujo preview + confirm.
+
+## Barrido de paridad por área
+
+Para cada conector canónico, ejecutar `describe_capabilities` con una credencial
+sin alcance y con otra limitada. La primera debe coincidir con `tools/list`; la
+segunda sólo muestra herramientas autorizadas más `describe_capabilities`,
+`confirm_action` y `cancel_action`.
+
+| Área | Lectura mínima | Mutación mínima | Acción sensible a previsualizar |
+|---|---|---|---|
+| Operaciones | dashboard global | no aplica | no aplica |
+| Comercial | cliente/propuesta/diagnóstico | actualizar una entidad reversible | envío o eliminación disponible en el catálogo |
+| Proyectos | detalle e historial | actualizar datos o transición reversible | eliminación disponible en el catálogo |
+| Documentos | leer Markdown y ETag | actualizar borrador con `if_match` | eliminar/disolver |
+| Comunicaciones | hilo, cuerpo y adjuntos | actualizar borrador/default/template | enviar, reenviar o eliminar |
+| Contenido | abrir blog/portafolio/QR/Linktree | editar borrador o metadata | publicar/eliminar |
+| Tareas | detalle, comentarios y alertas | crear/editar/reordenar | eliminar |
+| Libro contable | dashboard y movimientos | crear/editar movimiento | liquidar/eliminar/export sensible cuando aplique |
+| Cobros | cuenta, hosting y ciclos | actualizar configuración o registro | emitir/reintentar/eliminar |
+| Tarjetas | extracto y transacciones | resolver alias o editar snapshot | finalizar/reabrir/eliminar |
+
+Los adaptadores resuelven la misma ruta DRF del Panel mediante
+`APIRequestFactory`, autentican el principal técnico y dejan que la vista,
+serializer y servicio existentes decidan permisos, validación y transacción.
+No se implementa un segundo CRUD con escrituras ORM paralelas.
 
 ## Comunicaciones: guion por herramienta
 
@@ -472,19 +586,21 @@ de tres comandos.
 
 ```bash
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/views/test_mcp_communication_admin_actions.py -q
+  content/tests/views/test_mcp_operational_platform.py -q \
+  -k 'default_token or panel_ or bearer_ or rotating_ or revoked_ or tools_list_exposes or sensitive_call'
 
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/views/test_mcp_communication_update.py -q
+  content/tests/views/test_mcp_operational_platform.py -q \
+  -k 'confirm_action or confirmation_cannot or signed_upload or temporary_output or operations_connector or tool_audit or modern_ or scoped_discovery'
 
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/views/test_mcp_contracts.py -q -k 'not tool_metadata'
+  content/tests/views/test_mcp_contracts.py -q -k 'all_registered or every_panel'
 ```
 
-En el ciclo siguiente, ejecutar `test_mcp_contracts.py -k tool_metadata`, la
-regresión focal de `test_mcp_communications.py`, el servicio afectado —si hubo
-cambios allí— y `test_mcp_parity_refresh.py`; no agrupar archivos si la
-selección resultante supera 20 casos.
+En el ciclo siguiente, ejecutar el resto de `test_mcp_contracts.py` en lotes,
+`test_mcp_protocol.py`, las regresiones focales de Documentos, Comunicaciones,
+Tareas y Contabilidad y los servicios afectados. No agrupar archivos si la
+selección supera 20 casos.
 
 Para cambios en observaciones de Documentos, agregar el archivo focal sin
 superar 20 tests por ejecución:
@@ -505,10 +621,19 @@ python3 scripts/test_quality_gate.py --repo-root . \
 ```
 
 No ejecutar `manage.py migrate` desde un worktree: su `.env` enlazado apunta a
-producción. Las migraciones de datos `content.0212_seed_communications_mcp` y
-`content.0239_expand_communications_mcp_parity` se validan mediante tests y el
-grafo de migraciones, y se aplican únicamente durante deploy. La segunda cambia
-sólo la descripción: conserva token, prefijo, actividad y fecha de último uso.
+producción. La migración `content.0240_mcp_operational_platform` se valida con
+el grafo y se aplica únicamente durante deploy. Crea credenciales, intents,
+uploads y trazas ampliadas; copia cada token histórico a la credencial
+`Default`, preserva la URL actual y siembra los conectores canónicos inactivos.
+Su reverse es deliberadamente no destructivo.
+
+Para la UI, ejecutar el unit test del store y el único spec E2E del flujo:
+
+```bash
+npm --prefix frontend test -- test/stores/mcps.test.js
+E2E_PORT=3001 E2E_WORKERS=1 npm --prefix frontend run e2e -- \
+  e2e/admin/admin-mcps.spec.js
+```
 
 ## Contrato anti-deriva
 
@@ -529,19 +654,21 @@ qué queda fuera del MCP.
 
 ## Criterio de cierre
 
-- Los nueve conectores aparecen en el registro y `tools/list` coincide con este
-  inventario.
-- Comunicaciones cubre las catorce operaciones vigentes y todos sus rechazos dejan
-  la base consistente.
+- Los 16 conectores aparecen en el registro y `tools/list` coincide con este
+  inventario; los diez canónicos cubren las áreas operativas y los seis
+  históricos permanecen compatibles.
+- Comunicaciones expone 33 operaciones, incluidos preview, envío confirmado,
+  adjuntos, templates y entregabilidad; sus rechazos dejan la base consistente.
 - Los MCP existentes devuelven y aceptan los campos descritos en su contrato;
-  Documentos expone 22 herramientas y conserva paridad para borrar, listar la
-  papelera, restaurar observaciones y operar hilos entre documentos.
+  Documentos expone 64 herramientas y conserva edición Markdown con ETag,
+  papelera, observaciones, hilos, uploads y artefactos.
+- Toda acción sensible exige intent ligado a credencial, confirma una sola vez
+  y deja evidencia; toda credencial respeta alcance, expiración y revocación.
 - No se alteraron tokens, prefijos, estados activos ni `last_used_at` de
-  conectores existentes durante la migración; una instalación nueva conserva
-  la activación manual definida por la migración semilla.
+  conectores existentes durante la migración; los nuevos quedan inactivos.
 - Tests focales, regresión, Django check, migraciones sin drift y quality gate
-  backend focal quedan verdes y anotados en la entrega; el CI confirma los gates
-  globales con las dependencias frontend instaladas.
+  quedan verdes y anotados; el flujo `/panel/mcps` cubre inventario, riesgo,
+  creación, edición, rotación, revocación, error y gate de superusuario.
 
 ## Ejecución de referencia — 2026-08-26
 

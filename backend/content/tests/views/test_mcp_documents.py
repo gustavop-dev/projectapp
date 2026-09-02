@@ -67,6 +67,17 @@ def _call(api_client, token, name, arguments):
     )
 
 
+def _call_confirmed(api_client, token, name, arguments):
+    preview = _call(api_client, token, name, arguments)
+    confirmation_id = preview.data['result']['structuredContent']['confirmation_id']
+    return _call(
+        api_client,
+        token,
+        'confirm_action',
+        {'confirmation_id': confirmation_id},
+    )
+
+
 def _make_doc(doc_type, **kwargs):
     defaults = {
         'title': 'Doc',
@@ -84,8 +95,8 @@ class TestDocumentsMcpToolList:
     def test_exposes_document_workflow_tools(self, api_client, documents_connector):
         _, token = documents_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
-        names = [t['name'] for t in response.data['result']['tools']]
-        assert names == [
+        names = {t['name'] for t in response.data['result']['tools']}
+        assert {
             'list_folders', 'create_folder', 'rename_folder', 'list_documents',
             'read_document', 'create_document', 'update_document',
             'append_document', 'delete_document', 'list_document_states',
@@ -95,7 +106,9 @@ class TestDocumentsMcpToolList:
             'get_document_thread', 'list_document_threads',
             'create_document_thread', 'update_document_thread',
             'dissolve_document_thread',
-        ]
+            'browse_documents', 'render_document_pdf', 'describe_capabilities',
+            'confirm_action', 'begin_upload', 'complete_upload',
+        } <= names
 
     def test_serverinfo_handshake_works_on_shared_endpoint(self, api_client, documents_connector):
         _, token = documents_connector
@@ -208,6 +221,49 @@ class TestDocumentsMcpFolders:
 
 @pytest.mark.django_db
 class TestDocumentsMcpCrud:
+    def test_read_document_exposes_markdown_editability_and_etag(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type, status='draft')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'read_document', {'document_id': doc.id})
+
+        payload = response.data['result']['structuredContent']
+        assert payload['markdown'] == '# Hola\n\nMundo.'
+        assert payload['editable'] is True
+        assert len(payload['etag']) == 64
+
+    def test_update_document_accepts_the_content_markdown_alias(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type, status='draft')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'content_markdown': '# Borrador corregido',
+        })
+
+        doc.refresh_from_db()
+        assert response.data['result']['isError'] is False
+        assert doc.content_markdown == '# Borrador corregido'
+
+    def test_update_document_rejects_a_stale_etag(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type, status='draft')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'markdown': '# No aplicar',
+            'if_match': 'stale-etag',
+        })
+
+        error = response.data['result']['structuredContent']['error']
+        assert error['code'] == 'STALE_VERSION'
+
     def test_create_document_parses_markdown_and_builds_json(self, api_client, documents_connector, markdown_doc_type):
         _, token = documents_connector
         response = _call(api_client, token, 'create_document', {
@@ -423,14 +479,18 @@ class TestDocumentsMcpCrud:
     def test_delete_hidden_document(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type, is_client_visible=False)
         _, token = documents_connector
-        response = _call(api_client, token, 'delete_document', {'document_id': doc.id})
+        response = _call_confirmed(
+            api_client, token, 'delete_document', {'document_id': doc.id},
+        )
         assert response.data['result']['isError'] is False
         assert not Document.objects.filter(pk=doc.id).exists()
 
     def test_cannot_delete_visible_document(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type, is_client_visible=True)
         _, token = documents_connector
-        response = _call(api_client, token, 'delete_document', {'document_id': doc.id})
+        response = _call_confirmed(
+            api_client, token, 'delete_document', {'document_id': doc.id},
+        )
         assert response.data['result']['isError'] is True
         assert Document.objects.filter(pk=doc.id).exists()
 
@@ -523,7 +583,9 @@ class TestDocumentsMcpMarkdownGuardrail:
     def test_cannot_delete_collection_account(self, api_client, documents_connector, collection_account_type):
         doc = _make_doc(collection_account_type, title='Cuenta', status='draft')
         _, token = documents_connector
-        response = _call(api_client, token, 'delete_document', {'document_id': doc.id})
+        response = _call_confirmed(
+            api_client, token, 'delete_document', {'document_id': doc.id},
+        )
         assert response.data['result']['isError'] is True
         assert Document.objects.filter(pk=doc.id).exists()
 
@@ -748,7 +810,7 @@ class TestDocumentsMcpWorkflow:
         note = DocumentNote.objects.create(document=doc, content='Ruido')
         _, token = documents_connector
 
-        response = _call(api_client, token, 'delete_document_notes', {
+        response = _call_confirmed(api_client, token, 'delete_document_notes', {
             'document_id': doc.id,
             'note_ids': [note.id],
         })
@@ -821,7 +883,7 @@ class TestDocumentsMcpWorkflow:
         foreign = DocumentNote.objects.create(document=other, content='Ajena')
         _, token = documents_connector
 
-        response = _call(api_client, token, 'delete_document_notes', {
+        response = _call_confirmed(api_client, token, 'delete_document_notes', {
             'document_id': doc.id,
             'note_ids': [local.id, foreign.id],
         })

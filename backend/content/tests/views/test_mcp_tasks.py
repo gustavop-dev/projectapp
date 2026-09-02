@@ -42,6 +42,17 @@ def _call(api_client, token, name, arguments):
     )
 
 
+def _call_confirmed(api_client, token, name, arguments):
+    preview = _call(api_client, token, name, arguments)
+    confirmation_id = preview.data['result']['structuredContent']['confirmation_id']
+    return _call(
+        api_client,
+        token,
+        'confirm_action',
+        {'confirmation_id': confirmation_id},
+    )
+
+
 @pytest.mark.django_db
 class TestTasksMcpBoard:
     def test_tool_list_includes_core_tools(self, api_client, tasks_connector):
@@ -106,14 +117,18 @@ class TestTasksMcpMutations:
     def test_delete_task(self, api_client, tasks_connector):
         task = Task.objects.create(title='Borrar', status='todo')
         _, token = tasks_connector
-        response = _call(api_client, token, 'delete_task', {'task_id': task.id})
+        response = _call_confirmed(
+            api_client, token, 'delete_task', {'task_id': task.id},
+        )
         assert response.data['result']['isError'] is False
         assert not Task.objects.filter(pk=task.id).exists()
 
 
 @pytest.mark.django_db
 class TestTasksMcpComments:
-    def test_create_comment_uses_mcp_actor(self, api_client, tasks_connector, mcp_superuser):
+    def test_create_comment_uses_connector_service_actor(
+        self, api_client, tasks_connector,
+    ):
         task = Task.objects.create(title='Con comentario', status='todo')
         _, token = tasks_connector
         response = _call(api_client, token, 'create_task_comment', {
@@ -121,20 +136,24 @@ class TestTasksMcpComments:
         })
         assert response.data['result']['isError'] is False
         comment = TaskComment.objects.get(task=task)
-        assert comment.author_id == mcp_superuser.id
+        assert comment.author.username == 'mcp_tasks'
+        assert comment.author.has_usable_password() is False
 
-    def test_create_comment_without_superuser_errors(self, api_client, tasks_connector):
+    def test_create_comment_bootstraps_actor_without_panel_superuser(
+        self, api_client, tasks_connector,
+    ):
         task = Task.objects.create(title='Sin actor', status='todo')
         _, token = tasks_connector
         response = _call(api_client, token, 'create_task_comment', {
             'task_id': task.id, 'text': 'Hola',
         })
-        # No active superuser exists → mcp_actor() raises ToolError.
-        assert response.data['result']['isError'] is True
+        assert response.data['result']['isError'] is False
+        assert TaskComment.objects.get(task=task).author.username == 'mcp_tasks'
 
 
 def _payload(response):
-    return json.loads(response.data['result']['content'][0]['text'])
+    payload = json.loads(response.data['result']['content'][0]['text'])
+    return payload.get('result', payload) if payload.get('confirmed') else payload
 
 
 @pytest.mark.django_db
@@ -280,7 +299,7 @@ class TestTasksMcpHandlerBranches:
         task = Task.objects.create(title='Comentada', status='todo')
         comment = TaskComment.objects.create(task=task, author=mcp_superuser, text='X')
         _, token = tasks_connector
-        response = _call(api_client, token, 'delete_task_comment', {
+        response = _call_confirmed(api_client, token, 'delete_task_comment', {
             'task_id': task.id, 'comment_id': comment.id,
         })
         assert _payload(response)['deleted'] is True
@@ -289,7 +308,7 @@ class TestTasksMcpHandlerBranches:
     def test_delete_unknown_comment_errors(self, api_client, tasks_connector):
         task = Task.objects.create(title='Sin comentarios', status='todo')
         _, token = tasks_connector
-        response = _call(api_client, token, 'delete_task_comment', {
+        response = _call_confirmed(api_client, token, 'delete_task_comment', {
             'task_id': task.id, 'comment_id': 999999,
         })
         assert response.data['result']['isError'] is True
@@ -318,7 +337,7 @@ class TestTasksMcpHandlerBranches:
             task=task, notify_at='2026-08-01', note='N1',
         )
         _, token = tasks_connector
-        response = _call(api_client, token, 'delete_task_alert', {
+        response = _call_confirmed(api_client, token, 'delete_task_alert', {
             'task_id': task.id, 'alert_id': alert.id,
         })
         assert _payload(response)['deleted'] is True

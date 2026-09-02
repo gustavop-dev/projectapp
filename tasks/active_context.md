@@ -2,6 +2,14 @@
 
 ## Current State
 
+**2026-09-02 — paridad operativa MCP en curso:** se verificó en producción que
+Gestor Documental ofrece 22 herramientas y que `update_document(markdown=...)`
+edita borradores; Comunicaciones ofrece 14. El déficit real es transversal:
+catálogos parciales, módulos sin conector, atribución a un superuser humano,
+tokens únicos en URL y ausencia de confirmación/concurrencia uniforme. La sesión
+implementa el fundamento común y la cobertura por áreas desde un worktree propio;
+no se ha activado ni rotado ninguna credencial de producción.
+
 **2026-09-02 — módulo de financiación listo para integrar:** la nueva superficie
 comercial informa, sin cotizar ni aprobar automáticamente, las condiciones de
 financiación para productos con potencial. La alianza recomendada combina 12

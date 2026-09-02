@@ -1,5 +1,14 @@
 # Product Requirements Document — ProjectApp
 
+> **En implementación 2026-09-02 — control operativo por MCP:** todas las
+> operaciones del Panel interno, salvo administración de identidades, secretos,
+> infraestructura e impersonación, deben poder descubrirse y ejecutarse desde
+> conectores MCP agrupados por área. Las lecturas y ediciones reversibles son
+> directas; envíos, publicaciones, efectos financieros, cascadas y eliminaciones
+> definitivas exigen previsualización y confirmación vinculada al estado leído.
+> Los documentos Markdown, incluidos borradores, son editables; los snapshots
+> PDF emitidos permanecen inmutables.
+
 > **Entrega 2026-09-02 — módulo informativo de financiación:** Project App
 > dispone de una experiencia comercial bilingüe para presentar alianzas de
 > financiación sujetas a evaluación previa. Explica 12 meses para financiar el

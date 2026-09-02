@@ -7,24 +7,28 @@ tools (blog, documents) don't care — they never stamp authorship. But some
 modules do: accounting writes set `created_by` and are audited to an actor,
 and task comments set `author`. Those handlers resolve an actor here.
 
-Policy (decided with the operator): use an existing superuser as the actor.
-Configurable via `settings.MCP_ACTOR_USERNAME`; falls back to the first active
-superuser. The audit trail then shows that superuser as if the change came
-from the panel.
+The endpoint normally injects a non-interactive, connector-specific service
+principal in the execution context. The setting/first-superuser lookup below
+is retained only for direct handler use outside the HTTP transport.
 """
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from content.mcp.protocol import ToolError
+from content.mcp.context import current_mcp_context
 
 
 def mcp_actor():
-    """Return the superuser that MCP writes are attributed to.
+    """Return the actor that MCP writes are attributed to.
 
-    Raises ToolError (surfaced to the model, not a 500) when no suitable
-    superuser exists, so the operator gets an actionable message instead of a
-    crash.
+    HTTP requests resolve to the connector service principal. Direct handler
+    calls retain the legacy configured-superuser fallback and raise ToolError
+    when it cannot be resolved.
     """
+    context = current_mcp_context()
+    if context is not None and context.actor is not None:
+        return context.actor
+
     User = get_user_model()
     username = getattr(settings, 'MCP_ACTOR_USERNAME', '') or ''
 

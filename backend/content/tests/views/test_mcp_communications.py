@@ -108,7 +108,8 @@ def test_tool_list_exposes_administrative_communications_surface(
         f'/api/mcp/communications/{token}/', rpc('tools/list'), format='json',
     )
 
-    assert [tool['name'] for tool in response.data['result']['tools']] == [
+    names = {tool['name'] for tool in response.data['result']['tools']}
+    assert {
         'list_threads',
         'get_thread',
         'create_thread',
@@ -123,7 +124,11 @@ def test_tool_list_exposes_administrative_communications_surface(
         'mark_message_sent',
         'void_message',
         'correct_message_date',
-    ]
+    } <= names
+    assert {
+        'get_email_defaults', 'preview_email', 'send_email',
+        'describe_capabilities', 'confirm_action', 'begin_upload',
+    } <= names
 
 
 def test_list_threads_schema_exposes_reply_status(
