@@ -146,6 +146,51 @@ class DocumentThreadCandidateSerializer(DocumentThreadDocumentSerializer):
         }
 
 
+THREAD_MEMBER_PREVIEW_LIMIT = 5
+
+
+def _iso(value):
+    return value.isoformat() if value else None
+
+
+def _thread_member_row(item):
+    document = item.document
+    return {
+        'document_id': document.id,
+        'title': document.title,
+        'occurred_on': _iso(item.occurred_on),
+        'folder_name': document.folder.name if document.folder_id else None,
+        'is_archived': document.is_archived,
+    }
+
+
+class DocumentThreadListSerializer(serializers.Serializer):
+    """Row shape for the thread index, shared by the panel and the MCP connector.
+
+    Dates go through `_iso` rather than DRF's date fields on purpose: the MCP
+    payload has always been plain `isoformat()` (`+00:00`, not `Z`), and both
+    surfaces must keep returning the same bytes.
+    """
+
+    def to_representation(self, thread):
+        items = list(thread.items.all())
+        latest = items[-1] if items else None
+        return {
+            'id': thread.id,
+            'title': thread.title,
+            'document_count': getattr(thread, 'document_count', None) or len(items),
+            'first_occurred_on': _iso(getattr(thread, 'first_occurred_on', None)),
+            'last_occurred_on': _iso(getattr(thread, 'last_occurred_on', None)),
+            'latest_item': _thread_member_row(latest) if latest else None,
+            'documents': [
+                _thread_member_row(item)
+                for item in items[:THREAD_MEMBER_PREVIEW_LIMIT]
+            ],
+            'documents_truncated': len(items) > THREAD_MEMBER_PREVIEW_LIMIT,
+            'updated_at': _iso(thread.updated_at),
+        }
+
+
 class DocumentThreadItemInputSerializer(serializers.Serializer):
     document_id = serializers.IntegerField(min_value=1)
     occurred_on = serializers.DateField(required=False, allow_null=True)
