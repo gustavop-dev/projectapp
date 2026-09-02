@@ -15,6 +15,31 @@ comunes y 14.5–16.9 KiB por página. Sin migración, índice ni caché nueva. 
 build, las regresiones focales y el escenario E2E de paginación están verdes;
 flow-map fresco y `admin-document-list` cubierto en sus tres outcomes.
 
+**2026-09-02 — paridad administrativa de Comunicaciones por MCP lista para
+integrar:** el conector pasa de 6 a 14 herramientas y ya puede editar hilos,
+cerrarlos/reabrirlos, archivarlos/restaurarlos, eliminar borradores, anular
+mensajes históricos y corregir sus fechas, además del flujo previo de consulta,
+creación, edición de borrador y confirmación de envío. Todas las mutaciones
+reutilizan serializers y `communication_service`; cliente, comunicaciones madre,
+propiedad de proyecto/documentos, estados editables y auditoría conservan las
+mismas guardas del panel. `list_threads` suma `scope` y `order`. Ninguna acción
+envía correo o WhatsApp. La migración de datos sólo actualiza la descripción y
+preserva token, prefijo, actividad y último uso. Verificación focal: 20 casos
+administrativos, 19 de edición, 19 de regresión base, 23 de contratos y 17 de
+paridad transversal; Django y migraciones sin drift, quality gate 93/100 con 0
+errores/0 junk y un warning local porque `ruff` no está instalado.
+
+**2026-09-02 — tracking de propuestas y alerta de primera vista listo para
+integrar:** abrir el enlace ya no incrementa métricas. Una vista se confirma tras
+cinco segundos visibles, se deduplica por sesión, actualiza heartbeats/final y
+persiste contador, primera vista, estado comercial, actividad y alerta dentro de
+una transacción. La entrega por email tiene estado/intentos/error durable,
+reintentos Huey, reconciliación y reintento manual observable en Analítica; el
+histórico queda marcado sin correos retroactivos. Payloads anónimos tienen límites
+y un draft o sesión staff no escribe. Verificación: checks/migración, cortes
+backend focales, 43 unitarias frontend focales, 10 E2E y flow audit completo para
+heartbeat, display y retry success/failure.
+
 **2026-09-02 — colores semánticos de correos contables listos para integrar:**
 `accounting_change` usa verde para ingresos/entradas, naranja para
 gastos/salidas/recurrentes/Ads/deuda y azul para entidades neutrales. Cabecera y

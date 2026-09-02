@@ -396,7 +396,11 @@ MCP_MODEL_CONTRACTS = {
                     'abandonment_email_sent_at investment_interest_email_sent_at '
                     'followup_scheduled_at stakeholder_alert_sent_at '
                     'post_expiration_alert_sent_at calculator_followup_sent_at '
-                    'last_automated_email_at',
+                    'last_automated_email_at first_view_notification_status '
+                    'first_view_notification_attempts '
+                    'first_view_notification_attempted_at '
+                    'first_view_notification_sent_at '
+                    'first_view_notification_last_error',
                 )
                 | _excluded(
                     'Respuesta privada del cliente; se gestiona en el flujo público.',
@@ -456,16 +460,10 @@ MCP_MODEL_CONTRACTS = {
             'content.CommunicationThread',
             read_only=(
                 'id status last_activity_at closed_at created_at updated_at '
-                'managed_project managed_client'
+                'managed_project managed_client is_archived archived_at'
             ),
             read_write='client project title',
-            excluded=(
-                _excluded(_AUDIT_INTERNAL, 'created_by updated_by')
-                | _excluded(
-                    'El archivado de hilos es una operación reservada al panel.',
-                    'is_archived archived_at',
-                )
-            ),
+            excluded=_excluded(_AUDIT_INTERNAL, 'created_by updated_by'),
         ),
         _contract(
             'content.CommunicationMessage',

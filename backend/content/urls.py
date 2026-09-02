@@ -114,7 +114,7 @@ from content.views.proposal import (
     create_proposal_section, delete_proposal_section,
     respond_to_proposal, comment_on_proposal, check_admin_auth,
     track_proposal_engagement, track_calculator_interaction, track_requirement_click,
-    retrieve_proposal_analytics,
+    retrieve_proposal_analytics, retry_first_view_notification,
     proposal_dashboard, export_proposal_analytics_csv,
     create_share_link, retrieve_shared_proposal, schedule_followup,
     list_clients, log_activity, proposal_alerts,
@@ -491,6 +491,11 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/reorder-sections/', bulk_reorder_sections, name='reorder-sections'),
     path('proposals/<int:proposal_id>/analytics/', retrieve_proposal_analytics, name='proposal-analytics'),
     path('proposals/<int:proposal_id>/analytics/csv/', export_proposal_analytics_csv, name='proposal-analytics-csv'),
+    path(
+        'proposals/<int:proposal_id>/notifications/first-view/retry/',
+        retry_first_view_notification,
+        name='retry-first-view-notification',
+    ),
     path('proposals/dashboard/', proposal_dashboard, name='proposal-dashboard'),
     path('proposals/clients/', list_clients, name='list-clients'),
 

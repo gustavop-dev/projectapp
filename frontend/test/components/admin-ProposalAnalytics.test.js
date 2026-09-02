@@ -187,6 +187,54 @@ describe('ProposalAnalytics with data', () => {
 
     expect(wrapper.text()).toContain('Enviada');
   });
+
+  it('renders the durable first-view notification failure', async () => {
+    const wrapper = withRichData({}, {
+      ...richAnalytics,
+      first_view_notification: {
+        status: 'failed',
+        attempts: 4,
+        sent_at: null,
+        last_error: 'SMTP unavailable',
+        can_retry: true,
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="first-view-notification-status"]').text())
+      .toContain('Falló');
+    expect(wrapper.text()).toContain('SMTP unavailable');
+  });
+
+  it('retries a failed first-view notification from the panel', async () => {
+    const retry = jest.fn().mockResolvedValue({
+      success: true,
+      data: {
+        status: 'pending', attempts: 0, last_error: '', can_retry: false,
+      },
+    });
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...richAnalytics,
+          first_view_notification: {
+            status: 'failed', attempts: 4, last_error: 'SMTP unavailable', can_retry: true,
+          },
+        },
+      }),
+      retryFirstViewNotification: retry,
+    }));
+    const wrapper = mountProposalAnalytics();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="retry-first-view-notification"]').trigger('click');
+    await flushPromises();
+
+    expect(retry).toHaveBeenCalledWith(42);
+    expect(wrapper.get('[data-testid="first-view-notification-status"]').text())
+      .toContain('Pendiente');
+  });
 });
 
 // ── suggestions computed ───────────────────────────────────────────────────

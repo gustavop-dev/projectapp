@@ -826,6 +826,20 @@ export const useProposalStore = defineStore('proposals', {
       }
     },
 
+    /** Retry a failed first-view notification delivery. */
+    async retryFirstViewNotification(id) {
+      try {
+        const response = await create_request(
+          `proposals/${id}/notifications/first-view/retry/`,
+          {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error retrying first-view notification:', error);
+        return { success: false };
+      }
+    },
+
     /**
      * fetchProposalDashboard: Retrieve global KPI metrics for all proposals.
      */

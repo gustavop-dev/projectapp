@@ -25,11 +25,14 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   }
 
   const FLUSH_INTERVAL_MS = 30_000;
+  const INITIAL_VIEW_DELAY_MS = 5_000;
 
   const sessionId = ref('');
   const sectionLog = ref([]);
+  const isViewConfirmed = ref(false);
   let currentEntry = null;
   let flushTimer = null;
+  let initialViewTimer = null;
   let flushPromise = null;
   let isPaused = false;
   let beaconFinalized = false;
@@ -82,7 +85,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     currentEntry = null;
   }
 
-  function buildPayload() {
+  function buildPayload(isFinal = false) {
     const mode = viewMode?.value || 'unknown';
     // Finalize current section before flushing
     if (currentEntry) {
@@ -91,6 +94,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
       return {
         session_id: sessionId.value,
         view_mode: mode,
+        is_final: isFinal,
         sections: [
           ...sectionLog.value,
           {
@@ -106,12 +110,13 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     return {
       session_id: sessionId.value,
       view_mode: mode,
+      is_final: isFinal,
       sections: [...sectionLog.value],
     };
   }
 
   async function flush() {
-    if (isPaused) return;
+    if (isPaused || !isViewConfirmed.value) return;
     if (flushPromise) return flushPromise;
 
     const payload = buildPayload();
@@ -151,8 +156,8 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   }
 
   function flushBeacon() {
-    if (beaconFinalized) return;
-    const payload = buildPayload();
+    if (beaconFinalized || !isViewConfirmed.value) return;
+    const payload = buildPayload(true);
     if (!payload.sections.length || !proposalUuid.value) return;
     const url = `/api/proposals/${proposalUuid.value}/track/`;
     try {
@@ -177,6 +182,28 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     }
   }
 
+  function startInitialViewTimer() {
+    if (
+      initialViewTimer
+      || isViewConfirmed.value
+      || isPaused
+      || !currentPanel.value
+    ) return;
+    initialViewTimer = setTimeout(() => {
+      initialViewTimer = null;
+      if (isPaused || !currentPanel.value) return;
+      isViewConfirmed.value = true;
+      flush();
+    }, INITIAL_VIEW_DELAY_MS);
+  }
+
+  function stopInitialViewTimer() {
+    if (initialViewTimer) {
+      clearTimeout(initialViewTimer);
+      initialViewTimer = null;
+    }
+  }
+
   function stopFlushTimer() {
     if (flushTimer) {
       clearInterval(flushTimer);
@@ -193,6 +220,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
       }
       if (newPanel && !isPaused) {
         startSectionTimer(newPanel);
+        startInitialViewTimer();
       }
     },
     { immediate: false }
@@ -209,7 +237,10 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
       startSectionTimer(currentPanel.value);
     }
 
-    if (!isPaused) startFlushTimer();
+    if (!isPaused) {
+      startFlushTimer();
+      startInitialViewTimer();
+    }
 
     // Flush on page unload
     if (typeof window !== 'undefined') {
@@ -223,6 +254,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
           if (isPaused) return;
           isPaused = true;
           stopFlushTimer();
+          stopInitialViewTimer();
           stopSectionTimer();
           flushBeacon();
         } else if (isPaused) {
@@ -230,6 +262,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
           beaconFinalized = false;
           if (currentPanel.value) startSectionTimer(currentPanel.value);
           startFlushTimer();
+          startInitialViewTimer();
         }
       };
       document.addEventListener('visibilitychange', visibilityHandler);
@@ -237,13 +270,10 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   });
 
   onBeforeUnmount(() => {
-    if (isPaused) {
-      flushBeacon();
-    } else {
-      stopSectionTimer();
-      flush();
-    }
+    if (!isPaused) stopSectionTimer();
+    flushBeacon();
     stopFlushTimer();
+    stopInitialViewTimer();
     if (typeof window !== 'undefined') {
       if (beforeUnloadHandler) {
         window.removeEventListener('beforeunload', beforeUnloadHandler);
@@ -254,5 +284,5 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     }
   });
 
-  return { sessionId, sectionLog, flush };
+  return { sessionId, sectionLog, isViewConfirmed, flush };
 }

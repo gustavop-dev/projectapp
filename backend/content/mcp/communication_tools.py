@@ -1,9 +1,9 @@
-"""MCP tools for consulting and recording client communications.
+"""MCP tools for administering client communications.
 
 The handlers deliberately reuse the panel serializers and service layer so a
-conversation cannot bypass thread, message, reply, or document guardrails.
-Editing a draft or marking it as sent only updates the registry; neither action
-delivers email or WhatsApp itself.
+conversation cannot bypass thread, message, reply, document, archive, or audit
+guardrails. Message actions only update the registry; none delivers email or
+WhatsApp itself.
 """
 import json
 
@@ -13,6 +13,7 @@ from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
 from content.models import CommunicationMessage
 from content.serializers.communication import (
+    CommunicationDateCorrectionWriteSerializer,
     CommunicationDraftUpdateSerializer,
     CommunicationMarkSentSerializer,
     CommunicationMessageCreateSerializer,
@@ -20,6 +21,7 @@ from content.serializers.communication import (
     CommunicationThreadDetailSerializer,
     CommunicationThreadListSerializer,
     CommunicationThreadWriteSerializer,
+    CommunicationVoidSerializer,
 )
 from content.services import communication_query_service, communication_service
 
@@ -31,6 +33,8 @@ def _serializer_error(errors):
 def _positive_int(value, *, field, default=None, maximum=None):
     if value in (None, ''):
         return default
+    if isinstance(value, bool):
+        raise ToolError(f'{field} debe ser un número entero.')
     try:
         parsed = int(value)
     except (TypeError, ValueError) as exc:
@@ -40,7 +44,17 @@ def _positive_int(value, *, field, default=None, maximum=None):
     return min(parsed, maximum) if maximum is not None else parsed
 
 
+def _reject_unknown_fields(arguments, allowed_fields):
+    if not isinstance(arguments, dict):
+        raise ToolError('Los argumentos deben ser un objeto JSON.')
+    unknown_fields = sorted(set(arguments) - set(allowed_fields))
+    if unknown_fields:
+        raise ToolError(f'Campos no permitidos: {", ".join(unknown_fields)}.')
+
+
 def _thread_or_error(thread_id):
+    if thread_id in (None, ''):
+        raise ToolError('thread_id es obligatorio.')
     thread_id = _positive_int(thread_id, field='thread_id')
     thread = (
         communication_query_service.thread_queryset()
@@ -53,6 +67,8 @@ def _thread_or_error(thread_id):
 
 
 def _message_or_error(message_id):
+    if message_id in (None, ''):
+        raise ToolError('message_id es obligatorio.')
     message_id = _positive_int(message_id, field='message_id')
     message = (
         CommunicationMessage.objects.select_related('thread')
@@ -64,8 +80,25 @@ def _message_or_error(message_id):
     return message
 
 
+def _thread_detail(thread_id):
+    return CommunicationThreadDetailSerializer(
+        communication_query_service.thread_queryset().get(pk=thread_id),
+    ).data
+
+
+def _message_detail(message_id):
+    return CommunicationMessageSerializer(
+        communication_query_service.message_queryset().get(pk=message_id),
+    ).data
+
+
 def list_threads(arguments):
     """Return the same filtered, paginated thread list exposed by the panel."""
+    _reject_unknown_fields(arguments, {
+        'client_id', 'project_id', 'status', 'channel', 'direction',
+        'message_status', 'reply_status', 'date_from', 'date_to', 'q',
+        'order', 'scope', 'page', 'page_size',
+    })
     query_params = {
         key: value for key, value in arguments.items()
         if key not in {'client_id', 'project_id', 'page', 'page_size'}
@@ -101,12 +134,13 @@ def list_threads(arguments):
 
 def get_thread(arguments):
     """Open one complete thread, including messages and document references."""
-    return CommunicationThreadDetailSerializer(
-        _thread_or_error(arguments.get('thread_id')),
-    ).data
+    _reject_unknown_fields(arguments, {'thread_id'})
+    thread = _thread_or_error(arguments.get('thread_id'))
+    return _thread_detail(thread.pk)
 
 
 def create_thread(arguments):
+    _reject_unknown_fields(arguments, {'client_id', 'project_id', 'title'})
     data = {
         'client': arguments.get('client_id'),
         'title': arguments.get('title'),
@@ -122,12 +156,86 @@ def create_thread(arguments):
         )
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
-    return CommunicationThreadDetailSerializer(
-        communication_query_service.thread_queryset().get(pk=thread.pk),
-    ).data
+    return _thread_detail(thread.pk)
+
+
+def update_thread(arguments):
+    _reject_unknown_fields(arguments, {'thread_id', 'title', 'project_id'})
+    if 'thread_id' not in arguments:
+        raise ToolError('thread_id es obligatorio.')
+    supplied_fields = {'title', 'project_id'}.intersection(arguments)
+    if not supplied_fields:
+        raise ToolError('Envía al menos un campo para actualizar.')
+
+    thread = _thread_or_error(arguments.get('thread_id'))
+    data = {}
+    if 'title' in arguments:
+        data['title'] = arguments['title']
+    if 'project_id' in arguments:
+        data['project'] = arguments['project_id']
+    serializer = CommunicationThreadWriteSerializer(
+        thread,
+        data=data,
+        partial=True,
+    )
+    if not serializer.is_valid():
+        raise ToolError(_serializer_error(serializer.errors))
+    try:
+        thread = communication_service.update_thread(
+            thread,
+            actor=mcp_actor(),
+            **serializer.validated_data,
+        )
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _thread_detail(thread.pk)
+
+
+def close_thread(arguments):
+    _reject_unknown_fields(arguments, {'thread_id'})
+    thread = _thread_or_error(arguments.get('thread_id'))
+    try:
+        thread = communication_service.close_thread(thread, actor=mcp_actor())
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _thread_detail(thread.pk)
+
+
+def reopen_thread(arguments):
+    _reject_unknown_fields(arguments, {'thread_id'})
+    thread = _thread_or_error(arguments.get('thread_id'))
+    try:
+        thread = communication_service.reopen_thread(thread, actor=mcp_actor())
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _thread_detail(thread.pk)
+
+
+def archive_thread(arguments):
+    _reject_unknown_fields(arguments, {'thread_id'})
+    thread = _thread_or_error(arguments.get('thread_id'))
+    try:
+        thread = communication_service.archive_thread(thread, actor=mcp_actor())
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _thread_detail(thread.pk)
+
+
+def unarchive_thread(arguments):
+    _reject_unknown_fields(arguments, {'thread_id'})
+    thread = _thread_or_error(arguments.get('thread_id'))
+    try:
+        thread = communication_service.unarchive_thread(thread, actor=mcp_actor())
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _thread_detail(thread.pk)
 
 
 def create_message(arguments):
+    _reject_unknown_fields(arguments, {
+        'thread_id', 'channel', 'direction', 'subject', 'content',
+        'occurred_at', 'reply_to_id', 'document_ids',
+    })
     thread = _thread_or_error(arguments.get('thread_id'))
     data = {
         field: arguments[field]
@@ -153,9 +261,7 @@ def create_message(arguments):
         )
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
-    return CommunicationMessageSerializer(
-        communication_query_service.message_queryset().get(pk=message.pk),
-    ).data
+    return _message_detail(message.pk)
 
 
 _UPDATE_MESSAGE_FIELDS = frozenset({
@@ -164,15 +270,12 @@ _UPDATE_MESSAGE_FIELDS = frozenset({
 
 
 def update_message(arguments):
+    _reject_unknown_fields(
+        arguments,
+        _UPDATE_MESSAGE_FIELDS | {'message_id'},
+    )
     if 'message_id' not in arguments:
         raise ToolError('message_id es obligatorio.')
-    unknown_fields = sorted(
-        set(arguments) - _UPDATE_MESSAGE_FIELDS - {'message_id'},
-    )
-    if unknown_fields:
-        raise ToolError(
-            f'Campos no permitidos: {", ".join(unknown_fields)}.',
-        )
     supplied_fields = _UPDATE_MESSAGE_FIELDS.intersection(arguments)
     if not supplied_fields:
         raise ToolError('Envía al menos un campo para actualizar.')
@@ -203,12 +306,27 @@ def update_message(arguments):
         )
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
-    return CommunicationMessageSerializer(
-        communication_query_service.message_queryset().get(pk=message.pk),
-    ).data
+    return _message_detail(message.pk)
+
+
+def delete_draft(arguments):
+    _reject_unknown_fields(arguments, {'message_id'})
+    message = _message_or_error(arguments.get('message_id'))
+    message_id = message.pk
+    thread_id = message.thread_id
+    try:
+        communication_service.delete_draft(message, actor=mcp_actor())
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return {
+        'deleted': True,
+        'id': message_id,
+        'thread_id': thread_id,
+    }
 
 
 def mark_message_sent(arguments):
+    _reject_unknown_fields(arguments, {'message_id', 'occurred_at'})
     message = _message_or_error(arguments.get('message_id'))
     data = {
         'occurred_at': arguments['occurred_at'],
@@ -224,15 +342,61 @@ def mark_message_sent(arguments):
         )
     except communication_service.CommunicationError as exc:
         raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
-    return CommunicationMessageSerializer(
-        communication_query_service.message_queryset().get(pk=message.pk),
-    ).data
+    return _message_detail(message.pk)
+
+
+def void_message(arguments):
+    _reject_unknown_fields(arguments, {'message_id', 'reason'})
+    message = _message_or_error(arguments.get('message_id'))
+    serializer = CommunicationVoidSerializer(data={
+        'reason': arguments.get('reason'),
+    })
+    if not serializer.is_valid():
+        raise ToolError(_serializer_error(serializer.errors))
+    try:
+        message = communication_service.void_message(
+            message,
+            actor=mcp_actor(),
+            **serializer.validated_data,
+        )
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _message_detail(message.pk)
+
+
+def correct_message_date(arguments):
+    _reject_unknown_fields(arguments, {'message_id', 'occurred_at', 'reason'})
+    message = _message_or_error(arguments.get('message_id'))
+    serializer = CommunicationDateCorrectionWriteSerializer(data={
+        'occurred_at': arguments.get('occurred_at'),
+        'reason': arguments.get('reason'),
+    })
+    if not serializer.is_valid():
+        raise ToolError(_serializer_error(serializer.errors))
+    try:
+        message = communication_service.correct_message_date(
+            message,
+            actor=mcp_actor(),
+            **serializer.validated_data,
+        )
+    except communication_service.CommunicationError as exc:
+        raise ToolError(str(exc.args[0] if exc.args else exc)) from exc
+    return _message_detail(message.pk)
 
 
 _THREAD_ID = {
     'thread_id': {
         'type': 'integer',
-        'description': 'ID del hilo de comunicaciones que se quiere abrir o alimentar.',
+        'minimum': 1,
+        'description': 'ID del hilo de comunicaciones que se quiere administrar.',
+    },
+}
+
+_MESSAGE_ID = {
+    'message_id': {
+        'type': 'integer',
+        'minimum': 1,
+        'description': 'ID del mensaje dentro del registro de comunicaciones.',
     },
 }
 
@@ -258,6 +422,16 @@ COMMUNICATION_TOOLS = [
                 'date_from': {'type': 'string', 'description': 'Fecha o fecha-hora ISO mínima de los mensajes.'},
                 'date_to': {'type': 'string', 'description': 'Fecha o fecha-hora ISO máxima de los mensajes.'},
                 'q': {'type': 'string', 'description': 'Texto en título, cliente, proyecto, asunto o contenido.'},
+                'order': {
+                    'type': 'string',
+                    'enum': ['recent', 'oldest', 'title'],
+                    'description': 'Ordena por actividad reciente, actividad antigua o título.',
+                },
+                'scope': {
+                    'type': 'string',
+                    'enum': ['active', 'archived', 'all'],
+                    'description': 'Consulta hilos activos, archivados o ambos; active por defecto.',
+                },
                 'page': {'type': 'integer', 'minimum': 1, 'description': 'Página, desde 1.'},
                 'page_size': {'type': 'integer', 'minimum': 1, 'maximum': 100, 'description': 'Resultados por página; máximo 100.'},
             },
@@ -298,6 +472,91 @@ COMMUNICATION_TOOLS = [
             'additionalProperties': False,
         },
         'handler': create_thread,
+    },
+    {
+        'name': 'update_thread',
+        'description': (
+            'Edita un hilo abierto localizado previamente. Permite corregir el '
+            'título o asociar/desasociar un proyecto del mismo cliente; el cliente '
+            'histórico, la identidad y los mensajes del hilo se conservan.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_THREAD_ID,
+                'title': {
+                    'type': 'string',
+                    'description': 'Nuevo título no vacío del hilo.',
+                },
+                'project_id': {
+                    'type': ['integer', 'null'],
+                    'description': 'Proyecto del mismo cliente; null deja el hilo sin proyecto.',
+                },
+            },
+            'required': ['thread_id'],
+            'anyOf': [
+                {'required': ['title']},
+                {'required': ['project_id']},
+            ],
+            'additionalProperties': False,
+        },
+        'handler': update_thread,
+    },
+    {
+        'name': 'close_thread',
+        'description': (
+            'Cierra un hilo abierto sin archivarlo. Mientras esté cerrado no '
+            'acepta mensajes nuevos ni permite confirmar borradores como enviados.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _THREAD_ID,
+            'required': ['thread_id'],
+            'additionalProperties': False,
+        },
+        'handler': close_thread,
+    },
+    {
+        'name': 'reopen_thread',
+        'description': (
+            'Reabre un hilo cerrado para permitir nuevas anotaciones y confirmar '
+            'envíos pendientes; no cambia su condición de archivo.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _THREAD_ID,
+            'required': ['thread_id'],
+            'additionalProperties': False,
+        },
+        'handler': reopen_thread,
+    },
+    {
+        'name': 'archive_thread',
+        'description': (
+            'Archiva un hilo manual para retirarlo de la consulta activa sin '
+            'borrarlo ni cerrarlo. Las comunicaciones madre no se pueden archivar.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _THREAD_ID,
+            'required': ['thread_id'],
+            'additionalProperties': False,
+        },
+        'handler': archive_thread,
+    },
+    {
+        'name': 'unarchive_thread',
+        'description': (
+            'Restaura un hilo archivado a la consulta activa conservando su '
+            'estado abierto o cerrado y todo su historial.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _THREAD_ID,
+            'required': ['thread_id'],
+            'additionalProperties': False,
+        },
+        'handler': unarchive_thread,
     },
     {
         'name': 'create_message',
@@ -375,6 +634,20 @@ COMMUNICATION_TOOLS = [
         'handler': update_message,
     },
     {
+        'name': 'delete_draft',
+        'description': (
+            'Elimina definitivamente un borrador activo. Rechaza mensajes '
+            'enviados, recibidos, fallidos o anulados para preservar la evidencia.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _MESSAGE_ID,
+            'required': ['message_id'],
+            'additionalProperties': False,
+        },
+        'handler': delete_draft,
+    },
+    {
         'name': 'mark_message_sent',
         'description': (
             'Marca como enviado un borrador saliente activo y, opcionalmente, '
@@ -384,12 +657,58 @@ COMMUNICATION_TOOLS = [
         'input_schema': {
             'type': 'object',
             'properties': {
-                'message_id': {'type': 'integer', 'description': 'ID del borrador saliente que ya fue enviado externamente.'},
+                **_MESSAGE_ID,
                 'occurred_at': {'type': 'string', 'description': 'Fecha-hora ISO real del envío; conserva la actual si se omite.'},
             },
             'required': ['message_id'],
             'additionalProperties': False,
         },
         'handler': mark_message_sent,
+    },
+    {
+        'name': 'void_message',
+        'description': (
+            'Anula un mensaje enviado, recibido o fallido sin eliminarlo. Exige '
+            'un motivo y conserva el contenido como evidencia histórica.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_MESSAGE_ID,
+                'reason': {
+                    'type': 'string',
+                    'minLength': 1,
+                    'description': 'Motivo obligatorio de la anulación.',
+                },
+            },
+            'required': ['message_id', 'reason'],
+            'additionalProperties': False,
+        },
+        'handler': void_message,
+    },
+    {
+        'name': 'correct_message_date',
+        'description': (
+            'Corrige la fecha-hora de un mensaje enviado, recibido o fallido y '
+            'agrega una corrección append-only con actor, motivo y valores anterior/nuevo.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_MESSAGE_ID,
+                'occurred_at': {
+                    'type': 'string',
+                    'description': 'Nueva fecha-hora ISO, distinta de la actual.',
+                },
+                'reason': {
+                    'type': 'string',
+                    'minLength': 1,
+                    'description': 'Motivo obligatorio de la corrección.',
+                },
+            },
+            'required': ['message_id', 'occurred_at', 'reason'],
+            'additionalProperties': False,
+        },
+        'handler': correct_message_date,
     },
 ]

@@ -24,6 +24,48 @@
         </BaseButton>
       </div>
 
+      <div
+        v-if="firstViewNotification"
+        data-testid="first-view-notification-status"
+        class="rounded-xl border border-border-muted bg-surface p-4 shadow-sm"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-text-subtle">Alerta de primera vista</p>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                :class="firstViewNotificationClass"
+              >
+                {{ firstViewNotificationLabel }}
+              </span>
+              <span class="text-xs text-text-muted">
+                {{ firstViewNotification.attempts }} intento(s)
+              </span>
+            </div>
+            <p v-if="firstViewNotification.sent_at" class="mt-2 text-xs text-text-muted">
+              Correo confirmado: {{ formatDate(firstViewNotification.sent_at) }}
+            </p>
+            <p
+              v-if="firstViewNotification.last_error"
+              class="mt-2 text-xs text-danger-strong"
+            >
+              {{ firstViewNotification.last_error }}
+            </p>
+          </div>
+          <BaseButton
+            v-if="firstViewNotification.can_retry"
+            variant="secondary"
+            size="sm"
+            :loading="retryingFirstView"
+            data-testid="retry-first-view-notification"
+            @click="retryFirstViewNotification"
+          >
+            Reintentar alerta
+          </BaseButton>
+        </div>
+      </div>
+
       <!-- Engagement score -->
       <details
         v-if="analytics.engagement_score != null"
@@ -737,7 +779,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 // Explicit rather than relying on Nuxt auto-import, so the unit spec that
@@ -752,11 +794,14 @@ const notify = usePanelNotify();
 const props = defineProps({
   proposalId: { type: [Number, String], required: true },
   proposal: { type: Object, default: null },
+  refreshKey: { type: Number, default: 0 },
 });
+const emit = defineEmits(['retried']);
 
 const proposalStore = useProposalStore();
 const loading = ref(true);
 const analytics = ref(null);
+const retryingFirstView = ref(false);
 const funnelTab = ref<'exec_detail' | 'technical'>('exec_detail');
 const VIEW_MODES = ['executive', 'detailed', 'technical', 'legal'];
 const VIEW_MODE_CLASSES = {
@@ -857,6 +902,31 @@ const sectionCoverage = computed(() => {
   return Math.round((visited / total) * 100);
 });
 
+const firstViewNotification = computed(
+  () => analytics.value?.first_view_notification || props.proposal?.first_view_notification || null,
+);
+const FIRST_VIEW_NOTIFICATION_LABELS = {
+  not_started: 'Sin vista confirmada',
+  pending: 'Pendiente',
+  sending: 'Enviando',
+  sent: 'Enviado',
+  failed: 'Falló',
+  skipped: 'Omitido',
+  legacy_unverified: 'Histórico sin evidencia',
+};
+const firstViewNotificationLabel = computed(
+  () => FIRST_VIEW_NOTIFICATION_LABELS[firstViewNotification.value?.status]
+    || firstViewNotification.value?.status
+    || 'Desconocido',
+);
+const firstViewNotificationClass = computed(() => {
+  const status = firstViewNotification.value?.status;
+  if (status === 'sent') return 'bg-success-soft text-success-strong';
+  if (status === 'failed') return 'bg-danger-soft text-danger-strong';
+  if (status === 'pending' || status === 'sending') return 'bg-warning-soft text-warning-strong';
+  return 'bg-surface-raised text-text-muted';
+});
+
 const funnelSplit = computed(() => {
   const funnel = analytics.value?.funnel || [];
   const execDetail: any[] = [];
@@ -937,7 +1007,7 @@ const sectionInsights = computed(() => {
   return insights;
 });
 
-onMounted(async () => {
+async function loadAnalytics() {
   loading.value = true;
   const result = await proposalStore.fetchProposalAnalytics(props.proposalId);
   if (result.success) {
@@ -946,6 +1016,25 @@ onMounted(async () => {
     notify.error({ title: 'No se pudieron cargar las analíticas.' });
   }
   loading.value = false;
+}
+
+async function retryFirstViewNotification() {
+  if (retryingFirstView.value) return;
+  retryingFirstView.value = true;
+  const result = await proposalStore.retryFirstViewNotification(props.proposalId);
+  if (result.success) {
+    analytics.value.first_view_notification = result.data;
+    notify.success({ title: 'Reintento de alerta programado.' });
+    emit('retried');
+  } else {
+    notify.error({ title: 'No se pudo reintentar la alerta.' });
+  }
+  retryingFirstView.value = false;
+}
+
+onMounted(loadAnalytics);
+watch(() => props.refreshKey, (next, previous) => {
+  if (next !== previous) loadAnalytics();
 });
 
 /** Friendly label for raw tracking section_type (technical split). */

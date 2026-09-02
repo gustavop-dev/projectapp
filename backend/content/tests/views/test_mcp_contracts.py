@@ -130,6 +130,18 @@ def test_documents_connector_registers_the_five_thread_tools():
     assert len(TOOLS_BY_SLUG['documents']) == 22
 
 
+def test_communications_contract_exposes_archive_state():
+    contracts = {
+        contract.model_label: contract
+        for contract in MCP_MODEL_CONTRACTS['communications']
+    }
+
+    thread = contracts['content.CommunicationThread']
+    assert {'is_archived', 'archived_at'} <= thread.read_only
+    assert 'is_archived' not in thread.excluded
+    assert 'archived_at' not in thread.excluded
+
+
 @pytest.mark.parametrize('slug', CONNECTOR_SLUGS)
 def test_model_fields_are_classified_for_connector(slug):
     assert _field_contract_problems(slug) == []

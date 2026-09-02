@@ -160,6 +160,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     has_confirmed_module_selection = serializers.ReadOnlyField()
     available_transitions = serializers.SerializerMethodField()
     proposal_documents = serializers.SerializerMethodField()
+    first_view_notification = serializers.SerializerMethodField()
     # Slim on purpose: the client aggregates cost ~8-10 unannotated queries and
     # no proposal surface reads them. See ProposalNestedClientSerializer.
     client = ProposalNestedClientSerializer(read_only=True)
@@ -191,8 +192,15 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'contract_params', 'available_transitions', 'proposal_documents',
             'platform_onboarding_completed_at',
             'platform_onboarding_status',
+            'first_view_notification',
             'client',
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self.context.get('is_admin', False):
+            data.pop('first_view_notification', None)
+        return data
 
     def get_project_stages(self, obj):
         """Return project_stages only for admin requests; empty for public."""
@@ -297,6 +305,28 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         # Meta ordering is ['-created_at']; plain .all() keeps prefetch warm.
         docs = list(obj.proposal_documents.all())
         return [serialize_proposal_document(d) for d in docs]
+
+    def get_first_view_notification(self, obj):
+        """Expose operational delivery details only inside the admin panel."""
+        if not self.context.get('is_admin', False):
+            return None
+        return {
+            'status': obj.first_view_notification_status,
+            'attempts': obj.first_view_notification_attempts,
+            'attempted_at': (
+                obj.first_view_notification_attempted_at.isoformat()
+                if obj.first_view_notification_attempted_at else None
+            ),
+            'sent_at': (
+                obj.first_view_notification_sent_at.isoformat()
+                if obj.first_view_notification_sent_at else None
+            ),
+            'last_error': obj.first_view_notification_last_error,
+            'can_retry': (
+                obj.first_view_notification_status
+                == BusinessProposal.FirstViewNotificationStatus.FAILED
+            ),
+        }
 
 
 class ContractParamsSerializer(serializers.Serializer):

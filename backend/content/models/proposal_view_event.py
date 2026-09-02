@@ -1,11 +1,12 @@
 from django.db import models
+from django.utils import timezone
 
 
 class ProposalViewEvent(models.Model):
     """
-    Records each client visit/page-load of a business proposal.
+    Records each qualified browser session for a business proposal.
 
-    A single proposal may have many view events (one per page-load).
+    A single proposal may have many view events (one per browser session).
     The session_id groups section views within a single browsing session.
     """
 
@@ -21,6 +22,15 @@ class ProposalViewEvent(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True, default='')
     viewed_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(
+        default=timezone.now,
+        help_text='Latest accepted heartbeat for this browser session.',
+    )
+    finalized_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When the browser finalized the session on hide or unload.',
+    )
     view_mode = models.CharField(
         max_length=20,
         choices=[
