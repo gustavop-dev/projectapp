@@ -145,9 +145,10 @@ describe('DocumentCard', () => {
       archived: true,
       document: { ...baseDocument, archived_at: null },
     })
+    const metadata = wrapper.get('[data-testid="document-card-secondary-meta-7"]').text()
 
-    expect(wrapper.get('[data-testid="document-card-secondary-meta-7"]').text())
-      .not.toContain('Archivado · —')
+    expect(metadata).toMatch(/Archivado · hace /)
+    expect(metadata).not.toContain('Archivado · —')
   })
 
   it('emits open on card click and action on the kebab', async () => {
