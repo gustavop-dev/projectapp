@@ -5,10 +5,10 @@ estado. `create_folder` hereda la asociación de su padre y `rename_folder`
 rechaza raíces automáticas de proyecto; estas protecciones se validan junto
 con los contratos de modelo antes de publicar cambios del gestor.
 
-Última revisión integral: 2026-08-31.
+Última revisión integral: 2026-09-02.
 
 Este documento es el procedimiento repetible para validar los conectores MCP de
-ProjectApp. Cubre el transporte compartido, las seis herramientas de
+ProjectApp. Cubre el transporte compartido, las catorce herramientas de
 Comunicaciones, el ciclo recuperable de observaciones en Documentos y la
 paridad de los ocho conectores preexistentes. La fuente
 ejecutable del inventario está en `backend/content/views/mcp_blog.py`; la
@@ -53,11 +53,11 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   es read-only y `archived_by` está excluido como auditoría interna, junto a
   `created_by` — archivar **no** es una operación del MCP, porque suspende los
   proyectos del cliente y cancela su facturación futura, y eso exige la vista
-  previa del panel. Es el mismo criterio por el que el conector omite
-  `close`/`reopen` de comunicaciones y el archivado de documentos.
-- `update_message` edita sólo un borrador saliente activo y
-  `mark_message_sent` registra un hecho externo. Ninguna de las dos herramientas
-  envía correo ni WhatsApp.
+  previa del panel. El archivado de un hilo de comunicaciones sólo cambia su
+  visibilidad y sí está expuesto mediante una acción de dominio específica.
+- `update_message` edita sólo un borrador saliente activo;
+  `delete_draft` aplica la misma condición; `mark_message_sent` registra un
+  hecho externo. Ninguna herramienta envía correo ni WhatsApp.
 - `CommunicationThread.managed_project` / `managed_client` identifican la
   **comunicación madre** de un proyecto o un cliente, en paralelo con
   `DocumentFolder.managed_project` / `managed_client`. Son read-only para el MCP:
@@ -66,9 +66,10 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
   `thread_kind` toma tres valores (`project` / `client` / `manual`).
 - El **archivado** de hilos (`is_archived`/`archived_at`) es un eje de visibilidad
   ortogonal a `status` (`open`/`closed`): cerrar bloquea la escritura, archivar
-  saca de la vista. Queda excluido del MCP igual que el de documentos, y la madre
-  no se puede archivar. `list_threads` no expone `scope`: el conector ve siempre
-  el ámbito activo.
+  saca de la vista. Esos campos son read-only: el MCP sólo puede cambiarlos con
+  `archive_thread`/`unarchive_thread`, que reutilizan el servicio del panel; una
+  comunicación madre no se puede archivar. `list_threads` expone
+  `scope=active|archived|all` y conserva `active` como valor por defecto.
 - Los hilos entre documentos (`DocumentThread` / `DocumentThreadItem`) sí forman
   parte del conector `documents`. Tres reglas los gobiernan y ninguna se puede
   relajar desde una herramienta:
@@ -108,7 +109,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
 | `documents` | 22 | Carpetas manuales, markdown, cliente/proyecto, estados, observaciones recuperables e hilos entre documentos; jerarquías generadas visibles pero protegidas |
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
-| `communications` | 6 | Hilos, borradores editables y registro conversacional de mensajes |
+| `communications` | 14 | Consulta y ciclo de vida de hilos; creación, edición, eliminación de borradores, envío confirmado, anulación y corrección de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
 | `accounting` | 69 | Libros, hosting, pagos/abonos, recurrentes, bolsillo, tarjetas y extractos |
 | `diagnostics` | 13 | Diagnósticos, metadatos, secciones, estados y envíos |
@@ -187,6 +188,8 @@ Lectura exitosa:
   "date_from": "2026-08-01",
   "date_to": "2026-08-31",
   "q": "Portal Boreal",
+  "order": "recent",
+  "scope": "active",
   "page": 1,
   "page_size": 20
 }
@@ -199,8 +202,8 @@ mediante su relación explícita de respuesta. Repetir por separado con
 `client_id`, con `project_id` y con `q` igual a una parte del nombre del proyecto
 para probar los cortes estructurados y la búsqueda legible.
 
-Errores: `status/channel/direction/message_status/reply_status` fuera de catálogo, fecha no
-ISO, página cero y IDs no enteros deben producir `isError=true`. Una página
+Errores: filtros, `order` o `scope` fuera de catálogo, fecha no ISO, página cero
+e IDs no enteros deben producir `isError=true`. Una página
 posterior al final puede normalizarse a la última página, como `Paginator`.
 
 ### 2. `get_thread`
@@ -223,7 +226,40 @@ Verificar que nace `open`, vacío y atribuido al actor MCP. Casos de error:
 cliente omitido/inexistente, título vacío, perfil no cliente y proyecto de otro
 cliente. Ningún rechazo puede dejar un hilo parcial.
 
-### 4. `create_message`
+### 4. `update_thread`
+
+```json
+{"thread_id": 30, "title": "Aprobación final", "project_id": null}
+```
+
+Verificar que corrige sólo los campos enviados, conserva cliente e historial y
+permite asociar o desasociar un proyecto del mismo cliente. Deben fallar: hilo
+cerrado, proyecto ajeno, título vacío, ausencia de campos editables y cualquier
+campo no declarado. Ningún rechazo puede producir una actualización parcial.
+
+### 5–6. `close_thread` / `reopen_thread`
+
+```json
+{"thread_id": 30}
+```
+
+`close_thread` debe registrar estado, fecha y actor. Mientras el hilo está
+cerrado, crear mensajes, editar su cabecera o confirmar un borrador enviado debe
+fallar. `reopen_thread` revierte esa condición sin tocar archivo ni historial.
+Cerrar uno ya cerrado o reabrir uno abierto debe ser un error explícito.
+
+### 7–8. `archive_thread` / `unarchive_thread`
+
+```json
+{"thread_id": 30}
+```
+
+Archivar retira el hilo del `scope=active`, lo incorpora a `archived` y lo
+mantiene en `all`; restaurar hace el movimiento inverso sin alterar `status`.
+Una comunicación madre de proyecto o cliente no se puede archivar. Repetir la
+misma transición debe fallar sin modificar fechas ni actor.
+
+### 9. `create_message`
 
 Saliente de correo con referencia documental:
 
@@ -234,7 +270,7 @@ Saliente de correo con referencia documental:
   "direction": "outgoing",
   "subject": "Acta de entrega",
   "content": "Adjunto el acta para aprobación.",
-  "occurred_at": "2026-08-26T15:00:00Z",
+  "occurred_at": "2026-09-02T15:00:00Z",
   "document_ids": [40]
 }
 ```
@@ -246,17 +282,69 @@ asunto, WhatsApp con asunto, contenido vacío, documento de otro cliente,
 documento inexistente, respuesta de otro hilo o de igual dirección. Cada fallo
 debe dejar iguales los conteos de mensajes y referencias.
 
-### 5. `mark_message_sent`
+### 10. `update_message`
 
 ```json
-{"message_id": 50, "occurred_at": "2026-08-26T15:05:00Z"}
+{
+  "message_id": 50,
+  "subject": "Acta de entrega corregida",
+  "content": "Texto corregido.",
+  "document_ids": [40],
+  "reply_to_id": null
+}
+```
+
+Verificar que se conserva ID, hilo, canal y dirección, se reemplazan —no se
+acumulan— documentos y queda una revisión append-only con el diff suministrado.
+Sólo un borrador saliente activo es editable. Mensajes enviados, recibidos,
+fallidos o anulados, documentos ajenos y respuestas de otro hilo deben fallar
+sin cambiar el registro.
+
+### 11. `delete_draft`
+
+```json
+{"message_id": 50}
+```
+
+Verificar eliminación física del borrador y retorno de `deleted`, `id` y
+`thread_id`. Sólo aplica a borradores salientes activos; la evidencia enviada,
+recibida, fallida o anulada debe preservarse y producir `isError=true`.
+
+### 12. `mark_message_sent`
+
+```json
+{"message_id": 50, "occurred_at": "2026-09-02T15:05:00Z"}
 ```
 
 Verificar transición `draft → sent`, fecha efectiva y actor. Repetir sin
 `occurred_at` para conservar la fecha registrada. Deben fallar un mensaje
-entrante, uno ya enviado, uno anulado, un ID inexistente y una fecha no ISO.
-Confirmar que no se creó `EmailLog` ni se invocó ningún proveedor: la herramienta
-sólo registra el envío realizado por fuera.
+entrante, uno ya enviado, uno anulado, un hilo cerrado, un ID inexistente y una
+fecha no ISO. Confirmar que no se creó `EmailLog` ni se invocó ningún proveedor:
+la herramienta sólo registra el envío realizado por fuera.
+
+### 13. `void_message`
+
+```json
+{"message_id": 51, "reason": "Registro duplicado"}
+```
+
+Verificar que el mensaje histórico permanece visible con fecha, motivo y actor
+de anulación. Sólo se anulan mensajes enviados, recibidos o fallidos; un
+borrador, una segunda anulación o un motivo vacío deben rechazarse.
+
+### 14. `correct_message_date`
+
+```json
+{
+  "message_id": 51,
+  "occurred_at": "2026-09-01T18:30:00Z",
+  "reason": "Corrección contra evidencia externa"
+}
+```
+
+Verificar la nueva fecha y una corrección append-only con valor anterior, valor
+nuevo, motivo y actor. Sólo aplica a mensajes históricos no anulados; borradores,
+fecha idéntica, formato inválido o motivo vacío deben fallar sin crear auditoría.
 
 ## Documentos: eliminación recuperable de observaciones
 
@@ -369,7 +457,7 @@ documento antes enlazado ya se puede eliminar (el `PROTECT` lo bloqueaba).
 | Blog | `get_blog_post` devuelve JSON bilingüe, fuentes, SEO, portada y LinkedIn | crear/editar conserva esos campos | post inexistente o payload incompleto |
 | Documents | resumen/detalle y filtros muestran cliente, proyecto, estados, tags y sólo observaciones activas | crear/editar mantiene asociaciones; eliminar/restaurar observaciones reconcilia estados y papelera en una transacción | proyecto ajeno, archivado, selección de observaciones mezclada o restauración incompatible |
 | Clients | métricas incluyen documentos, ingresos, hostings y comunicaciones | CRUD usa `proposal_client_service` | un hilo impide tratar/eliminar el cliente como huérfano |
-| Communications | hilo completo incluye mensajes, documentos, correcciones y revisiones | `update_message` conserva el ID del borrador, reemplaza documentos y registra el diff sin enviar por el canal | mensaje no borrador, documento de otro cliente o respuesta de otro hilo |
+| Communications | hilo completo incluye ciclo de vida, mensajes, documentos, correcciones y revisiones; listado separa activos/archivados | cabecera y ciclo del hilo más crear/editar/eliminar borrador, confirmar envío, anular y corregir fecha convergen en `communication_service` sin enviar por el canal | transición repetida, comunicación madre, mensaje no editable, proyecto/documento ajeno o respuesta de otro hilo |
 | Tasks | detalle, comentarios y alertas reflejan el modelo actual | CRUD, archivo, orden y duplicación | comentario/alerta de otra tarea |
 | Accounting | detalle incluye pagos, deducciones, cuenta de cobro, período de hosting y ciclo de vida de recurrentes | `settle_income`/`bulk_settle_incomes` crean pagos; las seis tools de recurrentes preparan duplicado, cambian estado, archivan/restauran, silencian avisos y aplican lote por el mismo servicio del panel | no esperado, repetido, excedido, ID perdido o intento de activar/silenciar un recurrente archivado |
 | Diagnostics | detalle expone slug, expiración y cliente | update permite esos campos y usa el serializer actual | slug duplicado o cliente inválido |
@@ -384,18 +472,19 @@ de tres comandos.
 
 ```bash
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
+  content/tests/views/test_mcp_communication_admin_actions.py -q
+
+/home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
   content/tests/views/test_mcp_communication_update.py -q
 
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/services/test_communication_service.py -q
-
-/home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
-  content/tests/views/test_mcp_contracts.py -q
+  content/tests/views/test_mcp_contracts.py -q -k 'not tool_metadata'
 ```
 
-En el ciclo siguiente, ejecutar la regresión focal de
-`test_mcp_communications.py` y `test_mcp_parity_refresh.py`; no agrupar archivos
-si la selección resultante supera 20 casos.
+En el ciclo siguiente, ejecutar `test_mcp_contracts.py -k tool_metadata`, la
+regresión focal de `test_mcp_communications.py`, el servicio afectado —si hubo
+cambios allí— y `test_mcp_parity_refresh.py`; no agrupar archivos si la
+selección resultante supera 20 casos.
 
 Para cambios en observaciones de Documentos, agregar el archivo focal sin
 superar 20 tests por ejecución:
@@ -416,8 +505,10 @@ python3 scripts/test_quality_gate.py --repo-root . \
 ```
 
 No ejecutar `manage.py migrate` desde un worktree: su `.env` enlazado apunta a
-producción. La migración de datos `content.0212_seed_communications_mcp` se
-valida mediante tests/migration graph y se aplica únicamente durante deploy.
+producción. Las migraciones de datos `content.0212_seed_communications_mcp` y
+`content.0239_expand_communications_mcp_parity` se validan mediante tests y el
+grafo de migraciones, y se aplican únicamente durante deploy. La segunda cambia
+sólo la descripción: conserva token, prefijo, actividad y fecha de último uso.
 
 ## Contrato anti-deriva
 
@@ -429,7 +520,7 @@ la misma entrega:
 3. Actualizar descripción, schema, filtros y payload real de cada tool afectada.
 4. Agregar una prueba observable de éxito y otra de error cuando cambie una
    regla; actualizar este guion si cambia la operación manual.
-5. Ejecutar los tres archivos MCP anteriores y la regresión compartida mínima.
+5. Ejecutar los archivos MCP anteriores y la regresión compartida mínima.
 
 `test_mcp_contracts.py` falla ante campos sin clasificar, nombres duplicados,
 descripciones demasiado vagas o schemas que dejan de ser objetos. Esa falla es
@@ -440,13 +531,14 @@ qué queda fuera del MCP.
 
 - Los nueve conectores aparecen en el registro y `tools/list` coincide con este
   inventario.
-- Comunicaciones cubre las seis operaciones vigentes y todos sus rechazos dejan
+- Comunicaciones cubre las catorce operaciones vigentes y todos sus rechazos dejan
   la base consistente.
 - Los MCP existentes devuelven y aceptan los campos descritos en su contrato;
   Documentos expone 22 herramientas y conserva paridad para borrar, listar la
   papelera, restaurar observaciones y operar hilos entre documentos.
-- No se alteraron tokens ni estados activos de conectores existentes durante la
-  migración; Comunicaciones sigue inactivo/sin token hasta activación manual.
+- No se alteraron tokens, prefijos, estados activos ni `last_used_at` de
+  conectores existentes durante la migración; una instalación nueva conserva
+  la activación manual definida por la migración semilla.
 - Tests focales, regresión, Django check, migraciones sin drift y quality gate
   backend focal quedan verdes y anotados en la entrega; el CI confirma los gates
   globales con las dependencias frontend instaladas.
@@ -479,3 +571,21 @@ CI, que instala las dependencias frontend, conserva la validación global final.
 | Django system check | 0 issues |
 | `makemigrations --check --dry-run` | sin cambios detectados |
 | Quality gate focal | 0 errores; warnings históricos no bloqueantes |
+
+## Ejecución focal — 2026-09-02
+
+| Verificación | Resultado |
+|---|---|
+| Acciones administrativas MCP | 20/20 tests verdes |
+| Edición MCP de borradores | 19/19 tests verdes |
+| Catálogo, creación, consulta y envío confirmado | 19/19 tests verdes |
+| Contratos de campos y metadata (dos lotes) | 23/23 tests verdes |
+| Paridad transversal de conectores | 17/17 tests verdes |
+| Django system check | 0 issues |
+| `makemigrations --check --dry-run` | sin cambios detectados |
+| Quality gate focal | 93/100, 0 errores, 0 junk; 1 warning de infraestructura (`ruff` ausente) |
+
+El cambio es backend/MCP y no altera modelos, relaciones, reglas de fake data ni
+un flujo humano del frontend; por eso no requiere refresh de datos ni cambios en
+USER_FLOW_MAP/E2E. El CI, que instala su toolchain de lint, conserva la última
+validación del warning local.

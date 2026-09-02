@@ -99,7 +99,7 @@ def test_seed_refresh_preserves_existing_connector_credentials():
     ) == (True, 'a' * 64, 'existing')
 
 
-def test_tool_list_exposes_minimum_communications_surface(
+def test_tool_list_exposes_administrative_communications_surface(
     api_client, communications_connector,
 ):
     _, token = communications_connector
@@ -112,9 +112,17 @@ def test_tool_list_exposes_minimum_communications_surface(
         'list_threads',
         'get_thread',
         'create_thread',
+        'update_thread',
+        'close_thread',
+        'reopen_thread',
+        'archive_thread',
+        'unarchive_thread',
         'create_message',
         'update_message',
+        'delete_draft',
         'mark_message_sent',
+        'void_message',
+        'correct_message_date',
     ]
 
 
@@ -133,6 +141,42 @@ def test_list_threads_schema_exposes_reply_status(
     )
     assert list_threads_tool['inputSchema']['properties']['reply_status']['enum'] == [
         'answered', 'unanswered',
+    ]
+
+
+def test_list_threads_schema_exposes_archive_scope(
+    api_client, communications_connector,
+):
+    _, token = communications_connector
+
+    response = api_client.post(
+        f'/api/mcp/communications/{token}/', rpc('tools/list'), format='json',
+    )
+
+    list_threads_tool = next(
+        tool for tool in response.data['result']['tools']
+        if tool['name'] == 'list_threads'
+    )
+    assert list_threads_tool['inputSchema']['properties']['scope']['enum'] == [
+        'active', 'archived', 'all',
+    ]
+
+
+def test_list_threads_schema_exposes_panel_order(
+    api_client, communications_connector,
+):
+    _, token = communications_connector
+
+    response = api_client.post(
+        f'/api/mcp/communications/{token}/', rpc('tools/list'), format='json',
+    )
+
+    list_threads_tool = next(
+        tool for tool in response.data['result']['tools']
+        if tool['name'] == 'list_threads'
+    )
+    assert list_threads_tool['inputSchema']['properties']['order']['enum'] == [
+        'recent', 'oldest', 'title',
     ]
 
 

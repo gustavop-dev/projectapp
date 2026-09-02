@@ -290,13 +290,14 @@ Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates
 
 `TOOLS_BY_SLUG` dispatches nine module catalogs: blog, documents, proposals,
 diagnostics, clients, tasks, accounting, LinkedIn personal and communications.
-The Communications catalog exposes six tools: list/open a thread, create a
-thread, append a message, edit one active outgoing draft in place and mark it as
-sent. Its writes delegate to `communication_service.py`, so client ownership,
-project scope, direction/channel/status transitions, reply linkage and protected
-Document references are identical to the panel. Draft edits lock the row and
-append `CommunicationMessageRevision` inside the same transaction. Editing and
-recording a confirmed send never invoke provider delivery.
+The Communications catalog exposes fourteen tools: list/open/create/edit,
+close/reopen and archive/restore threads; create/edit/delete outgoing drafts;
+record a confirmed send; annul historical messages; and correct their date. Its
+writes delegate to `communication_service.py`, so client ownership, project
+scope, thread lifecycle, direction/channel/status transitions, reply linkage,
+audit history and protected Document references are identical to the panel.
+Draft edits lock the row and append `CommunicationMessageRevision` inside the
+same transaction. No message tool invokes provider delivery.
 
 MCP parity is an architectural boundary, not informal documentation.
 `content/mcp/contracts.py` classifies every concrete field of every exposed model
@@ -1334,8 +1335,11 @@ suggestion only; no timer automatically moves Suspendido to Dado de baja.
 
 ```mermaid
 flowchart LR
+    Managers["Panel + MCP"] --> Thread
     Thread["Client thread + optional project"] --> Draft["Outgoing draft"]
+    Thread --> Lifecycle["Edit · close/reopen · archive/restore"]
     Draft --> Copy["Operator copies/sends outside ProjectApp"]
+    Draft --> Delete["Delete active draft"]
     Copy --> Sent["Mark sent with occurred_at"]
     Sent --> Reply["Register incoming reply_to"]
     Reply --> Responded["UI derives Respondido"]
@@ -1350,6 +1354,13 @@ WhatsApp delivery receipt. This is the chosen workflow, so the interface does
 not present automatic delivery as a pending phase. Historical conversations
 keep their original client: when a project changes owner, its threads are
 detached from the project rather than reassigned.
+
+Panel and MCP share `communication_service.py` as the only write boundary. MCP
+exposes lifecycle verbs instead of writable state flags: thread archive fields
+remain read-only in the generic model contract, historical messages can only be
+annulled or date-corrected, and only active outgoing drafts can be edited or
+deleted. The connector therefore reaches panel parity without acquiring a
+lower-level bypass around transition or audit rules.
 
 Read navigation has one shared boundary. The panel sends its project/client
 selection, multi-value filters and order to `communication_query_service`; the

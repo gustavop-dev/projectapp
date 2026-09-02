@@ -723,12 +723,17 @@ Remote Model-Context-Protocol connectors that expose panel modules to claude.ai 
   registered slug.
 - **Management**: generate/rotate a one-time connector URL (plaintext token shown once, only its SHA-256 hash stored), toggle active, and watch a connection-activity feed (handshake / tool_call / auth_error / origin_rejected).
 - **Security**: Origin validation (DNS-rebinding defense), per-connector token, active-state gate.
-- **Communications**: lists threads by client/project, opens the ordered message
-  history, creates client-owned threads, records incoming/outgoing messages with
-  existing Document references and marks an outgoing draft as sent. It reuses the
-  panel services and invariants; it records delivery facts but does not send through
-  a provider. Migration `content.0212_seed_communications_mcp` creates this connector
-  disabled and without a token so activation remains an explicit operator action.
+- **Communications**: exposes the panel's administrative lifecycle through
+  fourteen explicit tools. It lists and opens active/archived threads; creates
+  and edits manual threads; closes, reopens, archives and restores them; records
+  incoming messages and outgoing drafts; edits or deletes eligible drafts;
+  confirms external delivery; and annuls or date-corrects historical messages
+  with audit evidence. Project/document ownership, immutable client history and
+  state rules come from the same serializers and services as the panel. It never
+  sends through a provider. Migration `content.0212_seed_communications_mcp`
+  creates the connector disabled and tokenless; migration
+  `content.0239_expand_communications_mcp_parity` only refreshes its description,
+  so activation and existing credentials remain under operator control.
 - **Parity**: Documents exposes client, project and workflow states; Accounting
   exposes hosting periods, allocations, partial payments and settlement history.
   `content/mcp/contracts.py`, focused tests and `docs/MCP_VALIDATION_RUNBOOK.md`

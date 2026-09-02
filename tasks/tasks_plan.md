@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Paridad administrativa de Comunicaciones por MCP lista para integrar —
+> 2026-09-02:** el catálogo crece de 6 a 14 herramientas y converge con el panel
+> para editar/cerrar/reabrir/archivar/restaurar hilos, eliminar borradores y
+> anular o corregir la fecha de mensajes históricos. `scope` y `order` completan
+> la consulta. Las reglas permanecen en serializers/servicio, los estados de
+> archivo son read-only y ninguna acción envía por el canal. La migración sólo
+> refresca la descripción sin rotar credenciales. Pasan 98 casos focales, checks
+> de Django/migraciones y gate 93/100 sin errores ni junk; `ruff` es el único
+> warning de herramienta local ausente.
+
 > **Corrección lista para integrar — 2026-09-02:** el tracking comercial de
 > propuestas parte ahora del primer heartbeat visible y validado, no del `GET`.
 > La escritura es atómica e idempotente por sesión; drafts/previews se omiten y
@@ -169,6 +179,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Communications — MCP administrative parity | 🟡 Ready for merge | 2026-09-02. The connector expands from 6 to 14 tools: thread edit/close/reopen/archive/restore, draft deletion, historical annulment and audited date correction join the existing query/create/draft-edit/send-confirmation surface. List scope/order match the panel query service; every write uses the panel serializer/service boundary and no tool delivers email or WhatsApp. A description-only data migration preserves token, prefix, active state and last use. Ninety-eight focused cases, Django/migration checks and a 93/100 quality gate pass with zero errors/junk; local Ruff availability is the sole warning. |
 | Emails — semantic accounting notification colors | 🟡 Ready for merge | 2026-09-02. `accounting_change` now colors income and Pocket entries green; expenses, Pocket exits, recurring costs, Ads and card debt orange; and non-directional entities blue. The header and new values share the semantic accent while old values stay red. Pocket audit rows retain an immutable direction snapshot, with evidence-only historical backfill in `content.0237`, so queued sends and retries remain truthful. REST, MCP, panel and other email templates are unchanged. Focused result: 29 backend cases, migration drift check and a 93/100 quality gate with no warnings pass. |
 | Documents — immutable collection-account PDFs | 🟡 Ready for merge | 2026-09-02. Issuance atomically stores one hashed PDF in `Document.generated_file`; preview, download, initial email and resend consume the same bytes and replacement is rejected. Historical backfill uses the earliest exact email attachment before reconstruction. The document editor renders the account as a read-only PDF with accounting facts, retains private observations/archive/thread functions, shows a clickable folder path and constrains Markdown/PDF preview geometry. Fake seeders follow the same issuance boundary; production refresh was correctly refused. Focused backend/MCP/unit/E2E, Nuxt build, responsive/design checks and migration checks pass. |
 | Projects — platform link acceptance | 🟡 Ready for merge | 2026-09-01. La auditoría confirmó el enlace bidireccional existente mediante el `Project.id` canónico, puente de sesión en pestaña nueva y retorno comercial sólo para administradores. La aceptación espera el montaje de Nuxt y calienta rutas privadas localizadas con identidad simulada; un spec nuevo recorre las referencias desde hosting, ingreso y cuenta de cobro. No cambia producto, API ni esquema. Tres casos inestables y tres nuevos pasaron dos veces, la regresión íntegra de 10 casos quedó verde y el quality gate focal cerró en 93/100 sin errores. |
