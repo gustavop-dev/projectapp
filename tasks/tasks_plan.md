@@ -1,5 +1,14 @@
 # Task Plan — ProjectApp
 
+> **Corrección lista para integrar — 2026-09-02:** el tracking comercial de
+> propuestas parte ahora del primer heartbeat visible y validado, no del `GET`.
+> La escritura es atómica e idempotente por sesión; drafts/previews se omiten y
+> las sesiones conservan último heartbeat/finalización. La alerta de primera
+> vista es persistente en panel y su email expone estado, intentos, error,
+> reconciliación y retry manual, sin retroenvíos históricos ni duplicar por un
+> fallo de logging posterior a SMTP. Checks, pruebas focales backend/unit/E2E y
+> los outcomes afectados del flow-map están verdes.
+
 > **Listo para integrar — 2026-09-02:** la fecha del Gestor Documental se ordena
 > en ambos sentidos desde el icono de Creado y desde un control compacto en
 > Galería/móvil. Activos usan creación, Archivados usan archivo con fallback y

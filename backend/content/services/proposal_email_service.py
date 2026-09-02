@@ -1196,7 +1196,7 @@ class ProposalEmailService:
             return False
 
     @classmethod
-    def send_first_view_notification(cls, proposal):
+    def send_first_view_notification(cls, proposal, *, raise_on_error=False):
         """
         Send notification email to team@projectapp.co when a client
         opens a proposal for the first time. This is the ideal moment
@@ -1213,33 +1213,38 @@ class ProposalEmailService:
             logger.info('Skipping proposal_first_view_notification: template disabled')
             return False
 
-        # Mirror the effective total used by PDF, admin and client views.
-        from decimal import Decimal
-        from content.services.proposal_totals_service import (
-            effective_total_for_proposal,
-        )
-        effective_amount = effective_total_for_proposal(proposal)
-        base_amount = Decimal(proposal.total_investment or 0).quantize(Decimal('1'))
-        has_additional_modules = effective_amount.quantize(Decimal('1')) != base_amount
-
-        context = {
-            'client_name': proposal.client_name,
-            'proposal_title': proposal.title,
-            'title': proposal.title,
-            'total_investment': format_cop_email(proposal.total_investment),
-            'effective_total_investment': format_cop_email(effective_amount),
-            'has_additional_modules': has_additional_modules,
-            'currency': proposal.currency,
-            'proposal_uuid': str(proposal.uuid),
-            'viewed_at': proposal.first_viewed_at or timezone.now(),
-            'client_email': proposal.client_email or '',
-        }
-
-        context.update(_build_design_context(proposal))
-        resolved = cls._resolve_content('proposal_first_view_notification', context)
-        context.update(resolved)
-
+        recipients = cls._get_notification_recipients()
+        subject = ''
+        html_content = ''
+        text_content = ''
         try:
+            # Mirror the effective total used by PDF, admin and client views.
+            from decimal import Decimal
+            from content.services.proposal_totals_service import (
+                effective_total_for_proposal,
+            )
+            effective_amount = effective_total_for_proposal(proposal)
+            base_amount = Decimal(proposal.total_investment or 0).quantize(Decimal('1'))
+            has_additional_modules = effective_amount.quantize(Decimal('1')) != base_amount
+
+            context = {
+                'client_name': proposal.client_name,
+                'proposal_title': proposal.title,
+                'title': proposal.title,
+                'total_investment': format_cop_email(proposal.total_investment),
+                'effective_total_investment': format_cop_email(effective_amount),
+                'has_additional_modules': has_additional_modules,
+                'currency': proposal.currency,
+                'proposal_uuid': str(proposal.uuid),
+                'viewed_at': proposal.first_viewed_at or timezone.now(),
+                'client_email': proposal.client_email or '',
+            }
+            context.update(_build_design_context(proposal))
+            resolved = cls._resolve_content(
+                'proposal_first_view_notification', context,
+            )
+            context.update(resolved)
+
             html_content = render_to_string(
                 'emails/proposal_first_view_notification.html', context
             )
@@ -1256,14 +1261,41 @@ class ProposalEmailService:
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=cls._get_notification_recipients(),
+                to=recipients,
             )
             email.attach_alternative(html_content, 'text/html')
-            EmailDeliveryGateway.send(
+            sent_count = EmailDeliveryGateway.send(
                 email,
                 template_key='proposal_first_view_notification',
                 classification=DeliveryClassification.INTERNAL,
             )
+            if not sent_count:
+                raise RuntimeError('Email backend did not accept the delivery.')
+
+            from content.models import EmailLog
+            from content.services import email_log_service
+
+            try:
+                email_log_service.record_send(
+                    template_key='proposal_first_view_notification',
+                    recipients=recipients,
+                    subject=subject,
+                    status=EmailLog.Status.SENT,
+                    proposal=proposal,
+                    client=proposal.client_id,
+                    audience=EmailLog.Audience.INTERNAL,
+                    html_body=html_content,
+                    text_body=text_content,
+                )
+            except Exception:
+                # SMTP has already accepted the message. Enrichment is useful
+                # for the panel, but it must never turn a successful delivery
+                # into a retry that sends the same alert twice.
+                logger.exception(
+                    'Sent first-view notification for proposal %s but could '
+                    'not enrich its EmailLog entry',
+                    proposal.uuid,
+                )
 
             logger.info(
                 'Sent first-view notification for proposal %s',
@@ -1271,11 +1303,35 @@ class ProposalEmailService:
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            from content.models import EmailLog
+            from content.services import email_log_service
+
+            try:
+                email_log_service.record_send(
+                    template_key='proposal_first_view_notification',
+                    recipients=recipients,
+                    subject=subject,
+                    status=EmailLog.Status.FAILED,
+                    proposal=proposal,
+                    client=proposal.client_id,
+                    audience=EmailLog.Audience.INTERNAL,
+                    error_message=str(exc)[:1000],
+                    html_body=html_content,
+                    text_body=text_content,
+                )
+            except Exception:
+                logger.exception(
+                    'Could not record failed first-view notification for '
+                    'proposal %s',
+                    proposal.uuid,
+                )
             logger.exception(
                 'Failed to send first-view notification for proposal %s',
                 proposal.uuid,
             )
+            if raise_on_error:
+                raise
             return False
 
     @classmethod

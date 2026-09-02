@@ -7,6 +7,16 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-02 — abrir el documento no probaba una vista y los fallos
+> de alerta eran invisibles:** el `GET` público incrementaba contador, primera
+> vista y estado antes de que Vue confirmara que la página permaneció visible;
+> además, encolar Huey era best-effort y no dejaba estado recuperable. Ahora la
+> primera evidencia es un heartbeat validado tras cinco segundos visibles, toda
+> su persistencia es atómica y el email mantiene estado, intentos, error y
+> reconciliación durable. Analítica permite observar y reintentar un fallo; las
+> vistas históricas quedan `legacy_unverified` para no inventar ni reenviar
+> eventos. Un error de logging después de SMTP tampoco dispara correo duplicado.
+
 > **Resuelto 2026-09-02 — un egreso creado llegaba verde por correo:** la
 > plantilla de cambios contables elegía color por acción (`created` verde) y
 > pintaba todo valor nuevo de verde, sin mirar la dirección financiera. Ahora

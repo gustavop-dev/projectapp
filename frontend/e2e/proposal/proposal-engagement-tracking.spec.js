@@ -37,15 +37,20 @@ const mockProposal = {
 };
 
 function setupMock(page) {
-  return mockApi(page, async ({ apiPath }) => {
+  return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === `proposals/${MOCK_UUID}/`) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+    }
+    if (apiPath === `proposals/${MOCK_UUID}/track/` && method === 'POST') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok' }) };
     }
     return null;
   });
 }
 
 test.describe('Proposal Engagement Tracking', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
@@ -85,5 +90,34 @@ test.describe('Proposal Engagement Tracking', () => {
     // Go back
     await page.getByTestId('nav-prev').click();
     await expect(page.getByTestId('nav-prev')).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('visible proposal sends a validated engagement heartbeat', {
+    tag: [...PROPOSAL_ENGAGEMENT_TRACKING, '@role:client'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    const heartbeatPromise = page.waitForRequest(
+      request => request.method() === 'POST'
+        && new URL(request.url()).pathname === `/api/proposals/${MOCK_UUID}/track/`,
+      { timeout: 15_000 },
+    );
+
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`, { waitUntil: 'domcontentloaded' });
+    const nextButton = page.getByTestId('nav-next');
+    await expect(nextButton).toBeVisible({ timeout: 15_000 });
+    await nextButton.click();
+    await expect(page.getByTestId('nav-prev')).toBeVisible({ timeout: 5_000 });
+    const heartbeat = await heartbeatPromise;
+    const payload = heartbeat.postDataJSON();
+
+    expect(payload.session_id).toMatch(/^ses_/);
+    expect(payload.view_mode).toBe('detailed');
+    expect(payload.is_final).toBe(false);
+    expect(payload.sections).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        section_type: 'greeting',
+        time_spent_seconds: expect.any(Number),
+      }),
+    ]));
   });
 });

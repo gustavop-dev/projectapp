@@ -7,6 +7,7 @@ not spam the sales team.
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from content.models import BusinessProposal
 from content.services.proposal_service import ProposalService
@@ -17,6 +18,8 @@ pytestmark = pytest.mark.django_db
 def _make_proposal(status):
     return BusinessProposal.objects.create(
         title='P', client_name='C', status=status,
+        first_viewed_at=timezone.now(),
+        first_view_notification_status='pending',
     )
 
 

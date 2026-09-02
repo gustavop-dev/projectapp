@@ -10,8 +10,6 @@ let unmountCallbacks;
 let watchCallbacks;
 let useProposalTracking;
 
-const flushPromises = () => new Promise((r) => setTimeout(r, 0));
-
 beforeEach(() => {
   mountedCallbacks = [];
   unmountCallbacks = [];
@@ -158,6 +156,57 @@ describe('useProposalTracking', () => {
       addSpy.mockRestore();
       docAddSpy.mockRestore();
     });
+
+    it('sends the first heartbeat only after five visible seconds', async () => {
+      let now = 0;
+      jest.spyOn(performance, 'now').mockImplementation(() => now);
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      const panel = { section_type: 'greeting', title: 'Hello' };
+      const { proposalUuid, currentPanel } = createRefs('uuid-threshold', panel);
+      const { isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      now = 4999;
+      jest.advanceTimersByTime(4999);
+      expect(global.fetch).not.toHaveBeenCalled();
+
+      now = 5000;
+      jest.advanceTimersByTime(1);
+      await Promise.resolve();
+
+      expect(isViewConfirmed.value).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+      expect(body.is_final).toBe(false);
+      expect(body.sections[0].time_spent_seconds).toBe(5);
+    });
+
+    it('does not count a tab hidden before the five-second threshold', () => {
+      let now = 0;
+      jest.spyOn(performance, 'now').mockImplementation(() => now);
+      navigator.sendBeacon = jest.fn().mockReturnValue(true);
+      const panel = { section_type: 'greeting', title: 'Hello' };
+      const { proposalUuid, currentPanel } = createRefs('uuid-too-short', panel);
+      const { sectionLog, isViewConfirmed } = useProposalTracking(
+        proposalUuid,
+        currentPanel,
+      );
+
+      mountedCallbacks[0]();
+      now = 4000;
+      jest.advanceTimersByTime(4000);
+      document.visibilityState = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(isViewConfirmed.value).toBe(false);
+      expect(sectionLog.value).toEqual([
+        expect.objectContaining({
+          section_type: 'greeting',
+          time_spent_seconds: 4,
+        }),
+      ]);
+      expect(navigator.sendBeacon).not.toHaveBeenCalled();
+    });
   });
 
   describe('watch callback (section changes)', () => {
@@ -216,7 +265,7 @@ describe('useProposalTracking', () => {
       const { ref } = jest.requireActual('vue');
       const { proposalUuid, currentPanel } = createRefs('uuid-vm');
       const viewMode = ref('executive');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel, viewMode);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel, viewMode);
 
       mountedCallbacks[0]();
       sectionLog.value.push({
@@ -225,6 +274,7 @@ describe('useProposalTracking', () => {
         entered_at: '2026-03-07T12:00:00.000Z',
         time_spent_seconds: 3,
       });
+      isViewConfirmed.value = true;
 
       await flush();
 
@@ -238,7 +288,7 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const { proposalUuid, currentPanel } = createRefs('uuid-flush');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       // Manually push an entry to sectionLog
@@ -248,6 +298,7 @@ describe('useProposalTracking', () => {
         entered_at: '2026-03-07T12:00:00.000Z',
         time_spent_seconds: 5,
       });
+      isViewConfirmed.value = true;
 
       await flush();
 
@@ -261,7 +312,7 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const { proposalUuid, currentPanel } = createRefs('uuid-clear');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({
@@ -270,6 +321,7 @@ describe('useProposalTracking', () => {
         entered_at: '2026-03-07T12:00:00.000Z',
         time_spent_seconds: 5,
       });
+      isViewConfirmed.value = true;
 
       await flush();
 
@@ -280,7 +332,7 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn().mockResolvedValue({ ok: false });
       const { proposalUuid, currentPanel } = createRefs('uuid-fail');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({
@@ -289,6 +341,7 @@ describe('useProposalTracking', () => {
         entered_at: '2026-03-07T12:00:00.000Z',
         time_spent_seconds: 5,
       });
+      isViewConfirmed.value = true;
 
       await flush();
 
@@ -310,10 +363,11 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn();
       const { proposalUuid, currentPanel } = createRefs('');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({ section_type: 'x', section_title: '', entered_at: '', time_spent_seconds: 1 });
+      isViewConfirmed.value = true;
 
       await flush();
 
@@ -325,7 +379,7 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const { proposalUuid, currentPanel } = createRefs('uuid-csrf');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({
@@ -334,6 +388,7 @@ describe('useProposalTracking', () => {
         entered_at: '2026-03-07T12:00:00.000Z',
         time_spent_seconds: 3,
       });
+      isViewConfirmed.value = true;
 
       await flush();
 
@@ -345,10 +400,11 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn().mockRejectedValue(new Error('network'));
       const { proposalUuid, currentPanel } = createRefs('uuid-err');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({ section_type: 'x', section_title: '', entered_at: '', time_spent_seconds: 1 });
+      isViewConfirmed.value = true;
 
       await expect(flush()).resolves.toBeUndefined();
     });
@@ -357,12 +413,13 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const { proposalUuid, currentPanel } = createRefs('uuid-snap');
-      const { flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       // Start a section timer via watcher
       const panel = { section_type: 'investment', title: 'Invest' };
       watchCallbacks[0].cb(panel, null);
+      isViewConfirmed.value = true;
 
       jest.spyOn(performance, 'now').mockReturnValue(3500);
       await flush();
@@ -379,7 +436,7 @@ describe('useProposalTracking', () => {
         resolveFetch = resolve;
       }));
       const { proposalUuid, currentPanel } = createRefs('uuid-overlap');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({
@@ -388,6 +445,7 @@ describe('useProposalTracking', () => {
         entered_at: '2026-03-07T12:00:00.000Z',
         time_spent_seconds: 5,
       });
+      isViewConfirmed.value = true;
 
       const first = flush();
       const second = flush();
@@ -406,9 +464,10 @@ describe('useProposalTracking', () => {
       const mockBeacon = jest.fn().mockReturnValue(true);
       navigator.sendBeacon = mockBeacon;
       const { proposalUuid, currentPanel } = createRefs('uuid-inflight-hidden');
-      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
+      isViewConfirmed.value = true;
       const originalEntry = {
         section_type: 'greeting',
         section_title: 'Hi',
@@ -444,10 +503,11 @@ describe('useProposalTracking', () => {
       const mockBeacon = jest.fn();
       navigator.sendBeacon = mockBeacon;
       const { proposalUuid, currentPanel } = createRefs('uuid-beacon');
-      const { sectionLog } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({ section_type: 'x', section_title: '', entered_at: '', time_spent_seconds: 1 });
+      isViewConfirmed.value = true;
 
       // Trigger beforeunload
       window.dispatchEvent(new Event('beforeunload'));
@@ -478,10 +538,11 @@ describe('useProposalTracking', () => {
       const mockBeacon = jest.fn();
       navigator.sendBeacon = mockBeacon;
       const { proposalUuid, currentPanel } = createRefs('uuid-vis');
-      const { sectionLog } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({ section_type: 'x', section_title: '', entered_at: '', time_spent_seconds: 1 });
+      isViewConfirmed.value = true;
 
       Object.defineProperty(document, 'visibilityState', {
         value: 'hidden',
@@ -503,9 +564,10 @@ describe('useProposalTracking', () => {
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const panel = { section_type: 'greeting', title: 'Hello' };
       const { proposalUuid, currentPanel } = createRefs('uuid-hidden-pause', panel);
-      useProposalTracking(proposalUuid, currentPanel);
+      const { isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
+      isViewConfirmed.value = true;
       now = 5000;
       document.visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
@@ -526,9 +588,10 @@ describe('useProposalTracking', () => {
       navigator.sendBeacon = mockBeacon;
       const panel = { section_type: 'greeting', title: 'Hello' };
       const { proposalUuid, currentPanel } = createRefs('uuid-hidden-final', panel);
-      useProposalTracking(proposalUuid, currentPanel);
+      const { isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
+      isViewConfirmed.value = true;
       now = 5000;
       document.visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
@@ -544,9 +607,10 @@ describe('useProposalTracking', () => {
       global.fetch = jest.fn().mockResolvedValue({ ok: true });
       const panel = { section_type: 'investment', title: 'Investment' };
       const { proposalUuid, currentPanel } = createRefs('uuid-resume', panel);
-      const { flush } = useProposalTracking(proposalUuid, currentPanel);
+      const { isViewConfirmed, flush } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
+      isViewConfirmed.value = true;
       now = 4000;
       document.visibilityState = 'hidden';
       document.dispatchEvent(new Event('visibilitychange'));
@@ -572,33 +636,36 @@ describe('useProposalTracking', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
       navigator.sendBeacon = jest.fn(() => { throw new Error('fail'); });
       const { proposalUuid, currentPanel } = createRefs('uuid-berr');
-      const { sectionLog } = useProposalTracking(proposalUuid, currentPanel);
+      const { sectionLog, isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
       sectionLog.value.push({ section_type: 'x', section_title: '', entered_at: '', time_spent_seconds: 1 });
+      isViewConfirmed.value = true;
 
       expect(() => window.dispatchEvent(new Event('beforeunload'))).not.toThrow();
     });
   });
 
   describe('onBeforeUnmount', () => {
-    it('stops current timer and flushes on unmount', async () => {
-      jest.useRealTimers();
+    it('stops current timer and sends a final beacon on unmount', () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
-      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      navigator.sendBeacon = jest.fn().mockReturnValue(true);
       const { proposalUuid, currentPanel } = createRefs('uuid-unmount');
-      useProposalTracking(proposalUuid, currentPanel);
+      const { isViewConfirmed } = useProposalTracking(proposalUuid, currentPanel);
 
       mountedCallbacks[0]();
+      isViewConfirmed.value = true;
       // Start a section
       const panel = { section_type: 'greeting', title: 'Hi' };
       watchCallbacks[0].cb(panel, null);
 
       jest.spyOn(performance, 'now').mockReturnValue(5000);
       unmountCallbacks[0]();
-      await flushPromises();
 
-      expect(global.fetch).toHaveBeenCalled();
+      expect(navigator.sendBeacon).toHaveBeenCalledWith(
+        '/api/proposals/uuid-unmount/track/',
+        expect.any(Blob),
+      );
     });
 
     it('removes beforeunload listener on unmount', () => {

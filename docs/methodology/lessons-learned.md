@@ -7,6 +7,14 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-02 — entregar contenido no equivale a observar atención:**
+> un `GET` sólo demuestra que el servidor respondió; no que el documento quedó
+> visible ni que el lector interactuó. La evidencia comercial necesita umbral
+> explícito, validación completa e idempotencia por sesión. Y una tarea encolada
+> no es una notificación entregada: su estado debe persistir antes del broker,
+> reconciliar reclamos estancados y separar el éxito SMTP del enriquecimiento
+> diagnóstico posterior para no convertir observabilidad en duplicados.
+
 > **Lección 2026-09-02 — una tarea asíncrona debe colorear el evento, no el
 > objeto vivo:** una entidad como Bolsillo admite entrada y salida, de modo que
 > su tipo por sí solo no basta y consultar el registro cuando Huey ejecuta puede

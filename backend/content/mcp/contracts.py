@@ -396,7 +396,11 @@ MCP_MODEL_CONTRACTS = {
                     'abandonment_email_sent_at investment_interest_email_sent_at '
                     'followup_scheduled_at stakeholder_alert_sent_at '
                     'post_expiration_alert_sent_at calculator_followup_sent_at '
-                    'last_automated_email_at',
+                    'last_automated_email_at first_view_notification_status '
+                    'first_view_notification_attempts '
+                    'first_view_notification_attempted_at '
+                    'first_view_notification_sent_at '
+                    'first_view_notification_last_error',
                 )
                 | _excluded(
                     'Respuesta privada del cliente; se gestiona en el flujo público.',

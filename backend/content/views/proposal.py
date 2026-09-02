@@ -36,12 +36,10 @@ from content.services.proposal_analytics_service import (
     TECHNICAL_DOCUMENT_TRACKING_TYPES,
     TECHNICAL_FRAGMENT_ORDER as _TECHNICAL_FRAGMENT_ORDER,
     TECHNICAL_FRAGMENT_TITLES as _TECHNICAL_FRAGMENT_TITLES,
-    VIEW_MODE_LABELS,
     build_dashboard,
     build_proposal_alerts,
     build_proposal_analytics,
     compute_engagement_score as _compute_engagement_score,
-    compute_heat_score_for_proposal as _compute_heat_score_for_proposal,
     compute_heat_score_with_summary as _compute_heat_score_with_summary,
     computed_alert_key as _computed_alert_key,
     csv_analytics_section_group as _csv_analytics_section_group,
@@ -114,7 +112,9 @@ def _normalize_selected_module_ids(selected, fr_content_json):
 def _serve_public_proposal(request, proposal):
     """Shared handler for the public proposal endpoint.
 
-    Implements the full view-count / expired / alerts / analytics pipeline.
+    This GET is intentionally read-only for engagement metrics. A browser is
+    counted only after the public page remains visible long enough to POST a
+    validated heartbeat to ``track_proposal_engagement``.
     """
     if not proposal.is_active:
         return Response(
@@ -129,30 +129,6 @@ def _serve_public_proposal(request, proposal):
         if proposal.status != BusinessProposal.Status.EXPIRED:
             proposal.status = BusinessProposal.Status.EXPIRED
             proposal.save(update_fields=['status'])
-
-        # Post-expiration visit alert — high-intent signal
-        if not proposal.post_expiration_alert_sent_at:
-            try:
-                ProposalAlert.objects.create(
-                    proposal=proposal,
-                    alert_type='post_expiration_visit',
-                    message=(
-                        f'{proposal.client_name} abrió la propuesta expirada '
-                        f'"{proposal.title}". Señal de alto interés.'
-                    ),
-                    alert_date=timezone.now(),
-                )
-                from content.services.proposal_email_service import (
-                    ProposalEmailService,
-                )
-                ProposalEmailService.send_post_expiration_visit_alert(proposal)
-                proposal.post_expiration_alert_sent_at = timezone.now()
-                proposal.save(update_fields=['post_expiration_alert_sent_at'])
-            except Exception:
-                logger.exception(
-                    'Failed to send post-expiration alert for proposal %s',
-                    proposal.uuid,
-                )
 
         # Build WhatsApp link for recovery CTA
         from urllib.parse import quote as _url_quote
@@ -176,83 +152,6 @@ def _serve_public_proposal(request, proposal):
     # Admin preview detection — skip all analytics when staff views
     # Detects by Django session cookie (automatic, no query param needed)
     is_preview = is_staff_session(request)
-
-    # Only record views/metrics for proposals that have been sent (not drafts)
-    # Skip entirely for admin previews to avoid polluting analytics
-    is_first_view = False
-    if proposal.status != BusinessProposal.Status.DRAFT and not is_preview:
-        proposal.view_count += 1
-        update_fields = ['view_count']
-
-        is_first_view = proposal.first_viewed_at is None
-        if is_first_view:
-            proposal.first_viewed_at = timezone.now()
-            update_fields.append('first_viewed_at')
-
-        if proposal.status == BusinessProposal.Status.SENT:
-            proposal.status = BusinessProposal.Status.VIEWED
-            update_fields.append('status')
-
-        proposal.save(update_fields=update_fields)
-
-    # Send real-time notification to sales team on first view (async).
-    # Skip for admin previews and for already-closed proposals
-    # (accepted/finished), where open-tracking is just noise.
-    from content.services.proposal_service import ProposalService
-    if (
-        is_first_view
-        and not is_preview
-        and not ProposalService.open_notifications_suppressed(proposal)
-    ):
-        try:
-            from content.tasks import notify_first_view
-            notify_first_view(proposal.id)
-        except Exception:
-            logger.exception(
-                'Failed to queue first-view notification for proposal %s',
-                proposal.uuid,
-            )
-
-    # 3.4 — Post-rejection revisit alert (high-intent signal)
-    #        Enhanced: only fire when rejection happened 7+ days ago
-    is_reengagement = request.query_params.get('ref') == 'reengagement'
-    if (
-        not is_preview
-        and proposal.status == BusinessProposal.Status.REJECTED
-        and not is_reengagement
-        and not getattr(proposal, '_post_rejection_alert_sent', False)
-    ):
-        from datetime import timedelta as _td
-        rejection_gap_ok = (
-            proposal.responded_at
-            and proposal.responded_at + _td(days=7) < timezone.now()
-        )
-        if rejection_gap_ok:
-            existing = ProposalAlert.objects.filter(
-                proposal=proposal, alert_type='post_rejection_revisit',
-            ).exists()
-            if not existing:
-                try:
-                    ProposalAlert.objects.create(
-                        proposal=proposal,
-                        alert_type='post_rejection_revisit',
-                        message=(
-                            f'{proposal.client_name} revisitó la propuesta rechazada '
-                            f'"{proposal.title}" después de 7+ días. Posible reconsideración.'
-                        ),
-                        alert_date=timezone.now(),
-                    )
-                    from content.services.proposal_email_service import (
-                        ProposalEmailService,
-                    )
-                    ProposalEmailService.send_post_rejection_revisit_alert(
-                        proposal
-                    )
-                except Exception:
-                    logger.exception(
-                        'Failed to create post-rejection revisit alert for %s',
-                        proposal.uuid,
-                    )
 
     serializer = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': False}
@@ -2285,24 +2184,10 @@ def check_admin_auth(request):
 @throttle_classes([TrackingAnonThrottle])
 def track_proposal_engagement(request, proposal_uuid):
     """
-    Record section-level engagement data from the client's browser.
+    Validate and persist one visible-browser engagement heartbeat.
 
-    Accepts:
-        {
-            "session_id": "abc123",
-            "sections": [
-                {
-                    "section_type": "greeting",
-                    "section_title": "👋 Saludo",
-                    "time_spent_seconds": 12.5,
-                    "entered_at": "2024-01-15T10:30:00Z"
-                },
-                ...
-            ]
-        }
-
-    Creates or updates a ProposalViewEvent for the session and bulk-creates
-    ProposalSectionView rows.
+    The first accepted heartbeat is the canonical commercial "view". GET of
+    the public document never mutates view counters or notification state.
     """
     proposal = get_object_or_404(
         BusinessProposal, uuid=proposal_uuid, is_active=True
@@ -2316,249 +2201,41 @@ def track_proposal_engagement(request, proposal_uuid):
     if is_staff_session(request):
         return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
-    session_id = request.data.get('session_id', '')
-    sections = request.data.get('sections', [])
+    from content.serializers.proposal_tracking import ProposalEngagementSerializer
+    from content.services.proposal_tracking_service import ProposalTrackingService
 
-    if not session_id:
-        return Response(
-            {'error': 'session_id is required.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    serializer = ProposalEngagementSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    if not isinstance(sections, list) or not sections:
-        return Response(
-            {'error': 'sections must be a non-empty list.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # Get or create the view event for this session
-    ip_address = get_client_ip(request)
-    user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
-    view_mode = request.data.get('view_mode', 'unknown')
-    if view_mode not in VIEW_MODE_LABELS:
-        view_mode = 'unknown'
-
-    view_event, _created = ProposalViewEvent.objects.get_or_create(
-        proposal=proposal,
-        session_id=session_id,
-        defaults={
-            'ip_address': ip_address,
-            'user_agent': user_agent,
-            'view_mode': view_mode,
-        },
+    result = ProposalTrackingService.record(
+        proposal_id=proposal.id,
+        payload=serializer.validated_data,
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+        referrer=request.query_params.get('ref', ''),
     )
-    # Update view_mode if it was unknown and now we have a value
-    if not _created and view_event.view_mode == 'unknown' and view_mode != 'unknown':
-        view_event.view_mode = view_mode
-        view_event.save(update_fields=['view_mode'])
-
-    if _created:
-        # UniqueConstraint on (proposal, session_id) prevents same-session floods,
-        # so every _created=True is a distinct session worth logging.
-        mode_label = VIEW_MODE_LABELS.get(view_mode)
-        ProposalChangeLog.objects.create(
-            proposal=proposal,
-            change_type=ProposalChangeLog.ChangeType.VIEWED,
-            actor_type=ProposalChangeLog.ActorType.CLIENT,
-            description=(
-                f'Vista en modo {mode_label}.'
-                if mode_label
-                else 'El cliente visitó la propuesta.'
-            ),
-        )
-
-    # --- Stakeholder detection ---
-    # If this is a new session from a different IP than previous sessions,
-    # it may indicate a secondary decision-maker is reviewing the proposal.
-    # Skip for already-closed proposals (accepted/finished) — revisiting an
-    # old won proposal shouldn't trigger "someone is reviewing" alerts.
-    from content.services.proposal_service import ProposalService
-    if (
-        _created
-        and not proposal.stakeholder_alert_sent_at
-        and proposal.first_viewed_at
-        and not ProposalService.open_notifications_suppressed(proposal)
-    ):
-        known_ips = set(
-            ProposalViewEvent.objects
-            .filter(proposal=proposal)
-            .exclude(session_id=session_id)
-            .values_list('ip_address', flat=True)
-        )
-        current_ip = ip_address or ''
-        known_non_empty = {ip for ip in known_ips if ip}
-        if known_non_empty and current_ip and current_ip not in known_non_empty:
-            try:
-                from content.services.proposal_email_service import (
-                    ProposalEmailService,
-                )
-                sent = ProposalEmailService.send_stakeholder_detected_notification(
-                    proposal, len(known_non_empty) + 1
-                )
-                if sent:
-                    proposal.stakeholder_alert_sent_at = timezone.now()
-                    proposal.save(update_fields=['stakeholder_alert_sent_at'])
-            except Exception:
-                logger.exception(
-                    'Failed to send stakeholder alert for proposal %s',
-                    proposal.uuid,
-                )
-
-    # Upsert section views: update time if exists, create if new
-    for section_data in sections:
-        section_type = section_data.get('section_type', '')
-        if not section_type:
-            continue
-
-        entered_at_raw = section_data.get('entered_at')
+    if result['first_view_confirmed']:
+        # Queueing is deliberately outside the DB transaction. A broker outage
+        # leaves the durable state as pending for the periodic reconciler.
         try:
-            entered_at = parse_datetime(entered_at_raw) or timezone.now()
-        except (TypeError, ValueError):
-            entered_at = timezone.now()
+            from content.tasks import notify_first_view
 
-        time_spent = float(section_data.get('time_spent_seconds', 0))
-        section_title = section_data.get('section_title', '')[:255]
-        subsection_key = section_data.get('subsection_key', '')[:50]
-
-        existing = ProposalSectionView.objects.filter(
-            view_event=view_event,
-            section_type=section_type,
-            entered_at=entered_at,
-        ).first()
-
-        if existing:
-            existing.time_spent_seconds = time_spent
-            existing.section_title = section_title
-            existing.subsection_key = subsection_key
-            existing.view_mode = view_mode
-            existing.save(update_fields=['time_spent_seconds', 'section_title', 'subsection_key', 'view_mode'])
-        else:
-            ProposalSectionView.objects.create(
-                view_event=view_event,
-                section_type=section_type,
-                section_title=section_title,
-                subsection_key=subsection_key,
-                time_spent_seconds=time_spent,
-                entered_at=entered_at,
-                view_mode=view_mode,
+            notify_first_view(proposal.id)
+        except Exception:
+            logger.exception(
+                'Failed to queue first-view notification for proposal %s',
+                proposal.uuid,
             )
 
-    # --- 3.5 Engagement decay between sessions ---
-    if proposal.status in ('sent', 'viewed'):
-        current_section_count = len([s for s in sections if s.get('section_type')])
-        # Get previous sessions' section counts
-        prev_events = (
-            ProposalViewEvent.objects
-            .filter(proposal=proposal)
-            .exclude(session_id=session_id)
-        )
-        if prev_events.exists():
-            from django.db.models import Count
-            prev_counts = list(
-                ProposalSectionView.objects
-                .filter(view_event__in=prev_events)
-                .values('view_event')
-                .annotate(cnt=Count('id'))
-                .values_list('cnt', flat=True)
-            )
-            if prev_counts:
-                avg_prev = sum(prev_counts) / len(prev_counts)
-                if avg_prev > 0 and current_section_count < avg_prev * 0.5:
-                    # Set persistent declining flag
-                    if not proposal.engagement_declining:
-                        proposal.engagement_declining = True
-                        proposal.save(update_fields=['engagement_declining'])
-                    # Check if we already created this alert recently
-                    from datetime import timedelta as _td
-                    recent_decay = ProposalAlert.objects.filter(
-                        proposal=proposal,
-                        alert_type='engagement_decay',
-                        alert_date__gte=timezone.now() - _td(days=3),
-                    ).exists()
-                    if not recent_decay:
-                        try:
-                            ProposalAlert.objects.create(
-                                proposal=proposal,
-                                alert_type='engagement_decay',
-                                message=(
-                                    f'{proposal.client_name} vio {current_section_count} secciones '
-                                    f'vs promedio anterior de {avg_prev:.0f}. Posible pérdida de interés.'
-                                ),
-                                alert_date=timezone.now(),
-                            )
-                        except Exception:
-                            logger.exception(
-                                'Failed to create engagement_decay alert for %s',
-                                proposal.uuid,
-                            )
-                elif proposal.engagement_declining:
-                    # Normal engagement restored — reset flag
-                    proposal.engagement_declining = False
-                    proposal.save(update_fields=['engagement_declining'])
-
-    # --- Smart follow-up alert ---
-    # Trigger if: ≥3 unique sessions AND 3+ day gap between first and latest view
-    if not proposal.revisit_alert_sent_at and proposal.status in ('sent', 'viewed'):
-        unique_sessions = (
-            ProposalViewEvent.objects
-            .filter(proposal=proposal)
-            .values('session_id').distinct().count()
-        )
-        # Check temporal gap: latest view must be ≥3 days after first view
-        from datetime import timedelta
-        first_view = proposal.first_viewed_at
-        latest_event = (
-            ProposalViewEvent.objects
-            .filter(proposal=proposal)
-            .order_by('-viewed_at')
-            .values_list('viewed_at', flat=True)
-            .first()
-        )
-        has_temporal_gap = (
-            first_view and latest_event
-            and (latest_event - first_view) >= timedelta(days=3)
-        )
-        if unique_sessions >= 3 and has_temporal_gap:
-            # Find top section by total time across all sessions
-            from django.db.models import Sum
-            top = (
-                ProposalSectionView.objects
-                .filter(view_event__proposal=proposal)
-                .values('section_type', 'section_title')
-                .annotate(total_time=Sum('time_spent_seconds'))
-                .order_by('-total_time')
-                .first()
-            )
-            top_section = top['section_title'] if top else ''
-            top_time = top['total_time'] if top else 0
-            try:
-                from content.services.proposal_email_service import (
-                    ProposalEmailService,
-                )
-                ProposalEmailService.send_revisit_alert(
-                    proposal, unique_sessions, top_section, top_time,
-                )
-                proposal.revisit_alert_sent_at = timezone.now()
-                proposal.save(update_fields=['revisit_alert_sent_at'])
-            except Exception:
-                logger.exception(
-                    'Failed to send revisit alert for proposal %s',
-                    proposal.uuid,
-                )
-
-    # --- Update cached heat score ---
-    try:
-        new_score = _compute_heat_score_for_proposal(proposal.id, timezone.now())
-        if new_score != proposal.cached_heat_score:
-            proposal.cached_heat_score = new_score
-            proposal.save(update_fields=['cached_heat_score'])
-    except Exception:
-        logger.exception(
-            'Failed to update cached_heat_score for proposal %s',
-            proposal.uuid,
-        )
-
-    return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+    return Response(
+        {
+            'status': 'ok',
+            'view_event_id': result['view_event_id'],
+            'is_final': result['finalized'],
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(['POST'])
@@ -2927,6 +2604,49 @@ def schedule_followup(request, proposal_uuid):
 # ---------------------------------------------------------------------------
 # Proposal analytics (admin only)
 # ---------------------------------------------------------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def retry_first_view_notification(request, proposal_id):
+    """Retry a failed first-view email without fabricating another view."""
+    with transaction.atomic():
+        proposal = get_object_or_404(
+            BusinessProposal.objects.select_for_update(),
+            pk=proposal_id,
+        )
+        state = BusinessProposal.FirstViewNotificationStatus
+        if proposal.first_view_notification_status != state.FAILED:
+            return Response(
+                {'error': 'Only failed first-view notifications can be retried.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        proposal.first_view_notification_status = state.PENDING
+        proposal.first_view_notification_attempts = 0
+        proposal.first_view_notification_attempted_at = None
+        proposal.first_view_notification_last_error = ''
+        proposal.save(update_fields=[
+            'first_view_notification_status',
+            'first_view_notification_attempts',
+            'first_view_notification_attempted_at',
+            'first_view_notification_last_error',
+        ])
+
+    try:
+        from content.tasks import notify_first_view
+
+        notify_first_view(proposal.id)
+    except Exception:
+        logger.exception(
+            'Failed to queue manual first-view retry for proposal %s',
+            proposal.uuid,
+        )
+    proposal.refresh_from_db()
+    payload = ProposalDetailSerializer(
+        proposal,
+        context={'request': request, 'is_admin': True},
+    ).data['first_view_notification']
+    return Response(payload, status=status.HTTP_202_ACCEPTED)
+
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
