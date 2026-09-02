@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-pdf",
+  "name": "Public Financing PDF",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Visitor downloads the financing booklet in the active language and sees a recoverable error when generation fails.",
+  "outcomes": ["success", "failure"]
+}

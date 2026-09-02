@@ -7,6 +7,16 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-02 — una oferta informativa necesita una sola fuente
+> comercial:** JSON público, vista de distribución y PDF deben proyectar el
+> mismo contenido canónico; duplicar copy entre capas convertiría una condición
+> legal en tres versiones distintas. Los acordeones reservan el detalle para las
+> reglas de juego y la primera lectura explica valor, alternativas e impacto.
+> Cuando una condición depende de un catálogo vivo, el fallback debe mantener la
+> página disponible y declarar la desincronización al operador. Las acciones
+> flotantes también deben reservar espacio entre sí: que ambas sean visibles no
+> garantiza que ambas sean clickeables.
+
 > **Lección 2026-09-02 — una tarea asíncrona debe colorear el evento, no el
 > objeto vivo:** una entidad como Bolsillo admite entrada y salida, de modo que
 > su tipo por sí solo no basta y consultar el registro cuando Huey ejecuta puede

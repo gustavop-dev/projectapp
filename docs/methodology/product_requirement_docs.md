@@ -1,5 +1,17 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-02 — módulo informativo de financiación:** Project App
+> dispone de una experiencia comercial bilingüe para presentar alianzas de
+> financiación sujetas a evaluación previa. Explica 12 meses para financiar el
+> desarrollo o sus fases con 0 % de interés ordinario, la exclusividad y
+> custodia responsable del código, una calculadora de requerimientos expresada
+> sólo como entrada y resultado comercial, y un paquete de 60 horas que se
+> renueva mensualmente. La opción recomendada conserva cinco años de
+> exclusividad e incluye el paquete; la alternativa reduce el plazo a tres años
+> y lo excluye. El contenido puede consultarse públicamente en español o inglés,
+> descargarse como booklet PDF y distribuirse desde Comercial en el Panel. Las
+> condiciones exactas siempre se formalizan en propuesta y contrato.
+
 > **Corrección 2026-09-02 — color semántico de avisos contables:** los correos
 > internos de cambios contables usan verde para ingresos y entradas de
 > Bolsillo, naranja para gastos, salidas, recurrentes, Ads y deuda de tarjetas,

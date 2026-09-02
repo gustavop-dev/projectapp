@@ -49,6 +49,8 @@ STATIC_SITEMAP_PAGES = [
     ('/es-co/contact', '/en-us/contact', 'monthly', '0.6'),
     ('/en-us/additional-modules', '/es-co/additional-modules', 'weekly', '0.8'),
     ('/es-co/additional-modules', '/en-us/additional-modules', 'weekly', '0.8'),
+    ('/en-us/financing', '/es-co/financing', 'monthly', '0.8'),
+    ('/es-co/financing', '/en-us/financing', 'monthly', '0.8'),
 ]
 
 

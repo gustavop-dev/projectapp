@@ -1,5 +1,17 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico de financiación — 2026-09-02:**
+> `GET /api/financing/public/?lang=es|en` entrega el programa informativo y
+> `GET /api/financing/public/pdf/?lang=es|en` responde el PDF localizado con
+> `Cache-Control: private, no-store`; idiomas no soportados devuelven 400. Las
+> rutas canónicas `/es-co/financing` y `/en-us/financing` se prerenderizan y
+> publican `canonical`, `hreflang` y JSON-LD `Service`. El contenido de la
+> calculadora sólo describe el input —necesidad, resultado esperado y contexto—
+> y el output —esfuerzo relativo XS–XL, trabajo/tiempo y rango de precio con
+> supuestos—; no expone fórmulas, tarifas ni metodología interna. El tema local
+> persiste en `projectapp-financing-theme`. El catálogo responsive vigente
+> queda en 109 páginas: 94 visuales y 15 redirects, para 545 celdas.
+
 > **Color técnico de `accounting_change` — 2026-09-02:** el contexto del
 > template expone un `accent_color` tomado exclusivamente de la clasificación
 > cerrada `income|outflow|neutral`: `#15803d`, `#b45309` o `#1d4ed8`. El HTML

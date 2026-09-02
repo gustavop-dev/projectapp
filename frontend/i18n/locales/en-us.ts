@@ -19,6 +19,7 @@ export default defineI18nLocale(async () => {
     termsAndConditions,
     privacyPolicy,
     additionalModules,
+    financing,
   ] = await Promise.all([
     import('~/locales/global/en.js'),
     import('~/locales/home/en.js'),
@@ -39,6 +40,7 @@ export default defineI18nLocale(async () => {
     import('~/locales/termsAndConditions/en.js'),
     import('~/locales/privacyPolicy/en.js'),
     import('~/locales/additionalModules/en.js'),
+    import('~/locales/financing/en.js'),
   ])
 
   return {
@@ -61,5 +63,6 @@ export default defineI18nLocale(async () => {
     termsAndConditions: termsAndConditions.default,
     privacyPolicy: privacyPolicy.default,
     additionalModules: additionalModules.default,
+    financing: financing.default,
   }
 })

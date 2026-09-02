@@ -59,7 +59,7 @@ describe('ViewOperationalExplorer', () => {
     expect(wrapper.text()).toContain('Panel interno')
     expect(wrapper.text()).toContain('Plataforma de clientes')
     expect(wrapper.text()).toContain('Experiencias públicas')
-    expect(wrapper.text()).toContain('107 vistas relacionadas')
+    expect(wrapper.text()).toContain('109 vistas relacionadas')
   })
 
   it('selects a space from the orbit', async () => {
@@ -88,9 +88,10 @@ describe('ViewOperationalExplorer', () => {
   it('renders public content and commercial experiences', () => {
     const wrapper = mountExplorer({ selectedNodeId: 'public-experiences' })
 
-    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(5)
+    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(6)
     expect(wrapper.text()).toContain('Contenido y prueba social')
     expect(wrapper.text()).toContain('Módulos adicionales')
+    expect(wrapper.text()).toContain('Financiación de software')
     expect(wrapper.text()).toContain('Propuesta comercial')
   })
 
@@ -176,7 +177,7 @@ describe('ViewOperationalExplorer', () => {
     await nextTick()
 
     expect(wrapper.find('[data-testid="view-explorer-center"]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(5)
+    expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(6)
     expect(wrapper.text()).toContain('Selecciona una tarjeta para continuar')
   })
 

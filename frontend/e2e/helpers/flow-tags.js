@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.94.0
+// Registry version: 2.95.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -149,6 +149,7 @@ export const ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE = ['@flow:admin-document-title-c
 export const ADMIN_DOCUMENT_UNSAVED_GUARD = ['@flow:admin-document-unsaved-guard', '@module:admin', '@priority:P2'];
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
 export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
+export const ADMIN_FINANCING_DISTRIBUTION = ['@flow:admin-financing-distribution', '@module:admin', '@priority:P1'];
 export const ADMIN_HIGH_ENGAGEMENT_ALERT = ['@flow:admin-high-engagement-alert', '@module:admin', '@priority:P2'];
 export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P3'];
 export const ADMIN_HOUR_PACKAGES_CREATE = ['@flow:admin-hour-packages-create', '@module:admin', '@priority:P2'];
@@ -383,6 +384,12 @@ export const PUBLIC_ADDITIONAL_MODULES_PDF = ['@flow:public-additional-modules-p
 export const PUBLIC_ADDITIONAL_MODULES_SHARE = ['@flow:public-additional-modules-share', '@module:public', '@priority:P1'];
 export const PUBLIC_ADDITIONAL_MODULES_THEME = ['@flow:public-additional-modules-theme', '@module:public', '@priority:P2'];
 export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
+export const PUBLIC_FINANCING_LANGUAGE = ['@flow:public-financing-language', '@module:public', '@priority:P2'];
+export const PUBLIC_FINANCING_LOAD = ['@flow:public-financing-load', '@module:public', '@priority:P1'];
+export const PUBLIC_FINANCING_OVERVIEW = ['@flow:public-financing-overview', '@module:public', '@priority:P1'];
+export const PUBLIC_FINANCING_PDF = ['@flow:public-financing-pdf', '@module:public', '@priority:P2'];
+export const PUBLIC_FINANCING_SHARE = ['@flow:public-financing-share', '@module:public', '@priority:P2'];
+export const PUBLIC_FINANCING_TERMS = ['@flow:public-financing-terms', '@module:public', '@priority:P2'];
 export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
 export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];
 export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];

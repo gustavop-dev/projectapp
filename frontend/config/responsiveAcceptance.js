@@ -74,8 +74,10 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'frontend/components/BusinessProposal/admin/',
     'frontend/components/WebAppDiagnostic/admin/',
     'frontend/components/proposals/',
+    'frontend/components/Financing/',
     'frontend/pages/panel/defaults.vue',
     'frontend/pages/panel/additional-modules/',
+    'frontend/pages/panel/financing/',
     'frontend/pages/panel/diagnostics/',
     'frontend/pages/panel/hour-packages/',
     'frontend/pages/panel/proposals/',
@@ -85,6 +87,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Crear, editar y previsualizar una pieza comercial.',
     'Crear o editar un paquete de horas.',
     'Administrar, reordenar, seleccionar y compartir módulos adicionales.',
+    'Copiar, abrir, descargar y previsualizar el módulo de financiación.',
   ]),
   emails: module('emails', [
     'frontend/components/email/',
@@ -149,6 +152,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
   ]),
   public: module('public', [
     'frontend/components/AdditionalModules/CatalogView.vue',
+    'frontend/components/Financing/',
     'frontend/components/BusinessProposal/',
     'frontend/components/Linktree/',
     'frontend/components/WebAppDiagnostic/public/',
@@ -163,6 +167,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'frontend/pages/blog/',
     'frontend/pages/contact',
     'frontend/pages/diagnostic/',
+    'frontend/pages/financing/',
     'frontend/pages/index.vue',
     'frontend/pages/landing-',
     'frontend/pages/lk/',
@@ -175,6 +180,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Abrir un linktree y usar sus acciones principales.',
     'Recorrer una propuesta y un diagnóstico compartidos.',
     'Explorar el catálogo de módulos, abrir detalles y descargar la selección.',
+    'Comparar las opciones de financiación, expandir condiciones y descargar el booklet.',
     'Confirmar que controles flotantes no cubren el contenido.',
   ]),
 });
@@ -248,7 +254,7 @@ export function responsiveOwnerForView(sectionId, view) {
   if (url === '/panel/communications') return 'communications';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';
   if (url === '/panel/emails' || url.includes('/email-')) return 'emails';
-  if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url.startsWith('/panel/additional-modules') || url === '/panel/defaults') return 'commercial';
+  if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url.startsWith('/panel/additional-modules') || url.startsWith('/panel/financing') || url === '/panel/defaults') return 'commercial';
   if (url.startsWith('/panel/blog') || url.startsWith('/panel/linkedin') || url.startsWith('/panel/portfolio') || url.startsWith('/panel/qr-cards') || url.startsWith('/panel/linktrees')) return 'content';
   if (url === '/panel' || url.startsWith('/panel/tasks') || url.startsWith('/panel/admins') || url === '/panel/views') return 'dashboard';
   return null;

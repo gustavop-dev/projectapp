@@ -6149,6 +6149,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-unsaved-guard` | admin | P2 | display,success,failure | 1 |
 | `admin-email-deliverability` | admin | P3 | display | 1 |
 | `admin-email-templates-config` | admin | P2 | display,success,error | 1 |
+| `admin-financing-distribution` | admin | P1 | display,success,failure | — |
 | `admin-high-engagement-alert` | admin | P2 | — | 0 |
 | `admin-hour-packages-config` | admin | P3 | success,error,failure,display | — |
 | `admin-hour-packages-create` | admin | P2 | display,success,error | 1 |
@@ -6369,6 +6370,12 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-additional-modules-share` | public | P1 | success,display,failure | 4 |
 | `public-additional-modules-theme` | public | P2 | success,display | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
+| `public-financing-language` | public | P2 | success | — |
+| `public-financing-load` | public | P1 | failure,success | — |
+| `public-financing-overview` | public | P1 | display | — |
+| `public-financing-pdf` | public | P2 | success,failure | — |
+| `public-financing-share` | public | P2 | success | — |
+| `public-financing-terms` | public | P2 | success | — |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
 | `public-landing-software` | public | P3 | display | 1 |
@@ -7348,6 +7355,16 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
 
+### FLOW: `admin-financing-distribution`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/:locale/panel/financing`
+- **Interaction:** Navigate from Comercial, copy or open the public URL, download the booklet, inspect the public preview and retry a failed content request. If the active 60-hour package is absent, read the catalog warning before sharing.
+- **Outcomes:** `display`, `success`, `failure`
+- **Evidence:** panel financing page, panel navigation and public financing endpoints.
+
 ### FLOW: `admin-outbound-email-history-attachments`
 
 - **Module:** admin
@@ -7560,3 +7577,63 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`, `display`
 - **Evidencia:** `useAdditionalModulesTheme.js`, `CatalogView.vue` y
   `e2e/public/additional-modules.spec.js`.
+
+### FLOW: `public-financing-language`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P2
+- **Route:** `/:locale/financing`
+- **Interaction:** Use the language selector and continue on the reciprocal canonical route with localized commercial content.
+- **Outcomes:** `success`
+- **Evidence:** financing language control, Nuxt i18n routes and localized API payload.
+
+### FLOW: `public-financing-load`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/financing`
+- **Interaction:** See an explicit unavailable state after the live request fails, then retry and recover the program content.
+- **Outcomes:** `failure`, `success`
+- **Evidence:** public financing page live-load and retry states.
+
+### FLOW: `public-financing-overview`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P1
+- **Route:** `/:locale/financing`
+- **Interaction:** Follow the footer link and read the two partnership options, four conditions, calculator input/output, monthly package rules and WhatsApp call to action.
+- **Outcomes:** `display`
+- **Evidence:** public financing page/component and `GET /api/financing/public/`.
+
+### FLOW: `public-financing-pdf`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P2
+- **Route:** `/:locale/financing`
+- **Interaction:** Download the complete localized booklet; if generation fails, remain on the page with a visible retryable error.
+- **Outcomes:** `success`, `failure`
+- **Evidence:** public PDF control and `GET /api/financing/public/pdf/`.
+
+### FLOW: `public-financing-share`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P2
+- **Route:** `/:locale/financing`
+- **Interaction:** Share the exact localized URL through the native share sheet or clipboard fallback.
+- **Outcomes:** `success`
+- **Evidence:** floating share control in `Financing/ProgramView.vue`.
+
+### FLOW: `public-financing-terms`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P2
+- **Route:** `/:locale/financing`
+- **Interaction:** Expand one legal-rule accordion and read the complete detail associated with that condition.
+- **Outcomes:** `success`
+- **Evidence:** `Financing/ProgramView.vue` agreement-rule disclosures.

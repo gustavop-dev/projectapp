@@ -7,6 +7,13 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-02 — Compartir quedaba debajo del WhatsApp global:** las
+> acciones flotantes del módulo de financiación y el acceso global ocupaban la
+> misma esquina inferior derecha. Ambos se veían, pero WhatsApp interceptaba el
+> puntero y hacía imposible compartir. El grupo PDF/Compartir reserva ahora una
+> columna separada; el recorrido E2E verifica un clic real y la URL localizada
+> escrita en el portapapeles.
+
 > **Resuelto 2026-09-02 — un egreso creado llegaba verde por correo:** la
 > plantilla de cambios contables elegía color por acción (`created` verde) y
 > pintaba todo valor nuevo de verde, sin mirar la dirección financiera. Ahora
