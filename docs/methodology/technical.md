@@ -39,13 +39,15 @@
 > migración, backfill ni cambio en métricas ya persistidas.
 
 > **Icon feedback refinado 2026-09-01:** `BaseButton` expone `unstyled` sin
-> perder su pulso de activación de 360 ms, foco, semántica ni mínimo táctil de
-> 44 px. El contenido icon-only anima 90% → 105% → 100% sin sobrescribir el
-> transform del control; el halo de 3 px se expande y desvanece con el token de
-> foco, y nombres de animación alternados reinician clics consecutivos. Reduced
-> motion elimina keyframes y conserva el halo estático durante el mismo estado.
+> perder su activación de 420 ms, foco, semántica ni mínimo táctil de 44 px. El
+> contenido icon-only presiona 1 px, asciende hasta 3 px con escala máxima de
+> 108% y aterriza sin sobrescribir el transform ni el borde del control; nombres
+> de animación alternados reinician clics consecutivos. El foco usa
+> `focus-visible` y reduced motion elimina keyframes y reduce temporalmente la
+> opacidad del glifo durante el mismo estado.
 > `BaseTooltip.forceOpen` permite que `BaseActionButton.statusLabel` sea visible
-> y anunciado con tono info/success/danger. `useClipboardFeedback` espera la
+> y anunciado con tono info/success/danger; una copia exitosa proyecta el check
+> de `complete` hasta que ese estado expire. `useClipboardFeedback` espera la
 > promesa de Clipboard API, conserva éxito 2 s y fallo 3 s, limpia timers al
 > desmontar y deja al consumidor publicar el error de negocio. El check
 > `check:icon-interaction-feedback` se ejecuta en CI junto al catálogo del panel.

@@ -89,9 +89,9 @@ la excepción cuando estén dentro de una fila seleccionable.
 
 ### Una acción representada por símbolos distintos
 
-- **Copiar** aparecía como hojas superpuestas, clipboard, vínculo o un check
-  temporal. Ahora siempre conserva `DocumentDuplicateIcon`; el éxito se anuncia
-  mediante texto/estado accesible sin cambiar el significado del símbolo.
+- **Copiar** aparecía como hojas superpuestas, clipboard o vínculo. En reposo y
+  ante fallo conserva `DocumentDuplicateIcon`; sólo un éxito real y temporal lo
+  sustituye por el check canónico mientras el texto accesible dice “Copiado”.
 - **Cerrar** mezclaba `XMarkIcon`, SVG propios y caracteres `✕`/`×`. Ahora usa
   `XMarkIcon`.
 - **Eliminar** mezclaba papelera, `X` y signos menos. Ahora eliminar usa
@@ -109,8 +109,8 @@ la excepción cuando estén dentro de una fila seleccionable.
   una señal ambigua.
 - La **flecha hacia abajo** distingue descargar (`ArrowDownTrayIcon`), expandir
   (`ChevronDownIcon`) y mover abajo (`ArrowDownIcon`).
-- El **check** queda reservado a completar o a un indicador de selección; no
-  sustituye el icono de copiar ni funciona como confirmación ambigua.
+- El **check** representa completar, selección o la confirmación temporal de una
+  copia verificada; nunca aparece sólo por registrar el clic.
 
 El catálogo verifica además que ningún `iconName` canónico se asigne a dos
 acciones diferentes.
@@ -125,11 +125,13 @@ acciones diferentes.
   un solo tooltip en hover/foco y nombre accesible (`aria-label`), sin duplicar
   la ayuda con un `title` nativo.
 - El feedback transitorio se expresa con `statusLabel`, `statusTone` y una
-  región viva. El mismo tooltip queda visible durante el estado y el glifo
-  permanece estable para que la acción siga siendo reconocible.
-- La activación inmediata pertenece a `BaseButton`: pulso reiniciable de 360 ms
-  y halo expansivo, o halo estático con reduced motion. El objetivo táctil sigue
-  siendo 44 px y un estado async conserva su `loading` independiente.
+  región viva. El mismo tooltip queda visible durante el estado; copiar cambia
+  temporalmente a `complete` sólo después de un éxito real y conserva `copy`
+  ante fallo para que la acción siga siendo reconocible y reintentable.
+- La activación inmediata pertenece a `BaseButton`: presión, salto y aterrizaje
+  reiniciables de 420 ms sobre el contenido, sin animar el borde. Reduced motion
+  usa un cambio estático de contraste. El objetivo táctil sigue siendo 44 px y
+  un estado async conserva su `loading` independiente.
 
 ## Catálogo canónico
 

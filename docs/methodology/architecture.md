@@ -43,10 +43,12 @@
 
 > **Interacción de iconos refinada 2026-09-01:** `BaseButton` es la frontera transversal
 > para la activación inmediata de controles icon-only, tanto botones como
-> enlaces. Un contenedor interno aísla el pulso de 360 ms de cualquier transform
+> enlaces. Un contenedor interno aísla el salto de 420 ms de cualquier transform
 > de posicionamiento del consumidor, y un ciclo alternado reinicia la animación
-> ante clics rápidos. `BaseActionButton` agrega el glifo canónico y presenta
-> estados resueltos sin sustituirlo; `useClipboardFeedback` concentra la
+> ante clics rápidos. No se anima el borde y el foco queda reservado a
+> `focus-visible`. `BaseActionButton` agrega el glifo canónico y, sólo tras una
+> copia verificada, lo sustituye temporalmente por el check de completado;
+> `useClipboardFeedback` concentra la
 > semántica real de copiar y sus temporizadores por clave. Un guard estático
 > cubre componentes, layouts y páginas.
 

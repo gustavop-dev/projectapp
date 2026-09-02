@@ -40,12 +40,13 @@
 
 > **Refinado — 2026-09-01:** todo icono ejecutable de panel, plataforma y
 > superficies públicas confirma de inmediato que recibió el clic mediante un
-> pulso común de 360 ms: compresión, rebote y halo expansivo. El glifo no cambia;
-> touch y teclado conservan la misma señal y reduced motion reemplaza el
-> movimiento por un halo estático de alto contraste. Las acciones
+> salto común y contenido de 420 ms: presión, ascenso máximo de 3 px y aterrizaje
+> sin efecto de borde. Touch y teclado conservan la misma señal y reduced motion
+> reemplaza el movimiento por un cambio estático de contraste. Las acciones
 > asíncronas mantienen su estado de carga. Copiar muestra éxito sólo después de
-> escribir realmente al portapapeles y muestra un estado de error visible si el
-> navegador lo bloquea, además del mensaje accionable de la pantalla.
+> escribir realmente al portapapeles: presenta check + “Copiado” temporalmente.
+> Si el navegador lo bloquea conserva el icono para reintentar y muestra un
+> estado de error visible, además del mensaje accionable de la pantalla.
 
 > **Ajuste 2026-08-31 — acceso comercial visible:** Módulos adicionales abre
 > con un centro de acceso rápido que muestra la URL pública canónica, permite

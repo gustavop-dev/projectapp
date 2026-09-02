@@ -9,7 +9,7 @@
     "platform-client"
   ],
   "priority": "P2",
-  "description": "Activate an icon-only action and receive a balanced 360 ms press, rebound and expanding halo. Reduced-motion users keep a static high-contrast halo. Clipboard actions add a nearby success or failure result only after the browser resolves the write, while preserving the canonical icon.",
+  "description": "Activate an icon-only action and receive a restrained 420 ms press, upward hop and landing without a border effect. Reduced-motion users receive a static contrast change. Clipboard success temporarily changes the copy glyph to a check and shows a nearby result only after the browser resolves the write; failure keeps the copy glyph available for retry.",
   "outcomes": [
     "success",
     "failure",
