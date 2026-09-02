@@ -29,7 +29,7 @@ describe('useDocumentFilterQuery', () => {
     scope = effectScope()
     store = reactive({
       activeFolderId: 'all', archiveScope: 'active',
-      activeTagIds: [], archivedOrder: 'recent',
+      activeTagIds: [], dateOrder: 'recent',
       activeStateIds: [], withoutStateIds: [], activeStatePreset: '',
       activeClientId: null, activeProjectId: null,
     })
@@ -120,6 +120,7 @@ describe('useDocumentFilterQuery', () => {
     store.activeStateIds = [11]
     store.withoutStateIds = [13]
     store.activeStatePreset = 'needs_fix'
+    store.dateOrder = 'oldest'
     mockRoute.query = {}
 
     const { applyQueryToStore } = setupFilterQuery()
@@ -131,6 +132,7 @@ describe('useDocumentFilterQuery', () => {
     expect(store.activeStateIds).toEqual([])
     expect(store.withoutStateIds).toEqual([])
     expect(store.activeStatePreset).toBe('')
+    expect(store.dateOrder).toBe('recent')
   })
 
   it('drops a hand-typed default out of the url', () => {
@@ -185,7 +187,7 @@ describe('useDocumentFilterQuery', () => {
     expect(store.withoutStateIds).toEqual([13])
     expect(store.activeClientId).toBe(4)
     expect(store.activeProjectId).toBe('none')
-    expect(store.archivedOrder).toBe('oldest')
+    expect(store.dateOrder).toBe('oldest')
     expect(searchQuery.value).toBe('factura')
   })
 

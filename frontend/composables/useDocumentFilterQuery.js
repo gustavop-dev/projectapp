@@ -133,7 +133,7 @@ export function useDocumentFilterQuery(documentStore, {
         || (documentStore.activeStatePreset || '') !== nextState.preset
         || documentStore.activeClientId !== nextState.client
         || documentStore.activeProjectId !== nextState.project
-        || documentStore.archivedOrder !== nextState.order,
+        || documentStore.dateOrder !== nextState.order,
       searchChanged: !!searchQuery && searchQuery.value !== nextState.search,
       viewChanged: !!viewMode && viewMode.value !== nextState.view,
       pageChanged: !!currentPage && currentPage.value !== nextState.page,
@@ -156,7 +156,7 @@ export function useDocumentFilterQuery(documentStore, {
     if (navigationMode && nextState.navigationMode) {
       navigationMode.value = nextState.navigationMode;
     }
-    documentStore.archivedOrder = nextState.order;
+    documentStore.dateOrder = nextState.order;
     if (searchQuery) searchQuery.value = nextState.search;
     if (viewMode) viewMode.value = nextState.view;
     if (currentPage) currentPage.value = nextState.page;
@@ -207,7 +207,7 @@ export function useDocumentFilterQuery(documentStore, {
     const project = documentStore.activeProjectId;
     const by = navigationMode?.value;
     const search = searchQuery?.value?.trim() || '';
-    const order = documentStore.archivedOrder;
+    const order = documentStore.dateOrder;
     const view = viewMode?.value;
     const page = currentPage?.value;
     const focus = focusedDocumentId?.value;
@@ -264,7 +264,7 @@ export function useDocumentFilterQuery(documentStore, {
     documentStore.activeClientId,
     documentStore.activeProjectId,
     navigationMode?.value,
-    documentStore.archivedOrder,
+    documentStore.dateOrder,
     searchQuery?.value,
     viewMode?.value,
     currentPage?.value,
