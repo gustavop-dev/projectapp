@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Rendimiento del Gestor Documental listo para integrar — 2026-09-02:** el
+> gestor usa un endpoint paginado propio sin alterar el array heredado que
+> consumen editores y selectores. Filtros, búsqueda, orden, carpeta y raíz de
+> proyecto se resuelven antes del corte; tabla trae 10 filas, galería 12 y las
+> solicitudes superadas se cancelan. Se eliminó el N+1 del historial de estados
+> mediante un DTO compacto. Medición real: p95 464 ms en todos los activos,
+> 57 ms en raíz de proyecto y 178 ms en carpeta cargada, con 14.5–16.9 KiB por
+> respuesta. Backend, Pinia, E2E paginado y build están verdes; el flow
+> `admin-document-list` sigue cubierto en `display`, `success` y `failure`.
+
 > **Listo para integrar — 2026-09-02:** la fecha del Gestor Documental se ordena
 > en ambos sentidos desde el icono de Creado y desde un control compacto en
 > Galería/móvil. Activos usan creación, Archivados usan archivo con fallback y

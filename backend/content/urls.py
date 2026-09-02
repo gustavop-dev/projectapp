@@ -167,7 +167,7 @@ from content.views.standalone_email import (
     standalone_email_attachment, standalone_email_body,
 )
 from content.views.document import (
-    list_documents, create_document, create_document_from_markdown,
+    browse_documents, list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
     archive_document, unarchive_document, document_counts,
@@ -694,6 +694,7 @@ urlpatterns = [
 
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),
+    path('documents/browse/', browse_documents, name='browse-documents'),
     path('documents/counts/', document_counts, name='document-counts'),
     path('documents/navigation/', document_navigation, name='document-navigation'),
     path('documents/folder-client-suggestion/', suggest_folder_client, name='document-folder-client-suggestion'),

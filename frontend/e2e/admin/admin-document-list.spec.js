@@ -76,6 +76,62 @@ test.describe('Admin Document List', () => {
     await expect(page.getByRole('link', { name: /Nuevo Documento/i })).toBeVisible();
   });
 
+  test('requests and renders one server-owned page at a time', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const rows = Array.from({ length: 13 }, (_, index) => ({
+      id: index + 1,
+      title: `Documento ${String(index + 1).padStart(2, '0')}`,
+      status: 'draft',
+      active_states: [],
+      created_at: `2026-03-${String(index + 1).padStart(2, '0')}T10:00:00Z`,
+    }));
+    const requests = [];
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/browse/') {
+        const params = new URL(route.request().url()).searchParams;
+        const requestedPage = Number(params.get('page'));
+        const pageSize = Number(params.get('page_size'));
+        requests.push({ page: requestedPage, pageSize });
+        const start = (requestedPage - 1) * pageSize;
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: rows.slice(start, start + pageSize),
+            count: rows.length,
+            page: requestedPage,
+            page_size: pageSize,
+            total_pages: Math.ceil(rows.length / pageSize),
+          }),
+        };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: '[]' };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Documento 01', { exact: true })).toBeVisible();
+    await expect(page.getByText('Documento 11', { exact: true })).toHaveCount(0);
+    const pagination = page.getByRole('navigation', { name: 'Paginación' });
+    await expect(pagination).toContainText('1–10');
+    await expect(pagination).toContainText('de 13');
+
+    await pagination.getByRole('button', { name: 'Página siguiente' }).click();
+
+    await expect(page).toHaveURL(/page=2/);
+    await expect(page.getByText('Documento 11', { exact: true })).toBeVisible();
+    await expect(page.getByText('Documento 01', { exact: true })).toHaveCount(0);
+    expect(requests).toEqual(expect.arrayContaining([
+      { page: 1, pageSize: 10 },
+      { page: 2, pageSize: 10 },
+    ]));
+  });
+
   test('sorts the Created column in both directions', {
     tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

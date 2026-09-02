@@ -4,9 +4,8 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.db.models import (
-    Case, Count, DateTimeField, Exists, F, OuterRef, Prefetch, Q, When,
+    Count, Exists, OuterRef, Prefetch,
 )
-from django.db.models.functions import Coalesce
 from django.db.models.deletion import ProtectedError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -28,6 +27,7 @@ from content.models import (
     EmailLogTarget,
 )
 from content.serializers.document import (
+    DocumentBrowseSerializer,
     DocumentListSerializer,
     DocumentDetailSerializer,
     DocumentCreateUpdateSerializer,
@@ -41,6 +41,10 @@ from content.services.collection_account_service import (
 )
 from content.services.document_content import build_content_json, resolve_blocks
 from content.services.document_navigation_service import build_document_navigation
+from content.services.document_query_service import (
+    DocumentQueryError,
+    build_document_list_queryset,
+)
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_markdown_document_type
 from content.utils import safe_slug
@@ -122,193 +126,80 @@ def list_documents(request):
             {'scope': 'El estado solicitado no es válido. Usa active, archived o all.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    delivered_targets = EmailLogTarget.objects.filter(
-        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
-        object_id=OuterRef('pk'),
-    ).exclude(email_log__status=EmailLog.Status.FAILED)
-    failed_targets = EmailLogTarget.objects.filter(
-        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
-        object_id=OuterRef('pk'),
-        email_log__status=EmailLog.Status.FAILED,
-    )
-    documents = (
-        apply_archive_scope(Document.objects.all(), scope)
-        .annotate(
-            _has_delivered_collection_email=Exists(delivered_targets),
-            _has_failed_collection_email=Exists(failed_targets),
-            thread_document_count=Count(
-                'thread_item__thread__items', distinct=True,
-            ),
+    try:
+        documents = build_document_list_queryset(
+            request.query_params,
+            scope=scope,
+            order=date_order(request),
+            search_max_length=_SEARCH_MAX_LENGTH,
         )
-        .prefetch_related(
-            'tags',
-            Prefetch(
-                'state_episodes',
-                queryset=(
-                    DocumentStateEpisode.objects.filter(closed_at__isnull=True)
-                    .select_related('state__group', 'opened_by', 'closed_by')
-                ),
-                to_attr='prefetched_active_state_episodes',
-            ),
+    except DocumentQueryError as exc:
+        return Response(
+            {exc.field: exc.message}, status=status.HTTP_400_BAD_REQUEST,
         )
-        .select_related(
-            'document_type', 'folder', 'project', 'client_user__profile',
-            'thread_item__thread',
-        )
-    )
-
-    folder_param = request.query_params.get('folder')
-    if folder_param == 'none':
-        documents = documents.filter(folder__isnull=True)
-    elif folder_param not in (None, '', 'all'):
-        try:
-            folder_id = int(folder_param)
-            documents = documents.filter(folder_id=folder_id)
-        except (TypeError, ValueError):
-            return Response(
-                {'folder': 'El identificador de carpeta no es válido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-    client_param = request.query_params.get('client')
-    if client_param == 'none':
-        documents = documents.filter(client_user__isnull=True)
-    elif client_param not in (None, '', 'all'):
-        try:
-            client_ids = [int(c) for c in client_param.split(',') if c.strip()]
-        except ValueError:
-            return Response(
-                {'client': 'El identificador de cliente no es válido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if client_ids:
-            # El panel habla en pk de UserProfile; el modelo persiste auth.User.
-            documents = documents.filter(client_user__profile__id__in=client_ids)
-
-    project_param = request.query_params.get('project')
-    if project_param == 'none':
-        documents = documents.filter(project__isnull=True)
-    elif project_param not in (None, '', 'all'):
-        try:
-            project_ids = [int(p) for p in project_param.split(',') if p.strip()]
-        except ValueError:
-            return Response(
-                {'project': 'El identificador de proyecto no es válido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if project_ids:
-            documents = documents.filter(project_id__in=project_ids)
-
-    tags_param = request.query_params.get('tags')
-    if tags_param:
-        try:
-            tag_ids = [int(t) for t in tags_param.split(',') if t.strip()]
-        except ValueError:
-            return Response(
-                {'tags': 'La lista de etiquetas no es válida.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if tag_ids:
-            documents = documents.filter(tags__id__in=tag_ids).distinct()
-
-    states_param = request.query_params.get('states')
-    if states_param:
-        try:
-            state_ids = [int(value) for value in states_param.split(',') if value.strip()]
-        except ValueError:
-            return Response(
-                {'states': 'La lista de estados no es válida.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if state_ids:
-            # Within the dimension values add up (OR), matching PA-71.
-            documents = documents.filter(
-                state_episodes__state_id__in=state_ids,
-                state_episodes__closed_at__isnull=True,
-            ).distinct()
-
-    without_states_param = request.query_params.get('without_states')
-    if without_states_param:
-        try:
-            without_state_ids = [
-                int(value) for value in without_states_param.split(',')
-                if value.strip()
-            ]
-        except ValueError:
-            return Response(
-                {'without_states': 'La lista de estados ausentes no es válida.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if without_state_ids:
-            active_document_ids = DocumentStateEpisode.objects.filter(
-                state_id__in=without_state_ids,
-                closed_at__isnull=True,
-            ).values('document_id')
-            documents = documents.exclude(pk__in=active_document_ids)
-
-    preset = str(request.query_params.get('preset') or '').strip()
-    if preset:
-        if preset == 'needs_fix':
-            documents = documents.filter(
-                state_episodes__state__system_key='needs_fix',
-                state_episodes__closed_at__isnull=True,
-            ).distinct()
-        elif preset == 'sent_not_closed':
-            sent_ids = DocumentStateEpisode.objects.filter(
-                state__system_key='sent', closed_at__isnull=True,
-            ).values('document_id')
-            closed_ids = DocumentStateEpisode.objects.filter(
-                state__system_key='closed', closed_at__isnull=True,
-            ).values('document_id')
-            documents = documents.filter(pk__in=sent_ids).exclude(pk__in=closed_ids)
-        elif preset == 'closed':
-            documents = documents.filter(
-                state_episodes__state__system_key='closed',
-                state_episodes__closed_at__isnull=True,
-            ).distinct()
-        elif preset == 'unclassified':
-            classified_ids = DocumentStateEpisode.objects.filter(
-                state__group__selection_mode='exclusive',
-                closed_at__isnull=True,
-            ).values('document_id')
-            documents = (
-                documents.exclude(pk__in=classified_ids)
-                .exclude(document_type__code=COLLECTION_ACCOUNT)
-            )
-        else:
-            return Response(
-                {'preset': 'La consulta predefinida no es válida.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-    search = search_term(request)
-    if search:
-        documents = documents.filter(
-            Q(title__icontains=search) | Q(client_name__icontains=search),
-        )
-
-    # La columna cambia con el scope: activos muestran creación, archivados
-    # muestran archivado y una lista mixta decide por fila. Coalesce conserva
-    # navegables los archivados históricos cuyo timestamp pudiera ser NULL.
-    documents = documents.annotate(
-        _display_sort_date=Case(
-            When(
-                is_archived=True,
-                then=Coalesce(F('archived_at'), F('created_at')),
-            ),
-            default=F('created_at'),
-            output_field=DateTimeField(),
-        ),
-    )
-    prefix = '' if date_order(request) == 'oldest' else '-'
-    documents = documents.order_by(
-        f'{prefix}_display_sort_date',
-        f'{prefix}created_at',
-        f'{prefix}pk',
-    )
-
     serializer = DocumentListSerializer(documents, many=True)
     return Response(serializer.data)
+
+
+def _positive_page_value(request, field, default):
+    raw = request.query_params.get(field)
+    if raw in (None, ''):
+        return default
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def browse_documents(request):
+    """Return one server-owned page for the interactive document manager."""
+    scope = archive_scope(request)
+    if scope is None:
+        return Response(
+            {'scope': 'El estado solicitado no es válido. Usa active, archived o all.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    page = _positive_page_value(request, 'page', 1)
+    page_size = _positive_page_value(request, 'page_size', 10)
+    if page is None:
+        return Response(
+            {'page': 'La página debe ser un entero positivo.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if page_size not in (10, 12):
+        return Response(
+            {'page_size': 'El tamaño de página debe ser 10 o 12.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        documents = build_document_list_queryset(
+            request.query_params,
+            scope=scope,
+            order=date_order(request),
+            search_max_length=_SEARCH_MAX_LENGTH,
+            resolve_root=True,
+        )
+    except DocumentQueryError as exc:
+        return Response(
+            {exc.field: exc.message}, status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    count = documents.count()
+    total_pages = max(1, (count + page_size - 1) // page_size)
+    page = min(page, total_pages)
+    start = (page - 1) * page_size
+    rows = DocumentBrowseSerializer(documents[start:start + page_size], many=True)
+    return Response({
+        'results': rows.data,
+        'count': count,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
+    })
 
 
 def _system_managed_folder_target_error(raw_folder_id):

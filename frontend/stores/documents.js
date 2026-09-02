@@ -6,7 +6,14 @@ import { normalizeApiError, normalizeBlobApiError } from './services/normalize_a
 // Fuera del store para que no sean reactivos: descartan respuestas viejas
 // cuando dos peticiones se pisan (búsqueda con debounce, refrescos encadenados).
 let listToken = 0;
+let browseToken = 0;
 let searchToken = 0;
+let browseAbortController = null;
+let searchAbortController = null;
+
+function requestWasCancelled(error) {
+  return error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED';
+}
 
 export const useDocumentStore = defineStore('documents', {
   /**
@@ -30,9 +37,17 @@ export const useDocumentStore = defineStore('documents', {
     },
     currentDocument: null,
     isLoading: false,
+    isBrowseLoading: false,
     // La búsqueda tiene su propia bandera: comparte skeleton con la lista pero
     // no debe pisar isLoading, que gobierna los fetch de navegación.
     isSearchLoading: false,
+    browsePageSize: 10,
+    browsePagination: {
+      page: 1, page_size: 10, count: 0, total_pages: 1,
+    },
+    searchPagination: {
+      page: 1, page_size: 10, count: 0, total_pages: 1,
+    },
     isUpdating: false,
     error: null,
     // Dónde: 'all' | 'root' | 'none' | <folder id>
@@ -135,6 +150,99 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
+     * One server-owned page for the interactive document manager.
+     *
+     * The legacy list stays available to editors and selectors that expect a
+     * top-level array. Only this action uses the paginated browser contract.
+     */
+    async browseDocuments(overrides = {}) {
+      browseAbortController?.abort();
+      const controller = new AbortController();
+      browseAbortController = controller;
+      const token = ++browseToken;
+      this.isBrowseLoading = true;
+      this.error = null;
+
+      try {
+        const folder = overrides.folder !== undefined
+          ? overrides.folder : this.activeFolderId;
+        const scope = normalizeScope(
+          overrides.scope !== undefined ? overrides.scope : this.archiveScope,
+        );
+        const tags = overrides.tags !== undefined ? overrides.tags : this.activeTagIds;
+        const states = overrides.states !== undefined ? overrides.states : this.activeStateIds;
+        const withoutStates = overrides.withoutStates !== undefined
+          ? overrides.withoutStates : this.withoutStateIds;
+        const preset = overrides.preset !== undefined
+          ? overrides.preset : this.activeStatePreset;
+        const client = overrides.client !== undefined
+          ? overrides.client : this.activeClientId;
+        const project = overrides.project !== undefined
+          ? overrides.project : this.activeProjectId;
+        const order = overrides.order !== undefined ? overrides.order : this.dateOrder;
+        const page = overrides.page !== undefined ? overrides.page : 1;
+        const pageSize = overrides.pageSize !== undefined
+          ? overrides.pageSize : this.browsePageSize;
+
+        const params = new URLSearchParams({
+          scope,
+          page: String(page),
+          page_size: String(pageSize),
+        });
+        if (folder && folder !== 'all') params.set('folder', String(folder));
+        if (Array.isArray(tags) && tags.length) params.set('tags', tags.join(','));
+        if (Array.isArray(states) && states.length) params.set('states', states.join(','));
+        if (Array.isArray(withoutStates) && withoutStates.length) {
+          params.set('without_states', withoutStates.join(','));
+        }
+        if (preset) params.set('preset', preset);
+        if (client != null) params.set('client', String(client));
+        if (project != null) params.set('project', String(project));
+        if (order === 'oldest') params.set('order', 'oldest');
+
+        const response = await get_request(
+          `documents/browse/?${params.toString()}`,
+          { signal: controller.signal },
+        );
+        if (token !== browseToken || browseAbortController !== controller) {
+          return { success: false, cancelled: true };
+        }
+        const data = response.data || {};
+        this.documents = Array.isArray(data.results) ? data.results : [];
+        this.browsePagination = {
+          page: data.page || 1,
+          page_size: data.page_size || pageSize,
+          count: data.count || 0,
+          total_pages: data.total_pages || 1,
+        };
+        return { success: true, data };
+      } catch (error) {
+        if (requestWasCancelled(error) || token !== browseToken) {
+          return { success: false, cancelled: true };
+        }
+        this.error = 'browse_failed';
+        console.error('Error browsing documents:', error);
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudieron cargar los documentos.'),
+        };
+      } finally {
+        if (token === browseToken && browseAbortController === controller) {
+          browseAbortController = null;
+          this.isBrowseLoading = false;
+        }
+      }
+    },
+
+    cancelDocumentBrowse() {
+      browseToken += 1;
+      browseAbortController?.abort();
+      browseAbortController = null;
+      this.isBrowseLoading = false;
+    },
+
+    /**
      * searchDocuments: busca por título o cliente en TODO el gestor.
      *
      * Ignora la carpeta actual y el estado a propósito: buscar sirve para
@@ -142,17 +250,44 @@ export const useDocumentStore = defineStore('documents', {
      * es justo lo que impedía dar con lo archivado.
      */
     async searchDocuments(term, overrides = {}) {
+      searchAbortController?.abort();
+      const controller = new AbortController();
+      searchAbortController = controller;
       const token = ++searchToken;
       this.isSearchLoading = true;
       this.error = null;
       try {
-        const params = new URLSearchParams({ scope: 'all', search: term });
+        const page = overrides.page !== undefined ? overrides.page : 1;
+        const pageSize = overrides.pageSize !== undefined
+          ? overrides.pageSize : this.browsePageSize;
+        const params = new URLSearchParams({
+          scope: 'all',
+          search: term,
+          page: String(page),
+          page_size: String(pageSize),
+        });
         const order = overrides.order !== undefined ? overrides.order : 'recent';
         if (order === 'oldest') params.set('order', 'oldest');
-        const response = await get_request(`documents/?${params.toString()}`);
-        if (token === searchToken) this.searchResults = response.data;
-        return { success: true, data: response.data };
+        const response = await get_request(
+          `documents/browse/?${params.toString()}`,
+          { signal: controller.signal },
+        );
+        if (token !== searchToken || searchAbortController !== controller) {
+          return { success: false, cancelled: true };
+        }
+        const data = response.data || {};
+        this.searchResults = Array.isArray(data.results) ? data.results : [];
+        this.searchPagination = {
+          page: data.page || 1,
+          page_size: data.page_size || pageSize,
+          count: data.count || 0,
+          total_pages: data.total_pages || 1,
+        };
+        return { success: true, data };
       } catch (error) {
+        if (requestWasCancelled(error) || token !== searchToken) {
+          return { success: false, cancelled: true };
+        }
         this.error = 'search_failed';
         console.error('Error searching documents:', error);
         return {
@@ -163,8 +298,25 @@ export const useDocumentStore = defineStore('documents', {
       } finally {
         // Sólo la última búsqueda pedida apaga la bandera: una respuesta vieja
         // no debe cortar el skeleton de la que sigue en vuelo.
-        if (token === searchToken) this.isSearchLoading = false;
+        if (token === searchToken && searchAbortController === controller) {
+          searchAbortController = null;
+          this.isSearchLoading = false;
+        }
       }
+    },
+
+    cancelDocumentSearch() {
+      searchToken += 1;
+      searchAbortController?.abort();
+      searchAbortController = null;
+      this.searchResults = [];
+      this.searchPagination = {
+        page: 1,
+        page_size: this.browsePageSize,
+        count: 0,
+        total_pages: 1,
+      };
+      this.isSearchLoading = false;
     },
 
     /**
@@ -334,6 +486,54 @@ export const useDocumentStore = defineStore('documents', {
       if (client !== undefined) this.activeClientId = client;
       if (project !== undefined) this.activeProjectId = project;
       return this.fetchDocuments({ scope: this.archiveScope, order: this.dateOrder });
+    },
+
+    /** Update manager filters and request the first matching server page. */
+    async setBrowseFilters({
+      folder, scope, tags, states, withoutStates, preset, order, client, project,
+    } = {}) {
+      if (folder !== undefined) this.activeFolderId = folder;
+      if (scope !== undefined) this.archiveScope = normalizeScope(scope);
+      if (order !== undefined) this.dateOrder = order;
+      if (tags !== undefined) this.activeTagIds = Array.isArray(tags) ? [...tags] : [];
+      if (states !== undefined) this.activeStateIds = Array.isArray(states) ? [...states] : [];
+      if (withoutStates !== undefined) {
+        this.withoutStateIds = Array.isArray(withoutStates) ? [...withoutStates] : [];
+      }
+      if (preset !== undefined) this.activeStatePreset = preset || '';
+      if (client !== undefined) this.activeClientId = client;
+      if (project !== undefined) this.activeProjectId = project;
+      return this.browseDocuments({ page: 1 });
+    },
+
+    async toggleBrowseTagFilter(tagId) {
+      const idx = this.activeTagIds.indexOf(tagId);
+      if (idx === -1) this.activeTagIds.push(tagId);
+      else this.activeTagIds.splice(idx, 1);
+      return this.browseDocuments({ page: 1 });
+    },
+
+    async toggleBrowseStateFilter(stateId) {
+      const idx = this.activeStateIds.indexOf(stateId);
+      if (idx === -1) this.activeStateIds.push(stateId);
+      else this.activeStateIds.splice(idx, 1);
+      this.activeStatePreset = '';
+      return this.browseDocuments({ page: 1 });
+    },
+
+    async toggleBrowseStateAbsenceFilter(stateId) {
+      const idx = this.withoutStateIds.indexOf(stateId);
+      if (idx === -1) this.withoutStateIds.push(stateId);
+      else this.withoutStateIds.splice(idx, 1);
+      this.activeStatePreset = '';
+      return this.browseDocuments({ page: 1 });
+    },
+
+    async setBrowseStatePreset(preset) {
+      this.activeStatePreset = preset || '';
+      this.activeStateIds = [];
+      this.withoutStateIds = [];
+      return this.browseDocuments({ page: 1 });
     },
 
     /**

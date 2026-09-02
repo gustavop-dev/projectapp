@@ -1,5 +1,18 @@
 # Architecture — ProjectApp
 
+> **Lectura paginada del Gestor Documental 2026-09-02:**
+> `document_query_service` concentra filtros, búsqueda, raíz contextual y orden
+> en un queryset lazy compartido por el listado heredado y
+> `GET /api/documents/browse/`. El browser cuenta y corta primero; sólo después
+> ejecuta los `select_related`/`prefetch_related` de las 10 filas de tabla o 12
+> tarjetas. `DocumentBrowseSerializer` proyecta estados activos sin eventos,
+> notas ni actores de auditoría, mientras `/api/documents/` conserva su array y
+> contrato para editores y selectores. Pinia mantiene paginación autoritativa,
+> restaura `?page` y usa `AbortController` más un token de última respuesta para
+> que una carpeta superada no repinte la vigente. El árbol de carpetas sigue
+> cargándose completo porque alimenta navegación y rollups; el contenido pesado
+> de documentos ya no viaja completo en cada cambio.
+
 > **Tono financiero de correos contables 2026-09-02:**
 > `accounting_email_service` clasifica cada `AccountingChangeLog` como ingreso,
 > egreso o neutral antes de renderizar `accounting_change.html`. Las entidades
