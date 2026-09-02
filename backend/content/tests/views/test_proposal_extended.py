@@ -256,6 +256,17 @@ class TestJsonTemplateAnnotation:
 
 @freeze_time('2026-01-15T10:00:00Z')
 class TestTrackProposalEngagementEdgeCases:
+    @pytest.fixture(autouse=True)
+    def stable_tracking_throttle_clock(self, monkeypatch):
+        """Keep DRF's throttle timer callable under the frozen class clock."""
+        from content.throttles import TrackingAnonThrottle
+
+        monkeypatch.setattr(
+            TrackingAnonThrottle,
+            'timer',
+            staticmethod(lambda: FROZEN_NOW.timestamp()),
+        )
+
     @pytest.fixture
     def tracked_proposal(self, db):
         """A viewed proposal with tracking data."""
@@ -352,6 +363,7 @@ class TestTrackProposalEngagementEdgeCases:
         prev_event = ProposalViewEvent.objects.create(
             proposal=p, session_id='prev-sess',
             viewed_at=FROZEN_NOW - timedelta(hours=5),
+            finalized_at=FROZEN_NOW - timedelta(hours=4),
         )
         ProposalSectionView.objects.create(
             view_event=prev_event, section_type='greeting',
@@ -361,6 +373,7 @@ class TestTrackProposalEngagementEdgeCases:
 
         api_client.post(url, {
             'session_id': 'new-sess',
+            'is_final': True,
             'sections': [
                 {'section_type': 'greeting', 'time_spent_seconds': 15},
                 {'section_type': 'investment', 'time_spent_seconds': 20},
@@ -373,12 +386,12 @@ class TestTrackProposalEngagementEdgeCases:
     def test_cached_heat_score_exception_handled(
         self, api_client, tracked_proposal,
     ):
-        """Track endpoint handles _compute_heat_score_for_proposal exception."""
+        """Track endpoint handles the heat score service exception."""
         p = tracked_proposal
         url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': p.uuid})
 
         with patch(
-            'content.views.proposal._compute_heat_score_for_proposal',
+            'content.services.proposal_tracking_service.compute_heat_score_for_proposal',
             side_effect=Exception('DB error'),
         ):
             response = api_client.post(url, {

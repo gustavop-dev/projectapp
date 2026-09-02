@@ -207,14 +207,16 @@ class ProposalTrackingService:
         if ProposalService.open_notifications_suppressed(proposal):
             return
 
-        known_ips = set(
-            ProposalViewEvent.objects
-            .filter(proposal=proposal)
-            .exclude(pk=view_event.pk)
-            .exclude(ip_address__isnull=True)
-            .exclude(ip_address='')
-            .values_list('ip_address', flat=True)
-        )
+        known_ips = {
+            ip_address
+            for ip_address in (
+                ProposalViewEvent.objects
+                .filter(proposal=proposal)
+                .exclude(pk=view_event.pk)
+                .values_list('ip_address', flat=True)
+            )
+            if ip_address
+        }
         if (
             not proposal.stakeholder_alert_sent_at
             and view_event.ip_address

@@ -3007,6 +3007,17 @@ class TestReengagementException:
 # ---------------------------------------------------------------------------
 
 class TestStakeholderDetection:
+    @pytest.fixture(autouse=True)
+    def stable_tracking_throttle_clock(self, monkeypatch):
+        """Keep DRF's throttle timer callable under the frozen test clocks."""
+        from content.throttles import TrackingAnonThrottle
+
+        monkeypatch.setattr(
+            TrackingAnonThrottle,
+            'timer',
+            staticmethod(lambda: timezone.now().timestamp()),
+        )
+
     def _url(self, uuid):
         return reverse('track-proposal-engagement', kwargs={'proposal_uuid': uuid})
 
@@ -3015,7 +3026,12 @@ class TestStakeholderDetection:
         'content.services.proposal_email_service.ProposalEmailService.send_stakeholder_detected_notification',
         return_value=True,
     )
-    def test_sends_stakeholder_alert_on_new_ip(self, mock_alert, api_client, sent_proposal):
+    def test_sends_stakeholder_alert_on_new_ip(
+        self,
+        mock_alert,
+        api_client,
+        sent_proposal,
+    ):
         """Stakeholder alert fires when a new IP is detected from a different session."""
         sent_proposal.first_viewed_at = timezone.now()
         sent_proposal.save(update_fields=['first_viewed_at'])
@@ -3029,10 +3045,11 @@ class TestStakeholderDetection:
                  'time_spent_seconds': 3, 'entered_at': '2026-03-01T10:00:00Z'},
             ],
         }
-        api_client.post(
+        response = api_client.post(
             self._url(sent_proposal.uuid), payload, format='json',
             HTTP_X_FORWARDED_FOR='9.8.7.6',
         )
+        assert response.status_code == 200
         mock_alert.assert_called_once()
         sent_proposal.refresh_from_db()
         assert sent_proposal.stakeholder_alert_sent_at is not None
@@ -4560,21 +4577,27 @@ class TestRevisitAlertExceptionPath:
 class TestComputeHeatScoreEdgeCases:
     @freeze_time('2026-03-10 12:00:00')
     def test_heat_score_with_now_none_uses_current_time(self, db):
-        """_compute_heat_score_for_proposal defaults to timezone.now() when now=None."""
-        from content.views.proposal import _compute_heat_score_for_proposal
+        """Heat score defaults to timezone.now() when now=None."""
+        from content.services.proposal_analytics_service import (
+            compute_heat_score_for_proposal,
+        )
+
         p = BusinessProposal.objects.create(
             title='Heat None', client_name='Client', status='sent',
             view_count=2, first_viewed_at=timezone.now() - timezone.timedelta(days=1),
         )
-        score = _compute_heat_score_for_proposal(p.id, now=None)
+        score = compute_heat_score_for_proposal(p.id, now=None)
         assert isinstance(score, int)
         assert score >= 1
 
     @freeze_time('2026-03-10 12:00:00')
     def test_heat_score_returns_1_for_nonexistent_proposal(self, db):
-        """_compute_heat_score_for_proposal returns 1 when proposal does not exist."""
-        from content.views.proposal import _compute_heat_score_for_proposal
-        score = _compute_heat_score_for_proposal(99999, now=timezone.now())
+        """Heat score returns 1 when proposal does not exist."""
+        from content.services.proposal_analytics_service import (
+            compute_heat_score_for_proposal,
+        )
+
+        score = compute_heat_score_for_proposal(99999, now=timezone.now())
         assert score == 1
 
 
