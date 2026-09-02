@@ -3,11 +3,51 @@ export function getApiPath(requestUrl) {
   return url.pathname.replace(/^\/api\//, "");
 }
 
+function paginatedDocumentFixture(result, requestUrl) {
+  if (!result || Number(result.status || 200) >= 400 || typeof result.body !== 'string') {
+    return result;
+  }
+  let rows;
+  try {
+    rows = JSON.parse(result.body);
+  } catch {
+    return result;
+  }
+  if (!Array.isArray(rows)) return result;
+
+  const params = new URL(requestUrl).searchParams;
+  const pageSize = Number(params.get('page_size')) || 10;
+  const requestedPage = Number(params.get('page')) || 1;
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const page = Math.min(Math.max(1, requestedPage), totalPages);
+  const start = (page - 1) * pageSize;
+  return {
+    ...result,
+    body: JSON.stringify({
+      results: rows.slice(start, start + pageSize),
+      count: rows.length,
+      page,
+      page_size: pageSize,
+      total_pages: totalPages,
+    }),
+  };
+}
+
 export async function mockApi(page, handler) {
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const apiPath = getApiPath(route.request().url());
     const method = route.request().method();
-    const result = await handler({ route, apiPath, method });
+    let result = await handler({ route, apiPath, method });
+
+    // Document-manager specs predating server pagination expose their fixture
+    // through the legacy array endpoint. Reuse that data while each spec is
+    // migrated independently; an explicit browse envelope always wins.
+    if (!result && apiPath === 'documents/browse/' && method === 'GET') {
+      result = await handler({ route, apiPath: 'documents/', method });
+    }
+    if (apiPath === 'documents/browse/' && method === 'GET') {
+      result = paginatedDocumentFixture(result, route.request().url());
+    }
 
     if (result) {
       return route.fulfill(result);

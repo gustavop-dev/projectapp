@@ -489,33 +489,42 @@ describe('useDocumentStore', () => {
     it('ignores folder and scope so nothing stays hidden', async () => {
       store.activeFolderId = 7
       store.archiveScope = 'active'
-      get_request.mockResolvedValueOnce({ data: [{ id: 9, is_archived: true }] })
+      get_request.mockResolvedValueOnce({
+        data: {
+          results: [{ id: 9, is_archived: true }],
+          count: 1, page: 1, page_size: 10, total_pages: 1,
+        },
+      })
 
       const result = await store.searchDocuments('mapeo')
 
-      expect(get_request).toHaveBeenCalledWith('documents/?scope=all&search=mapeo')
+      expect(get_request).toHaveBeenCalledWith(
+        'documents/browse/?scope=all&search=mapeo&page=1&page_size=10',
+        { signal: expect.any(AbortSignal) },
+      )
       expect(result.success).toBe(true)
       expect(store.searchResults).toEqual([{ id: 9, is_archived: true }])
     })
 
     it('requests the oldest search results when selected', async () => {
-      get_request.mockResolvedValueOnce({ data: [] })
+      get_request.mockResolvedValueOnce({ data: { results: [] } })
 
       await store.searchDocuments('mapeo', { order: 'oldest' })
 
       expect(get_request).toHaveBeenCalledWith(
-        'documents/?scope=all&search=mapeo&order=oldest',
+        'documents/browse/?scope=all&search=mapeo&page=1&page_size=10&order=oldest',
+        { signal: expect.any(AbortSignal) },
       )
     })
 
     it('discards a stale search response', async () => {
       let resolveFirst
       get_request.mockReturnValueOnce(new Promise((r) => { resolveFirst = r }))
-      get_request.mockResolvedValueOnce({ data: [{ id: 2 }] })
+      get_request.mockResolvedValueOnce({ data: { results: [{ id: 2 }] } })
 
       const first = store.searchDocuments('ma')
       await store.searchDocuments('mapeo')
-      resolveFirst({ data: [{ id: 1 }] })
+      resolveFirst({ data: { results: [{ id: 1 }] } })
       await first
 
       expect(store.searchResults).toEqual([{ id: 2 }])
@@ -528,7 +537,7 @@ describe('useDocumentStore', () => {
       const pending = store.searchDocuments('mapeo')
       expect(store.isSearchLoading).toBe(true)
 
-      resolve({ data: [] })
+      resolve({ data: { results: [] } })
       await pending
 
       expect(store.isSearchLoading).toBe(false)
@@ -542,14 +551,14 @@ describe('useDocumentStore', () => {
 
       const first = store.searchDocuments('ma')
       const second = store.searchDocuments('mapeo')
-      resolveFirst({ data: [{ id: 1 }] })
+      resolveFirst({ data: { results: [{ id: 1 }] } })
       await first
 
       // La búsqueda vieja terminó, pero la vigente sigue en vuelo.
       expect(store.isSearchLoading).toBe(true)
       expect(store.searchResults).toEqual([])
 
-      resolveSecond({ data: [{ id: 2 }] })
+      resolveSecond({ data: { results: [{ id: 2 }] } })
       await second
 
       expect(store.isSearchLoading).toBe(false)

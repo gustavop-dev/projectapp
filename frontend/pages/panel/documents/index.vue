@@ -582,9 +582,7 @@ import DocumentsGrid from '~/components/panel/documents/DocumentsGrid.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import BaseDrawer from '~/components/base/BaseDrawer.vue';
-import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { isRootInScope } from '~/utils/archiveScope';
 import { folderSummaryFrom, scopedCounts } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -792,22 +790,11 @@ const navigationRootFolders = computed(() => navigationFolders.value.filter((fol
   return folder.parent == null || !navigationFolderIds.value.has(folder.parent);
 }));
 
-const filteredDocuments = computed(() => {
-  if (isSearching.value) return documentStore.searchResults;
-  if (documentStore.activeFolderId !== 'root') return documentStore.documents;
-  if (navigationSelection.value !== 'all') {
-    return documentStore.documents.filter((documentRow) => (
-      documentRow.folder == null
-      || documentRow.folder === suppressedManagedRootId.value
-      || !navigationFolderIds.value.has(documentRow.folder)
-    ));
-  }
-  // En la cima del árbol sólo se listan los documentos que no cuelgan de una
-  // carpeta visible: los demás se ven entrando a su carpeta.
-  return documentStore.documents.filter(
-    (d) => isRootInScope(d.folder, folderStore.folderById, effectiveScope.value),
-  );
-});
+// La API ya aplica carpeta, raíz contextual, asociaciones, estado y búsqueda
+// antes de paginar. Refiltrar aquí rompería el total autoritativo del servidor.
+const filteredDocuments = computed(() => (
+  isSearching.value ? documentStore.searchResults : documentStore.documents
+));
 
 // Filas de carpeta del listado: las raíces del scope en la cima, las hijas
 // dentro de una carpeta, y las coincidencias mientras se busca.
@@ -842,32 +829,39 @@ function subfolderSummary(folder, scope) {
   return folderSummaryFrom({ docs, subs: scopedCounts(folder, scope).subs });
 }
 
-const {
-  currentPage: docPage,
-  pageSize: docPageSize,
-  totalPages: docTotalPages,
-  totalItems: docTotalItems,
-  rangeFrom: docRangeFrom,
-  rangeTo: docRangeTo,
-  paginatedItems: pagedDocuments,
-  goTo: docGoTo,
-  next: docNext,
-  prev: docPrev,
-  reset: docResetPage,
-} = usePagination(filteredDocuments, { pageSize: viewMode.value === 'grid' ? 12 : 10 });
+const docPage = ref(1);
+const docPageSize = computed(() => (viewMode.value === 'grid' ? 12 : 10));
+const activeDocPagination = computed(() => (
+  isSearching.value ? documentStore.searchPagination : documentStore.browsePagination
+));
+const docTotalPages = computed(() => activeDocPagination.value.total_pages || 1);
+const docTotalItems = computed(() => activeDocPagination.value.count || 0);
+const docRangeFrom = computed(() => (
+  docTotalItems.value ? ((docPage.value - 1) * docPageSize.value) + 1 : 0
+));
+const docRangeTo = computed(() => Math.min(
+  docPage.value * docPageSize.value,
+  docTotalItems.value,
+));
+const pagedDocuments = filteredDocuments;
+documentStore.browsePageSize = docPageSize.value;
 
 let filterQuery;
+let managerMounted = false;
 
 function resetDocumentListPosition() {
   if (filterQuery?.isApplyingQuery.value) return;
   focusedDocumentId.value = null;
-  docResetPage();
+  docPage.value = 1;
 }
 
 // 12 divides evenly into the 2/3/4-column grid; 10 matches the table rhythm.
-watch(viewMode, (mode) => {
-  docPageSize.value = mode === 'grid' ? 12 : 10;
+watch(viewMode, async () => {
+  documentStore.browsePageSize = docPageSize.value;
   resetDocumentListPosition();
+  if (managerMounted && !filterQuery?.isApplyingQuery.value) {
+    await fetchCurrentDocumentPage(1);
+  }
 });
 
 watch(searchQuery, resetDocumentListPosition);
@@ -880,19 +874,17 @@ watch(() => documentStore.activeStatePreset, resetDocumentListPosition);
 watch(() => documentStore.activeClientId, resetDocumentListPosition);
 watch(() => documentStore.activeProjectId, resetDocumentListPosition);
 
-function goToDocumentPage(page) {
+async function goToDocumentPage(page) {
   focusedDocumentId.value = null;
-  docGoTo(page);
+  await fetchCurrentDocumentPage(page);
 }
 
 function goToNextDocumentPage() {
-  focusedDocumentId.value = null;
-  docNext();
+  return goToDocumentPage(Math.min(docPage.value + 1, docTotalPages.value));
 }
 
 function goToPreviousDocumentPage() {
-  focusedDocumentId.value = null;
-  docPrev();
+  return goToDocumentPage(Math.max(docPage.value - 1, 1));
 }
 
 // ── Búsqueda global ──────────────────────────────────────────────────────────
@@ -901,16 +893,25 @@ function goToPreviousDocumentPage() {
 // dar con lo archivado.
 const searchFolders = ref([]);
 let searchTimer = null;
+let skipNextSearchClearFetch = false;
 
-async function runSearch(term) {
+async function runSearch(term, { page = docPage.value } = {}) {
+  const includeFolders = page === 1;
   const [docs, folders] = await Promise.all([
-    documentStore.searchDocuments(term, { order: documentStore.dateOrder }),
-    folderStore.searchFolders(term),
+    documentStore.searchDocuments(term, {
+      order: documentStore.dateOrder,
+      page,
+      pageSize: docPageSize.value,
+    }),
+    includeFolders ? folderStore.searchFolders(term) : Promise.resolve({ data: [] }),
   ]);
   searchFolders.value = folders.data || [];
-  if (!docs.success) {
+  if (docs.success) {
+    docPage.value = docs.data.page;
+  } else if (!docs.cancelled) {
     notify.error({ title: 'No se pudo completar la búsqueda', detail: docs.message });
   }
+  return docs;
 }
 
 watch(searchQuery, (value) => {
@@ -921,8 +922,12 @@ watch(searchQuery, (value) => {
   const term = value.trim();
   if (!term) {
     searchFolders.value = [];
-    documentStore.searchResults = [];
-    documentStore.isSearchLoading = false;
+    documentStore.cancelDocumentSearch();
+    if (skipNextSearchClearFetch) {
+      skipNextSearchClearFetch = false;
+    } else if (managerMounted) {
+      fetchCurrentDocumentPage(1);
+    }
     return;
   }
   // Los resultados de la búsqueda anterior no sobreviven al debounce: verlos
@@ -930,7 +935,7 @@ watch(searchQuery, (value) => {
   documentStore.searchResults = [];
   searchFolders.value = [];
   documentStore.isSearchLoading = true;
-  searchTimer = setTimeout(() => runSearch(term), 300);
+  searchTimer = setTimeout(() => runSearch(term, { page: 1 }), 300);
 });
 
 /**
@@ -942,10 +947,10 @@ watch(searchQuery, (value) => {
 function exitSearchAndNavigate({ folder, scope, client, project } = {}) {
   clearTimeout(searchTimer);
   searchFolders.value = [];
-  documentStore.searchResults = [];
-  documentStore.isSearchLoading = false;
+  documentStore.cancelDocumentSearch();
+  skipNextSearchClearFetch = true;
   searchQuery.value = '';
-  return documentStore.setFilters({
+  return documentStore.setBrowseFilters({
     folder,
     scope: scope ?? documentStore.archiveScope,
     client,
@@ -956,6 +961,8 @@ function exitSearchAndNavigate({ folder, scope, client, project } = {}) {
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
   clearTimeout(newlyCreatedTimer);
+  documentStore.cancelDocumentBrowse();
+  documentStore.cancelDocumentSearch();
 });
 
 const showFolderManager = ref(false);
@@ -1011,7 +1018,9 @@ const createLink = computed(() => {
 // La búsqueda comparte el skeleton de la lista: sin esto no tenía ningún
 // indicador de carga y los 300 ms de debounce parecían un buscador roto.
 const isListLoading = computed(
-  () => documentStore.isLoading || documentStore.isSearchLoading,
+  () => (isSearching.value
+    ? documentStore.isSearchLoading
+    : documentStore.isBrowseLoading),
 );
 const hasStateFilters = computed(() => (
   documentStore.activeStateIds.length > 0
@@ -1020,6 +1029,29 @@ const hasStateFilters = computed(() => (
 ));
 
 const loadError = ref(null);
+
+async function fetchBrowsePage(page = docPage.value) {
+  loadError.value = null;
+  const result = await documentStore.browseDocuments({
+    scope: documentStore.archiveScope,
+    order: documentStore.dateOrder,
+    page,
+    pageSize: docPageSize.value,
+  });
+  if (result.success) {
+    docPage.value = result.data.page;
+  } else if (!result.cancelled) {
+    loadError.value = result.message || 'No se pudieron cargar los documentos.';
+  }
+  return result;
+}
+
+function fetchCurrentDocumentPage(page = docPage.value) {
+  if (isSearching.value) {
+    return runSearch(searchQuery.value.trim(), { page });
+  }
+  return fetchBrowsePage(page);
+}
 
 /**
  * Única ruta de refresco de la vista.
@@ -1030,20 +1062,19 @@ const loadError = ref(null);
  */
 async function refreshView({ states = false } = {}) {
   loadError.value = null;
+  const documentsRequest = isSearching.value
+    ? runSearch(searchQuery.value.trim(), { page: docPage.value })
+    : fetchBrowsePage(docPage.value);
   const [docsResult] = await Promise.all([
-    documentStore.fetchDocuments({
-      scope: documentStore.archiveScope,
-      order: documentStore.dateOrder,
-    }),
+    documentsRequest,
     folderStore.fetchFolders(),
     documentStore.fetchCounts(),
     navigationStore.fetchNavigation(),
     states ? stateStore.fetchCatalog() : Promise.resolve(),
   ]);
-  if (docsResult && !docsResult.success) {
+  if (docsResult && !docsResult.success && !docsResult.cancelled) {
     loadError.value = docsResult.message || 'No se pudieron cargar los documentos.';
   }
-  if (isSearching.value) await runSearch(searchQuery.value.trim());
 }
 
 function loadDocuments() {
@@ -1067,23 +1098,20 @@ async function restoreFocusedDocument() {
 
 async function handleQueryNavigation(summary) {
   clearTimeout(searchTimer);
-  if (summary.filtersChanged) {
-    await documentStore.fetchDocuments({
-      scope: documentStore.archiveScope,
-      order: documentStore.dateOrder,
-    });
-  }
   if (isSearching.value) {
-    await runSearch(searchQuery.value.trim());
+    await runSearch(searchQuery.value.trim(), { page: docPage.value });
   } else {
     searchFolders.value = [];
-    documentStore.searchResults = [];
-    documentStore.isSearchLoading = false;
+    documentStore.cancelDocumentSearch();
+    if (
+      summary.filtersChanged
+      || summary.searchChanged
+      || summary.pageChanged
+      || summary.viewChanged
+    ) {
+      await fetchBrowsePage(docPage.value);
+    }
   }
-  // El total se conoce después del fetch/búsqueda: recién ahí se puede
-  // normalizar una página vieja y recuperar la fila si sigue en el resultado.
-  await nextTick();
-  docGoTo(docPage.value);
   await restoreFocusedDocument();
 }
 
@@ -1101,18 +1129,17 @@ filterQuery = useDocumentFilterQuery(documentStore, {
 onMounted(async () => {
   await navigationStore.fetchPreference();
   filterQuery.applyQueryToStore();
+  documentStore.browsePageSize = docPageSize.value;
   await loadDocuments();
   if (!showInactiveProjects.value && selectedProjectIsInactive.value) {
     await handleSelectNavigationEntity('all');
   }
   // La carpeta del deep link ya no existe: se cae a Todos y se refetchea.
   if (filterQuery.validateFolder(folderStore)) {
-    await documentStore.fetchDocuments({
-      scope: documentStore.archiveScope,
-      order: documentStore.dateOrder,
-    });
+    docPage.value = 1;
+    await fetchBrowsePage(1);
   }
-  docGoTo(docPage.value);
+  managerMounted = true;
   await restoreFocusedDocument();
 });
 usePanelRefresh(loadDocuments);
@@ -1130,7 +1157,7 @@ async function handleNavigationModeChange(mode) {
   const selected = mode === 'project'
     ? documentStore.activeProjectId
     : documentStore.activeClientId;
-  await documentStore.setFilters(navigationEntityFilters(
+  await documentStore.setBrowseFilters(navigationEntityFilters(
     mode,
     mode === 'project'
       && !showInactiveProjects.value
@@ -1148,7 +1175,7 @@ function handleSelectNavigationEntity(value) {
     documentStore.archiveScope,
   );
   if (isSearching.value) return exitSearchAndNavigate(filters);
-  return documentStore.setFilters(filters);
+  return documentStore.setBrowseFilters(filters);
 }
 
 const selectedProjectIsInactive = computed(() => (
@@ -1203,7 +1230,7 @@ function handleSelectFolder(id) {
   }
   // Navegar entre carpetas NO toca el estado: el control de la barra dice qué
   // se está viendo y cambiarlo por debajo lo volvería mentiroso.
-  documentStore.setFilters(filters);
+  documentStore.setBrowseFilters(filters);
 }
 
 function selectFolderFromDrawer(id) {
@@ -1238,7 +1265,7 @@ function viewArchivedFolderFromDrawer(folder) {
 
 /** Devuelve los dos ejes a su posición de reposo. */
 function handleBackToActive() {
-  documentStore.setFilters({ folder: 'all', scope: 'active' });
+  documentStore.setBrowseFilters({ folder: 'all', scope: 'active' });
 }
 
 /**
@@ -1260,7 +1287,7 @@ function handleToggleArchivedMode(on) {
     && folderId === 'root'
     && navigationSelection.value === 'all'
   ) folder = 'all';
-  documentStore.setFilters({ folder, scope: on ? 'archived' : 'active' });
+  documentStore.setBrowseFilters({ folder, scope: on ? 'archived' : 'active' });
 }
 
 /** Entra a la carpeta en su scope archivado — el destino de la insignia. */
@@ -1270,21 +1297,28 @@ function handleViewArchivedFolder(folder) {
 }
 
 function handleScopeChange(scope) {
-  documentStore.setFilters({ scope });
+  documentStore.setBrowseFilters({ scope });
 }
 
 async function handleDateOrderChange(order) {
   if (!['recent', 'oldest'].includes(order) || order === documentStore.dateOrder) return;
 
   const result = isSearching.value
-    ? await documentStore.searchDocuments(searchQuery.value.trim(), { order })
-    : await documentStore.fetchDocuments({
+    ? await documentStore.searchDocuments(searchQuery.value.trim(), {
+      order,
+      page: 1,
+      pageSize: docPageSize.value,
+    })
+    : await documentStore.browseDocuments({
       scope: documentStore.archiveScope,
       order,
+      page: 1,
+      pageSize: docPageSize.value,
     });
 
   if (result.success) {
     documentStore.dateOrder = order;
+    docPage.value = result.data.page;
     return;
   }
   notify.error({
@@ -1434,29 +1468,29 @@ async function applyStateFilter(change) {
 }
 
 function handleToggleState(id) {
-  return applyStateFilter(() => documentStore.toggleStateFilter(id));
+  return applyStateFilter(() => documentStore.toggleBrowseStateFilter(id));
 }
 
 function handleToggleStateAbsence(id) {
-  return applyStateFilter(() => documentStore.toggleStateAbsenceFilter(id));
+  return applyStateFilter(() => documentStore.toggleBrowseStateAbsenceFilter(id));
 }
 
 function handleStatePreset(value) {
-  return applyStateFilter(() => documentStore.setStatePreset(value));
+  return applyStateFilter(() => documentStore.setBrowseStatePreset(value));
 }
 
 function handleClearStateFilters() {
-  return applyStateFilter(() => documentStore.setFilters({
+  return applyStateFilter(() => documentStore.setBrowseFilters({
     states: [], withoutStates: [], preset: '',
   }));
 }
 
 function handleClientFilter(value) {
-  documentStore.setFilters({ client: value });
+  documentStore.setBrowseFilters({ client: value });
 }
 
 function handleProjectFilter(value) {
-  documentStore.setFilters({ project: value });
+  documentStore.setBrowseFilters({ project: value });
 }
 
 // Label para rehidratar el autocomplete en un deep link (?client=<id>): se
@@ -1703,8 +1737,8 @@ async function handleDuplicate(id) {
   }
   notify.success({ title: 'Documento duplicado' });
   clearTimeout(newlyCreatedTimer);
+  docPage.value = 1;
   await refreshView();
-  docResetPage();
   newlyCreatedId.value = result.data.id;
   newlyCreatedTimer = setTimeout(() => { newlyCreatedId.value = null; }, 2500);
   // The duplicate lands at the top of the list; bring it into view.

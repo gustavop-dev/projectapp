@@ -267,6 +267,38 @@ class DocumentStateEpisodeSerializer(serializers.ModelSerializer):
         return DocumentNoteSerializer(notes, many=True).data
 
 
+class DocumentBrowseStateSerializer(serializers.ModelSerializer):
+    """Only the state fields rendered by a document row or card."""
+
+    group_mode = serializers.CharField(
+        source='group.selection_mode', read_only=True,
+    )
+    group_order = serializers.IntegerField(source='group.order', read_only=True)
+
+    class Meta:
+        model = DocumentState
+        fields = (
+            'id', 'name', 'color', 'system_key', 'order',
+            'group_mode', 'group_order',
+        )
+
+
+class DocumentBrowseStateEpisodeSerializer(serializers.ModelSerializer):
+    """Compact active-state projection for the paginated document browser."""
+
+    state = DocumentBrowseStateSerializer(read_only=True)
+    duration_seconds = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentStateEpisode
+        fields = ('id', 'state', 'opened_at', 'duration_seconds')
+
+    def get_duration_seconds(self, obj):
+        if obj.opened_at is None:
+            return None
+        return max(0, int(((obj.closed_at or timezone.now()) - obj.opened_at).total_seconds()))
+
+
 class OpenDocumentStateSerializer(serializers.Serializer):
     state_id = serializers.PrimaryKeyRelatedField(
         source='state',

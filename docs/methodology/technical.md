@@ -12,6 +12,21 @@
 > persiste en `projectapp-financing-theme`. El catálogo responsive vigente
 > queda en 109 páginas: 94 visuales y 15 redirects, para 545 celdas.
 
+> **Contrato paginado del Gestor Documental — 2026-09-02:**
+> `GET /api/documents/browse/` acepta los mismos filtros de
+> `/api/documents/`, además de `page` y `page_size=10|12`, y responde
+> `{results,count,page,page_size,total_pages}`; una página alta se normaliza a
+> la última y valores no positivos o tamaños ajenos responden 400. `folder=root`
+> se resuelve en backend con las mismas reglas del árbol global o de la entidad
+> proyecto/cliente, incluida su carpeta madre administrada. La consulta visible
+> se mantiene en cuatro queries para una página común (count, filas, tags y
+> estados). Sobre datos reales, diez muestras dieron p95 de 464 ms para los 138
+> activos, 57 ms para la raíz del proyecto más cargado y 178 ms para la carpeta
+> más cargada; cada página transportó 14.5–16.9 KiB. El objetivo operativo queda
+> en p95 ≤ 500 ms desde intención hasta filas estables. No se añadieron índices,
+> caché, SSR ni migraciones porque el N+1 y el volumen del payload explicaban la
+> demora medida.
+
 > **Contrato técnico de tracking de propuestas — 2026-09-02:**
 > `ProposalEngagementSerializer` limita sesión, modo, finalización, cantidad de
 > secciones, longitudes y tiempo finito. `ProposalTrackingService.record()` toma

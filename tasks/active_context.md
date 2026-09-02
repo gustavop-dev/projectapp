@@ -15,6 +15,19 @@ cambio de esquema ni escritura de negocio. Verificación: 8 backend, 78
 unitarias/config, 12 E2E, build y contratos de catálogo/flow verdes; se corrigió
 el solapamiento detectado entre compartir y el WhatsApp global.
 
+**2026-09-02 — rendimiento del Gestor Documental listo para integrar:** el
+listado interactivo ya no descarga y serializa todo el inventario al entrar o
+cambiar de carpeta. `documents/browse/` pagina en servidor (10 tabla, 12
+galería), devuelve totales autoritativos, resuelve raíces globales/de proyecto y
+usa estados compactos; el endpoint array existente permanece compatible.
+Frontend conserva página/URL, reinicia página al cambiar filtros y cancela cada
+request superado para impedir respuestas fuera de orden. En producción, lectura
+solamente, el p95 quedó en 464 ms para 138 activos, 57 ms para la raíz del
+proyecto mayor y 178 ms para la carpeta mayor, con cuatro queries en los casos
+comunes y 14.5–16.9 KiB por página. Sin migración, índice ni caché nueva. El
+build, las regresiones focales y el escenario E2E de paginación están verdes;
+flow-map fresco y `admin-document-list` cubierto en sus tres outcomes.
+
 **2026-09-02 — paridad administrativa de Comunicaciones por MCP lista para
 integrar:** el conector pasa de 6 a 14 herramientas y ya puede editar hilos,
 cerrarlos/reabrirlos, archivarlos/restaurarlos, eliminar borradores, anular

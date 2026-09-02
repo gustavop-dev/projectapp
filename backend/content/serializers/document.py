@@ -11,6 +11,7 @@ from content.models import (
     EmailLogTarget,
 )
 from content.serializers.document_state import (
+    DocumentBrowseStateEpisodeSerializer,
     DocumentNoteSerializer,
     DocumentStateEpisodeSerializer,
 )
@@ -313,6 +314,28 @@ class DocumentListSerializer(
         if last_newline > 0:
             cut = cut[:last_newline]
         return cut
+
+
+class DocumentBrowseSerializer(DocumentListSerializer):
+    """Document-manager row without state history, notes or audit actors."""
+
+    def get_active_states(self, obj):
+        if (
+            getattr(getattr(obj, 'document_type', None), 'code', None)
+            == COLLECTION_ACCOUNT
+        ):
+            return []
+        episodes = getattr(obj, 'prefetched_active_state_episodes', [])
+        episodes = sorted(
+            episodes,
+            key=lambda item: (
+                item.state.group.order,
+                0 if item.state.system_key == 'needs_fix' else 1,
+                item.state.order,
+                item.state.name.casefold(),
+            ),
+        )
+        return DocumentBrowseStateEpisodeSerializer(episodes, many=True).data
 
 
 class DocumentDetailSerializer(
