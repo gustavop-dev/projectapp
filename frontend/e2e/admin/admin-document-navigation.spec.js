@@ -209,6 +209,22 @@ const navigationPayload = {
   ],
 };
 
+function documentRowsFor(query) {
+  if (query.get('folder') === String(PROJECT_PHASE.id)) {
+    return [projectPhaseDocument];
+  }
+  if (query.get('folder') === String(OWN_FOLDER.id)) {
+    return [ownFolderDocument];
+  }
+  if (query.get('project') === '41' || query.get('client') === '7') {
+    return [entityDocument];
+  }
+  if (query.get('project') === 'none' || query.get('client') === 'none') {
+    return [unassignedDocument, ownFolderDocument];
+  }
+  return [entityDocument, unassignedDocument, ownFolderDocument];
+}
+
 async function setupNavigationApi(page, { navigationFailures = 0 } = {}) {
   let preferenceMode = 'project';
   let navigationAttempts = 0;
@@ -247,23 +263,29 @@ async function setupNavigationApi(page, { navigationFailures = 0 } = {}) {
         folders: { active: 7, archived: 2 },
       });
     }
+    if (apiPath === 'documents/browse/') {
+      const requestUrl = route.request().url();
+      documentRequests.push(requestUrl);
+      const query = new URL(requestUrl).searchParams;
+      const rows = documentRowsFor(query);
+      const pageSize = Number(query.get('page_size')) || 10;
+      const requestedPage = Number(query.get('page')) || 1;
+      const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+      const currentPage = Math.min(requestedPage, totalPages);
+      const start = (currentPage - 1) * pageSize;
+      return jsonResponse({
+        results: rows.slice(start, start + pageSize),
+        count: rows.length,
+        page: currentPage,
+        page_size: pageSize,
+        total_pages: totalPages,
+      });
+    }
     if (apiPath === 'documents/') {
       const requestUrl = route.request().url();
       documentRequests.push(requestUrl);
       const query = new URL(requestUrl).searchParams;
-      if (query.get('folder') === String(PROJECT_PHASE.id)) {
-        return jsonResponse([projectPhaseDocument]);
-      }
-      if (query.get('folder') === String(OWN_FOLDER.id)) {
-        return jsonResponse([ownFolderDocument]);
-      }
-      if (query.get('project') === String(41) || query.get('client') === String(7)) {
-        return jsonResponse([entityDocument]);
-      }
-      if (query.get('project') === 'none' || query.get('client') === 'none') {
-        return jsonResponse([unassignedDocument, ownFolderDocument]);
-      }
-      return jsonResponse([entityDocument, unassignedDocument, ownFolderDocument]);
+      return jsonResponse(documentRowsFor(query));
     }
     if (apiPath === 'document-states/' || apiPath === 'document-state-groups/') {
       return jsonResponse([]);
@@ -438,6 +460,47 @@ test.describe('Admin document project/client navigation', () => {
       .toHaveAttribute('aria-current', 'page');
     await expect(page.getByTestId(`document-open-${projectPhaseDocument.id}`))
       .toBeFocused();
+  });
+
+  test('requests server pages for project-owned folder navigation', {
+    tag: [...ADMIN_DOCUMENT_NAVIGATION, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const api = await setupNavigationApi(page);
+    await openDocuments(page);
+    const initialRequestCount = api.documentRequests.length;
+
+    await page.getByTestId('documents-navigation-project-41').click();
+    await expect(page.getByTestId(`document-row-${entityDocument.id}`)).toBeVisible();
+    await page.getByTestId(`folder-open-${PROJECT_PHASE.id}`).click();
+    await expect(page.getByTestId(`document-row-${projectPhaseDocument.id}`)).toBeVisible();
+
+    await expect.poll(() => api.documentRequests.length - initialRequestCount).toBe(2);
+    const requests = api.documentRequests.slice(initialRequestCount).map((requestUrl) => {
+      const request = new URL(requestUrl);
+      return {
+        pathname: request.pathname,
+        folder: request.searchParams.get('folder'),
+        project: request.searchParams.get('project'),
+        page: request.searchParams.get('page'),
+        pageSize: request.searchParams.get('page_size'),
+      };
+    });
+    expect(requests).toEqual([
+      {
+        pathname: '/api/documents/browse/',
+        folder: 'root',
+        project: '41',
+        page: '1',
+        pageSize: '10',
+      },
+      {
+        pathname: '/api/documents/browse/',
+        folder: String(PROJECT_PHASE.id),
+        project: '41',
+        page: '1',
+        pageSize: '10',
+      },
+    ]);
   });
 
   test('filters documents by selected client', {

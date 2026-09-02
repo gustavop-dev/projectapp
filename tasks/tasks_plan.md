@@ -10,6 +10,16 @@
 > 12 E2E funcionales, build Nuxt, catálogos de vistas/responsive y mapa de flujos
 > en verde; la auditoría global conserva un único `junk-only` previo y ajeno.
 
+> **Rendimiento del Gestor Documental listo para integrar — 2026-09-02:** el
+> gestor usa un endpoint paginado propio sin alterar el array heredado que
+> consumen editores y selectores. Filtros, búsqueda, orden, carpeta y raíz de
+> proyecto se resuelven antes del corte; tabla trae 10 filas, galería 12 y las
+> solicitudes superadas se cancelan. Se eliminó el N+1 del historial de estados
+> mediante un DTO compacto. Medición real: p95 464 ms en todos los activos,
+> 57 ms en raíz de proyecto y 178 ms en carpeta cargada, con 14.5–16.9 KiB por
+> respuesta. Backend, Pinia, E2E paginado y build están verdes; el flow
+> `admin-document-list` sigue cubierto en `display`, `success` y `failure`.
+
 > **Paridad administrativa de Comunicaciones por MCP lista para integrar —
 > 2026-09-02:** el catálogo crece de 6 a 14 herramientas y converge con el panel
 > para editar/cerrar/reabrir/archivar/restaurar hilos, eliminar borradores y
