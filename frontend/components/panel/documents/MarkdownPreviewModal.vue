@@ -6,7 +6,13 @@
         class="fixed inset-0 z-[9990] bg-black/50 backdrop-blur-sm p-3 sm:p-6 flex"
         @click.self="close"
       >
-        <div class="bg-surface rounded-2xl shadow-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div
+          class="bg-surface rounded-2xl shadow-2xl flex min-h-0 flex-col overflow-hidden"
+          :class="contained
+            ? 'mx-auto w-full max-w-4xl max-h-[calc(100vh-3rem)] self-center'
+            : 'flex-1'"
+          data-testid="markdown-preview-modal-panel"
+        >
           <div class="flex items-center justify-between gap-3 px-5 sm:px-7 py-3 border-b border-border-muted flex-shrink-0">
             <div class="flex items-center gap-3 min-w-0">
               <h3 class="text-base font-semibold text-text-default truncate">{{ title }}</h3>
@@ -25,7 +31,9 @@
             </BaseButton>
           </div>
           <div class="flex-1 min-h-0 overflow-y-auto px-5 sm:px-10 py-6 sm:py-8">
-            <slot />
+            <div :class="contained ? 'mx-auto w-full max-w-3xl' : ''">
+              <slot />
+            </div>
           </div>
         </div>
       </div>
@@ -39,6 +47,7 @@ import { watch, onUnmounted } from 'vue';
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   title: { type: String, default: 'Vista previa' },
+  contained: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue']);
 

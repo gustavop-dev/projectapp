@@ -208,7 +208,7 @@ class TestRetryingTheSend:
 
         with patch(
             'content.services.collection_account_email_service'
-            '.CollectionAccountPdfService.generate',
+            '.stored_collection_account_pdf',
             return_value=b'%PDF-1.4 fake',
         ):
             response = super_client.post(

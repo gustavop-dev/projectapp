@@ -231,4 +231,19 @@ describe('DocumentCard', () => {
     expect(wrapper.html()).not.toContain('markdown-preview--mini')
     expect(wrapper.find('[data-testid="document-empty-preview"]').exists()).toBe(true)
   })
+
+  it('identifies a stored collection account as a PDF', async () => {
+    const wrapper = await mountCard({
+      document: {
+        ...baseDocument,
+        content_excerpt: '',
+        active_states: [],
+        document_type_code: 'collection_account',
+        is_generated_snapshot: true,
+      },
+    })
+
+    expect(wrapper.get('[data-testid="document-pdf-preview-label"]').text())
+      .toBe('Cuenta de cobro · PDF')
+  })
 })

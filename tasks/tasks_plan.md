@@ -15,6 +15,15 @@
 > ejes. Sin cambios de API, backend ni esquema; 20 unitarias, 12 E2E, build,
 > quality gate 100/100 y el flujo P1 en sus tres outcomes están verdes.
 
+> **Compatibilidad cuenta de cobro / Gestor Documental lista para integrar —
+> 2026-09-02:** las cuentas emitidas archivan un PDF inmutable y reutilizan esos
+> bytes exactos en gestor, descarga y correo. No adquieren un Markdown artificial
+> ni estados genéricos; conservan archivado, hilos y observaciones, y se corrigen
+> por anulación/reemisión. El backfill histórico prioriza evidencia de correo.
+> El editor agrega ruta clickeable desde la raíz y previsualizaciones contenidas
+> por ancho/alto. Backend, unitarias, E2E, build y contratos están verdes; no hay
+> migración de esquema.
+
 > **Paridad pública de Módulos adicionales lista para integrar — 2026-09-01:**
 > se cerró el hueco superior dejado por el Navbar retirado y se añadieron tema
 > persistente, guía propia reiniciable, compartir la URL exacta y PDF flotante,
@@ -151,6 +160,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Documents — immutable collection-account PDFs | 🟡 Ready for merge | 2026-09-02. Issuance atomically stores one hashed PDF in `Document.generated_file`; preview, download, initial email and resend consume the same bytes and replacement is rejected. Historical backfill uses the earliest exact email attachment before reconstruction. The document editor renders the account as a read-only PDF with accounting facts, retains private observations/archive/thread functions, shows a clickable folder path and constrains Markdown/PDF preview geometry. Fake seeders follow the same issuance boundary; production refresh was correctly refused. Focused backend/MCP/unit/E2E, Nuxt build, responsive/design checks and migration checks pass. |
 | Projects — platform link acceptance | 🟡 Ready for merge | 2026-09-01. La auditoría confirmó el enlace bidireccional existente mediante el `Project.id` canónico, puente de sesión en pestaña nueva y retorno comercial sólo para administradores. La aceptación espera el montaje de Nuxt y calienta rutas privadas localizadas con identidad simulada; un spec nuevo recorre las referencias desde hosting, ingreso y cuenta de cobro. No cambia producto, API ni esquema. Tres casos inestables y tres nuevos pasaron dos veces, la regresión íntegra de 10 casos quedó verde y el quality gate focal cerró en 93/100 sin errores. |
 | Projects — proportional state-catalog actions | 🟡 Ready for merge | 2026-09-01. Active rows in `/panel/projects/statuses` use separate edit/save and merge/retire bands. Save, Merge and Retire are full-width on compact screens; portrait uses a full-row Save plus a 6/3/3 maintenance grid; landscape and wider screens use a 3/2/3/2/2 edit grid plus an 8/2/2 maintenance grid. Gaps stay at least 8 px, Documents keep their previous layout, and PA-120 field feedback is preserved. Twelve focused unit tests, five responsive E2E scenarios, three action regressions, the design-token guard and the Nuxt build are green. |
 | Clients — archive row action semantics | 🟡 Ready for merge | 2026-09-01. `/panel/clients` uses the canonical `archive`/`restore` actions and displays the visible tooltips **Archivar**/**Desarchivar**. The existing preview, confirmation, cascade, archived filter and API contract stay unchanged; platform access deactivation remains a separate action. Two focused unit tests, all four archived-client E2E scenarios and the panel action guard pass. |

@@ -96,7 +96,7 @@ class TestCreateEndpoint:
         assert mailoutbox[0].attachments[0][0] == 'PA-ACMESOLU-001.pdf'
 
     def test_an_ampersand_code_survives_the_whole_document_chain(
-        self, super_client, mailoutbox,
+        self, super_client, mailoutbox, settings, tmp_path,
     ):
         """G&M is a real trade name; the code has to reach every consumer.
 
@@ -104,6 +104,7 @@ class TestCreateEndpoint:
         PDF attachment name, email subject and the served URL all derive from
         the same string and each escapes it differently.
         """
+        settings.MEDIA_ROOT = tmp_path
         client = make_client(
             email='gym@example.co', company='G&M', nit='901234567',
             billing_code='G&M',
@@ -123,10 +124,21 @@ class TestCreateEndpoint:
         assert mailoutbox[0].attachments[0][0] == 'PA-G&M-001.pdf'
 
         doc_id = response.data['document']['id']
-        pdf = super_client.get(
-            f'/api/accounting/collection-accounts/{doc_id}/pdf/',
-        )
+        document = Document.objects.get(pk=doc_id)
+        with document.generated_file.open('rb') as stored_file:
+            stored_pdf = stored_file.read()
+        with patch(
+            'content.services.collection_account_pdf_service'
+            '.CollectionAccountPdfService.generate',
+            side_effect=AssertionError('served PDF must not be regenerated'),
+        ) as generate:
+            pdf = super_client.get(
+                f'/api/accounting/collection-accounts/{doc_id}/pdf/',
+            )
         assert pdf.status_code == 200
+        assert pdf.content == stored_pdf
+        assert mailoutbox[0].attachments[0][1] == stored_pdf
+        generate.assert_not_called()
         # ...and so does the download name, via Django's header builder.
         assert pdf['Content-Disposition'] == (
             'attachment; filename="PA-G&M-001.pdf"'

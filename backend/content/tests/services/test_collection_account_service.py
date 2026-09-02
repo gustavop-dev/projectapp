@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from freezegun import freeze_time
 
 from content.models import (
@@ -568,6 +569,30 @@ def test_delete_removes_a_cancelled_cuenta_even_when_it_was_delivered(
     delete_collection_account(doc, acting_user=admin_actor)
 
     assert not Document.objects.filter(pk=doc.pk).exists()
+
+
+def test_delete_removes_the_archived_pdf_after_commit(
+    admin_actor, project, client_user, settings, tmp_path,
+    django_capture_on_commit_callbacks,
+):
+    settings.MEDIA_ROOT = tmp_path
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.CANCELLED,
+        public_number='ZZ-2026-0008',
+        project=project,
+        client_user=client_user,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+    doc.generated_file.save(
+        'ZZ-2026-0008.pdf', ContentFile(b'%PDF cancelled account'), save=True,
+    )
+    storage = doc.generated_file.storage
+    stored_name = doc.generated_file.name
+
+    with django_capture_on_commit_callbacks(execute=True):
+        delete_collection_account(doc, acting_user=admin_actor)
+
+    assert not storage.exists(stored_name)
 
 
 def test_a_bounced_send_still_counts_as_delivered(project, client_user):

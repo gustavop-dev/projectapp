@@ -20,6 +20,29 @@
         >
           {{ documentStore.currentDocument?.title || 'Editar Documento' }}
         </h1>
+        <nav
+          v-if="documentStore.currentDocument"
+          class="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-text-subtle"
+          aria-label="Ubicación del documento"
+          :title="documentLocationPath"
+          data-testid="doc-location-path"
+        >
+          <BaseActionIcon action="folders" class="mr-0.5 flex-shrink-0" />
+          <template v-for="(segment, index) in documentLocationSegments" :key="`${index}-${segment.label}`">
+            <span
+              v-if="index"
+              class="select-none text-text-subtle"
+              aria-hidden="true"
+            >/</span>
+            <NuxtLink
+              :to="segment.to"
+              class="cursor-pointer break-words rounded px-1 py-0.5 transition-colors hover:bg-surface-muted hover:text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              :data-testid="`doc-location-segment-${index}`"
+            >
+              {{ segment.label }}
+            </NuxtLink>
+          </template>
+        </nav>
         <p
           v-if="documentStore.currentDocument"
           class="mt-1 flex min-w-0 items-center gap-1 text-sm text-text-muted"
@@ -236,7 +259,7 @@
            El form queda visible (consultarlo sigue valiendo) con el guardado
            apagado; el backend rechaza igual con collection_account_locked. -->
       <BaseAlert
-        v-if="lockedCuenta"
+        v-if="lockedCuenta && !generatedSnapshot"
         variant="warning"
         class="panel-landscape:col-span-2"
         data-testid="doc-locked-cuenta-alert"
@@ -252,9 +275,16 @@
         class="panel-landscape:col-span-2"
         data-testid="doc-generated-snapshot-alert"
       >
-        Versión {{ documentStore.currentDocument.source_version }} archivada al enviar
-        la propuesta. El PDF, el nombre y la carpeta son de sólo lectura; las
-        observaciones y el historial siguen disponibles.
+        <template v-if="isCollectionAccount">
+          Cuenta de cobro archivada como PDF inmutable al emitirla. El archivo,
+          sus datos contables y su ubicación son de sólo lectura; las
+          observaciones privadas siguen disponibles.
+        </template>
+        <template v-else>
+          Versión {{ documentStore.currentDocument.source_version }} archivada al enviar
+          la propuesta. El PDF, el nombre y la carpeta son de sólo lectura; las
+          observaciones y el historial siguen disponibles.
+        </template>
       </BaseAlert>
 
       <!-- El botón Guardar habilitado se lee como "puedes guardar"; esto se
@@ -327,7 +357,9 @@
                   @click="showClientNote = true"
                 >
                   <BaseActionIcon action="notes" />
-                  <span v-if="readOnlyDocument">Notas</span>
+                  <span v-if="readOnlyDocument">
+                    {{ pdfPreviewDocument ? 'Observaciones' : 'Notas' }}
+                  </span>
                 </BaseButton>
               </div>
             </div>
@@ -446,9 +478,9 @@
             />
           </div>
 
-          <hr class="border-border-muted" />
+          <hr v-if="!pdfPreviewDocument" class="border-border-muted" />
 
-          <div class="space-y-4">
+          <div v-if="!pdfPreviewDocument" class="space-y-4">
             <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Organización</h2>
             <label class="flex items-start justify-between gap-4 rounded-xl border border-border-default bg-surface-raised p-3">
               <span>
@@ -534,21 +566,85 @@
       </aside>
 
       <section
-        v-if="generatedSnapshot"
-        class="bg-surface rounded-xl shadow-sm border border-border-muted p-6 flex min-w-0 flex-col justify-center"
+        v-if="pdfPreviewDocument"
+        class="w-full max-w-4xl justify-self-center bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6 flex min-w-0 flex-col"
         data-testid="doc-generated-snapshot-panel"
       >
-        <p class="text-sm font-semibold text-text-default">PDF inmutable archivado</p>
-        <p class="mt-2 text-sm text-text-muted">
-          Esta vista conserva la versión exacta que se adjuntó al correo. Usa
-          «Acciones» para descargarla; no se vuelve a generar desde la propuesta actual.
-        </p>
+        <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="text-sm font-semibold text-text-default">
+              {{ isCollectionAccount ? 'Cuenta de cobro en PDF' : 'PDF inmutable archivado' }}
+            </p>
+            <p class="mt-1 text-sm text-text-muted">
+              {{ isCollectionAccount
+                ? generatedSnapshot
+                  ? 'Es el archivo definitivo creado al emitir la cuenta; no se vuelve a generar ni se puede reemplazar.'
+                  : 'Esta cuenta histórica se consulta como PDF mientras se completa su archivado definitivo.'
+                : 'Esta vista conserva la versión exacta que se adjuntó al correo; no se vuelve a generar desde la propuesta actual.' }}
+            </p>
+          </div>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            data-testid="doc-generated-download"
+            @click="handleDownloadPdf()"
+          >
+            <BaseActionIcon action="download" />
+            Descargar PDF
+          </BaseButton>
+        </div>
+        <dl
+          v-if="isCollectionAccount"
+          class="mb-4 grid gap-3 rounded-xl border border-border-muted bg-surface-raised p-4 text-sm sm:grid-cols-2"
+          data-testid="doc-collection-account-facts"
+        >
+          <div v-if="documentStore.currentDocument.public_number">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-text-subtle">Consecutivo</dt>
+            <dd class="mt-1 text-text-default">{{ documentStore.currentDocument.public_number }}</dd>
+          </div>
+          <div v-if="documentStore.currentDocument.total != null">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-text-subtle">Total</dt>
+            <dd class="mt-1 text-text-default">
+              {{ formatMoney(documentStore.currentDocument.total, documentStore.currentDocument.currency) }}
+            </dd>
+          </div>
+          <div v-if="documentStore.currentDocument.issue_date">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-text-subtle">Emisión</dt>
+            <dd class="mt-1 text-text-default">{{ formatBusinessDate(documentStore.currentDocument.issue_date) }}</dd>
+          </div>
+          <div v-if="documentStore.currentDocument.due_date">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-text-subtle">Vencimiento</dt>
+            <dd class="mt-1 text-text-default">{{ formatBusinessDate(documentStore.currentDocument.due_date) }}</dd>
+          </div>
+          <div
+            v-if="documentStore.currentDocument.billing_notes"
+            class="sm:col-span-2"
+          >
+            <dt class="text-xs font-semibold uppercase tracking-wide text-text-subtle">Notas de cobro</dt>
+            <dd class="mt-1 whitespace-pre-wrap text-text-default">{{ documentStore.currentDocument.billing_notes }}</dd>
+          </div>
+          <div
+            v-if="documentStore.currentDocument.collection_account_observations"
+            class="sm:col-span-2"
+          >
+            <dt class="text-xs font-semibold uppercase tracking-wide text-text-subtle">Observaciones de emisión</dt>
+            <dd class="mt-1 whitespace-pre-wrap text-text-default">{{ documentStore.currentDocument.collection_account_observations }}</dd>
+          </div>
+        </dl>
+        <PdfPreviewPane
+          class="h-[clamp(20rem,52vh,34rem)] min-h-0"
+          :src="storedPdfSrc"
+          :active="Boolean(documentStore.currentDocument)"
+          error-message="El archivo archivado no está disponible. Puedes intentar descargarlo o informar el problema."
+          test-id-prefix="doc-generated-pdf"
+        />
       </section>
 
       <section
         v-else
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                flex flex-col min-w-0"
+        data-testid="doc-markdown-editor-panel"
       >
         <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <label for="edit-markdown" class="block text-sm font-medium text-text-default">Contenido Markdown</label>
@@ -609,8 +705,9 @@
           ></textarea>
           <div
             v-if="showPreview"
-            class="border border-border-default rounded-xl bg-surface overflow-y-auto
-                   min-h-[24rem] panel-desktop:h-[calc(100vh-18rem)]"
+            class="w-full max-w-4xl justify-self-center self-start overflow-y-auto rounded-xl border border-border-default bg-surface
+                   min-h-64 max-h-[calc(100vh-16rem)]"
+            data-testid="doc-markdown-preview-pane"
           >
             <div class="sticky top-0 px-3 py-2 border-b border-border-default bg-surface-raised rounded-t-xl z-10">
               <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Vista previa</span>
@@ -619,7 +716,7 @@
               v-if="form.content_markdown.trim()"
               :markdown="form.content_markdown"
               :theme="form.template_style"
-              class="px-5 py-4"
+              class="mx-auto w-full max-w-3xl px-5 py-4"
             />
             <div
               v-else
@@ -641,8 +738,7 @@
       :whatsapp-message="form.client_whatsapp_message"
       :custom-notes="form.client_custom_notes"
       :notes="normalizedNotes"
-      :readonly="lockedCuenta"
-      :immutable-content="generatedSnapshot"
+      :immutable-content="pdfPreviewDocument"
       :saving="documentStore.isUpdating"
       @submit="saveClientNote"
       @workflow-changed="refreshWorkflow"
@@ -659,6 +755,7 @@
     <MarkdownPreviewModal
       v-model="showFullPreview"
       :title="form.title || 'Vista previa'"
+      contained
     >
       <DocumentMarkdownBody
         v-if="form.content_markdown.trim()"
@@ -716,6 +813,7 @@
 import { reactive, ref, computed, onMounted, nextTick } from 'vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import DocumentPdfPreviewModal from '~/components/panel/documents/DocumentPdfPreviewModal.vue';
+import PdfPreviewPane from '~/components/base/PdfPreviewPane.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
 import DocumentClientNoteModal from '~/components/panel/documents/DocumentClientNoteModal.vue';
 import DocumentStateHistoryModal from '~/components/panel/documents/DocumentStateHistoryModal.vue';
@@ -735,7 +833,8 @@ import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import { joinEs } from '~/utils/spanishList';
 import { describeIncludedPages } from '~/utils/documentCoverPages';
 import { documentReturnLabel, resolveDocumentReturn } from '~/utils/documentReturnNavigation';
-import { formatDateTime } from '~/utils/formatDate';
+import { formatDate as formatBusinessDate, formatDateTime } from '~/utils/formatDate';
+import { formatMoney } from '~/utils/formatMoney';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -763,8 +862,14 @@ const loadError = ref(false);
 const lockedCuenta = ref(false);
 const generatedSnapshot = ref(false);
 const readOnlyDocument = computed(() => lockedCuenta.value || generatedSnapshot.value);
+const pdfPreviewDocument = computed(
+  () => generatedSnapshot.value || lockedCuenta.value,
+);
 const readOnlyReason = computed(() => {
   if (generatedSnapshot.value) {
+    if (lockedCuenta.value) {
+      return 'Esta cuenta de cobro conserva el PDF emitido y sólo permite gestionar observaciones privadas.';
+    }
     return 'Esta versión archivada es de sólo lectura; las observaciones y el historial siguen disponibles.';
   }
   if (lockedCuenta.value) {
@@ -887,9 +992,53 @@ const saveBlockReasons = computed(() => [
 ].filter(Boolean));
 
 const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
+const documentLocationSegments = computed(() => {
+  const document = documentStore.currentDocument;
+  if (!document) return [];
+  const scopeQuery = document.is_archived ? { scope: 'archived' } : {};
+  const locationTarget = (folder) => localePath({
+    path: '/panel/documents',
+    query: { ...scopeQuery, folder: String(folder) },
+  });
+  const rootTarget = locationTarget('root');
+  const segments = [{ label: 'Documentos', to: rootTarget }];
+  if (document.folder == null) {
+    return [
+      ...segments,
+      { label: 'Sin carpeta', to: locationTarget('none') },
+    ];
+  }
+
+  const folderId = Number(document.folder);
+  const ancestors = Number.isFinite(folderId)
+    ? folderStore.ancestorsOf(folderId)
+    : [];
+  const folderSegments = ancestors
+    .filter((folder) => folder.name)
+    .map((folder) => ({
+      label: folder.name,
+      to: locationTarget(folder.id),
+    }));
+  if (!folderSegments.length) {
+    folderSegments.push({
+      label: document.folder_name || 'Ubicación no disponible',
+      to: locationTarget(document.folder),
+    });
+  }
+  return [...segments, ...folderSegments];
+});
+const documentLocationPath = computed(
+  () => documentLocationSegments.value.map((segment) => segment.label).join(' / '),
+);
 const isCollectionAccount = computed(
   () => documentStore.currentDocument?.document_type_code === 'collection_account',
 );
+const storedPdfSrc = computed(() => {
+  const id = documentStore.currentDocument?.id;
+  if (!id) return '';
+  const version = documentStore.currentDocument?.updated_at || '';
+  return `/api/documents/${id}/pdf/?inline=1&v=${encodeURIComponent(version)}`;
+});
 
 const hasNotes = computed(() => [
   form.client_email_subject,
@@ -900,6 +1049,7 @@ const hasNotes = computed(() => [
   || normalizedNotes.value.length > 0);
 
 const notesActionLabel = computed(() => {
+  if (pdfPreviewDocument.value) return 'Gestionar observaciones privadas';
   if (readOnlyDocument.value) return 'Ver notas';
   return hasNotes.value ? 'Editar notas' : 'Agregar notas';
 });
@@ -1191,11 +1341,11 @@ async function handleSave() {
 }
 
 const downloadItems = computed(() => {
-  if (generatedSnapshot.value) {
-    return [{ action: 'download', label: 'Descargar versión archivada', onClick: () => handleDownloadPdf() }];
-  }
   if (lockedCuenta.value) {
     return [{ action: 'download', label: 'Descargar cuenta de cobro', onClick: () => handleDownloadPdf() }];
+  }
+  if (generatedSnapshot.value) {
+    return [{ action: 'download', label: 'Descargar versión archivada', onClick: () => handleDownloadPdf() }];
   }
   return [
     { action: 'download', label: 'Descargar PDF · Amigable', onClick: () => handleDownloadPdf('friendly') },

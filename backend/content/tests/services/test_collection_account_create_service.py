@@ -1,6 +1,7 @@
 """create_income_collection_account: guards, snapshot, numbering, terms."""
 from datetime import date
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from accounts.models import UserProfile
@@ -15,6 +16,10 @@ from content.models import (
 )
 from content.services.collection_account_create_service import (
     create_income_collection_account,
+    create_income_collection_account_draft,
+)
+from content.services.collection_account_snapshot_service import (
+    CollectionAccountSnapshotError,
 )
 from content.services.collection_account_service import (
     CollectionAccountError,
@@ -75,6 +80,27 @@ def payload(client_user, income, **overrides):
 
 
 class TestHappyPath:
+    def test_draft_creation_does_not_cross_the_issuance_boundary(self):
+        document = create_income_collection_account_draft(
+            payload(make_client(), make_income()),
+        )
+
+        assert document.commercial_status == Document.CommercialStatus.DRAFT
+        assert document.public_number == ''
+        assert document.issue_date is None
+        assert not document.generated_file
+
+    def test_explicit_issue_date_is_used_for_seeded_history(self):
+        issue_date = date(2026, 6, 15)
+
+        document = create_income_collection_account(
+            payload(make_client(), make_income()),
+            persist_snapshot=False,
+            issued_on=issue_date,
+        )
+
+        assert document.issue_date == issue_date
+
     def test_issues_with_per_client_number_and_nit_snapshot(self):
         client = make_client(nit='901234567')
         income = make_income()
@@ -147,6 +173,25 @@ class TestHappyPath:
         ))
         assert document.public_number == 'PA-ACMESOLU-044'
 
+    def test_terms_are_present_when_the_snapshot_is_archived(self):
+        terms = 'Pago dentro de los quince días calendario.'
+        archived_terms = []
+
+        def capture_snapshot(document):
+            archived_terms.append(document.terms_and_conditions)
+
+        with patch(
+            'content.services.collection_account_snapshot_service'
+            '.persist_collection_account_pdf',
+            side_effect=capture_snapshot,
+        ):
+            document = create_income_collection_account(payload(
+                make_client(), make_income(), terms_and_conditions=terms,
+            ))
+
+        assert document.terms_and_conditions == terms
+        assert archived_terms == [terms]
+
 
 class TestGuards:
     def test_lost_income_rejected(self):
@@ -183,6 +228,22 @@ class TestGuards:
         with pytest.raises(CollectionAccountError) as exc:
             create_income_collection_account(payload(client, make_income()))
         assert 'email real' in str(exc.value)
+
+    def test_snapshot_failure_rolls_back_the_issuance(self):
+        client = make_client()
+        income = make_income()
+
+        with patch(
+            'content.services.collection_account_snapshot_service'
+            '.persist_collection_account_pdf',
+            side_effect=CollectionAccountSnapshotError('storage unavailable'),
+        ):
+            with pytest.raises(CollectionAccountError, match='storage unavailable'):
+                create_income_collection_account(payload(client, income))
+
+        assert not Document.objects.filter(income_record=income).exists()
+        income.refresh_from_db()
+        assert income.client_id is None
 
 
 class TestClientOwnershipSync:

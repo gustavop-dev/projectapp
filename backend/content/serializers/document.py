@@ -341,6 +341,10 @@ class DocumentDetailSerializer(
     display_state = serializers.SerializerMethodField()
     is_generated_snapshot = serializers.SerializerMethodField()
     source_proposal_id = serializers.IntegerField(read_only=True)
+    billing_notes = serializers.CharField(source='notes', read_only=True)
+    collection_account_observations = serializers.CharField(
+        source='collection_account.observations', read_only=True, default='',
+    )
     thread_summary = serializers.SerializerMethodField()
 
     class Meta:
@@ -355,7 +359,8 @@ class DocumentDetailSerializer(
             'document_type_code', 'commercial_status',
             'display_state', 'is_generated_snapshot',
             'source_proposal_id', 'source_version',
-            'issue_date',
+            'public_number', 'issue_date', 'due_date', 'currency', 'total',
+            'billing_notes', 'collection_account_observations',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',

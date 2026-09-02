@@ -23,6 +23,22 @@ siguen limpiando ambos ejes. Sin cambios de API, backend ni esquema.
 Verificación: 20 unitarias focales, los 12 escenarios E2E del flujo, build Nuxt,
 quality gate 100/100 y auditoría P1 (`display`, `success`, `failure`) en verde.
 
+**2026-09-02 — compatibilidad cuenta de cobro / Gestor Documental lista para integrar:**
+la investigación confirmó que una cuenta emitida no tiene contenido Markdown:
+su fuente es el snapshot contable con el que se construye el PDF. Se implementó
+la alternativa 2 sobre `Document.generated_file`: emitir archiva una sola vez
+los bytes definitivos con SHA-256 y esos mismos bytes alimentan vista previa,
+descarga, envío y reenvío. Título, cliente, proyecto, carpeta y datos contables
+quedan de sólo lectura; archivado, hilos y observaciones privadas permanecen, y
+una corrección exige anular/reemitir. El backfill dry-run-first prefiere el
+adjunto histórico exacto del correo y sólo reconstruye cuando no existe esa
+evidencia. El editor muestra la ruta completa bajo el título con cada carpeta
+clickeable y limita las previsualizaciones Markdown/PDF a proporciones de
+documento con scroll interno. Fake data respeta el mismo límite temporal; el
+refresh real fue rehusado por la guardia de producción. Verificación focal:
+backend, contratos MCP, unitarias, cuatro E2E, build Nuxt, diseño, responsive,
+Django y ausencia de migraciones en verde.
+
 **2026-09-01 — paridad pública de Módulos adicionales lista para integrar:** el
 catálogo canónico y las selecciones ya no conservan el hueco del Navbar
 retirado. Tema y guía quedan como acciones flotantes izquierdas; compartir y PDF

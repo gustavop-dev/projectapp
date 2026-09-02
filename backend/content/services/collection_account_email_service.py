@@ -19,8 +19,8 @@ from django.template.loader import render_to_string
 
 from content.models import EmailLog
 from content.services import email_log_service
-from content.services.collection_account_pdf_service import (
-    CollectionAccountPdfService,
+from content.services.collection_account_snapshot_service import (
+    stored_collection_account_pdf,
 )
 from content.services.email_markdown import markdown_to_email_html
 from content.services.email_delivery_service import (
@@ -183,7 +183,9 @@ def send_collection_account_email(
     client = getattr(document.client_user, 'profile', None)
 
     try:
-        pdf_bytes = CollectionAccountPdfService.generate(document)
+        # Issued accounts attach the immutable bytes archived at issuance.
+        # Legacy rows without a snapshot keep the transitional read fallback.
+        pdf_bytes = stored_collection_account_pdf(document)
         email = EmailMultiAlternatives(
             subject=subject,
             body=email_parts['text_body'],
