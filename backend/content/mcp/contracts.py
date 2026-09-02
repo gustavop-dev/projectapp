@@ -456,16 +456,10 @@ MCP_MODEL_CONTRACTS = {
             'content.CommunicationThread',
             read_only=(
                 'id status last_activity_at closed_at created_at updated_at '
-                'managed_project managed_client'
+                'managed_project managed_client is_archived archived_at'
             ),
             read_write='client project title',
-            excluded=(
-                _excluded(_AUDIT_INTERNAL, 'created_by updated_by')
-                | _excluded(
-                    'El archivado de hilos es una operación reservada al panel.',
-                    'is_archived archived_at',
-                )
-            ),
+            excluded=_excluded(_AUDIT_INTERNAL, 'created_by updated_by'),
         ),
         _contract(
             'content.CommunicationMessage',

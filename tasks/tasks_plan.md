@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Paridad administrativa de Comunicaciones por MCP lista para integrar —
+> 2026-09-02:** el catálogo crece de 6 a 14 herramientas y converge con el panel
+> para editar/cerrar/reabrir/archivar/restaurar hilos, eliminar borradores y
+> anular o corregir la fecha de mensajes históricos. `scope` y `order` completan
+> la consulta. Las reglas permanecen en serializers/servicio, los estados de
+> archivo son read-only y ninguna acción envía por el canal. La migración sólo
+> refresca la descripción sin rotar credenciales. Pasan 98 casos focales, checks
+> de Django/migraciones y gate 93/100 sin errores ni junk; `ruff` es el único
+> warning de herramienta local ausente.
+
 > **Listo para integrar — 2026-09-02:** la fecha del Gestor Documental se ordena
 > en ambos sentidos desde el icono de Creado y desde un control compacto en
 > Galería/móvil. Activos usan creación, Archivados usan archivo con fallback y
@@ -160,6 +170,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Communications — MCP administrative parity | 🟡 Ready for merge | 2026-09-02. The connector expands from 6 to 14 tools: thread edit/close/reopen/archive/restore, draft deletion, historical annulment and audited date correction join the existing query/create/draft-edit/send-confirmation surface. List scope/order match the panel query service; every write uses the panel serializer/service boundary and no tool delivers email or WhatsApp. A description-only data migration preserves token, prefix, active state and last use. Ninety-eight focused cases, Django/migration checks and a 93/100 quality gate pass with zero errors/junk; local Ruff availability is the sole warning. |
 | Documents — immutable collection-account PDFs | 🟡 Ready for merge | 2026-09-02. Issuance atomically stores one hashed PDF in `Document.generated_file`; preview, download, initial email and resend consume the same bytes and replacement is rejected. Historical backfill uses the earliest exact email attachment before reconstruction. The document editor renders the account as a read-only PDF with accounting facts, retains private observations/archive/thread functions, shows a clickable folder path and constrains Markdown/PDF preview geometry. Fake seeders follow the same issuance boundary; production refresh was correctly refused. Focused backend/MCP/unit/E2E, Nuxt build, responsive/design checks and migration checks pass. |
 | Projects — platform link acceptance | 🟡 Ready for merge | 2026-09-01. La auditoría confirmó el enlace bidireccional existente mediante el `Project.id` canónico, puente de sesión en pestaña nueva y retorno comercial sólo para administradores. La aceptación espera el montaje de Nuxt y calienta rutas privadas localizadas con identidad simulada; un spec nuevo recorre las referencias desde hosting, ingreso y cuenta de cobro. No cambia producto, API ni esquema. Tres casos inestables y tres nuevos pasaron dos veces, la regresión íntegra de 10 casos quedó verde y el quality gate focal cerró en 93/100 sin errores. |
 | Projects — proportional state-catalog actions | 🟡 Ready for merge | 2026-09-01. Active rows in `/panel/projects/statuses` use separate edit/save and merge/retire bands. Save, Merge and Retire are full-width on compact screens; portrait uses a full-row Save plus a 6/3/3 maintenance grid; landscape and wider screens use a 3/2/3/2/2 edit grid plus an 8/2/2 maintenance grid. Gaps stay at least 8 px, Documents keep their previous layout, and PA-120 field feedback is preserved. Twelve focused unit tests, five responsive E2E scenarios, three action regressions, the design-token guard and the Nuxt build are green. |

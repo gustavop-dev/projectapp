@@ -668,12 +668,18 @@ workspace uses the preferred channel only for new message forms.
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 
 `content.0212_seed_communications_mcp` registers the Communications connector
-inactive and tokenless. `content/mcp/communication_tools.py` exposes six JSON-RPC
-tools and reuses the same queryset/serializer/service boundary as the panel.
-`update_message` changes subject/content/date/reply/documents on one active outgoing
-draft, preserves its identity and returns its revision history. No MCP tool sends
-email or WhatsApp: `mark_message_sent` only records a delivery fact already
-confirmed by the operator or another integration.
+inactive and tokenless. `content/mcp/communication_tools.py` exposes fourteen
+JSON-RPC tools and reuses the same queryset/serializer/service boundary as the
+panel. Thread actions cover edit, close/reopen and archive/restore; message
+actions cover create/update/delete draft, confirmed send, annulment and audited
+date correction. `scope=active|archived|all` and `order=recent|oldest|title`
+share the panel query parser. Archive fields stay read-only in the generic MCP
+contract so callers must use the guarded lifecycle verbs. `update_message`
+preserves draft identity and returns revision history. No MCP tool sends email
+or WhatsApp: `mark_message_sent` only records a delivery fact already confirmed
+by the operator or another integration. Migration
+`content.0237_expand_communications_mcp_parity` refreshes only the connector
+description and preserves its credentials, active state and last-use timestamp.
 
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login

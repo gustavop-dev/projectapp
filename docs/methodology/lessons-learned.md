@@ -875,6 +875,11 @@ A build step that prerenders pages by fetching the app's **own public API** is, 
 - The MCP endpoint (`content/views/mcp_blog.py`) validates **Origin** (DNS-rebinding defense) + token + active-state on every JSON-RPC call, and logs `handshake/tool_call/auth_error/origin_rejected` to `McpRequestLog` (the panel's connection-activity feed reads this).
 - Rate limits for a multi-connector client must be keyed by **IP + registered connector slug**, not IP alone: Codex starts its connectors concurrently, so a shared IP bucket turns legitimate sibling startups into HTTP 429 failures. Unknown slugs must collapse into one defensive bucket; using arbitrary path text would make the throttle bypassable.
 - MCP tools wrap existing services/ORM — they are **not** a new business layer. Guardrails live in the tool module (e.g. Documents connector only exposes MARKDOWN docs, refuses to delete published docs). The machine-facing endpoint is integration-tested in pytest, not E2E.
+- Administrative parity should expose **domain verbs**, not writable lifecycle
+  flags. A connector may list archive/status fields as read-only while
+  `close_thread`, `archive_thread` or `void_message` route through the same
+  guarded service as the panel. This keeps conversational administration useful
+  without creating a lower-level bypass around transition and audit rules.
 - **MCP drift fails silently.** Omitting a newly stored field still produces a valid
   response, so uptime cannot reveal that the assistant sees an incomplete domain.
   Every change to an MCP-exposed model, serializer, service, relation or lifecycle
