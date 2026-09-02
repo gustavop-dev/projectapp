@@ -1,5 +1,18 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico de tracking de propuestas — 2026-09-02:**
+> `ProposalEngagementSerializer` limita sesión, modo, finalización, cantidad de
+> secciones, longitudes y tiempo finito. `ProposalTrackingService.record()` toma
+> `select_for_update()` sobre la propuesta y persiste el heartbeat completo en
+> `transaction.atomic()`; un `(proposal, session_id)` incrementa el contador una
+> sola vez. `useProposalTracking` no envía antes de cinco segundos visibles,
+> mantiene heartbeat cada 30 s y usa beacon final al ocultar/salir. El email de
+> primera vista transita `not_started → pending → sending → sent|failed|skipped`,
+> admite cuatro intentos y reconciliación cada cinco minutos. Un fallo de
+> enriquecimiento de `EmailLog` posterior a SMTP no convierte una entrega
+> aceptada en reintento duplicado. Los detalles operativos sólo salen por APIs
+> admin y el comando diagnóstico exige settings de producción salvo override.
+
 > **Orden técnico del Gestor Documental — 2026-09-02:**
 > `GET /api/documents/?order=oldest` invierte el orden predeterminado `recent`;
 > valores ausentes o desconocidos degradan a `recent`. La consulta ordena por
@@ -831,6 +844,7 @@ confirmed by the operator or another integration.
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
 - **Service layer** — business logic in `content/services/` (47 modules: ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf, DiagnosticService, DiagnosticEmailService, DiagnosticPdfService, DiagnosticDocumentsService, AccountingService, AccountingExportService, AccountingEmailService, AccountingCardReminderService, plus the `content/mcp/` tool package) and in `accounts/services/` (19 modules: archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
+- **Public proposal tracking** — document retrieval and commercial evidence are separate boundaries. `proposal_tracking_service.py` is the only writer for qualified proposal heartbeats; `proposal_tracking.py` validates the anonymous payload before any row changes. Drafts and staff previews return `skipped`.
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
 - **Huey tasks** — async operations: reminders, expiration, engagement-based emails, project-stage deadline scans, hosting recurring billing (`accounts/tasks.py::auto_charge_due_subscriptions` — daily 06:00 UTC, charges due hosting payments with the subscription's stored Wompi payment source)
 - **Custom admin site** — `content/admin.py` with custom `AdminSite` class; `accounts/admin.py` registers `ProjectAdmin` (URLs + encrypted credentials)
@@ -1124,11 +1138,11 @@ projectapp/
 │   │   └── urls.py              # 94 URL patterns
 │   ├── content/                 # Main Django app
 │   │   ├── models/              # 56 model files (business_proposal, proposal_section, blog, portfolio, contact, document, email, diagnostic, accounting_base/income_record/expense_record/credit_card/credit_card_statement/…, task, mcp_connector, mcp_request_log, linkedin_token, etc.)
-│   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact, proposal_clients, diagnostic, accounting, document, mcp)
+│   │   ├── serializers/         # DRF serializers (proposal + proposal_tracking, blog, portfolio, contact, proposal_clients, diagnostic, accounting, document, mcp)
 │   │   ├── views/               # 19 FBV modules (proposal is dominant; blog, portfolio, diagnostic, diagnostic_template, accounting, accounting_export, document*, email_templates, standalone_email, task, mcp_blog, contact, proposal_clients)
 │   │   ├── mcp/                 # MCP protocol, actor, field contracts + nine module catalogs (including communications and LinkedIn)
 │   │   ├── services/            # 30 service/support modules (proposal_*, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, document_type_*, platform_onboarding_pdf, diagnostic_* (service/email/pdf/documents), accounting_* (service/export/email/card_reminder))
-│   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily 13:30 UTC = 08:30 Bogotá; send_card_debt_reminder Fridays)
+│   │   ├── tasks.py             # Huey async tasks (incl. durable first-view retry/reconciliation, stage deadlines and card reminders)
 │   │   ├── templates/emails/    # 73 content email templates (37 HTML + 36 TXT)
 │   │   ├── migrations/          # 163 migrations (latest: 0164_pocket_draws_to_company_ledger.py)
 │   │   ├── management/commands/ # 21 management commands

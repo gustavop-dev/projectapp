@@ -73,14 +73,14 @@ class TestRetrievePublicProposal:
         assert response.data['uuid'] == str(sent_proposal.uuid)
         assert response.data['slug'] == sent_proposal.slug
 
-    def test_by_slug_increments_view_count_like_uuid(self, api_client, sent_proposal):
+    def test_by_slug_get_does_not_count_a_view(self, api_client, sent_proposal):
         url_slug = reverse(
             'retrieve-public-proposal-by-slug',
             kwargs={'proposal_slug': sent_proposal.slug},
         )
         api_client.get(url_slug)
         sent_proposal.refresh_from_db()
-        assert sent_proposal.view_count == 1
+        assert sent_proposal.view_count == 0
 
     def test_by_slug_returns_404_for_unknown_slug(self, api_client, db):
         url_slug = reverse(
@@ -90,24 +90,24 @@ class TestRetrievePublicProposal:
         response = api_client.get(url_slug)
         assert response.status_code == 404
 
-    def test_increments_view_count(self, api_client, sent_proposal):
+    def test_get_does_not_increment_view_count(self, api_client, sent_proposal):
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
         api_client.get(url)
         sent_proposal.refresh_from_db()
-        assert sent_proposal.view_count == 1
+        assert sent_proposal.view_count == 0
 
-    def test_sets_first_viewed_at_on_first_visit(self, api_client, sent_proposal):
+    def test_get_does_not_set_first_viewed_at(self, api_client, sent_proposal):
         assert sent_proposal.first_viewed_at is None
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
         api_client.get(url)
         sent_proposal.refresh_from_db()
-        assert sent_proposal.first_viewed_at is not None
+        assert sent_proposal.first_viewed_at is None
 
-    def test_updates_status_from_sent_to_viewed(self, api_client, sent_proposal):
+    def test_get_does_not_update_sent_status(self, api_client, sent_proposal):
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
         api_client.get(url)
         sent_proposal.refresh_from_db()
-        assert sent_proposal.status == 'viewed'
+        assert sent_proposal.status == 'sent'
 
     def test_returns_200_with_expired_meta_for_expired_proposal(self, api_client, expired_proposal):
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
@@ -432,10 +432,18 @@ class TestPostExpirationVisitAlert:
         """Visiting an expired proposal creates a post_expiration_visit alert and triggers the email service."""
         from content.models import ProposalAlert
         assert expired_proposal.post_expiration_alert_sent_at is None
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
-        response = api_client.get(url)
+        public_url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
+        response = api_client.get(public_url)
         assert response.status_code == 200
         assert 'expired_meta' in response.data
+        track_url = reverse(
+            'track-proposal-engagement',
+            kwargs={'proposal_uuid': expired_proposal.uuid},
+        )
+        api_client.post(track_url, {
+            'session_id': 'expired-view',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 5}],
+        }, format='json')
         alert = ProposalAlert.objects.filter(
             proposal=expired_proposal, alert_type='post_expiration_visit',
         ).first()
@@ -450,10 +458,12 @@ class TestPostExpirationVisitAlert:
     def test_does_not_duplicate_alert(self, mock_alert, api_client, expired_proposal):
         expired_proposal.post_expiration_alert_sent_at = timezone.now()
         expired_proposal.save(update_fields=['post_expiration_alert_sent_at'])
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
-        response = api_client.get(url)
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': expired_proposal.uuid})
+        response = api_client.post(url, {
+            'session_id': 'expired-existing',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 5}],
+        }, format='json')
         assert response.status_code == 200
-        assert 'expired_meta' in response.data
         mock_alert.assert_not_called()
 
 
@@ -1926,7 +1936,7 @@ class TestTrackProposalEngagement:
         assert sv.count() == 1
         assert sv.first().time_spent_seconds == 25.0
 
-    def test_skips_section_without_section_type(self, api_client, sent_proposal):
+    def test_rejects_section_without_section_type(self, api_client, sent_proposal):
         payload = {
             'session_id': 'sess-003',
             'sections': [
@@ -1934,7 +1944,7 @@ class TestTrackProposalEngagement:
             ],
         }
         response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
-        assert response.status_code == 200
+        assert response.status_code == 400
         assert ProposalSectionView.objects.count() == 0
 
     @freeze_time('2026-03-10 12:00:00')
@@ -2930,12 +2940,16 @@ class TestRetrieveInactiveProposal:
 class TestFirstViewNotificationException:
     @patch('content.tasks.notify_first_view', side_effect=Exception('Queue down'))
     def test_still_returns_200_when_notification_fails(self, mock_task, api_client, sent_proposal):
-        """Proposal retrieval succeeds even when first-view notification task raises."""
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
-        response = api_client.get(url)
+        """Tracking persists first view when the queue is temporarily down."""
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.post(url, {
+            'session_id': 'queue-down',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 5}],
+        }, format='json')
         assert response.status_code == 200
         sent_proposal.refresh_from_db()
         assert sent_proposal.first_viewed_at is not None
+        assert sent_proposal.first_view_notification_status == 'pending'
 
 
 # ---------------------------------------------------------------------------
@@ -3053,9 +3067,8 @@ class TestStakeholderDetection:
 # entered_at parse error fallback (lines 813-814)
 # ---------------------------------------------------------------------------
 
-class TestEngagementEnteredAtFallback:
-    def test_invalid_entered_at_string_falls_back_to_now(self, api_client, sent_proposal):
-        """Invalid entered_at string is replaced by timezone.now() instead of raising."""
+class TestEngagementEnteredAtValidation:
+    def test_invalid_entered_at_string_is_rejected(self, api_client, sent_proposal):
         payload = {
             'session_id': 'sess-bad-date',
             'sections': [
@@ -3065,11 +3078,10 @@ class TestEngagementEnteredAtFallback:
         }
         url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
         response = api_client.post(url, payload, format='json')
-        assert response.status_code == 200
-        assert ProposalSectionView.objects.filter(section_type='greeting').exists()
+        assert response.status_code == 400
+        assert not ProposalSectionView.objects.exists()
 
-    def test_numeric_entered_at_falls_back_to_now(self, api_client, sent_proposal):
-        """Numeric entered_at triggers TypeError which falls back to timezone.now()."""
+    def test_numeric_entered_at_is_rejected(self, api_client, sent_proposal):
         payload = {
             'session_id': 'sess-numeric-date',
             'sections': [
@@ -3079,8 +3091,8 @@ class TestEngagementEnteredAtFallback:
         }
         url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
         response = api_client.post(url, payload, format='json')
-        assert response.status_code == 200
-        assert ProposalSectionView.objects.filter(section_type='investment').exists()
+        assert response.status_code == 400
+        assert not ProposalSectionView.objects.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -3212,11 +3224,12 @@ class TestPostExpirationAlertException:
         side_effect=Exception('SMTP down'),
     )
     def test_returns_200_with_expired_meta_when_alert_creation_raises(self, mock_alert, api_client, expired_proposal):
-        """Expired proposal retrieval returns 200 with expired_meta even when alert pipeline raises."""
+        """Expired proposal GET stays read-only for the alert pipeline."""
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
         assert response.status_code == 200
         assert 'expired_meta' in response.data
+        mock_alert.assert_not_called()
         expired_proposal.refresh_from_db()
         assert expired_proposal.post_expiration_alert_sent_at is None
 
@@ -3236,6 +3249,7 @@ class TestEngagementDecay:
         # Previous session with many sections
         prev_event = ProposalViewEvent.objects.create(
             proposal=sent_proposal, session_id='prev-sess',
+            finalized_at=timezone.now(),
         )
         for i in range(6):
             ProposalSectionView.objects.create(
@@ -3246,6 +3260,7 @@ class TestEngagementDecay:
         # Current session with very few sections (decay)
         payload = {
             'session_id': 'decay-sess',
+            'is_final': True,
             'sections': [
                 {
                     'section_type': 'greeting',
@@ -3271,6 +3286,7 @@ class TestEngagementDecay:
         )
         prev_event = ProposalViewEvent.objects.create(
             proposal=sent_proposal, session_id='prev-no-dup',
+            finalized_at=timezone.now(),
         )
         for i in range(6):
             ProposalSectionView.objects.create(
@@ -3280,6 +3296,7 @@ class TestEngagementDecay:
             )
         payload = {
             'session_id': 'decay-no-dup',
+            'is_final': True,
             'sections': [
                 {
                     'section_type': 'greeting',
@@ -3948,8 +3965,11 @@ class TestPostRejectionRevisitAlert:
         from content.models import ProposalAlert
         rejected_proposal.responded_at = timezone.now() - timezone.timedelta(days=10)
         rejected_proposal.save(update_fields=['responded_at'])
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
-        response = api_client.get(url)
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        response = api_client.post(url, {
+            'session_id': 'rejected-return',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 5}],
+        }, format='json')
         assert response.status_code == 200
         assert ProposalAlert.objects.filter(
             proposal=rejected_proposal, alert_type='post_rejection_revisit',
@@ -3963,8 +3983,11 @@ class TestPostRejectionRevisitAlert:
             proposal=rejected_proposal, alert_type='post_rejection_revisit',
             message='Already exists', alert_date=timezone.now(),
         )
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
-        api_client.get(url)
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        api_client.post(url, {
+            'session_id': 'rejected-existing',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 5}],
+        }, format='json')
         assert ProposalAlert.objects.filter(
             proposal=rejected_proposal, alert_type='post_rejection_revisit',
         ).count() == 1
@@ -3972,8 +3995,11 @@ class TestPostRejectionRevisitAlert:
     def test_no_alert_when_ref_is_reengagement(self, api_client, rejected_proposal):
         """Reengagement link visits do not trigger post-rejection alert."""
         from content.models import ProposalAlert
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
-        api_client.get(url + '?ref=reengagement')
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        api_client.post(url + '?ref=reengagement', {
+            'session_id': 'reengagement-link',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 5}],
+        }, format='json')
         assert not ProposalAlert.objects.filter(
             proposal=rejected_proposal, alert_type='post_rejection_revisit',
         ).exists()
@@ -4008,6 +4034,7 @@ class TestEngagementDecayAlertException:
         """Engagement tracking succeeds even when engagement_decay alert creation fails."""
         prev_event = ProposalViewEvent.objects.create(
             proposal=sent_proposal, session_id='prev-exc',
+            finalized_at=timezone.now(),
         )
         for i in range(6):
             ProposalSectionView.objects.create(
@@ -4017,6 +4044,7 @@ class TestEngagementDecayAlertException:
             )
         payload = {
             'session_id': 'decay-exc',
+            'is_final': True,
             'sections': [
                 {'section_type': 'greeting', 'section_title': 'Hi',
                  'time_spent_seconds': 2, 'entered_at': '2026-03-10T12:00:00Z'},

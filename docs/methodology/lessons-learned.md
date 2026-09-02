@@ -7,6 +7,14 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-02 — entregar contenido no equivale a observar atención:**
+> un `GET` sólo demuestra que el servidor respondió; no que el documento quedó
+> visible ni que el lector interactuó. La evidencia comercial necesita umbral
+> explícito, validación completa e idempotencia por sesión. Y una tarea encolada
+> no es una notificación entregada: su estado debe persistir antes del broker,
+> reconciliar reclamos estancados y separar el éxito SMTP del enriquecimiento
+> diagnóstico posterior para no convertir observabilidad en duplicados.
+
 > **Lección 2026-09-02 — ordenar una fecha visible exige una sola proyección:**
 > si activos y archivados muestran fechas distintas, el servidor debe construir
 > una clave por fila con esa misma semántica y ordenar antes de paginar; ordenar

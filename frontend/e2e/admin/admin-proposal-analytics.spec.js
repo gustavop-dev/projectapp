@@ -7,7 +7,11 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_PROPOSAL_ANALYTICS, ADMIN_PROPOSAL_ENGAGEMENT_SCORE } from '../helpers/flow-tags.js';
+import {
+  ADMIN_PROPOSAL_ANALYTICS,
+  ADMIN_PROPOSAL_ENGAGEMENT_SCORE,
+  ADMIN_PROPOSAL_FIRST_VIEW_RETRY,
+} from '../helpers/flow-tags.js';
 
 const PROPOSAL_ID = 1;
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -68,13 +72,35 @@ const mockAnalytics = {
   sections: [],
   sessions: [],
   timeline: [],
+  first_view_notification: {
+    status: 'sent',
+    attempts: 1,
+    attempted_at: '2026-01-11T14:30:10Z',
+    sent_at: '2026-01-11T14:30:12Z',
+    last_error: '',
+    can_retry: false,
+  },
 };
 
-function setupMock(page) {
-  return mockApi(page, async ({ apiPath }) => {
+function setupMock(page, { analytics = mockAnalytics, retryResponse = null } = {}) {
+  let retryQueued = false;
+  return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
-    if (apiPath === `proposals/${PROPOSAL_ID}/analytics/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockAnalytics) };
+    if (apiPath === `proposals/${PROPOSAL_ID}/analytics/`) {
+      const currentAnalytics = retryQueued
+        ? { ...analytics, first_view_notification: JSON.parse(retryResponse.body) }
+        : analytics;
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(currentAnalytics) };
+    }
+    if (
+      apiPath === `proposals/${PROPOSAL_ID}/notifications/first-view/retry/`
+      && method === 'POST'
+      && retryResponse
+    ) {
+      retryQueued = retryResponse.status < 400;
+      return retryResponse;
+    }
     return null;
   });
 }
@@ -96,6 +122,7 @@ test.describe('Admin Proposal Analytics', () => {
     await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Dispositivos')).toBeVisible();
+    await expect(page.getByTestId('first-view-notification-status')).toContainText('Enviado');
   });
 
   test('analytics tab shows comparison badges', {
@@ -151,5 +178,58 @@ test.describe('Admin Proposal Analytics', () => {
     await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Bajo engagement/)).toBeVisible();
+  });
+
+  test('admin retries a failed first-view alert', {
+    tag: ['@outcome:success', ...ADMIN_PROPOSAL_FIRST_VIEW_RETRY, '@role:admin'],
+  }, async ({ page }) => {
+    const failedNotification = {
+      status: 'failed', attempts: 4, attempted_at: '2026-01-11T14:30:10Z',
+      sent_at: null, last_error: 'SMTP timeout', can_retry: true,
+    };
+    const pendingNotification = {
+      status: 'pending', attempts: 0, attempted_at: null,
+      sent_at: null, last_error: '', can_retry: false,
+    };
+    await setupMock(page, {
+      analytics: { ...mockAnalytics, first_view_notification: failedNotification },
+      retryResponse: {
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify(pendingNotification),
+      },
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('tab', { name: 'Analytics' }).click();
+
+    await expect(page.getByTestId('first-view-notification-status')).toContainText('SMTP timeout');
+    await page.getByTestId('retry-first-view-notification').click();
+
+    await expect(page.getByTestId('first-view-notification-status')).toContainText('Pendiente');
+    await expect(page.getByTestId('retry-first-view-notification')).not.toBeVisible();
+  });
+
+  test('admin sees a failure when first-view retry is rejected', {
+    tag: ['@outcome:failure', ...ADMIN_PROPOSAL_FIRST_VIEW_RETRY, '@role:admin'],
+  }, async ({ page }) => {
+    const failedNotification = {
+      status: 'failed', attempts: 4, attempted_at: '2026-01-11T14:30:10Z',
+      sent_at: null, last_error: 'SMTP timeout', can_retry: true,
+    };
+    await setupMock(page, {
+      analytics: { ...mockAnalytics, first_view_notification: failedNotification },
+      retryResponse: {
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'queue unavailable' }),
+      },
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('tab', { name: 'Analytics' }).click();
+
+    await page.getByTestId('retry-first-view-notification').click();
+
+    await expect(page.getByTestId('first-view-notification-status')).toContainText('Falló');
+    await expect(page.getByTestId('retry-first-view-notification')).toBeVisible();
   });
 });

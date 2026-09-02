@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "View detailed analytics for a single proposal: funnel, heatmap, sessions, CSV export.",
+  "description": "View detailed analytics for a single proposal: funnel, heatmap, sessions, CSV export, and durable first-view alert delivery state.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

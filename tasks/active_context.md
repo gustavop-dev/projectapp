@@ -2,6 +2,17 @@
 
 ## Current State
 
+**2026-09-02 — tracking de propuestas y alerta de primera vista listo para
+integrar:** abrir el enlace ya no incrementa métricas. Una vista se confirma tras
+cinco segundos visibles, se deduplica por sesión, actualiza heartbeats/final y
+persiste contador, primera vista, estado comercial, actividad y alerta dentro de
+una transacción. La entrega por email tiene estado/intentos/error durable,
+reintentos Huey, reconciliación y reintento manual observable en Analítica; el
+histórico queda marcado sin correos retroactivos. Payloads anónimos tienen límites
+y un draft o sesión staff no escribe. Verificación: checks/migración, cortes
+backend focales, 43 unitarias frontend focales, 10 E2E y flow audit completo para
+heartbeat, display y retry success/failure.
+
 **2026-09-02 — orden por fecha del Gestor Documental listo para integrar:** la
 columna Creado alterna entre más nuevos y más antiguos con icono, `aria-sort` y
 estado de carga; Galería y móvil conservan la misma capacidad mediante un

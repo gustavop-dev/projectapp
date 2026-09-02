@@ -1,0 +1,16 @@
+{
+  "id": "admin-proposal-first-view-retry",
+  "name": "Admin Proposal First-view Alert Retry",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "From proposal analytics, an admin retries a failed first-view alert and sees either the queued state or a preserved failure state.",
+  "expectedSpecs": 2,
+  "knownGaps": [],
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}
