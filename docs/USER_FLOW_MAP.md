@@ -6863,7 +6863,7 @@ Management UI for remote MCP connectors that expose panel modules to Claude (cla
   1. El superusuario llega desde la navegación del Panel a Integraciones → MCPs.
   2. Expande una card y revisa riesgos, funciones, credenciales, actor técnico y actividad con request/objeto atribuido.
   3. Genera la principal o crea una limitada → recibe la URL una sola vez → la copia al cliente MCP.
-  4. Edita alcance/vencimiento, rota o revoca una credencial individual.
+  4. Edita alcance/vencimiento, rota o revoca una credencial individual; la revocación exige confirmación en el modal estándar del Panel.
   5. Activa o desactiva el conector con el toggle.
   - [Display] La card y sus acordeones presentan inventario real, no sólo un contenedor visible.
   - [Success] Crear, editar, rotar, revocar y activar producen el estado observable correspondiente.

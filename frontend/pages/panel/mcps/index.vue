@@ -1,5 +1,16 @@
 <template>
   <div>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div class="mb-6">
       <h1 class="text-2xl font-light text-text-default">MCPs</h1>
       <p class="text-sm text-text-subtle mt-1">
@@ -366,6 +377,7 @@
             <BaseInput
               v-model="credentialModal.label"
               :disabled="Boolean(credentialModal.credentialId)"
+              disabled-reason="La etiqueta identifica la credencial y no puede cambiarse después de crearla."
               maxlength="100"
               placeholder="Ej. Automatización contable"
               data-testid="mcp-credential-label"
@@ -478,6 +490,7 @@ import BaseInput from '~/components/base/BaseInput.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useMcpsStore } from '~/stores/mcps';
@@ -487,6 +500,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useMcpsStore();
 const notify = usePanelNotify();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const tokenModal = reactive({ open: false, url: '', label: 'la credencial', copied: false });
 const credentialModal = reactive({
@@ -727,12 +741,20 @@ async function onRotateCredential(connector, credential) {
   showOneTimeUrl(result.data, `${connector.name} · ${credential.label}`);
 }
 
-async function onRevokeCredential(connector, credential) {
-  if (!window.confirm(`¿Revocar la credencial “${credential.label}”? La URL actual dejará de funcionar.`)) return;
-  const result = await store.revokeCredential(connector.slug, credential.id);
-  if (!result.success) {
-    notify.error({ title: 'No se pudo revocar la credencial', detail: result.error });
-  }
+function onRevokeCredential(connector, credential) {
+  requestConfirm({
+    title: 'Revocar credencial',
+    message: `¿Revocar la credencial “${credential.label}”? La URL actual dejará de funcionar.`,
+    confirmText: 'Revocar',
+    variant: 'danger',
+    waitForConfirm: true,
+    onConfirm: async () => {
+      const result = await store.revokeCredential(connector.slug, credential.id);
+      if (!result.success) {
+        notify.error({ title: 'No se pudo revocar la credencial', detail: result.error });
+      }
+    },
+  });
 }
 
 async function copyTokenUrl() {

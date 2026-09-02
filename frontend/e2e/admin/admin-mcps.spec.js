@@ -298,8 +298,9 @@ test.describe('Panel MCPs', () => {
     await expect(page.getByTestId('mcp-card-blog')).toBeVisible({ timeout: 25_000 });
     await page.getByTestId('mcp-card-header-blog').click();
     await page.getByTestId('mcp-credentials-toggle-blog').click();
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('mcp-credential-revoke-7').click();
+    await expect(page.getByTestId('confirm-modal-confirm')).toHaveText('Revocar');
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(page.getByTestId('mcp-credential-7')).toContainText('No disponible');
     await expect(page.getByTestId('mcp-credential-revoke-7')).toHaveCount(0);

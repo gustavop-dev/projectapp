@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Superuser manages MCP connectors at /panel/mcps: inspects risk-classified capabilities and attributed requests; creates scoped/expiring credentials, edits scope, rotates or revokes each credential; receives every secret once; preserves the compatibility token and active toggle. Sensitive tools are identified as preview-plus-confirm actions. Includes the superuser gate: staff non-superusers are redirected to /panel.",
+  "description": "Superuser manages MCP connectors at /panel/mcps: inspects risk-classified capabilities and attributed requests; creates scoped/expiring credentials, edits scope, rotates or revokes each credential through the panel confirmation modal; receives every secret once; preserves the compatibility token and active toggle. Sensitive tools are identified as preview-plus-confirm actions. Includes the superuser gate: staff non-superusers are redirected to /panel.",
   "expectedSpecs": 10,
   "outcomes": [
     "display",
