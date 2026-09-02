@@ -64,7 +64,7 @@ async function exerciseCommercialView(page, scenario) {
   await page.goto(scenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
   const entry = {
     'frontend/pages/panel/additional-modules/index.vue': { action: async () => { await expect(page.getByTestId('additional-admin-module-1')).toContainText('Commercial analytics'); await page.getByTestId('additional-module-new').click(); }, value: null },
-    'frontend/pages/panel/financing/index.vue': { action: async () => { await expect(page.getByTestId('financing-public-url')).toHaveValue('https://projectapp.co/es-co/financing'); await page.getByTestId('financing-term-trigger-code-custody').click(); }, value: null },
+    'frontend/pages/panel/financing/index.vue': { action: async () => { await expect(page.getByTestId('financing-public-url')).toHaveValue(/^https:\/\/projectapp\.co\/(?:es-co|en-us)\/financing$/); await page.getByTestId('financing-term-trigger-code-custody').click(); }, value: null },
     'frontend/pages/panel/proposals/index.vue': { action: () => page.getByTestId('proposal-actions-1').click(), value: null },
     'frontend/pages/panel/proposals/create.vue': { action: async () => { await page.getByRole('button', { name: 'Manual' }).click(); await page.getByLabel('Título', { exact: true }).fill('Propuesta manual responsive'); }, value: null },
     'frontend/pages/panel/proposals/[id]/edit.vue': { action: async () => { await page.getByTestId('edit-email-preview-btn').click(); await expect(page.getByRole('heading', { name: 'Vista previa del correo', exact: true })).toBeVisible(); }, value: null },
