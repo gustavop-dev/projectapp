@@ -52,6 +52,14 @@ describe('getPanelNavSections', () => {
     expect(modules.icon).toBe('puzzle');
   });
 
+  it('places financing immediately after additional modules', () => {
+    const commercial = getPanelNavSections(identityLocalePath)
+      .find((section) => section.id === 'commercial');
+    const labels = commercial.items.filter((item) => !item.divider).map((item) => item.label);
+
+    expect(labels.indexOf('Financiación')).toBe(labels.indexOf('Módulos adicionales') + 1);
+  });
+
   describe('Plataforma section', () => {
     it('lives after Contabilidad so the hostings breadcrumb keeps resolving there', () => {
       const sections = getPanelNavSections(identityLocalePath);

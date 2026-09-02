@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-09-02 — módulo de financiación listo para integrar:** la nueva superficie
+comercial informa, sin cotizar ni aprobar automáticamente, las condiciones de
+financiación para productos con potencial. La alianza recomendada combina 12
+meses al 0 % de interés ordinario, cinco años de exclusividad, custodia de código,
+calculadora de requerimientos y 60 horas renovables cada mes; la alternativa de
+tres años conserva financiación, exclusividad y calculadora, pero no el paquete.
+El backend bilingüe alimenta JSON y booklet PDF, sincroniza el paquete Pro activo
+con fallback visible, y el frontend ofrece rutas públicas prerenderizadas,
+acordeones, tema, idioma, compartir, WhatsApp y distribución desde Panel. No hay
+cambio de esquema ni escritura de negocio. Verificación: 8 backend, 78
+unitarias/config, 12 E2E, build y contratos de catálogo/flow verdes; se corrigió
+el solapamiento detectado entre compartir y el WhatsApp global.
+
 **2026-09-02 — paridad administrativa de Comunicaciones por MCP lista para
 integrar:** el conector pasa de 6 a 14 herramientas y ya puede editar hilos,
 cerrarlos/reabrirlos, archivarlos/restaurarlos, eliminar borradores, anular

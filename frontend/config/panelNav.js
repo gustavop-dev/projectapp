@@ -52,6 +52,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
         { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'send' },
         { label: 'Nueva propuesta', href: lp('/panel/proposals/create'), icon: 'plus' },
         { label: 'Módulos adicionales', href: lp('/panel/additional-modules'), icon: 'puzzle' },
+        { label: 'Financiación', href: lp('/panel/financing'), icon: 'credit-card' },
         { divider: true },
         { label: 'Diagnósticos', href: lp('/panel/diagnostics'), icon: 'file' },
         { label: 'Nuevo diagnóstico', href: lp('/panel/diagnostics/create'), icon: 'plus' },

@@ -191,6 +191,22 @@ export const viewCatalogSections = [
     ],
   },
   {
+    id: 'public-financing',
+    label: 'Programa público de financiación',
+    description: 'Condiciones comerciales del programa de financiación para proyectos de software.',
+    views: [
+      {
+        label: 'Módulo público de financiación',
+        url: '/financing',
+        group: 'Financiación',
+        file: 'frontend/pages/financing/index.vue',
+        reference: 'vista pública bilingüe con comparación, acordeones legales, WhatsApp y descarga PDF',
+        audience: 'public',
+        viewType: 'readonly',
+      },
+    ],
+  },
+  {
     id: 'public-proposals',
     label: 'Propuestas publicas',
     description: 'Vistas que ve el cliente al abrir una propuesta compartida.',
@@ -264,6 +280,15 @@ export const viewCatalogSections = [
         reference: 'administración, orden, selección, enlaces y PDF del catálogo comercial',
         audience: 'admin',
         viewType: 'list',
+      },
+      {
+        label: 'Módulo de financiación',
+        url: '/panel/financing',
+        group: 'Financiación',
+        file: 'frontend/pages/panel/financing/index.vue',
+        reference: 'distribución y vista previa del programa público de financiación',
+        audience: 'admin',
+        viewType: 'readonly',
       },
       {
         label: 'Listado de propuestas',

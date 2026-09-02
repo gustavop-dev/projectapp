@@ -306,10 +306,26 @@ from content.views.additional_modules import (
     update_category as update_additional_module_category,
     update_module as update_additional_module,
 )
+from content.views.financing import (
+    public_financing_program,
+    public_financing_program_pdf,
+)
 
 urlpatterns = [
     path('contacts/', contact_list, name='contact-list'),
     path('new-contact/', new_contact, name='new-contact'),
+
+    # Financing program — public informational resource
+    path(
+        'financing/public/',
+        public_financing_program,
+        name='public-financing-program',
+    ),
+    path(
+        'financing/public/pdf/',
+        public_financing_program_pdf,
+        name='public-financing-program-pdf',
+    ),
 
     # Additional modules catalog — public
     path(

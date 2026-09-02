@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-load",
+  "name": "Public Financing Load Failure",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P1",
+  "description": "Visitor receives a clear failure state when the financing content is unavailable and can retry the request.",
+  "outcomes": ["failure", "success"]
+}

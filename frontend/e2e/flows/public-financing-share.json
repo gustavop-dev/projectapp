@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-share",
+  "name": "Public Financing Share",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Visitor shares or copies the exact localized financing URL through the browser's available sharing mechanism.",
+  "outcomes": ["success"]
+}

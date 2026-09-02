@@ -225,6 +225,7 @@ const solutions = computed(() => {
     { name: s.web_developments || 'Our work', href: '/portfolio-works' },
     { name: s.blog || 'Blog', href: '/blog' },
     { name: t('additionalModules.title'), href: '/additional-modules' },
+    { name: t('financing.title'), href: '/financing' },
   ];
 });
 

@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-language",
+  "name": "Public Financing Language",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Visitor switches the financing module between its Spanish and English canonical routes and receives localized program content.",
+  "outcomes": ["success"]
+}

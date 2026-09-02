@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Módulo de financiación listo para integrar — 2026-09-02:** Comercial ya
+> incorpora una vista de distribución y las rutas públicas ES/EN presentan las
+> dos alternativas, las cuatro condiciones, la calculadora en lenguaje de
+> entrada/resultado, el paquete mensual y las reglas legales desplegables. JSON
+> y PDF nacen de una fuente backend común; el paquete de 60 horas consulta el
+> catálogo activo y alerta al Panel si usa fallback. No hay modelos, migraciones
+> ni fake data nueva. Verificación focal: 8 pruebas backend, 78 unitarias/config,
+> 12 E2E funcionales, build Nuxt, catálogos de vistas/responsive y mapa de flujos
+> en verde; la auditoría global conserva un único `junk-only` previo y ajeno.
+
 > **Paridad administrativa de Comunicaciones por MCP lista para integrar —
 > 2026-09-02:** el catálogo crece de 6 a 14 herramientas y converge con el panel
 > para editar/cerrar/reabrir/archivar/restaurar hilos, eliminar borradores y
