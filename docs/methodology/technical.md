@@ -13,6 +13,15 @@
 > aceptada en reintento duplicado. Los detalles operativos sólo salen por APIs
 > admin y el comando diagnóstico exige settings de producción salvo override.
 
+> **Color técnico de `accounting_change` — 2026-09-02:** el contexto del
+> template expone un `accent_color` tomado exclusivamente de la clasificación
+> cerrada `income|outflow|neutral`: `#15803d`, `#b45309` o `#1d4ed8`. El HTML
+> inline lo aplica a cabecera y valores nuevos; los anteriores mantienen
+> `#b91c1c`. `AccountingChangeLog.movement_direction` conserva `in|out` sólo
+> para eventos de Bolsillo y no se serializa en panel ni MCP. Todo escritor de
+> auditoría de Bolsillo captura la dirección dentro de la operación original;
+> si un histórico no puede reconstruirse, falla seguro al tono neutral.
+
 > **Orden técnico del Gestor Documental — 2026-09-02:**
 > `GET /api/documents/?order=oldest` invierte el orden predeterminado `recent`;
 > valores ausentes o desconocidos degradan a `recent`. La consulta ordena por

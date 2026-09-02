@@ -248,7 +248,9 @@ describe('DocumentThreadModal', () => {
       id: 13,
       title: 'Contrato vigente',
       available: false,
+      is_archived: true,
       unavailable_reason: 'Este documento ya pertenece a otro hilo.',
+      thread_summary: { id: 90, title: 'Historia de aprobación', document_count: 4 },
     };
     jest.spyOn(store, 'fetchThread').mockResolvedValue({ success: true, data: null });
     jest.spyOn(store, 'fetchDocumentDetail').mockResolvedValue({
@@ -263,11 +265,38 @@ describe('DocumentThreadModal', () => {
 
     const wrapper = mountModal();
     await flushPromises();
+    const row = wrapper.get('[data-testid="thread-candidate-13"]');
 
     // Falla si un documento ocupado puede añadirse o pierde la explicación del bloqueo.
-    expect(wrapper.get('[data-testid="thread-candidate-13"]').attributes('disabled')).toBeDefined();
+    expect(row.attributes('aria-disabled')).toBe('true');
+    expect(row.attributes('aria-describedby')).toBe('thread-candidate-reason-13');
+    const candidates = wrapper.get('[data-testid="document-thread-candidates"]');
+    expect(candidates.text()).toContain('Este documento ya pertenece a otro hilo.');
+    // El tamaño del hilo ocupante y el archivado se muestran sin copia nueva.
+    expect(candidates.text()).toContain('Hilo · 4');
+    expect(candidates.text()).toContain('Archivado');
+
+    await row.trigger('click');
+
+    expect(wrapper.find('[data-testid="thread-member-13"]').exists()).toBe(false);
+  });
+
+  it('explains a candidate already added to the draft', async () => {
+    prepareStandaloneStore(store);
+    const wrapper = mountModal();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="thread-candidate-12"]').trigger('click');
+    const row = wrapper.get('[data-testid="thread-candidate-12"]');
+
+    // Falla si un candidato ya agregado queda gris sin decir por qué.
+    expect(row.attributes('aria-disabled')).toBe('true');
     expect(wrapper.get('[data-testid="document-thread-candidates"]').text())
-      .toContain('Este documento ya pertenece a otro hilo.');
+      .toContain('Ya está en este hilo.');
+
+    await row.trigger('click');
+
+    expect(wrapper.findAll('[data-testid="thread-member-12"]')).toHaveLength(1);
   });
 
   it('shows the server conflict without closing the workspace', async () => {

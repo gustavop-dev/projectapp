@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-09-02 — color semántico de avisos contables:** los correos
+> internos de cambios contables usan verde para ingresos y entradas de
+> Bolsillo, naranja para gastos, salidas, recurrentes, Ads y deuda de tarjetas,
+> y azul para entidades administrativas o sin dirección financiera. El color
+> aplica al encabezado y a los valores nuevos; los valores anteriores conservan
+> rojo. La acción creada/actualizada/eliminada sigue escrita en el mensaje, pero
+> ya no decide su color. El panel y los digests contables no cambian.
+
 > **Entrega 2026-09-02 — orden por fecha del Gestor Documental:** la columna
 > **Creado** permite alternar entre más nuevos y más antiguos mediante un icono
 > accesible. El listado abre con los más nuevos primero; conserva el orden al

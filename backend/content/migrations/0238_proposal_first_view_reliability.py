@@ -25,7 +25,7 @@ def reset_legacy_tracking_state(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0236_document_threads'),
+        ('content', '0237_accounting_change_movement_direction'),
     ]
 
     operations = [

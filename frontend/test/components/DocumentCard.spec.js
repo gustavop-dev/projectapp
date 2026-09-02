@@ -246,4 +246,22 @@ describe('DocumentCard', () => {
     expect(wrapper.get('[data-testid="document-pdf-preview-label"]').text())
       .toBe('Cuenta de cobro · PDF')
   })
+
+  it('opens the thread from its badge without opening the document', async () => {
+    const wrapper = await mountCard({
+      document: {
+        ...baseDocument,
+        thread_summary: { id: 3, title: 'Historia del contrato', document_count: 4 },
+      },
+    })
+
+    const badge = wrapper.get('[data-testid="document-card-thread-open-7"]')
+    expect(badge.text()).toContain('Hilo · 4')
+
+    await badge.trigger('click')
+
+    // Falla si el badge deja de ser puerta al hilo o arrastra la apertura del documento.
+    expect(wrapper.emitted('thread')[0]).toEqual([wrapper.props('document')])
+    expect(wrapper.emitted('open')).toBeFalsy()
+  })
 })

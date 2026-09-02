@@ -17,7 +17,7 @@ const props = defineProps({
   archived: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['open', 'action', 'dragstart', 'dragend'])
+const emit = defineEmits(['open', 'action', 'thread', 'dragstart', 'dragend'])
 
 const excerpt = computed(() => makeSafeExcerpt(props.document.content_excerpt || ''))
 
@@ -125,15 +125,25 @@ const meta = computed(() => {
         class="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-1"
         :data-testid="`document-card-title-meta-${document.id}`"
       >
-        <BaseBadge
+        <!-- design-tokens: allow-raw-button — el badge es la puerta al hilo -->
+        <button
           v-if="document.thread_summary"
-          variant="info"
-          size="sm"
-          :title="document.thread_summary.title"
-          :data-testid="`document-card-thread-badge-${document.id}`"
+          type="button"
+          class="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
+          :aria-label="`Abrir el hilo ${document.thread_summary.title}`"
+          :data-testid="`document-card-thread-open-${document.id}`"
+          @click.stop="emit('thread', document)"
+          @auxclick.stop
         >
-          Hilo · {{ document.thread_summary.document_count }}
-        </BaseBadge>
+          <BaseBadge
+            variant="info"
+            size="sm"
+            :title="document.thread_summary.title"
+            :data-testid="`document-card-thread-badge-${document.id}`"
+          >
+            Hilo · {{ document.thread_summary.document_count }}
+          </BaseBadge>
+        </button>
         <span
           v-if="document.folder_name"
           class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded bg-surface-raised px-2 py-0.5 text-2xs font-medium text-text-muted [overflow-wrap:anywhere]"

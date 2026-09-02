@@ -54,6 +54,39 @@ const RELATED = {
   thread_summary: null,
 };
 
+// Un documento que ya pertenece a otro hilo: el backend lo devuelve igual, con
+// el motivo y el tamaño del hilo que lo ocupa, para poder explicar el bloqueo.
+const OCCUPIED = {
+  id: 3,
+  title: 'Contrato vigente',
+  status: 'published',
+  issue_date: '2026-07-01',
+  created_at: '2026-07-01T13:00:00Z',
+  is_archived: false,
+  folder: { id: 11, name: 'Entregas' },
+  client: { id: 30, name: 'Cliente Boreal' },
+  project: { id: 40, name: 'Proyecto Boreal' },
+  default_occurred_on: '2026-07-01',
+  available: false,
+  unavailable_reason: 'Ya pertenece al hilo “Historia previa”.',
+  thread_summary: { id: 91, title: 'Historia previa', document_count: 3 },
+};
+
+const THREAD_ROW = {
+  id: 90,
+  title: 'Historia de aprobación',
+  document_count: 2,
+  first_occurred_on: '2026-08-05',
+  last_occurred_on: '2026-08-20',
+  latest_item: { document_id: 1, title: 'Acta de inicio' },
+  documents: [
+    { document_id: 2, title: 'Aprobación final' },
+    { document_id: 1, title: 'Acta de inicio' },
+  ],
+  documents_truncated: false,
+  updated_at: '2026-08-20T15:00:00+00:00',
+};
+
 const THREAD = {
   id: 90,
   title: 'Historia de aprobación',
@@ -108,7 +141,9 @@ async function setupApi(page, options = {}) {
     if (apiPath === 'document-folders/' || apiPath === 'document-tags/') return json([]);
     if (apiPath === 'document-states/' || apiPath === 'document-state-groups/') return json([]);
     if (apiPath.startsWith('accounting/projects/')) return json({ results: [] });
-    if (apiPath === 'documents/1/thread/') {
+    // El hilo se consulta por cualquiera de sus miembros: el índice lo abre por
+    // el primero, la lista y el editor por el documento que se está mirando.
+    if (/^documents\/\d+\/thread\/$/.test(apiPath)) {
       if (state.threadStatus !== 200) return json({ error: 'No se pudo consultar el hilo.' }, state.threadStatus);
       return json(state.thread);
     }
@@ -119,8 +154,11 @@ async function setupApi(page, options = {}) {
     if (apiPath === 'documents/2/detail/') return json({ ...RELATED, content_markdown: '# Aprobación' });
     if (apiPath === 'document-threads/candidates/') {
       const includeArchived = new URL(route.request().url()).searchParams.get('scope') === 'all';
-      const results = includeArchived ? [RELATED] : [];
+      const results = includeArchived ? [OCCUPIED, RELATED] : [OCCUPIED];
       return json({ count: results.length, next: null, previous: null, results });
+    }
+    if (apiPath === 'document-threads/' && method === 'GET') {
+      return json({ count: 1, next: null, previous: null, results: [THREAD_ROW] });
     }
     if (apiPath === 'document-threads/' && method === 'POST') {
       state.createBody = route.request().postDataJSON();
@@ -196,6 +234,52 @@ test.describe('Admin document thread', () => {
       ],
     });
     await expect(page.getByTestId('document-thread-badge-1')).toContainText('Hilo · 2');
+  });
+
+  test('explains both reasons a candidate cannot be linked', {
+    tag: [...ADMIN_DOCUMENT_THREAD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupApi(page);
+    // quality: allow-deep-link (the documents route is setup; the modal opens through its visible row action)
+    await openThreadModal(page);
+
+    // Ocupado por otro hilo: el motivo lo da el backend y el tamaño, el badge.
+    const occupied = page.getByTestId('thread-candidate-3');
+    await expect(occupied).toHaveAttribute('aria-disabled', 'true');
+    await expect(occupied).toContainText('Ya pertenece al hilo “Historia previa”.');
+    await expect(occupied).toContainText('Hilo · 3');
+
+    // Ya agregado al borrador: sólo el frontend lo sabe, y debe decirlo.
+    await page.getByTestId('document-thread-include-archived').click();
+    await page.getByTestId('thread-candidate-2').click();
+    const added = page.getByTestId('thread-candidate-2');
+    await expect(added).toHaveAttribute('aria-disabled', 'true');
+    await expect(added).toContainText('Ya está en este hilo.');
+  });
+
+  test('opens a thread from the index and from the list badge', {
+    tag: [...ADMIN_DOCUMENT_THREAD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page, { thread: THREAD });
+    // quality: allow-deep-link (the documents route is setup; both doors are visible controls)
+    await page.goto('/panel/documents', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Gestor Documental', exact: true }))
+      .toBeVisible({ timeout: 35_000 });
+
+    await page.getByTestId('documents-threads-index').click();
+    await expect(page.getByTestId('thread-index-row-90')).toContainText('Historia de aprobación');
+    await expect(page.getByTestId('thread-index-row-90')).toContainText('05/08/2026 → 20/08/2026');
+    await page.getByTestId('thread-index-row-90').click();
+    await expect(page.getByTestId('document-thread-title')).toHaveText('Historia de aprobación');
+
+    // El índice cede el paso: dos workspaces apilados se comen los clics del hilo.
+    await expect(page.getByTestId('document-thread-index-rows')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Cerrar hilo de documentos' }).click();
+
+    // El badge de la tabla dejó de ser una etiqueta muerta.
+    await page.getByTestId('document-thread-open-1').click();
+    await expect(page.getByTestId('document-thread-title')).toHaveText('Historia de aprobación');
   });
 
   test('opens the current document thread from the editor action', {

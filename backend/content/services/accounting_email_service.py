@@ -24,6 +24,26 @@ logger = logging.getLogger(__name__)
 
 TEMPLATE_KEY = 'accounting_change'
 
+NOTIFICATION_TONE_INCOME = 'income'
+NOTIFICATION_TONE_OUTFLOW = 'outflow'
+NOTIFICATION_TONE_NEUTRAL = 'neutral'
+
+NOTIFICATION_TONE_COLORS = {
+    NOTIFICATION_TONE_INCOME: '#15803d',
+    NOTIFICATION_TONE_OUTFLOW: '#b45309',
+    NOTIFICATION_TONE_NEUTRAL: '#1d4ed8',
+}
+
+_INCOME_ENTITY_TYPES = frozenset({'income'})
+_OUTFLOW_ENTITY_TYPES = frozenset({
+    'expense',
+    'recurring',
+    'ads',
+    'card_snapshot',
+    'statement',
+    'statement_tx',
+})
+
 # Panel subview per entity, used for the email CTA link.
 _PANEL_PATHS = {
     'income': '/panel/accounting/incomes',
@@ -37,10 +57,25 @@ _PANEL_PATHS = {
 }
 
 
+def resolve_accounting_notification_tone(change_log):
+    """Classify one accounting audit event by financial meaning."""
+    if change_log.entity_type in _INCOME_ENTITY_TYPES:
+        return NOTIFICATION_TONE_INCOME
+    if change_log.entity_type in _OUTFLOW_ENTITY_TYPES:
+        return NOTIFICATION_TONE_OUTFLOW
+    if change_log.entity_type == 'pocket':
+        if change_log.movement_direction == 'in':
+            return NOTIFICATION_TONE_INCOME
+        if change_log.movement_direction == 'out':
+            return NOTIFICATION_TONE_OUTFLOW
+    return NOTIFICATION_TONE_NEUTRAL
+
+
 def build_accounting_change_context(change_log):
     """Build the template context for an accounting-change email."""
     base_url = getattr(settings, 'FRONTEND_BASE_URL', '').rstrip('/')
     path = _PANEL_PATHS.get(change_log.entity_type, '/panel/accounting')
+    notification_tone = resolve_accounting_notification_tone(change_log)
     return {
         'action': change_log.action,
         'action_label': change_log.get_action_display(),
@@ -54,6 +89,8 @@ def build_accounting_change_context(change_log):
         'occurred_at': change_log.created_at,
         'panel_url': f'{base_url}{path}',
         'history_url': f'{base_url}/panel/accounting/history',
+        'notification_tone': notification_tone,
+        'accent_color': NOTIFICATION_TONE_COLORS[notification_tone],
     }
 
 

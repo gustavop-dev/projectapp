@@ -46,7 +46,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'open', 'action', 'select-folder', 'unarchive-folder', 'view-archived-folder',
+  'open', 'action', 'thread', 'select-folder', 'unarchive-folder', 'view-archived-folder',
   'doc-dragstart', 'doc-dragend',
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
   'drop-on-folder', 'sort-date',
@@ -378,15 +378,25 @@ function onFolderLink(event, sub) {
               :class="doc.folder_name || doc.thread_summary ? '' : 'panel-desktop:hidden'"
               :data-testid="`document-title-meta-${doc.id}`"
             >
-              <BaseBadge
+              <!-- design-tokens: allow-raw-button — el badge es la puerta al hilo -->
+              <button
                 v-if="doc.thread_summary"
-                variant="info"
-                size="sm"
-                :title="doc.thread_summary.title"
-                :data-testid="`document-thread-badge-${doc.id}`"
+                type="button"
+                class="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
+                :aria-label="`Abrir el hilo ${doc.thread_summary.title}`"
+                :data-testid="`document-thread-open-${doc.id}`"
+                @click.stop="emit('thread', doc)"
+                @auxclick.stop
               >
-                Hilo · {{ doc.thread_summary.document_count }}
-              </BaseBadge>
+                <BaseBadge
+                  variant="info"
+                  size="sm"
+                  :title="doc.thread_summary.title"
+                  :data-testid="`document-thread-badge-${doc.id}`"
+                >
+                  Hilo · {{ doc.thread_summary.document_count }}
+                </BaseBadge>
+              </button>
               <span
                 v-if="doc.folder_name"
                 class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded bg-surface-raised px-2 py-0.5 text-2xs font-medium text-text-muted [overflow-wrap:anywhere]"

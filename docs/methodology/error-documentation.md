@@ -17,6 +17,13 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 > vistas históricas quedan `legacy_unverified` para no inventar ni reenviar
 > eventos. Un error de logging después de SMTP tampoco dispara correo duplicado.
 
+> **Resuelto 2026-09-02 — un egreso creado llegaba verde por correo:** la
+> plantilla de cambios contables elegía color por acción (`created` verde) y
+> pintaba todo valor nuevo de verde, sin mirar la dirección financiera. Ahora
+> el servicio clasifica ingreso/egreso/neutral; Bolsillo persiste su dirección
+> en el evento para tareas y reintentos, y el template usa naranja para salidas,
+> gastos y deuda. Los valores anteriores siguen rojos y el panel no cambia.
+
 > **Resuelto 2026-09-02 — Creado no permitía ordenar el Gestor Documental:** el
 > encabezado era estático y el backend sólo interpretaba `order=oldest` dentro
 > de Archivados. La fecha visible ahora es también la clave canónica de orden,

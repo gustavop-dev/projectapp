@@ -13,6 +13,17 @@ y un draft o sesión staff no escribe. Verificación: checks/migración, cortes
 backend focales, 43 unitarias frontend focales, 10 E2E y flow audit completo para
 heartbeat, display y retry success/failure.
 
+**2026-09-02 — colores semánticos de correos contables listos para integrar:**
+`accounting_change` usa verde para ingresos/entradas, naranja para
+gastos/salidas/recurrentes/Ads/deuda y azul para entidades neutrales. Cabecera y
+valores nuevos comparten el tono; valores anteriores siguen rojos. Los eventos
+de Bolsillo guardan `movement_direction` para que Huey y los reintentos no lean
+estado posterior; `content.0237` hace backfill sólo con evidencia del diff. Sin
+cambio de REST, MCP, panel ni otros correos. Verificación focal: 17 casos de
+clasificación/render, 3 de migración y 8 de regresión del envío, todos verdes;
+`makemigrations --check --dry-run` no detecta drift y el quality gate focal
+cerró en 93/100 sin errores ni advertencias.
+
 **2026-09-02 — orden por fecha del Gestor Documental listo para integrar:** la
 columna Creado alterna entre más nuevos y más antiguos con icono, `aria-sort` y
 estado de carga; Galería y móvil conservan la misma capacidad mediante un
