@@ -1,5 +1,18 @@
 # Architecture — ProjectApp
 
+> **Módulo de financiación 2026-09-02:**
+> `FinancingProgramService` es la fuente canónica, versionada y bilingüe del
+> contenido comercial. Proyecta el paquete activo de 60 horas desde
+> `HourPackage` y, si el catálogo no lo ofrece, devuelve un fallback explícito
+> con `catalog_synced=false` sin ocultar la discrepancia al Panel. Las vistas
+> públicas `financing_program` y `financing_program_pdf` exponen el mismo
+> contrato como JSON y booklet ReportLab; no crean modelos ni escriben datos.
+> La ruta pública Nuxt consume ese JSON con SSR/prerender y refresco en cliente,
+> mientras `/panel/financing` reutiliza el cliente HTTP de contenido para
+> previsualizar, copiar, abrir y descargar la URL canónica. El componente
+> `Financing/ProgramView` concentra idioma, tema, acordeones, acciones PDF,
+> compartir y CTA, de modo que Panel y público no diverjan en las condiciones.
+
 > **Lectura paginada del Gestor Documental 2026-09-02:**
 > `document_query_service` concentra filtros, búsqueda, raíz contextual y orden
 > en un queryset lazy compartido por el listado heredado y

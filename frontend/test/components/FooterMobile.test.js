@@ -2,7 +2,10 @@ import { mount } from '@vue/test-utils';
 
 global.useLocalePath = jest.fn(() => (path) => path);
 global.useI18n = jest.fn(() => ({
-  t: jest.fn((key) => (key === 'additionalModules.title' ? 'Additional modules' : key)),
+  t: jest.fn((key) => ({
+    'additionalModules.title': 'Additional modules',
+    'financing.title': 'Software financing',
+  }[key] || key)),
 }));
 global.IntersectionObserver = jest.fn(() => ({
   observe: jest.fn(),
@@ -106,5 +109,12 @@ describe('FooterMobile', () => {
 
     expect(wrapper.get('a[href="/additional-modules"]').attributes('aria-label'))
       .toBe('Additional modules');
+  });
+
+  it('renders the financing program link', () => {
+    const wrapper = mountFooterMobile();
+
+    expect(wrapper.get('a[href="/financing"]').attributes('aria-label'))
+      .toBe('Software financing');
   });
 });

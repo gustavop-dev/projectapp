@@ -13,7 +13,7 @@ problema. La auditoría de Fase 5 y sus límites están en
 
 ## Estado de implementación
 
-El catálogo vigente deja 107 páginas Nuxt asignadas sin ambigüedad a 13
+El catálogo vigente deja 109 páginas Nuxt asignadas sin ambigüedad a 13
 módulos de aceptación. Comercial, Emails, Comunicaciones, Canvas de Documentos,
 Dashboard, Contenido, MCP y Públicas completan la adopción iniciada por
 Fundamentos, Contabilidad, Documentos, Clientes y Proyectos. Las listas CRUD de exploración
@@ -22,8 +22,8 @@ comparativas usan `BaseResponsiveTable` y declaran la prioridad de cada columna.
 
 Las fichas PA-45, PA-61, PA-66, PA-69, PA-70 y PA-73 dejan de ser variantes
 independientes: su criterio de cierre es este contrato y sus primitives
-compartidas. La línea base vigente se verifica con 107 escenarios explícitos,
-13 módulos, cinco perfiles y 535 celdas catálogo×perfil: 92 vistas visuales
+compartidas. La línea base vigente se verifica con 109 escenarios explícitos,
+13 módulos, cinco perfiles y 545 celdas catálogo×perfil: 94 vistas visuales
 (460 celdas) y 15 redirects de compatibilidad (75 celdas), además del flow-map
 funcional sin flows `junk-only` ni `missing`.
 

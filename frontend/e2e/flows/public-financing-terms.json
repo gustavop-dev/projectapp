@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-terms",
+  "name": "Public Financing Terms",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Visitor expands a financing rule and reads its complete contractual context without leaving the commercial overview.",
+  "outcomes": ["success"]
+}

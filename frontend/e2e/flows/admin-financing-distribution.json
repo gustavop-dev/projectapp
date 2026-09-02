@@ -1,0 +1,9 @@
+{
+  "id": "admin-financing-distribution",
+  "name": "Admin Financing Distribution",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin navigates from Comercial to the financing module, copies or opens the canonical URL, downloads the PDF, previews the public content and can retry a failed load.",
+  "outcomes": ["display", "success", "failure"]
+}

@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Módulo de financiación listo para integrar — 2026-09-02:** Comercial ya
+> incorpora una vista de distribución y las rutas públicas ES/EN presentan las
+> dos alternativas, las cuatro condiciones, la calculadora en lenguaje de
+> entrada/resultado, el paquete mensual y las reglas legales desplegables. JSON
+> y PDF nacen de una fuente backend común; el paquete de 60 horas consulta el
+> catálogo activo y alerta al Panel si usa fallback. No hay modelos, migraciones
+> ni fake data nueva. Verificación focal: 8 pruebas backend, 78 unitarias/config,
+> 12 E2E funcionales, build Nuxt, catálogos de vistas/responsive y mapa de flujos
+> en verde; la auditoría global conserva un único `junk-only` previo y ajeno.
+
 > **Rendimiento del Gestor Documental listo para integrar — 2026-09-02:** el
 > gestor usa un endpoint paginado propio sin alterar el array heredado que
 > consumen editores y selectores. Filtros, búsqueda, orden, carpeta y raíz de

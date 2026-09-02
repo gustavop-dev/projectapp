@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-overview",
+  "name": "Public Financing Overview",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P1",
+  "description": "Visitor follows the public footer link and reads both partnership options, the four financing conditions, calculator input/output, package rules and direct contact action.",
+  "outcomes": ["display"]
+}

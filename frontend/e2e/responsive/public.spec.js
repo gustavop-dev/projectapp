@@ -3,6 +3,7 @@ import { test, expect, assertResponsiveScenario } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { viewportUse } from '../helpers/viewports.js';
 import { RESPONSIVE_PROFILES, batchForScenario, getResponsiveScenario } from './catalog-scenarios.js';
+import { financingProgramFixture } from '../helpers/financing-fixture.js';
 
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 const uuid = '11111111-1111-4111-8111-111111111111';
@@ -14,7 +15,7 @@ const tree = { handle: 'responsive-fixture', kind: 'personal', display_name: 'Pe
 const proposal = { id: 1, uuid, title: 'Propuesta responsive', client_name: 'Cliente fixture', status: 'sent', language: 'es', total_investment: '5000000', currency: 'COP', requirement_groups: [], sections: [{ id: 1, section_type: 'greeting', title: 'Bienvenida', order: 0, is_enabled: true, content_json: { proposalTitle: 'Propuesta responsive', clientName: 'Cliente fixture' } }, { id: 2, section_type: 'executive_summary', title: 'Resumen', order: 1, is_enabled: true, content_json: { title: 'Propuesta responsive', paragraphs: ['Resultado concreto'] } }] };
 const diagnostic = { uuid, title: 'Diagnóstico responsive', client_name: 'Cliente fixture', status: 'sent', language: 'es', sections: [{ id: 1, section_type: 'purpose', title: 'Propósito', order: 0, is_enabled: true, visibility: 'both', content_json: { title: 'Propósito', paragraphs: ['Resultado concreto'] } }], render_context: { client_name: 'Cliente fixture', currency: 'COP' } };
 const visualKeys = [
-  'frontend/pages/index.vue', 'frontend/pages/landing-apps.vue', 'frontend/pages/landing-software.vue', 'frontend/pages/landing-web-design.vue', 'frontend/pages/about-us.vue', 'frontend/pages/contact.vue', 'frontend/pages/contact-success.vue', 'frontend/pages/portfolio-works/index.vue', 'frontend/pages/portfolio-works/[slug].vue', 'frontend/pages/blog/index.vue', 'frontend/pages/blog/[slug].vue', 'frontend/pages/lk/[handle].vue', 'frontend/pages/privacy-policy.vue', 'frontend/pages/terms-and-conditions.vue', 'frontend/pages/auth/linkedin/callback.vue', 'frontend/pages/[...slug].vue', 'frontend/pages/additional-modules/index.vue', 'frontend/pages/additional-modules/share/[uuid].vue', 'frontend/pages/proposal/[uuid]/index.vue', 'frontend/pages/diagnostic/[uuid]/index.vue',
+  'frontend/pages/index.vue', 'frontend/pages/landing-apps.vue', 'frontend/pages/landing-software.vue', 'frontend/pages/landing-web-design.vue', 'frontend/pages/about-us.vue', 'frontend/pages/contact.vue', 'frontend/pages/contact-success.vue', 'frontend/pages/portfolio-works/index.vue', 'frontend/pages/portfolio-works/[slug].vue', 'frontend/pages/blog/index.vue', 'frontend/pages/blog/[slug].vue', 'frontend/pages/lk/[handle].vue', 'frontend/pages/privacy-policy.vue', 'frontend/pages/terms-and-conditions.vue', 'frontend/pages/auth/linkedin/callback.vue', 'frontend/pages/[...slug].vue', 'frontend/pages/additional-modules/index.vue', 'frontend/pages/additional-modules/share/[uuid].vue', 'frontend/pages/financing/index.vue', 'frontend/pages/proposal/[uuid]/index.vue', 'frontend/pages/diagnostic/[uuid]/index.vue',
 ].map(getResponsiveScenario);
 const linkedInCallbackScenario = getResponsiveScenario('frontend/pages/auth/linkedin/callback.vue');
 const fallbackScenario = getResponsiveScenario('frontend/pages/[...slug].vue');
@@ -23,11 +24,12 @@ const interactiveVisualKeys = visualKeys.filter((scenario) => (
   && scenario.catalogKey !== fallbackScenario.catalogKey
 ));
 const flows = {
-  'frontend/pages/index.vue': 'public-home', 'frontend/pages/landing-apps.vue': 'public-landing-apps', 'frontend/pages/landing-software.vue': 'public-landing-software', 'frontend/pages/landing-web-design.vue': 'public-landing-web-design', 'frontend/pages/about-us.vue': 'public-about-us', 'frontend/pages/contact.vue': 'public-contact-submit', 'frontend/pages/contact-success.vue': 'public-contact-submit', 'frontend/pages/portfolio-works/index.vue': 'public-portfolio', 'frontend/pages/portfolio-works/[slug].vue': 'public-portfolio-detail', 'frontend/pages/blog/index.vue': 'blog-list', 'frontend/pages/blog/[slug].vue': 'blog-detail', 'frontend/pages/lk/[handle].vue': 'public-linktree-view', 'frontend/pages/privacy-policy.vue': 'public-privacy-policy', 'frontend/pages/terms-and-conditions.vue': 'public-terms-conditions', 'frontend/pages/auth/linkedin/callback.vue': 'admin-blog-linkedin-connect', 'frontend/pages/[...slug].vue': 'public-route-not-found', 'frontend/pages/additional-modules/index.vue': 'public-additional-modules-detail', 'frontend/pages/additional-modules/share/[uuid].vue': 'public-additional-modules-share', 'frontend/pages/proposal/[uuid]/index.vue': 'proposal-view-navigation', 'frontend/pages/diagnostic/[uuid]/index.vue': 'diagnostic-public-view',
+  'frontend/pages/index.vue': 'public-home', 'frontend/pages/landing-apps.vue': 'public-landing-apps', 'frontend/pages/landing-software.vue': 'public-landing-software', 'frontend/pages/landing-web-design.vue': 'public-landing-web-design', 'frontend/pages/about-us.vue': 'public-about-us', 'frontend/pages/contact.vue': 'public-contact-submit', 'frontend/pages/contact-success.vue': 'public-contact-submit', 'frontend/pages/portfolio-works/index.vue': 'public-portfolio', 'frontend/pages/portfolio-works/[slug].vue': 'public-portfolio-detail', 'frontend/pages/blog/index.vue': 'blog-list', 'frontend/pages/blog/[slug].vue': 'blog-detail', 'frontend/pages/lk/[handle].vue': 'public-linktree-view', 'frontend/pages/privacy-policy.vue': 'public-privacy-policy', 'frontend/pages/terms-and-conditions.vue': 'public-terms-conditions', 'frontend/pages/auth/linkedin/callback.vue': 'admin-blog-linkedin-connect', 'frontend/pages/[...slug].vue': 'public-route-not-found', 'frontend/pages/additional-modules/index.vue': 'public-additional-modules-detail', 'frontend/pages/additional-modules/share/[uuid].vue': 'public-additional-modules-share', 'frontend/pages/financing/index.vue': 'public-financing-terms', 'frontend/pages/proposal/[uuid]/index.vue': 'proposal-view-navigation', 'frontend/pages/diagnostic/[uuid]/index.vue': 'diagnostic-public-view',
 };
 const outcomes = {
   'frontend/pages/auth/linkedin/callback.vue': 'error',
   'frontend/pages/[...slug].vue': 'failure',
+  'frontend/pages/financing/index.vue': 'success',
 };
 const resolvedRoutes = {
   'frontend/pages/portfolio-works/index.vue': '/en-us/portfolio-works',
@@ -36,6 +38,7 @@ const resolvedRoutes = {
   'frontend/pages/blog/[slug].vue': '/en-us/blog/responsive-fixture',
   'frontend/pages/proposal/[uuid]/index.vue': `/en-us/proposal/${uuid}`,
   'frontend/pages/diagnostic/[uuid]/index.vue': `/en-us/diagnostic/${uuid}`,
+  'frontend/pages/financing/index.vue': '/es-co/financing',
   'frontend/pages/[...slug].vue': '/responsive-e2e-not-found',
 };
 
@@ -51,6 +54,7 @@ async function setupPublic(page) {
     if (apiPath === 'additional-modules/public/' && method === 'GET') return json({ language: 'es', total_modules: 1, categories: [{ slug: 'fixture', name: 'Fixture', modules: [moduleFixture] }] });
     if (apiPath === `additional-modules/public/shares/${uuid}/` && method === 'GET') return json({ language: 'es', total_modules: 1, is_shared: true, categories: [{ slug: 'fixture', name: 'Fixture', modules: [moduleFixture] }] });
     if (apiPath === `additional-modules/public/shares/${uuid}/track/` && method === 'POST') return json({ status: 'recorded' });
+    if (apiPath === 'financing/public/' && method === 'GET') return json(financingProgramFixture('es'));
     if (apiPath === `proposals/${uuid}/`) return json(proposal);
     if (apiPath === `diagnostics/public/${uuid}/`) return json(diagnostic);
     if (apiPath.includes('/track')) return json({ ok: true, view_count: 1 });
@@ -114,6 +118,7 @@ async function exercise(page, scenario) {
     'frontend/pages/terms-and-conditions.vue': { action: async () => { await switchToSpanish(page); return page.getByRole('heading', { level: 1, name: 'Términos y Condiciones', exact: true }); }, assert: (locator) => expect(locator).toHaveText('Términos y Condiciones') },
     'frontend/pages/additional-modules/index.vue': { action: async () => { await page.getByTestId('additional-module-card-responsive-module').click(); return page.getByTestId('additional-module-detail-modal'); }, assert: (locator) => expect(locator).toContainText('Módulo responsive') },
     'frontend/pages/additional-modules/share/[uuid].vue': { action: async () => { await page.getByTestId('additional-module-card-responsive-module').click(); return page.getByTestId('additional-module-detail-modal'); }, assert: (locator) => expect(locator).toContainText('Módulo responsive') },
+    'frontend/pages/financing/index.vue': { action: async () => { await page.getByTestId('financing-term-trigger-code-custody').click(); return page.getByTestId('financing-term-code-custody'); }, assert: (locator) => expect(locator).toContainText('La custodia no transfiere la propiedad intelectual.') },
     'frontend/pages/proposal/[uuid]/index.vue': { action: async () => { await openProposalExecutiveView(page); const next = page.getByTestId('nav-next'); await expect(next).toBeVisible({ timeout: 35_000 }); return next; }, assert: (locator) => expect(locator).toContainText('Siguiente') },
     'frontend/pages/diagnostic/[uuid]/index.vue': { action: async () => { await page.getByTestId('diagnostic-start-journey').click(); return page.getByText('Propósito', { exact: true }); }, assert: (locator) => expect(locator).toHaveText('Propósito') },
   }[scenario.catalogKey];

@@ -4,6 +4,7 @@ import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { viewportUse } from '../helpers/viewports.js';
 import { RESPONSIVE_PROFILES, batchForScenario, getResponsiveScenario } from './catalog-scenarios.js';
+import { financingProgramFixture } from '../helpers/financing-fixture.js';
 
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 const proposal = { id: 1, uuid: 'commercial-responsive-proposal', title: 'Propuesta de implementación', client_name: 'Acme Comercial', client_email: 'acme@test.com', status: 'draft', total_investment: 5000000, currency: 'COP', sections: [], heat_score: 72, view_count: 3, engagement_summary: { views: 3, investment_time_sec: 120, technical_time_sec: 0, technical_viewed: false, unique_devices: 1, skipped_sections: [] } };
@@ -28,6 +29,7 @@ async function setupCommercial(page) {
     if (apiPath === 'hour-packages/admin/1/detail/' && method === 'GET') return json(hourPackage);
     if (apiPath === 'additional-modules/admin/' && method === 'GET') return json({ categories: [moduleCategory], modules: [moduleFixture], revision: 1 });
     if (apiPath === 'additional-modules/admin/shares/' && method === 'GET') return json([]);
+    if (apiPath === 'financing/public/' && method === 'GET') return json(financingProgramFixture('es'));
     if (apiPath === 'proposals/client-profiles/search/' && method === 'GET') return json([diagnosticClient]);
     if (apiPath.startsWith('accounts/saved-filter-tabs') || apiPath.startsWith('proposals/client-profiles/')) return json([]);
     if (apiPath === 'proposals/defaults/' && method === 'GET') return json(proposalDefaults);
@@ -39,10 +41,11 @@ async function setupCommercial(page) {
 }
 
 const visualKeys = [
-  'frontend/pages/panel/additional-modules/index.vue', 'frontend/pages/panel/proposals/index.vue', 'frontend/pages/panel/proposals/create.vue', 'frontend/pages/panel/proposals/[id]/edit.vue', 'frontend/pages/panel/defaults.vue', 'frontend/pages/panel/hour-packages/index.vue', 'frontend/pages/panel/hour-packages/create.vue', 'frontend/pages/panel/hour-packages/[id]/edit.vue', 'frontend/pages/panel/diagnostics/index.vue', 'frontend/pages/panel/diagnostics/create.vue', 'frontend/pages/panel/diagnostics/[id]/edit.vue',
+  'frontend/pages/panel/additional-modules/index.vue', 'frontend/pages/panel/financing/index.vue', 'frontend/pages/panel/proposals/index.vue', 'frontend/pages/panel/proposals/create.vue', 'frontend/pages/panel/proposals/[id]/edit.vue', 'frontend/pages/panel/defaults.vue', 'frontend/pages/panel/hour-packages/index.vue', 'frontend/pages/panel/hour-packages/create.vue', 'frontend/pages/panel/hour-packages/[id]/edit.vue', 'frontend/pages/panel/diagnostics/index.vue', 'frontend/pages/panel/diagnostics/create.vue', 'frontend/pages/panel/diagnostics/[id]/edit.vue',
 ].map(getResponsiveScenario);
 const flowForScenario = {
   'frontend/pages/panel/additional-modules/index.vue': 'admin-additional-modules-manage',
+  'frontend/pages/panel/financing/index.vue': 'admin-financing-distribution',
   'frontend/pages/panel/proposals/index.vue': 'admin-proposal-actions-modal',
   'frontend/pages/panel/proposals/create.vue': 'admin-proposal-create',
   'frontend/pages/panel/proposals/[id]/edit.vue': 'admin-proposal-edit',
@@ -61,6 +64,7 @@ async function exerciseCommercialView(page, scenario) {
   await page.goto(scenario.resolvedUrl, { waitUntil: 'domcontentloaded' });
   const entry = {
     'frontend/pages/panel/additional-modules/index.vue': { action: async () => { await expect(page.getByTestId('additional-admin-module-1')).toContainText('Commercial analytics'); await page.getByTestId('additional-module-new').click(); }, value: null },
+    'frontend/pages/panel/financing/index.vue': { action: async () => { await expect(page.getByTestId('financing-public-url')).toHaveValue(/^https:\/\/projectapp\.co\/(?:es-co|en-us)\/financing$/); await page.getByTestId('financing-term-trigger-code-custody').click(); }, value: null },
     'frontend/pages/panel/proposals/index.vue': { action: () => page.getByTestId('proposal-actions-1').click(), value: null },
     'frontend/pages/panel/proposals/create.vue': { action: async () => { await page.getByRole('button', { name: 'Manual' }).click(); await page.getByLabel('Título', { exact: true }).fill('Propuesta manual responsive'); }, value: null },
     'frontend/pages/panel/proposals/[id]/edit.vue': { action: async () => { await page.getByTestId('edit-email-preview-btn').click(); await expect(page.getByRole('heading', { name: 'Vista previa del correo', exact: true })).toBeVisible(); }, value: null },
@@ -78,6 +82,9 @@ async function exerciseCommercialView(page, scenario) {
     content = page.getByTestId('additional-module-form');
     await expect(content).toBeVisible();
     await expect(page.getByTestId('additional-module-name-es')).toBeVisible();
+  } else if (scenario.catalogKey === 'frontend/pages/panel/financing/index.vue') {
+    content = page.getByTestId('financing-term-code-custody');
+    await expect(content).toContainText('La custodia no transfiere la propiedad intelectual.');
   } else if (scenario.catalogKey === 'frontend/pages/panel/proposals/index.vue') {
     const dialog = page.locator('[role="dialog"]').filter({ has: page.getByRole('heading', { name: 'Propuesta de implementación', exact: true }) });
     content = dialog.getByRole('heading', { name: 'Propuesta de implementación', exact: true });
