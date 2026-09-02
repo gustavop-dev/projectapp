@@ -351,17 +351,44 @@ def log_accounting_change(
     action,
     changes=None,
     actor=None,
+    movement_direction=None,
 ):
     """Append an AccountingChangeLog row."""
+    changes = changes or []
+    if entity_type == EntityType.POCKET and movement_direction is None:
+        movement_direction = _movement_direction_from_changes(changes, action)
+    elif entity_type != EntityType.POCKET:
+        movement_direction = None
     return AccountingChangeLog.objects.create(
         entity_type=entity_type,
         object_id=object_id,
         object_repr=object_repr[:255],
         action=action,
-        changes=changes or [],
+        movement_direction=movement_direction,
+        changes=changes,
         actor=actor if getattr(actor, 'is_authenticated', False) else None,
         actor_username=getattr(actor, 'username', '') or '',
     )
+
+
+def _movement_direction_from_changes(changes, action):
+    """Recover direction from a complete historical Pocket diff when possible."""
+    for change in changes:
+        if change.get('field') != 'direction':
+            continue
+        value = (
+            change.get('old')
+            if action == Action.DELETED
+            else change.get('new') or change.get('old')
+        )
+        normalized = str(value or '').strip().lower()
+        return {
+            'in': AccountingChangeLog.MovementDirection.IN,
+            'ingreso': AccountingChangeLog.MovementDirection.IN,
+            'out': AccountingChangeLog.MovementDirection.OUT,
+            'egreso': AccountingChangeLog.MovementDirection.OUT,
+        }.get(normalized)
+    return None
 
 
 def log_entity_diff(entity_type, instance, old_values, user):
@@ -513,6 +540,9 @@ def create_record(entity_type, serializer, user, notify=True, *,
         action=Action.CREATED,
         changes=changes,
         actor=user,
+        movement_direction=(
+            instance.direction if entity_type == EntityType.POCKET else None
+        ),
     )
     if notify:
         _notify(change_log)
@@ -568,6 +598,11 @@ def update_record(entity_type, instance, serializer, user, notify=True):
             action=Action.UPDATED,
             changes=changes,
             actor=user,
+            movement_direction=(
+                instance.direction
+                if entity_type == EntityType.POCKET
+                else None
+            ),
         )
         if notify:
             _notify(change_log)
@@ -921,6 +956,9 @@ def delete_record(entity_type, instance, user):
     deleted_repr = object_repr(entity_type, instance)
     old_values = snapshot_values(instance, entity_type)
     changes = _deletion_changes(entity_type, old_values)
+    movement_direction = (
+        instance.direction if entity_type == EntityType.POCKET else None
+    )
 
     linked_movement = None
     linked_records = []
@@ -969,6 +1007,7 @@ def delete_record(entity_type, instance, user):
         action=Action.DELETED,
         changes=changes,
         actor=user,
+        movement_direction=movement_direction,
     )
     _notify(change_log)
 
@@ -1052,6 +1091,7 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
                 snapshot_values(movement, EntityType.POCKET),
             ),
             actor=user,
+            movement_direction=movement.direction,
         )
     elif wants_movement and movement is not None:
         old_values = snapshot_values(movement, EntityType.POCKET)
@@ -1080,6 +1120,7 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
                 action=Action.UPDATED,
                 changes=changes,
                 actor=user,
+                movement_direction=movement.direction,
             )
     elif not wants_movement and movement is not None:
         _log_pocket_removal(movement, user)
@@ -1232,6 +1273,7 @@ def _log_pocket_removal(movement, user):
         action=Action.DELETED,
         changes=_deletion_changes(EntityType.POCKET, old_values),
         actor=user,
+        movement_direction=movement.direction,
     )
 
 

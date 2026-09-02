@@ -1,5 +1,15 @@
 # Architecture — ProjectApp
 
+> **Tono financiero de correos contables 2026-09-02:**
+> `accounting_email_service` clasifica cada `AccountingChangeLog` como ingreso,
+> egreso o neutral antes de renderizar `accounting_change.html`. Las entidades
+> de dirección fija se resuelven por tipo; Bolsillo usa el snapshot inmutable
+> `movement_direction` guardado con el evento, no el registro vivo. La migración
+> `content.0237` recupera ese dato en eventos históricos cuyo diff lo permite y
+> deja el resto neutral. Así Huey y los reintentos reconstruyen el mismo color
+> aunque el movimiento haya cambiado o desaparecido. REST, MCP, panel y los
+> demás templates de correo conservan sus contratos.
+
 > **Orden documental por fecha 2026-09-02:** el endpoint de listado anota
 > `_display_sort_date` con la misma fecha que serializa cada fila —`created_at`
 > en activos y `Coalesce(archived_at, created_at)` en archivados— y aplica en el
