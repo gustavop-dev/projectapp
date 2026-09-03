@@ -1,5 +1,14 @@
 # Architecture — ProjectApp
 
+> **Implementado — plataforma MCP operativa 2026-09-02:** el registro de
+> herramientas se convierte en una capa común de metadatos, riesgo, resultados
+> estructurados y auditoría. Los conectores canónicos se agrupan en Operaciones,
+> Comercial, Proyectos, Documentos, Comunicaciones, Contenido, Tareas y tres
+> dominios contables. Los handlers siguen delegando en los serializers y
+> servicios del Panel. Credenciales con alcance, contexto de actor, ETags y
+> confirmaciones de un solo uso protegen los cambios concurrentes y sensibles;
+> los slugs existentes continúan como adaptadores compatibles.
+
 > **Entrega validada — workspace contractual de financiación (2026-09-03):**
 > una entidad de acuerdo, una plantilla versionada y un historial inmutable
 > separan la gestión contractual de la fuente comercial pública. Un servicio

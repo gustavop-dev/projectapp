@@ -1,5 +1,17 @@
 # Product Requirements Document — ProjectApp
 
+> **Listo para integrar 2026-09-02 — control operativo por MCP:** todas las
+> operaciones del Panel interno, salvo administración de identidades, secretos,
+> infraestructura e impersonación, deben poder descubrirse y ejecutarse desde
+> conectores MCP agrupados por área. Las lecturas y ediciones reversibles son
+> directas; envíos, publicaciones, efectos financieros, cascadas y eliminaciones
+> definitivas exigen previsualización y confirmación vinculada al estado leído.
+> Los documentos Markdown, incluidos borradores, son editables; los snapshots
+> PDF emitidos permanecen inmutables. Los conectores canónicos, credenciales
+> acotadas, uploads firmados y auditoría ya implementan este contrato; los
+> conectores nuevos quedan inactivos y las credenciales existentes no se rotan
+> hasta el corte operativo.
+
 > **Entrega 2026-09-03 — financiación contractual:** el programa incorpora una
 > quinta condición común de pago dentro de los cinco primeros
 > días calendario y aumento permanente, acumulativo y automático del 1 % sobre

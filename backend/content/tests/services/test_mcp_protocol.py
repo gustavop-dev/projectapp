@@ -65,7 +65,15 @@ class TestInitialize:
             _rpc('initialize', {'protocolVersion': '1999-01-01'}), TOOLS,
         )
         assert status == 200
-        assert resp['result']['protocolVersion'] == '2025-06-18'
+        assert resp['result']['protocolVersion'] == '2025-11-25'
+
+    def test_initialize_does_not_negotiate_the_stateless_version(self):
+        status, resp = handle_message(
+            _rpc('initialize', {'protocolVersion': '2026-07-28'}), TOOLS,
+        )
+
+        assert status == 200
+        assert resp['result']['protocolVersion'] == '2025-11-25'
 
     def test_initialized_notification_returns_202_no_body(self):
         status, resp = handle_message(

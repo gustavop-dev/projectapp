@@ -12,8 +12,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_PROTOCOL_VERSIONS = ('2025-06-18', '2025-03-26')
-DEFAULT_PROTOCOL_VERSION = '2025-06-18'
+MODERN_PROTOCOL_VERSION = '2026-07-28'
+LEGACY_PROTOCOL_VERSIONS = (
+    '2025-11-25',
+    '2025-06-18',
+    '2025-03-26',
+    '2024-11-05',
+)
+SUPPORTED_PROTOCOL_VERSIONS = (
+    MODERN_PROTOCOL_VERSION,
+    *LEGACY_PROTOCOL_VERSIONS,
+)
+DEFAULT_PROTOCOL_VERSION = LEGACY_PROTOCOL_VERSIONS[0]
+LIST_CACHE_TTL_MS = 300_000
 # Fallback identity; the endpoint passes a per-connector server_name so each
 # of the /api/mcp/<slug>/ connectors identifies itself distinctly.
 SERVER_INFO = {'name': 'projectapp-mcp', 'version': '1.0.0'}
@@ -31,6 +42,11 @@ class ToolError(Exception):
     model can fix its arguments and retry.
     """
 
+    def __init__(self, message, *, code='VALIDATION_ERROR', details=None):
+        super().__init__(message)
+        self.code = code
+        self.details = details or {}
+
 
 def _error(msg_id, code, message):
     return 200, {'jsonrpc': '2.0', 'id': msg_id, 'error': {'code': code, 'message': message}}
@@ -40,17 +56,24 @@ def _result(msg_id, result):
     return 200, {'jsonrpc': '2.0', 'id': msg_id, 'result': result}
 
 
-def _text_result(msg_id, payload, is_error=False):
+def _text_result(msg_id, payload, is_error=False, *, error=None, meta=None):
     text = payload if isinstance(payload, str) else json.dumps(
         payload, ensure_ascii=False, default=str,
     )
-    return _result(msg_id, {
+    structured = payload if isinstance(payload, dict) else {'items': payload} if isinstance(payload, list) else {'message': str(payload)}
+    if error:
+        structured = {'ok': False, 'error': error}
+    result = {
         'content': [{'type': 'text', 'text': text}],
         'isError': is_error,
-    })
+        'structuredContent': structured,
+    }
+    if meta:
+        result['_meta'] = meta
+    return _result(msg_id, result)
 
 
-def handle_message(message, tools, server_name=None):
+def handle_message(message, tools, server_name=None, context=None):
     """
     Handle one JSON-RPC message. Returns (http_status, response_dict|None).
     Notifications (no 'id') return (202, None) per Streamable HTTP transport.
@@ -75,9 +98,29 @@ def handle_message(message, tools, server_name=None):
     if not isinstance(params, dict):
         return _error(msg_id, INVALID_PARAMS, 'params must be a JSON object.')
 
+    if method == 'server/discover':
+        server_info = {**SERVER_INFO, 'name': server_name} if server_name else SERVER_INFO
+        return _result(msg_id, {
+            'resultType': 'complete',
+            'supportedVersions': [MODERN_PROTOCOL_VERSION],
+            'capabilities': {'tools': {}},
+            '_meta': {
+                'io.modelcontextprotocol/serverInfo': server_info,
+            },
+            'instructions': (
+                'Usa tools/list para descubrir acciones. Las operaciones sensibles '
+                'devuelven una vista previa que se ejecuta con confirm_action.'
+            ),
+            'ttlMs': LIST_CACHE_TTL_MS,
+            'cacheScope': 'private',
+        })
+
     if method == 'initialize':
         requested = params.get('protocolVersion', '')
-        version = requested if requested in SUPPORTED_PROTOCOL_VERSIONS else DEFAULT_PROTOCOL_VERSION
+        version = (
+            requested if requested in LEGACY_PROTOCOL_VERSIONS
+            else DEFAULT_PROTOCOL_VERSION
+        )
         server_info = {**SERVER_INFO, 'name': server_name} if server_name else SERVER_INFO
         return _result(msg_id, {
             'protocolVersion': version,
@@ -89,14 +132,23 @@ def handle_message(message, tools, server_name=None):
         return _result(msg_id, {})
 
     if method == 'tools/list':
+        visible_tools = [
+            tool for tool in tools
+            if not context
+            or not context.credential
+            or context.credential.allows(tool['name'])
+        ]
         return _result(msg_id, {
             'tools': [
                 {
                     'name': t['name'],
+                    'title': t.get('title'),
                     'description': t['description'],
                     'inputSchema': t['input_schema'],
+                    'outputSchema': t.get('output_schema', {}),
+                    'annotations': t.get('annotations', {}),
                 }
-                for t in tools
+                for t in visible_tools
             ],
         })
 
@@ -106,19 +158,67 @@ def handle_message(message, tools, server_name=None):
         tool = next((t for t in tools if t['name'] == name), None)
         if tool is None:
             return _error(msg_id, INVALID_PARAMS, f'Unknown tool: {name}')
+        if context and context.credential and not context.credential.allows(name):
+            return _text_result(
+                msg_id,
+                'La credencial no permite esta herramienta.',
+                is_error=True,
+                error={
+                    'code': 'FORBIDDEN',
+                    'message': 'La credencial no permite esta herramienta.',
+                    'details': {},
+                },
+                meta={'requestId': context.request_id, 'risk': tool.get('risk')},
+            )
         try:
-            payload = tool['handler'](arguments)
+            if (
+                tool.get('requires_confirmation')
+                and not (context and context.confirmation_bypass)
+            ):
+                from content.mcp.confirmation import preview_sensitive_action
+                payload = preview_sensitive_action(tool, arguments)
+            else:
+                payload = tool['handler'](arguments)
         except ToolError as exc:
             logger.info('[MCP] tool %s rejected: %s', name, exc)
-            return _text_result(msg_id, str(exc), is_error=True)
+            return _text_result(
+                msg_id,
+                str(exc),
+                is_error=True,
+                error={
+                    'code': exc.code,
+                    'message': str(exc),
+                    'details': exc.details,
+                },
+                meta={
+                    'requestId': context.request_id if context else '',
+                    'risk': tool.get('risk'),
+                },
+            )
         except Exception:
             logger.exception('[MCP] tool %s crashed', name)
             return _text_result(
                 msg_id,
                 'Error interno ejecutando la herramienta. Revisa los logs del servidor.',
                 is_error=True,
+                error={
+                    'code': 'INTERNAL_ERROR',
+                    'message': 'Error interno ejecutando la herramienta.',
+                    'details': {},
+                },
+                meta={
+                    'requestId': context.request_id if context else '',
+                    'risk': tool.get('risk'),
+                },
             )
         logger.info('[MCP] tool %s executed ok', name)
-        return _text_result(msg_id, payload)
+        return _text_result(
+            msg_id,
+            payload,
+            meta={
+                'requestId': context.request_id if context else '',
+                'risk': tool.get('risk'),
+            },
+        )
 
     return _error(msg_id, METHOD_NOT_FOUND, f'Method not supported: {method}')

@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-09-02 — paridad operativa MCP lista para integrar:** los 16 conectores
+registrados —10 canónicos y 6 compatibles— exponen el Panel por área con
+credenciales acotadas, actor técnico, riesgo explícito, resultados estructurados,
+auditoría, ETags, uploads firmados y confirmaciones de un solo uso. Documentos
+conserva edición Markdown de borradores y bloquea snapshots inmutables;
+Comunicaciones, Comercial, Proyectos, Contenido, Tareas, Operaciones y los tres
+dominios contables reutilizan las mismas vistas, serializers y servicios del
+Panel. Verificación final: fundamento 25 casos, protocolo 14, contratos de rutas
+12, store 8 y E2E MCP 10/10; build Nuxt, Django check y migraciones sin drift en
+verde. El flow `admin-mcps` cubre display/success/error/failure. No se activó ni
+rotó ninguna credencial de producción; ese corte sigue siendo deliberadamente
+posterior al merge y despliegue.
+
 **2026-09-03 — workspace contractual de financiación listo para integrar:** la
 penalización por mora queda como condición documental —sin escrituras automáticas
 sobre Hosting—, la modalidad de cinco años ofrece un segundo ciclo sujeto a pago

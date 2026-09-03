@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Listo para integrar — paridad operativa MCP 2026-09-02:** los conectores
+> actuales comparten registro, credenciales acotadas, actor técnico, auditoría,
+> concurrencia, uploads y confirmación de efectos sensibles; Documentos conserva
+> edición Markdown de borradores y el acceso operativo se completa por áreas,
+> con Contabilidad dividida en ledger, billing y cards. Se mantienen los slugs y
+> tokens existentes, los conectores nuevos nacen inactivos y la rotación queda
+> para el corte. Verificación: 25 casos del fundamento, 14 del protocolo, 12 de
+> rutas contractuales, 8 unitarios del store y 10 E2E MCP verdes; build, Django
+> check, migraciones sin drift y gate de los archivos tocados aprobados.
+
 > **Completado — workspace de otrosíes de financiación (2026-09-03):** condición
 > de mora y segundo ciclo publicados; plantilla, acuerdo, numeración e historial
 > persistidos; API administrativa, storage privado, borrador PDF poblado,

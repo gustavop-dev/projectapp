@@ -497,3 +497,256 @@ MCP_MODEL_CONTRACTS = {
         ),
     ),
 }
+
+
+def _contracts_from(profile, *model_labels):
+    """Reuse a reviewed legacy contract in a canonical area connector."""
+    by_label = {
+        contract.model_label: contract
+        for contract in MCP_MODEL_CONTRACTS[profile]
+    }
+    return tuple(by_label[label] for label in model_labels)
+
+
+PROJECT_CONTRACTS = (
+    _contract(
+        'accounts.Project',
+        read_only='id created_at updated_at',
+        read_write=(
+            'name description client status current_state state_review_required '
+            'progress start_date estimated_end_date payment_milestones hosting_tiers '
+            'hosting_start_date production_url staging_url admin_url repository_url '
+            'admin_username'
+        ),
+        excluded=_excluded(
+            'Credencial cifrada del sitio: nunca se expone ni se modifica por MCP.',
+            'admin_password_encrypted',
+        ),
+    ),
+    _contract(
+        'content.DocumentStateGroup',
+        read_only='id created_at updated_at',
+        read_write='catalog name selection_mode order is_active',
+    ),
+    _contract(
+        'content.DocumentState',
+        read_only='id created_by updated_by created_at updated_at',
+        read_write=(
+            'catalog name description normalized_name slug color group order is_active '
+            'system_key operational_effect show_in_document_manager merged_into '
+            'incompatibilities'
+        ),
+    ),
+    _contract(
+        'content.DocumentStateEpisode',
+        read_only='id opened_by closed_by created_at updated_at',
+        read_write='project state opened_at closed_at outcome close_note origin',
+        excluded=_excluded(
+            'El Gestor de Proyectos opera únicamente episodios cuyo propietario es un proyecto.',
+            'document',
+        ),
+    ),
+)
+
+
+COMMERCIAL_CATALOG_CONTRACTS = (
+    _contract(
+        'content.AdditionalModuleCategory',
+        read_only='id slug created_at updated_at',
+        read_write='name_es name_en order is_active',
+    ),
+    _contract(
+        'content.AdditionalModule',
+        read_only='id slug created_at updated_at',
+        read_write=(
+            'category icon order is_active name_es name_en summary_es summary_en '
+            'what_is_es what_is_en purpose_es purpose_en problems_solved_es '
+            'problems_solved_en integrations_es integrations_en '
+            'implementation_requirements_es implementation_requirements_en'
+        ),
+    ),
+    _contract(
+        'content.AdditionalModuleShareLink',
+        read_only=(
+            'id uuid created_by revoked_at view_count first_viewed_at last_viewed_at '
+            'created_at'
+        ),
+        read_write='recipient_label client language is_active selected_modules',
+    ),
+    _contract(
+        'content.HourPackage',
+        read_only='id created_at updated_at',
+        read_write=(
+            'nationality name_es name_en note_es note_en hours hourly_rate '
+            'discount_percent is_active order'
+        ),
+    ),
+    _contract(
+        'content.HourPackageSettings',
+        read_only='id created_at updated_at',
+        read_write='default_view_mode base_rate_col base_rate_ext base_rate_usa',
+    ),
+)
+
+
+CONTENT_CATALOG_CONTRACTS = (
+    _contract(
+        'content.PortfolioWork',
+        read_only='id slug created_at updated_at',
+        read_write=(
+            'title_en title_es cover_image cover_image_url project_url '
+            'category_title_en category_title_es excerpt_es excerpt_en '
+            'content_json_es content_json_en meta_title_es meta_title_en '
+            'meta_description_es meta_description_en meta_keywords_es '
+            'meta_keywords_en is_published published_at order'
+        ),
+    ),
+    _contract(
+        'content.QRCard',
+        read_only='id created_at updated_at',
+        read_write='name destination_url destination_type linktree is_active',
+    ),
+    _contract(
+        'content.Linktree',
+        read_only='id created_at updated_at',
+        read_write=(
+            'handle name kind display_name role bio avatar claim_line_1 claim_line_2 '
+            'badge_text footer_tagline show_brand_header pwa_enabled pwa_title '
+            'pwa_description vcard_first_name vcard_last_name vcard_org vcard_email '
+            'vcard_tel vcard_url is_active'
+        ),
+    ),
+    _contract(
+        'content.LinktreeButton',
+        read_only='id',
+        read_write='linktree tier action label href icon order is_active',
+    ),
+)
+
+
+LEDGER_CATALOG_CONTRACTS = (
+    _contract(
+        'content.RecurringCategory',
+        read_only='id slug created_at updated_at',
+        read_write='name order',
+    ),
+)
+
+
+BILLING_CATALOG_CONTRACTS = (
+    _contract(
+        'content.HostingCycle',
+        read_only='id created_by created_at updated_at',
+        read_write=(
+            'hosting_record modality amount paid_at period_from period_to '
+            'cycles_represented notes'
+        ),
+        excluded=_excluded(_AUDIT_INTERNAL, 'source_ref'),
+    ),
+    _contract(
+        'content.Document',
+        read_only=(
+            'id uuid generated_file public_number subtotal discount_total tax_total '
+            'total created_by updated_by signed_at signed_by signature_name '
+            'signature_ip signature_user_agent created_at updated_at'
+        ),
+        read_write=(
+            'document_type folder project deliverable client_user issuer hosting_record '
+            'income_record source_proposal source_version issue_date due_date city '
+            'currency notes terms_and_conditions template_version metadata '
+            'commercial_status title slug status is_client_visible requires_signature '
+            'is_archived archived_at archived_via_folder'
+        ),
+        excluded=_excluded(
+            'Campos editoriales del Gestor de Documentos, ajenos al flujo de cobro.',
+            'content_markdown content_json client_name client_email_subject '
+            'client_email_body client_whatsapp_message client_custom_notes language '
+            'cover_type include_portada include_subportada include_contraportada '
+            'template_style tags',
+        ),
+    ),
+    _contract(
+        'content.DocumentCollectionAccount',
+        read_only='document created_at updated_at',
+        read_write=(
+            'billing_concept payment_term_type payment_term_days payer_name '
+            'payer_identification payer_identification_type payer_address payer_phone '
+            'payer_email customer_name customer_identification '
+            'customer_identification_type customer_contact_name customer_email '
+            'customer_address customer_project_name observations support_reference'
+        ),
+    ),
+    _contract(
+        'content.DocumentItem',
+        read_only='id line_total created_at updated_at',
+        read_write=(
+            'document position item_type description quantity unit_price '
+            'discount_amount tax_amount period_start period_end reference_type '
+            'reference_id'
+        ),
+    ),
+    _contract(
+        'content.DocumentPaymentMethod',
+        read_only='id created_at updated_at',
+        read_write=(
+            'document payment_method_type bank_name account_type account_number '
+            'account_holder_name account_holder_identification payment_instructions '
+            'is_primary'
+        ),
+    ),
+    _contract(
+        'content.IssuerProfile',
+        read_only='id created_at updated_at',
+        read_write=(
+            'name legal_name identification_type identification_number email phone '
+            'address city country logo public_number_prefix default_payment_methods'
+        ),
+    ),
+)
+
+
+MCP_MODEL_CONTRACTS.update({
+    # Read-only aggregate; every source model remains governed by its domain
+    # connector contract instead of receiving a second mutation contract here.
+    'operations': (),
+    'commercial': (
+        MCP_MODEL_CONTRACTS['clients']
+        + MCP_MODEL_CONTRACTS['proposals']
+        + MCP_MODEL_CONTRACTS['diagnostics']
+        + COMMERCIAL_CATALOG_CONTRACTS
+    ),
+    'projects': PROJECT_CONTRACTS,
+    'content': (
+        MCP_MODEL_CONTRACTS['blog']
+        + MCP_MODEL_CONTRACTS['linkedin-personal']
+        + CONTENT_CATALOG_CONTRACTS
+    ),
+    'accounting-ledger': (
+        _contracts_from(
+            'accounting',
+            'content.IncomeRecord',
+            'content.ExpenseRecord',
+            'content.PocketMovement',
+            'content.RecurringPayment',
+            'content.AdsSpendRecord',
+        )
+        + LEDGER_CATALOG_CONTRACTS
+    ),
+    'accounting-billing': (
+        _contracts_from(
+            'accounting',
+            'content.HostingRecord',
+            'content.NotificationRecipient',
+            'content.AccountingSettings',
+        )
+        + BILLING_CATALOG_CONTRACTS
+    ),
+    'accounting-cards': _contracts_from(
+        'accounting',
+        'content.CardBalanceSnapshot',
+        'content.CreditCard',
+        'content.CreditCardStatement',
+        'content.CreditCardTransaction',
+        'content.MerchantAlias',
+    ),
+})

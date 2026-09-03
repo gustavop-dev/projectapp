@@ -182,9 +182,10 @@ CATALOG_MODELS = {
 }
 
 EXEMPT_MODELS = {
-    # Ephemeral verification material and real OAuth credentials must never be
-    # fabricated as reusable demo secrets.
+    # Ephemeral verification/confirmation/upload material and real OAuth/MCP
+    # credentials must never be fabricated as reusable demo secrets.
     'accounts.VerificationCode', 'content.LinkedInToken',
+    'content.McpActionIntent', 'content.McpCredential', 'content.McpUpload',
 }
 
 
