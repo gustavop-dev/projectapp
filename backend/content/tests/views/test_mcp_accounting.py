@@ -85,7 +85,7 @@ class TestAccountingMcpToolList:
 @pytest.mark.django_db
 class TestAccountingMcpCrud:
     def test_create_income_attributed_to_actor(self, api_client, accounting_connector, mcp_superuser):
-        _, token = accounting_connector
+        connector, token = accounting_connector
         response = _call(api_client, token, 'create_income', {
             'concept': 'Kore v2 anticipo',
             'kind': 'liquid',
@@ -97,7 +97,11 @@ class TestAccountingMcpCrud:
         })
         assert response.data['result']['isError'] is False
         record = IncomeRecord.objects.get(concept='Kore v2 anticipo')
-        assert record.created_by_id == mcp_superuser.id
+        credential = connector.credentials.select_related('actor').get(label='Default')
+        assert credential.actor_id != mcp_superuser.id
+        assert credential.actor.username == 'mcp_accounting'
+        assert credential.actor.has_usable_password() is False
+        assert record.created_by_id == credential.actor_id
 
     def test_create_income_without_a_business_line_errors(
         self, api_client, accounting_connector, mcp_superuser,
@@ -118,16 +122,21 @@ class TestAccountingMcpCrud:
         assert 'origin' in result['content'][0]['text']
         assert not IncomeRecord.objects.filter(concept='Sin línea').exists()
 
-    def test_create_income_without_superuser_errors(self, api_client, accounting_connector):
-        _, token = accounting_connector
+    def test_create_income_bootstraps_service_actor_without_human_superuser(
+        self, api_client, accounting_connector,
+    ):
+        connector, token = accounting_connector
         response = _call(api_client, token, 'create_income', {
             'concept': 'Sin actor', 'kind': 'liquid',
             'period_date': '2026-04', 'total_amount': '1000',
-            # Complete on purpose: the refusal under test is the missing
-            # superuser, not a payload the serializer would reject anyway.
             'origin': 'development',
         })
-        assert response.data['result']['isError'] is True
+        assert response.data['result']['isError'] is False
+        credential = connector.credentials.select_related('actor').get(label='Default')
+        assert credential.actor.username == 'mcp_accounting'
+        assert credential.actor.has_usable_password() is False
+        record = IncomeRecord.objects.get(concept='Sin actor')
+        assert record.created_by_id == credential.actor_id
 
     def test_list_income_filters_by_q(self, api_client, accounting_connector, make_income):
         make_income(concept='Alfa ingreso')

@@ -6869,7 +6869,7 @@ Management UI for remote MCP connectors that expose panel modules to Claude (cla
   - [Success] Crear, editar, rotar, revocar y activar producen el estado observable correspondiente.
   - [Error] Un staff no superusuario es redirigido; etiqueta vacía o alcance custom vacío permanecen bloqueados en cliente.
   - [Failure] Un 4xx/5xx conserva el formulario o estado anterior y muestra el detalle accionable.
-  - [Security] El plaintext no puede recuperarse al recargar; sólo quedan prefijo y hash. Las escrituras —incluidos `created_by` y `linked_by` de los hilos documentales— se atribuyen a un principal técnico no interactivo del conector, nunca al superusuario humano del Panel.
+  - [Security] El plaintext no puede recuperarse al recargar; sólo quedan prefijo y hash. Las escrituras —incluidos `created_by` y `linked_by` de hilos documentales, ingresos y extractos— se atribuyen a un principal técnico no interactivo del conector, nunca al superusuario humano del Panel.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-mcps.spec.js`
 

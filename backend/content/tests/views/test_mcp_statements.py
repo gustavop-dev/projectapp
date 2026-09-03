@@ -98,14 +98,18 @@ class TestCreateStatementTool:
     def test_creates_draft_with_transactions(
         self, api_client, accounting_connector, mcp_superuser,
     ):
-        _, token = accounting_connector
+        connector, token = accounting_connector
         response = _call(api_client, token, 'create_statement', CREATE_ARGS)
         result = response.data['result']
         assert result['isError'] is False, result
         statement = CreditCardStatement.objects.get()
+        credential = connector.credentials.select_related('actor').get(label='Default')
         assert statement.status == 'draft'
         assert statement.transactions.count() == 2
-        assert statement.created_by_id == mcp_superuser.id
+        assert credential.actor_id != mcp_superuser.id
+        assert credential.actor.username == 'mcp_accounting'
+        assert credential.actor.has_usable_password() is False
+        assert statement.created_by_id == credential.actor_id
 
     def test_duplicate_returns_tool_error_with_existing_id(
         self, api_client, accounting_connector, mcp_superuser,
