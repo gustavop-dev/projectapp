@@ -71,6 +71,31 @@ def test_delete_fake_data_removes_private_financing_pdf(tmp_path, monkeypatch):
     assert not field.storage.exists(signed_name)
 
 
+def test_delete_fake_data_removes_linked_financing_cycles(tmp_path, monkeypatch):
+    """Fixture cleanup dissolves the protected link between financing cycles."""
+    field = FinancingAgreement._meta.get_field('signed_document')
+    monkeypatch.setattr(
+        field,
+        'storage',
+        FileSystemStorage(location=tmp_path, base_url=None),
+    )
+    _seed_clients()
+    call_command(
+        'create_fake_financing',
+        '--count', '4',
+        '--seed', '19',
+        '--anchor-date', '2026-08-26',
+        verbosity=0,
+    )
+    assert FinancingAgreement.objects.filter(
+        previous_agreement__isnull=False,
+    ).exists()
+
+    call_command('delete_fake_data', '--confirm', verbosity=0)
+
+    assert not FinancingAgreement.objects.exists()
+
+
 def test_financing_seed_builds_legal_snapshot_for_incomplete_client(
     make_client_profile,
 ):

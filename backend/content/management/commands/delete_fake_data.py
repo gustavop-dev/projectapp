@@ -74,6 +74,9 @@ class Command(BaseCommand):
         ).exclude(signed_document__isnull=True)
         for agreement in signed_documents.iterator():
             agreement.signed_document.delete(save=False)
+        # A full development reset removes both financing cycles together.
+        # Dissolve their protected self-reference before deleting the roots.
+        FinancingAgreement.objects.update(previous_agreement=None)
         deleted, _ = FinancingAgreement.objects.all().delete()
         FinancingAgreementNumberSequence.objects.all().delete()
         self.stdout.write(self.style.SUCCESS(
