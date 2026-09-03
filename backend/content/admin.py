@@ -48,6 +48,10 @@ from .models import (
     LinkedInToken,
     LinkedInPost,
     Task,
+    FinancingAgreement,
+    FinancingAgreementEvent,
+    FinancingAgreementNumberSequence,
+    FinancingAgreementTemplate,
 )
 
 logger = logging.getLogger(__name__)
@@ -432,6 +436,60 @@ admin_site.register(CompanySettings, CompanySettingsAdmin)
 admin_site.register(ProposalDocument)
 admin_site.register(ContractTemplate)
 admin_site.register(ConfidentialityTemplate)
+@admin.register(FinancingAgreement, site=admin_site)
+class FinancingAgreementAdmin(admin.ModelAdmin):
+    list_display = (
+        'number', 'client_full_name', 'project_name', 'modality',
+        'cycle_number', 'status', 'is_archived', 'updated_at',
+    )
+    list_filter = ('status', 'modality', 'cycle_number', 'is_archived')
+    search_fields = ('number', 'client_full_name', 'client_company', 'project_name')
+
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FinancingAgreementEvent, site=admin_site)
+class FinancingAgreementEventAdmin(admin.ModelAdmin):
+    list_display = ('agreement', 'event_type', 'actor', 'created_at')
+    list_filter = ('event_type',)
+    search_fields = ('agreement__number', 'agreement__client_full_name')
+
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FinancingAgreementNumberSequence, site=admin_site)
+class FinancingAgreementNumberSequenceAdmin(admin.ModelAdmin):
+    list_display = ('year', 'last_number', 'updated_at')
+
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FinancingAgreementTemplate, site=admin_site)
+class FinancingAgreementTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'version', 'is_default', 'is_active', 'updated_at')
+    list_filter = ('is_default', 'is_active')
+    search_fields = ('name',)
 
 admin_site.register(DocumentFolder, DocumentFolderAdmin)
 admin_site.register(DocumentItem)

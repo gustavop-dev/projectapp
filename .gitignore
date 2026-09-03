@@ -23,6 +23,7 @@ __pycache__/
 !/media/temp/
 backend/media/*
 !backend/media/temp/
+backend/private_media/
 
 # Test results (generated)
 test-results/

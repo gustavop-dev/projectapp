@@ -1,5 +1,12 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico validado — otrosíes de financiación (2026-09-03):** la
+> ampliación añade persistencia y endpoints exclusivamente administrativos;
+> mantiene públicos sólo el programa bilingüe y su booklet. Los PDFs firmados
+> se guardan fuera de `MEDIA_ROOT` público y viajan únicamente mediante una
+> vista autenticada. El calendario conserva doce cuotas positivas, ordenadas,
+> únicas, con vencimiento entre los días 1 y 5 y suma exacta al saldo financiado.
+
 > **Contrato técnico de financiación — 2026-09-02:**
 > `GET /api/financing/public/?lang=es|en` entrega el programa informativo y
 > `GET /api/financing/public/pdf/?lang=es|en` responde el PDF localizado con

@@ -46,10 +46,10 @@
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
         :aria-label="isCatalog
           ? 'Limpiar búsqueda'
-          : ($t ? $t('clients.autocomplete.clear') : 'Limpiar')"
+          : (clearLabel || ($t ? $t('clients.autocomplete.clear') : 'Limpiar'))"
         :title="isCatalog
           ? 'Limpiar búsqueda'
-          : ($t ? $t('clients.autocomplete.clear') : 'Limpiar')"
+          : (clearLabel || ($t ? $t('clients.autocomplete.clear') : 'Limpiar'))"
         @click="isCatalog ? clearCatalogFilter() : clearSelection()"
       >
         <BaseActionIcon action="clear" />
@@ -137,6 +137,7 @@ const props = defineProps({
   /** Pre-fill input when editing an existing proposal that already has a client. */
   initialLabel: { type: String, default: '' },
   placeholder: { type: String, default: 'Buscar cliente por nombre, email o empresa...' },
+  clearLabel: { type: String, default: '' },
   testId: { type: String, default: 'client-autocomplete-input' },
   /**
    * Los layouts de barra pintan su propia línea de estado y necesitan que el

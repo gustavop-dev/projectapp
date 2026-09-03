@@ -121,3 +121,9 @@ from .additional_module import (
     AdditionalModuleShareLink,
     AdditionalModuleShareView,
 )
+from .financing_agreement import (
+    FinancingAgreement,
+    FinancingAgreementEvent,
+    FinancingAgreementNumberSequence,
+    FinancingAgreementTemplate,
+)

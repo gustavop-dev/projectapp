@@ -310,6 +310,15 @@ from content.views.financing import (
     public_financing_program,
     public_financing_program_pdf,
 )
+from content.views.financing_agreements import (
+    financing_agreement_action,
+    financing_agreement_detail,
+    financing_agreement_draft_pdf,
+    financing_agreement_list,
+    financing_agreement_signed_pdf,
+    financing_agreement_templates,
+    financing_client_context,
+)
 
 urlpatterns = [
     path('contacts/', contact_list, name='contact-list'),
@@ -325,6 +334,41 @@ urlpatterns = [
         'financing/public/pdf/',
         public_financing_program_pdf,
         name='public-financing-program-pdf',
+    ),
+    path(
+        'financing/agreements/',
+        financing_agreement_list,
+        name='financing-agreement-list',
+    ),
+    path(
+        'financing/agreements/templates/',
+        financing_agreement_templates,
+        name='financing-agreement-templates',
+    ),
+    path(
+        'financing/agreements/client-context/',
+        financing_client_context,
+        name='financing-client-context',
+    ),
+    path(
+        'financing/agreements/<int:agreement_id>/',
+        financing_agreement_detail,
+        name='financing-agreement-detail',
+    ),
+    path(
+        'financing/agreements/<int:agreement_id>/draft-pdf/',
+        financing_agreement_draft_pdf,
+        name='financing-agreement-draft-pdf',
+    ),
+    path(
+        'financing/agreements/<int:agreement_id>/signed-pdf/',
+        financing_agreement_signed_pdf,
+        name='financing-agreement-signed-pdf',
+    ),
+    path(
+        'financing/agreements/<int:agreement_id>/<slug:action>/',
+        financing_agreement_action,
+        name='financing-agreement-action',
     ),
 
     # Additional modules catalog — public

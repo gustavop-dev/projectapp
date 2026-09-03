@@ -131,6 +131,7 @@ SEEDED_MODELS = {
     'content.DocumentFolder', 'content.DocumentState',
     'content.DocumentStateGroup', 'content.DocumentTag', 'content.EmailLog',
     'content.EmailTemplateConfig', 'content.ExpenseRecord',
+    'content.FinancingAgreement',
     'content.HostingRecord', 'content.HourPackage', 'content.IncomeRecord',
     'content.IssuerProfile', 'content.LinkedInPost', 'content.Linktree',
     'content.McpConnector', 'content.McpRequestLog', 'content.MerchantAlias',
@@ -161,6 +162,8 @@ DERIVED_MODELS = {
     'content.DocumentStateEpisodeEvent', 'content.EmailAttachmentSnapshot',
     'content.EmailBody', 'content.EmailDeliverySnapshot',
     'content.EmailLinkSnapshot', 'content.EmailLogTarget',
+    'content.FinancingAgreementEvent',
+    'content.FinancingAgreementNumberSequence',
     'content.HostingCycle', 'content.LinktreeButton',
     'content.ProposalAlert', 'content.ProposalChangeLog',
     'content.ProposalDocument', 'content.ProposalProjectStage',
@@ -174,7 +177,8 @@ CATALOG_MODELS = {
     'content.AccountingSettings', 'content.AdditionalModule',
     'content.AdditionalModuleCategory', 'content.ConfidentialityTemplate',
     'content.ContractTemplate', 'content.DiagnosticDefaultConfig',
-    'content.DocumentType', 'content.HourPackageSettings',
+    'content.DocumentType', 'content.FinancingAgreementTemplate',
+    'content.HourPackageSettings',
 }
 
 EXEMPT_MODELS = {

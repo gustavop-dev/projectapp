@@ -1,0 +1,10 @@
+{
+  "id": "admin-financing-agreement-second-cycle",
+  "name": "Admin Financing Agreement Second Cycle",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "After the first five-year financing cycle is certified as fully paid, admin performs the manual risk approval that creates one new twelve-month draft; the second cycle keeps the original five-year exclusivity dates and is unavailable to three-year agreements or duplicate attempts.",
+  "expectedSpecs": 5,
+  "outcomes": ["display", "success", "error", "failure"]
+}

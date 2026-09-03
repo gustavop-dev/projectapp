@@ -1,5 +1,14 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-03 — financiación contractual:** el programa incorpora una
+> quinta condición común de pago dentro de los cinco primeros
+> días calendario y aumento permanente, acumulativo y automático del 1 % sobre
+> el hosting vigente por cada cuota en mora. La alianza de cinco años habilita
+> hasta dos ciclos separados de financiación de doce meses; el segundo exige el
+> pago íntegro del primero y una nueva aprobación manual de riesgo, sin reiniciar
+> la exclusividad. Panel administra otrosíes poblados, calendarios editables,
+> PDF borrador y el ciclo de firma, activación, cierre, cancelación y archivo.
+
 > **Entrega 2026-09-02 — módulo informativo de financiación:** Project App
 > dispone de una experiencia comercial bilingüe para presentar alianzas de
 > financiación sujetas a evaluación previa. Explica 12 meses para financiar el

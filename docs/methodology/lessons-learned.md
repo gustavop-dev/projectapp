@@ -7,6 +7,12 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección validada 2026-09-03 — lo comercial y lo contractual comparten
+> reglas, no exposición:** la condición de mora y el beneficio del segundo ciclo
+> deben nacer del mismo dominio, pero sólo su explicación general es pública.
+> Identidad, valores, calendario, borradores poblados y documentos firmados
+> pertenecen a endpoints administrativos y a snapshots auditables.
+
 > **Lección 2026-09-02 — una oferta informativa necesita una sola fuente
 > comercial:** JSON público, vista de distribución y PDF deben proyectar el
 > mismo contenido canónico; duplicar copy entre capas convertiría una condición

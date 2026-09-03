@@ -88,6 +88,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Crear o editar un paquete de horas.',
     'Administrar, reordenar, seleccionar y compartir módulos adicionales.',
     'Copiar, abrir, descargar y previsualizar el módulo de financiación.',
+    'Crear, editar y gestionar el ciclo de vida de un otrosí de financiación.',
   ]),
   emails: module('emails', [
     'frontend/components/email/',

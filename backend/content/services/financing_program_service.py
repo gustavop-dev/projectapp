@@ -44,15 +44,18 @@ PROGRAM_CONTENT = {
                 'summary': (
                     'La opción de mayor continuidad: financiación, exclusividad, '
                     'custodia de código, calculadora de requerimientos y un paquete '
-                    'mensual de 60 horas incluido sin costo adicional.'
+                    'mensual de 60 horas incluido sin costo adicional. Cuando el '
+                    'primer ciclo se paga por completo, puede habilitar un segundo '
+                    'ciclo de 12 meses sujeto a una nueva evaluación de riesgo.'
                 ),
                 'exclusivity_years': 5,
+                'financing_cycles': 2,
                 'recommended': True,
                 'hour_package_included': True,
                 'highlights': [
-                    '12 meses de financiación al 0% de interés ordinario.',
+                    'Hasta dos ciclos separados de 12 meses al 0% de interés ordinario.',
+                    'El segundo exige pago íntegro del primero y una nueva aprobación.',
                     '60 horas disponibles cada mes desde la salida a producción.',
-                    'Continuidad técnica y comercial durante cinco años.',
                 ],
             },
             {
@@ -65,6 +68,7 @@ PROGRAM_CONTENT = {
                     'mensual de horas.'
                 ),
                 'exclusivity_years': 3,
+                'financing_cycles': 1,
                 'recommended': False,
                 'hour_package_included': False,
                 'highlights': [
@@ -156,6 +160,26 @@ PROGRAM_CONTENT = {
                     'Disponible únicamente en la opción de exclusividad a cinco años.',
                 ],
             },
+            {
+                'id': 'payment-discipline',
+                'number': '05',
+                'icon': '%',
+                'title': 'Pagos claros y cobertura del riesgo de impago',
+                'summary': (
+                    'Cada cuota se paga dentro de los primeros cinco días calendario '
+                    'del mes. Una cuota en mora aumenta en 1% el costo vigente del Hosting.'
+                ),
+                'commercial_reason': (
+                    'La regla hace visible desde el inicio el costo de incumplir y '
+                    'compensa gradualmente el riesgo que Project App. asume al entregar '
+                    'y operar antes de recuperar la totalidad de la inversión.'
+                ),
+                'highlights': [
+                    'El aumento se aplica por cada cuota que entre en mora.',
+                    'Los incrementos son acumulativos y permanentes.',
+                    'Opera automáticamente desde el vencimiento y no sustituye la cuota pendiente.',
+                ],
+            },
         ],
         'calculator': {
             'eyebrow': 'Transparencia para decidir',
@@ -218,6 +242,28 @@ PROGRAM_CONTENT = {
                     'El acuerdo formal define el calendario de pagos y las fechas de exigibilidad.',
                     'Mora, incumplimiento y costos derivados se rigen por el contrato firmado.',
                     'Impuestos, licencias y servicios de terceros no se entienden incluidos salvo mención expresa.',
+                ],
+            },
+            {
+                'id': 'late-payment-hosting',
+                'title': 'Mora y aumento del costo del Hosting',
+                'summary': 'La fecha y la consecuencia se conocen antes de firmar.',
+                'items': [
+                    'Cada cuota debe pagarse dentro de los primeros cinco días calendario del mes correspondiente.',
+                    'Por cada cuota en mora, el costo vigente del Hosting aumenta en 1%; los aumentos son acumulativos y permanentes.',
+                    'El aumento opera automáticamente desde el vencimiento, sin requerimiento previo, y no extingue la cuota pendiente.',
+                    'La aplicación operativa se documenta y audita; este módulo no modifica automáticamente registros de Hosting o contabilidad.',
+                ],
+            },
+            {
+                'id': 'second-cycle',
+                'title': 'Segundo ciclo en la alianza de cinco años',
+                'summary': 'La modalidad recomendada puede financiar una nueva etapa sin reiniciar la alianza.',
+                'items': [
+                    'La alianza de cinco años permite hasta dos ciclos separados de financiación de 12 meses.',
+                    'El segundo requiere que el primer ciclo esté pagado íntegramente y una nueva aprobación manual de riesgo.',
+                    'Una mora ya subsanada no impide por sí sola la evaluación del segundo ciclo.',
+                    'El segundo calendario debe terminar dentro de la vigencia original y no reinicia ni extiende la exclusividad.',
                 ],
             },
             {
@@ -321,15 +367,17 @@ PROGRAM_CONTENT = {
                 'summary': (
                     'The highest-continuity option: financing, exclusivity, code '
                     'custody, the requirement calculator, and a monthly 60-hour package '
-                    'included at no additional cost.'
+                    'included at no additional cost. Once the first cycle is fully '
+                    'paid, a second 12-month cycle may be approved after a new risk review.'
                 ),
                 'exclusivity_years': 5,
+                'financing_cycles': 2,
                 'recommended': True,
                 'hour_package_included': True,
                 'highlights': [
-                    '12-month financing at 0% ordinary interest.',
+                    'Up to two separate 12-month cycles at 0% ordinary interest.',
+                    'The second requires full payment of the first and a new approval.',
                     '60 hours available each month after production starts.',
-                    'Technical and commercial continuity for five years.',
                 ],
             },
             {
@@ -341,6 +389,7 @@ PROGRAM_CONTENT = {
                     'transparency, but does not include the monthly hour package.'
                 ),
                 'exclusivity_years': 3,
+                'financing_cycles': 1,
                 'recommended': False,
                 'hour_package_included': False,
                 'highlights': [
@@ -432,6 +481,26 @@ PROGRAM_CONTENT = {
                     'Available only with the five-year exclusivity option.',
                 ],
             },
+            {
+                'id': 'payment-discipline',
+                'number': '05',
+                'icon': '%',
+                'title': 'Clear payments and non-payment risk coverage',
+                'summary': (
+                    'Each installment is due within the first five calendar days of '
+                    'the month. A late installment increases the current Hosting cost by 1%.'
+                ),
+                'commercial_reason': (
+                    'The rule makes the cost of default visible from the outset and '
+                    'gradually offsets the risk Project App. assumes by delivering and '
+                    'operating before recovering the full investment.'
+                ),
+                'highlights': [
+                    'The increase applies for each installment that becomes overdue.',
+                    'Increases are cumulative and permanent.',
+                    'It applies automatically at default and does not replace the unpaid installment.',
+                ],
+            },
         ],
         'calculator': {
             'eyebrow': 'Transparency for better decisions',
@@ -493,6 +562,28 @@ PROGRAM_CONTENT = {
                     'The formal agreement defines the payment schedule and due dates.',
                     'Late payment, default, and related costs are governed by the signed contract.',
                     'Taxes, licenses, and third-party services are excluded unless expressly included.',
+                ],
+            },
+            {
+                'id': 'late-payment-hosting',
+                'title': 'Late payment and Hosting cost increase',
+                'summary': 'The deadline and consequence are known before signing.',
+                'items': [
+                    'Each installment must be paid within the first five calendar days of its corresponding month.',
+                    'For every overdue installment, the current Hosting cost increases by 1%; increases are cumulative and permanent.',
+                    'The increase applies automatically from the due date, without prior notice, and does not extinguish the unpaid installment.',
+                    'Operational application is documented and audited; this module does not automatically alter Hosting or accounting records.',
+                ],
+            },
+            {
+                'id': 'second-cycle',
+                'title': 'Second cycle in the five-year partnership',
+                'summary': 'The recommended option may finance a new stage without restarting the partnership.',
+                'items': [
+                    'The five-year partnership permits up to two separate 12-month financing cycles.',
+                    'The second requires full payment of the first and a new manual risk approval.',
+                    'A cured late payment does not by itself prevent the second-cycle review.',
+                    'The second schedule must finish within the original term and does not restart or extend exclusivity.',
                 ],
             },
             {
@@ -598,6 +689,8 @@ def serialize_financing_program(*, language):
         'language': language,
         'financing_months': FINANCING_MONTHS,
         'ordinary_interest_rate': '0%',
+        'late_hosting_increase_percent': '1%',
+        'installment_due_day_range': [1, 5],
         'canonical_path': (
             '/en-us/financing' if language == 'en' else '/es-co/financing'
         ),

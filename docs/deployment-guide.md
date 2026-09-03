@@ -157,6 +157,8 @@ REDIS_URL=redis://localhost:6379/5
 
 # Backups
 BACKUP_STORAGE_PATH=/var/backups/projectapp
+# Private signed financing addenda (never expose through an Nginx alias)
+PRIVATE_MEDIA_ROOT=/var/lib/projectapp/private-media
 
 # Monitoring
 ENABLE_SILK=false
@@ -197,6 +199,11 @@ Nginx (SSL termination)
                    ├── /admin/*   → Django admin
                    └── /*         → serve_nuxt (pre-rendered Nuxt pages)
 ```
+
+Los otrosíes de financiación firmados se guardan en `PRIVATE_MEDIA_ROOT`, fuera
+de `/media/`. La descarga pasa por una vista autenticada para administradores.
+El directorio debe incluirse en el respaldo de archivos del servidor y no debe
+tener un bloque `location` público en Nginx.
 
 Key settings in production:
 - `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` — prevents redirect loop

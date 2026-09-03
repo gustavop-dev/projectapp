@@ -4,6 +4,6 @@
   "module": "public",
   "roles": ["guest"],
   "priority": "P1",
-  "description": "Visitor follows the public footer link and reads both partnership options, the four financing conditions, calculator input/output, package rules and direct contact action.",
+  "description": "Visitor follows the public footer link and reads both partnership options, the five financing conditions, second-cycle benefit, calculator input/output, package rules and direct contact action.",
   "outcomes": ["display"]
 }
