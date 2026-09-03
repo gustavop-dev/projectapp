@@ -10,18 +10,27 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import Project, UserProfile
-from content.models import BusinessProposal, FinancingAgreement, FinancingAgreementTemplate
+from content.models import (
+    AccountingSettings,
+    BusinessProposal,
+    FinancingAgreement,
+    FinancingAgreementTemplate,
+    FinancingPolicyRevision,
+)
 from content.serializers.financing import (
     FinancingAgreementDetailSerializer,
     FinancingAgreementListSerializer,
     FinancingAgreementTemplateSerializer,
     FinancingAgreementWriteSerializer,
+    FinancingPolicyRevisionSerializer,
+    FinancingPolicyWriteSerializer,
 )
 from content.services.financing_agreement_pdf_service import FinancingAgreementPdfService
 from content.services.financing_agreement_service import (
     KNOWN_PLACEHOLDERS,
     FinancingAgreementTransitionError,
     FinancingAgreementValidationError,
+    apply_current_policy,
     archive_agreement,
     cancel_agreement,
     complete_agreement,
@@ -33,10 +42,17 @@ from content.services.financing_agreement_service import (
     restore_agreement,
     update_draft,
 )
+from content.services.financing_policy_service import (
+    FinancingPolicyValidationError,
+    create_policy_revision,
+)
 
 
 def _error_response(exc):
-    if isinstance(exc, FinancingAgreementValidationError):
+    if isinstance(
+        exc,
+        (FinancingAgreementValidationError, FinancingPolicyValidationError),
+    ):
         payload = dict(exc.errors)
         payload['code'] = exc.code
         return Response(payload, status=status.HTTP_400_BAD_REQUEST)
@@ -49,6 +65,7 @@ def _error_response(exc):
 def _agreement_queryset():
     return FinancingAgreement.objects.select_related(
         'client', 'client__user', 'source_proposal', 'source_project', 'template',
+        'policy_revision', 'policy_revision__created_by',
         'previous_agreement', 'second_cycle', 'ready_by', 'activated_by', 'completed_by',
         'cancelled_by', 'second_cycle_approved_by',
     )
@@ -69,6 +86,56 @@ def _parse_nonnegative_int(raw_value, default, maximum):
     return min(max(value, 0), maximum)
 
 
+def _serializer_context():
+    current = FinancingPolicyRevision.get_current()
+    return {'current_policy_id': current.pk if current else None}
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAdminUser])
+def financing_settings(request):
+    if request.method == 'POST':
+        serializer = FinancingPolicyWriteSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            create_policy_revision(serializer.validated_data, actor=request.user)
+        except FinancingPolicyValidationError as exc:
+            return _error_response(exc)
+
+    current = FinancingPolicyRevision.get_current()
+    history = FinancingPolicyRevision.objects.select_related('created_by')[:25]
+    accounting = AccountingSettings.load()
+    return Response({
+        'current': (
+            FinancingPolicyRevisionSerializer(current).data if current else None
+        ),
+        'history': FinancingPolicyRevisionSerializer(history, many=True).data,
+        'usd_exchange_rate': accounting.usd_exchange_rate,
+        'fixed_terms': {
+            'ordinary_interest_percent': 0,
+            'modalities': [
+                {
+                    'key': FinancingAgreement.Modality.FIVE_YEAR,
+                    'years': 5,
+                    'financing_cycles': 2,
+                    'monthly_hours_package': True,
+                },
+                {
+                    'key': FinancingAgreement.Modality.THREE_YEAR,
+                    'years': 3,
+                    'financing_cycles': 1,
+                    'monthly_hours_package': False,
+                },
+            ],
+        },
+    }, status=(
+        status.HTTP_201_CREATED
+        if request.method == 'POST'
+        else status.HTTP_200_OK
+    ))
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAdminUser])
 def financing_agreement_list(request):
@@ -81,7 +148,10 @@ def financing_agreement_list(request):
         except (FinancingAgreementValidationError, FinancingAgreementTransitionError) as exc:
             return _error_response(exc)
         return Response(
-            FinancingAgreementDetailSerializer(_detail_agreement(agreement.pk)).data,
+            FinancingAgreementDetailSerializer(
+                _detail_agreement(agreement.pk),
+                context=_serializer_context(),
+            ).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -136,7 +206,11 @@ def financing_agreement_list(request):
         'count': count,
         'limit': limit,
         'offset': offset,
-        'results': FinancingAgreementListSerializer(rows, many=True).data,
+        'results': FinancingAgreementListSerializer(
+            rows,
+            many=True,
+            context=_serializer_context(),
+        ).data,
         'stats': {
             'total_active_records': FinancingAgreement.objects.filter(
                 is_archived=False,
@@ -168,7 +242,10 @@ def financing_agreement_detail(request, agreement_id):
         except (FinancingAgreementValidationError, FinancingAgreementTransitionError) as exc:
             return _error_response(exc)
         agreement = _detail_agreement(agreement.pk)
-    return Response(FinancingAgreementDetailSerializer(agreement).data)
+    return Response(FinancingAgreementDetailSerializer(
+        agreement,
+        context=_serializer_context(),
+    ).data)
 
 
 @api_view(['POST'])
@@ -205,15 +282,23 @@ def financing_agreement_action(request, agreement_id, action):
         elif action == 'create-second-cycle':
             result = create_second_cycle(agreement, actor=request.user)
             return Response(
-                FinancingAgreementDetailSerializer(_detail_agreement(result.pk)).data,
+                FinancingAgreementDetailSerializer(
+                    _detail_agreement(result.pk),
+                    context=_serializer_context(),
+                ).data,
                 status=status.HTTP_201_CREATED,
             )
+        elif action == 'apply-current-policy':
+            result = apply_current_policy(agreement, actor=request.user)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
     except (FinancingAgreementValidationError, FinancingAgreementTransitionError) as exc:
         return _error_response(exc)
     return Response(
-        FinancingAgreementDetailSerializer(_detail_agreement(result.pk)).data,
+        FinancingAgreementDetailSerializer(
+            _detail_agreement(result.pk),
+            context=_serializer_context(),
+        ).data,
     )
 
 

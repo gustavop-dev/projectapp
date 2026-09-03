@@ -12,7 +12,7 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 const errors = ref({})
 
-onMounted(() => store.fetchTemplates())
+onMounted(() => Promise.all([store.fetchTemplates(), store.fetchSettings()]))
 
 async function createAgreement(payload) {
   errors.value = {}
@@ -44,6 +44,8 @@ async function createAgreement(payload) {
 
     <FinancingAgreementForm
       :templates="store.templates"
+      :policy="store.currentPolicy"
+      :exchange-rate="store.financingSettings?.usd_exchange_rate"
       :saving="store.isSaving"
       :errors="errors"
       @submit="createAgreement"

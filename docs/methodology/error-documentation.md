@@ -7,6 +7,14 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-03 — cambios comerciales podían reinterpretar borradores
+> y contratos anteriores:** guardar topes y porcentajes en una configuración
+> mutable habría cambiado retroactivamente su validación y su texto. Las reglas
+> viven ahora en revisiones append-only; cada otrosí congela política y tasa de
+> conversión, y sólo un borrador puede adoptar manualmente la versión vigente.
+> La adopción revalida montos, reconstruye el calendario y registra el cambio de
+> versión dentro de una transacción.
+
 > **Resuelto 2026-09-03 — previsión automática y hero contable poco legible:**
 > “Pendiente por cobrar” dependía del mes corriente aunque la probabilidad real
 > sólo la conoce el equipo, y el hero estiraba su columna alrededor de una

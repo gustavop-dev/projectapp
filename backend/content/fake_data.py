@@ -178,6 +178,7 @@ CATALOG_MODELS = {
     'content.AdditionalModuleCategory', 'content.ConfidentialityTemplate',
     'content.ContractTemplate', 'content.DiagnosticDefaultConfig',
     'content.DocumentType', 'content.FinancingAgreementTemplate',
+    'content.FinancingPolicyRevision',
     'content.HourPackageSettings',
 }
 

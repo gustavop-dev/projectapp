@@ -6,6 +6,7 @@ import pytest
 
 from content.models import FinancingAgreement, FinancingAgreementTemplate
 from content.services.financing_agreement_service import (
+    DEFAULT_FINANCING_TEMPLATE_MARKDOWN,
     FinancingAgreementTransitionError,
     FinancingAgreementValidationError,
     add_years,
@@ -28,14 +29,7 @@ def _template():
         name='Prueba',
         version=1,
         is_default=True,
-        content_markdown=(
-            '{agreement_number} {client_full_name} {client_id_type} '
-            '{client_id_number} {contractor_full_name} {contractor_id_type} '
-            '{contractor_id_number} {original_contract_reference} '
-            '{original_contract_date} {project_name} {financed_scope} '
-            '{financed_balance} {installment_schedule} {hosting_value} '
-            '{modality_label} {modality_terms} {partnership_end_date}'
-        ),
+        content_markdown=DEFAULT_FINANCING_TEMPLATE_MARKDOWN,
     )
 
 
@@ -49,8 +43,8 @@ def _agreement_data(client, template, **overrides):
         'modality': FinancingAgreement.Modality.FIVE_YEAR,
         'partnership_start_date': date(2026, 2, 1),
         'currency': 'COP',
-        'total_value': Decimal('12000000.00'),
-        'initial_payment': Decimal('0.00'),
+        'total_value': Decimal('25000000.00'),
+        'initial_payment': Decimal('5000000.00'),
         'hosting_value': Decimal('500000.00'),
         'hosting_period': FinancingAgreement.HostingPeriod.MONTHLY,
         'first_installment_date': date(2026, 3, 5),
@@ -95,7 +89,7 @@ def test_mark_ready_freezes_numbered_legal_snapshot(
     assert ready.number.startswith('OFIN-')
     assert ready.status == FinancingAgreement.Status.READY
     assert 'Ana Cliente' in ready.resolved_contract_markdown
-    assert '12.000.000,00 COP' in ready.resolved_contract_markdown
+    assert '20.000.000,00 COP' in ready.resolved_contract_markdown
     assert ready.resolved_contract_sha256 == hashlib.sha256(
         ready.resolved_contract_markdown.encode('utf-8'),
     ).hexdigest()
@@ -134,8 +128,8 @@ def test_second_cycle_update_preserves_original_partnership_end(
         second,
         {
             'partnership_start_date': first.partnership_start_date,
-            'total_value': Decimal('6000000.00'),
-            'initial_payment': Decimal('0.00'),
+            'total_value': Decimal('25000000.00'),
+            'initial_payment': Decimal('5000000.00'),
             'first_installment_date': date(2028, 3, 5),
             'financed_scope': 'Segunda fase del producto.',
         },

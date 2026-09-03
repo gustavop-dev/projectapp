@@ -15,7 +15,8 @@ const router = useRouter()
 const notify = usePanelNotify()
 const agreementsStore = useFinancingAgreementsStore()
 
-const activeSection = ref(route.query.tab === 'agreements' ? 'agreements' : 'program')
+const allowedTabs = new Set(['program', 'agreements', 'settings'])
+const activeSection = ref(allowedTabs.has(route.query.tab) ? route.query.tab : 'program')
 const isEnglish = computed(() => locale.value.startsWith('en'))
 const language = computed(() => (isEnglish.value ? 'en' : 'es'))
 const program = ref(null)
@@ -26,6 +27,7 @@ const filters = ref({ q: '', status: '', modality: '', archived: 'false' })
 const sectionOptions = computed(() => [
   { value: 'program', label: t('financing.programTab'), testId: 'financing-tab-program' },
   { value: 'agreements', label: t('financing.agreementsTab'), testId: 'financing-tab-agreements' },
+  { value: 'settings', label: t('financing.settingsTab'), testId: 'financing-tab-settings' },
 ])
 const publicPath = computed(() => (isEnglish.value ? '/en-us/financing' : '/es-co/financing'))
 const publicUrl = computed(() => `https://projectapp.co${publicPath.value}`)
@@ -68,12 +70,20 @@ async function loadAgreements() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadProgram(), loadAgreements()])
+  await Promise.all([
+    loadProgram(),
+    loadAgreements(),
+    agreementsStore.fetchSettings(),
+  ])
 })
 watch(language, loadProgram)
 watch(activeSection, (value) => {
-  router.replace({ query: { ...route.query, tab: value === 'agreements' ? 'agreements' : undefined } })
+  router.replace({ query: { ...route.query, tab: value === 'program' ? undefined : value } })
 })
+
+async function handlePolicyPublished() {
+  await Promise.all([loadProgram(), loadAgreements()])
+}
 
 async function copyPublicUrl() {
   try {
@@ -159,6 +169,23 @@ function modalityLabel(value, fallback = '') {
         <h2 id="financing-preview-title" class="border-b border-border-default bg-surface px-5 py-4 text-lg font-medium text-text-brand">{{ t('financing.previewTitle') }}</h2>
         <FinancingProgramView :program="program" :download-url="pdfUrl" :language="language" :floating-actions="false" @change-language="changeLanguage" />
       </section>
+    </template>
+
+    <template v-else-if="activeSection === 'settings'">
+      <BaseAlert
+        v-if="agreementsStore.settingsError && !agreementsStore.financingSettings"
+        class="mt-6"
+        variant="danger"
+        role="alert"
+      >
+        <p class="font-medium">{{ t('financing.settings.loadError') }}</p>
+        <BaseButton class="mt-3" size="sm" variant="secondary" @click="agreementsStore.fetchSettings()">{{ t('financing.settings.retry') }}</BaseButton>
+      </BaseAlert>
+      <FinancingPolicySettings
+        v-else
+        :settings="agreementsStore.financingSettings"
+        @published="handlePolicyPublished"
+      />
     </template>
 
     <template v-else>

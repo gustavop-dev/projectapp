@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección verificada 2026-09-03 — una política comercial editable necesita
+> identidad temporal:** topes, porcentajes, mora y calendario forman parte del
+> significado legal de un otrosí. Una fila mutable sirve para preferencias, no
+> para reglas contractuales. La revisión inmutable, el `PROTECT`, la tasa USD
+> congelada y la adopción opt-in de borradores permiten actualizar la oferta sin
+> reescribir acuerdos históricos ni confundir lo vigente con lo pactado.
+
 > **Lección 2026-09-03 — una previsión humana necesita dos ejes y un dueño de
 > cierre:** estar en la lista y la confianza estimada no son el mismo dato; unirlos
 > impediría conservar candidatos aún no clasificados o retirar temporalmente uno

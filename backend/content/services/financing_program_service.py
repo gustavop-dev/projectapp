@@ -4,10 +4,13 @@ import copy
 from urllib.parse import quote
 
 from content.models import HourPackage, Nationality
+from content.services.financing_policy_service import (
+    current_policy,
+    minimum_initial_payment_percent,
+)
 
 
 WHATSAPP_NUMBER = '573238122373'
-FINANCING_MONTHS = 12
 INCLUDED_PACKAGE_HOURS = 60
 
 
@@ -167,7 +170,7 @@ PROGRAM_CONTENT = {
                 'title': 'Pagos claros y cobertura del riesgo de impago',
                 'summary': (
                     'Cada cuota se paga dentro de los primeros cinco días calendario '
-                    'del mes. Una cuota en mora aumenta en 1% el costo vigente del Hosting.'
+                    'del mes. Una cuota en mora aumenta en 2% el costo vigente del Hosting.'
                 ),
                 'commercial_reason': (
                     'La regla hace visible desde el inicio el costo de incumplir y '
@@ -250,7 +253,7 @@ PROGRAM_CONTENT = {
                 'summary': 'La fecha y la consecuencia se conocen antes de firmar.',
                 'items': [
                     'Cada cuota debe pagarse dentro de los primeros cinco días calendario del mes correspondiente.',
-                    'Por cada cuota en mora, el costo vigente del Hosting aumenta en 1%; los aumentos son acumulativos y permanentes.',
+                    'Por cada cuota en mora, el costo vigente del Hosting aumenta en 2%; los aumentos son acumulativos y permanentes.',
                     'El aumento opera automáticamente desde el vencimiento, sin requerimiento previo, y no extingue la cuota pendiente.',
                     'La aplicación operativa se documenta y audita; este módulo no modifica automáticamente registros de Hosting o contabilidad.',
                 ],
@@ -488,7 +491,7 @@ PROGRAM_CONTENT = {
                 'title': 'Clear payments and non-payment risk coverage',
                 'summary': (
                     'Each installment is due within the first five calendar days of '
-                    'the month. A late installment increases the current Hosting cost by 1%.'
+                    'the month. A late installment increases the current Hosting cost by 2%.'
                 ),
                 'commercial_reason': (
                     'The rule makes the cost of default visible from the outset and '
@@ -570,7 +573,7 @@ PROGRAM_CONTENT = {
                 'summary': 'The deadline and consequence are known before signing.',
                 'items': [
                     'Each installment must be paid within the first five calendar days of its corresponding month.',
-                    'For every overdue installment, the current Hosting cost increases by 1%; increases are cumulative and permanent.',
+                    'For every overdue installment, the current Hosting cost increases by 2%; increases are cumulative and permanent.',
                     'The increase applies automatically from the due date, without prior notice, and does not extinguish the unpaid installment.',
                     'Operational application is documented and audited; this module does not automatically alter Hosting or accounting records.',
                 ],
@@ -678,19 +681,242 @@ def _included_package(language):
     }
 
 
+def _percent(value):
+    return format(value, 'f').rstrip('0').rstrip('.')
+
+
+def _cop(value, language):
+    whole = int(value)
+    grouped = f'{whole:,}'
+    if language == 'es':
+        return f'$ {grouped.replace(",", ".")} COP'
+    return f'COP {grouped}'
+
+
+def _apply_policy_content(payload, policy, language):
+    months = policy.financing_months
+    minimum = _cop(policy.minimum_project_value_cop, language)
+    maximum = _cop(policy.maximum_project_value_cop, language)
+    maximum_percent = _percent(policy.maximum_financed_percent)
+    minimum_percent = _percent(minimum_initial_payment_percent(policy))
+    late_percent = _percent(policy.late_hosting_increase_percent)
+    due_start = policy.installment_due_day_start
+    due_end = policy.installment_due_day_end
+    five_year, three_year = payload['options']
+    financing = payload['conditions'][0]
+    payment = payload['conditions'][4]
+    terms = {term['id']: term for term in payload['legal_terms']}
+
+    if language == 'es':
+        payload['eligibility']['summary'] = (
+            f'Aplican proyectos, fases o conjuntos de fases con un valor total entre '
+            f'{minimum} y {maximum}, ambos inclusive. Cada solicitud pasa por una '
+            f'revisión técnica, comercial y de riesgo que define el aporte inicial '
+            f'—mínimo {minimum_percent}%— y el saldo aprobado.'
+        )
+        five_year['summary'] = (
+            'La opción de mayor continuidad: financiación, exclusividad, custodia '
+            'de código, calculadora de requerimientos y un paquete mensual de 60 '
+            f'horas incluido. Al pagar el primer ciclo, puede habilitarse un segundo '
+            f'ciclo de {months} meses sujeto a una nueva evaluación de riesgo.'
+        )
+        five_year['highlights'][0] = (
+            f'Hasta dos ciclos separados de {months} meses al 0% de interés ordinario.'
+        )
+        three_year['highlights'][0] = (
+            f'{months} meses de financiación al 0% de interés ordinario.'
+        )
+        financing['title'] = f'{months} meses de financiación'
+        financing['highlights'] = [
+            f'Plazo de financiación: {months} meses.',
+            'Interés ordinario: 0%.',
+            f'Se financia hasta el {maximum_percent}% del valor aprobado.',
+        ]
+        payment['summary'] = (
+            f'Cada cuota se paga entre los días {due_start} y {due_end} calendario '
+            f'del mes. Una cuota en mora aumenta en {late_percent}% el costo vigente '
+            'del Hosting.'
+        )
+        payload['conditions'].extend([
+            {
+                'id': 'project-value-range',
+                'number': '06',
+                'icon': '◆',
+                'title': 'Un rango claro para aplicar',
+                'summary': (
+                    f'El proyecto, una fase o el conjunto de fases a financiar debe '
+                    f'tener un valor total entre {minimum} y {maximum}, ambos inclusive.'
+                ),
+                'commercial_reason': (
+                    'El rango concentra el programa en iniciativas donde la financiación '
+                    'puede crear capacidad real de ejecución y mantiene una exposición '
+                    'responsable para ambas partes.'
+                ),
+                'highlights': [
+                    f'Monto mínimo elegible: {minimum}.',
+                    f'Monto máximo elegible: {maximum}.',
+                    'En USD se valida el equivalente en COP con la tasa congelada en el acuerdo.',
+                ],
+            },
+            {
+                'id': 'risk-and-initial-payment',
+                'number': '07',
+                'icon': '◒',
+                'title': f'Análisis de riesgo y aporte desde el {minimum_percent}%',
+                'summary': (
+                    f'El primer pago se define mediante el análisis de riesgo y nunca '
+                    f'será inferior al {minimum_percent}% del valor total. El saldo '
+                    f'financiado puede llegar hasta el {maximum_percent}%.'
+                ),
+                'commercial_reason': (
+                    'El aporte alinea el compromiso inicial del cliente con el riesgo '
+                    'que Project App. asume al desarrollar y operar antes de recuperar '
+                    'la totalidad de la inversión.'
+                ),
+                'highlights': [
+                    'El análisis de riesgo define el porcentaje final del primer pago.',
+                    f'Abono mínimo: {minimum_percent}% del valor total.',
+                    f'Financiación máxima: {maximum_percent}% del valor aprobado.',
+                ],
+            },
+        ])
+        terms['approval']['items'] = [
+            'Project App. evalúa la viabilidad técnica, comercial y de riesgo del proyecto.',
+            f'El alcance debe sumar entre {minimum} y {maximum}, ambos inclusive.',
+            f'El aporte inicial es como mínimo del {minimum_percent}%; el análisis puede exigir uno mayor.',
+            'Sólo se financian las fases y entregables expresamente aprobados en la propuesta.',
+        ]
+        terms['late-payment-hosting']['items'][0] = (
+            f'Cada cuota debe pagarse entre los días {due_start} y {due_end} calendario '
+            'del mes correspondiente.'
+        )
+        terms['late-payment-hosting']['items'][1] = (
+            f'Por cada cuota en mora, el costo vigente del Hosting aumenta en '
+            f'{late_percent}%; los aumentos son acumulativos y permanentes.'
+        )
+        terms['second-cycle']['items'][0] = (
+            f'La alianza de cinco años permite hasta dos ciclos separados de '
+            f'financiación de {months} meses.'
+        )
+    else:
+        payload['eligibility']['summary'] = (
+            f'Eligible projects, phases, or phase groups have a total value from '
+            f'{minimum} through {maximum}, inclusive. Every request undergoes a '
+            f'technical, commercial, and risk review that sets the initial '
+            f'contribution—at least {minimum_percent}%—and approved balance.'
+        )
+        five_year['summary'] = (
+            'The highest-continuity option: financing, exclusivity, code custody, '
+            'the requirement calculator, and an included monthly 60-hour package. '
+            f'After the first cycle is paid, a second {months}-month cycle may be '
+            'approved following a new risk review.'
+        )
+        five_year['highlights'][0] = (
+            f'Up to two separate {months}-month cycles at 0% ordinary interest.'
+        )
+        three_year['highlights'][0] = (
+            f'{months}-month financing at 0% ordinary interest.'
+        )
+        financing['title'] = f'{months} months of financing'
+        financing['highlights'] = [
+            f'Financing term: {months} months.',
+            'Ordinary interest: 0%.',
+            f'Up to {maximum_percent}% of the approved value is financed.',
+        ]
+        payment['summary'] = (
+            f'Each installment is due between calendar days {due_start} and {due_end} '
+            f'of the month. A late installment increases the current Hosting cost '
+            f'by {late_percent}%.'
+        )
+        payload['conditions'].extend([
+            {
+                'id': 'project-value-range',
+                'number': '06',
+                'icon': '◆',
+                'title': 'A clear eligibility range',
+                'summary': (
+                    f'The project, phase, or phase group to be financed must have a '
+                    f'total value from {minimum} through {maximum}, inclusive.'
+                ),
+                'commercial_reason': (
+                    'The range focuses the program on initiatives where financing can '
+                    'create meaningful execution capacity while keeping responsible '
+                    'exposure for both parties.'
+                ),
+                'highlights': [
+                    f'Minimum eligible amount: {minimum}.',
+                    f'Maximum eligible amount: {maximum}.',
+                    'USD agreements use the COP equivalent at the rate frozen in the agreement.',
+                ],
+            },
+            {
+                'id': 'risk-and-initial-payment',
+                'number': '07',
+                'icon': '◒',
+                'title': f'Risk review and contribution from {minimum_percent}%',
+                'summary': (
+                    f'The risk review determines the first payment, which cannot be '
+                    f'less than {minimum_percent}% of total value. The financed '
+                    f'balance may reach up to {maximum_percent}%.'
+                ),
+                'commercial_reason': (
+                    'The contribution aligns the client’s initial commitment with the '
+                    'risk Project App. takes by developing and operating before the '
+                    'investment is fully recovered.'
+                ),
+                'highlights': [
+                    'The risk review sets the final first-payment percentage.',
+                    f'Minimum contribution: {minimum_percent}% of total value.',
+                    f'Maximum financing: {maximum_percent}% of approved value.',
+                ],
+            },
+        ])
+        terms['approval']['items'] = [
+            'Project App. evaluates the project’s technical, commercial, and risk viability.',
+            f'The scope must total from {minimum} through {maximum}, inclusive.',
+            f'The initial contribution is at least {minimum_percent}%; the review may require more.',
+            'Only phases and deliverables expressly approved in the proposal are financed.',
+        ]
+        terms['late-payment-hosting']['items'][0] = (
+            f'Each installment must be paid between calendar days {due_start} and '
+            f'{due_end} of its corresponding month.'
+        )
+        terms['late-payment-hosting']['items'][1] = (
+            f'For every overdue installment, the current Hosting cost increases by '
+            f'{late_percent}%; increases are cumulative and permanent.'
+        )
+        terms['second-cycle']['items'][0] = (
+            f'The five-year partnership permits up to two separate {months}-month '
+            'financing cycles.'
+        )
+
+
 def serialize_financing_program(*, language):
     """Return the localized public contract without internal prices or identifiers."""
 
     if language not in PROGRAM_CONTENT:
         raise ValueError('language must be es or en')
 
+    policy = current_policy()
     payload = copy.deepcopy(PROGRAM_CONTENT[language])
+    _apply_policy_content(payload, policy, language)
     payload.update({
         'language': language,
-        'financing_months': FINANCING_MONTHS,
+        'financing_months': policy.financing_months,
+        'minimum_project_value_cop': policy.minimum_project_value_cop,
+        'maximum_project_value_cop': policy.maximum_project_value_cop,
+        'maximum_financed_percent': f'{_percent(policy.maximum_financed_percent)}%',
+        'minimum_initial_payment_percent': (
+            f'{_percent(minimum_initial_payment_percent(policy))}%'
+        ),
         'ordinary_interest_rate': '0%',
-        'late_hosting_increase_percent': '1%',
-        'installment_due_day_range': [1, 5],
+        'late_hosting_increase_percent': (
+            f'{_percent(policy.late_hosting_increase_percent)}%'
+        ),
+        'installment_due_day_range': [
+            policy.installment_due_day_start,
+            policy.installment_due_day_end,
+        ],
         'canonical_path': (
             '/en-us/financing' if language == 'en' else '/es-co/financing'
         ),

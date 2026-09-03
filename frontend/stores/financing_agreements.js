@@ -15,6 +15,10 @@ export const useFinancingAgreementsStore = defineStore('financingAgreements', {
     agreements: [],
     currentAgreement: null,
     templates: [],
+    currentPolicy: null,
+    policyHistory: [],
+    financingSettings: null,
+    settingsError: null,
     knownPlaceholders: [],
     clientContext: null,
     stats: {},
@@ -73,6 +77,35 @@ export const useFinancingAgreementsStore = defineStore('financingAgreements', {
         return { success: true, data: response.data }
       } catch (error) {
         return { success: false, errors: responseErrors(error) }
+      }
+    },
+
+    async fetchSettings() {
+      this.settingsError = null
+      try {
+        const response = await get_request('financing/settings/')
+        this.financingSettings = response.data
+        this.currentPolicy = response.data?.current || null
+        this.policyHistory = response.data?.history || []
+        return { success: true, data: response.data }
+      } catch (error) {
+        this.settingsError = responseErrors(error)
+        return { success: false, errors: this.settingsError }
+      }
+    },
+
+    async publishSettings(payload) {
+      this.isSaving = true
+      try {
+        const response = await create_request('financing/settings/', payload)
+        this.financingSettings = response.data
+        this.currentPolicy = response.data?.current || null
+        this.policyHistory = response.data?.history || []
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, errors: responseErrors(error) }
+      } finally {
+        this.isSaving = false
       }
     },
 

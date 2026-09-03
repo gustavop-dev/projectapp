@@ -8,8 +8,63 @@ from content.models import (
     FinancingAgreement,
     FinancingAgreementEvent,
     FinancingAgreementTemplate,
+    FinancingPolicyRevision,
 )
 from content.services.financing_agreement_service import allowed_actions
+
+
+class FinancingPolicyWriteSerializer(serializers.Serializer):
+    minimum_project_value_cop = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=0,
+    )
+    maximum_project_value_cop = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=0,
+    )
+    financing_months = serializers.IntegerField(min_value=1, max_value=36)
+    maximum_financed_percent = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=1,
+        max_value=99,
+    )
+    late_hosting_increase_percent = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=0,
+        max_value=100,
+    )
+    installment_due_day_start = serializers.IntegerField(min_value=1, max_value=28)
+    installment_due_day_end = serializers.IntegerField(min_value=1, max_value=28)
+
+
+class FinancingPolicyRevisionSerializer(serializers.ModelSerializer):
+    minimum_initial_payment_percent = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FinancingPolicyRevision
+        fields = (
+            'id', 'version', 'minimum_project_value_cop',
+            'maximum_project_value_cop', 'financing_months',
+            'maximum_financed_percent', 'minimum_initial_payment_percent',
+            'late_hosting_increase_percent', 'installment_due_day_start',
+            'installment_due_day_end', 'created_by', 'created_by_name',
+            'created_at',
+        )
+        read_only_fields = fields
+
+    def get_created_by_name(self, obj):
+        if not obj.created_by:
+            return 'Sistema'
+        return obj.created_by.get_full_name() or obj.created_by.get_username()
 
 
 class FinancingAgreementTemplateSerializer(serializers.ModelSerializer):
@@ -116,6 +171,7 @@ class FinancingAgreementWriteSerializer(serializers.Serializer):
                 'modality': 'Selecciona una modalidad.',
                 'partnership_start_date': 'Indica el inicio de la alianza.',
                 'total_value': 'Indica el valor total.',
+                'initial_payment': 'Indica el aporte inicial.',
                 'hosting_value': 'Indica el costo vigente del Hosting.',
             }
             errors = {
@@ -133,6 +189,10 @@ class FinancingAgreementListSerializer(serializers.ModelSerializer):
     modality_label = serializers.CharField(source='get_modality_display', read_only=True)
     status_label = serializers.CharField(source='get_status_display', read_only=True)
     template_name = serializers.CharField(source='template.name', read_only=True)
+    policy_version = serializers.IntegerField(
+        source='policy_revision.version',
+        read_only=True,
+    )
     allowed_actions = serializers.SerializerMethodField()
     has_signed_document = serializers.SerializerMethodField()
     previous_agreement_number = serializers.CharField(
@@ -149,6 +209,8 @@ class FinancingAgreementListSerializer(serializers.ModelSerializer):
             'project_name', 'modality', 'modality_label', 'cycle_number',
             'previous_agreement', 'previous_agreement_number', 'second_cycle_id',
             'partnership_start_date', 'partnership_end_date', 'currency',
+            'policy_revision', 'policy_version', 'eligibility_exchange_rate',
+            'equivalent_total_cop',
             'total_value', 'initial_payment', 'financed_balance',
             'hosting_value', 'hosting_period', 'status', 'status_label',
             'template_name', 'template_version', 'has_signed_document',
@@ -157,7 +219,10 @@ class FinancingAgreementListSerializer(serializers.ModelSerializer):
         )
 
     def get_allowed_actions(self, obj):
-        return allowed_actions(obj)
+        return allowed_actions(
+            obj,
+            current_policy_id=self.context.get('current_policy_id'),
+        )
 
     def get_has_signed_document(self, obj):
         return bool(obj.signed_document)
@@ -192,6 +257,10 @@ class FinancingAgreementDetailSerializer(FinancingAgreementListSerializer):
     activated_by_name = serializers.SerializerMethodField()
     completed_by_name = serializers.SerializerMethodField()
     cancelled_by_name = serializers.SerializerMethodField()
+    policy = FinancingPolicyRevisionSerializer(
+        source='policy_revision',
+        read_only=True,
+    )
 
     class Meta(FinancingAgreementListSerializer.Meta):
         fields = FinancingAgreementListSerializer.Meta.fields + (
@@ -206,7 +275,7 @@ class FinancingAgreementDetailSerializer(FinancingAgreementListSerializer):
             'completed_by', 'completed_by_name', 'completion_note',
             'cancelled_at', 'cancelled_by', 'cancelled_by_name',
             'cancellation_reason', 'second_cycle_approved_at',
-            'second_cycle_approved_by', 'events',
+            'second_cycle_approved_by', 'policy', 'events',
         )
 
     @staticmethod

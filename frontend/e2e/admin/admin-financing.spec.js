@@ -2,6 +2,7 @@ import { test, expect } from '../helpers/test.js'
 import { mockApi } from '../helpers/api.js'
 import { setAuthLocalStorage } from '../helpers/auth.js'
 import { financingProgramFixture } from '../helpers/financing-fixture.js'
+import { financingSettingsFixture } from '../helpers/financing-agreement-fixture.js'
 import { ADMIN_FINANCING_DISTRIBUTION } from '../helpers/flow-tags.js'
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js'
 
@@ -16,6 +17,18 @@ async function setupApi(page, scenario = {}) {
     if (apiPath === 'proposals/' && method === 'GET') return json(200, [])
     if (apiPath === 'proposals/dashboard/') return json(200, { total: 0, by_status: {} })
     if (apiPath === 'proposals/alerts/') return json(200, [])
+    if (apiPath === 'financing/settings/' && method === 'GET') {
+      return json(200, financingSettingsFixture())
+    }
+    if (apiPath === 'financing/agreements/' && method === 'GET') {
+      return json(200, {
+        count: 0,
+        limit: 25,
+        offset: 0,
+        results: [],
+        stats: { total_active_records: 0, archived: 0, by_status: {} },
+      })
+    }
     if (apiPath === 'financing/public/pdf/' && method === 'GET') {
       scenario.pdfLanguage = new URL(route.request().url()).searchParams.get('lang') || 'es'
       return {
