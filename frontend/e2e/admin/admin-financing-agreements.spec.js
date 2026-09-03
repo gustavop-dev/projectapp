@@ -6,6 +6,7 @@ import {
   financingAgreementTemplateFixture,
   financingClientContextFixture,
   financingClientFixture,
+  financingSettingsFixture,
 } from '../helpers/financing-agreement-fixture.js'
 import { financingProgramFixture } from '../helpers/financing-fixture.js'
 import {
@@ -63,15 +64,15 @@ function transitionAgreement(scenario, status, overrides = {}) {
   return scenario.agreement
 }
 
-function scheduleFromFirstInstallment(firstInstallmentDate, financedBalance) {
+function scheduleFromFirstInstallment(firstInstallmentDate, financedBalance, count = 12) {
   const firstDueDate = new Date(`${firstInstallmentDate}T12:00:00Z`)
-  const monthlyAmount = Math.floor((financedBalance * 100) / 12) / 100
+  const monthlyAmount = Math.floor((financedBalance * 100) / count) / 100
 
-  return Array.from({ length: 12 }, (_, index) => {
+  return Array.from({ length: count }, (_, index) => {
     const dueDate = new Date(firstDueDate)
     dueDate.setUTCMonth(dueDate.getUTCMonth() + index)
-    const amount = index === 11
-      ? financedBalance - (monthlyAmount * 11)
+    const amount = index === count - 1
+      ? financedBalance - (monthlyAmount * (count - 1))
       : monthlyAmount
 
     return {
@@ -128,6 +129,7 @@ async function setupApi(page, scenario = {}) {
   scenario.agreement ??= financingAgreementFixture()
   scenario.createdPayload = null
   scenario.actionPayload = null
+  scenario.settings ??= financingSettingsFixture()
 
   await mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'auth/check/') return json(200, { user: { username: 'admin', is_staff: true } })
@@ -136,6 +138,9 @@ async function setupApi(page, scenario = {}) {
     if (apiPath === 'proposals/alerts/') return json(200, [])
     if (apiPath === 'financing/public/' && method === 'GET') {
       return json(200, financingProgramFixture('es'))
+    }
+    if (apiPath === 'financing/settings/' && method === 'GET') {
+      return json(200, scenario.settings)
     }
     if (apiPath === 'financing/agreements/templates/' && method === 'GET') {
       return json(200, {
@@ -181,7 +186,7 @@ async function setupApi(page, scenario = {}) {
     }
 
     const actionMatch = apiPath.match(
-      /^financing\/agreements\/(\d+)\/(mark-ready|reopen|upload-signed|complete|cancel|archive|restore|create-second-cycle)\/$/,
+      /^financing\/agreements\/(\d+)\/(mark-ready|reopen|upload-signed|complete|cancel|archive|restore|create-second-cycle|apply-current-policy)\/$/,
     )
     if (actionMatch && method === 'POST') {
       const action = actionMatch[2]
@@ -200,7 +205,7 @@ async function setupApi(page, scenario = {}) {
           resolved_contract_markdown: '# OTROSÍ OFIN-2026-042\n\nAna Semilla',
           resolved_contract_sha256: 'f'.repeat(64),
           template_name: 'Otrosí de financiación',
-          template_version: 1,
+          template_version: 2,
         }))
       }
       if (action === 'reopen') return json(200, transitionAgreement(scenario, 'draft', { number: 'OFIN-2026-001' }))
@@ -221,6 +226,21 @@ async function setupApi(page, scenario = {}) {
           is_archived: false,
           archived_at: null,
         }))
+      }
+      if (action === 'apply-current-policy') {
+        scenario.agreement = financingAgreementFixture({
+          ...scenario.agreement,
+          policy_revision: scenario.settings.current.id,
+          policy_version: scenario.settings.current.version,
+          policy: scenario.settings.current,
+          installment_schedule: scheduleFromFirstInstallment(
+            scenario.agreement.installment_schedule[0].due_date,
+            Number(scenario.agreement.financed_balance),
+            scenario.settings.current.financing_months,
+          ),
+          allowed_actions: ['edit', 'download_draft', 'mark_ready', 'cancel'],
+        })
+        return json(200, scenario.agreement)
       }
       scenario.agreement = financingAgreementFixture({
         id: 502,
@@ -276,7 +296,8 @@ async function fillRequiredAgreementFields(page) {
   await page.getByTestId('financing-original-contract').fill('Contrato de desarrollo PA-041')
   await page.getByTestId('financing-project-name').fill('Plataforma Semilla')
   await page.getByTestId('financing-scope').fill('Desarrollo e implementación de la fase comercial.')
-  await page.getByTestId('financing-total-value').fill('12000000')
+  await page.getByTestId('financing-total-value').fill('25000000')
+  await page.getByTestId('financing-initial-payment').fill('5000000')
   await page.getByTestId('financing-hosting-value').fill('500000')
 }
 
@@ -324,13 +345,14 @@ test.describe('Admin financing agreements', () => {
 
     await expect(page).toHaveURL(/\/es-co\/panel\/financing\/501$/)
     await expect(page.getByTestId('financing-installment-12')).toBeVisible()
-    await expect(page.getByTestId('financing-late-payment-rule')).toContainText('aumenta 1%')
+    await expect(page.getByTestId('financing-late-payment-rule')).toContainText('aumenta 2%')
     expect(scenario.createdPayload.client_id).toBe(financingClientFixture.id)
     expect(scenario.createdPayload).toMatchObject({
       original_contract_reference: 'Contrato de desarrollo PA-041',
       project_name: 'Plataforma Semilla',
       financed_scope: 'Desarrollo e implementación de la fase comercial.',
-      total_value: '12000000',
+      total_value: '25000000',
+      initial_payment: '5000000',
       hosting_value: '500000',
     })
     expect(scenario.createdPayload.first_installment_date).toMatch(/-0?5$/)
@@ -376,6 +398,34 @@ test.describe('Admin financing agreements', () => {
     await expect(page.getByText('Calendario de 12 cuotas')).toBeVisible()
   })
 
+  test('adopts the current policy in an older draft', {
+    tag: [...ADMIN_FINANCING_AGREEMENT_LIFECYCLE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const settings = financingSettingsFixture({
+      id: 3,
+      version: 3,
+      financing_months: 18,
+    })
+    const agreement = financingAgreementFixture({
+      allowed_actions: [
+        'edit', 'download_draft', 'mark_ready', 'cancel', 'apply_current_policy',
+      ],
+    })
+    await setupApi(page, { agreement, settings })
+    await openAgreementDetail(page)
+    await expect(page.getByTestId('financing-agreement-policy')).toContainText(
+      'la vigente es v3',
+    )
+
+    await runConfirmedAction(page, 'financing-apply-current-policy')
+
+    await expect(page.getByTestId('financing-agreement-policy')).toContainText(
+      'revisión v3',
+    )
+    await expect(page.getByTestId('financing-installment-18')).toBeVisible()
+    await expect(page.getByTestId('financing-apply-current-policy')).toHaveCount(0)
+  })
+
   test('marks a draft ready for signature', {
     tag: [...ADMIN_FINANCING_AGREEMENT_LIFECYCLE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -386,7 +436,7 @@ test.describe('Admin financing agreements', () => {
 
     await expect(page.getByTestId('financing-agreement-status')).toContainText('Listo para firma')
     await expect(page.locator('h1')).toHaveText('OFIN-2026-042')
-    await expect(page.getByText('Otrosí de financiación · v1')).toHaveText('Otrosí de financiación · v1')
+    await expect(page.getByText('Otrosí de financiación · v2')).toHaveText('Otrosí de financiación · v2')
     await expect(page.getByTestId('financing-open-upload')).toBeVisible()
     await expect(page.getByTestId('financing-agreement-save')).toHaveCount(0)
   })

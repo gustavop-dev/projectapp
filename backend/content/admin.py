@@ -52,6 +52,7 @@ from .models import (
     FinancingAgreementEvent,
     FinancingAgreementNumberSequence,
     FinancingAgreementTemplate,
+    FinancingPolicyRevision,
 )
 
 logger = logging.getLogger(__name__)
@@ -490,6 +491,30 @@ class FinancingAgreementTemplateAdmin(admin.ModelAdmin):
     list_display = ('name', 'version', 'is_default', 'is_active', 'updated_at')
     list_filter = ('is_default', 'is_active')
     search_fields = ('name',)
+
+
+@admin.register(FinancingPolicyRevision, site=admin_site)
+class FinancingPolicyRevisionAdmin(admin.ModelAdmin):
+    list_display = (
+        'version', 'minimum_project_value_cop', 'maximum_project_value_cop',
+        'financing_months', 'maximum_financed_percent',
+        'late_hosting_increase_percent', 'created_by', 'created_at',
+    )
+    readonly_fields = (
+        'version', 'minimum_project_value_cop', 'maximum_project_value_cop',
+        'financing_months', 'maximum_financed_percent',
+        'late_hosting_increase_percent', 'installment_due_day_start',
+        'installment_due_day_end', 'created_by', 'created_at',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 admin_site.register(DocumentFolder, DocumentFolderAdmin)
 admin_site.register(DocumentItem)

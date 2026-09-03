@@ -95,7 +95,7 @@ class Command(BaseCommand):
                 1,
             )
             first_due = add_months(partnership_start, 1).replace(day=5)
-            total = Decimal('12000000.00') + Decimal(index * 750000)
+            total = Decimal('24000000.00') + Decimal(index * 1250000)
             agreement = create_agreement(
                 {
                     'uuid': context.uuid(f'agreement-{index}'),
@@ -116,7 +116,9 @@ class Command(BaseCommand):
                     'partnership_start_date': partnership_start,
                     'currency': 'COP',
                     'total_value': total,
-                    'initial_payment': Decimal('2000000.00'),
+                    'initial_payment': (total * Decimal('0.20')).quantize(
+                        Decimal('0.01'),
+                    ),
                     'hosting_value': Decimal('480000.00'),
                     'hosting_period': FinancingAgreement.HostingPeriod.MONTHLY,
                     'first_installment_date': first_due,
@@ -206,8 +208,8 @@ class Command(BaseCommand):
             {
                 'partnership_start_date': agreement.partnership_start_date,
                 'financed_scope': 'Segunda fase aprobada del producto financiado.',
-                'total_value': Decimal('9000000.00'),
-                'initial_payment': Decimal('1500000.00'),
+                'total_value': Decimal('24000000.00'),
+                'initial_payment': Decimal('4800000.00'),
                 'first_installment_date': second_due,
             },
             actor=actor,

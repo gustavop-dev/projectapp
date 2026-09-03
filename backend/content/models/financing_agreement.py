@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
@@ -63,6 +64,100 @@ class FinancingAgreementNumberSequence(models.Model):
 
     def __str__(self):
         return f'OFIN {self.year}: {self.last_number}'
+
+
+class FinancingPolicyRevision(models.Model):
+    """Immutable, auditable commercial policy used by financing agreements."""
+
+    version = models.PositiveIntegerField(unique=True)
+    minimum_project_value_cop = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('20000000.00'),
+        validators=[MinValueValidator(0)],
+    )
+    maximum_project_value_cop = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal('140000000.00'),
+        validators=[MinValueValidator(0)],
+    )
+    financing_months = models.PositiveSmallIntegerField(default=12)
+    maximum_financed_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('80.00'),
+        validators=[MinValueValidator(0)],
+    )
+    late_hosting_increase_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('2.00'),
+        validators=[MinValueValidator(0)],
+    )
+    installment_due_day_start = models.PositiveSmallIntegerField(default=1)
+    installment_due_day_end = models.PositiveSmallIntegerField(default=5)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='financing_policy_revisions_created',
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-version']
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(minimum_project_value_cop__gte=0),
+                name='financing_policy_minimum_nonnegative',
+            ),
+            models.CheckConstraint(
+                condition=Q(maximum_project_value_cop__gte=F('minimum_project_value_cop')),
+                name='financing_policy_maximum_gte_minimum',
+            ),
+            models.CheckConstraint(
+                condition=Q(financing_months__gte=1) & Q(financing_months__lte=36),
+                name='financing_policy_months_range',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(maximum_financed_percent__gt=0)
+                    & Q(maximum_financed_percent__lte=100)
+                ),
+                name='financing_policy_financed_percent_range',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(late_hosting_increase_percent__gte=0)
+                    & Q(late_hosting_increase_percent__lte=100)
+                ),
+                name='financing_policy_hosting_percent_range',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(installment_due_day_start__gte=1)
+                    & Q(installment_due_day_start__lte=28)
+                    & Q(installment_due_day_end__gte=F('installment_due_day_start'))
+                    & Q(installment_due_day_end__lte=28)
+                ),
+                name='financing_policy_due_days_range',
+            ),
+        ]
+
+    def __str__(self):
+        return f'Política de financiación v{self.version}'
+
+    @property
+    def minimum_initial_payment_percent(self):
+        return (Decimal('100.00') - self.maximum_financed_percent).quantize(
+            Decimal('0.01'),
+        )
+
+    @classmethod
+    def get_current(cls):
+        return cls.objects.order_by('-version').first()
 
 
 class FinancingAgreement(models.Model):
@@ -135,6 +230,11 @@ class FinancingAgreement(models.Model):
         null=True,
         blank=True,
     )
+    policy_revision = models.ForeignKey(
+        FinancingPolicyRevision,
+        on_delete=models.PROTECT,
+        related_name='agreements',
+    )
     partnership_start_date = models.DateField()
     partnership_end_date = models.DateField()
 
@@ -142,6 +242,14 @@ class FinancingAgreement(models.Model):
         max_length=3,
         choices=(('COP', 'COP'), ('USD', 'USD')),
         default='COP',
+    )
+    eligibility_exchange_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text='COP per USD snapshot used to evaluate the policy limits.',
     )
     total_value = models.DecimalField(
         max_digits=14,
@@ -295,6 +403,16 @@ class FinancingAgreement(models.Model):
     @property
     def modality_years(self):
         return 5 if self.modality == self.Modality.FIVE_YEAR else 3
+
+    @property
+    def equivalent_total_cop(self):
+        if self.currency == 'COP':
+            return self.total_value
+        if self.eligibility_exchange_rate is None:
+            return None
+        return (self.total_value * self.eligibility_exchange_rate).quantize(
+            Decimal('0.01'),
+        )
 
 
 class FinancingAgreementEvent(models.Model):

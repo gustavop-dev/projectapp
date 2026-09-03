@@ -12,6 +12,8 @@ import { clientFormPayload, emptyClientForm } from '~/utils/billingCode'
 
 const props = defineProps({
   agreement: { type: Object, default: null },
+  policy: { type: Object, default: null },
+  exchangeRate: { type: [String, Number], default: null },
   templates: { type: Array, default: () => [] },
   saving: { type: Boolean, default: false },
   errors: { type: Object, default: () => ({}) },
@@ -37,10 +39,15 @@ function todayIso() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+const effectivePolicy = computed(() => (
+  props.agreement?.policy || props.policy || agreementStore.currentPolicy || {}
+))
+
 function nextInstallmentIso() {
   const now = new Date()
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 5)
-  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-05`
+  const day = Number(effectivePolicy.value.installment_due_day_end || 5)
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, day)
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
 function emptyForm() {
@@ -64,7 +71,7 @@ function emptyForm() {
     partnership_start_date: todayIso(),
     currency: 'COP',
     total_value: '',
-    initial_payment: '0.00',
+    initial_payment: '',
     hosting_value: '',
     hosting_period: 'monthly',
     first_installment_date: nextInstallmentIso(),
@@ -77,7 +84,7 @@ function emptyForm() {
 const form = ref(emptyForm())
 
 watch(
-  () => [props.agreement, props.templates],
+  () => [props.agreement, props.templates, props.policy],
   () => {
     if (props.agreement) {
       form.value = {
@@ -130,7 +137,36 @@ const financedBalance = computed(() => Math.max(
   Number(form.value.total_value || 0) - Number(form.value.initial_payment || 0),
   0,
 ))
+const minimumInitialPercent = computed(() => (
+  100 - Number(effectivePolicy.value.maximum_financed_percent || 100)
+))
+const minimumInitialPayment = computed(() => (
+  Number(form.value.total_value || 0) * minimumInitialPercent.value / 100
+))
+const eligibilityRate = computed(() => (
+  props.agreement?.eligibility_exchange_rate || props.exchangeRate || null
+))
+const equivalentTotalCop = computed(() => {
+  const total = Number(form.value.total_value || 0)
+  if (form.value.currency === 'COP') return total
+  return eligibilityRate.value ? total * Number(eligibilityRate.value) : null
+})
+const eligibilityKnown = computed(() => (
+  equivalentTotalCop.value !== null && Number(form.value.total_value || 0) > 0
+))
+const eligibilityValid = computed(() => (
+  eligibilityKnown.value
+  && equivalentTotalCop.value >= Number(effectivePolicy.value.minimum_project_value_cop || 0)
+  && equivalentTotalCop.value <= Number(effectivePolicy.value.maximum_project_value_cop || Number.MAX_SAFE_INTEGER)
+  && Number(form.value.initial_payment || 0) >= minimumInitialPayment.value
+))
 const previewHtml = computed(() => DOMPurify.sanitize(parseMarkdown(debouncedMarkdown.value)))
+
+function formatMoney(value, currency = 'COP') {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency', currency, maximumFractionDigits: 0,
+  }).format(Number(value || 0))
+}
 
 function errorFor(field) {
   const value = props.errors?.[field]
@@ -221,7 +257,7 @@ function submit() {
     partnership_start_date: form.value.partnership_start_date,
     currency: form.value.currency,
     total_value: form.value.total_value,
-    initial_payment: form.value.initial_payment || '0.00',
+    initial_payment: form.value.initial_payment,
     hosting_value: form.value.hosting_value,
     hosting_period: form.value.hosting_period,
     template_id: form.value.template_id || undefined,
@@ -312,18 +348,45 @@ function submit() {
     <section class="rounded-2xl border border-border-default bg-surface p-5 sm:p-6">
       <p class="text-xs font-semibold uppercase tracking-widest text-text-brand">{{ t('financing.agreement.form.financingEyebrow') }}</p>
       <h2 class="mt-1 text-lg font-medium text-text-default">{{ t('financing.agreement.form.financingTitle') }}</h2>
+      <BaseAlert class="mt-4" variant="info" data-testid="financing-policy-summary">
+        <p class="font-medium">{{ t('financing.agreement.form.eligibilityTitle') }}</p>
+        <p class="mt-1 text-sm">
+          {{ t('financing.agreement.form.eligibilityBody', {
+            minimum: formatMoney(effectivePolicy.minimum_project_value_cop),
+            maximum: formatMoney(effectivePolicy.maximum_project_value_cop),
+            initial: minimumInitialPercent,
+            financed: Number(effectivePolicy.maximum_financed_percent || 0),
+          }) }}
+        </p>
+      </BaseAlert>
       <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <BaseFormField :label="t('financing.agreement.form.currency')" required><BaseSelect v-model="form.currency" :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]" /></BaseFormField>
         <BaseFormField :label="t('financing.agreement.form.totalValue')" required :error="errorFor('total_value')"><BaseInput v-model="form.total_value" type="number" min="0" step="0.01" data-testid="financing-total-value" /></BaseFormField>
-        <BaseFormField :label="t('financing.agreement.form.initialPayment')" :error="errorFor('initial_payment')"><BaseInput v-model="form.initial_payment" type="number" min="0" step="0.01" /></BaseFormField>
+        <BaseFormField :label="t('financing.agreement.form.initialPayment')" required :hint="t('financing.agreement.form.initialPaymentHint', { amount: formatMoney(minimumInitialPayment, form.currency), percent: minimumInitialPercent })" :error="errorFor('initial_payment')"><BaseInput v-model="form.initial_payment" type="number" :min="minimumInitialPayment" step="0.01" data-testid="financing-initial-payment" /></BaseFormField>
         <BaseFormField :label="t('financing.agreement.form.financedBalance')"><BaseInput :model-value="financedBalance.toFixed(2)" readonly data-testid="financing-balance" /></BaseFormField>
         <BaseFormField :label="t('financing.agreement.form.hostingValue')" required :error="errorFor('hosting_value')"><BaseInput v-model="form.hosting_value" type="number" min="0" step="0.01" data-testid="financing-hosting-value" /></BaseFormField>
         <BaseFormField :label="t('financing.agreement.form.hostingPeriod')"><BaseSelect v-model="form.hosting_period" :options="hostingPeriodOptions" /></BaseFormField>
         <BaseFormField v-if="!form.installment_schedule.length" :label="t('financing.agreement.form.firstInstallment')" required :error="errorFor('first_installment_date')"><BaseInput v-model="form.first_installment_date" type="date" data-testid="financing-first-installment" /></BaseFormField>
       </div>
+      <BaseAlert
+        v-if="eligibilityKnown"
+        class="mt-5"
+        :variant="eligibilityValid ? 'success' : 'warning'"
+        data-testid="financing-eligibility-result"
+      >
+        <p class="font-medium">{{ eligibilityValid ? t('financing.agreement.form.eligibilityValid') : t('financing.agreement.form.eligibilityReview') }}</p>
+        <p class="mt-1 text-sm">
+          {{ t('financing.agreement.form.equivalentCop', { amount: formatMoney(equivalentTotalCop) }) }}
+          <template v-if="form.currency === 'USD' && eligibilityRate"> · {{ t('financing.agreement.form.exchangeRateSnapshot', { rate: formatMoney(eligibilityRate) }) }}</template>
+        </p>
+      </BaseAlert>
       <BaseAlert class="mt-5" variant="warning" data-testid="financing-late-payment-rule">
         <p class="font-medium">{{ t('financing.agreement.form.latePaymentTitle') }}</p>
-        <p class="mt-1 text-sm">{{ t('financing.agreement.form.latePaymentBody') }}</p>
+        <p class="mt-1 text-sm">{{ t('financing.agreement.form.latePaymentBody', {
+          start: effectivePolicy.installment_due_day_start,
+          end: effectivePolicy.installment_due_day_end,
+          percent: Number(effectivePolicy.late_hosting_increase_percent || 0),
+        }) }}</p>
       </BaseAlert>
     </section>
 
@@ -331,6 +394,9 @@ function submit() {
       v-if="form.installment_schedule.length"
       v-model="form.installment_schedule"
       :currency="form.currency"
+      :months="Number(effectivePolicy.financing_months || 12)"
+      :due-day-start="Number(effectivePolicy.installment_due_day_start || 1)"
+      :due-day-end="Number(effectivePolicy.installment_due_day_end || 5)"
       :error="props.errors?.installment_schedule"
     />
 

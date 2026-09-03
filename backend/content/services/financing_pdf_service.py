@@ -144,9 +144,13 @@ class FinancingPdfService:
             ),
             Spacer(1, 13 * mm),
             Paragraph(
-                '12 months · 0% ordinary interest · two partnership options'
+                f'{payload["financing_months"]} months · 0% ordinary interest · '
+                'two partnership options'
                 if english
-                else '12 meses · 0% de interés ordinario · dos opciones de alianza',
+                else (
+                    f'{payload["financing_months"]} meses · 0% de interés ordinario · '
+                    'dos opciones de alianza'
+                ),
                 styles['eyebrow'],
             ),
             PageBreak(),
@@ -200,8 +204,9 @@ class FinancingPdfService:
         english = payload['language'] == 'en'
         story = [
             Paragraph(
-                'The five commercial conditions'
-                if english else 'Las cinco condiciones comerciales',
+                f'The {len(payload["conditions"])} commercial conditions'
+                if english
+                else f'Las {len(payload["conditions"])} condiciones comerciales',
                 styles['section'],
             ),
         ]

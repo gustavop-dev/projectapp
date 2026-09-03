@@ -5,6 +5,7 @@ from io import BytesIO
 import pytest
 from django.core.files.storage import FileSystemStorage
 from django.core.files.uploadedfile import SimpleUploadedFile
+from freezegun import freeze_time
 from pypdf import PdfReader
 from rest_framework.test import APIClient
 
@@ -14,6 +15,9 @@ from content.models import (
     FinancingAgreementTemplate,
     HourPackage,
     Nationality,
+)
+from content.services.financing_agreement_service import (
+    DEFAULT_FINANCING_TEMPLATE_MARKDOWN,
 )
 
 
@@ -40,15 +44,7 @@ def agreement_template():
         name='Otrosí API',
         version=1,
         is_default=True,
-        content_markdown=(
-            '# OTROSÍ {agreement_number}\n\n{client_full_name} '
-            '{client_id_type} {client_id_number} {contractor_full_name} '
-            '{contractor_id_type} {contractor_id_number} '
-            '{original_contract_reference} {original_contract_date} '
-            '{project_name} {financed_scope} {financed_balance}\n\n'
-            '{installment_schedule}\n\n{hosting_value} {modality_label} '
-            '{modality_terms} {partnership_end_date}'
-        ),
+        content_markdown=DEFAULT_FINANCING_TEMPLATE_MARKDOWN,
     )
 
 
@@ -73,8 +69,8 @@ def _payload(client, **overrides):
         'modality': 'five_year',
         'partnership_start_date': '2026-02-01',
         'currency': 'COP',
-        'total_value': '12000000.00',
-        'initial_payment': '0.00',
+        'total_value': '25000000.00',
+        'initial_payment': '5000000.00',
         'hosting_value': '500000.00',
         'hosting_period': 'monthly',
         'first_installment_date': '2026-03-05',
@@ -89,6 +85,82 @@ def _create_draft(admin_client, client, **overrides):
         _payload(client, **overrides),
         format='json',
     )
+
+
+def _settings_payload(**overrides):
+    payload = {
+        'minimum_project_value_cop': '20000000.00',
+        'maximum_project_value_cop': '140000000.00',
+        'financing_months': 12,
+        'maximum_financed_percent': '80.00',
+        'late_hosting_increase_percent': '2.00',
+        'installment_due_day_start': 1,
+        'installment_due_day_end': 5,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_admin_reads_current_financing_settings(admin_client):
+    response = admin_client.get('/api/financing/settings/')
+
+    assert response.status_code == 200
+    assert response.data['current']['version'] == 2
+    assert response.data['current']['minimum_project_value_cop'] == '20000000.00'
+    assert response.data['current']['minimum_initial_payment_percent'] == '20.00'
+
+
+def test_non_admin_cannot_read_financing_settings():
+    response = APIClient().get('/api/financing/settings/')
+
+    assert response.status_code in (401, 403)
+
+
+def test_admin_publishes_financing_settings_revision(admin_client):
+    response = admin_client.post(
+        '/api/financing/settings/',
+        _settings_payload(financing_months=18),
+        format='json',
+    )
+
+    assert response.status_code == 201
+    assert response.data['current']['version'] == 3
+    assert response.data['current']['financing_months'] == 18
+
+
+def test_admin_rejects_invalid_financing_value_range(admin_client):
+    response = admin_client.post(
+        '/api/financing/settings/',
+        _settings_payload(maximum_project_value_cop='10000000.00'),
+        format='json',
+    )
+
+    assert response.status_code == 400
+    assert 'maximum_project_value_cop' in response.data
+
+
+@freeze_time('2026-02-01 12:00:00')
+def test_draft_action_applies_published_financing_policy(
+    admin_client,
+    financing_client,
+    agreement_template,
+):
+    created = _create_draft(admin_client, financing_client)
+    admin_client.post(
+        '/api/financing/settings/',
+        _settings_payload(financing_months=10),
+        format='json',
+    )
+
+    response = admin_client.post(
+        f'/api/financing/agreements/{created.data["id"]}/apply-current-policy/',
+        {},
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert response.data['policy_version'] == 3
+    assert len(response.data['installment_schedule']) == 10
 
 
 def test_admin_creates_populated_agreement_with_twelve_installments(
@@ -107,7 +179,7 @@ def test_admin_creates_populated_agreement_with_twelve_installments(
     assert response.data['client_full_name'] == 'Ana Semilla'
     assert response.data['client_id_number'] == '901234567-8'
     assert len(response.data['installment_schedule']) == 12
-    assert response.data['financed_balance'] == '12000000.00'
+    assert response.data['financed_balance'] == '20000000.00'
 
 
 def test_draft_pdf_contains_populated_legal_identity(

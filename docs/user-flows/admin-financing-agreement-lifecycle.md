@@ -8,8 +8,8 @@
 
 | Outcome | Inicio → acción → resultado observable |
 |---|---|
-| `display` | Abrir un otrosí → ver estado, ciclo, resumen, calendario, acciones permitidas e historial de responsables. |
-| `success` | Marcar listo → congelar número/texto; descargar borrador marcado **BORRADOR · SIN FIRMA**; registrar PDF firmado → activar; certificar pago o cancelar con nota; archivar/restaurar sólo estados terminales. |
+| `display` | Abrir un otrosí → ver estado, ciclo, revisión de política congelada, resumen, calendario, acciones permitidas e historial de responsables. |
+| `success` | En un borrador anterior, confirmar la adopción de la política vigente → validar valores y reemplazar plantilla/calendario; marcar listo → congelar número/texto; descargar borrador marcado **BORRADOR · SIN FIRMA**; registrar PDF firmado → activar; certificar pago o cancelar con nota; archivar/restaurar sólo estados terminales. |
 | `error` | Omitir PDF o nota obligatoria, subir un archivo inválido o intentar una transición no permitida → conservar el estado y mostrar validación. |
 | `failure` | Fallar la carga o una mutación → mostrar el problema sin simular que el estado cambió. |
 

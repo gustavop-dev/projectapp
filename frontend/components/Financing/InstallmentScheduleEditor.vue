@@ -8,6 +8,9 @@ const props = defineProps({
   currency: { type: String, default: 'COP' },
   disabled: { type: Boolean, default: false },
   error: { type: [String, Array], default: '' },
+  months: { type: Number, default: 12 },
+  dueDayStart: { type: Number, default: 1 },
+  dueDayEnd: { type: Number, default: 5 },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -41,9 +44,9 @@ function formatMoney(value) {
   <section class="rounded-2xl border border-border-default bg-surface p-4 sm:p-5" aria-labelledby="financing-schedule-title">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h3 id="financing-schedule-title" class="text-base font-medium text-text-default">{{ t('financing.agreement.schedule.title') }}</h3>
+        <h3 id="financing-schedule-title" class="text-base font-medium text-text-default">{{ t('financing.agreement.schedule.title', { count: months }) }}</h3>
         <p class="mt-1 text-xs leading-5 text-text-subtle">
-          {{ t('financing.agreement.schedule.help') }}
+          {{ t('financing.agreement.schedule.help', { start: dueDayStart, end: dueDayEnd }) }}
         </p>
       </div>
       <p class="shrink-0 text-sm font-medium text-text-brand" data-testid="financing-schedule-total">

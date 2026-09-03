@@ -18,13 +18,20 @@ from content.models import (
     FinancingAgreementEvent,
     FinancingAgreementNumberSequence,
     FinancingAgreementTemplate,
+    FinancingPolicyRevision,
 )
 from content.services.contractor_identity import resolve_contractor_identity
+from content.services.financing_policy_service import (
+    FinancingPolicyValidationError,
+    current_policy,
+    eligibility_exchange_rate,
+    minimum_initial_payment_percent,
+    validate_agreement_financials,
+)
 
 
 INSTALLMENT_COUNT = 12
 MAX_SIGNED_PDF_SIZE = 15 * 1024 * 1024
-LATE_HOSTING_INCREASE_PERCENT = Decimal('1.00')
 
 
 DEFAULT_FINANCING_TEMPLATE_MARKDOWN = """# OTROSÍ DE FINANCIACIÓN {agreement_number}
@@ -39,25 +46,31 @@ Las partes incorporan un mecanismo de financiación para el desarrollo e impleme
 
 Este otrosí complementa el contrato original. Las cláusulas no modificadas conservan plena vigencia.
 
-## SEGUNDA. VALOR Y SALDO FINANCIADO
+## SEGUNDA. ELEGIBILIDAD DEL ALCANCE
 
-El valor del ciclo es **{total_value}**. EL CONTRATANTE realiza un aporte inicial de **{initial_payment}** y el saldo financiado corresponde a **{financed_balance}**, a doce (12) meses y con interés ordinario del cero por ciento (0 %).
+El proyecto, fase o conjunto de fases objeto de este ciclo tiene un valor de **{total_value}**. Para aplicar al programa, su valor debe estar entre **{minimum_project_value_cop}** y **{maximum_project_value_cop}**, ambos inclusive y expresados como valor equivalente en pesos colombianos.
 
-## TERCERA. CALENDARIO DE PAGOS
+{eligibility_equivalence_note}
 
-Cada cuota se paga dentro de los primeros cinco (5) días calendario del mes correspondiente, conforme al siguiente calendario:
+## TERCERA. ANÁLISIS DE RIESGO, APORTE INICIAL Y SALDO
+
+El aporte inicial se determina como resultado del análisis de riesgo y será de **{initial_payment}**, sin que pueda ser inferior al **{minimum_initial_payment_percent}%** del valor total. Project App. financiará como máximo el **{maximum_financed_percent}%**; para este ciclo el saldo financiado corresponde a **{financed_balance}**, durante {financing_months} meses y con interés ordinario del cero por ciento (0 %).
+
+## CUARTA. CALENDARIO DE PAGOS
+
+Cada cuota se paga entre los días **{installment_due_day_start}** y **{installment_due_day_end}** calendario del mes correspondiente, conforme al siguiente calendario:
 
 {installment_schedule}
 
 El pago de una cuota no extingue las cuotas anteriores que continúen pendientes.
 
-## CUARTA. MORA Y AUMENTO DEL HOSTING
+## QUINTA. MORA Y AUMENTO DEL HOSTING
 
-Por cada cuota que no sea pagada dentro de los primeros cinco (5) días calendario del mes correspondiente, el costo vigente del Hosting —actualmente **{hosting_value}** con periodicidad {hosting_period}— aumentará en un uno por ciento (1 %). Cada aumento es acumulativo, permanente y opera automáticamente desde el vencimiento, sin necesidad de requerimiento previo. Esta consecuencia no sustituye la obligación de pagar la cuota vencida ni las demás consecuencias legalmente procedentes que se pacten y resulten aplicables.
+Por cada cuota que no sea pagada dentro de la ventana acordada, el costo vigente del Hosting —actualmente **{hosting_value}** con periodicidad {hosting_period}— aumentará en un **{late_hosting_increase_percent}%**. Cada aumento es acumulativo, permanente y opera automáticamente desde el vencimiento, sin necesidad de requerimiento previo. Esta consecuencia no sustituye la obligación de pagar la cuota vencida ni las demás consecuencias legalmente procedentes que se pacten y resulten aplicables.
 
 Las partes reconocen que esta condición distribuye el riesgo de impago asumido por EL CONTRATISTA al entregar y operar el producto antes de recuperar la totalidad del saldo financiado.
 
-## QUINTA. MODALIDAD, EXCLUSIVIDAD Y CONTINUIDAD
+## SEXTA. MODALIDAD, EXCLUSIVIDAD Y CONTINUIDAD
 
 La modalidad elegida es **{modality_label}**, vigente desde el {partnership_start_date} hasta el {partnership_end_date}.
 
@@ -65,15 +78,15 @@ La modalidad elegida es **{modality_label}**, vigente desde el {partnership_star
 
 Durante este periodo EL CONTRATISTA será la casa desarrolladora exclusiva del producto financiado para su desarrollo, mantenimiento, soporte, infraestructura, actualizaciones y continuidad técnica. La exclusividad se limita a este producto y no restringe iniciativas independientes de EL CONTRATANTE.
 
-## SEXTA. CUSTODIA DEL CÓDIGO
+## SÉPTIMA. CUSTODIA DEL CÓDIGO
 
 EL CONTRATISTA conservará la custodia operativa de repositorios, versiones, respaldos, accesos e integridad del código durante la vigencia acordada. La custodia no transfiere a EL CONTRATISTA la propiedad intelectual ni autoriza una explotación distinta de la necesaria para ejecutar el contrato. La entrega material de repositorios se realizará al terminar la custodia y estar cumplidas las obligaciones pactadas, mediante acta.
 
-## SÉPTIMA. CALCULADORA DE REQUERIMIENTOS
+## OCTAVA. CALCULADORA DE REQUERIMIENTOS
 
 EL CONTRATANTE podrá describir en lenguaje natural una necesidad, su objetivo y el contexto esencial del producto. La calculadora devolverá una referencia de esfuerzo, trabajo, tiempo y rango de precio. El resultado es orientativo: sólo una cotización formal aprobada por ambas partes fija alcance, cronograma y precio definitivo.
 
-## OCTAVA. PREVALENCIA Y REVISIÓN
+## NOVENA. PREVALENCIA Y REVISIÓN
 
 En caso de contradicción, este otrosí prevalece únicamente sobre las materias que modifica expresamente. Los datos, valores y fechas aquí incorporados forman parte integral del acuerdo. El documento debe ser revisado por las partes y por su asesoría jurídica antes de firma.
 
@@ -106,9 +119,18 @@ KNOWN_PLACEHOLDERS = frozenset({
     'total_value',
     'initial_payment',
     'financed_balance',
+    'minimum_project_value_cop',
+    'maximum_project_value_cop',
+    'minimum_initial_payment_percent',
+    'maximum_financed_percent',
+    'financing_months',
+    'eligibility_equivalence_note',
     'installment_schedule',
+    'installment_due_day_start',
+    'installment_due_day_end',
     'hosting_value',
     'hosting_period',
+    'late_hosting_increase_percent',
     'modality_label',
     'modality_terms',
     'partnership_start_date',
@@ -135,6 +157,18 @@ MANDATORY_PLACEHOLDERS = frozenset({
     'modality_label',
     'modality_terms',
     'partnership_end_date',
+})
+
+POLICY_PLACEHOLDERS = frozenset({
+    'minimum_project_value_cop',
+    'maximum_project_value_cop',
+    'minimum_initial_payment_percent',
+    'maximum_financed_percent',
+    'financing_months',
+    'eligibility_equivalence_note',
+    'installment_due_day_start',
+    'installment_due_day_end',
+    'late_hosting_increase_percent',
 })
 
 
@@ -167,9 +201,9 @@ def add_years(value: date, years: int) -> date:
         return value.replace(year=value.year + years, day=28)
 
 
-def default_first_installment_date() -> date:
+def default_first_installment_date(due_day=1) -> date:
     current = timezone.localdate()
-    return add_months(current.replace(day=1), 1)
+    return add_months(current.replace(day=due_day), 1)
 
 
 def calculate_financed_balance(total_value, initial_payment) -> Decimal:
@@ -190,40 +224,58 @@ def calculate_financed_balance(total_value, initial_payment) -> Decimal:
     return total - initial
 
 
-def build_installment_schedule(balance, first_due_date) -> list[dict]:
+def build_installment_schedule(
+    balance,
+    first_due_date,
+    *,
+    installment_count=INSTALLMENT_COUNT,
+    due_day_start=1,
+    due_day_end=5,
+) -> list[dict]:
     balance = Decimal(str(balance or 0)).quantize(Decimal('0.01'))
     if balance <= 0:
         return []
-    first_due_date = first_due_date or default_first_installment_date()
-    if first_due_date.day not in range(1, 6):
+    first_due_date = first_due_date or default_first_installment_date(due_day_end)
+    if not due_day_start <= first_due_date.day <= due_day_end:
         raise FinancingAgreementValidationError({
             'first_installment_date': [
-                'La primera cuota debe vencer entre los días 1 y 5 del mes.',
+                'La primera cuota debe vencer entre los días '
+                f'{due_day_start} y {due_day_end} del mes.',
             ],
         })
-    base_amount = (balance / INSTALLMENT_COUNT).quantize(
+    base_amount = (balance / installment_count).quantize(
         Decimal('0.01'),
         rounding=ROUND_DOWN,
     )
-    last_amount = balance - (base_amount * (INSTALLMENT_COUNT - 1))
+    last_amount = balance - (base_amount * (installment_count - 1))
     return [
         {
             'number': index + 1,
             'due_date': add_months(first_due_date, index).isoformat(),
             'amount': format(
-                last_amount if index == INSTALLMENT_COUNT - 1 else base_amount,
+                last_amount if index == installment_count - 1 else base_amount,
                 '.2f',
             ),
         }
-        for index in range(INSTALLMENT_COUNT)
+        for index in range(installment_count)
     ]
 
 
-def normalize_installment_schedule(schedule, balance) -> list[dict]:
+def normalize_installment_schedule(
+    schedule,
+    balance,
+    *,
+    installment_count=INSTALLMENT_COUNT,
+    due_day_start=1,
+    due_day_end=5,
+) -> list[dict]:
     errors = {}
-    if not isinstance(schedule, list) or len(schedule) != INSTALLMENT_COUNT:
+    if not isinstance(schedule, list) or len(schedule) != installment_count:
         raise FinancingAgreementValidationError({
-            'installment_schedule': ['El calendario debe contener exactamente 12 cuotas.'],
+            'installment_schedule': [
+                'El calendario debe contener exactamente '
+                f'{installment_count} cuotas.',
+            ],
         })
 
     normalized = []
@@ -250,9 +302,10 @@ def normalize_installment_schedule(schedule, balance) -> list[dict]:
                 f'El valor de la cuota {index + 1} no es válido.',
             )
             continue
-        if due_date.day not in range(1, 6):
+        if not due_day_start <= due_date.day <= due_day_end:
             errors.setdefault('installment_schedule', []).append(
-                f'La cuota {index + 1} debe vencer entre los días 1 y 5.',
+                f'La cuota {index + 1} debe vencer entre los días '
+                f'{due_day_start} y {due_day_end}.',
             )
         if amount <= 0:
             errors.setdefault('installment_schedule', []).append(
@@ -268,7 +321,7 @@ def normalize_installment_schedule(schedule, balance) -> list[dict]:
 
     if errors:
         raise FinancingAgreementValidationError(errors)
-    if dates != sorted(dates) or len(set(dates)) != INSTALLMENT_COUNT:
+    if dates != sorted(dates) or len(set(dates)) != installment_count:
         raise FinancingAgreementValidationError({
             'installment_schedule': [
                 'Las fechas deben ser únicas y estar en orden ascendente.',
@@ -304,6 +357,11 @@ def _money(value, currency='COP') -> str:
     return f'$ {grouped},{decimals} {currency}'
 
 
+def _percent(value) -> str:
+    amount = Decimal(str(value or 0)).quantize(Decimal('0.01'))
+    return format(amount, 'f').rstrip('0').rstrip('.')
+
+
 def _plain_markdown(value) -> str:
     text = str(value or '').strip()
     if not text:
@@ -332,14 +390,22 @@ def _extract_placeholders(markdown_text) -> set[str]:
     return fields
 
 
-def validate_template_markdown(markdown_text, *, require_core=True):
+def validate_template_markdown(
+    markdown_text,
+    *,
+    require_core=True,
+    require_policy=False,
+):
     if not (markdown_text or '').strip():
         raise FinancingAgreementValidationError({
             'contract_markdown': ['El texto del otrosí no puede estar vacío.'],
         })
     fields = _extract_placeholders(markdown_text)
     if require_core:
-        missing = MANDATORY_PLACEHOLDERS - fields
+        required = MANDATORY_PLACEHOLDERS
+        if require_policy:
+            required = required | POLICY_PLACEHOLDERS
+        missing = required - fields
         if missing:
             raise FinancingAgreementValidationError({
                 'contract_markdown': [
@@ -365,19 +431,22 @@ def _schedule_markdown(schedule, currency):
 
 
 def _modality_terms(agreement):
+    financing_months = agreement.policy_revision.financing_months
     if agreement.modality == FinancingAgreement.Modality.FIVE_YEAR:
         return (
             'La alianza incluye un paquete de sesenta (60) horas que se renueva '
             'cada mes desde la salida a producción, no es acumulable y se usa '
             'para requerimientos aprobados según disponibilidad. Además, permite '
-            'hasta dos ciclos separados de financiación de doce (12) meses. El '
+            f'hasta dos ciclos separados de financiación de {financing_months} '
+            'meses. El '
             'segundo sólo podrá aprobarse cuando el primero haya sido pagado en su '
             'totalidad y EL CONTRATISTA complete una nueva evaluación manual de '
             'riesgo. Su calendario deberá terminar dentro de la vigencia original '
             'de cinco años y no reiniciará ni extenderá la exclusividad.'
         )
     return (
-        'La alianza permite un único ciclo de financiación de doce (12) meses y '
+        f'La alianza permite un único ciclo de financiación de {financing_months} '
+        'meses y '
         'no incluye paquete mensual de horas. Los requerimientos posteriores se '
         'evalúan y cotizan de forma independiente.'
     )
@@ -391,6 +460,20 @@ def agreement_placeholder_values(agreement, *, draft=False):
         blank='________________',
     )
     number = agreement.number or ('BORRADOR' if draft else '________________')
+    policy = agreement.policy_revision
+    minimum_percent = minimum_initial_payment_percent(policy)
+    if agreement.currency == 'USD' and agreement.eligibility_exchange_rate:
+        eligibility_note = (
+            'Para validar los topes se congeló una tasa de '
+            f'**{_money(agreement.eligibility_exchange_rate, "COP")} por USD**; '
+            'el valor total equivale a '
+            f'**{_money(agreement.equivalent_total_cop, "COP")}**.'
+        )
+    else:
+        eligibility_note = (
+            'El valor está expresado en pesos colombianos y no requiere conversión '
+            'para validar los topes de elegibilidad.'
+        )
     return {
         'agreement_number': number,
         'client_full_name': _plain_markdown(agreement.client_full_name),
@@ -412,12 +495,29 @@ def agreement_placeholder_values(agreement, *, draft=False):
         'total_value': _money(agreement.total_value, agreement.currency),
         'initial_payment': _money(agreement.initial_payment, agreement.currency),
         'financed_balance': _money(agreement.financed_balance, agreement.currency),
+        'minimum_project_value_cop': _money(
+            policy.minimum_project_value_cop,
+            'COP',
+        ),
+        'maximum_project_value_cop': _money(
+            policy.maximum_project_value_cop,
+            'COP',
+        ),
+        'minimum_initial_payment_percent': _percent(minimum_percent),
+        'maximum_financed_percent': _percent(policy.maximum_financed_percent),
+        'financing_months': policy.financing_months,
+        'eligibility_equivalence_note': eligibility_note,
         'installment_schedule': _schedule_markdown(
             agreement.installment_schedule,
             agreement.currency,
         ),
+        'installment_due_day_start': policy.installment_due_day_start,
+        'installment_due_day_end': policy.installment_due_day_end,
         'hosting_value': _money(agreement.hosting_value, agreement.currency),
         'hosting_period': agreement.get_hosting_period_display().lower(),
+        'late_hosting_increase_percent': _percent(
+            policy.late_hosting_increase_percent,
+        ),
         'modality_label': agreement.get_modality_display(),
         'modality_terms': _modality_terms(agreement),
         'partnership_start_date': _date_es(agreement.partnership_start_date),
@@ -429,7 +529,15 @@ def agreement_placeholder_values(agreement, *, draft=False):
 
 def resolve_agreement_markdown(agreement, *, draft=False, require_core=True):
     markdown_text = agreement.contract_markdown or ''
-    validate_template_markdown(markdown_text, require_core=require_core)
+    requires_policy = bool(
+        agreement.policy_revision.minimum_project_value_cop > 0
+        or agreement.policy_revision.maximum_financed_percent < 100
+    )
+    validate_template_markdown(
+        markdown_text,
+        require_core=require_core,
+        require_policy=requires_policy,
+    )
     return markdown_text.format(**agreement_placeholder_values(agreement, draft=draft))
 
 
@@ -458,7 +566,8 @@ AUDIT_FIELDS = (
     'original_contract_date', 'project_name', 'financed_scope', 'modality',
     'cycle_number', 'previous_agreement_id', 'partnership_start_date',
     'partnership_end_date', 'currency', 'total_value', 'initial_payment',
-    'financed_balance', 'hosting_value', 'hosting_period',
+    'financed_balance', 'policy_revision_id', 'eligibility_exchange_rate',
+    'hosting_value', 'hosting_period',
     'installment_schedule', 'template_id', 'template_version', 'status',
     'signed_document_sha256', 'signed_document_size', 'is_archived',
 )
@@ -520,16 +629,48 @@ def _required_create_fields(data):
         raise FinancingAgreementValidationError(errors)
 
 
-def _prepare_financials(data, *, existing=None):
+def _prepare_financials(
+    data,
+    *,
+    existing=None,
+    policy=None,
+    refresh_exchange_rate=False,
+):
+    policy = policy or getattr(existing, 'policy_revision', None) or current_policy()
     financial_changed = existing is None or any(
-        key in data for key in ('total_value', 'initial_payment')
+        key in data for key in ('total_value', 'initial_payment', 'currency')
     )
     total = data.get('total_value', getattr(existing, 'total_value', 0))
     initial = data.get('initial_payment', getattr(existing, 'initial_payment', 0))
+    currency = data.get('currency', getattr(existing, 'currency', 'COP'))
+    previous_currency = getattr(existing, 'currency', None)
+    if currency == 'COP':
+        exchange_rate = None
+    elif (
+        existing is None
+        or refresh_exchange_rate
+        or previous_currency != currency
+        or not existing.eligibility_exchange_rate
+    ):
+        exchange_rate = eligibility_exchange_rate(currency)
+    else:
+        exchange_rate = existing.eligibility_exchange_rate
+
     balance = calculate_financed_balance(total, initial)
     data['total_value'] = Decimal(str(total or 0)).quantize(Decimal('0.01'))
     data['initial_payment'] = Decimal(str(initial or 0)).quantize(Decimal('0.01'))
     data['financed_balance'] = balance
+    data['eligibility_exchange_rate'] = exchange_rate
+    try:
+        validate_agreement_financials(
+            total_value=data['total_value'],
+            initial_payment=data['initial_payment'],
+            currency=currency,
+            exchange_rate=exchange_rate,
+            policy=policy,
+        )
+    except FinancingPolicyValidationError as exc:
+        raise FinancingAgreementValidationError(exc.errors, code=exc.code) from exc
 
     schedule_supplied = 'installment_schedule' in data
     first_due = data.pop('first_installment_date', None)
@@ -537,11 +678,20 @@ def _prepare_financials(data, *, existing=None):
         data['installment_schedule'] = normalize_installment_schedule(
             data['installment_schedule'],
             balance,
+            installment_count=policy.financing_months,
+            due_day_start=policy.installment_due_day_start,
+            due_day_end=policy.installment_due_day_end,
         )
     elif financial_changed or first_due:
         if first_due is None and existing and existing.installment_schedule:
             first_due = date.fromisoformat(existing.installment_schedule[0]['due_date'])
-        data['installment_schedule'] = build_installment_schedule(balance, first_due)
+        data['installment_schedule'] = build_installment_schedule(
+            balance,
+            first_due,
+            installment_count=policy.financing_months,
+            due_day_start=policy.installment_due_day_start,
+            due_day_end=policy.installment_due_day_end,
+        )
 
 
 @transaction.atomic
@@ -563,7 +713,12 @@ def create_agreement(validated_data, *, actor):
         raise FinancingAgreementValidationError({
             'template_id': ['La plantilla seleccionada está inactiva.'],
         })
-    _prepare_financials(data)
+    try:
+        policy = current_policy()
+    except FinancingPolicyValidationError as exc:
+        raise FinancingAgreementValidationError(exc.errors, code=exc.code) from exc
+    data['policy_revision'] = policy
+    _prepare_financials(data, policy=policy)
     if data['financed_balance'] <= 0:
         raise FinancingAgreementValidationError({
             'total_value': ['El saldo financiado debe ser mayor que cero.'],
@@ -653,12 +808,107 @@ def update_draft(agreement, validated_data, *, actor):
         if 'contract_markdown' not in data:
             data['contract_markdown'] = template.content_markdown
 
-    _prepare_financials(data, existing=agreement)
+    _prepare_financials(
+        data,
+        existing=agreement,
+        policy=agreement.policy_revision,
+    )
     for field, value in data.items():
         setattr(agreement, field, value)
     agreement.updated_by = actor
     agreement.save()
     _record_event(agreement, 'updated', actor, before=before)
+    return agreement
+
+
+@transaction.atomic
+def apply_current_policy(agreement, *, actor):
+    """Move one editable draft to the latest policy and template revision."""
+
+    agreement = FinancingAgreement.objects.select_for_update().select_related(
+        'policy_revision',
+    ).get(pk=agreement.pk)
+    if agreement.status != FinancingAgreement.Status.DRAFT or agreement.is_archived:
+        raise FinancingAgreementTransitionError(
+            'Sólo un borrador activo puede adoptar la política vigente.',
+            code='agreement_locked',
+        )
+    try:
+        policy = current_policy()
+    except FinancingPolicyValidationError as exc:
+        raise FinancingAgreementValidationError(exc.errors, code=exc.code) from exc
+    if agreement.policy_revision_id == policy.pk:
+        raise FinancingAgreementTransitionError(
+            'Este borrador ya usa la política vigente.',
+            code='financing_policy_already_current',
+        )
+    template = FinancingAgreementTemplate.get_default()
+    if template is None:
+        raise FinancingAgreementValidationError({
+            'template_id': ['No existe una plantilla de financiación activa.'],
+        })
+    try:
+        exchange_rate = eligibility_exchange_rate(agreement.currency)
+        validate_agreement_financials(
+            total_value=agreement.total_value,
+            initial_payment=agreement.initial_payment,
+            currency=agreement.currency,
+            exchange_rate=exchange_rate,
+            policy=policy,
+        )
+    except FinancingPolicyValidationError as exc:
+        raise FinancingAgreementValidationError(exc.errors, code=exc.code) from exc
+
+    first_due = None
+    if agreement.installment_schedule:
+        try:
+            candidate = date.fromisoformat(
+                agreement.installment_schedule[0]['due_date'],
+            )
+        except (KeyError, TypeError, ValueError):
+            candidate = None
+        if (
+            candidate
+            and candidate >= timezone.localdate()
+            and policy.installment_due_day_start
+            <= candidate.day
+            <= policy.installment_due_day_end
+        ):
+            first_due = candidate
+    if first_due is None:
+        first_due = default_first_installment_date(
+            policy.installment_due_day_end,
+        )
+    schedule = build_installment_schedule(
+        agreement.financed_balance,
+        first_due,
+        installment_count=policy.financing_months,
+        due_day_start=policy.installment_due_day_start,
+        due_day_end=policy.installment_due_day_end,
+    )
+
+    before = _audit_state(agreement)
+    previous_policy_version = agreement.policy_revision.version
+    agreement.policy_revision = policy
+    agreement.eligibility_exchange_rate = exchange_rate
+    agreement.installment_schedule = schedule
+    agreement.template = template
+    agreement.template_version = template.version
+    agreement.contract_markdown = template.content_markdown
+    agreement.resolved_contract_markdown = ''
+    agreement.resolved_contract_sha256 = ''
+    agreement.updated_by = actor
+    agreement.save()
+    _record_event(
+        agreement,
+        'policy_revision_applied',
+        actor,
+        before=before,
+        details={
+            'previous_policy_version': previous_policy_version,
+            'policy_version': policy.version,
+        },
+    )
     return agreement
 
 
@@ -687,6 +937,16 @@ def _ready_errors(agreement):
         errors['hosting_value'] = ['El costo vigente del Hosting debe ser mayor que cero.']
     if agreement.partnership_end_date <= agreement.partnership_start_date:
         errors['partnership_start_date'] = ['La vigencia de la alianza no es válida.']
+    try:
+        validate_agreement_financials(
+            total_value=agreement.total_value,
+            initial_payment=agreement.initial_payment,
+            currency=agreement.currency,
+            exchange_rate=agreement.eligibility_exchange_rate,
+            policy=agreement.policy_revision,
+        )
+    except FinancingPolicyValidationError as exc:
+        errors.update(exc.errors)
     if errors:
         raise FinancingAgreementValidationError(errors)
 
@@ -701,6 +961,9 @@ def validate_agreement_ready(agreement):
     normalized = normalize_installment_schedule(
         agreement.installment_schedule,
         agreement.financed_balance,
+        installment_count=agreement.policy_revision.financing_months,
+        due_day_start=agreement.policy_revision.installment_due_day_start,
+        due_day_end=agreement.policy_revision.installment_due_day_end,
     )
     last_due = date.fromisoformat(normalized[-1]['due_date'])
     if last_due > agreement.partnership_end_date:
@@ -709,7 +972,15 @@ def validate_agreement_ready(agreement):
                 'La última cuota debe vencer dentro de la vigencia original de la alianza.',
             ],
         })
-    validate_template_markdown(agreement.contract_markdown, require_core=True)
+    requires_policy = bool(
+        agreement.policy_revision.minimum_project_value_cop > 0
+        or agreement.policy_revision.maximum_financed_percent < 100
+    )
+    validate_template_markdown(
+        agreement.contract_markdown,
+        require_core=True,
+        require_policy=requires_policy,
+    )
     agreement.installment_schedule = normalized
 
 
@@ -971,6 +1242,11 @@ def create_second_cycle(agreement, *, actor):
         raise FinancingAgreementValidationError({
             'template_id': ['No existe una plantilla de financiación activa.'],
         })
+    try:
+        policy = current_policy()
+        exchange_rate = eligibility_exchange_rate(agreement.currency)
+    except FinancingPolicyValidationError as exc:
+        raise FinancingAgreementValidationError(exc.errors, code=exc.code) from exc
     now = timezone.now()
     second = FinancingAgreement.objects.create(
         client=agreement.client,
@@ -989,9 +1265,11 @@ def create_second_cycle(agreement, *, actor):
         modality=FinancingAgreement.Modality.FIVE_YEAR,
         cycle_number=2,
         previous_agreement=agreement,
+        policy_revision=policy,
         partnership_start_date=agreement.partnership_start_date,
         partnership_end_date=agreement.partnership_end_date,
         currency=agreement.currency,
+        eligibility_exchange_rate=exchange_rate,
         total_value=Decimal('0.00'),
         initial_payment=Decimal('0.00'),
         financed_balance=Decimal('0.00'),
@@ -1021,11 +1299,16 @@ def create_second_cycle(agreement, *, actor):
     return second
 
 
-def allowed_actions(agreement):
+def allowed_actions(agreement, *, current_policy_id=None):
     if agreement.is_archived:
         actions = ['restore']
     elif agreement.status == FinancingAgreement.Status.DRAFT:
         actions = ['edit', 'download_draft', 'mark_ready', 'cancel']
+        if current_policy_id is None:
+            latest = FinancingPolicyRevision.get_current()
+            current_policy_id = latest.pk if latest else None
+        if current_policy_id and agreement.policy_revision_id != current_policy_id:
+            actions.append('apply_current_policy')
     elif agreement.status == FinancingAgreement.Status.READY:
         actions = ['download_draft', 'reopen', 'upload_signed', 'cancel']
     elif agreement.status == FinancingAgreement.Status.ACTIVE:

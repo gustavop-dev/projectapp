@@ -2,6 +2,16 @@
 
 ## Current State
 
+**2026-09-03 — política de financiación lista para integrar:** la oferta y el
+otrosí comparten una política versionada con elegibilidad inclusiva de
+$20–140 millones COP, primer pago definido por análisis de riesgo con piso del
+20 %, financiación máxima del 80 %, doce meses, pagos entre días 1–5 y recargo
+de Hosting del 2 % por mora. Panel permite publicar revisiones y consultar su
+historial; cada acuerdo congela política y tasa USD, y sólo un borrador anterior
+puede adoptar la vigente mediante acción auditada. JSON/PDF público, contrato,
+calendario y formulario son dinámicos. Pasaron 81 pruebas backend, 22 unitarias,
+36 E2E y el build; los 11 flujos de financiación están totalmente cubiertos.
+
 **2026-09-03 — previsión manual de cobros lista para integrar:** cada ingreso
 esperado abierto de empresa puede entrar o salir de una shortlist y conservar
 un semáforo verde/naranja/rojo; elegir color lo selecciona y cada cambio se

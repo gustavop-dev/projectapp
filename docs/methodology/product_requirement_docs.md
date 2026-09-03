@@ -25,9 +25,19 @@
 > conectores nuevos quedan inactivos y las credenciales existentes no se rotan
 > hasta el corte operativo.
 
+> **Entrega 2026-09-03 — política configurable de financiación:** aplican
+> proyectos, fases o conjuntos de fases entre $20.000.000 y $140.000.000 COP,
+> ambos inclusive. El análisis externo de riesgo define el primer pago, nunca
+> inferior al 20 %, y sólo el saldo restante —máximo 80 %— se financia. La
+> mora aumenta 2 % el Hosting vigente por cuota vencida. El Panel publica
+> revisiones inmutables de monto, plazo, porcentaje financiable, recargo y
+> ventana de pago; cada otrosí congela su revisión y, si usa USD, la tasa
+> contable empleada para validar su equivalente en COP. Sólo un borrador puede
+> adoptar expresamente una revisión posterior.
+
 > **Entrega 2026-09-03 — financiación contractual:** el programa incorpora una
 > quinta condición común de pago dentro de los cinco primeros
-> días calendario y aumento permanente, acumulativo y automático del 1 % sobre
+> días calendario y aumento permanente, acumulativo y automático del 2 % sobre
 > el hosting vigente por cada cuota en mora. La alianza de cinco años habilita
 > hasta dos ciclos separados de financiación de doce meses; el segundo exige el
 > pago íntegro del primero y una nueva aprobación manual de riesgo, sin reiniciar

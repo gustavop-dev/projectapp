@@ -5672,11 +5672,11 @@ Two transitions that were previously bundled into other flows now have their own
 | Outcome | Inicio → acción → resultado observable |
 |---|---|
 | `display` | Abrir **Financiación → Otrosíes** → ver métricas, filtros y registros vigentes o el estado vacío. |
-| `success` | Pulsar **Nuevo otrosí** → seleccionar un cliente → verificar su identidad precargada → completar contrato, alcance y valores → crear → abrir el borrador con doce cuotas editables. |
+| `success` | Pulsar **Nuevo otrosí** → seleccionar un cliente → verificar su identidad precargada → completar contrato, alcance, monto elegible y abono inicial → crear → abrir el borrador con el calendario de cuotas definido por la política vigente. |
 | `error` | Enviar datos incompletos o inválidos → el API y el formulario señalan los campos → los datos ya escritos permanecen disponibles. |
 | `failure` | Fallar la carga del registro → mostrar un estado de error explícito sin presentar una lista vacía engañosa. |
 
-- **Reglas:** el cliente debe estar activo; propuesta y proyecto opcionales deben pertenecerle; el saldo debe ser positivo; las doce cuotas deben sumar exactamente el saldo y vencer entre los días 1 y 5.
+- **Reglas:** el cliente debe estar activo; propuesta y proyecto opcionales deben pertenecerle; el valor equivalente debe quedar dentro del rango inclusivo vigente; el abono debe respetar el mínimo derivado del análisis de riesgo; las cuotas deben sumar exactamente el saldo y usar la cantidad y ventana de vencimiento de la revisión congelada.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-financing-agreements.spec.js`
 - **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_agreement_service.py`
@@ -5691,8 +5691,8 @@ Two transitions that were previously bundled into other flows now have their own
 
 | Outcome | Inicio → acción → resultado observable |
 |---|---|
-| `display` | Abrir un otrosí → ver estado, ciclo, resumen, calendario, acciones permitidas e historial de responsables. |
-| `success` | Marcar listo → congelar número/texto; descargar borrador marcado **BORRADOR · SIN FIRMA**; registrar PDF firmado → activar; certificar pago o cancelar con nota; archivar/restaurar sólo estados terminales. |
+| `display` | Abrir un otrosí → ver estado, ciclo, revisión de política congelada, resumen, calendario, acciones permitidas e historial de responsables. |
+| `success` | En un borrador anterior, confirmar la adopción de la política vigente → validar valores y reemplazar plantilla/calendario; marcar listo → congelar número/texto; descargar borrador marcado **BORRADOR · SIN FIRMA**; registrar PDF firmado → activar; certificar pago o cancelar con nota; archivar/restaurar sólo estados terminales. |
 | `error` | Omitir PDF o nota obligatoria, subir un archivo inválido o intentar una transición no permitida → conservar el estado y mostrar validación. |
 | `failure` | Fallar la carga o una mutación → mostrar el problema sin simular que el estado cambió. |
 
@@ -6221,9 +6221,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-email-deliverability` | admin | P3 | display | 1 |
 | `admin-email-templates-config` | admin | P2 | display,success,error | 1 |
 | `admin-financing-agreement-create` | admin | P1 | display,success,error,failure | 4 |
-| `admin-financing-agreement-lifecycle` | admin | P1 | display,success,error,failure | 10 |
+| `admin-financing-agreement-lifecycle` | admin | P1 | display,success,error,failure | 11 |
 | `admin-financing-agreement-second-cycle` | admin | P1 | display,success,error,failure | 5 |
 | `admin-financing-distribution` | admin | P1 | display,success,failure | — |
+| `admin-financing-settings` | admin | P1 | display,success,error,failure | 4 |
 | `admin-high-engagement-alert` | admin | P2 | — | 0 |
 | `admin-hour-packages-config` | admin | P3 | success,error,failure,display | — |
 | `admin-hour-packages-create` | admin | P2 | display,success,error | 1 |
@@ -7443,6 +7444,26 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-financing-settings`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/financing?tab=settings`
+- **Interaction:** Consultar y publicar revisiones de la política comercial de financiación.
+
+| Outcome | Inicio → acción → resultado observable |
+|---|---|
+| `display` | Abrir **Financiación → Configuración** → ver la revisión vigente, el rango elegible, el abono mínimo derivado, la tasa USD/COP y el historial. |
+| `success` | Modificar una condición editable → pulsar **Publicar revisión** → confirmar → ver la nueva versión como vigente y conservar la anterior en el historial. |
+| `error` | Ingresar un rango, porcentaje, plazo o ventana inválidos → intentar publicar → ver el error en el campo sin crear una revisión. |
+| `failure` | Fallar la carga de la política → mostrar un estado de error explícito → reintentar → recuperar la configuración vigente. |
+
+- **Reglas:** cada publicación crea una revisión inmutable; los nuevos borradores la adoptan automáticamente; los borradores anteriores sólo cambian por confirmación explícita; otrosíes listos, firmados, activos o completados nunca mutan; la tasa USD/COP se administra en Contabilidad y se congela por acuerdo.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-financing-settings.spec.js`
+- **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_policy_service.py`
 
 ### FLOW: `admin-outbound-email-history-attachments`
 

@@ -15,7 +15,7 @@ const content = {
       ['five-year', 'Alianza a 5 años', 'Recomendada', true, 5],
       ['three-year', 'Alianza a 3 años', 'Alternativa', false, 3],
     ],
-    conditionTitles: ['12 meses de financiación', 'Exclusividad y custodia responsable', 'Calculadora de requerimientos', '60 horas disponibles cada mes', 'Pagos claros y cobertura del riesgo de impago'],
+    conditionTitles: ['12 meses de financiación', 'Exclusividad y custodia responsable', 'Calculadora de requerimientos', '60 horas disponibles cada mes', 'Pagos claros y cobertura del riesgo de impago', 'Un rango claro para aplicar', 'Análisis de riesgo y aporte desde el 20%'],
     calculator: {
       eyebrow: 'Transparencia para decidir',
       title: 'De una necesidad en palabras a un rango útil para planear',
@@ -59,7 +59,7 @@ const content = {
       ['five-year', '5-year partnership', 'Recommended', true, 5],
       ['three-year', '3-year partnership', 'Alternative', false, 3],
     ],
-    conditionTitles: ['12 months of financing', 'Exclusivity and responsible custody', 'Requirement calculator', '60 hours available every month', 'Clear payments and default-risk coverage'],
+    conditionTitles: ['12 months of financing', 'Exclusivity and responsible custody', 'Requirement calculator', '60 hours available every month', 'Clear payments and default-risk coverage', 'A clear eligibility range', 'Risk review and contribution from 20%'],
     calculator: {
       eyebrow: 'Transparency for better decisions',
       title: 'From a need in plain language to a useful planning range',
@@ -94,8 +94,12 @@ export function financingProgramFixture(language = 'es', overrides = {}) {
   return {
     language,
     financing_months: 12,
+    minimum_project_value_cop: '20000000.00',
+    maximum_project_value_cop: '140000000.00',
+    maximum_financed_percent: '80%',
+    minimum_initial_payment_percent: '20%',
     ordinary_interest_rate: '0%',
-    late_hosting_increase_percent: '1%',
+    late_hosting_increase_percent: '2%',
     installment_due_day_range: [1, 5],
     canonical_path: language === 'en' ? '/en-us/financing' : '/es-co/financing',
     hero: copy.hero,
@@ -118,14 +122,14 @@ export function financingProgramFixture(language = 'es', overrides = {}) {
     conditions: copy.conditionTitles.map((title, index) => {
       const isPaymentCondition = index === 4
       return {
-        id: ['financing', 'exclusivity', 'calculator', 'hour-package', 'payment-discipline'][index],
+        id: ['financing', 'exclusivity', 'calculator', 'hour-package', 'payment-discipline', 'project-value-range', 'risk-and-initial-payment'][index],
         number: String(index + 1).padStart(2, '0'),
-        icon: ['↗', '◇', '◎', '◷', '%'][index],
+        icon: ['↗', '◇', '◎', '◷', '%', '◆', '◒'][index],
         title,
         summary: isPaymentCondition
           ? (language === 'en'
-              ? 'An overdue installment increases current Hosting by 1%.'
-              : 'Una cuota en mora aumenta en 1% el costo vigente del Hosting.')
+              ? 'An overdue installment increases current Hosting by 2%.'
+              : 'Una cuota en mora aumenta en 2% el costo vigente del Hosting.')
           : 'A clear commercial condition for the partnership.',
         commercial_reason: 'It protects continuity and makes decisions predictable.',
         highlights: isPaymentCondition
@@ -148,8 +152,8 @@ export function financingProgramFixture(language = 'es', overrides = {}) {
         title: language === 'en' ? 'Late payment and Hosting increase' : 'Mora y aumento del costo del Hosting',
         summary: language === 'en' ? 'The deadline and consequence are known before signing.' : 'La fecha y la consecuencia se conocen antes de firmar.',
         items: [language === 'en'
-          ? 'Each overdue installment permanently and cumulatively increases current Hosting by 1%.'
-          : 'Cada cuota en mora aumenta 1% el Hosting vigente de forma acumulativa y permanente.'],
+          ? 'Each overdue installment permanently and cumulatively increases current Hosting by 2%.'
+          : 'Cada cuota en mora aumenta 2% el Hosting vigente de forma acumulativa y permanente.'],
       },
       {
         id: 'second-cycle',
