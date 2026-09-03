@@ -1,5 +1,6 @@
 import hashlib
 import json
+import uuid
 from datetime import timedelta
 
 from django.db import transaction
@@ -62,9 +63,16 @@ def confirm_action(arguments, tools):
     from content.mcp.protocol import ToolError
 
     context = current_mcp_context()
-    confirmation_id = arguments.get('confirmation_id')
+    expired = False
     if context is None or context.credential is None:
         raise ToolError('No existe contexto de credencial.', code='FORBIDDEN')
+    try:
+        confirmation_id = str(uuid.UUID(str(arguments.get('confirmation_id'))))
+    except (AttributeError, ValueError) as exc:
+        raise ToolError(
+            'No existe esa confirmación para este conector.',
+            code='NOT_FOUND',
+        ) from exc
     try:
         with transaction.atomic():
             intent = (
@@ -90,52 +98,55 @@ def confirm_action(arguments, tools):
             if intent.expires_at <= timezone.now():
                 intent.status = McpActionIntent.STATUS_EXPIRED
                 intent.save(update_fields=['status'])
-                raise ToolError(
-                    'La confirmación expiró; genera una vista previa nueva.',
-                    code='CONFIRMATION_EXPIRED',
+                expired = True
+            else:
+                tool = next(
+                    (candidate for candidate in tools if candidate['name'] == intent.tool_name),
+                    None,
                 )
-            tool = next(
-                (candidate for candidate in tools if candidate['name'] == intent.tool_name),
-                None,
-            )
-            if tool is None or not tool.get('requires_confirmation'):
-                raise ToolError(
-                    'La herramienta confirmada ya no está disponible.',
-                    code='CONFLICT',
-                )
-            if not context.credential.allows(tool['name']):
-                raise ToolError(
-                    'La credencial no permite esta herramienta.',
-                    code='FORBIDDEN',
-                )
-            if canonical_arguments_hash(intent.arguments) != intent.arguments_hash:
-                raise ToolError(
-                    'La carga de la confirmación no conserva su huella.',
-                    code='CONFLICT',
-                )
-            etag_resolver = tool.get('etag_resolver')
-            if etag_resolver:
-                current_etags = etag_resolver(intent.arguments)
-                if current_etags != intent.resource_etags:
+                if tool is None or not tool.get('requires_confirmation'):
                     raise ToolError(
-                        'Los recursos cambiaron desde la vista previa.',
-                        code='STALE_VERSION',
-                        details={
-                            'expected': intent.resource_etags,
-                            'current': current_etags,
-                        },
+                        'La herramienta confirmada ya no está disponible.',
+                        code='CONFLICT',
                     )
-            with bypass_confirmation():
-                result = tool['handler'](dict(intent.arguments))
-            intent.status = McpActionIntent.STATUS_EXECUTED
-            intent.executed_at = timezone.now()
-            intent.result = result
-            intent.save(update_fields=['status', 'executed_at', 'result'])
+                if not context.credential.allows(tool['name']):
+                    raise ToolError(
+                        'La credencial no permite esta herramienta.',
+                        code='FORBIDDEN',
+                    )
+                if canonical_arguments_hash(intent.arguments) != intent.arguments_hash:
+                    raise ToolError(
+                        'La carga de la confirmación no conserva su huella.',
+                        code='CONFLICT',
+                    )
+                etag_resolver = tool.get('etag_resolver')
+                if etag_resolver:
+                    current_etags = etag_resolver(intent.arguments)
+                    if current_etags != intent.resource_etags:
+                        raise ToolError(
+                            'Los recursos cambiaron desde la vista previa.',
+                            code='STALE_VERSION',
+                            details={
+                                'expected': intent.resource_etags,
+                                'current': current_etags,
+                            },
+                        )
+                with bypass_confirmation():
+                    result = tool['handler'](dict(intent.arguments))
+                intent.status = McpActionIntent.STATUS_EXECUTED
+                intent.executed_at = timezone.now()
+                intent.result = result
+                intent.save(update_fields=['status', 'executed_at', 'result'])
     except McpActionIntent.DoesNotExist as exc:
         raise ToolError(
             'No existe esa confirmación para este conector.',
             code='NOT_FOUND',
         ) from exc
+    if expired:
+        raise ToolError(
+            'La confirmación expiró; genera una vista previa nueva.',
+            code='CONFIRMATION_EXPIRED',
+        )
     return {'confirmed': True, 'replayed': False, 'result': result}
 
 

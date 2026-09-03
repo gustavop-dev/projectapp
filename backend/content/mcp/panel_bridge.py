@@ -123,8 +123,10 @@ def _execute(operation, arguments):
         if value in (None, ''):
             raise ToolError(f'{name} es obligatorio.')
         route_kwargs[name] = value
-    query = args.pop('query', {}) or {}
-    data = args.pop('data', {}) or {}
+    query = args.pop('query', {})
+    data = args.pop('data', {})
+    query = {} if query is None else query
+    data = {} if data is None else data
     if not isinstance(query, dict) or not isinstance(data, dict):
         raise ToolError('query y data deben ser objetos JSON.')
     if_match = args.pop('if_match', '') or ''
