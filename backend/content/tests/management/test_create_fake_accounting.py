@@ -97,6 +97,21 @@ class TestCreateFakeAccounting:
                 states.add('paid')
         assert states == {'pending', 'partial', 'paid'}
 
+    def test_seeds_every_manual_receivable_forecast_state(self):
+        call_command('create_fake_accounting', '--count', '12')
+
+        selected = IncomeRecord.objects.filter(is_receivable_candidate=True)
+        assert set(selected.values_list('collection_confidence', flat=True)) == {
+            '',
+            IncomeRecord.CollectionConfidence.HIGH,
+            IncomeRecord.CollectionConfidence.MEDIUM,
+            IncomeRecord.CollectionConfidence.LOW,
+        }
+        assert not selected.exclude(
+            kind=IncomeRecord.Kind.EXPECTED,
+            ledger=Ledger.COMPANY,
+        ).exists()
+
     def test_written_off_income_never_has_payments(self):
         call_command('create_fake_accounting', '--count', '12')
         for lost in IncomeRecord.objects.filter(kind='lost'):

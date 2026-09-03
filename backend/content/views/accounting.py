@@ -447,7 +447,11 @@ _ENTITIES = {
             'client__user__first_name', 'client__user__last_name',
             'project__name',
         ),
-        'choice_filters': ('kind', 'destination', 'ledger', 'origin'),
+        'choice_filters': (
+            'kind', 'destination', 'ledger', 'origin',
+            'collection_confidence',
+        ),
+        'bool_filters': ('is_receivable_candidate',),
         # `expected_income` is here so the liquid children of one expected
         # record are finally queryable (?expected_income=<id>); nothing could
         # reach them from the panel before.
@@ -944,6 +948,17 @@ def accounting_stats(request):
     except (TypeError, ValueError):
         return error_response("El parámetro 'year' debe ser un año válido.")
     return Response(accounting_service.year_descriptive_stats(year))
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def accounting_receivables(request):
+    """Open expected company incomes plus the operator-managed forecast."""
+    queryset = accounting_service.receivable_queryset()
+    return Response({
+        'summary': accounting_service.receivables_summary(queryset),
+        'results': IncomeRecordSerializer(queryset, many=True).data,
+    })
 
 
 # ── Incomes ──

@@ -134,7 +134,10 @@ RAW_TOOLS_BY_SLUG = {
             'settle_', 'bulk_settle_', 'mute_income', 'set_recurring_',
             'archive_recurring', 'restore_recurring', 'mute_recurring',
             'bulk_action_recurring',
-            exact=('get_dashboard', 'get_income_detail', 'list_change_logs'),
+            exact=(
+                'get_dashboard', 'get_receivables', 'get_income_detail',
+                'list_change_logs',
+            ),
         ) + LEDGER_PARITY_TOOLS
     ),
     'accounting-billing': _canonical_tools(

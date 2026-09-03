@@ -3,7 +3,10 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Ingresos</h1>
+        <div class="flex items-center gap-1">
+          <h1 class="text-2xl font-light text-text-default">Ingresos</h1>
+          <ReceivableLegend />
+        </div>
         <p class="text-sm text-text-subtle mt-1">
           Ingresos esperados y líquidos del negocio, con su reparto entre socios.
         </p>
@@ -308,6 +311,13 @@
         <template #cell-payment_status="{ row }">
           <IncomePaymentStateCell :row="row" />
         </template>
+        <template #cell-collection_confidence="{ row }">
+          <ReceivableStateControl
+            :row="row"
+            :busy="store.receivableUpdatingIds.includes(row.id)"
+            @change="updateIncomeReceivable(row, $event)"
+          />
+        </template>
         <template #cell-project_name="{ row }">
           <span v-if="row.project_name" class="inline-flex items-center gap-1">
             <HighlightText
@@ -396,6 +406,13 @@
                the kind badge wrapped the pills and doubled the row height. -->
           <template #cell-payment_status="{ row }">
             <IncomePaymentStateCell :row="row" />
+          </template>
+          <template #cell-collection_confidence="{ row }">
+            <ReceivableStateControl
+              :row="row"
+              :busy="store.receivableUpdatingIds.includes(row.id)"
+              @change="updateIncomeReceivable(row, $event)"
+            />
           </template>
           <template #cell-project_name="{ row }">
             <span v-if="row.project_name" class="inline-flex items-center gap-1">
@@ -617,6 +634,8 @@ import IncomeRowActionsButton from '~/components/accounting/IncomeRowActionsButt
 import IncomeDetailModal from '~/components/accounting/IncomeDetailModal.vue';
 import IncomeMuteModal from '~/components/accounting/IncomeMuteModal.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
+import ReceivableLegend from '~/components/accounting/ReceivableLegend.vue';
+import ReceivableStateControl from '~/components/accounting/ReceivableStateControl.vue';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -1383,6 +1402,10 @@ const columns = [
     responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
   },
   {
+    key: 'collection_confidence', label: 'Previsión', size: 'name',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
     key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg',
     responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
   },
@@ -1420,6 +1443,21 @@ const clientGroups = computed(() =>
 const groupedColumns = columns
   .filter((col) => col.key !== 'client_name')
   .map(({ sortable, ...col }) => col);
+
+async function updateIncomeReceivable(row, payload) {
+  const result = await store.updateReceivableState(row.id, payload);
+  if (result.success) {
+    notify.success({
+      title: 'Previsión de cobro actualizada',
+      detail: row.concept,
+    });
+    return;
+  }
+  notify.error({
+    title: 'No se pudo actualizar la previsión',
+    detail: result.message || 'Intenta de nuevo.',
+  });
+}
 
 // ── Selección múltiple + asignación masiva de cliente ──
 

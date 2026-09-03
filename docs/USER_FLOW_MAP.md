@@ -6095,7 +6095,6 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-collections` | admin | P2 | display,success,failure | 9 |
 | `admin-accounting-dashboard` | admin | P1 | display | 7 |
 | `admin-accounting-empty-state-cta` | admin | P4 | display | 2 |
-| `admin-accounting-expected-detail` | admin | P2 | display | 1 |
 | `admin-accounting-expenses-crud` | admin | P2 | display,success,error | 4 |
 | `admin-accounting-export` | admin | P2 | success | 1 |
 | `admin-accounting-filters` | admin | P1 | display,success | 23 |
@@ -6109,12 +6108,13 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-hostings` | admin | P2 | display,success,error | 3 |
 | `admin-accounting-income-bulk-settle` | admin | P1 | success,error,failure,display | 8 |
 | `admin-accounting-income-client` | admin | P1 | display,success,failure,error | 10 |
-| `admin-accounting-income-crud` | admin | P1 | display,success,error,failure | 34 |
+| `admin-accounting-income-crud` | admin | P1 | display,success,error,failure | 35 |
 | `admin-accounting-income-reminder-mute` | admin | P1 | display,success,error,failure | 6 |
 | `admin-accounting-list-error-retry` | admin | P3 | failure,display | 1 |
 | `admin-accounting-pocket` | admin | P2 | display,success,error | 6 |
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
 | `admin-accounting-project-coherence` | admin | P1 | success | 1 |
+| `admin-accounting-receivables` | admin | P1 | display,success,failure | 4 |
 | `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 27 |
 | `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
@@ -6473,31 +6473,39 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting`
-- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. The hero "Utilidad líquida" card embeds a full-width "Utilidad por mes" ApexCharts line (axes + money tooltips) filling the card body (replaced the tiny corner sparkline, Jul 2026). Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary and persists as a query param. The "Evolución" section renders two ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a "Exportar Excel" button downloads the full workbook and the Tarjetas table links to the cards history. The subnav orders Bolsillo second, right after Resumen.
+- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. The hero “Utilidad líquida” embeds the former utility-statistics modal as a default-open accordion with evolution, margin and partner tabs; the old “Utilidad por mes” mini-chart and statistics icon/modal are gone. Hero cards align at their natural height so the statistics content no longer leaves a large blank column. Company totals aggregate the company ledger only (personal-ledger records are excluded); the “ProjectApp (Empresa)” card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger. Year selector re-fetches the summary and persists as a query param. The “Evolución” section renders two theme-aware ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a “Exportar Excel” button downloads the workbook and the Tarjetas table links to card history. The subnav orders Bolsillo second, right after Resumen.
 - **Steps:**
   1. Superuser opens `/panel/accounting`.
   2. Stat cards render the summary totals; partner cards show Gustavo/Carlos (participation + personal) and ProjectApp (Empresa) company totals.
   3. Monthly table lists the 12 months with a totals row.
-  4. Superuser switches the year → summary re-fetches.
-  5. "Nuevo ingreso" opens the income modal from the dashboard.
+  4. The default-open utility accordion exposes evolution, margin and partner views and can be collapsed.
+  5. Superuser switches the year → summary re-fetches.
+  6. “Nuevo ingreso” opens the income modal from the dashboard.
 - **Branches:**
   - [Branch A — gating] Staff non-superuser navigating to any `/panel/accounting*` route is redirected to `/panel`; the Accounting sidebar section is hidden.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
 
-### FLOW: `admin-accounting-expected-detail`
+### FLOW: `admin-accounting-receivables`
 
 - **Module:** admin
 - **Role:** superuser admin
-- **Priority:** P2
-- **Routes:** `/panel/accounting`
-- **Description:** The "Pendiente por cobrar · {mes}" stat card is a clickable button that opens a read-only modal with the company expected incomes of the real current month (`GET /api/accounting/incomes/?kind=expected&ledger=company&date_from&date_to`, range derived from `expected_current_month.period` — not the year selector). Table: concepto, período, total, abonado, pendiente (per-row clamped) and payment-status pill; the footer's Pendiente sum equals the card total. No row actions.
+- **Priority:** P1
+- **Routes:** `/panel/accounting`, `/panel/accounting/incomes`
+- **Description:** The “Pendiente por cobrar” card is a global, manually curated forecast. Its value is the sum of the original amounts of open expected company incomes that are both selected and green/high. The modal reads `GET /api/accounting/receivables/` and has three tabs: detail and totals grouped by traffic-light state (green/high, orange/medium, red/low and unclassified), a flat selected summary, and candidate management. Toggles and colors save immediately with `PATCH /api/accounting/incomes/:id/update/`; choosing a color also selects the row. The same control and its accessible legend appear only for expected rows in the Ingresos table. Closing an income by collecting it fully, writing it off or moving it outside the company ledger removes it from the selection while preserving its last color.
 - **Steps:**
-  1. Superuser clicks the expected-month card on the Resumen.
-  2. The modal fetches the month's expected incomes and renders the detail table with loading/empty/error states.
-  3. "Cerrar" dismisses the modal.
+  1. Superuser opens the accounting summary and sees the green selected total on “Pendiente por cobrar”.
+  2. Superuser opens the card and reviews totals and rows by state.
+  3. Superuser reviews the flat selection or opens “Gestionar candidatos”.
+  4. Superuser changes a toggle or traffic-light state and the row saves immediately.
+  5. Superuser can make the same change directly from an expected row in Ingresos.
+- **Branches:**
+  - [Display] The modal exposes all three tabs and keeps selected rows without a color under “Sin clasificar”.
+  - [Success] A saved color automatically selects the expected income and updates the summary/card locally.
+  - [Failure] A failed load leaves a visible retry action; a failed update preserves the previous row and raises an error notification.
+  - [Error n/a] The controls only emit catalog values and booleans, so there is no user-entered validation state; invalid payloads are covered at the serializer/API layer.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
+- **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`, `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-stats-modals`
 
@@ -6505,12 +6513,13 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting`
-- **Description:** Descriptive-statistics modals on the Resumen. Triggers: "Ingresos líquidos", "Gastos {year}" (relabeled from "Costo operativo mensual"; now shows `expenses_total` with the recurring cost as sub) and "Deuda tarjetas" cards are clickable buttons, and the hero Utilidad card exposes an "Estadísticas" button. Modals (StatsModal + StatsSummaryStrip + chart primitives over useChartTheme): Ingresos (evolución esperado vs líquido área, % de cobro radial + mensual, top conceptos), Gastos (evolución con promedio anotado, donut Negocio/Personal, recurrente vs variable, top conceptos), Utilidad (evolución, márgenes, donut + detalle por socio) and Tarjetas (evolución de deuda por tarjeta, uso del cupo contra el catálogo, histórico de cortes). Income/expense tabs feed from `GET /api/accounting/stats/?year=` (lazy, cached per year in the store, reset on year change); utility/cards tabs compute client-side.
+- **Description:** Descriptive-statistics surfaces on the Resumen. “Ingresos líquidos”, “Gastos {year}” and “Deuda tarjetas” remain clickable cards that open StatsModal with their tabbed charts. Utility statistics moved into the “Utilidad líquida” hero as a default-open accordion, so there is no utility statistics icon or modal. All charts share `useChartTheme`, including foreground, legend, tooltip and center-label colors for dark mode. Income/expense views read `GET /api/accounting/stats/?year=` lazily and cache per year; utility and card views compute client-side.
 - **Steps:**
-  1. Superuser clicks a stat card (or the hero "Estadísticas" button) on the Resumen.
+  1. Superuser clicks the income, expense or card-debt stat card on the Resumen.
   2. The modal opens; income/expense modals fetch `accounting/stats/` once per year (loading skeleton meanwhile).
   3. Tabs switch between chart views (v-if panels so ApexCharts mounts visible).
-  4. Changing the page year drops the cached stats and the next open refetches.
+  4. Utility tabs are immediately available inside the default-open hero accordion and can be collapsed.
+  5. Changing the page year drops the cached stats and the next modal open refetches.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
 
@@ -6544,7 +6553,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Its indicator cards use the shared fixed label/value/reserved-support structure, so all heights match, and every visible card has contextual help plus an explicit filtering action. Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Expected rows expose a “Previsión” column with the pending-by-collect candidate toggle and green/high, orange/medium or red/low confidence selector; the legend beside the page title explains the states and changes save immediately. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Its indicator cards use the shared fixed label/value/reserved-support structure, so all heights match, and every visible card has contextual help plus an explicit filtering action. Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
 - **Responsive contract:** En 412 px y 835 px la cabecera muestra exactamente dos resúmenes — **Resultado anual** y **Detalle operativo** — y sus drawers conservan las siete preguntas originales (esperado, líquido, perdido, mes actual, principal origen, sin cliente y sin proyecto). La primera fila queda dentro de la pantalla inicial del teléfono. Desde 1195 px se muestran cuatro tarjetas detalladas. Los cinco anchos de referencia verifican cantidad, alturas parejas y acceso al detalle.
 - **Steps:**
   1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner), and may activate an indicator to apply its year/month/kind/search/missing-relation filter.
@@ -6552,7 +6561,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
   5. Row delete asks for confirmation and DELETEs `.../delete/`.
-  6. An expected row shows its fulfilment state in its own "Cobro" column, computed from the liquid records linked to it: Pagado (light-green row), Parcial (amber row + the outstanding amount inline) or Pendiente (untinted, "—"). It used to sit next to the kind badge, which wrapped the row onto a second line.
+  6. An expected row shows its fulfilment state in its own "Cobro" column, computed from the liquid records linked to it: Pagado (light-green row), Parcial (amber row + the outstanding amount inline) or Pendiente (untinted, "—"). Its “Previsión” column allows immediate candidate and traffic-light changes; choosing a color also selects the row. Non-expected rows do not expose this control.
   7. "Liquidar" on an expected row opens a modal prefilled with the pending amount; the destination defaults to Bolsillo ProjectApp (Socios is the explicit choice) and the payment period asks for the exact date by default, prefilled with today (the "Registrar el día exacto de pago" toggle downgrades the input to month-only when only the month is known). Submitting POSTs `/api/accounting/incomes/:id/settle/`, which registers a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
   8. If the amount received is below the pending balance, the modal reveals "Saldo por resolver" with a live remaining counter and two collapsible, repeatable groups (a fixed hint under the pending block announces the mechanism at open, and the deductions group auto-expands once per open the moment the shortfall appears — an untouched auto-added row neither blocks the submit nor reaches the payload, so leaving the balance pending stays one click). "No es un cobro pendiente, es un gasto" books the shortfall as an expense with its concept (Comisión plataforma de pago / Comisión bancaria / Retención en la fuente / Otro, the last one requiring free text). "Sí lo voy a cobrar: crear ingreso esperado" reschedules it as one or more new expected incomes inheriting the parent's ledger, destination and partner ratio. Both can be combined in one settlement. Since Aug 2026 the amount received may be 0 as long as the shortfall is fully allocated: a residual-only settlement that creates no liquid record and sends no payment email — the rescue path for old partial collections whose fee-sized residual would otherwise stay "Parcial" forever (also scriptable via the `resolve_income_residual` management command).
   9. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
@@ -6893,7 +6902,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-accounting-dashboard` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
-| `admin-accounting-expected-detail` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
+| `admin-accounting-receivables` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js`, `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-stats-modals` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
 | `admin-accounting-income-crud` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-income-client` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |

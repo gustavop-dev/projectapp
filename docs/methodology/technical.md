@@ -1,5 +1,17 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico de cuentas por cobrar — 2026-09-03:** la migración
+> `content.0244` añade booleano de selección, catálogo de confianza
+> `high|medium|low`, índice de lectura y constraint
+> `income_candidate_expected_company`. `GET /api/accounting/receivables/`
+> devuelve todos los ingresos esperados abiertos de empresa, sin filtro de año,
+> junto a `selected_*`, `high_*` y cuatro grupos de totales original/abonado/
+> pendiente. El KPI consume `high_total` —monto original, no saldo— y las
+> mutaciones usan el endpoint ordinario de ingresos, por lo que conservan
+> validación, auditoría y correo. La API MCP expone la misma lectura y admite los
+> dos campos en create/update. ApexCharts recibe `chart.foreColor`, `theme.mode`,
+> colores de leyenda/no-data y tooltip desde tokens reactivos.
+
 > **Contrato implementado — MCP operativo 2026-09-02:** la ampliación conserva
 > JSON-RPC y los clientes 2025, añade `structuredContent`, `outputSchema`,
 > anotaciones de riesgo, credenciales Bearer con alcance y trazas por request.

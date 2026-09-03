@@ -36,6 +36,7 @@ export function useChartTheme() {
     chart: {
       fontFamily: 'inherit',
       background: 'transparent',
+      foreColor: palette.value.text,
       toolbar: { show: false },
       zoom: { enabled: false },
       animations: {
@@ -43,7 +44,7 @@ export function useChartTheme() {
         dynamicAnimation: { enabled: !reducedMotion.value },
       },
     },
-    foreColor: palette.value.text,
+    theme: { mode: isDark.value ? 'dark' : 'light' },
     grid: { borderColor: palette.value.grid, strokeDashArray: 3 },
     stroke: { curve: 'smooth', width: 2 },
     dataLabels: { enabled: false },
@@ -51,9 +52,11 @@ export function useChartTheme() {
       position: 'top',
       horizontalAlign: 'left',
       fontSize: '12px',
+      labels: { colors: palette.value.text },
       markers: { size: 5 },
     },
     tooltip: { theme: isDark.value ? 'dark' : 'light' },
+    noData: { style: { color: palette.value.text } },
   }));
 
   return { isDark, palette, baseOptions };

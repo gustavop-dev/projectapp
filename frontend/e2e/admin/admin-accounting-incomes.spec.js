@@ -48,6 +48,9 @@ function incomeRow(overrides = {}) {
     pending_amount: '1160000.00',
     payment_status: 'pending',
     payment_status_label: 'Pendiente',
+    is_receivable_candidate: false,
+    collection_confidence: '',
+    collection_confidence_label: '',
     reminders_muted: false,
     reminders_muted_until: null,
     client: null,
@@ -195,6 +198,29 @@ function buildHandler({
         body: JSON.stringify({ results: rows, meta }),
       };
     }
+    if (apiPath === 'accounting/receivables/' && method === 'GET') {
+      const candidates = rows.filter((row) => (
+        row.kind === 'expected'
+        && row.ledger === 'company'
+        && ['pending', 'partial'].includes(row.payment_status)
+      ));
+      const green = candidates.filter((row) => (
+        row.is_receivable_candidate && row.collection_confidence === 'high'
+      ));
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: candidates,
+          summary: {
+            high_total: green.reduce((sum, row) => sum + Number(row.total_amount), 0),
+            high_count: green.length,
+            selected_count: candidates.filter((row) => row.is_receivable_candidate).length,
+            by_confidence: {},
+          },
+        }),
+      };
+    }
     const settleMatch = apiPath.match(/^accounting\/incomes\/(\d+)\/settle\/$/);
     if (settleMatch && method === 'POST') {
       const body = route.request().postDataJSON();
@@ -293,10 +319,15 @@ function buildHandler({
     if (/^accounting\/incomes\/\d+\/update\/$/.test(apiPath) && method === 'PATCH') {
       const body = route.request().postDataJSON();
       calls.push({ method, apiPath, body });
+      const id = Number(apiPath.split('/')[2]);
+      const target = rows.find((row) => row.id === id) || rows[0];
+      const updated = { ...target, ...body };
+      if (body.collection_confidence) updated.is_receivable_candidate = true;
+      Object.assign(target, updated);
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(incomeRow({ ...rows[0], ...body })),
+        body: JSON.stringify(incomeRow(updated)),
       };
     }
     const muteMatch = apiPath.match(/^accounting\/incomes\/(\d+)\/mute\/$/);
@@ -576,6 +607,25 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByTestId('accounting-row-2')).toBeVisible();
     await expect(page.getByText('Kore - Inicio 40%')).toBeVisible();
+  });
+
+  test('assigning a collection color selects the expected income', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByRole('combobox', {
+      name: 'Probabilidad de cobro de Kore - Inicio 40%',
+    }).selectOption('high');
+
+    await expect(page.getByRole('switch', {
+      name: 'Quitar Kore - Inicio 40% de pendientes por cobrar',
+    })).toBeChecked();
+    await expect.poll(() => calls.find((call) => (
+      call.apiPath === 'accounting/incomes/1/update/'
+    ))?.body).toEqual({ collection_confidence: 'high' });
   });
 
   test('renders the classic leading menu control track', {

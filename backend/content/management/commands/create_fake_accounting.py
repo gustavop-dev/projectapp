@@ -160,6 +160,21 @@ class Command(BaseCommand):
             # Written off: money we already know will never arrive. It stays
             # out of the expected projection, so it never gets a liquid row.
             is_lost = index % 8 == 3
+            # The open rows intentionally cover every manual forecast state:
+            # three partials cycle green/amber/red and a pending row remains
+            # selected without a colour. Paid and lost rows never enter the
+            # active shortlist.
+            confidence = ''
+            is_receivable_candidate = False
+            if not is_lost and index % 4 == 1:
+                confidence = (
+                    IncomeRecord.CollectionConfidence.HIGH,
+                    IncomeRecord.CollectionConfidence.MEDIUM,
+                    IncomeRecord.CollectionConfidence.LOW,
+                )[(index // 4) % 3]
+                is_receivable_candidate = True
+            elif not is_lost and index % 8 == 7:
+                is_receivable_candidate = True
             income = IncomeRecord.objects.create(
                 concept=concept,
                 kind=(
@@ -173,6 +188,8 @@ class Command(BaseCommand):
                 client=client,
                 project=project_for(client, index),
                 origin=origin,
+                is_receivable_candidate=is_receivable_candidate,
+                collection_confidence=confidence,
                 source_ref=FAKE_REF,
             )
             created += 1

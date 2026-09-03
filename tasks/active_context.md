@@ -2,6 +2,23 @@
 
 ## Current State
 
+**2026-09-03 — previsión manual de cobros lista para integrar:** cada ingreso
+esperado abierto de empresa puede entrar o salir de una shortlist y conservar
+un semáforo verde/naranja/rojo; elegir color lo selecciona y cada cambio se
+persiste de inmediato con auditoría y aviso contable. El total “Pendiente por
+cobrar” es global y suma el monto original únicamente de verdes seleccionados.
+Su modal separa estado, selección y gestión; Ingresos expone el mismo control
+sólo donde aplica. Un cobro total, ingreso perdido o cambio fuera del ledger de
+empresa retira automáticamente el candidato sin borrar su clasificación. La
+estadística de utilidad dejó de ser modal y ocupa el hero como acordeón abierto;
+se retiró el mini gráfico, se eliminó la altura que producía el espacio vacío y
+se reforzaron texto, leyendas, tooltips y estados vacíos de ApexCharts en dark
+mode. Esquema `content.0244`, endpoint REST, herramientas MCP, seeds y mapas E2E
+quedaron sincronizados. Verificación focal: 18 tests del dominio de cobros, 6
+del modal y el recorrido Playwright de auto-selección/KPI aprobados por `$qa`,
+además de Django check, migration dry-run, build Nuxt y flow audit fresco; no se
+refrescó fake data por la guardia de producción.
+
 **2026-09-02 — paridad operativa MCP lista para integrar:** los 16 conectores
 registrados —10 canónicos y 6 compatibles— exponen el Panel por área con
 credenciales acotadas, actor técnico, riesgo explícito, resultados estructurados,

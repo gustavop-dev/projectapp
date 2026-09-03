@@ -1,6 +1,6 @@
 from django.urls import path
 from content.views.accounting import (
-    accounting_dashboard, accounting_stats,
+    accounting_dashboard, accounting_stats, accounting_receivables,
     list_income_records, create_income_record, retrieve_income_record,
     retrieve_income_detail, list_client_projects,
     settle_income_record, bulk_assign_income_client, mute_income_reminders,
@@ -1045,6 +1045,7 @@ urlpatterns = [
     # ── Accounting module (panel, superuser-only) ──────────────────
     path('accounting/dashboard/', accounting_dashboard, name='accounting-dashboard'),
     path('accounting/stats/', accounting_stats, name='accounting-stats'),
+    path('accounting/receivables/', accounting_receivables, name='accounting-receivables'),
 
     path('accounting/incomes/', list_income_records, name='list-income-records'),
     path('accounting/incomes/create/', create_income_record, name='create-income-record'),

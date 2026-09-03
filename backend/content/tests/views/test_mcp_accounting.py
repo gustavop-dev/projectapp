@@ -61,11 +61,12 @@ class TestAccountingMcpToolList:
         _, token = accounting_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
-        # 8 ledgers × 5 CRUD + 14 non-CRUD + 15 statement tools = 69
-        assert len(names) == 69
+        # 8 ledgers × 5 CRUD + 15 non-CRUD + 15 statement tools = 70
+        assert len(names) == 70
         for expected in (
             'list_income', 'create_expense', 'delete_pocket', 'get_hosting',
             'update_recurring', 'get_dashboard', 'list_change_logs',
+            'get_receivables',
             'get_settings', 'update_settings', 'mute_income',
             'get_income_detail', 'settle_income', 'bulk_settle_incomes',
             'get_statement_instructions',
@@ -79,7 +80,7 @@ class TestAccountingMcpToolList:
             assert expected in names
 
     def test_registry_length_matches_endpoint(self):
-        assert len(ACCOUNTING_TOOLS) == 69
+        assert len(ACCOUNTING_TOOLS) == 70
 
 
 @pytest.mark.django_db
@@ -170,6 +171,37 @@ class TestAccountingMcpNonCrud:
         _, token = accounting_connector
         response = _call(api_client, token, 'get_dashboard', {'year': 2026})
         assert response.data['result']['isError'] is False
+
+    def test_receivables_returns_manual_green_total(
+        self, api_client, accounting_connector, make_income,
+    ):
+        make_income(
+            total_amount=Decimal('1234.00'),
+            is_receivable_candidate=True,
+            collection_confidence=IncomeRecord.CollectionConfidence.HIGH,
+        )
+
+        response = _call(
+            api_client, accounting_connector[1], 'get_receivables', {},
+        )
+
+        payload = _payload(response)
+        assert payload['summary']['high_total'] == '1234'
+
+    def test_update_income_accepts_collection_confidence(
+        self, api_client, accounting_connector, make_income,
+    ):
+        income = make_income()
+
+        response = _call(api_client, accounting_connector[1], 'update_income', {
+            'record_id': income.pk,
+            'collection_confidence': 'medium',
+        })
+
+        assert response.data['result']['isError'] is False
+        income.refresh_from_db()
+        assert income.is_receivable_candidate is True
+        assert income.collection_confidence == 'medium'
 
     def test_get_settings(self, api_client, accounting_connector, accounting_settings):
         _, token = accounting_connector

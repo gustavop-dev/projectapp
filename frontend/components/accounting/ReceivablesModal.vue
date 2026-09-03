@@ -1,0 +1,257 @@
+<template>
+  <BaseModal
+    :model-value="open"
+    kind="workspace"
+    title-id="receivables-modal-title"
+    @close="emit('close')"
+  >
+    <div data-testid="receivables-modal">
+      <header class="border-b border-border-muted px-4 pb-4 pt-5 panel-portrait:px-6 panel-portrait:pt-6">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h3 id="receivables-modal-title" class="text-lg font-bold text-text-default">
+              Pendientes por cobrar
+            </h3>
+            <p class="mt-1 text-sm text-text-muted">
+              Previsión manual sobre ingresos esperados abiertos de la empresa, sin límite de fecha.
+            </p>
+          </div>
+          <ReceivableLegend />
+        </div>
+      </header>
+
+      <div class="px-4 pt-4 panel-portrait:px-6">
+        <BaseTabs
+          v-model="activeTab"
+          :tabs="tabs"
+          aria-label="Secciones de pendientes por cobrar"
+        />
+      </div>
+
+      <main class="min-h-[360px] px-4 pb-5 panel-portrait:px-6">
+        <div v-if="store.receivablesLoading" class="space-y-3 py-4" data-testid="receivables-loading">
+          <div class="h-20 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
+          <div class="h-44 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
+        </div>
+
+        <div v-else-if="store.receivablesError" class="py-10 text-center">
+          <p class="text-sm font-medium text-danger-strong">
+            No se pudieron cargar los pendientes por cobrar.
+          </p>
+          <BaseButton class="mt-4" variant="secondary" size="sm" @click="load">
+            Reintentar
+          </BaseButton>
+        </div>
+
+        <template v-else>
+          <section v-if="activeTab === 'summary'" class="space-y-5" data-testid="receivables-summary-tab">
+            <p class="text-sm text-text-muted">
+              Totales originales de los ingresos seleccionados, separados por nivel de confianza.
+            </p>
+            <article
+              v-for="group in confidenceGroups"
+              :key="group.key"
+              class="overflow-hidden rounded-xl border border-border-muted bg-surface"
+              :data-testid="`receivables-group-${group.key}`"
+            >
+              <div class="flex flex-col gap-3 bg-surface-raised px-3 py-3 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between panel-portrait:px-4">
+                <div class="flex items-center gap-2">
+                  <ReceivableConfidenceBadge :confidence="group.confidence" />
+                  <span class="text-xs text-text-muted">
+                    {{ group.summary.count }} {{ group.summary.count === 1 ? 'ingreso' : 'ingresos' }}
+                  </span>
+                </div>
+                <dl class="grid grid-cols-3 gap-3 text-xs panel-portrait:gap-5">
+                  <div>
+                    <dt class="text-text-muted">Total original</dt>
+                    <dd class="font-semibold tabular-nums text-text-default">
+                      {{ money(group.summary.total_amount) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-text-muted">Abonado</dt>
+                    <dd class="font-semibold tabular-nums text-text-default">
+                      {{ money(group.summary.paid_amount) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-text-muted">Saldo abierto</dt>
+                    <dd class="font-semibold tabular-nums text-warning-strong">
+                      {{ money(group.summary.pending_amount) }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+              <div v-if="group.rows.length" class="p-3 panel-portrait:p-4">
+                <ReceivableRowsTable :rows="group.rows" />
+              </div>
+            </article>
+          </section>
+
+          <section v-else-if="activeTab === 'selected'" class="space-y-5" data-testid="receivables-selected-tab">
+            <StatsSummaryStrip :items="selectedStrip" />
+            <p class="text-sm text-text-muted">
+              Selección completa definida en “Gestionar candidatos”. Sólo las filas verdes suman en la tarjeta.
+            </p>
+            <ReceivableRowsTable
+              :rows="selectedRows"
+              empty-title="Todavía no has seleccionado ingresos para la previsión."
+            />
+          </section>
+
+          <section v-else class="space-y-4" data-testid="receivables-manage-tab">
+            <div class="flex flex-col gap-3 panel-portrait:flex-row panel-portrait:items-end panel-portrait:justify-between">
+              <div class="min-w-0 flex-1">
+                <label for="receivable-search" class="mb-1 block text-xs font-medium text-text-muted">
+                  Buscar ingreso esperado
+                </label>
+                <BaseInput
+                  id="receivable-search"
+                  v-model="search"
+                  placeholder="Concepto, cliente o proyecto"
+                  data-testid="receivables-search"
+                />
+              </div>
+              <p class="text-xs text-text-muted">
+                {{ filteredCandidates.length }} de {{ store.receivables.length }} candidatos
+              </p>
+            </div>
+            <div class="rounded-xl border border-border-muted bg-surface-raised p-3 text-xs text-text-muted">
+              Activa el ingreso para incluirlo en la previsión. Elegir un color también lo activa automáticamente;
+              cada cambio se guarda de inmediato.
+            </div>
+            <ReceivableRowsTable
+              :rows="filteredCandidates"
+              manageable
+              :busy-ids="store.receivableUpdatingIds"
+              empty-title="No hay ingresos esperados abiertos que coincidan con la búsqueda."
+              @change="updateState"
+            />
+          </section>
+        </template>
+      </main>
+
+      <footer class="flex items-center justify-end border-t border-border-muted px-4 py-4 panel-portrait:px-6">
+        <BaseButton type="button" variant="secondary" @click="emit('close')">Cerrar</BaseButton>
+      </footer>
+    </div>
+  </BaseModal>
+</template>
+
+<script setup>
+import { computed, ref, watch } from 'vue';
+import BaseButton from '~/components/base/BaseButton.vue';
+import BaseInput from '~/components/base/BaseInput.vue';
+import BaseModal from '~/components/base/BaseModal.vue';
+import BaseTabs from '~/components/base/BaseTabs.vue';
+import StatsSummaryStrip from '~/components/stats/StatsSummaryStrip.vue';
+import ReceivableConfidenceBadge from '~/components/accounting/ReceivableConfidenceBadge.vue';
+import ReceivableLegend from '~/components/accounting/ReceivableLegend.vue';
+import ReceivableRowsTable from '~/components/accounting/ReceivableRowsTable.vue';
+import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useAccountingStore } from '~/stores/accounting';
+import { buildReceivablesSummary } from '~/utils/receivables';
+import { formatMoney } from '~/utils/formatMoney';
+
+const props = defineProps({
+  open: { type: Boolean, default: false },
+});
+
+const emit = defineEmits(['close']);
+const store = useAccountingStore();
+const notify = usePanelNotify();
+const activeTab = ref('summary');
+const search = ref('');
+
+const selectedRows = computed(() =>
+  store.receivables.filter((row) => row.is_receivable_candidate),
+);
+const summary = computed(() =>
+  store.receivablesSummary || buildReceivablesSummary(store.receivables),
+);
+
+const tabs = computed(() => [
+  { id: 'summary', label: 'Por estado', badge: summary.value.selected_count || 0 },
+  { id: 'selected', label: 'Selección', badge: selectedRows.value.length },
+  { id: 'manage', label: 'Gestionar candidatos', badge: store.receivables.length },
+]);
+
+const groupDefinitions = [
+  { key: 'high', confidence: 'high' },
+  { key: 'medium', confidence: 'medium' },
+  { key: 'low', confidence: 'low' },
+  { key: 'unclassified', confidence: '' },
+];
+
+const confidenceGroups = computed(() =>
+  groupDefinitions.map((definition) => ({
+    ...definition,
+    summary: summary.value.by_confidence?.[definition.key] || {
+      count: 0,
+      total_amount: 0,
+      paid_amount: 0,
+      pending_amount: 0,
+    },
+    rows: selectedRows.value.filter(
+      (row) => (row.collection_confidence || 'unclassified') === definition.key,
+    ),
+  })),
+);
+
+const selectedStrip = computed(() => [
+  { label: 'Seleccionados', value: String(summary.value.selected_count || 0) },
+  { label: 'Total original', value: money(summary.value.selected_total) },
+  { label: 'Abonado', value: money(summary.value.paid_total), tone: 'success' },
+  { label: 'Saldo abierto', value: money(summary.value.pending_total), tone: 'warning' },
+  {
+    label: 'Tarjeta (verdes)',
+    value: money(summary.value.high_total),
+    tone: 'success',
+    sub: `${summary.value.high_count || 0} en verde`,
+  },
+]);
+
+const filteredCandidates = computed(() => {
+  const query = search.value.trim().toLocaleLowerCase('es');
+  if (!query) return store.receivables;
+  return store.receivables.filter((row) =>
+    [row.concept, row.client_name, row.project_name, row.period_label]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase('es').includes(query)),
+  );
+});
+
+function money(value) {
+  return formatMoney(Number(value ?? 0), 'COP');
+}
+
+async function load() {
+  await store.fetchReceivables();
+}
+
+async function updateState(row, payload) {
+  const result = await store.updateReceivableState(row.id, payload);
+  if (result.success) {
+    notify.success({
+      title: 'Previsión de cobro actualizada',
+      detail: row.concept,
+    });
+    return;
+  }
+  notify.error({
+    title: 'No se pudo actualizar la previsión',
+    detail: result.message || 'Intenta de nuevo.',
+  });
+}
+
+watch(
+  () => props.open,
+  (open) => {
+    if (!open) return;
+    activeTab.value = 'summary';
+    search.value = '';
+    load();
+  },
+  { immediate: true },
+);
+</script>

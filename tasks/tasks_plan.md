@@ -1,5 +1,19 @@
 # Task Plan — ProjectApp
 
+> **Previsión manual de pendientes por cobrar lista para integrar — 2026-09-03:**
+> Contabilidad incorpora shortlist y semáforo persistentes para ingresos
+> esperados abiertos de empresa. El KPI global suma el valor original sólo de
+> los seleccionados en verde; el modal ofrece detalle por estado, resumen de la
+> selección y gestión inmediata de candidatos, y la tabla de Ingresos comparte
+> el mismo control con su leyenda. Liquidar por completo, marcar perdido o salir
+> de la contabilidad de empresa deselecciona sin borrar el último color. En el
+> Resumen, las estadísticas de utilidad reemplazan el gráfico anterior dentro
+> de un acordeón abierto por defecto, se elimina el hueco forzado del hero y los
+> gráficos ganan contraste completo en dark mode. Migración `content.0244`, REST
+> y MCP quedaron alineados; Django check, migraciones sin drift, build Nuxt,
+> pruebas focales backend/unit/E2E y flow-map están verdes. El refresh de fake
+> data no se ejecutó porque este clon apunta a producción.
+
 > **Listo para integrar — paridad operativa MCP 2026-09-02:** los conectores
 > actuales comparten registro, credenciales acotadas, actor técnico, auditoría,
 > concurrencia, uploads y confirmación de efectos sensibles; Documentos conserva
