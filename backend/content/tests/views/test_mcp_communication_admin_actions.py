@@ -93,8 +93,20 @@ def call_tool(api_client, token, name, arguments):
     )
 
 
+def call_confirmed_tool(api_client, token, name, arguments):
+    preview = call_tool(api_client, token, name, arguments)
+    confirmation_id = preview.data['result']['structuredContent']['confirmation_id']
+    return call_tool(
+        api_client,
+        token,
+        'confirm_action',
+        {'confirmation_id': confirmation_id},
+    )
+
+
 def payload(response):
-    return json.loads(response.data['result']['content'][0]['text'])
+    result = json.loads(response.data['result']['content'][0]['text'])
+    return result.get('result', result) if result.get('confirmed') else result
 
 
 def tool_text(response):
@@ -186,7 +198,7 @@ def test_close_thread_sets_closed_state(
     communication_context['thread'].refresh_from_db()
     assert payload(response)['status'] == CommunicationThread.Status.CLOSED
     assert communication_context['thread'].closed_at is not None
-    assert communication_context['thread'].updated_by == mcp_superuser
+    assert communication_context['thread'].updated_by.username == 'mcp_communications'
 
 
 def test_close_thread_rejects_closed_state(
@@ -299,7 +311,7 @@ def test_delete_draft_removes_message(
     )
     _, token = communications_connector
 
-    response = call_tool(api_client, token, 'delete_draft', {
+    response = call_confirmed_tool(api_client, token, 'delete_draft', {
         'message_id': message.pk,
     })
 
@@ -317,7 +329,7 @@ def test_delete_draft_rejects_sent_message(
     message = make_message(communication_context, mcp_superuser)
     _, token = communications_connector
 
-    response = call_tool(api_client, token, 'delete_draft', {
+    response = call_confirmed_tool(api_client, token, 'delete_draft', {
         'message_id': message.pk,
     })
 
@@ -332,7 +344,7 @@ def test_void_message_records_reason(
     message = make_message(communication_context, mcp_superuser)
     _, token = communications_connector
 
-    response = call_tool(api_client, token, 'void_message', {
+    response = call_confirmed_tool(api_client, token, 'void_message', {
         'message_id': message.pk,
         'reason': 'Duplicado registrado por error',
     })
@@ -340,7 +352,7 @@ def test_void_message_records_reason(
     message.refresh_from_db()
     assert payload(response)['void_reason'] == 'Duplicado registrado por error'
     assert message.voided_at is not None
-    assert message.voided_by == mcp_superuser
+    assert message.voided_by.username == 'mcp_communications'
     assert message.content == 'Contenido histórico'
 
 
@@ -354,7 +366,7 @@ def test_void_message_rejects_draft(
     )
     _, token = communications_connector
 
-    response = call_tool(api_client, token, 'void_message', {
+    response = call_confirmed_tool(api_client, token, 'void_message', {
         'message_id': message.pk,
         'reason': 'No aplica',
     })
@@ -381,7 +393,7 @@ def test_correct_message_date_appends_correction(
     message.refresh_from_db()
     assert message.occurred_at == corrected_at
     assert correction['reason'] == 'Hora confirmada con el cliente'
-    assert correction['corrected_by_name'] == mcp_superuser.username
+    assert correction['corrected_by_name'] == 'MCP Gestor de Comunicaciones'
 
 
 def test_correct_message_date_rejects_draft(

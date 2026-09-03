@@ -42,14 +42,42 @@ class McpConnector(models.Model):
         return hashlib.sha256(token.encode('utf-8')).hexdigest()
 
     def generate_token(self):
-        """Create a new token, persist only its hash, return the plaintext once."""
+        """Rotate the compatibility token and its default scoped credential."""
         token = secrets.token_urlsafe(36)
         self.token_hash = self.hash_token(token)
         self.token_prefix = token[:8]
         self.save(update_fields=['token_hash', 'token_prefix', 'updated_at'])
+        # Local import avoids a model-import cycle. Existing installations keep
+        # the connector fields as an expand/contract compatibility surface.
+        from content.models.mcp_credential import McpCredential
+
+        credential, _ = McpCredential.objects.get_or_create(
+            connector=self,
+            label='Default',
+            defaults={
+                'token_hash': self.token_hash,
+                'token_prefix': self.token_prefix,
+            },
+        )
+        credential.token_hash = self.token_hash
+        credential.token_prefix = self.token_prefix
+        credential.revoked_at = None
+        credential.save(update_fields=[
+            'token_hash', 'token_prefix', 'revoked_at', 'updated_at',
+        ])
         return token
 
     def check_token(self, token):
         if not self.token_hash or not token:
             return False
         return hmac.compare_digest(self.token_hash, self.hash_token(token))
+
+    def credential_for_token(self, token):
+        """Return the usable scoped credential, falling back to legacy data."""
+        if not token:
+            return None
+        token_hash = self.hash_token(token)
+        credential = self.credentials.filter(token_hash=token_hash).first()
+        if credential and credential.check_token(token):
+            return credential
+        return None

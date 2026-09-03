@@ -4,14 +4,19 @@
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/mcps`
-- **Description:** Superuser sees one card per MCP connector (starting with Blog Publisher): name, description, active toggle, masked token prefix, last-used timestamp and the tool catalog exposed to Claude. "Generar/Regenerar token" calls `POST /api/mcp-connectors/<slug>/generate-token/` and shows the full connector URL exactly once in a modal with a copy button (the plaintext token is never retrievable again; only its SHA-256 hash is stored). The toggle PATCHes `is_active`, killing or enabling the public MCP endpoint instantly.
+- **Description:** El superusuario administra los conectores MCP agrupados por área. Cada card muestra estado, riesgos, catálogo, credenciales limitadas y actividad atribuida; los secretos aparecen una sola vez. Puede activar un conector, crear o editar el alcance/vencimiento de una credencial, rotarla o revocarla. Los errores de validación quedan en el formulario y los fallos del servidor no cierran ni confirman la acción.
 - **Steps:**
-  1. Superuser opens `/panel/mcps` (sidebar section "Integrations", superuser-gated).
-  2. Reviews the Blog Publisher card and its tool list.
-  3. Clicks "Generar token" → one-time modal with the connector URL → copies it into claude.ai → Settings → Connectors.
-  4. Activates the connector with the toggle.
-  - [Branch A — gating] Staff non-superuser navigating to `/panel/mcps` is redirected to `/panel`; the Integrations sidebar section is hidden.
-  - [Branch B — rotation] Regenerating the token invalidates the previous one immediately (old connector URL starts returning 404).
+  1. El superusuario llega desde la navegación del Panel a Integraciones → MCPs.
+  2. Expande una card y revisa riesgos, funciones, credenciales, actor técnico y actividad con request/objeto atribuido.
+  3. Genera la principal o crea una limitada → recibe la URL una sola vez → la copia al cliente MCP.
+  4. Edita alcance/vencimiento, rota o revoca una credencial individual; la revocación exige confirmación en el modal estándar del Panel.
+  5. Activa o desactiva el conector con el toggle.
+  - [Display] La card y sus acordeones presentan inventario real, no sólo un contenedor visible.
+  - [Success] Crear, editar, rotar, revocar y activar producen el estado observable correspondiente.
+  - [Error] Un staff no superusuario es redirigido; etiqueta vacía o alcance custom vacío permanecen bloqueados en cliente.
+  - [Failure] Un 4xx/5xx conserva el formulario o estado anterior y muestra el detalle accionable.
+  - [Security] El plaintext no puede recuperarse al recargar; sólo quedan prefijo y hash. Las escrituras —incluidos `created_by` y `linked_by` de hilos documentales, ingresos y extractos— se atribuyen a un principal técnico no interactivo del conector, nunca al superusuario humano del Panel.
+  - [Contract] El servidor rechaza envelopes MCP incoherentes, alcances o vencimientos inválidos, confirmaciones vencidas/alteradas y assets temporales con tamaño, hash, MIME o firma incompatibles; un fallo de auditoría no interrumpe la respuesta del transporte.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-mcps.spec.js`
 
@@ -19,4 +24,4 @@
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
-| `admin-mcps` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-mcps.spec.js` |
+| `admin-mcps` | admin | superuser | P2 | ✅ display · success · error · failure | `e2e/admin/admin-mcps.spec.js` |

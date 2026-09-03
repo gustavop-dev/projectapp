@@ -114,6 +114,9 @@ from .communication import (
 )
 from .view_map import ViewMapSettings
 from .mcp_connector import McpConnector
+from .mcp_credential import McpCredential
+from .mcp_action_intent import McpActionIntent
+from .mcp_upload import McpUpload
 from .mcp_request_log import McpRequestLog
 from .additional_module import (
     AdditionalModule,
