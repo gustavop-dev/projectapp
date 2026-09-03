@@ -181,6 +181,12 @@ def test_communications_contract_exposes_archive_state():
     assert 'archived_at' not in thread.excluded
 
 
+def test_accounting_ledger_exposes_receivables_forecast():
+    tool_names = {tool['name'] for tool in TOOLS_BY_SLUG['accounting-ledger']}
+
+    assert 'get_receivables' in tool_names
+
+
 @pytest.mark.parametrize('slug', CONNECTOR_SLUGS)
 def test_model_fields_are_classified_for_connector(slug):
     assert _field_contract_problems(slug) == []

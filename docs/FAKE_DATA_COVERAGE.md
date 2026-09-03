@@ -77,7 +77,7 @@ Los valores son objetivos mínimos o perfiles deliberados, no repartos uniformes
 | Portafolio | 60 | bilingüe y mezcla publicado/borrador |
 | Tareas | 60 | tableros, prioridades, estados, alertas y comentarios |
 | Diagnósticos | 61 | 60 del listado + un caso histórico convertido a propuesta |
-| Ingresos esperados/perdidos | 63 raíces | esperados, líquidos, perdidos; pendientes, parciales y pagados |
+| Ingresos esperados/perdidos | 63 raíces | esperados, líquidos, perdidos; pendientes, parciales y pagados; candidatos de cobro verdes, naranjas, rojos y sin clasificar |
 | Gastos | 60 | personales/negocio y fechas pasadas, actuales y futuras |
 | Hosting contable | 45 | 0–4 ciclos, vencidos, vigentes y futuros |
 | Documentos | ≥60 | todos con cliente/proyecto; con y sin carpeta; 2 firmables |

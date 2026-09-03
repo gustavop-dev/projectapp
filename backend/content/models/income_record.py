@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 
 from .accounting_base import AccountingRecordBase, PartnerSplitMixin
 from .recurring_payment import RecurringPayment
@@ -35,6 +36,11 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
         DIAGNOSTIC = 'diagnostic', 'Diagnóstico'
         OTHER = 'other', 'Otro'
 
+    class CollectionConfidence(models.TextChoices):
+        HIGH = 'high', 'Cobro muy probable'
+        MEDIUM = 'medium', 'Cobro incierto (50/50)'
+        LOW = 'low', 'Alto riesgo de pérdida'
+
     concept = models.CharField(max_length=255)
     kind = models.CharField(max_length=10, choices=Kind.choices)
     # Optional on purpose: nearly every income has a client behind it, but a
@@ -68,6 +74,17 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
     # as plain text and often have no platform profile to link to.
     origin = models.CharField(
         max_length=20, choices=Origin.choices, blank=True, default='',
+    )
+    # Manual forecast maintained by the operators. Selection and confidence
+    # are intentionally separate: an income may be shortlisted before the
+    # team has enough context to classify its likelihood. Removing it from
+    # the shortlist preserves the last classification as historical context.
+    is_receivable_candidate = models.BooleanField(default=False)
+    collection_confidence = models.CharField(
+        max_length=10,
+        choices=CollectionConfidence.choices,
+        blank=True,
+        default='',
     )
     # Month granularity by default (serializer accepts "YYYY-MM" → day 1);
     # a day other than 1 records the exact payment date when it is known.
@@ -137,6 +154,19 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
             models.Index(fields=['kind', 'period_date']),
             models.Index(fields=['client', 'period_date']),
             models.Index(fields=['project', 'period_date']),
+            models.Index(fields=[
+                'ledger', 'kind', 'is_receivable_candidate',
+                'collection_confidence',
+            ], name='income_receivable_lookup_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(is_receivable_candidate=False)
+                    | Q(kind='expected', ledger='company')
+                ),
+                name='income_candidate_expected_company',
+            ),
         ]
 
     def __str__(self):

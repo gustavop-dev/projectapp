@@ -202,6 +202,7 @@ def settle_expected_income(income, data, user):
 
     income.refresh_from_db()
     _sync_linked_collection_accounts(income, user)
+    accounting_service.deselect_receivable_if_closed(income, user)
     return {
         'income': income,
         'liquid': liquid,
@@ -573,6 +574,7 @@ def bulk_settle_expected_incomes(data, user):
     for income in parents:
         income.refresh_from_db()
         _sync_linked_collection_accounts(income, user)
+        accounting_service.deselect_receivable_if_closed(income, user)
 
     # Exactly ONE email for the whole abono — the movement is the money
     # event; N child emails would read as N payments in the inbox.

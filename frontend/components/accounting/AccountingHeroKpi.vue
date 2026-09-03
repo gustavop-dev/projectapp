@@ -1,13 +1,13 @@
 <template>
   <div
-    class="h-full flex flex-col bg-surface rounded-xl border border-border-muted shadow-sm p-5 sm:p-6"
+    class="bg-surface rounded-xl border border-border-muted shadow-sm p-5 sm:p-6"
     data-testid="accounting-hero-kpi"
   >
     <template v-if="loading">
       <div class="h-3 w-40 rounded bg-surface-raised motion-safe:animate-pulse mb-4" />
       <div class="h-10 w-64 max-w-full rounded bg-surface-raised motion-safe:animate-pulse mb-5" />
       <div class="h-2 w-full rounded-full bg-surface-raised motion-safe:animate-pulse" />
-      <div class="h-8 w-full rounded bg-surface-raised motion-safe:animate-pulse mt-auto" />
+      <div class="h-40 w-full rounded bg-surface-raised motion-safe:animate-pulse mt-5" />
     </template>
     <template v-else>
       <div class="min-w-0 flex items-start justify-between gap-3">
@@ -24,19 +24,6 @@
           </p>
           <p v-if="sub" class="text-xs text-text-muted mt-2">{{ sub }}</p>
         </div>
-        <BaseButton
-          v-if="statsButton"
-          type="button"
-          variant="ghost"
-          size="sm"
-          class="shrink-0"
-          data-testid="accounting-hero-stats-button"
-          aria-label="Ver estadísticas de utilidad"
-          @click="emit('open-stats')"
-        >
-          <BaseActionIcon action="stats" />
-          <span class="hidden sm:inline">Estadísticas</span>
-        </BaseButton>
       </div>
       <div v-if="progress !== null" class="mt-5">
         <div
@@ -55,25 +42,8 @@
         </div>
         <p v-if="progressLabel" class="text-xs text-text-muted mt-1.5">{{ progressLabel }}</p>
       </div>
-      <div v-if="monthly.length >= 2" class="mt-4 flex-1 w-full min-w-0 min-h-[150px]">
-        <AccountingHeroUtilityChart :monthly="monthly" />
-      </div>
-      <div
-        v-if="stats.length"
-        class="mt-auto pt-5 border-t border-border-muted grid grid-cols-2 sm:grid-cols-3 gap-3"
-        data-testid="accounting-hero-stats"
-      >
-        <div v-for="stat in stats" :key="stat.label" class="min-w-0">
-          <p class="text-[10px] text-text-muted uppercase tracking-wider truncate">
-            {{ stat.label }}
-          </p>
-          <p
-            class="text-sm font-semibold tabular-nums"
-            :class="statToneClass(stat)"
-          >
-            {{ stat.value }}
-          </p>
-        </div>
+      <div v-if="$slots.details" class="mt-5 border-t border-border-muted pt-4">
+        <slot name="details" />
       </div>
     </template>
   </div>
@@ -81,15 +51,14 @@
 
 <script setup>
 import { computed, toRef } from 'vue';
-import AccountingHeroUtilityChart from '~/components/accounting/charts/AccountingHeroUtilityChart.vue';
-import BaseButton from '~/components/base/BaseButton.vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { formatMoney } from '~/utils/formatMoney';
 
 /**
  * Primary dashboard KPI: one large animated money figure with optional
- * progress bar and a full-width "Utilidad por mes" line chart filling
- * the card's free vertical space. The count-up respects
+ * progress bar and an optional details region. The card owns no forced
+ * height, so its grid row follows real content instead of leaving a void.
+ * The count-up respects
  * prefers-reduced-motion via useAnimatedNumber.
  */
 const props = defineProps({
@@ -104,16 +73,8 @@ const props = defineProps({
   /** 0-100 (clamped). null hides the progress bar. */
   progress: { type: Number, default: null },
   progressLabel: { type: String, default: '' },
-  /** summary.monthly rows for the "Utilidad por mes" chart. */
-  monthly: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
-  /** Mini-stats footer pinned to the card bottom: [{ label, value, tone? }]. */
-  stats: { type: Array, default: () => [] },
-  /** Shows the "Estadísticas" header button; emits open-stats on click. */
-  statsButton: { type: Boolean, default: false },
 });
-
-const emit = defineEmits(['open-stats']);
 
 const TONE_CLASSES = {
   neutral: 'text-text-default',
@@ -139,7 +100,4 @@ const clampedProgress = computed(() =>
   Math.min(100, Math.max(0, Math.round(Number(props.progress) || 0))),
 );
 
-function statToneClass(stat) {
-  return TONE_CLASSES[stat.tone] || TONE_CLASSES.neutral;
-}
 </script>

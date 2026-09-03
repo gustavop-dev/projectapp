@@ -97,12 +97,17 @@ const options = computed(() => ({
           total: {
             show: true,
             label: props.totalLabel,
+            color: palette.value.text,
             formatter: (w) =>
               totalFormatter.value(
                 w.globals.seriesTotals.reduce((sum, value) => sum + value, 0),
               ),
           },
-          value: { formatter: (value) => totalFormatter.value(Number(value)) },
+          name: { color: palette.value.text },
+          value: {
+            color: palette.value.text,
+            formatter: (value) => totalFormatter.value(Number(value)),
+          },
         },
       },
     },

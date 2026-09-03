@@ -73,6 +73,8 @@ TRACKED_FIELDS = {
         ('client', 'Cliente'),
         ('project', 'Proyecto'),
         ('origin', 'Origen'),
+        ('is_receivable_candidate', 'Pendiente por cobrar'),
+        ('collection_confidence', 'Probabilidad de cobro'),
         ('period_date', 'Período'),
         ('destination', 'Destino'),
         ('total_amount', 'Monto total'),
@@ -1375,6 +1377,106 @@ def paid_amount_subquery():
     )
 
 
+def receivable_queryset():
+    """Open company projections available to the manual receivables board."""
+    return (
+        IncomeRecord.objects
+        .filter(
+            kind=IncomeRecord.Kind.EXPECTED,
+            ledger=Ledger.COMPANY,
+        )
+        .annotate(
+            paid_amount=paid_amount_subquery(),
+            **collection_account_subqueries(),
+        )
+        .filter(total_amount__gt=F('paid_amount'))
+        .select_related('client', 'client__user', 'project')
+        .order_by('-is_receivable_candidate', '-period_date', '-created_at')
+    )
+
+
+def receivables_summary(queryset=None):
+    """Manual forecast totals; the green original total feeds the KPI card."""
+    queryset = queryset if queryset is not None else receivable_queryset()
+    pending = Greatest(
+        F('total_amount') - F('paid_amount'),
+        _ZERO_MONEY,
+        output_field=_MONEY_FIELD,
+    )
+    selected = Q(is_receivable_candidate=True)
+    groups = {
+        IncomeRecord.CollectionConfidence.HIGH: selected & Q(
+            collection_confidence=IncomeRecord.CollectionConfidence.HIGH,
+        ),
+        IncomeRecord.CollectionConfidence.MEDIUM: selected & Q(
+            collection_confidence=IncomeRecord.CollectionConfidence.MEDIUM,
+        ),
+        IncomeRecord.CollectionConfidence.LOW: selected & Q(
+            collection_confidence=IncomeRecord.CollectionConfidence.LOW,
+        ),
+        'unclassified': selected & Q(collection_confidence=''),
+    }
+    aggregates = {
+        'selected_count': Count('id', filter=selected),
+        'selected_total': Sum('total_amount', filter=selected),
+        'selected_paid': Sum('paid_amount', filter=selected),
+        'selected_pending': Sum(pending, filter=selected),
+    }
+    for key, condition in groups.items():
+        aggregates[f'{key}_count'] = Count('id', filter=condition)
+        aggregates[f'{key}_total'] = Sum('total_amount', filter=condition)
+        aggregates[f'{key}_paid'] = Sum('paid_amount', filter=condition)
+        aggregates[f'{key}_pending'] = Sum(pending, filter=condition)
+    totals = queryset.aggregate(**aggregates)
+
+    def group_payload(key):
+        return {
+            'count': totals[f'{key}_count'] or 0,
+            'total_amount': totals[f'{key}_total'] or Decimal('0'),
+            'paid_amount': totals[f'{key}_paid'] or Decimal('0'),
+            'pending_amount': totals[f'{key}_pending'] or Decimal('0'),
+        }
+
+    return {
+        'high_total': totals['high_total'] or Decimal('0'),
+        'high_count': totals['high_count'] or 0,
+        'selected_count': totals['selected_count'] or 0,
+        'selected_total': totals['selected_total'] or Decimal('0'),
+        'paid_total': totals['selected_paid'] or Decimal('0'),
+        'pending_total': totals['selected_pending'] or Decimal('0'),
+        'by_confidence': {
+            key: group_payload(key)
+            for key in ('high', 'medium', 'low', 'unclassified')
+        },
+    }
+
+
+def deselect_receivable_if_closed(income, user):
+    """Remove a paid projection from the active forecast, retaining its colour."""
+    if not income.is_receivable_candidate:
+        return False
+    still_open = (
+        IncomeRecord.objects
+        .filter(
+            pk=income.pk,
+            kind=IncomeRecord.Kind.EXPECTED,
+            ledger=Ledger.COMPANY,
+        )
+        .annotate(paid_amount=paid_amount_subquery())
+        .filter(total_amount__gt=F('paid_amount'))
+        .exists()
+    )
+    if still_open:
+        return False
+    old_values = snapshot_values(income, EntityType.INCOME)
+    income.is_receivable_candidate = False
+    income.save(update_fields=['is_receivable_candidate', 'updated_at'])
+    # Settlement already owns the operation's single email. Keep the field
+    # change auditable without producing a second notification for one click.
+    log_entity_diff(EntityType.INCOME, income, old_values, user)
+    return True
+
+
 def source_income_concept_subquery():
     """Concept of the income a deduction was discounted from.
 
@@ -1735,6 +1837,7 @@ def dashboard_summary(year):
         },
         'latest_card_snapshots': latest_card_snapshots(),
         'expected_current_month': expected_current_month(),
+        'receivables': receivables_summary(),
         'card_debt': card_debt_total(),
     }
 

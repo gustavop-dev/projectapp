@@ -2,17 +2,15 @@
  * Tests for AccountingHeroKpi.
  *
  * Covers: label + formatted value, tone class, clamped progressbar,
- * hidden progress, the monthly utility chart, and loading skeleton.
+ * hidden progress, details slot, natural height, and loading skeleton.
  */
 import { mount } from '@vue/test-utils';
 import AccountingHeroKpi from '../../../components/accounting/AccountingHeroKpi.vue';
-import AccountingHeroUtilityChart from '../../../components/accounting/charts/AccountingHeroUtilityChart.vue';
 import { formatMoney } from '../../../utils/formatMoney';
 
 function mountHero(props = {}) {
   return mount(AccountingHeroKpi, {
     props: { label: 'Utilidad líquida 2026', value: 8400000, ...props },
-    global: { stubs: { AccountingHeroUtilityChart: true } },
   });
 }
 
@@ -46,21 +44,14 @@ describe('AccountingHeroKpi', () => {
     expect(wrapper.find('[role="progressbar"]').exists()).toBe(false);
   });
 
-  it('renders the utility chart when monthly has at least 2 rows', () => {
-    const wrapper = mountHero({
-      monthly: [
-        { label: 'Ene', utility: '100' },
-        { label: 'Feb', utility: '200' },
-      ],
+  it('renders the supplied details without forcing full height', () => {
+    const wrapper = mount(AccountingHeroKpi, {
+      props: { label: 'Utilidad líquida 2026', value: 8400000 },
+      slots: { details: '<div data-testid="hero-details">Estadísticas</div>' },
     });
 
-    expect(wrapper.findComponent(AccountingHeroUtilityChart).exists()).toBe(true);
-  });
-
-  it('hides the utility chart with fewer than 2 monthly rows', () => {
-    const wrapper = mountHero({ monthly: [{ label: 'Ene', utility: '100' }] });
-
-    expect(wrapper.findComponent(AccountingHeroUtilityChart).exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hero-details"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="accounting-hero-kpi"]').classes()).not.toContain('h-full');
   });
 
   it('renders a skeleton without value while loading', () => {
@@ -70,26 +61,9 @@ describe('AccountingHeroKpi', () => {
     expect(wrapper.find('.motion-safe\\:animate-pulse').exists()).toBe(true);
   });
 
-  it('renders the bottom stats footer with per-stat tones', () => {
-    const wrapper = mountHero({
-      stats: [
-        { label: 'Utilidad esperada', value: '$1.000.000', tone: 'success' },
-        { label: 'Diferencia líq − esp', value: '-$200.000', tone: 'danger' },
-        { label: 'Margen líquido', value: '12%' },
-      ],
-    });
-    const footer = wrapper.find('[data-testid="accounting-hero-stats"]');
-
-    expect(footer.exists()).toBe(true);
-    expect(footer.text()).toContain('Utilidad esperada');
-    expect(footer.text()).toContain('$1.000.000');
-    expect(footer.text()).toContain('Margen líquido');
-    expect(footer.html()).toContain('text-danger-strong');
-  });
-
-  it('hides the stats footer when stats is empty', () => {
+  it('hides the details region when no slot is supplied', () => {
     const wrapper = mountHero();
 
-    expect(wrapper.find('[data-testid="accounting-hero-stats"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('Estadísticas');
   });
 });

@@ -234,7 +234,8 @@ MCP_MODEL_CONTRACTS = {
                 'notes ledger total_amount gustavo_amount carlos_amount concept '
                 'kind client project origin period_date period_start period_end '
                 'period_cadence destination expected_income reminders_muted '
-                'reminders_muted_until'
+                'reminders_muted_until is_receivable_candidate '
+                'collection_confidence'
             ),
             excluded=_excluded(_AUDIT_INTERNAL, 'source_ref created_by'),
         ),

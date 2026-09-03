@@ -31,25 +31,25 @@
             >
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-text-subtle">Esperado</dt>
-                <dd class="tabular-nums text-text-muted">{{ formatMoney(row.expected) }}</dd>
+                <dd class="tabular-nums text-text-default">{{ formatMoney(row.expected) }}</dd>
               </div>
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-text-subtle">Líquido</dt>
-                <dd class="tabular-nums text-text-muted">{{ formatMoney(row.liquid) }}</dd>
+                <dd class="tabular-nums text-text-default">{{ formatMoney(row.liquid) }}</dd>
               </div>
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-text-subtle">Gastos</dt>
-                <dd class="tabular-nums text-text-muted">{{ formatMoney(row.expenses) }}</dd>
+                <dd class="tabular-nums text-text-default">{{ formatMoney(row.expenses) }}</dd>
               </div>
             </dl>
           </td>
-          <td :class="[cell(1), 'hidden tabular-nums text-text-muted panel-landscape:table-cell']">
+          <td :class="[cell(1), 'hidden tabular-nums text-text-default panel-landscape:table-cell']">
             {{ formatMoney(row.expected) }}
           </td>
-          <td :class="[cell(2), 'hidden tabular-nums text-text-muted panel-landscape:table-cell']">
+          <td :class="[cell(2), 'hidden tabular-nums text-text-default panel-landscape:table-cell']">
             {{ formatMoney(row.liquid) }}
           </td>
-          <td :class="[cell(3), 'hidden tabular-nums text-text-muted panel-landscape:table-cell']">
+          <td :class="[cell(3), 'hidden tabular-nums text-text-default panel-landscape:table-cell']">
             {{ formatMoney(row.expenses) }}
           </td>
           <td :class="[cell(4), 'tabular-nums', utilityClass(row.utility)]">

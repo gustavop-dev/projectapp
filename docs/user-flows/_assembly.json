@@ -187,7 +187,7 @@
       "title": "Section 23 — Accounting Module (superuser-only) (Jul 2, 2026)",
       "flows": [
         "admin-accounting-dashboard",
-        "admin-accounting-expected-detail",
+        "admin-accounting-receivables",
         "admin-accounting-stats-modals",
         "admin-accounting-income-client",
         "admin-accounting-income-crud",

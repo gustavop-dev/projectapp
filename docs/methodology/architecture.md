@@ -1,5 +1,16 @@
 # Architecture — ProjectApp
 
+> **Previsión contable manual 2026-09-03:** `IncomeRecord` separa
+> `is_receivable_candidate` de `collection_confidence` y protege por constraint
+> que una selección activa sea esperada y de empresa. `accounting_service`
+> concentra la consulta global de candidatos abiertos y sus agregados; el
+> serializer auto-selecciona al asignar color y los flujos de liquidación
+> deseleccionan al cerrar, preservando la clasificación. REST y MCP proyectan el
+> mismo contrato. En Vue, el store mantiene lista, resumen y locks por fila;
+> `ReceivablesModal` compone las tres vistas y `ReceivableStateControl` se
+> reutiliza en Ingresos. `UtilityStatsPanel` reemplaza el modal/gráfico del hero
+> y `useChartTheme` es la frontera común de contraste claro/oscuro.
+
 > **Implementado — plataforma MCP operativa 2026-09-02:** el registro de
 > herramientas se convierte en una capa común de metadatos, riesgo, resultados
 > estructurados y auditoría. Los conectores canónicos se agrupan en Operaciones,

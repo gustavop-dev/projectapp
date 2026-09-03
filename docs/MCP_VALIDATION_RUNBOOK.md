@@ -143,12 +143,12 @@ con las áreas del Panel. La fuente ejecutable del inventario está en
 | `communications` | 33 | Hilos, mensajes, compositor, previews, envío/reenvío, adjuntos, historial, templates y entregabilidad |
 | `content` | 43 | Blog, portafolio, QR, Linktrees, LinkedIn y activos relacionados |
 | `tasks` | 20 | Tareas, archivo, comentarios, alertas, orden y controles comunes |
-| `accounting-ledger` | 55 | Ingresos, gastos, bolsillo, recurrentes, Ads, categorías, liquidaciones y exports |
+| `accounting-ledger` | 56 | Ingresos, gastos, bolsillo, recurrentes, Ads, categorías, previsión de cobro, liquidaciones y exports |
 | `accounting-billing` | 35 | Cuentas de cobro, hosting, ciclos, ajustes, destinatarios y correo contable |
 | `accounting-cards` | 38 | Tarjetas, snapshots, extractos, transacciones, alias, imports y recordatorios |
 | `blog` | 7 | Conector de compatibilidad: plantilla, CRUD y calendario editorial |
 | `clients` | 6 | Conector de compatibilidad: búsqueda, detalle y CRUD de clientes |
-| `accounting` | 69 | Conector de compatibilidad: catálogo contable monolítico anterior |
+| `accounting` | 70 | Conector de compatibilidad: catálogo contable monolítico anterior |
 | `diagnostics` | 13 | Conector de compatibilidad: diagnósticos y secciones |
 | `proposals` | 11 | Conector de compatibilidad: propuestas y enlaces |
 | `linkedin-personal` | 7 | Conector de compatibilidad: LinkedIn personal |
@@ -259,7 +259,7 @@ segunda sólo muestra herramientas autorizadas más `describe_capabilities`,
 | Comunicaciones | hilo, cuerpo y adjuntos | actualizar borrador/default/template | enviar, reenviar o eliminar |
 | Contenido | abrir blog/portafolio/QR/Linktree | editar borrador o metadata | publicar/eliminar |
 | Tareas | detalle, comentarios y alertas | crear/editar/reordenar | eliminar |
-| Libro contable | dashboard y movimientos | crear/editar movimiento | liquidar/eliminar/export sensible cuando aplique |
+| Libro contable | dashboard, previsión de cobro y movimientos | crear/editar movimiento o semáforo | liquidar/eliminar/export sensible cuando aplique |
 | Cobros | cuenta, hosting y ciclos | actualizar configuración o registro | emitir/reintentar/eliminar |
 | Tarjetas | extracto y transacciones | resolver alias o editar snapshot | finalizar/reabrir/eliminar |
 
@@ -267,6 +267,24 @@ Los adaptadores resuelven la misma ruta DRF del Panel mediante
 `APIRequestFactory`, autentican el principal técnico y dejan que la vista,
 serializer y servicio existentes decidan permisos, validación y transacción.
 No se implementa un segundo CRUD con escrituras ORM paralelas.
+
+### Libro contable: previsión manual de cobro
+
+1. Invocar `get_receivables` sin argumentos. Debe listar únicamente ingresos
+   esperados abiertos de la contabilidad de empresa, sin limitarse al año del
+   dashboard, y devolver `summary.by_confidence` para verde (`high`), naranja
+   (`medium`), rojo (`low`) y seleccionados sin clasificar.
+2. Elegir un resultado abierto e invocar `update_income` con
+   `collection_confidence: "high"`. Verificar que la respuesta también deja
+   `is_receivable_candidate: true`, que el cambio aparece en el historial y que
+   se genera el aviso contable habitual.
+3. Volver a invocar `get_receivables`: `summary.high_total` debe sumar el
+   `total_amount` original del registro, no sólo su saldo restante. Luego se
+   puede retirar de la selección con `is_receivable_candidate: false`; el color
+   se conserva como contexto histórico.
+4. Casos negativos: intentar seleccionar un ingreso personal, líquido,
+   perdido o completamente pagado debe fallar sin modificarlo. Al liquidar por
+   completo un candidato, debe salir automáticamente de la selección activa.
 
 ## Comunicaciones: guion por herramienta
 

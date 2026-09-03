@@ -11,7 +11,7 @@ import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_ACCOUNTING_DASHBOARD,
-  ADMIN_ACCOUNTING_EXPECTED_DETAIL,
+  ADMIN_ACCOUNTING_RECEIVABLES,
   ADMIN_ACCOUNTING_STATS_MODALS,
 } from '../helpers/flow-tags.js';
 
@@ -42,8 +42,8 @@ const DASHBOARD_SUMMARY = {
     expected: index === 1 ? '1160000.00' : '0.00',
     liquid: index === 1 ? '900000.00' : '0.00',
     expenses: index === 2 ? '400000.00' : '0.00',
-    expected_utility: '0.00',
-    utility: '0.00',
+    expected_utility: index === 1 ? '760000.00' : '0.00',
+    utility: index === 1 ? '500000.00' : '0.00',
   })),
   recurring_monthly_cost: '3016059.00',
   ads: { year_total: '1008404.00', current_month_total: '0.00' },
@@ -57,6 +57,26 @@ const DASHBOARD_SUMMARY = {
     },
   ],
   expected_current_month: { period: '2026-07', label: 'Julio 2026', total: '2500000.00' },
+  receivables: {
+    high_total: '2000000.00',
+    high_count: 1,
+    selected_count: 2,
+    selected_total: '3000000.00',
+    paid_total: '500000.00',
+    pending_total: '2500000.00',
+    by_confidence: {
+      high: {
+        count: 1, total_amount: '2000000.00',
+        paid_amount: '500000.00', pending_amount: '1500000.00',
+      },
+      medium: { count: 0, total_amount: '0.00', paid_amount: '0.00', pending_amount: '0.00' },
+      low: { count: 0, total_amount: '0.00', paid_amount: '0.00', pending_amount: '0.00' },
+      unclassified: {
+        count: 1, total_amount: '1000000.00',
+        paid_amount: '0.00', pending_amount: '1000000.00',
+      },
+    },
+  },
   card_debt: {
     total: '4150954.00',
     card_count: 1,
@@ -70,21 +90,33 @@ const EXPECTED_MONTH_ROWS = [
     id: 71,
     concept: 'Kore v2 (Fase 1) - Inicio 40%',
     period_label: 'Julio 2026',
+    client_name: 'Kore',
+    project_name: 'Kore v2',
+    kind: 'expected',
+    ledger: 'company',
     total_amount: '2000000.00',
     paid_amount: '500000.00',
     pending_amount: '1500000.00',
     payment_status: 'partial',
     payment_status_label: 'Parcial',
+    is_receivable_candidate: true,
+    collection_confidence: 'high',
   },
   {
     id: 72,
     concept: 'Hosting anual Acme',
     period_label: '17 Julio 2026',
+    client_name: 'Acme',
+    project_name: '',
+    kind: 'expected',
+    ledger: 'company',
     total_amount: '1000000.00',
     paid_amount: '0.00',
     pending_amount: '1000000.00',
     payment_status: 'pending',
     payment_status_label: 'Pendiente',
+    is_receivable_candidate: true,
+    collection_confidence: '',
   },
 ];
 
@@ -121,7 +153,12 @@ const STATS_PAYLOAD = {
   },
 };
 
-function buildHandler({ isSuperuser = true } = {}) {
+function buildHandler({
+  isSuperuser = true,
+  calls = [],
+  failReceivables = false,
+} = {}) {
+  let receivableRows = EXPECTED_MONTH_ROWS.map((row) => ({ ...row }));
   return ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -144,6 +181,39 @@ function buildHandler({ isSuperuser = true } = {}) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(DASHBOARD_SUMMARY),
+      };
+    }
+    if (apiPath === 'accounting/receivables/' && method === 'GET') {
+      if (failReceivables) {
+        return {
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Servicio temporalmente no disponible' }),
+        };
+      }
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: receivableRows,
+          summary: DASHBOARD_SUMMARY.receivables,
+        }),
+      };
+    }
+    if (/^accounting\/incomes\/\d+\/update\/$/.test(apiPath) && method === 'PATCH') {
+      const id = Number(apiPath.split('/')[2]);
+      const payload = route.request().postDataJSON();
+      calls.push({ method, apiPath, body: payload });
+      receivableRows = receivableRows.map((row) => {
+        if (row.id !== id) return row;
+        const updated = { ...row, ...payload };
+        if (payload.collection_confidence) updated.is_receivable_candidate = true;
+        return updated;
+      });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(receivableRows.find((row) => row.id === id)),
       };
     }
     if (apiPath.startsWith('accounting/incomes/') && method === 'GET') {
@@ -206,10 +276,14 @@ test.describe('Admin Accounting Dashboard', () => {
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-hero-kpi')).toBeVisible();
     await expect(page.getByTestId('accounting-hero-value')).toBeVisible();
-    await expect(page.getByTestId('accounting-hero-utility-chart')).toBeVisible();
-    const expectedMonth = page.getByTestId('accounting-card-expected-month');
-    await expect(expectedMonth).toContainText('Pendiente por cobrar · Julio 2026');
-    await expect(expectedMonth).toContainText('$2.500.000 COP');
+    await expect(page.getByTestId('utility-stats-panel')).toBeVisible();
+    await expect(page.getByTestId('utility-stats-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('stats-line-chart').locator('.apexcharts-canvas'))
+      .toBeVisible({ timeout: 15_000 });
+    const receivables = page.getByTestId('accounting-card-receivables');
+    await expect(receivables).toContainText('Pendiente por cobrar');
+    await expect(receivables).toContainText('$2.000.000 COP');
+    await expect(receivables).toContainText('1 ingreso seleccionado en verde');
 
     const cardDebt = page.getByTestId('accounting-card-debt');
     await expect(cardDebt).toContainText('Deuda tarjetas');
@@ -223,29 +297,59 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(secondaryIndicators).toContainText('$1.147.378 COP');
   });
 
-  test('expected-month card opens the read-only detail modal', {
-    tag: [...ADMIN_ACCOUNTING_EXPECTED_DETAIL, '@role:admin', '@outcome:display'],
+  test('receivables card shows the grouped global forecast and its three tabs', {
+    tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
-    const card = page.getByTestId('accounting-card-expected-month');
+    const card = page.getByTestId('accounting-card-receivables');
     await expect(card).toBeVisible({ timeout: 25_000 });
     await card.click();
 
-    await expect(page.getByTestId('expected-income-detail-modal')).toBeVisible();
+    await expect(page.getByTestId('receivables-modal')).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Pendiente por cobrar — Julio 2026' }),
+      page.getByRole('heading', { name: 'Pendientes por cobrar' }),
     ).toBeVisible();
-    const rows = page.getByTestId('expected-income-row');
-    await expect(rows).toHaveCount(2);
-    await expect(rows.first()).toContainText('Kore v2 (Fase 1) - Inicio 40%');
-    await expect(rows.first()).toContainText('Parcial');
-    // Per-row clamped pending amounts sum to the card total.
-    await expect(page.getByTestId('expected-income-pending-sum')).toContainText('$2.500.000 COP');
+    await expect(page.getByTestId('receivables-group-high')).toContainText('$2.000.000 COP');
+    await expect(page.getByTestId('receivables-group-unclassified')).toContainText('$1.000.000 COP');
+
+    await page.getByRole('tab', { name: /Selección/ }).click();
+    await expect(page.getByTestId('receivables-selected-tab')).toContainText('Hosting anual Acme');
+    await page.getByRole('tab', { name: /Gestionar candidatos/ }).click();
+    await expect(page.getByTestId('receivables-manage-tab')).toBeVisible();
+    await expect(page.getByTestId('receivables-manage-tab')).toContainText('Kore v2 (Fase 1) - Inicio 40%');
 
     await page.getByRole('button', { name: 'Cerrar' }).click();
-    await expect(page.getByTestId('expected-income-detail-modal')).toHaveCount(0);
+    await expect(page.getByTestId('receivables-modal')).toHaveCount(0);
+  });
+
+  test('receivables management saves a manual candidate change immediately', {
+    tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+
+    await page.getByTestId('accounting-card-receivables').click();
+    await page.getByRole('tab', { name: /Gestionar candidatos/ }).click();
+    await page.getByRole('switch', { name: /Quitar Hosting anual Acme/ }).click();
+    await expect(page.getByRole('tab', { name: /Selección/ })).toContainText('1');
+    await expect.poll(() => calls.find((call) => (
+      call.apiPath === 'accounting/incomes/72/update/'
+    ))?.body).toEqual({ is_receivable_candidate: false });
+  });
+
+  test('receivables modal exposes a retry action when its request fails', {
+    tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ failReceivables: true }));
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+
+    await page.getByTestId('accounting-card-receivables').click();
+    await expect(page.getByText('No se pudieron cargar los pendientes por cobrar.'))
+      .toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible();
   });
 
   test('liquid-income card opens the stats modal with tabbed charts', {

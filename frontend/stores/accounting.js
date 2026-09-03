@@ -6,6 +6,7 @@ import {
   delete_request,
 } from './services/request_http';
 import { normalizeApiError, numericIdsFromError } from './services/normalize_api_error';
+import { buildReceivablesSummary } from '~/utils/receivables';
 
 /**
  * Accounting entities exposed by the backend (/api/accounting/...).
@@ -85,6 +86,11 @@ export const useAccountingStore = defineStore('accounting', {
     statementDetail: null,
     metas: {},
     summary: null,
+    receivables: [],
+    receivablesSummary: null,
+    receivablesLoading: false,
+    receivablesError: null,
+    receivableUpdatingIds: [],
     stats: null,
     statsYear: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },
@@ -165,6 +171,64 @@ export const useAccountingStore = defineStore('accounting', {
   },
 
   actions: {
+    async fetchReceivables() {
+      this.receivablesLoading = true;
+      this.receivablesError = null;
+      try {
+        const response = await get_request('accounting/receivables/');
+        this.receivables = response.data?.results || [];
+        this.receivablesSummary = response.data?.summary || null;
+        if (this.summary && this.receivablesSummary) {
+          this.summary = {
+            ...this.summary,
+            receivables: this.receivablesSummary,
+          };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.receivables = [];
+        this.receivablesError = 'fetch_failed';
+        console.error('Error fetching accounting receivables:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.receivablesLoading = false;
+      }
+    },
+
+    async updateReceivableState(id, payload) {
+      if (this.receivableUpdatingIds.includes(id)) {
+        return { success: false, message: 'Este ingreso ya se está actualizando.' };
+      }
+      this.receivableUpdatingIds = [...this.receivableUpdatingIds, id];
+      try {
+        const response = await patch_request(
+          `accounting/incomes/${id}/update/`, payload,
+        );
+        const replace = (row) => (row.id === id ? response.data : row);
+        this.incomes = this.incomes.map(replace);
+        if (this.receivablesSummary === null) {
+          await this.fetchReceivables();
+        } else {
+          this.receivables = this.receivables.map(replace);
+          this.receivablesSummary = buildReceivablesSummary(this.receivables);
+          if (this.summary) {
+            this.summary = {
+              ...this.summary,
+              receivables: this.receivablesSummary,
+            };
+          }
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error updating receivable state ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.receivableUpdatingIds = this.receivableUpdatingIds.filter(
+          (recordId) => recordId !== id,
+        );
+      }
+    },
+
     /**
      * fetchRecords: List an entity's records with optional query params
      * (year, kind, date_from, date_to, amount_min, amount_max, partner, q...).
