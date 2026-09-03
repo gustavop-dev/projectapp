@@ -24,11 +24,17 @@ const agreement = computed(() => store.currentAgreement)
 const actions = computed(() => new Set(agreement.value?.allowed_actions || []))
 const draftPdfUrl = computed(() => `/api/financing/agreements/${route.params.id}/draft-pdf/`)
 const signedPdfUrl = computed(() => `/api/financing/agreements/${route.params.id}/signed-pdf/`)
+const usesOutdatedPolicy = computed(() => (
+  agreement.value
+  && store.currentPolicy
+  && agreement.value.policy_version !== store.currentPolicy.version
+))
 
 onMounted(async () => {
   await Promise.all([
     store.fetchAgreement(route.params.id),
     store.fetchTemplates(),
+    store.fetchSettings(),
   ])
 })
 
@@ -74,6 +80,7 @@ async function simpleAction(action) {
     archive: t('financing.agreement.detail.confirmArchive'),
     restore: t('financing.agreement.detail.confirmRestore'),
     'create-second-cycle': t('financing.agreement.detail.confirmSecondCycle'),
+    'apply-current-policy': t('financing.agreement.detail.confirmApplyPolicy'),
   }
   if (messages[action]) {
     const confirmed = await requestConfirm({
@@ -134,6 +141,7 @@ const knownEventTypes = new Set([
   'created', 'updated', 'marked_ready', 'reopened', 'signed_pdf_registered',
   'completed', 'cancelled', 'archived', 'restored', 'second_cycle_approved',
   'created_second_cycle',
+  'policy_revision_applied',
 ])
 const knownHostingPeriods = new Set(['monthly', 'quarterly', 'semiannual', 'annual'])
 
@@ -194,6 +202,23 @@ function modalityLabel(value, fallback = '') {
         <p class="mt-1 text-sm">{{ firstError(errors) }}</p>
       </BaseAlert>
 
+      <BaseAlert
+        class="mb-5"
+        :variant="usesOutdatedPolicy ? 'warning' : 'info'"
+        data-testid="financing-agreement-policy"
+      >
+        <p class="font-medium">
+          {{ usesOutdatedPolicy
+            ? t('financing.agreement.detail.outdatedPolicyTitle', { version: agreement.policy_version, current: store.currentPolicy?.version })
+            : t('financing.agreement.detail.policyTitle', { version: agreement.policy_version }) }}
+        </p>
+        <p class="mt-1 text-sm">
+          {{ usesOutdatedPolicy
+            ? t('financing.agreement.detail.outdatedPolicyBody')
+            : t('financing.agreement.detail.policyBody') }}
+        </p>
+      </BaseAlert>
+
       <section class="mb-6 rounded-2xl border border-border-default bg-surface p-4 sm:p-5" :aria-label="t('financing.agreement.detail.actionsLabel')">
         <div class="flex flex-wrap gap-2">
           <BaseButton v-if="actions.has('mark_ready')" data-testid="financing-mark-ready" @click="simpleAction('mark-ready')">{{ t('financing.agreement.detail.markReady') }}</BaseButton>
@@ -201,6 +226,7 @@ function modalityLabel(value, fallback = '') {
           <BaseButton v-if="actions.has('upload_signed')" data-testid="financing-open-upload" @click="actionMode = 'upload'">{{ t('financing.agreement.detail.registerSigned') }}</BaseButton>
           <BaseButton v-if="actions.has('complete')" data-testid="financing-open-complete" @click="actionMode = 'complete'">{{ t('financing.agreement.detail.complete') }}</BaseButton>
           <BaseButton v-if="actions.has('create_second_cycle')" data-testid="financing-create-second-cycle" @click="simpleAction('create-second-cycle')">{{ t('financing.agreement.detail.approveSecondCycle') }}</BaseButton>
+          <BaseButton v-if="actions.has('apply_current_policy')" variant="secondary" data-testid="financing-apply-current-policy" @click="simpleAction('apply-current-policy')">{{ t('financing.agreement.detail.applyCurrentPolicy') }}</BaseButton>
           <BaseButton v-if="actions.has('cancel')" variant="danger" data-testid="financing-open-cancel" @click="actionMode = 'cancel'">{{ t('financing.agreement.detail.cancelAgreement') }}</BaseButton>
           <BaseButton v-if="actions.has('archive')" variant="secondary" data-testid="financing-archive" @click="simpleAction('archive')">{{ t('financing.agreement.detail.archive') }}</BaseButton>
           <BaseButton v-if="actions.has('restore')" variant="secondary" data-testid="financing-restore" @click="simpleAction('restore')">{{ t('financing.agreement.detail.restore') }}</BaseButton>
@@ -226,6 +252,8 @@ function modalityLabel(value, fallback = '') {
         v-if="actions.has('edit')"
         :agreement="agreement"
         :templates="store.templates"
+        :policy="store.currentPolicy"
+        :exchange-rate="store.financingSettings?.usd_exchange_rate"
         :saving="store.isSaving"
         :errors="errors"
         @submit="saveAgreement"
@@ -241,12 +269,22 @@ function modalityLabel(value, fallback = '') {
               <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.modality') }}</dt><dd class="mt-1 text-sm text-text-default">{{ modalityLabel(agreement.modality, agreement.modality_label) }}</dd></div>
               <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.term') }}</dt><dd class="mt-1 text-sm text-text-default">{{ formatDate(agreement.partnership_start_date) }} – {{ formatDate(agreement.partnership_end_date) }}</dd></div>
               <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.financedBalance') }}</dt><dd class="mt-1 text-sm font-medium text-text-brand">{{ formatMoney(agreement.financed_balance, agreement.currency) }}</dd></div>
+              <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.initialPayment') }}</dt><dd class="mt-1 text-sm text-text-default">{{ formatMoney(agreement.initial_payment, agreement.currency) }}</dd></div>
+              <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.totalValue') }}</dt><dd class="mt-1 text-sm text-text-default">{{ formatMoney(agreement.total_value, agreement.currency) }}</dd></div>
+              <div v-if="agreement.currency === 'USD'"><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.eligibilityEquivalent') }}</dt><dd class="mt-1 text-sm text-text-default">{{ formatMoney(agreement.equivalent_total_cop, 'COP') }} · {{ t('financing.agreement.detail.rate', { rate: formatMoney(agreement.eligibility_exchange_rate, 'COP') }) }}</dd></div>
               <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.currentHosting') }}</dt><dd class="mt-1 text-sm text-text-default">{{ formatMoney(agreement.hosting_value, agreement.currency) }} · {{ hostingPeriodLabel(agreement.hosting_period) }}</dd></div>
               <div><dt class="text-xs text-text-subtle">{{ t('financing.agreement.detail.frozenTemplate') }}</dt><dd class="mt-1 text-sm text-text-default">{{ agreement.template_name }} · v{{ agreement.template_version }}</dd></div>
             </dl>
             <div class="mt-5"><p class="text-xs text-text-subtle">{{ t('financing.agreement.detail.financedScope') }}</p><p class="mt-1 whitespace-pre-line text-sm leading-6 text-text-default">{{ agreement.financed_scope }}</p></div>
           </section>
-          <InstallmentScheduleEditor :model-value="agreement.installment_schedule" :currency="agreement.currency" disabled />
+          <InstallmentScheduleEditor
+            :model-value="agreement.installment_schedule"
+            :currency="agreement.currency"
+            :months="agreement.policy?.financing_months || 12"
+            :due-day-start="agreement.policy?.installment_due_day_start || 1"
+            :due-day-end="agreement.policy?.installment_due_day_end || 5"
+            disabled
+          />
         </div>
 
         <aside class="rounded-2xl border border-border-default bg-surface p-5 lg:sticky lg:top-6 lg:self-start" aria-labelledby="financing-history-title">

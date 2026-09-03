@@ -64,6 +64,38 @@ describe('useFinancingAgreementsStore', () => {
     expect(store.agreements).toEqual([agreement])
   })
 
+  it('loads the current financing policy', async () => {
+    const settings = {
+      current: { id: 2, version: 2, maximum_financed_percent: '80.00' },
+      history: [{ id: 2, version: 2 }],
+      usd_exchange_rate: '4000.00',
+    }
+    get_request.mockResolvedValue({ data: settings })
+
+    const result = await store.fetchSettings()
+
+    expect(get_request).toHaveBeenCalledWith('financing/settings/')
+    expect(result.success).toBe(true)
+    expect(store.currentPolicy.version).toBe(2)
+    expect(store.policyHistory).toHaveLength(1)
+  })
+
+  it('publishes a financing policy revision', async () => {
+    const payload = { financing_months: '18' }
+    const settings = {
+      current: { id: 3, version: 3, financing_months: 18 },
+      history: [{ id: 3, version: 3 }],
+    }
+    create_request.mockResolvedValue({ data: settings })
+
+    const result = await store.publishSettings(payload)
+
+    expect(create_request).toHaveBeenCalledWith('financing/settings/', payload)
+    expect(result.success).toBe(true)
+    expect(store.currentPolicy.financing_months).toBe(18)
+    expect(store.isSaving).toBe(false)
+  })
+
   it('returns field errors from an invalid draft update', async () => {
     const errors = { installment_schedule: ['La suma no coincide.'] }
     patch_request.mockRejectedValue({ response: { data: errors } })

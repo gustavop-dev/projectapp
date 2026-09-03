@@ -76,17 +76,33 @@ def test_public_program_exposes_commercial_input_output(pro_package):
     assert response.data['calculator']['output']['title'] == 'Qué se obtiene'
 
 
-def test_public_program_exposes_one_percent_late_hosting_increase(pro_package):
-    """Fails if late installments stop increasing current Hosting by one percent."""
+def test_public_program_exposes_two_percent_late_hosting_increase(pro_package):
+    """Fails if overdue installments lose the configured Hosting consequence."""
     response = APIClient().get('/api/financing/public/?lang=es')
-    payment_condition = response.data['conditions'][-1]
+    payment_condition = response.data['conditions'][4]
 
-    assert response.data['late_hosting_increase_percent'] == '1%'
+    assert response.data['late_hosting_increase_percent'] == '2%'
     assert response.data['installment_due_day_range'] == [1, 5]
     assert payment_condition['summary'] == (
-        'Cada cuota se paga dentro de los primeros cinco días calendario '
-        'del mes. Una cuota en mora aumenta en 1% el costo vigente del Hosting.'
+        'Cada cuota se paga entre los días 1 y 5 calendario del mes. '
+        'Una cuota en mora aumenta en 2% el costo vigente del Hosting.'
     )
+
+
+def test_public_program_exposes_inclusive_project_range(pro_package):
+    response = APIClient().get('/api/financing/public/?lang=es')
+
+    assert response.data['minimum_project_value_cop'] == Decimal('20000000.00')
+    assert response.data['maximum_project_value_cop'] == Decimal('140000000.00')
+    assert response.data['conditions'][5]['id'] == 'project-value-range'
+
+
+def test_public_program_exposes_risk_based_initial_contribution(pro_package):
+    response = APIClient().get('/api/financing/public/?lang=es')
+
+    assert response.data['minimum_initial_payment_percent'] == '20%'
+    assert response.data['maximum_financed_percent'] == '80%'
+    assert response.data['conditions'][6]['id'] == 'risk-and-initial-payment'
 
 
 def test_public_program_exposes_two_financing_cycles_for_five_year_option(pro_package):
@@ -118,7 +134,7 @@ def test_public_pdf_expands_financing_terms(pro_package):
         for page in PdfReader(BytesIO(response.content)).pages
     )
 
-    assert 'Las cinco condiciones comerciales' in text
+    assert 'Las 7 condiciones comerciales' in text
     assert 'Custodia de código no es cesión de propiedad' in text
     assert 'Paquete Pro vigente' in text
 

@@ -153,6 +153,7 @@ export const ADMIN_FINANCING_AGREEMENT_CREATE = ['@flow:admin-financing-agreemen
 export const ADMIN_FINANCING_AGREEMENT_LIFECYCLE = ['@flow:admin-financing-agreement-lifecycle', '@module:admin', '@priority:P1'];
 export const ADMIN_FINANCING_AGREEMENT_SECOND_CYCLE = ['@flow:admin-financing-agreement-second-cycle', '@module:admin', '@priority:P1'];
 export const ADMIN_FINANCING_DISTRIBUTION = ['@flow:admin-financing-distribution', '@module:admin', '@priority:P1'];
+export const ADMIN_FINANCING_SETTINGS = ['@flow:admin-financing-settings', '@module:admin', '@priority:P1'];
 export const ADMIN_HIGH_ENGAGEMENT_ALERT = ['@flow:admin-high-engagement-alert', '@module:admin', '@priority:P2'];
 export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P3'];
 export const ADMIN_HOUR_PACKAGES_CREATE = ['@flow:admin-hour-packages-create', '@module:admin', '@priority:P2'];

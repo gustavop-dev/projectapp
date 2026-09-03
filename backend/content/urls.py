@@ -322,6 +322,7 @@ from content.views.financing_agreements import (
     financing_agreement_signed_pdf,
     financing_agreement_templates,
     financing_client_context,
+    financing_settings,
 )
 
 urlpatterns = [
@@ -338,6 +339,11 @@ urlpatterns = [
         'financing/public/pdf/',
         public_financing_program_pdf,
         name='public-financing-program-pdf',
+    ),
+    path(
+        'financing/settings/',
+        financing_settings,
+        name='financing-settings',
     ),
     path(
         'financing/agreements/',

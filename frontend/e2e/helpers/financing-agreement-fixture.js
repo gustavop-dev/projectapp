@@ -17,12 +17,44 @@ const ACTIONS_BY_STATUS = {
 export const financingAgreementTemplateFixture = {
   id: 7,
   name: 'Otrosí de financiación',
-  version: 1,
+  version: 2,
   content_markdown: '# OTROSÍ {agreement_number}\n\n{client_full_name}',
   is_default: true,
   is_active: true,
   created_at: '2026-09-01T12:00:00Z',
   updated_at: '2026-09-01T12:00:00Z',
+}
+
+export const financingPolicyFixture = {
+  id: 2,
+  version: 2,
+  minimum_project_value_cop: '20000000.00',
+  maximum_project_value_cop: '140000000.00',
+  financing_months: 12,
+  maximum_financed_percent: '80.00',
+  minimum_initial_payment_percent: '20.00',
+  late_hosting_increase_percent: '2.00',
+  installment_due_day_start: 1,
+  installment_due_day_end: 5,
+  created_by: null,
+  created_by_name: 'Sistema',
+  created_at: '2026-09-01T12:00:00Z',
+}
+
+export function financingSettingsFixture(overrides = {}) {
+  const current = { ...financingPolicyFixture, ...overrides }
+  return {
+    current,
+    history: [current],
+    usd_exchange_rate: '4000.00',
+    fixed_terms: {
+      ordinary_interest_percent: 0,
+      modalities: [
+        { key: 'five_year', years: 5, financing_cycles: 2, monthly_hours_package: true },
+        { key: 'three_year', years: 3, financing_cycles: 1, monthly_hours_package: false },
+      ],
+    },
+  }
 }
 
 export const financingClientFixture = {
@@ -37,7 +69,7 @@ export const financingClientFixture = {
   total_proposals: 1,
 }
 
-export function financingScheduleFixture(balance = 12000000) {
+export function financingScheduleFixture(balance = 20000000) {
   const installment = Math.floor((balance * 100) / 12) / 100
   return Array.from({ length: 12 }, (_, index) => ({
     number: index + 1,
@@ -79,9 +111,14 @@ export function financingAgreementFixture(overrides = {}) {
     partnership_start_date: '2026-01-01',
     partnership_end_date: '2031-01-01',
     currency: 'COP',
-    total_value: '12000000.00',
-    initial_payment: '0.00',
-    financed_balance: '12000000.00',
+    policy_revision: financingPolicyFixture.id,
+    policy_version: financingPolicyFixture.version,
+    policy: financingPolicyFixture,
+    eligibility_exchange_rate: null,
+    equivalent_total_cop: '25000000.00',
+    total_value: '25000000.00',
+    initial_payment: '5000000.00',
+    financed_balance: '20000000.00',
     hosting_value: '500000.00',
     hosting_period: 'monthly',
     installment_schedule: financingScheduleFixture(),
@@ -153,7 +190,7 @@ export function financingClientContextFixture() {
       id: 91,
       title: 'Propuesta Plataforma Semilla',
       status: 'accepted',
-      total_investment: '12000000.00',
+      total_investment: '25000000.00',
       currency: 'COP',
     }],
     projects: [{ id: 71, name: 'Plataforma Semilla', status: 'active' }],

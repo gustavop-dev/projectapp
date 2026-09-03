@@ -4,7 +4,7 @@
   "module": "admin",
   "roles": ["admin"],
   "priority": "P1",
-  "description": "Admin opens the financing agreement register, selects an active client, reviews the populated legal identity, records the original contract and financed scope, chooses the three- or five-year modality, confirms Hosting and financial values, and creates a draft with twelve editable installments due during days one through five.",
+  "description": "Admin opens the financing agreement register, selects an active client, reviews the populated legal identity, records the original contract and financed scope, chooses the three- or five-year modality, confirms the policy-defined eligible value, risk-based initial contribution and Hosting values, and creates a draft with the configured installment count and due-day window.",
   "expectedSpecs": 4,
   "outcomes": ["display", "success", "error", "failure"]
 }

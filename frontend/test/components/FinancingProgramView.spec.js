@@ -60,7 +60,7 @@ const program = {
     {
       id: 'payment-discipline', number: '05', icon: '%', title: 'Pagos claros',
       summary: 'Las cuotas vencen en los primeros cinco días.', commercial_reason: 'Cubre el riesgo.',
-      highlights: ['Cada mora aumenta 1% el Hosting vigente'],
+      highlights: ['Cada mora aumenta 2% el Hosting vigente'],
     },
   ],
   calculator: {
@@ -147,7 +147,7 @@ describe('FinancingProgramView', () => {
     const wrapper = mountProgram()
 
     expect(wrapper.get('[data-testid="financing-condition-payment-discipline"]').text())
-      .toContain('Cada mora aumenta 1% el Hosting vigente')
+      .toContain('Cada mora aumenta 2% el Hosting vigente')
   })
 
   it('renders the second-cycle benefit in the recommended option', () => {

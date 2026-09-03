@@ -1,5 +1,15 @@
 # Task Plan — ProjectApp
 
+> **Completado — política y elegibilidad de financiación (2026-09-03):** el
+> programa suma las condiciones 6 y 7: rango inclusivo $20–140 millones COP y
+> aporte inicial definido por riesgo, mínimo 20 %, con financiación máxima del
+> 80 %. La mora queda en 2 %. Panel incorpora configuración versionada e
+> historial, los borradores nuevos toman la política vigente y los anteriores
+> pueden adoptarla explícitamente; acuerdos cerrados conservan snapshots y USD
+> congela tasa contable. Migración, contrato, JSON/PDF público, fake data y
+> frontend bilingüe quedaron alineados. Verificación: 81 backend, 22 unitarias,
+> 36 E2E, build y 11 flujos de financiación cubiertos en todos sus outcomes.
+
 > **Listo para integrar — paridad operativa MCP 2026-09-02:** los conectores
 > actuales comparten registro, credenciales acotadas, actor técnico, auditoría,
 > concurrencia, uploads y confirmación de efectos sensibles; Documentos conserva

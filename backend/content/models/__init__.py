@@ -129,4 +129,5 @@ from .financing_agreement import (
     FinancingAgreementEvent,
     FinancingAgreementNumberSequence,
     FinancingAgreementTemplate,
+    FinancingPolicyRevision,
 )

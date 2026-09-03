@@ -9,6 +9,16 @@
 > confirmaciones de un solo uso protegen los cambios concurrentes y sensibles;
 > los slugs existentes continúan como adaptadores compatibles.
 
+> **Política de financiación versionada 2026-09-03:**
+> `FinancingPolicyRevision` conserva revisiones append-only y cada
+> `FinancingAgreement` apunta por `PROTECT` a la versión que gobierna sus topes,
+> calendario y contrato. `financing_policy_service` valida y publica la versión
+> siguiente bajo bloqueo transaccional, convierte USD con la tasa global de
+> `AccountingSettings` y congela esa tasa en el acuerdo. Programa público,
+> booklet, formulario, calendario y plantilla contractual proyectan la misma
+> política vigente; acuerdos bloqueados nunca cambian y los borradores antiguos
+> sólo avanzan mediante una acción explícita que deja evento de auditoría.
+
 > **Entrega validada — workspace contractual de financiación (2026-09-03):**
 > una entidad de acuerdo, una plantilla versionada y un historial inmutable
 > separan la gestión contractual de la fuente comercial pública. Un servicio

@@ -8,6 +8,16 @@
 > antes de `confirm_action`. Los uploads binarios usan handles temporales con
 > tamaño, MIME y SHA-256 verificados.
 
+> **Política técnica de financiación 2026-09-03:** la migración `content.0244`
+> crea revisiones inmutables, asigna una revisión legacy a otrosíes existentes y
+> publica la política vigente 20–140 millones COP, 12 meses, máximo 80 %
+> financiado, recargo 2 % y vencimiento entre días 1–5. `GET|POST
+> /api/financing/settings/` es exclusivo de administradores y publicar siempre
+> crea una versión; `POST /api/financing/agreements/<id>/apply-current-policy/`
+> sólo opera sobre borradores. Los acuerdos USD congelan
+> `eligibility_exchange_rate`; listos, activos y completados preservan política,
+> calendario, plantilla y snapshot legal.
+
 > **Contrato técnico validado — otrosíes de financiación (2026-09-03):** la
 > ampliación añade persistencia y endpoints exclusivamente administrativos;
 > mantiene públicos sólo el programa bilingüe y su booklet. Los PDFs firmados

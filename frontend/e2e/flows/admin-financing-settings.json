@@ -1,0 +1,10 @@
+{
+  "id": "admin-financing-settings",
+  "name": "Admin Financing Settings",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin reviews the current immutable financing policy and its history, edits the eligible COP range, financing term, financed percentage, overdue Hosting increase, and installment window, then confirms publication of a new revision used by public content and future drafts.",
+  "expectedSpecs": 4,
+  "outcomes": ["display", "success", "error", "failure"]
+}
