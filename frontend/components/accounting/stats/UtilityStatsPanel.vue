@@ -20,10 +20,9 @@
           Evolución, márgenes y reparto entre socios.
         </span>
       </span>
-      <ChevronDownIcon
-        class="h-5 w-5 shrink-0 text-text-muted transition-transform motion-reduce:transition-none"
-        :class="open ? 'rotate-180' : ''"
-        aria-hidden="true"
+      <BaseActionIcon
+        :action="open ? 'collapse' : 'expand'"
+        class="text-text-muted"
       />
     </BaseButton>
 
@@ -123,7 +122,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { ChevronDownIcon } from '@heroicons/vue/24/outline';
+import BaseActionIcon from '~/components/base/BaseActionIcon.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseCollapse from '~/components/base/BaseCollapse.vue';
 import BaseTabs from '~/components/base/BaseTabs.vue';
