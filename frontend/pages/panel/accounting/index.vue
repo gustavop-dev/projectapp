@@ -57,20 +57,24 @@
 
     <template v-else-if="summary">
       <!-- Row 1: hero utility + side totals -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+      <div class="grid grid-cols-1 items-start lg:grid-cols-3 gap-3 mb-4">
         <AccountingHeroKpi
           class="lg:col-span-2"
           data-enter
           :label="`Utilidad líquida ${summary.year}`"
           :value="Number(summary.liquid_utility ?? 0)"
           :tone="toneBySign(summary.liquid_utility)"
-          :stats="heroStats"
           :progress="receivedProgress"
           :progress-label="receivedProgressLabel"
-          :monthly="summary.monthly || []"
-          stats-button
-          @open-stats="showUtilityStats = true"
-        />
+        >
+          <template #details>
+            <UtilityStatsPanel
+              :monthly="summary.monthly || []"
+              :summary="summary"
+              :partners="summary.partners || {}"
+            />
+          </template>
+        </AccountingHeroKpi>
         <AccountingIndicatorGroup
           :columns="1"
           :secondary-count="2"
@@ -80,11 +84,13 @@
         >
           <template #primary>
             <AccountingStatCard
-              data-testid="accounting-card-expected-month"
-              :label="`Pendiente por cobrar · ${expectedMonthLabel}`"
-              :value="money(summary.expected_current_month?.total)"
+              data-testid="accounting-card-receivables"
+              label="Pendiente por cobrar"
+              :value="money(summary.receivables?.high_total)"
+              :sub="receivablesSub"
+              tone="success"
               clickable
-              @click="showExpectedDetail = true"
+              @click="showReceivables = true"
             />
             <AccountingStatCard
               data-testid="accounting-card-debt"
@@ -279,13 +285,9 @@
       @submit="submitIncome"
     />
 
-    <!-- Expected income detail modal -->
-    <ExpectedIncomeDetailModal
-      :open="showExpectedDetail"
-      :period="summary?.expected_current_month?.period || ''"
-      :period-label="expectedMonthLabel"
-      :total="summary?.expected_current_month?.total ?? 0"
-      @close="showExpectedDetail = false"
+    <ReceivablesModal
+      :open="showReceivables"
+      @close="showReceivables = false"
     />
 
     <!-- Stats modals -->
@@ -304,13 +306,6 @@
       :stats="store.stats"
       :loading="statsLoading"
       @close="showExpenseStats = false"
-    />
-    <UtilityStatsModal
-      :open="showUtilityStats"
-      :monthly="summary?.monthly || []"
-      :summary="summary"
-      :partners="summary?.partners || {}"
-      @close="showUtilityStats = false"
     />
     <CardsStatsModal
       :open="showCardsStats"
@@ -335,10 +330,10 @@ import AccountingMonthlyTable from '~/components/accounting/AccountingMonthlyTab
 import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMonthlyChart.vue';
 import CardDebtChart from '~/components/accounting/charts/CardDebtChart.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
-import ExpectedIncomeDetailModal from '~/components/accounting/ExpectedIncomeDetailModal.vue';
+import ReceivablesModal from '~/components/accounting/ReceivablesModal.vue';
+import UtilityStatsPanel from '~/components/accounting/stats/UtilityStatsPanel.vue';
 import IncomeStatsModal from '~/components/accounting/stats/IncomeStatsModal.vue';
 import ExpenseStatsModal from '~/components/accounting/stats/ExpenseStatsModal.vue';
-import UtilityStatsModal from '~/components/accounting/stats/UtilityStatsModal.vue';
 import CardsStatsModal from '~/components/accounting/stats/CardsStatsModal.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
@@ -412,9 +407,10 @@ const receivedPct = computed(() => {
   return `${Math.round((liquid / expected) * 100)}% recibido`;
 });
 
-const expectedMonthLabel = computed(
-  () => summary.value?.expected_current_month?.label || 'mes en curso',
-);
+const receivablesSub = computed(() => {
+  const count = Number(summary.value?.receivables?.high_count ?? 0);
+  return `${count} ${count === 1 ? 'ingreso seleccionado en verde' : 'ingresos seleccionados en verde'}`;
+});
 
 const cardDebtSub = computed(() => {
   const debt = summary.value?.card_debt;
@@ -434,35 +430,6 @@ const receivedProgress = computed(() => {
 const receivedProgressLabel = computed(() => {
   if (receivedProgress.value === null) return '';
   return `${Math.round(receivedProgress.value)}% de lo esperado ya está recibido`;
-});
-
-const heroStats = computed(() => {
-  const data = summary.value;
-  if (!data) return [];
-  const stats = [
-    {
-      label: 'Utilidad esperada',
-      value: money(data.expected_utility),
-      tone: toneBySign(data.expected_utility),
-    },
-    {
-      label: 'Diferencia líq − esp',
-      value: money(data.difference),
-      tone: toneBySign(data.difference),
-    },
-  ];
-  const liquidTotal = Number(data.liquid_total ?? 0);
-  if (liquidTotal > 0) {
-    const margin = Math.round(
-      (Number(data.liquid_utility ?? 0) / liquidTotal) * 100,
-    );
-    stats.push({
-      label: 'Margen líquido',
-      value: `${margin}%`,
-      tone: toneBySign(data.liquid_utility),
-    });
-  }
-  return stats;
 });
 
 const partnerCards = computed(() => {
@@ -565,7 +532,7 @@ async function exportWorkbook() {
 // -------------------------------------------------------------------
 
 const showIncomeModal = ref(false);
-const showExpectedDetail = ref(false);
+const showReceivables = ref(false);
 
 // -------------------------------------------------------------------
 // Stats modals: lazy accounting/stats/ fetch cached per year
@@ -573,7 +540,6 @@ const showExpectedDetail = ref(false);
 
 const showIncomeStats = ref(false);
 const showExpenseStats = ref(false);
-const showUtilityStats = ref(false);
 const showCardsStats = ref(false);
 const statsLoading = ref(false);
 const cardsStatsLoading = ref(false);

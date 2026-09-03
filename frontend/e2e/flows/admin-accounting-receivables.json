@@ -1,0 +1,16 @@
+{
+  "id": "admin-accounting-receivables",
+  "name": "Admin Accounting Receivables Forecast",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Superuser controls a global manual collection forecast from the 'Pendiente por cobrar' card on /panel/accounting. The card total is the sum of original amounts for selected, open, expected company incomes classified green/high. Its modal reads GET /api/accounting/receivables/ and exposes three tabs: totals and rows grouped by green/high, orange/medium, red/low and unclassified; a flat selected summary; and management of all open expected company candidates. Candidate toggles and traffic-light confidence changes PATCH immediately, assigning a color auto-selects the row, and a failed request leaves a visible retry action. The same traffic-light control and explanatory legend appear for expected rows on /panel/accounting/incomes.",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

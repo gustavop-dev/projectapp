@@ -15,6 +15,16 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 > La adopción revalida montos, reconstruye el calendario y registra el cambio de
 > versión dentro de una transacción.
 
+> **Resuelto 2026-09-03 — previsión automática y hero contable poco legible:**
+> “Pendiente por cobrar” dependía del mes corriente aunque la probabilidad real
+> sólo la conoce el equipo, y el hero estiraba su columna alrededor de una
+> gráfica dejando un vacío grande; varios textos de ApexCharts además heredaban
+> colores ilegibles en dark mode. La previsión ahora es global y manual con
+> selección + semáforo auditables, la analítica completa ocupa el hero en un
+> acordeón y las opciones de tema se aplican en los nodos que ApexCharts consume.
+> Un fixture E2E con doce utilidades en cero también se corrigió: el componente
+> mostraba correctamente su empty state, por lo que no debía esperarse un canvas.
+
 > **Resuelto 2026-09-02 — paridad MCP desigual:** `update_document` ya editaba
 > Markdown correctamente, pero la capacidad era difícil de descubrir y los
 > módulos no compartían contratos de riesgo, concurrencia, credenciales ni

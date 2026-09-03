@@ -14,6 +14,16 @@ This file captures important patterns, preferences, and project intelligence tha
 > congelada y la adopción opt-in de borradores permiten actualizar la oferta sin
 > reescribir acuerdos históricos ni confundir lo vigente con lo pactado.
 
+> **Lección 2026-09-03 — una previsión humana necesita dos ejes y un dueño de
+> cierre:** estar en la lista y la confianza estimada no son el mismo dato; unirlos
+> impediría conservar candidatos aún no clasificados o retirar temporalmente uno
+> sin borrar el juicio anterior. El KPI también debe nombrar qué suma: aquí es el
+> valor original de seleccionados verdes, mientras el modal separa abonado y saldo.
+> La deselección automática pertenece a los caminos que cierran el ingreso
+> (liquidación, pérdida o cambio de ledger), no a una consulta que esconda estado
+> inválido sin corregirlo. Los fixtures de gráficos deben contener al menos una
+> serie no nula cuando el resultado esperado es un canvas y no el empty state.
+
 > **Lección verificada 2026-09-02 — paridad MCP es un contrato, no una lista
 > de tools:** sumar handlers aislados deja módulos con reglas y riesgos
 > diferentes. La unidad mantenible es un manifiesto que relaciona operación del

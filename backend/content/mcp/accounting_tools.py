@@ -231,6 +231,14 @@ def get_dashboard(arguments):
     return accounting_service.dashboard_summary(year)
 
 
+def get_receivables(_arguments):
+    queryset = accounting_service.receivable_queryset()
+    return {
+        'summary': accounting_service.receivables_summary(queryset),
+        'results': IncomeRecordSerializer(queryset, many=True).data,
+    }
+
+
 def list_change_logs(arguments):
     logs = AccountingChangeLog.objects.select_related('actor').all()
     try:
@@ -451,6 +459,21 @@ _ENTITY_FIELDS = {
             'total_amount': {'type': ['number', 'string']},
             'destination': {'type': 'string', 'enum': ['partners', 'pocket']},
             'ledger': {'type': 'string', 'enum': _LEDGER_ENUM},
+            'is_receivable_candidate': {
+                'type': 'boolean',
+                'description': (
+                    'Incluye este esperado empresarial en la previsión manual '
+                    'de pendientes por cobrar.'
+                ),
+            },
+            'collection_confidence': {
+                'type': 'string',
+                'enum': ['', 'high', 'medium', 'low'],
+                'description': (
+                    'Probabilidad manual de cobro. Asignar un valor selecciona '
+                    'el ingreso automáticamente.'
+                ),
+            },
             'client': {
                 'type': ['integer', 'null'],
                 'description': 'ID del cliente (UserProfile con rol cliente).',
@@ -855,10 +878,20 @@ _NON_CRUD_TOOLS = [
         'description': (
             'Resumen contable del año: totales, split de socios, breakdown '
             'mensual, balance de pocket, costo recurrente, ads, hostings y '
-            'últimos snapshots de tarjeta. Param opcional: year.'
+            'últimos snapshots de tarjeta, incluida la previsión manual global '
+            'de pendientes por cobrar. Param opcional: year.'
         ),
         'input_schema': {'type': 'object', 'properties': {'year': {'type': 'integer'}}},
         'handler': get_dashboard,
+    },
+    {
+        'name': 'get_receivables',
+        'description': (
+            'Lista los ingresos esperados empresariales aún abiertos y '
+            'resume la selección manual por probabilidad de cobro.'
+        ),
+        'input_schema': {'type': 'object', 'properties': {}},
+        'handler': get_receivables,
     },
     {
         'name': 'get_income_detail',

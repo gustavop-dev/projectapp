@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.95.0
+// Registry version: 2.96.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -24,7 +24,6 @@ export const ADMIN_ACCOUNTING_COLLECTION_GROUPING = ['@flow:admin-accounting-col
 export const ADMIN_ACCOUNTING_COLLECTIONS = ['@flow:admin-accounting-collections', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_DASHBOARD = ['@flow:admin-accounting-dashboard', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_EMPTY_STATE_CTA = ['@flow:admin-accounting-empty-state-cta', '@module:admin', '@priority:P4'];
-export const ADMIN_ACCOUNTING_EXPECTED_DETAIL = ['@flow:admin-accounting-expected-detail', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_EXPENSES_CRUD = ['@flow:admin-accounting-expenses-crud', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_EXPORT = ['@flow:admin-accounting-export', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_FILTERS = ['@flow:admin-accounting-filters', '@module:admin', '@priority:P1'];
@@ -44,6 +43,7 @@ export const ADMIN_ACCOUNTING_LIST_ERROR_RETRY = ['@flow:admin-accounting-list-e
 export const ADMIN_ACCOUNTING_POCKET = ['@flow:admin-accounting-pocket', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_PROJECT_BULK_ASSIGN = ['@flow:admin-accounting-project-bulk-assign', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_PROJECT_COHERENCE = ['@flow:admin-accounting-project-coherence', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_RECEIVABLES = ['@flow:admin-accounting-receivables', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_RECURRING = ['@flow:admin-accounting-recurring', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_SETTINGS = ['@flow:admin-accounting-settings', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_SETTINGS_RESET_TABS = ['@flow:admin-accounting-settings-reset-tabs', '@module:admin', '@priority:P3'];

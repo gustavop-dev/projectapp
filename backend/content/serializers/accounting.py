@@ -172,6 +172,17 @@ PAYMENT_STATUS_LABELS = {
 }
 
 
+def paid_total_for_income(income):
+    """Money already credited against one expected income."""
+    liquid = income.liquid_records.filter(
+        kind=IncomeRecord.Kind.LIQUID,
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    deducted = income.deduction_records.exclude(
+        deduction_type='',
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    return liquid + deducted
+
+
 def payment_status_for(paid, total):
     """Collection state ('pending'/'partial'/'paid') from a paid total.
 
@@ -215,11 +226,17 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     origin_label = serializers.CharField(
         source='get_origin_display', read_only=True,
     )
+    collection_confidence_label = serializers.SerializerMethodField()
     # '' → None: "sin periodicidad" should read as an absence, not a blank.
     period_cadence_label = serializers.SerializerMethodField()
 
     def get_period_cadence_label(self, obj):
         return obj.get_period_cadence_display() if obj.period_cadence else None
+
+    def get_collection_confidence_label(self, obj):
+        if not obj.collection_confidence:
+            return None
+        return obj.get_collection_confidence_display()
 
     class Meta:
         model = IncomeRecord
@@ -231,6 +248,8 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'destination', 'destination_label', 'ledger', 'ledger_label',
             'client', 'client_name', 'project', 'project_name',
             'origin', 'origin_label',
+            'is_receivable_candidate', 'collection_confidence',
+            'collection_confidence_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'expected_income', 'pocket_movement',
             'paid_amount', 'pending_amount',
@@ -273,15 +292,7 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         if not hasattr(obj, '_paid_total'):
             value = getattr(obj, 'paid_amount', None)
             if value is None:
-                liquid = obj.liquid_records.filter(
-                    kind=IncomeRecord.Kind.LIQUID,
-                ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-                # Mirrors paid_amount_subquery: linked deductions credit the
-                # gross total — that money never arrives as a liquid child.
-                deducted = obj.deduction_records.exclude(
-                    deduction_type='',
-                ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-                value = liquid + deducted
+                value = paid_total_for_income(obj)
             obj._paid_total = Decimal(value)
         return obj._paid_total
 
@@ -395,6 +406,7 @@ class IncomeRecordCreateUpdateSerializer(
         fields = (
             'concept', 'kind', 'period_date', 'destination', 'ledger',
             'client', 'project', 'origin',
+            'is_receivable_candidate', 'collection_confidence',
             'period_start', 'period_end', 'period_cadence',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
@@ -413,6 +425,46 @@ class IncomeRecordCreateUpdateSerializer(
         kind = effective('kind')
         destination = effective('destination')
         ledger = effective('ledger', Ledger.COMPANY)
+
+        # --- Manual receivable forecast --------------------------------
+        # A colour assignment is itself an explicit shortlist decision. A
+        # plain deselection keeps the colour, so the team's last judgement is
+        # still visible when the record is inspected later.
+        candidate_was_selected = data.get('is_receivable_candidate') is True
+        confidence_was_assigned = bool(data.get('collection_confidence'))
+        receivable_shape = (
+            kind == IncomeRecord.Kind.EXPECTED and ledger == Ledger.COMPANY
+        )
+        if (candidate_was_selected or confidence_was_assigned) and not receivable_shape:
+            raise serializers.ValidationError({
+                'is_receivable_candidate': (
+                    'Solo un ingreso esperado de la contabilidad de empresa '
+                    'puede seleccionarse como pendiente por cobrar.'
+                ),
+            })
+        if receivable_shape and confidence_was_assigned:
+            data['is_receivable_candidate'] = True
+        if not receivable_shape:
+            # Kind/ledger transitions close the active forecast but preserve
+            # collection_confidence as historical context.
+            data['is_receivable_candidate'] = False
+
+        candidate = effective('is_receivable_candidate', False)
+        if receivable_shape and candidate:
+            paid = (
+                paid_total_for_income(self.instance)
+                if self.instance is not None
+                else Decimal('0')
+            )
+            if payment_status_for(paid, effective('total_amount')) == 'paid':
+                if candidate_was_selected or confidence_was_assigned:
+                    raise serializers.ValidationError({
+                        'is_receivable_candidate': (
+                            'Un ingreso completamente pagado no puede '
+                            'seleccionarse como pendiente por cobrar.'
+                        ),
+                    })
+                data['is_receivable_candidate'] = False
         if (
             destination == IncomeRecord.Destination.POCKET
             and kind != IncomeRecord.Kind.LIQUID

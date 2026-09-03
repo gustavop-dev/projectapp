@@ -1,5 +1,18 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-03 — previsión manual de cuentas por cobrar:** el monto
+> “Pendiente por cobrar” deja de inferirse por mes y representa la suma global
+> del valor original de los ingresos esperados abiertos de empresa que el equipo
+> seleccionó y clasificó en verde. Selección y confianza son decisiones
+> independientes; verde significa muy probable, naranja 50/50 y rojo alto riesgo
+> de pérdida. El modal permite revisar totales por estado, la selección plana y
+> administrar candidatos con guardado inmediato; la tabla de Ingresos ofrece el
+> mismo control sólo sobre esperados. Al cobrar por completo, marcar perdido o
+> sacar de empresa, el ingreso se deselecciona y conserva su última clasificación.
+> La analítica de utilidad sustituye la gráfica “Utilidad por mes” dentro del
+> resumen como acordeón abierto por defecto y todos los gráficos deben conservar
+> contraste legible en modo oscuro.
+
 > **Listo para integrar 2026-09-02 — control operativo por MCP:** todas las
 > operaciones del Panel interno, salvo administración de identidades, secretos,
 > infraestructura e impersonación, deben poder descubrirse y ejecutarse desde
