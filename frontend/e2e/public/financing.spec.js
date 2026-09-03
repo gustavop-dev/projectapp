@@ -60,6 +60,8 @@ test.describe('Public financing program', () => {
     await expect(page.getByTestId('financing-option-five-year')).toContainText('Alianza a 5 años')
     await expect(page.getByTestId('financing-option-three-year')).toContainText('Alianza a 3 años')
     await expect(page.getByTestId('financing-condition-calculator')).toContainText('Calculadora de requerimientos')
+    await expect(page.getByTestId('financing-condition-payment-discipline')).toContainText('aumenta en 1% el costo vigente del Hosting')
+    await expect(page.getByTestId('financing-option-five-year')).toContainText('dos ciclos')
     await expect(page.getByTestId('financing-calculator-input-output')).toContainText('Qué se obtiene')
     await expect(page.getByTestId('financing-package-facts')).toContainText('No acumula horas')
     await expect(page.getByTestId('financing-whatsapp-cta')).toHaveAttribute('href', /wa\.me\/573238122373/)
@@ -139,7 +141,6 @@ test.describe('Public financing program', () => {
   test('recovers after the program request fails', {
     tag: [...PUBLIC_FINANCING_LOAD, '@role:guest', '@outcome:failure', '@outcome:success'],
   }, async ({ page }) => {
-    // quality: allow-deep-link (isolates the canonical route's unavailable and retry states)
     const scenario = { programUnavailable: true }
     await setupApi(page, scenario)
     await page.goto('/es-co/financing', { waitUntil: 'domcontentloaded' })

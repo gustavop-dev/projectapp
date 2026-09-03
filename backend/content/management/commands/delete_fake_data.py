@@ -15,6 +15,8 @@ from content.models import (
     DocumentThread,
     DocumentTag,
     EmailLog,
+    FinancingAgreement,
+    FinancingAgreementNumberSequence,
     LinkedInPost,
     Linktree,
     McpRequestLog,
@@ -67,6 +69,20 @@ class Command(BaseCommand):
         # phases, requirements, deliverables, change requests, bugs) → proposals.
         # Break only the self-reply pointers inside the dataset being removed;
         # message deletion then cascades attachments and date corrections.
+        signed_documents = FinancingAgreement.objects.exclude(
+            signed_document='',
+        ).exclude(signed_document__isnull=True)
+        for agreement in signed_documents.iterator():
+            agreement.signed_document.delete(save=False)
+        # A full development reset removes both financing cycles together.
+        # Dissolve their protected self-reference before deleting the roots.
+        FinancingAgreement.objects.update(previous_agreement=None)
+        deleted, _ = FinancingAgreement.objects.all().delete()
+        FinancingAgreementNumberSequence.objects.all().delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Deleted financing agreements ({deleted} rows)',
+        ))
+
         CommunicationMessage.objects.update(reply_to=None)
         deleted, _ = CommunicationMessage.objects.all().delete()
         self.stdout.write(self.style.SUCCESS(

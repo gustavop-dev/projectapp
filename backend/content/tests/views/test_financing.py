@@ -33,6 +33,7 @@ def pro_package():
 
 
 def test_program_localizes_live_package_name(pro_package):
+    """Fails if the public program stops exposing the active localized package name."""
     payload = serialize_financing_program(language='en')
 
     assert payload['package']['name'] == 'Current Pro Pack'
@@ -40,6 +41,7 @@ def test_program_localizes_live_package_name(pro_package):
 
 
 def test_program_package_excludes_catalog_pricing(pro_package):
+    """Fails if public financing data leaks the internal package price catalog."""
     payload = serialize_financing_program(language='es')
 
     assert set(payload['package']).isdisjoint({'hourly_rate', 'discount_percent', 'price'})
@@ -47,6 +49,7 @@ def test_program_package_excludes_catalog_pricing(pro_package):
 
 
 def test_program_uses_fallback_when_package_is_inactive(pro_package):
+    """Fails if an inactive package is presented as an available financing benefit."""
     pro_package.is_active = False
     pro_package.save(update_fields=['is_active', 'updated_at'])
 
@@ -57,6 +60,7 @@ def test_program_uses_fallback_when_package_is_inactive(pro_package):
 
 
 def test_public_program_rejects_unknown_language(pro_package):
+    """Fails if the public endpoint accepts a language it cannot localize."""
     response = APIClient().get('/api/financing/public/?lang=fr')
 
     assert response.status_code == 400
@@ -64,15 +68,40 @@ def test_public_program_rejects_unknown_language(pro_package):
 
 
 def test_public_program_exposes_commercial_input_output(pro_package):
+    """Fails if the calculator no longer explains its commercial input and output."""
     response = APIClient().get('/api/financing/public/?lang=es')
 
     assert response.status_code == 200
     assert response.data['calculator']['input']['title'] == 'Qué se ingresa'
     assert response.data['calculator']['output']['title'] == 'Qué se obtiene'
-    assert len(response.data['conditions']) == 4
+
+
+def test_public_program_exposes_one_percent_late_hosting_increase(pro_package):
+    """Fails if late installments stop increasing current Hosting by one percent."""
+    response = APIClient().get('/api/financing/public/?lang=es')
+    payment_condition = response.data['conditions'][-1]
+
+    assert response.data['late_hosting_increase_percent'] == '1%'
+    assert response.data['installment_due_day_range'] == [1, 5]
+    assert payment_condition['summary'] == (
+        'Cada cuota se paga dentro de los primeros cinco días calendario '
+        'del mes. Una cuota en mora aumenta en 1% el costo vigente del Hosting.'
+    )
+
+
+def test_public_program_exposes_two_financing_cycles_for_five_year_option(pro_package):
+    """Fails if the five-year option loses its second financed twelve-month cycle."""
+    response = APIClient().get('/api/financing/public/?lang=es')
+    five_year_option = response.data['options'][0]
+
+    assert five_year_option['financing_cycles'] == 2
+    assert five_year_option['highlights'][0] == (
+        'Hasta dos ciclos separados de 12 meses al 0% de interés ordinario.'
+    )
 
 
 def test_public_pdf_sets_private_download_headers(pro_package):
+    """Fails if the public PDF becomes cacheable or loses its named attachment."""
     response = APIClient().get('/api/financing/public/pdf/?lang=en')
 
     assert response.status_code == 200
@@ -82,18 +111,20 @@ def test_public_pdf_sets_private_download_headers(pro_package):
 
 
 def test_public_pdf_expands_financing_terms(pro_package):
+    """Fails if the public PDF omits the commercial financing terms it promises."""
     response = APIClient().get('/api/financing/public/pdf/?lang=es')
     text = '\n'.join(
         page.extract_text() or ''
         for page in PdfReader(BytesIO(response.content)).pages
     )
 
-    assert 'Las cuatro condiciones comerciales' in text
+    assert 'Las cinco condiciones comerciales' in text
     assert 'Custodia de código no es cesión de propiedad' in text
     assert 'Paquete Pro vigente' in text
 
 
 def test_sitemap_includes_spanish_financing_route(pro_package):
+    """Fails if the canonical Spanish financing page disappears from the sitemap."""
     response = APIClient().get('/sitemap.xml')
 
     assert response.status_code == 200

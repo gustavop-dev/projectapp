@@ -28,6 +28,7 @@ BUSINESS_ROOT_MODELS = (
     'content.DocumentThread',
     'content.EmailLog',
     'content.ExpenseRecord',
+    'content.FinancingAgreement',
     'content.HostingRecord',
     'content.IncomeRecord',
     'content.LinkedInPost',
@@ -63,6 +64,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-portfolio', action='store_true')
         parser.add_argument('--skip-tasks', action='store_true')
         parser.add_argument('--skip-diagnostics', action='store_true')
+        parser.add_argument('--skip-financing', action='store_true')
         parser.add_argument('--skip-platform', action='store_true')
         parser.add_argument('--skip-documents', action='store_true')
         parser.add_argument('--skip-communications', action='store_true')
@@ -116,6 +118,11 @@ class Command(BaseCommand):
                 self._run_seeded('hour packages', 'create_fake_hour_packages')
                 self._run_seeded(
                     'proposals', 'create_fake_proposals', '--count', str(count),
+                )
+            if not options['skip_financing']:
+                self._run_seeded(
+                    'financing agreements', 'create_fake_financing',
+                    '--count', str(count),
                 )
             if not options['skip_blog']:
                 self._run_seeded(
