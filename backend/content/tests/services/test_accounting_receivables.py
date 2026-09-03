@@ -76,6 +76,61 @@ def test_forecast_excludes_fully_paid_candidate(make_income):
 
 
 @pytest.mark.django_db
+def test_fully_paid_income_cannot_be_selected_again(super_client, make_income):
+    """Falla si un cobro cerrado vuelve a inflar la previsión manual."""
+    income = make_income(
+        total_amount=Decimal('500.00'),
+        gustavo_amount=Decimal('250.00'),
+        carlos_amount=Decimal('250.00'),
+    )
+    make_income(
+        kind=IncomeRecord.Kind.LIQUID,
+        total_amount=Decimal('500.00'),
+        expected_income=income,
+    )
+
+    response = super_client.patch(
+        f'/api/accounting/incomes/{income.pk}/update/',
+        {'is_receivable_candidate': True},
+        format='json',
+    )
+
+    income.refresh_from_db()
+    assert response.status_code == 400
+    assert 'is_receivable_candidate' in response.data
+    assert income.is_receivable_candidate is False
+
+
+@pytest.mark.django_db
+def test_fully_paid_income_cannot_receive_collection_confidence(
+    super_client, make_income,
+):
+    """Falla si asignar un color reabre un cobro cerrado en la previsión."""
+    income = make_income(
+        total_amount=Decimal('500.00'),
+        gustavo_amount=Decimal('250.00'),
+        carlos_amount=Decimal('250.00'),
+    )
+    make_income(
+        kind=IncomeRecord.Kind.LIQUID,
+        total_amount=Decimal('500.00'),
+        expected_income=income,
+    )
+
+    response = super_client.patch(
+        f'/api/accounting/incomes/{income.pk}/update/',
+        {'collection_confidence': IncomeRecord.CollectionConfidence.HIGH},
+        format='json',
+    )
+
+    income.refresh_from_db()
+    assert response.status_code == 400
+    assert 'is_receivable_candidate' in response.data
+    assert income.is_receivable_candidate is False
+    assert income.collection_confidence == ''
+
+
+@pytest.mark.django_db
 def test_dashboard_green_forecast_ignores_selected_year(make_income):
     make_income(
         period_date=date(2024, 1, 1),

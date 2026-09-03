@@ -130,10 +130,29 @@ describe('ReceivablesModal', () => {
     expect(wrapper.text()).toContain('No se pudieron cargar los pendientes por cobrar');
   });
 
+  // Falla si Reintentar no vuelve a cargar el modal después de un error temporal.
+  it('reloads the receivables summary when retry succeeds', async () => {
+    get_request.mockRejectedValueOnce(new Error('temporary outage'));
+    const wrapper = mountModal();
+    await flushPromises();
+
+    const retryButton = wrapper.findAll('button')
+      .find((button) => button.text() === 'Reintentar');
+    await retryButton.trigger('click');
+    await flushPromises();
+
+    expect(get_request).toHaveBeenCalledTimes(2);
+    expect(get_request).toHaveBeenLastCalledWith('accounting/receivables/');
+    expect(wrapper.get('[data-testid="receivables-summary-tab"]').text())
+      .toContain('$1.000.000 COP');
+  });
+
+  // Falla si un modal cerrado inicia una carga y deja el store en estado de espera.
   it('does not fetch while closed', async () => {
     mountModal({ open: false });
     await flushPromises();
 
     expect(get_request).not.toHaveBeenCalled();
+    expect(useAccountingStore().receivablesLoading).toBe(false);
   });
 });

@@ -6114,7 +6114,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-pocket` | admin | P2 | display,success,error | 6 |
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
 | `admin-accounting-project-coherence` | admin | P1 | success | 1 |
-| `admin-accounting-receivables` | admin | P1 | display,success,failure | 3 |
+| `admin-accounting-receivables` | admin | P1 | display,success,failure | 4 |
 | `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 27 |
 | `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |

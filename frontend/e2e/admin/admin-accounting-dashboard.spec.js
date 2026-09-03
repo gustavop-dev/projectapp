@@ -157,8 +157,13 @@ function buildHandler({
   isSuperuser = true,
   calls = [],
   failReceivables = false,
+  unselectedHosting = false,
 } = {}) {
-  let receivableRows = EXPECTED_MONTH_ROWS.map((row) => ({ ...row }));
+  let receivableRows = EXPECTED_MONTH_ROWS.map((row) => (
+    row.id === 72 && unselectedHosting
+      ? { ...row, is_receivable_candidate: false }
+      : { ...row }
+  ));
   return ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -268,8 +273,13 @@ test.describe('Admin Accounting Dashboard', () => {
   test('renders stat cards with the summary totals', {
     tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display', '@responsive:accounting'],
   }, async ({ page }) => {
+    // Bug caught: the Contabilidad navigation could stop reaching the dashboard KPI cards.
     await mockApi(page, buildHandler());
-    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    const summaryLink = page.getByRole('link', { name: 'Resumen', exact: true });
+    await expect(summaryLink).toHaveAttribute('href', /\/panel\/accounting$/);
+    await summaryLink.click();
+    await expect(page).toHaveURL(/\/panel\/accounting$/);
 
     await expect(
       page.getByRole('heading', { name: 'Resumen', exact: true }),
@@ -300,8 +310,13 @@ test.describe('Admin Accounting Dashboard', () => {
   test('receivables card shows the grouped global forecast and its three tabs', {
     tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // Bug caught: the Contabilidad navigation could stop reaching the receivables forecast.
     await mockApi(page, buildHandler());
-    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    const summaryLink = page.getByRole('link', { name: 'Resumen', exact: true });
+    await expect(summaryLink).toHaveAttribute('href', /\/panel\/accounting$/);
+    await summaryLink.click();
+    await expect(page).toHaveURL(/\/panel\/accounting$/);
 
     const card = page.getByTestId('accounting-card-receivables');
     await expect(card).toBeVisible({ timeout: 25_000 });
@@ -338,6 +353,28 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect.poll(() => calls.find((call) => (
       call.apiPath === 'accounting/incomes/72/update/'
     ))?.body).toEqual({ is_receivable_candidate: false });
+  });
+
+  test('assigning high confidence selects the receivable and refreshes the global forecast', {
+    tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Bug caught: choosing green could persist without auto-selecting the income or refreshing the KPI.
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, unselectedHosting: true }));
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+
+    await page.getByTestId('accounting-card-receivables').click();
+    await page.getByRole('tab', { name: /Gestionar candidatos/ }).click();
+    await page.getByRole('combobox', {
+      name: 'Probabilidad de cobro de Hosting anual Acme',
+    }).selectOption('high');
+
+    await expect.poll(() => calls.find((call) => (
+      call.apiPath === 'accounting/incomes/72/update/'
+    ))?.body).toEqual({ collection_confidence: 'high' });
+    await expect(page.getByTestId('accounting-card-receivables')).toContainText('$3.000.000 COP');
+    await page.getByRole('tab', { name: /Selección/ }).click();
+    await expect(page.getByTestId('receivables-selected-tab')).toContainText('Hosting anual Acme');
   });
 
   test('receivables modal exposes a retry action when its request fails', {
