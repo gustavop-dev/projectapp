@@ -8,12 +8,15 @@ from content.models import FinancingAgreement, FinancingAgreementTemplate
 from content.services.financing_agreement_service import (
     FinancingAgreementTransitionError,
     FinancingAgreementValidationError,
+    add_years,
     build_installment_schedule,
+    calculate_financed_balance,
     create_agreement,
     create_second_cycle,
     mark_ready,
     normalize_installment_schedule,
     update_draft,
+    validate_template_markdown,
 )
 
 
@@ -140,3 +143,88 @@ def test_second_cycle_update_preserves_original_partnership_end(
     )
 
     assert updated.partnership_end_date == first.partnership_end_date
+
+
+@pytest.mark.parametrize(
+    ('total', 'initial', 'field'),
+    (
+        ('-1.00', '0.00', 'total_value'),
+        ('100.00', '-1.00', 'initial_payment'),
+        ('100.00', '101.00', 'initial_payment'),
+    ),
+)
+def test_financed_balance_rejects_invalid_values(total, initial, field):
+    with pytest.raises(FinancingAgreementValidationError) as exc_info:
+        calculate_financed_balance(total, initial)
+
+    assert field in exc_info.value.errors
+
+
+@pytest.mark.parametrize(
+    ('invalid_item', 'message'),
+    (
+        (None, 'formato inválido'),
+        ({'due_date': 'invalid', 'amount': '100.00'}, 'fecha'),
+        ({'due_date': '2026-03-05', 'amount': 'invalid'}, 'valor'),
+        ({'due_date': '2026-03-05', 'amount': '0.00'}, 'valor positivo'),
+    ),
+)
+def test_installment_schedule_rejects_malformed_item(invalid_item, message):
+    schedule = build_installment_schedule(Decimal('1200.00'), date(2026, 3, 5))
+    schedule[0] = invalid_item
+
+    with pytest.raises(FinancingAgreementValidationError) as exc_info:
+        normalize_installment_schedule(schedule, Decimal('1200.00'))
+
+    assert message in str(exc_info.value.errors['installment_schedule'])
+
+
+def test_installment_schedule_rejects_duplicate_dates():
+    schedule = build_installment_schedule(Decimal('1200.00'), date(2026, 3, 5))
+    schedule[1]['due_date'] = schedule[0]['due_date']
+
+    with pytest.raises(FinancingAgreementValidationError) as exc_info:
+        normalize_installment_schedule(schedule, Decimal('1200.00'))
+
+    assert 'únicas' in str(exc_info.value.errors['installment_schedule'])
+
+
+def test_installment_schedule_rejects_inexact_total():
+    schedule = build_installment_schedule(Decimal('1200.00'), date(2026, 3, 5))
+    schedule[0]['amount'] = '101.00'
+
+    with pytest.raises(FinancingAgreementValidationError) as exc_info:
+        normalize_installment_schedule(schedule, Decimal('1200.00'))
+
+    assert 'sumar exactamente' in str(exc_info.value.errors['installment_schedule'])
+
+
+@pytest.mark.parametrize(
+    ('markdown', 'message'),
+    (
+        ('', 'no puede estar vacío'),
+        ('Texto con {unknown_placeholder}', 'no reconocidos'),
+        ('Texto con una llave {', 'llaves inválidas'),
+        ('Texto sin marcadores', 'marcadores obligatorios'),
+    ),
+)
+def test_contract_template_rejects_invalid_markdown(markdown, message):
+    with pytest.raises(FinancingAgreementValidationError) as exc_info:
+        validate_template_markdown(markdown)
+
+    assert message in str(exc_info.value.errors['contract_markdown'])
+
+
+def test_zero_balance_builds_empty_installment_schedule():
+    assert build_installment_schedule(Decimal('0.00'), date(2026, 3, 5)) == []
+
+
+def test_first_installment_rejects_day_after_fifth():
+    with pytest.raises(FinancingAgreementValidationError) as exc_info:
+        build_installment_schedule(Decimal('1200.00'), date(2026, 3, 6))
+
+    assert 'días 1 y 5' in str(exc_info.value.errors['first_installment_date'])
+
+
+def test_add_years_clamps_leap_day():
+    assert add_years(date(2024, 2, 29), 1) == date(2025, 2, 28)
