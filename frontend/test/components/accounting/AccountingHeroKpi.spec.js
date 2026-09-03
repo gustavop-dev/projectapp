@@ -64,6 +64,8 @@ describe('AccountingHeroKpi', () => {
   it('hides the details region when no slot is supplied', () => {
     const wrapper = mountHero();
 
+    expect(wrapper.get('[data-testid="accounting-hero-value"]').text())
+      .toBe(formatMoney(8400000, 'COP'));
     expect(wrapper.text()).not.toContain('Estadísticas');
   });
 });

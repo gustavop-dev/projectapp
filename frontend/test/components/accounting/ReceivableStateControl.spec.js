@@ -34,8 +34,8 @@ describe('ReceivableStateControl', () => {
       props: { row: expectedRow(), busy: true },
     });
 
-    expect(wrapper.get('[role="switch"]').attributes('disabled')).toBeDefined();
-    expect(wrapper.get('select').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[role="switch"]').attributes('disabled')).toBe('');
+    expect(wrapper.get('select').attributes('disabled')).toBe('');
   });
 
   it('hides controls for liquid income', () => {
