@@ -172,6 +172,8 @@ export default {
       reviewData: 'Review the addendum data.',
       saved: 'Changes saved.',
       statusUpdated: 'Addendum status updated.',
+      confirmActionTitle: 'Confirm status change',
+      cancelConfirmation: 'Cancel',
       confirmReady: 'The addendum will be locked with a legal snapshot. Continue?',
       confirmReopen: 'The legal snapshot will be discarded to allow changes. Continue?',
       confirmArchive: 'The addendum will leave the current list. Continue?',

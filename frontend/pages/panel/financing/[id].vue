@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 
+import ConfirmModal from '~/components/ConfirmModal.vue'
 import InstallmentScheduleEditor from '~/components/Financing/InstallmentScheduleEditor.vue'
+import { useConfirmModal } from '~/composables/useConfirmModal'
 import { usePanelNotify } from '~/composables/usePanelNotify'
 import { useFinancingAgreementsStore } from '~/stores/financing_agreements'
 
@@ -16,6 +18,7 @@ const errors = ref({})
 const actionMode = ref('')
 const actionNote = ref('')
 const signedFile = ref(null)
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal()
 
 const agreement = computed(() => store.currentAgreement)
 const actions = computed(() => new Set(agreement.value?.allowed_actions || []))
@@ -72,7 +75,16 @@ async function simpleAction(action) {
     restore: t('financing.agreement.detail.confirmRestore'),
     'create-second-cycle': t('financing.agreement.detail.confirmSecondCycle'),
   }
-  if (messages[action] && !window.confirm(messages[action])) return
+  if (messages[action]) {
+    const confirmed = await requestConfirm({
+      title: t('financing.agreement.detail.confirmActionTitle'),
+      message: messages[action],
+      confirmText: t('financing.agreement.detail.confirm'),
+      cancelText: t('financing.agreement.detail.cancelConfirmation'),
+      variant: 'warning',
+    })
+    if (!confirmed) return
+  }
   const result = await runAction(action)
   if (action === 'create-second-cycle' && result?.id) {
     await navigateTo(localePath(`/panel/financing/${result.id}`))
@@ -146,6 +158,16 @@ function modalityLabel(value, fallback = '') {
 
 <template>
   <BasePageShell width="content">
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div v-if="store.isLoading && !agreement" class="flex min-h-80 items-center justify-center" role="status"><span class="h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-primary" /></div>
     <div v-else-if="store.error && !agreement" class="rounded-xl bg-danger-soft p-6 text-danger-strong" role="alert">{{ t('financing.agreement.detail.loadError') }}</div>
     <template v-else-if="agreement">

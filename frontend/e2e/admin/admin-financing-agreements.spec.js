@@ -280,8 +280,10 @@ async function fillRequiredAgreementFields(page) {
   await page.getByTestId('financing-hosting-value').fill('500000')
 }
 
-async function acceptNextDialog(page) {
-  page.once('dialog', (dialog) => dialog.accept())
+async function runConfirmedAction(page, actionTestId) {
+  await page.getByTestId(actionTestId).click()
+  await expect(page.getByTestId('confirm-modal-confirm')).toBeVisible()
+  await page.getByTestId('confirm-modal-confirm').click()
 }
 
 test.describe('Admin financing agreements', () => {
@@ -379,9 +381,8 @@ test.describe('Admin financing agreements', () => {
   }, async ({ page }) => {
     await setupApi(page)
     await openAgreementDetail(page)
-    await acceptNextDialog(page)
 
-    await page.getByTestId('financing-mark-ready').click()
+    await runConfirmedAction(page, 'financing-mark-ready')
 
     await expect(page.getByTestId('financing-agreement-status')).toContainText('Listo para firma')
     await expect(page.locator('h1')).toHaveText('OFIN-2026-042')
@@ -472,9 +473,8 @@ test.describe('Admin financing agreements', () => {
   }, async ({ page }) => {
     await setupApi(page, { agreement: financingAgreementFixture({ status: 'cancelled' }) })
     await openAgreementDetail(page)
-    await acceptNextDialog(page)
 
-    await page.getByTestId('financing-archive').click()
+    await runConfirmedAction(page, 'financing-archive')
 
     await expect(page.getByTestId('financing-restore')).toBeVisible()
     await expect(page.getByTestId('financing-agreement-status')).toContainText('Archivado')
@@ -487,9 +487,8 @@ test.describe('Admin financing agreements', () => {
       agreement: financingAgreementFixture({ status: 'cancelled', is_archived: true }),
     })
     await openAgreementDetail(page)
-    await acceptNextDialog(page)
 
-    await page.getByTestId('financing-restore').click()
+    await runConfirmedAction(page, 'financing-restore')
 
     await expect(page.getByTestId('financing-archive')).toBeVisible()
     await expect(page.getByTestId('financing-agreement-status')).not.toContainText('Archivado')
@@ -537,9 +536,8 @@ test.describe('Admin financing agreements', () => {
   }, async ({ page }) => {
     await setupApi(page, { agreement: financingAgreementFixture({ status: 'completed' }) })
     await openAgreementDetail(page)
-    await acceptNextDialog(page)
 
-    await page.getByTestId('financing-create-second-cycle').click()
+    await runConfirmedAction(page, 'financing-create-second-cycle')
 
     await expect(page).toHaveURL(/\/es-co\/panel\/financing\/502$/)
     await expect(page.getByText('Este segundo ciclo conserva la modalidad')).toBeVisible()
@@ -560,9 +558,8 @@ test.describe('Admin financing agreements', () => {
       },
     })
     await openAgreementDetail(page)
-    await acceptNextDialog(page)
 
-    await page.getByTestId('financing-create-second-cycle').click()
+    await runConfirmedAction(page, 'financing-create-second-cycle')
 
     await expect(page.getByRole('alert').first()).toContainText('pago íntegro')
     await expect(page).toHaveURL(/\/es-co\/panel\/financing\/501$/)
@@ -580,9 +577,8 @@ test.describe('Admin financing agreements', () => {
       },
     })
     await openAgreementDetail(page)
-    await acceptNextDialog(page)
 
-    await page.getByTestId('financing-create-second-cycle').click()
+    await runConfirmedAction(page, 'financing-create-second-cycle')
 
     await expect(page.getByRole('alert').first()).toContainText('No fue posible aprobar')
     await expect(page.getByTestId('financing-create-second-cycle')).toBeVisible()

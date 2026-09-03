@@ -172,6 +172,8 @@ export default {
       reviewData: 'Revisa los datos del otrosí.',
       saved: 'Cambios guardados.',
       statusUpdated: 'Estado del otrosí actualizado.',
+      confirmActionTitle: 'Confirmar cambio de estado',
+      cancelConfirmation: 'Cancelar',
       confirmReady: 'El otrosí quedará bloqueado con un snapshot legal. ¿Continuar?',
       confirmReopen: 'El snapshot legal se descartará para permitir cambios. ¿Continuar?',
       confirmArchive: 'El otrosí saldrá del listado vigente. ¿Continuar?',
