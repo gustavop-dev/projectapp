@@ -631,3 +631,24 @@ def diagnostic(db, diag_client_profile):
         'client_name', 'client_email', 'investment_amount', 'radiography',
     ])
     return diag
+
+
+@pytest.fixture
+def non_deferring_constraints():
+    """Reproduce the constraint semantics production actually runs on.
+
+    SQLite reports ``can_defer_constraint_checks = True``, so Django skips the
+    ``UPDATE ... SET <fk> = NULL`` that ``deletion.CASCADE`` emits before
+    deleting the rows behind a *nullable* CASCADE FK. MySQL reports False and
+    emits it — which is why a CHECK constraint spanning those columns blows up
+    in production while the suite stays green. Opt in to exercise that path.
+    """
+    from django.db import connection
+
+    features = connection.features
+    original = features.can_defer_constraint_checks
+    features.can_defer_constraint_checks = False
+    try:
+        yield connection
+    finally:
+        features.can_defer_constraint_checks = original

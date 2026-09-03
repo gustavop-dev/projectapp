@@ -1,6 +1,7 @@
 import unicodedata
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from content.utils import safe_slug
@@ -303,14 +304,41 @@ class DocumentStateEpisode(models.Model):
             models.Index(fields=('state', 'closed_at')),
         ]
         constraints = [
+            # Un episodio representa a UN sujeto: documento o proyecto, nunca
+            # los dos. La otra mitad ("al menos uno") no puede vivir acá: al
+            # borrar el sujeto, Django anula la FK nullable antes de borrar la
+            # fila (deletion.CASCADE) y MySQL no difiere los CHECK, así que ese
+            # transitorio hacía imposible borrar el sujeto. La garantizan
+            # clean() y save().
             models.CheckConstraint(
                 condition=(
-                    models.Q(document__isnull=False, project__isnull=True)
-                    | models.Q(document__isnull=True, project__isnull=False)
+                    models.Q(document__isnull=True)
+                    | models.Q(project__isnull=True)
                 ),
-                name='state_episode_exactly_one_subject',
+                name='state_episode_subject_is_document_or_project',
             ),
         ]
+
+    def clean(self):
+        errors = {}
+        if self.document_id is None and self.project_id is None:
+            errors['document'] = (
+                'El episodio debe pertenecer a un documento o a un proyecto.'
+            )
+        if self.document_id and self.project_id:
+            errors['project'] = (
+                'El episodio no puede pertenecer a un documento y a un '
+                'proyecto a la vez.'
+            )
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        # El borrado de Django no pasa por acá — usa UpdateQuery/DeleteQuery —
+        # así que esta guarda cubre el "al menos un sujeto" en todo write de la
+        # aplicación sin bloquear el transitorio legítimo del collector.
+        self.clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.document or self.project} — {self.state}'

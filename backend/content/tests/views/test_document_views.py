@@ -577,7 +577,22 @@ class TestUpdateDocument:
 
 class TestDeleteDocument:
     def test_deletes_document_and_returns_204(self, admin_client, document):
+        """Green on SQLite even while MySQL 500s — see the next test for why."""
         doc_id = document.id
+        url = reverse('delete-document', kwargs={'document_id': doc_id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 204
+        assert not Document.objects.filter(pk=doc_id).exists()
+
+    def test_deletes_document_carrying_a_state_episode(
+        self, admin_client, document, non_deferring_constraints,
+    ):
+        """Every document born after the workflow landed carries an episode,
+        and on a backend that cannot defer its CHECK checks that used to 500."""
+        doc_id = document.id
+        assert document.state_episodes.exists()
+
         url = reverse('delete-document', kwargs={'document_id': doc_id})
         response = admin_client.delete(url)
 
