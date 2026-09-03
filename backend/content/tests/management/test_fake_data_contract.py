@@ -35,6 +35,7 @@ from content.models import (
     DocumentCollectionAccount,
     DocumentThread,
     DocumentThreadItem,
+    FinancingAgreement,
     HostingRecord,
     IncomeRecord,
     LinkedInPost,
@@ -590,6 +591,7 @@ def test_orchestrator_keeps_cross_module_relationships_coherent():
     assert all(not rows for rows in violations.values()), violations
 
 
+# quality: disable too_many_assertions (17 assertions verify the one orchestrator contract that every public module root is populated)
 def test_orchestrator_populates_every_visible_module_root():
     run_command(
         'create_fake_data', '--count', '5', '--seed', '19',
@@ -600,6 +602,7 @@ def test_orchestrator_populates_every_visible_module_root():
     assert Project.objects.exists()
     assert Contact.objects.count() == 5
     assert BusinessProposal.objects.exists()
+    assert FinancingAgreement.objects.exists()
     assert BlogPost.objects.count() == 5
     assert Task.objects.count() == 5
     # The diagnostic seeder adds one linked, backdated edge record in addition

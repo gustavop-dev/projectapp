@@ -200,8 +200,8 @@ class FinancingPdfService:
         english = payload['language'] == 'en'
         story = [
             Paragraph(
-                'The four commercial conditions'
-                if english else 'Las cuatro condiciones comerciales',
+                'The five commercial conditions'
+                if english else 'Las cinco condiciones comerciales',
                 styles['section'],
             ),
         ]

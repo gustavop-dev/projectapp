@@ -9,6 +9,14 @@
 > confirmaciones de un solo uso protegen los cambios concurrentes y sensibles;
 > los slugs existentes continúan como adaptadores compatibles.
 
+> **Entrega validada — workspace contractual de financiación (2026-09-03):**
+> una entidad de acuerdo, una plantilla versionada y un historial inmutable
+> separan la gestión contractual de la fuente comercial pública. Un servicio
+> de dominio es dueño de calendario, snapshots, numeración `OFIN-YYYY-NNN`,
+> transiciones y elegibilidad del segundo ciclo. Ninguna transición altera
+> registros de Hosting o contabilidad: la penalización se documenta para el
+> contrato y su aplicación operativa continúa siendo manual y auditable.
+
 > **Módulo de financiación 2026-09-02:**
 > `FinancingProgramService` es la fuente canónica, versionada y bilingüe del
 > contenido comercial. Proyecta el paquete activo de 60 horas desde

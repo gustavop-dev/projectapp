@@ -18,6 +18,11 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 > paralelas. La regresión contractual deja propagar errores inesperados de
 > resolución de rutas para evitar falsos verdes.
 
+> **Resuelto 2026-09-03 — contratos firmados fuera de media pública:** el
+> workspace de financiación no reutiliza el storage servido por `/media/`.
+> `PRIVATE_MEDIA_ROOT` mantiene los archivos firmados fuera de Nginx y una vista
+> autenticada para administradores controla cada descarga.
+
 > **Resuelto 2026-09-02 — Compartir quedaba debajo del WhatsApp global:** las
 > acciones flotantes del módulo de financiación y el acceso global ocupaban la
 > misma esquina inferior derecha. Ambos se veían, pero WhatsApp interceptaba el

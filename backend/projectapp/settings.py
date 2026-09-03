@@ -167,10 +167,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+PRIVATE_MEDIA_ROOT = config(
+    'PRIVATE_MEDIA_ROOT',
+    default=str(BASE_DIR / 'private_media'),
+)
 
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    # Signed contracts must never inherit MEDIA_URL. They are streamed only by
+    # authenticated views after an explicit permission check.
+    'private': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'OPTIONS': {
+            'location': PRIVATE_MEDIA_ROOT,
+            'base_url': None,
+        },
     },
     'staticfiles': {
         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',

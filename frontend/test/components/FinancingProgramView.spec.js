@@ -26,13 +26,13 @@ const program = {
     {
       id: 'five-year', name: 'Alianza a 5 años', badge: 'Recomendada',
       summary: 'Incluye continuidad y capacidad mensual.', exclusivity_years: 5,
-      recommended: true, hour_package_included: true,
-      highlights: ['0% de interés ordinario'],
+      recommended: true, hour_package_included: true, financing_cycles: 2,
+      highlights: ['Hasta dos ciclos de financiación'],
     },
     {
       id: 'three-year', name: 'Alianza a 3 años', badge: 'Alternativa',
       summary: 'Conserva financiación sin paquete.', exclusivity_years: 3,
-      recommended: false, hour_package_included: false,
+      recommended: false, hour_package_included: false, financing_cycles: 1,
       highlights: ['Requerimientos cotizados aparte'],
     },
   ],
@@ -56,6 +56,11 @@ const program = {
       id: 'hour-package', number: '04', icon: '◷', title: '60 horas',
       summary: 'Capacidad mensual.', commercial_reason: 'Mantiene la evolución.',
       highlights: ['No acumula horas'],
+    },
+    {
+      id: 'payment-discipline', number: '05', icon: '%', title: 'Pagos claros',
+      summary: 'Las cuotas vencen en los primeros cinco días.', commercial_reason: 'Cubre el riesgo.',
+      highlights: ['Cada mora aumenta 1% el Hosting vigente'],
     },
   ],
   calculator: {
@@ -136,6 +141,20 @@ describe('FinancingProgramView', () => {
     const calculator = wrapper.get('[data-testid="financing-calculator-input-output"]')
     expect(calculator.text()).toContain('Descripción del cambio')
     expect(calculator.text()).toContain('Esfuerzo, tiempo y precio')
+  })
+
+  it('renders the late-payment Hosting consequence', () => {
+    const wrapper = mountProgram()
+
+    expect(wrapper.get('[data-testid="financing-condition-payment-discipline"]').text())
+      .toContain('Cada mora aumenta 1% el Hosting vigente')
+  })
+
+  it('renders the second-cycle benefit in the recommended option', () => {
+    const wrapper = mountProgram()
+
+    expect(wrapper.get('[data-testid="financing-option-five-year"]').text())
+      .toContain('Hasta dos ciclos de financiación')
   })
 
   it('reveals an agreement rule from its accordion', async () => {

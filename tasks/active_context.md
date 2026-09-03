@@ -15,6 +15,13 @@ verde. El flow `admin-mcps` cubre display/success/error/failure. No se activó n
 rotó ninguna credencial de producción; ese corte sigue siendo deliberadamente
 posterior al merge y despliegue.
 
+**2026-09-03 — workspace contractual de financiación listo para integrar:** la
+penalización por mora queda como condición documental —sin escrituras automáticas
+sobre Hosting—, la modalidad de cinco años ofrece un segundo ciclo sujeto a pago
+íntegro y nueva aprobación, y `/panel/financing` administra datos reales,
+calendario, borrador, PDF firmado privado, auditoría y estados explícitos. El
+panel y sus mensajes quedaron disponibles en español e inglés.
+
 **2026-09-02 — módulo de financiación listo para integrar:** la nueva superficie
 comercial informa, sin cotizar ni aprobar automáticamente, las condiciones de
 financiación para productos con potencial. La alianza recomendada combina 12

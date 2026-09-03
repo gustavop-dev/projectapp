@@ -10,6 +10,12 @@
 > rutas contractuales, 8 unitarios del store y 10 E2E MCP verdes; build, Django
 > check, migraciones sin drift y gate de los archivos tocados aprobados.
 
+> **Completado — workspace de otrosíes de financiación (2026-09-03):** condición
+> de mora y segundo ciclo publicados; plantilla, acuerdo, numeración e historial
+> persistidos; API administrativa, storage privado, borrador PDF poblado,
+> calendario de doce cuotas, ciclo de estados, selección de cliente y vínculos
+> opcionales operativos; Panel bilingüe, fake data, tests y flow-map validados.
+
 > **Módulo de financiación listo para integrar — 2026-09-02:** Comercial ya
 > incorpora una vista de distribución y las rutas públicas ES/EN presentan las
 > dos alternativas, las cuatro condiciones, la calculadora en lenguaje de

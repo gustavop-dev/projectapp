@@ -1,0 +1,10 @@
+{
+  "id": "admin-financing-agreement-lifecycle",
+  "name": "Admin Financing Agreement Lifecycle",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Admin manages a financing addendum from draft to ready, downloads the watermarked populated draft, registers the signed PDF in private storage, certifies full payment or cancellation, and archives or restores terminal records while the audit history remains visible.",
+  "expectedSpecs": 10,
+  "outcomes": ["display", "success", "error", "failure"]
+}

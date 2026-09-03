@@ -5651,6 +5651,77 @@ Two transitions that were previously bundled into other flows now have their own
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-hour-packages-delete.spec.js`
 
+### FLOW: `admin-financing-distribution`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/:locale/panel/financing`
+- **Interaction:** Navigate from Comercial, copy or open the public URL, download the booklet, inspect the public preview and retry a failed content request. If the active 60-hour package is absent, read the catalog warning before sharing.
+- **Outcomes:** `display`, `success`, `failure`
+- **Evidence:** panel financing page, panel navigation and public financing endpoints.
+
+### FLOW: `admin-financing-agreement-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/financing?tab=agreements`, `/panel/financing/new`, `/panel/financing/:id`
+- **Interaction:** Crear un borrador de otrosí desde el registro administrativo.
+
+| Outcome | Inicio → acción → resultado observable |
+|---|---|
+| `display` | Abrir **Financiación → Otrosíes** → ver métricas, filtros y registros vigentes o el estado vacío. |
+| `success` | Pulsar **Nuevo otrosí** → seleccionar un cliente → verificar su identidad precargada → completar contrato, alcance y valores → crear → abrir el borrador con doce cuotas editables. |
+| `error` | Enviar datos incompletos o inválidos → el API y el formulario señalan los campos → los datos ya escritos permanecen disponibles. |
+| `failure` | Fallar la carga del registro → mostrar un estado de error explícito sin presentar una lista vacía engañosa. |
+
+- **Reglas:** el cliente debe estar activo; propuesta y proyecto opcionales deben pertenecerle; el saldo debe ser positivo; las doce cuotas deben sumar exactamente el saldo y vencer entre los días 1 y 5.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-financing-agreements.spec.js`
+- **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_agreement_service.py`
+
+### FLOW: `admin-financing-agreement-lifecycle`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/financing/:id`
+- **Interaction:** Gestionar el otrosí y su documento firmado a través de estados auditables.
+
+| Outcome | Inicio → acción → resultado observable |
+|---|---|
+| `display` | Abrir un otrosí → ver estado, ciclo, resumen, calendario, acciones permitidas e historial de responsables. |
+| `success` | Marcar listo → congelar número/texto; descargar borrador marcado **BORRADOR · SIN FIRMA**; registrar PDF firmado → activar; certificar pago o cancelar con nota; archivar/restaurar sólo estados terminales. |
+| `error` | Omitir PDF o nota obligatoria, subir un archivo inválido o intentar una transición no permitida → conservar el estado y mostrar validación. |
+| `failure` | Fallar la carga o una mutación → mostrar el problema sin simular que el estado cambió. |
+
+- **Privacidad:** el PDF firmado no tiene URL pública; sólo se descarga desde un endpoint autenticado y no se publica bajo `/media/`.
+- **Cobranza:** la cláusula de mora queda documentada y auditable, pero este flujo no modifica automáticamente Hosting ni contabilidad.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-financing-agreements.spec.js`
+- **Backend Tests:** `content/tests/views/test_financing_agreements.py`
+
+### FLOW: `admin-financing-agreement-second-cycle`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Route:** `/panel/financing/:id`
+- **Interaction:** Aprobar una segunda financiación dentro de la modalidad de cinco años.
+
+| Outcome | Inicio → acción → resultado observable |
+|---|---|
+| `display` | Abrir el primer ciclo completado de cinco años → ver **Aprobar segundo ciclo**; una modalidad de tres años no ofrece la acción. |
+| `success` | Confirmar la evaluación manual de riesgo → crear un único borrador de ciclo 2 → navegar a él con modalidad y vigencia original bloqueadas para edición. |
+| `error` | El primer ciclo no está pagado, pertenece a tres años o ya tiene ciclo 2 → rechazar la aprobación sin crear otro registro. |
+| `failure` | Fallar la operación de aprobación → permanecer en el primer ciclo y mostrar el error para reintentar con seguridad. |
+
+- **Regla temporal:** el calendario del ciclo 2 debe terminar dentro de la vigencia original; aprobarlo no reinicia ni extiende los cinco años de exclusividad.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-financing-agreements.spec.js`
+- **Backend Tests:** `content/tests/services/test_financing_agreement_service.py`, `content/tests/views/test_financing_agreements.py`
+
 ### FLOW: `admin-document-create`
 
 - **Module:** admin
@@ -6149,6 +6220,9 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-unsaved-guard` | admin | P2 | display,success,failure | 1 |
 | `admin-email-deliverability` | admin | P3 | display | 1 |
 | `admin-email-templates-config` | admin | P2 | display,success,error | 1 |
+| `admin-financing-agreement-create` | admin | P1 | display,success,error,failure | 4 |
+| `admin-financing-agreement-lifecycle` | admin | P1 | display,success,error,failure | 10 |
+| `admin-financing-agreement-second-cycle` | admin | P1 | display,success,error,failure | 5 |
 | `admin-financing-distribution` | admin | P1 | display,success,failure | — |
 | `admin-high-engagement-alert` | admin | P2 | — | 0 |
 | `admin-hour-packages-config` | admin | P3 | success,error,failure,display | — |
@@ -7360,16 +7434,6 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
-
-### FLOW: `admin-financing-distribution`
-
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P1
-- **Route:** `/:locale/panel/financing`
-- **Interaction:** Navigate from Comercial, copy or open the public URL, download the booklet, inspect the public preview and retry a failed content request. If the active 60-hour package is absent, read the catalog warning before sharing.
-- **Outcomes:** `display`, `success`, `failure`
-- **Evidence:** panel financing page, panel navigation and public financing endpoints.
 
 ### FLOW: `admin-outbound-email-history-attachments`
 
