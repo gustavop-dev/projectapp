@@ -7,7 +7,7 @@
   >
     <span v-if="row.kind !== 'expected'" class="text-text-subtle">—</span>
 
-    <div v-else-if="eligible" class="flex min-w-[210px] items-center gap-2">
+    <div v-else-if="eligible" class="flex min-w-0 items-center gap-2">
       <BaseToggle
         :model-value="Boolean(row.is_receivable_candidate)"
         size="sm"

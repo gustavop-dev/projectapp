@@ -399,23 +399,24 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(card).toBeVisible({ timeout: 25_000 });
     await card.click();
 
-    await expect(page.getByTestId('stats-modal')).toBeVisible();
+    const modal = page.getByTestId('stats-modal');
+    await expect(modal).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Estadísticas de ingresos 2026' }),
+      modal.getByRole('heading', { name: 'Estadísticas de ingresos 2026' }),
     ).toBeVisible();
     await expect(
-      page.getByTestId('stats-line-chart').locator('.apexcharts-canvas'),
+      modal.getByTestId('stats-line-chart').locator('.apexcharts-canvas'),
     ).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole('tab', { name: 'Top conceptos' }).click();
-    await expect(page.getByText('Ticket promedio')).toBeVisible();
-    await expect(page.getByText('Kore v2 (Fase 1)').first()).toBeVisible();
+    await modal.getByRole('tab', { name: 'Top conceptos' }).click();
+    await expect(modal.getByText('Ticket promedio')).toBeVisible();
+    await expect(modal.getByText('Kore v2 (Fase 1)').first()).toBeVisible();
     await expect(
-      page.getByTestId('stats-bar-chart').locator('.apexcharts-canvas'),
+      modal.getByTestId('stats-bar-chart').locator('.apexcharts-canvas'),
     ).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole('button', { name: 'Cerrar' }).click();
-    await expect(page.getByTestId('stats-modal')).toHaveCount(0);
+    await modal.getByRole('button', { name: 'Cerrar' }).click();
+    await expect(modal).toHaveCount(0);
   });
 
   test('renders the 12-month breakdown with a totals row', {
