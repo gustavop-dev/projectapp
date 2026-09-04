@@ -1,5 +1,14 @@
 # Architecture — ProjectApp
 
+> **Orden persistente de ingresos 2026-09-04:** `useTableSort` admite una
+> ordenación base opcional, ciclo de retorno a esa base y estado validado en
+> `localStorage`; `useAccountingCrudPage` sólo reenvía ese contrato. Ingresos
+> usa `period_date` como accessor ISO de la etiqueta Mes y aplica el resultado
+> al conjunto filtrado antes de paginar o agrupar. `IncomeGroupedTable` expone
+> el mismo estado controlado y emite la columna elegida; `groupByClient` conserva
+> el orden financiero de los grupos y recibe ya ordenadas las filas internas.
+> No cambian API, modelo ni ordenamiento backend.
+
 > **Arquitectura de destinatarios múltiples 2026-09-04:**
 > `email_recipient_service` es la frontera común de normalización, validación,
 > límite combinado y atribución de clientes para los envíos manuales.

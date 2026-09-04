@@ -18,6 +18,10 @@ function makeSort(options = {}) {
   return useTableSort(computed(() => ROWS), options);
 }
 
+beforeEach(() => {
+  localStorage.clear();
+});
+
 describe('useTableSort', () => {
   it('returns the original order when no sort is active', () => {
     const sort = makeSort();
@@ -86,5 +90,101 @@ describe('useTableSort', () => {
     sort.toggleSort('client');
 
     expect(sort.sortedRecords.value.map((r) => r.id)).toEqual([2, 3, 1]);
+  });
+
+  it('starts with the configured baseline sort', () => {
+    const sort = makeSort({
+      sortAccessors: { period_label: 'period_date' },
+      baselineSort: { key: 'period_label', dir: 'desc' },
+    });
+
+    expect(sort.sortKey.value).toBe('period_label');
+    expect(sort.sortDir.value).toBe('desc');
+    expect(sort.sortedRecords.value.map((row) => row.id)).toEqual([2, 3, 1]);
+  });
+
+  it('toggles the baseline column between two directions', () => {
+    const sort = makeSort({
+      baselineSort: { key: 'period_date', dir: 'desc' },
+    });
+
+    sort.toggleSort('period_date');
+    expect(sort.sortDir.value).toBe('asc');
+
+    sort.toggleSort('period_date');
+    expect(sort.sortKey.value).toBe('period_date');
+    expect(sort.sortDir.value).toBe('desc');
+  });
+
+  it('restores the baseline after another column completes its cycle', () => {
+    const rows = [
+      { id: 1, period_date: '2026-01-01', total: '300' },
+      { id: 2, period_date: '2026-03-01', total: '200' },
+      { id: 3, period_date: '2026-02-01', total: '100' },
+    ];
+    const sort = useTableSort(computed(() => rows), {
+      sortAccessors: { period_label: 'period_date' },
+      baselineSort: { key: 'period_label', dir: 'desc' },
+      sortDefaults: { total: 'desc' },
+    });
+
+    sort.toggleSort('total');
+    expect(sort.sortedRecords.value.map((row) => row.id)).toEqual([1, 2, 3]);
+
+    sort.toggleSort('total');
+    expect(sort.sortedRecords.value.map((row) => row.id)).toEqual([3, 2, 1]);
+
+    sort.toggleSort('total');
+    expect(sort.sortKey.value).toBe('period_label');
+    expect(sort.sortDir.value).toBe('desc');
+    expect(sort.sortedRecords.value.map((row) => row.id)).toEqual([2, 3, 1]);
+  });
+
+  it('restores a saved sort from localStorage', () => {
+    localStorage.setItem('income-sort', JSON.stringify({ key: 'total', dir: 'asc' }));
+
+    const sort = makeSort({
+      baselineSort: { key: 'period_date', dir: 'desc' },
+      storageKey: 'income-sort',
+      allowedKeys: ['period_date', 'total'],
+    });
+
+    expect(sort.sortKey.value).toBe('total');
+    expect(sort.sortDir.value).toBe('asc');
+    expect(sort.sortedRecords.value.map((row) => row.id)).toEqual([2, 3, 1]);
+  });
+
+  it('rejects an unknown saved sort key', () => {
+    localStorage.setItem('income-sort', JSON.stringify({ key: 'removed', dir: 'asc' }));
+
+    const sort = makeSort({
+      baselineSort: { key: 'period_date', dir: 'desc' },
+      storageKey: 'income-sort',
+      allowedKeys: ['period_date', 'total'],
+    });
+
+    expect(sort.sortKey.value).toBe('period_date');
+    expect(sort.sortDir.value).toBe('desc');
+  });
+
+  it('persists each selected sort state', () => {
+    const sort = makeSort({
+      baselineSort: { key: 'period_date', dir: 'desc' },
+      sortDefaults: { total: 'desc' },
+      storageKey: 'income-sort',
+      allowedKeys: ['period_date', 'total'],
+    });
+
+    sort.toggleSort('total');
+    expect(JSON.parse(localStorage.getItem('income-sort')))
+      .toEqual({ key: 'total', dir: 'desc' });
+
+    sort.toggleSort('total');
+    expect(JSON.parse(localStorage.getItem('income-sort')))
+      .toEqual({ key: 'total', dir: 'asc' });
+
+    sort.toggleSort('total');
+    expect(JSON.parse(localStorage.getItem('income-sort')))
+      .toEqual({ key: 'period_date', dir: 'desc' });
   });
 });

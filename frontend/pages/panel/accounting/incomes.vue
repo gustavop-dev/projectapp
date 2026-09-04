@@ -276,10 +276,13 @@
         :groups="clientGroups"
         :highlight-query="currentFilters.search"
         :collapsed-ids="collapsedGroupIds"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         :show-default-actions="false"
         row-actions-layout="menu-start"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
+        @sort="toggleSort"
         @toggle-group="toggleGroup"
       >
         <template #row-actions="{ row }">
@@ -1152,6 +1155,16 @@ const exportParams = computed(() =>
 
 const filteredRecords = computed(() => applyFilters(store.incomes));
 
+const INCOME_SORT_BASELINE = { key: 'period_label', dir: 'desc' };
+const INCOME_SORT_STORAGE_KEY = 'projectapp-accounting-incomes-sort';
+const INCOME_SORT_KEYS = [
+  'concept',
+  'client_name',
+  'project_name',
+  'period_label',
+  'total_amount',
+];
+
 /**
  * Each tab badges its own cut of the whole ledger, not of the current one: the
  * number answers "how many would I see there", so it ignores the live filters.
@@ -1218,6 +1231,9 @@ const {
     gustavo_amount: 'desc',
     carlos_amount: 'desc',
   },
+  baselineSort: INCOME_SORT_BASELINE,
+  sortStorageKey: INCOME_SORT_STORAGE_KEY,
+  sortAllowedKeys: INCOME_SORT_KEYS,
   store,
   filteredRecords,
   saveTab,
@@ -1432,17 +1448,17 @@ function toggleGroup(id) {
     : [...collapsedGroupIds.value, id];
 }
 
-/** Grouped over the WHOLE filtered set (no pagination), like the totals modal. */
+/** Grouped over the WHOLE sorted + filtered set (no pagination), like the totals modal. */
 const clientGroups = computed(() =>
-  withClientWeights(groupByClient(filteredRecords.value)),
+  withClientWeights(groupByClient(sortedRecords.value)),
 );
 
-// The group header already names the client, and column sort belongs to the
-// classic table — inside a group the rows keep the ledger order. Proyecto
-// stays: inside one client's group it is exactly what tells rows apart.
+// The group header already names the client. The remaining sortable columns
+// order rows INSIDE each group; groupByClient keeps its billed-desc client
+// ranking and the trailing unassigned bucket. Proyecto stays: inside one
+// client's group it is exactly what tells rows apart.
 const groupedColumns = columns
-  .filter((col) => col.key !== 'client_name')
-  .map(({ sortable, ...col }) => col);
+  .filter((col) => col.key !== 'client_name');
 
 async function updateIncomeReceivable(row, payload) {
   const result = await store.updateReceivableState(row.id, payload);
