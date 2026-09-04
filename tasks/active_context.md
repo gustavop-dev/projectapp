@@ -2,6 +2,15 @@
 
 ## Current State
 
+**2026-09-04 — vista previa pública de propuestas lista para integrar:** la
+acción del modal de edición vuelve a abrir la propuesta en una pestaña pública
+con `preview=1`, sin activar tracking ni devolver el 500 de Nuxt. El composable
+de tracking conserva ahora un contrato estable en preview (`refs` vacíos y
+`flush` no-op) y sale antes de registrar watchers, lifecycle hooks o requests.
+La cobertura focal valida `preview=1|true` y el recorrido real desde el botón
+hasta el banner de preview; el flow `admin-proposal-actions-modal` cubre
+`display` y `success`, y el mapa quedó fresco.
+
 **2026-09-03 — política de financiación lista para integrar:** la oferta y el
 otrosí comparten una política versionada con elegibilidad inclusiva de
 $20–140 millones COP, primer pago definido por análisis de riesgo con piso del

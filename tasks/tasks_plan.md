@@ -1,5 +1,13 @@
 # Task Plan — ProjectApp
 
+> **Corrección lista para integrar — 2026-09-04:** «Vista previa pública» del
+> modal de acciones vuelve a abrir la propuesta sin el 500 de Nuxt. El modo
+> preview mantiene el contrato del composable de tracking, pero usa estado vacío
+> y `flush` no-op antes de instalar efectos o emitir analytics. Pruebas unitarias
+> cubren `preview=1|true`; Playwright recorre el botón, la pestaña nueva y el
+> banner de preview. El flow P1 `admin-proposal-actions-modal` queda cubierto en
+> `display` y `success`, con el registro agregado regenerado y fresco.
+
 > **Completado — política y elegibilidad de financiación (2026-09-03):** el
 > programa suma las condiciones 6 y 7: rango inclusivo $20–140 millones COP y
 > aporte inicial definido por riesgo, mínimo 20 %, con financiación máxima del
