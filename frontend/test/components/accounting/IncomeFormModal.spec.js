@@ -520,6 +520,8 @@ describe('IncomeFormModal', () => {
       client: 7,
       project: 3,
       origin: 'hosting',
+      is_receivable_candidate: false,
+      collection_confidence: '',
       // Hosting sends the window and lets the backend derive period_date
       // from its start — two values would be two chances to disagree.
       period_start: '2027-03-01',
