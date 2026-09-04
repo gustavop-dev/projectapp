@@ -3740,6 +3740,29 @@ class ProposalService:
             )
 
     @staticmethod
+    def _normalize_required_email_intro(value):
+        """Return normalized proposal-specific copy or raise an actionable error."""
+        from content.api_errors import ProposalActionError
+
+        if not isinstance(value, str) or not value.strip():
+            raise ProposalActionError(
+                'Falta el mensaje personalizado del correo.',
+                code='missing_email_intro',
+                hint=(
+                    'Escribe en la pestaña Correos qué resuelve esta propuesta '
+                    'para el cliente y vuelve a intentar.'
+                ),
+            )
+        return value.strip()
+
+    @staticmethod
+    def _require_email_intro(proposal):
+        """Require the proposal-specific message used by the initial email."""
+        return ProposalService._normalize_required_email_intro(
+            getattr(proposal, 'email_intro', ''),
+        )
+
+    @staticmethod
     def get_default_expiration_days(language='es'):
         """
         Return the configured default expiration period (in days) for a language.
@@ -3860,9 +3883,10 @@ class ProposalService:
             dict: Email delivery result from ``_send_initial_email``.
 
         Raises:
-            ValueError: If client_email is not set.
+            ValueError: If client_email or the personalized message is not set.
         """
         ProposalService._require_valid_client_email(proposal)
+        ProposalService._require_email_intro(proposal)
 
         from content.services.proposal_snapshot_service import (
             finalize_proposal_snapshots,
@@ -3896,7 +3920,7 @@ class ProposalService:
         return delivery
 
     @staticmethod
-    def resend_proposal(proposal, *, acting_user=None):
+    def resend_proposal(proposal, *, acting_user=None, email_intro=None):
         """
         Re-send a proposal keeping the existing expires_at.
 
@@ -3910,9 +3934,35 @@ class ProposalService:
             dict: Email delivery result from ``_send_initial_email``.
 
         Raises:
-            ValueError: If client_email is not set.
+            ValueError: If client_email or the personalized message is not set.
         """
         ProposalService._require_valid_client_email(proposal)
+
+        if email_intro is not None:
+            # A resend must never erase the last usable message merely because
+            # the submitted replacement is blank. Draft editing may persist an
+            # empty value through the regular update API, but this action is
+            # all-or-nothing: validate before writing.
+            normalized_intro = ProposalService._normalize_required_email_intro(
+                email_intro,
+            )
+            if normalized_intro != proposal.email_intro:
+                from content.services.proposal_audit import log_proposal_change
+
+                old_intro = proposal.email_intro
+                proposal.email_intro = normalized_intro
+                proposal.save(update_fields=['email_intro'])
+                log_proposal_change(
+                    proposal,
+                    change_type='updated',
+                    field_name='email_intro',
+                    old_value=old_intro,
+                    new_value=normalized_intro,
+                    actor_type='seller',
+                    description='Mensaje personalizado actualizado antes del reenvío.',
+                )
+
+        ProposalService._require_email_intro(proposal)
 
         from content.services.proposal_snapshot_service import (
             finalize_proposal_snapshots,
@@ -4060,7 +4110,8 @@ class ProposalService:
 
         Raises:
             ValueError: If client_email is not set on the primary proposal,
-                        or proposals span multiple clients.
+                        proposals span multiple clients, or any personalized
+                        message is blank.
         """
         from content.models import BusinessProposal
         from content.api_errors import ProposalActionError
@@ -4080,6 +4131,9 @@ class ProposalService:
                 'Todas las propuestas deben pertenecer al mismo cliente.',
                 code='multiple_clients',
             )
+
+        for proposal in proposals:
+            ProposalService._require_email_intro(proposal)
 
         from content.services.proposal_snapshot_service import (
             finalize_proposal_snapshots,
@@ -4344,6 +4398,7 @@ def build_proposal_from_json(validated_data):
         urgency_reminder_days=data.get('urgency_reminder_days', 15),
         discount_percent=data.get('discount_percent', 0),
         show_contract_terms=data.get('show_contract_terms', True),
+        email_intro=data.get('email_intro', ''),
         client=client_profile,
     )
     proposal_client_service.sync_snapshot(proposal)
@@ -4538,7 +4593,7 @@ def apply_proposal_json_update(proposal, validated_data):
         'market_type_custom', 'language', 'total_investment', 'currency',
         'nationality',
         'reminder_days', 'urgency_reminder_days', 'discount_percent',
-        'show_contract_terms',
+        'show_contract_terms', 'email_intro',
     ]
     tracked_old = {}
     for field in metadata_fields:

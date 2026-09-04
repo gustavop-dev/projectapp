@@ -1532,3 +1532,26 @@ The concrete-model registry is an architectural dependency check: every
 explicitly exempt. The focused contract test compares that inventory with
 Django's app registry and fails when a new model has no declared fake-data
 owner.
+
+### Proposal Personalized Send Message
+
+`BusinessProposal.email_intro` is the shared boundary for manual and generated
+copy. Proposal-create artifacts carry it under
+`_meta.optional_metadata.email_intro`; the JSON create UI and MCP adapter flatten
+that metadata into the serializer field, and the **Correos** tab edits the same
+value independently from the general form. The list serializer exposes it so
+list-level send and bulk-resend guards do not need another detail request.
+
+The write boundary deliberately separates draft validity from action validity.
+A draft can exist with an empty message, but `ProposalService` checks the
+trimmed field at the start of initial send, resend and multi-send. A resend may
+accept an edited value, but validates it before replacing the stored value; a
+multi-send validates the complete set before creating any snapshot or changing
+any proposal. UI scorecards and disabled actions are guidance, while this
+service check is the authority for panel, REST and MCP callers.
+
+`ProposalEmailService` resolves the predefined template body independently and
+then renders body → personalized message → commercial blocks in both HTML and
+text templates. Delivery snapshots store the final rendered body, so editing
+`email_intro` after delivery changes only future sends and never rewrites the
+historical record.

@@ -1,6 +1,9 @@
 {{ greeting|default:"Hola" }}{% if not greeting %} {{ client_name }}{% endif %},
 
-{{ body|default:email_intro }}
+{% if body %}{{ body }}
+
+{% endif %}{% if email_intro %}{{ email_intro }}
+{% endif %}
 
 {{ title }}
 {% if total_investment %}Inversión: $ {{ total_investment }} {{ currency }}

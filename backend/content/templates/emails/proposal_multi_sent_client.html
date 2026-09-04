@@ -60,7 +60,7 @@ a{text-decoration:none}
 <tr><td style="padding:24px 28px 8px 28px;">
 <div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:11px;letter-spacing:2px;color:#809490;text-transform:uppercase;margin-bottom:10px;">Propuesta {{ forloop.counter }} de {{ phases_count }}</div>
 <div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:22px;line-height:28px;color:#001713;letter-spacing:-0.4px;margin-bottom:8px;">{{ phase.title }}</div>
-{% if phase.email_intro %}<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:14px;line-height:22px;color:#5a6b67;">{{ phase.email_intro }}</div>{% endif %}
+{% if phase.email_intro %}<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:14px;line-height:22px;color:#5a6b67;">{{ phase.email_intro|linebreaksbr }}</div>{% endif %}
 </td></tr>
 <tr><td style="padding:14px 28px;"><div style="height:1px;background:#ece8db;font-size:1px;line-height:1px;">&nbsp;</div></td></tr>
 <tr><td style="padding:0 28px 14px 28px;">

@@ -13,6 +13,7 @@ from freezegun import freeze_time
 
 from content.models import (
     BusinessProposal,
+    EmailDeliverySnapshot,
     EmailLog,
     EmailTemplateConfig,
     ProposalChangeLog,
@@ -916,7 +917,7 @@ class TestSendProposalToClientEnrichedContext:
         assert ctx['payment_options'][0]['description'] == '$1.728.000 COP'
         assert ctx['payment_summary'] == '40/30/30'
 
-    def test_build_context_falls_back_when_email_intro_blank(self, db):
+    def test_build_context_keeps_email_intro_blank(self, db):
         proposal = BusinessProposal.objects.create(
             title='Sitio Demo',
             client_name='Carla',
@@ -927,11 +928,64 @@ class TestSendProposalToClientEnrichedContext:
 
         ctx = ProposalEmailService._build_initial_email_context(proposal)
 
-        assert ctx['email_intro']
-        assert 'Sitio Demo' in ctx['email_intro']
+        assert ctx['email_intro'] == ''
         assert ctx['payment_options'] == []
         assert ctx['total_duration'] == ''
         assert ctx['payment_summary'] == ''
+
+    @patch.object(
+        ProposalEmailService,
+        '_resolve_content',
+        return_value={'body': 'CUERPO PREDEFINIDO'},
+    )
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    def test_places_message_after_body_before_commercial_blocks(
+        self, mock_email_cls, _mock_pdf, _mock_content, proposal_with_sections,
+    ):
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_proposal_to_client(proposal_with_sections)
+
+        assert result['ok'] is True
+        text_body = mock_email_cls.call_args.kwargs['body']
+        rendered_html = mock_instance.attach_alternative.call_args.args[0]
+        for rendered in (text_body, rendered_html):
+            assert rendered.index('CUERPO PREDEFINIDO') < rendered.index(
+                proposal_with_sections.email_intro,
+            )
+            assert rendered.index(proposal_with_sections.email_intro) < rendered.index(
+                'Inversión',
+            )
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    )
+    @patch.object(
+        ProposalEmailService,
+        '_resolve_content',
+        return_value={'body': 'Cuerpo estable de la plantilla.'},
+    )
+    @patch.object(ProposalEmailService, '_attach_commercial_pdf', return_value=False)
+    def test_saved_email_history_keeps_original_message(
+        self, _mock_attach, _mock_content, proposal_with_sections,
+    ):
+        original = proposal_with_sections.email_intro
+
+        result = ProposalEmailService.send_proposal_to_client(proposal_with_sections)
+        snapshot = EmailDeliverySnapshot.objects.get(
+            template_key='proposal_sent_client',
+        )
+        retained_text = snapshot.body.text
+        proposal_with_sections.email_intro = 'Mensaje editado después del envío.'
+        proposal_with_sections.save(update_fields=['email_intro'])
+
+        assert result['ok'] is True
+        snapshot.refresh_from_db()
+        assert original in snapshot.body.text
+        assert snapshot.body.text == retained_text
+        assert proposal_with_sections.email_intro not in snapshot.body.text
 
     @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
@@ -1148,17 +1202,20 @@ class TestSendMultiProposalsService:
         p_draft = BusinessProposal.objects.create(
             title='Draft', client=profile, client_name='Cli',
             client_email='multi@cliente.com', status='draft',
+            email_intro='La primera propuesta resuelve el flujo inicial del cliente.',
             total_investment=Decimal('1000'),
         )
         p_expired = BusinessProposal.objects.create(
             title='Expired', client=profile, client_name='Cli',
             client_email='multi@cliente.com', status='expired',
+            email_intro='La segunda propuesta recupera el alcance pendiente del cliente.',
             expires_at=now - timezone.timedelta(days=5),
             total_investment=Decimal('2000'),
         )
         p_sent = BusinessProposal.objects.create(
             title='Sent', client=profile, client_name='Cli',
             client_email='multi@cliente.com', status='sent',
+            email_intro='La tercera propuesta amplía el resultado de negocio esperado.',
             sent_at=now - timezone.timedelta(days=3),
             expires_at=now + timezone.timedelta(days=10),
             total_investment=Decimal('3000'),

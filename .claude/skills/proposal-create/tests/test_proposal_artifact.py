@@ -151,7 +151,14 @@ def valid_artifact():
             "hourPackagesEnabled": False,
         },
         "technicalDocument": technical,
-        "_meta": {"optional_metadata": {}},
+        "_meta": {
+            "optional_metadata": {
+                "email_intro": (
+                    "Esta propuesta ordena la operación comercial de Acme en "
+                    "un solo sitio para reducir reprocesos y acelerar decisiones."
+                )
+            }
+        },
     }
 
 
@@ -218,6 +225,30 @@ class ProposalArtifactAuditTests(unittest.TestCase):
         result = MODULE.audit_artifact(self.artifact, self.manifest, self.template)
 
         self.assertTrue(any("SECTION_MISSING" in failure for failure in result.failures))
+
+    def test_build_payload_includes_email_intro(self):
+        payload = MODULE.build_payload(self.artifact, self.manifest)
+
+        self.assertEqual(
+            payload["email_intro"],
+            self.artifact["_meta"]["optional_metadata"]["email_intro"],
+        )
+
+    def test_rejects_missing_email_intro(self):
+        self.artifact["_meta"]["optional_metadata"].pop("email_intro")
+
+        result = MODULE.audit_artifact(self.artifact, self.manifest, self.template)
+
+        self.assertTrue(any("EMAIL_INTRO:" in failure for failure in result.failures))
+
+    def test_rejects_markup_in_email_intro(self):
+        self.artifact["_meta"]["optional_metadata"]["email_intro"] = (
+            "Resolvemos <b>reprocesos</b> para acelerar decisiones."
+        )
+
+        result = MODULE.audit_artifact(self.artifact, self.manifest, self.template)
+
+        self.assertTrue(any("EMAIL_INTRO_HTML" in failure for failure in result.failures))
 
     def test_rejects_unconfirmed_default_module(self):
         module = self.artifact["functionalRequirements"]["additionalModules"][0]

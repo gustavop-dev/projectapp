@@ -179,6 +179,7 @@ def create_draft(serializer, manifest: dict[str, Any]) -> dict[str, Any]:
     hosting = manifest.get("hosting") or {}
     selected_ids = list((manifest.get("modules") or {}).get("selected_additional") or [])
     quoted_total = decimal_value((manifest.get("pricing") or {}).get("quoted_total"))
+    expected_email_intro = serializer.validated_data.get("email_intro", "")
     if quoted_total is None:
         raise ProposalArtifactError("pricing.quoted_total no es numérico.")
 
@@ -242,6 +243,8 @@ def create_draft(serializer, manifest: dict[str, Any]) -> dict[str, Any]:
             raise ProposalArtifactError("Las automatizaciones no quedaron pausadas.")
         if proposal.view_count != 0:
             raise ProposalArtifactError("El borrador registra vistas inesperadas.")
+        if proposal.email_intro != expected_email_intro:
+            raise ProposalArtifactError("El mensaje personalizado no quedó persistido.")
 
         actual_visibility = dict(
             proposal.sections.values_list("section_type", "is_enabled")
@@ -264,6 +267,7 @@ def create_draft(serializer, manifest: dict[str, Any]) -> dict[str, Any]:
             "base_investment": str(proposal.total_investment),
             "effective_total": str(effective),
             "currency": proposal.currency,
+            "email_intro": proposal.email_intro,
             "admin_url": admin_url,
             "unmapped_keys": unmapped_keys,
             "client": proposal_data.get("client_name"),
@@ -296,6 +300,9 @@ def run(args: argparse.Namespace) -> int:
         "title": (manifest.get("proposal") or {}).get("title"),
         "effective_total": (manifest.get("pricing") or {}).get("quoted_total"),
         "currency": (manifest.get("proposal") or {}).get("currency"),
+        "email_intro": (
+            (artifact.get("_meta") or {}).get("optional_metadata") or {}
+        ).get("email_intro", ""),
         "duplicate_override": bool(candidates),
     }
 

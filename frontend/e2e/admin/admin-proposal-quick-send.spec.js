@@ -15,6 +15,7 @@ const mockDraftProposal = {
   title: 'Quick Send Test',
   client_name: 'Test Client',
   client_email: 'client@test.com',
+  email_intro: 'Esta propuesta elimina tareas manuales para que Test Client pueda responder más rápido.',
   status: 'draft',
   total_investment: '5000000',
   currency: 'COP',

@@ -275,7 +275,7 @@ export const useProposalStore = defineStore('proposals', {
     /**
      * previewProposalEmail: Render an email template against this proposal.
      * @param {number} id - Proposal ID.
-     * @param {object} payload - { template_key, email_features?, email_method_phases?, email_signed_by? }
+     * @param {object} payload - { template_key, email_intro?, email_features?, email_method_phases?, email_signed_by? }
      * @returns {Promise<{success: boolean, html?: string, error?: string}>}
      */
     async previewProposalEmail(id, payload) {
@@ -413,12 +413,14 @@ export const useProposalStore = defineStore('proposals', {
     /**
      * resendProposal: Re-send a proposal keeping existing expires_at.
      * @param {number} id - Proposal ID.
+     * @param {string|undefined} emailIntro - Edited message; omitted keeps the saved value.
      */
-    async resendProposal(id) {
+    async resendProposal(id, emailIntro = undefined) {
       this.isUpdating = true;
       this.error = null;
       try {
-        const response = await create_request(`proposals/${id}/resend/`, {});
+        const payload = emailIntro === undefined ? {} : { email_intro: emailIntro };
+        const response = await create_request(`proposals/${id}/resend/`, payload);
         this.currentProposal = response.data;
         return {
           success: true,

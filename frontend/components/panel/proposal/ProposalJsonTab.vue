@@ -288,11 +288,18 @@ function handleApplyImportJson() {
       delete sections._meta;
       delete sections._seller_prompt;
 
-      const meta = jsonImportParsed.value._meta || {};
+      const rawMeta = jsonImportParsed.value._meta || {};
+      // Downloaded templates nest editable metadata; exports keep it flat.
+      // Accept both shapes so a generated proposal round-trips without loss.
+      const meta = {
+        ...(rawMeta.optional_metadata || {}),
+        ...rawMeta,
+      };
       const payload = {
         title: meta.title || props.proposal.title,
         client_name: jsonImportParsed.value.general?.clientName || props.proposal.client_name,
         client_email: meta.client_email || props.proposal.client_email || '',
+        email_intro: meta.email_intro ?? props.proposal.email_intro ?? '',
         client_phone: meta.client_phone || props.proposal.client_phone || '',
         project_type: meta.project_type || props.proposal.project_type || '',
         market_type: meta.market_type || props.proposal.market_type || '',

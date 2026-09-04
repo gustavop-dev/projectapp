@@ -7,6 +7,7 @@ Parte de la plantilla activa. Conserva todas las claves de sección camelCase y 
 Reglas principales:
 
 - `general.clientName` y `general.proposalTitle` deben coincidir con el manifiesto.
+- `_meta.optional_metadata.email_intro` es obligatorio: redacta en texto plano un mensaje breve y específico que conecte el problema del cliente, la solución de esta propuesta y el resultado de negocio esperado. No uses HTML, Markdown ni una introducción genérica reutilizable.
 - Mantén todos los grupos y módulos de `functionalRequirements` en su array y orden original.
 - Cada item comercial debe ser atómico, tener descripción específica y un `id` único y estable con formato `item-<group_id>-<slug>`.
 - Personaliza grupos base y módulos adicionales confirmados. No inventes alcance para módulos no seleccionados.

@@ -7,6 +7,7 @@ accepted/finished proposals.
 
 Business rules asserted:
 - Every proposal has a non-null `client` FK (UserProfile with role=client)
+- Every proposal has a client-specific send-email message
 - Repeated client names/emails resolve to the same `UserProfile` row
   (via `proposal_client_service.get_or_create_client_for_proposal`)
 - Accepted + finished proposals always get exactly two `ProposalProjectStage`
@@ -56,6 +57,14 @@ class TestCreateFakeProposalsClientFk:
     def test_every_proposal_has_a_client_fk(self):
         _run_command(count=8)
         assert BusinessProposal.objects.filter(client__isnull=True).count() == 0
+
+    def test_every_proposal_has_a_personalized_email_message(self):
+        _run_command(count=8)
+
+        for proposal in BusinessProposal.objects.all():
+            assert proposal.email_intro.strip()
+            assert proposal.client_name.split()[0] in proposal.email_intro
+            assert 'resuelve' in proposal.email_intro
 
     def test_every_client_is_a_client_role_userprofile(self):
         _run_command(count=8)

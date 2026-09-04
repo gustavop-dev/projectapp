@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Create a proposal by importing a pre-filled JSON payload with all 12 section content_json values.",
+  "description": "Create a proposal by importing a pre-filled JSON payload. The optional metadata field _meta.optional_metadata.email_intro is flattened into BusinessProposal.email_intro and remains editable in Correos; generated JSON should provide a client-specific plain-text problem-to-solution-to-outcome message so create-and-send is immediately eligible.",
   "expectedSpecs": 1,
   "outcomes": [
     "success",

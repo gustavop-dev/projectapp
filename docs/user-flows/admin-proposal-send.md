@@ -4,15 +4,18 @@
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/`, `/panel/proposals/:id/edit`
-- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section. The email body now interpolates the editable `email_intro` textarea (BusinessProposal.email_intro, persisted on the General tab) and the commercial PDF is attached automatically (`ProposalEmailService._attach_commercial_pdf`). The backend returns `email_delivery: { ok, reason, detail }`; when `ok=false`, the panel shows a red toast with the reason (`placeholder_email`, `template_disabled`, `send_failed`) instead of the generic "Propuesta enviada" toast, so the admin learns the email did not actually reach the client.
+- **Description:** Send a proposal to a client via email. The canonical **Correos** tab is available while the proposal is still a draft and owns the editable plain-text personalized message (`BusinessProposal.email_intro`). The message explains the client's problem, how this proposal solves it, and the expected business outcome. A draft may save it empty, but every send is blocked until it contains text. The delivered email keeps the predefined body and inserts the message immediately after it, before payment/timeline/commercial blocks; the commercial PDF is attached automatically. Editing the proposal later does not rewrite historical email snapshots.
 - **Steps:**
   1. Admin views the proposal edit page or the actions modal in the list page.
-  2. Admin (optional) edits the "Texto introductorio del correo" textarea (`data-testid=edit-email-intro`) in the General tab and saves the form. Empty falls back to a default derived from the title.
+  2. Admin opens **Correos**, writes or adjusts the message, previews it if desired, and clicks "Guardar mensaje". The tab saves only `{ email_intro }`; it does not overwrite unsaved changes in other tabs.
   3. Admin clicks "Enviar al Cliente".
-  4. Pre-send checklist modal opens showing pass/fail status for each item (✓/✗).
-  5. "Enviar al Cliente" button is disabled until all checks pass.
-  6. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
-  7. Backend changes status to `sent`, generates the commercial PDF, attaches it, sends the email, and returns the proposal payload with `email_delivery`. `EmailLog.metadata.pdf_attached` records whether the attachment succeeded.
-  8. If `email_delivery.ok === true`, success toast "Propuesta enviada al cliente". If `false`, error toast surfacing `email_delivery.detail || email_delivery.reason` with a hint to verify client email and use "Re-enviar".
-- **Coverage:** ✅ Covered — checklist modal + send, distinct toasts for `email_delivery.ok` true/false, and `email_intro` asserted in the update PATCH payload (reconciled 2026-07-22: the spec already covered what this entry listed as pending). PDF-attached metadata (`EmailLog.metadata.pdf_attached`) and the per-reason variants (`placeholder_email`, `template_disabled`, `send_failed`) are pytest-covered; the list-page red toast lives under `admin-proposal-inline-status-change`/`admin-proposal-resend` (still partial).
+  4. The scorecard checks client data, commercial readiness, and a nonblank personalized message. A missing message appears as a blocker with "Completar en Correos"; no send request is made.
+  5. Once all checks pass, admin confirms → `POST /api/proposals/:id/send/`.
+  6. Backend validates the message again before snapshots or state changes, changes status to `sent`, renders predefined body → personalized message → commercial blocks, attaches the PDF, sends, and returns `email_delivery`.
+  7. `email_delivery.ok=true` shows "Propuesta enviada al cliente"; a delivery failure shows its detail/reason instead of false success.
+- **Branches:**
+  - [Error — Missing message] The scorecard and backend return the `missing_email_intro` blocker before any send side effect.
+  - [Failure — Delivery] SMTP/template failure leaves an explicit warning even if the proposal state was advanced.
+  - [Display — History] The exact sent body is stored in the delivery snapshot and remains immutable after later edits.
+- **Coverage:** ✅ Covered — independent Correos save, missing-message blocker, successful send and delivery-failure feedback are E2E-covered; ordering, backend atomicity, PDF metadata and immutable snapshots are pytest-covered.
 - **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`

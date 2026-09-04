@@ -3,6 +3,8 @@
 {{ body|default:"Armamos varias opciones para que elijas la que mejor encaja con tu equipo, calendario y presupuesto." }}
 {% for phase in phases %}
 Propuesta {{ forloop.counter }} de {{ phases_count }} — {{ phase.title }}
+{% if phase.email_intro %}{{ phase.email_intro }}
+{% endif %}
 {% if phase.total_investment %}Inversión: $ {{ phase.total_investment }} {{ phase.currency }}
 {% endif %}{% if phase.total_duration %}Tiempo: {{ phase.total_duration }}
 {% endif %}{% if phase.payment_summary %}Pagos: {{ phase.payment_summary }}

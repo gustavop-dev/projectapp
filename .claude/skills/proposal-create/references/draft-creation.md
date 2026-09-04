@@ -71,7 +71,7 @@ Requiere aprobación explícita posterior al resumen. El comando mutante necesit
 
 Agrega `--allow-duplicate` únicamente si el operador aprobó el candidato informado en el dry-run.
 
-El script nunca envía la propuesta. La salida correcta incluye `DRAFT_CREATED`, id, slug, total efectivo y URL administrativa. No abras la URL pública para verificar: una visita altera métricas.
+El script nunca envía la propuesta. La salida correcta incluye `DRAFT_CREATED`, id, slug, mensaje personalizado persistido, total efectivo y URL administrativa. No abras la URL pública para verificar: una visita altera métricas.
 
 ## Fallos
 

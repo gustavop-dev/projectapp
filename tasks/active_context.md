@@ -2,6 +2,16 @@
 
 ## Current State
 
+**2026-09-04 — mensaje personalizado de propuestas listo para integrar:** el
+tab **Correos** está disponible desde borrador y guarda de forma independiente
+un mensaje en texto plano que conecta problema, solución y resultado. Todos los
+caminos de envío lo exigen antes de crear snapshots o cambiar estado; reenvío
+lo precarga, permite editarlo y conserva intactas las entregas previas. El mismo
+contrato atraviesa creación manual/JSON, MCP, fake data y las skills de creación
+de propuestas en Codex y Claude. No hay cambio de modelo, migración ni backfill;
+los flows P1/P2 de crear, enviar, reenviar y multi-enviar están cubiertos en sus
+outcomes declarados.
+
 **2026-09-04 — destinatarios múltiples y CC listos para integrar:** los
 compositores independiente, de propuesta general/seguimiento, diagnóstico y
 documento, además del reenvío exacto, admiten selección de clientes y entrada

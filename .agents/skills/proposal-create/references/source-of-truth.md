@@ -47,6 +47,7 @@ Obtén estos datos con la exportación activa descrita en `draft-creation.md`. N
 
 - `content_json` se entrega directamente como props de componentes Vue: preservar claves y tipos es obligatorio.
 - El import oficial pasa por `ProposalFromJSONSerializer` y `build_proposal_from_json`.
+- El mensaje personalizado vive en `BusinessProposal.email_intro`, viaja como `_meta.optional_metadata.email_intro` en el artefacto y como `email_intro` en el payload. Puede guardarse vacío en borrador, pero el servicio bloquea cualquier envío o reenvío mientras esté vacío.
 - `BusinessProposal.total_investment` es la inversión base. El total que ve el cliente suma módulos calculables seleccionados.
 - Los números del hosting viven en `BusinessProposal`; `investment.hostingPlan` es su presentación.
 - Una selección vacía de módulos debe quedar confirmada mediante `ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED`; de lo contrario pueden reaparecer defaults.
