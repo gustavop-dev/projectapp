@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Corrección 2026-09-04 — ayuda y agrupación de pendientes por cobrar:** la
+> leyenda del semáforo se muestra siempre por encima del modal que la contiene.
+> En **Gestionar candidatos**, el listado abre agrupado por cliente, permite
+> reagrupar por proyecto o volver a la lista clásica y presenta cantidad, total
+> original, abonado y saldo abierto por grupo. La búsqueda se aplica antes de
+> calcular los grupos; la presentación elegida no se persiste y cada reapertura
+> restablece Agrupado/Cliente.
+
 > **Entrega 2026-09-04 — varios destinatarios y copia visible:** todos los
 > compositores manuales de correo —independiente, propuesta general,
 > seguimiento de propuesta, diagnóstico, envío de documento y reenvío exacto—

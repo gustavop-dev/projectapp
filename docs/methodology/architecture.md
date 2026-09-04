@@ -1,5 +1,15 @@
 # Architecture — ProjectApp
 
+> **Capas flotantes y proyección de candidatos 2026-09-04:** `BaseModal`
+> continúa siendo dueño de su floating root y `BaseTooltip` lo descubre por el
+> contexto inyectado; los overlays de ayuda quedan en la misma jerarquía visual
+> que el diálogo, mientras usos independientes siguen teletransportándose a
+> `body`. La agrupación de candidatos no crea estado de dominio: filtra primero,
+> proyecta grupos y agregados en `utils/receivables` y entrega ese contrato al
+> mismo `IncomeGroupedTable` usado por Ingresos. Modal y store conservan sus
+> responsabilidades: la presentación es efímera y las mutaciones de selección o
+> confianza continúan en el endpoint ordinario de ingresos.
+
 > **Arquitectura de destinatarios múltiples 2026-09-04:**
 > `email_recipient_service` es la frontera común de normalización, validación,
 > límite combinado y atribución de clientes para los envíos manuales.

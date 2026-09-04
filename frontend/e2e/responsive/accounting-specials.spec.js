@@ -11,6 +11,57 @@ const income = { id: 1, concept: longConcept, kind: 'expected', kind_label: 'Esp
 const collection = { id: 1, public_number: 'CC-RESP-001', customer_name: income.client_name, billing_concept: longConcept, total: '123456789.00', commercial_status: 'issued', commercial_status_label: 'Emitida', client: 1, client_display_name: income.client_name, project_id: 1, project_name: 'Proyecto fixture', due_date: '2026-10-01', is_overdue: false };
 const pocket = { id: 1, concept: longConcept, amount: '123456789.00', movement_date: '2026-09-01', created_at: '2026-09-01T10:00:00Z', direction: 'in', direction_label: 'Ingreso', is_linked: true };
 const collectionPreviewPdf = '/api/accounting/collection-accounts/preview/accounting-special/CC-RESP-001.pdf';
+const receivableRows = [
+  {
+    ...income,
+    period_label: 'Septiembre 2026',
+    is_receivable_candidate: true,
+    collection_confidence: 'high',
+  },
+  {
+    ...income,
+    id: 2,
+    concept: 'Hosting anual sin proyecto',
+    client: 2,
+    client_name: 'Cliente hosting responsive',
+    project: null,
+    project_name: null,
+    total_amount: '1000000.00',
+    pending_amount: '1000000.00',
+    period_label: 'Septiembre 2026',
+    is_receivable_candidate: true,
+    collection_confidence: '',
+  },
+];
+const receivablesSummary = {
+  high_total: '123456789.00',
+  high_count: 1,
+  selected_count: 2,
+  selected_total: '124456789.00',
+  paid_total: '0.00',
+  pending_total: '124456789.00',
+  by_confidence: {
+    high: { count: 1, total_amount: '123456789.00', paid_amount: '0.00', pending_amount: '123456789.00' },
+    medium: { count: 0, total_amount: '0.00', paid_amount: '0.00', pending_amount: '0.00' },
+    low: { count: 0, total_amount: '0.00', paid_amount: '0.00', pending_amount: '0.00' },
+    unclassified: { count: 1, total_amount: '1000000.00', paid_amount: '0.00', pending_amount: '1000000.00' },
+  },
+};
+const responsiveDashboardSummary = {
+  year: 2026,
+  expected_total: '124456789.00',
+  liquid_total: '0.00',
+  liquid_utility: '0.00',
+  expenses_total: '0.00',
+  pocket_balance: '0.00',
+  partners: {},
+  monthly: [],
+  ads: {},
+  hostings: {},
+  latest_card_snapshots: [],
+  receivables: receivablesSummary,
+  card_debt: { total: '0.00', card_count: 0, utilization_pct: 0 },
+};
 
 async function setup(page) {
   await setAuthLocalStorage(page, { token: 'accounting-special-responsive-token', userAuth: { id: 9001, role: 'admin', is_staff: true, is_superuser: true } });
@@ -28,6 +79,9 @@ async function setup(page) {
     }
     if (apiPath === 'accounting/pocket/' && method === 'GET') return json({ results: [pocket], meta: { balance: '123456789.00' } });
     if (apiPath === 'accounting/incomes/' && method === 'GET') return json({ results: [income], meta: { expected_total: '123456789.00', liquid_total: '0.00' } });
+    if (apiPath.startsWith('accounting/dashboard/') && method === 'GET') return json(responsiveDashboardSummary);
+    if (apiPath === 'accounting/receivables/' && method === 'GET') return json({ results: receivableRows, summary: receivablesSummary });
+    if (apiPath.startsWith('accounting/card-snapshots/') && method === 'GET') return json({ results: [], meta: {} });
     if (apiPath === 'accounting/collection-accounts/' && method === 'GET') return json({ results: [collection], meta: { pending_total: '123456789.00' } });
     if (apiPath.startsWith('accounting/collection-accounts/next-number/') && method === 'GET') return json({ suggested_number: 'CC-RESP-001', billing_code: 'RESP', issuer_city: 'Bogotá' });
     if (apiPath === 'accounting/collection-accounts/preview/' && method === 'POST') {
@@ -115,6 +169,35 @@ const modalGeometryByProfile = Object.freeze({
     expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height);
   },
 });
+const openReceivableManagementByProfile = Object.freeze({
+  compact: (dialog) => dialog.getByRole('combobox', { name: 'Secciones de pendientes por cobrar' }).selectOption('manage'),
+  portrait: (dialog) => dialog.getByRole('combobox', { name: 'Secciones de pendientes por cobrar' }).selectOption('manage'),
+  landscape: (dialog) => dialog.getByRole('tab', { name: /Gestionar candidatos/ }).click(),
+  desktop: (dialog) => dialog.getByRole('tab', { name: /Gestionar candidatos/ }).click(),
+  wide: (dialog) => dialog.getByRole('tab', { name: /Gestionar candidatos/ }).click(),
+});
+
+for (const profile of RESPONSIVE_PROFILES) {
+  test.describe(`receivables grouping modal · ${profile}`, { tag: [`@viewport:${profile}`] }, () => {
+    test.use(viewportUse(profile));
+
+    test('candidate grouping controls remain reachable', { tag: ['@flow:admin-accounting-receivables', '@outcome:display', '@responsive-special:accounting', `@viewport:${profile}`, '@responsive-batch:accounting-special-4'] }, async ({ page }) => {
+      await setup(page);
+      await page.goto('/en-us/panel/accounting', { waitUntil: 'domcontentloaded' });
+      await page.getByTestId('accounting-card-receivables').click();
+      const dialog = page.getByRole('dialog', { name: 'Pendientes por cobrar', exact: true });
+      await openReceivableManagementByProfile[profile](dialog);
+      await expect(dialog.getByTestId('receivables-group-client')).toHaveAttribute('aria-selected', 'true');
+      await dialog.getByTestId('receivables-group-project').click();
+      await expect(dialog.getByTestId('receivables-group-project')).toHaveAttribute('aria-selected', 'true');
+      await expect(dialog.getByTestId('receivable-candidate-group-none')).toContainText('Sin proyecto');
+      const closeButton = dialog.getByRole('button', { name: 'Cerrar', exact: true });
+      await assertSpecialModalGeometry(page, profile, dialog, closeButton);
+      await closeButton.click();
+      await expect(dialog).toHaveCount(0);
+    });
+  });
+}
 
 const longModalFlows = Object.freeze([
   {

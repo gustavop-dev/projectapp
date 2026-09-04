@@ -7,6 +7,15 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección verificada 2026-09-04 — una capa flotante pertenece al overlay que
+> la abre:** un tooltip con `position: fixed` y un número de `z-index` mayor no
+> puede superar por sí solo un modal que vive en otro stacking context. La
+> solución estable es teletransportarlo al floating root del diálogo mediante
+> contexto, conservando `body` como fallback para usos independientes. Y cuando
+> dos listados comparten semántica de agrupación, conviene reutilizar la tabla y
+> proyectar grupos con funciones puras; persistir una preferencia sólo debe
+> ocurrir si el producto lo exige explícitamente.
+
 > **Lección 2026-09-04 — una entrega y sus destinatarios tienen cardinalidades
 > distintas:** SMTP necesita una sola envolvente visible para To/CC, mientras la
 > auditoría necesita estado, cliente y rol por dirección. Duplicar el envío como
