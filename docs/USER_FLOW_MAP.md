@@ -6124,6 +6124,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
 | `admin-additional-modules-catalog` | admin | P1 | success,display,failure | 5 |
+| `admin-additional-modules-explainer` | admin | P3 | success | 1 |
 | `admin-additional-modules-manage` | admin | P1 | success,error,failure | 4 |
 | `admin-additional-modules-pdf` | admin | P2 | success,failure | 2 |
 | `admin-additional-modules-quick-access` | admin | P1 | success,display | 3 |
@@ -6227,6 +6228,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-financing-agreement-lifecycle` | admin | P1 | display,success,error,failure | 11 |
 | `admin-financing-agreement-second-cycle` | admin | P1 | display,success,error,failure | 5 |
 | `admin-financing-distribution` | admin | P1 | display,success,failure | — |
+| `admin-financing-explainer` | admin | P3 | success | 1 |
 | `admin-financing-settings` | admin | P1 | display,success,error,failure | 4 |
 | `admin-high-engagement-alert` | admin | P2 | — | 0 |
 | `admin-hour-packages-config` | admin | P3 | success,error,failure,display | — |
@@ -6444,11 +6446,14 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-about-us` | public | P3 | — | 0 |
 | `public-additional-modules-catalog` | public | P1 | success,display,failure | 5 |
 | `public-additional-modules-detail` | public | P1 | success | 1 |
+| `public-additional-modules-explainer` | public | P2 | display,success,failure | 4 |
 | `public-additional-modules-guide` | public | P2 | success,display | 2 |
 | `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
 | `public-additional-modules-share` | public | P1 | success,display,failure | 4 |
 | `public-additional-modules-theme` | public | P2 | success,display | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
+| `public-financing-explainer` | public | P2 | display,success,failure | 3 |
+| `public-financing-guide` | public | P2 | success,display | 2 |
 | `public-financing-language` | public | P2 | success | — |
 | `public-financing-load` | public | P1 | failure,success | — |
 | `public-financing-overview` | public | P1 | display | — |
@@ -7316,6 +7321,18 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** `frontend/pages/panel/additional-modules/index.vue`, `GET /api/additional-modules/admin/`
 
+### FLOW: `admin-additional-modules-explainer`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P3
+- **Ruta:** `/:locale/panel/additional-modules`
+- **Interacción:** Ver la tarjeta compacta del video explicativo junto al
+  acceso rápido y reproducirlo para revisar lo que verá el cliente.
+- **Outcomes:** `success`
+- **Evidencia:** `pages/panel/additional-modules/index.vue`,
+  `ExplainerVideoCard.vue` y `e2e/admin/admin-additional-modules.spec.js`.
+
 ### FLOW: `admin-additional-modules-manage`
 
 - **Module:** admin / commercial
@@ -7447,6 +7464,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-financing-explainer`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P3
+- **Ruta:** `/:locale/panel/financing`
+- **Interacción:** En la pestaña Programa, ver la tarjeta compacta del video
+  explicativo bajo la distribución comercial y reproducirlo; la vista previa
+  pública de más abajo no lo repite.
+- **Outcomes:** `success`
+- **Evidencia:** `pages/panel/financing/index.vue`, `ExplainerVideoCard.vue`
+  y `e2e/admin/admin-financing.spec.js`.
 
 ### FLOW: `admin-financing-settings`
 
@@ -7651,6 +7681,22 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`
 - **Evidence:** `AdditionalModules/CatalogView.vue`.
 
+### FLOW: `public-additional-modules-explainer`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Rutas:** `/:locale/additional-modules` y
+  `/:locale/additional-modules/share/:uuid`
+- **Interacción:** Encontrar la tarjeta del video explicativo debajo del título
+  (primer bloque antes del primer módulo), reproducirlo en el mismo lugar con
+  sonido y controles nativos, y usar el enlace directo al archivo si el
+  navegador no puede reproducirlo. En inglés la tarjeta no aparece hasta tener
+  el render en ese idioma.
+- **Outcomes:** `display`, `success`, `failure`
+- **Evidencia:** `ExplainerVideoCard.vue`, `useExplainerVideos.js`,
+  `AdditionalModules/CatalogView.vue` y `e2e/public/additional-modules.spec.js`.
+
 ### FLOW: `public-additional-modules-guide`
 
 - **Módulo:** public
@@ -7659,8 +7705,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Rutas:** `/:locale/additional-modules` y
   `/:locale/additional-modules/share/:uuid`
 - **Interacción:** En la primera visita, recorrer una guía específica del
-  catálogo y cerrarla; en visitas posteriores, reiniciarla desde el control
-  flotante.
+  catálogo que empieza en la tarjeta del video explicativo y cerrarla; en
+  visitas posteriores, reiniciarla desde el control flotante.
 - **Outcomes:** `success`, `display`
 - **Evidencia:** `AdditionalModules/Onboarding.vue` y
   `e2e/public/additional-modules.spec.js`.
@@ -7697,6 +7743,36 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`, `display`
 - **Evidencia:** `useAdditionalModulesTheme.js`, `CatalogView.vue` y
   `e2e/public/additional-modules.spec.js`.
+
+### FLOW: `public-financing-explainer`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Ruta:** `/:locale/financing`
+- **Interacción:** Reproducir el video explicativo desde el hero (debajo del
+  subtítulo y antes de los botones de WhatsApp y PDF) con sonido y controles
+  nativos; si el navegador no puede reproducirlo, abrir el archivo desde el
+  enlace de respaldo. En inglés la tarjeta no aparece hasta tener el render en
+  ese idioma.
+- **Outcomes:** `display`, `success`, `failure`
+- **Evidencia:** `ExplainerVideoCard.vue`, `useExplainerVideos.js`,
+  `Financing/ProgramView.vue` y `e2e/public/financing.spec.js`.
+
+### FLOW: `public-financing-guide`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Ruta:** `/:locale/financing`
+- **Interacción:** En la primera visita, recorrer la guía del programa (empieza
+  en la tarjeta del video explicativo y sigue por opciones, condiciones,
+  calculadora, paquete, reglas y acciones flotantes) y cerrarla; en visitas
+  posteriores, reiniciarla desde el control flotante. La vista previa del panel
+  no la muestra.
+- **Outcomes:** `success`, `display`
+- **Evidencia:** `PublicGuidedTour.vue`, `Financing/Onboarding.vue`,
+  `Financing/ProgramView.vue` y `e2e/public/financing.spec.js`.
 
 ### FLOW: `public-financing-language`
 

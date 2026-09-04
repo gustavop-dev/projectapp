@@ -1,5 +1,18 @@
 # Architecture — ProjectApp
 
+> **Estándar de presentación de vistas públicas 2026-09-04:** toda vista
+> pública de módulo (catálogo de módulos adicionales, financiación) abre con
+> H1 → tarjeta de video explicativo (`ExplainerVideoCard`, poster + play con
+> sonido, primer paso del tour) → tour guiado que corre una vez por navegador y
+> se reinicia desde un FAB → toggle de tema → FABs de PDF/compartir. El motor
+> del tour es `PublicGuidedTour` (props `steps`, `storageKey`, `testIdPrefix`,
+> `labels`; expone `start`/`forceStart`); `AdditionalModules/Onboarding` y
+> `Financing/Onboarding` sólo aportan pasos e i18n. Los videos se producen
+> offline en `explainers/` con HyperFrames desde la API pública y se publican
+> como assets con hash (`frontend/assets/videos/explainers/`); el panel reusa la
+> tarjeta en variante compacta y la vista previa de financiación la desactiva
+> con `showExplainer=false`. Sin páginas, endpoints ni modelos nuevos.
+
 > **Arquitectura de destinatarios múltiples 2026-09-04:**
 > `email_recipient_service` es la frontera común de normalización, validación,
 > límite combinado y atribución de clientes para los envíos manuales.

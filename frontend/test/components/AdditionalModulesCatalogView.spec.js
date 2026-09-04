@@ -56,6 +56,10 @@ function mountCatalog(props = {}) {
         AdditionalModulesShareButton: {
           template: '<button data-testid="additional-modules-share-floating" />',
         },
+        ExplainerVideoCard: {
+          props: ['video', 'variant', 'testId'],
+          template: '<div :data-testid="`${testId}-card`" :data-variant="variant" :data-video-id="video.id" :data-language="video.language" />',
+        },
       },
     },
     attachTo: document.body,
@@ -177,5 +181,40 @@ describe('AdditionalModulesCatalogView', () => {
 
     expect(global.fetch).toHaveBeenCalledWith('/api/catalog.pdf', { credentials: 'same-origin' })
     expect(clickSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('AdditionalModulesCatalogView explainer video', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('places the Spanish explainer between the title and the first module', () => {
+    const wrapper = mountCatalog({ language: 'es' })
+
+    const card = wrapper.get('[data-testid="additional-modules-explainer-card"]')
+    expect(card.attributes('data-variant')).toBe('hero')
+    expect(card.attributes('data-video-id')).toBe('additional-modules')
+    expect(card.attributes('data-language')).toBe('es')
+    expect(card.classes()).toContain('additional-modules-explainer')
+
+    const heading = wrapper.get('h1').element
+    const firstModule = wrapper.get('[data-testid="additional-module-card-electronic-invoicing"]').element
+    expect(heading.compareDocumentPosition(card.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(card.element.compareDocumentPosition(firstModule) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('hides the explainer while no English render exists', () => {
+    const wrapper = mountCatalog({ language: 'en' })
+
+    expect(wrapper.get('h1').text()).toContain('additionalModules.title')
+    expect(wrapper.find('[data-testid="additional-modules-explainer-card"]').exists()).toBe(false)
+  })
+
+  it('omits the explainer together with the public header', () => {
+    const wrapper = mountCatalog({ language: 'es', showHeader: false })
+
+    expect(wrapper.find('[data-testid="additional-modules-explainer-card"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="additional-module-card-electronic-invoicing"]').exists()).toBe(true)
   })
 })

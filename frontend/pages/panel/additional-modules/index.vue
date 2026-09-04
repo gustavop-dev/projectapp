@@ -4,6 +4,8 @@ import { get_request } from '~/stores/services/request_http'
 import { useAdditionalModulesStore } from '~/stores/additional_modules'
 import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
 import { usePanelNotify } from '~/composables/usePanelNotify'
+import { useExplainerVideo } from '~/composables/useExplainerVideos'
+import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
 import AdditionalModulesAdminModuleActions from '~/components/AdditionalModules/AdminModuleActions.vue'
 import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
 import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
@@ -40,6 +42,7 @@ const expandedModuleId = ref(null)
 
 const isEnglish = computed(() => locale.value.startsWith('en'))
 const language = computed(() => (isEnglish.value ? 'en' : 'es'))
+const explainer = useExplainerVideo('additional-modules', language)
 const orderedCategories = computed(() => [...store.categories].sort((a, b) => a.order - b.order))
 const groupedModules = computed(() => orderedCategories.value.map((category) => ({
   ...category,
@@ -297,6 +300,15 @@ async function closeDetail() {
       @share="openSelection('share')"
       @customize-pdf="openSelection('pdf')"
       @tracking="openHistory"
+    />
+
+    <ExplainerVideoCard
+      v-if="explainer"
+      :video="explainer"
+      i18n-namespace="additionalModules"
+      variant="compact"
+      test-id="additional-modules-explainer"
+      class="mb-8"
     />
 
     <div v-if="store.isLoading && !store.modules.length" class="flex min-h-64 items-center justify-center" role="status">
