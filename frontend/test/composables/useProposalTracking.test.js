@@ -59,12 +59,15 @@ function createRefs(uuid = 'test-uuid', panel = null) {
 
 describe('useProposalTracking', () => {
   describe('initialization', () => {
-    it('returns undefined when preview=1 query param is set', () => {
-      window.history.pushState({}, '', '/?preview=1');
+    it.each(['1', 'true'])('returns a stable contract for preview=%s', async (previewValue) => {
+      window.history.pushState({}, '', `/?preview=${previewValue}`);
       const { proposalUuid, currentPanel } = createRefs();
       const result = useProposalTracking(proposalUuid, currentPanel);
 
-      expect(result).toBeUndefined();
+      expect(result.sessionId.value).toBe('');
+      expect(result.sectionLog.value).toEqual([]);
+      expect(result.isViewConfirmed.value).toBe(false);
+      await expect(result.flush()).resolves.toBeUndefined();
       window.history.pushState({}, '', '/');
     });
 
@@ -764,19 +767,21 @@ describe('useProposalTracking', () => {
   });
 
   describe('preview mode short-circuit', () => {
-    it('skips tracking when preview query param is 1', () => {
+    it.each(['1', 'true'])('skips tracking lifecycle for preview=%s', (previewValue) => {
       const origSearch = window.location.search;
-      window.history.replaceState({}, '', '/?preview=1');
+      window.history.replaceState({}, '', `/?preview=${previewValue}`);
       try {
         const { proposalUuid, currentPanel } = createRefs();
         const before = {
           mounted: mountedCallbacks.length,
+          unmounted: unmountCallbacks.length,
           watches: watchCallbacks.length,
         };
         const result = useProposalTracking(proposalUuid, currentPanel);
 
-        expect(result).toBeUndefined();
+        expect(result).toBeDefined();
         expect(mountedCallbacks).toHaveLength(before.mounted);
+        expect(unmountCallbacks).toHaveLength(before.unmounted);
         expect(watchCallbacks).toHaveLength(before.watches);
       } finally {
         window.history.replaceState({}, '', '/' + origSearch);

@@ -7,6 +7,13 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección verificada 2026-09-04 — desactivar efectos no debe romper el
+> contrato del composable:** una rama como preview puede omitir analytics,
+> storage, watchers y lifecycle hooks, pero sus consumidores deben seguir
+> recibiendo la misma forma pública. Un objeto neutral con `refs` vacíos y
+> operaciones no-op mantiene la página renderizable y hace explícito qué se
+> desactiva, sin obligar a cada consumidor a defenderse de `undefined`.
+
 > **Lección verificada 2026-09-03 — una política comercial editable necesita
 > identidad temporal:** topes, porcentajes, mora y calendario forman parte del
 > significado legal de un otrosí. Una fila mutable sirve para preferencias, no
