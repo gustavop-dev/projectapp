@@ -3881,8 +3881,9 @@ def _send_composed_email_view(request, proposal_id, send_method, template_key):
         return Response(
             {
                 'message': (
-                    f'Correo enviado a {len(parsed["recipient_emails"])} '
-                    f'destinatario(s) con {len(parsed["cc_emails"])} CC.'
+                    f'Correo enviado a {", ".join(parsed["recipient_emails"])} '
+                    f'({len(parsed["recipient_emails"])} destinatario(s), '
+                    f'{len(parsed["cc_emails"])} CC).'
                 ),
                 'recipient_emails': parsed['recipient_emails'],
                 'cc_emails': parsed['cc_emails'],
