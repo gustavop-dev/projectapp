@@ -51,6 +51,7 @@ const emailDefaults = { greeting: 'Hola,', footer: 'Saludos cordiales', subject:
 
 function baseRoutes(apiPath) {
   if (apiPath === 'auth/check/') return authCheck;
+  if (apiPath.startsWith('proposals/client-profiles/search/')) return { status: 200, contentType: 'application/json', body: '[]' };
   if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
   if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
   if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
@@ -90,12 +91,22 @@ test.describe('Admin Document Send Email', () => {
     await expect(page.getByPlaceholder('Asunto del correo')).toHaveValue('Contrato de Servicios');
     await expect(page.getByText('Contrato de Servicios.pdf')).toBeVisible();
 
-    await page.getByPlaceholder('correo@ejemplo.com').fill('cliente@acme.com');
+    const toInput = page.getByTestId('document-email-to');
+    await toInput.fill('cliente@acme.com');
+    await toInput.press('Enter');
+    await toInput.fill('socio@acme.com');
+    await toInput.press('Enter');
+    await page.getByTestId('document-email-show-cc').click();
+    const ccInput = page.getByTestId('document-email-cc');
+    await ccInput.fill('copia@acme.com');
+    await ccInput.press('Enter');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Adjunto el contrato firmado.');
     await page.getByRole('button', { name: 'Enviar', exact: true }).click();
 
-    await expect(page.getByText('Correo enviado a cliente@acme.com.')).toBeVisible();
+    await expect(page.getByText('Correo enviado a cliente@acme.com, socio@acme.com con CC a copia@acme.com.')).toBeVisible();
     expect(sendBody).toContain('cliente@acme.com');
+    expect(sendBody).toContain('socio@acme.com');
+    expect(sendBody).toContain('copia@acme.com');
     expect(sendBody).toContain('document_ids');
   });
 

@@ -594,6 +594,12 @@ def document_email_usage(request, document_id):
         snapshot_id__in=attachments_by_snapshot,
         delivery_role=EmailLog.DeliveryRole.PRIMARY,
     ).order_by('-sent_at', '-id')
+    from content.services.email_log_service import (
+        attach_delivery_recipients,
+        delivery_recipient_payloads,
+        representative_delivery_queryset,
+    )
+    logs = attach_delivery_recipients(representative_delivery_queryset(logs))
     rows = [
         {
             'email_log_id': log.pk,
@@ -609,6 +615,7 @@ def document_email_usage(request, document_id):
                 }
                 for attachment in attachments_by_snapshot[log.snapshot_id]
             ],
+            **delivery_recipient_payloads(log),
         }
         for log in logs
     ]

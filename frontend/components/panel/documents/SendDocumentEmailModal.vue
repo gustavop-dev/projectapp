@@ -79,16 +79,11 @@
 
             <!-- ── EDIT ── -->
             <div v-else-if="activeTab === 'edit'" class="space-y-4">
-              <!-- Recipient -->
-              <div>
-                <label class="block text-xs text-text-muted mb-1">Para</label>
-                <input
-                  v-model="recipient"
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-                />
-              </div>
+              <EmailRecipientFields
+                v-model:toRecipients="toRecipients"
+                v-model:ccRecipients="ccRecipients"
+                test-id-prefix="document-email"
+              />
 
               <!-- Subject -->
               <div>
@@ -261,7 +256,8 @@
 
             <!-- ── PREVIEW ── -->
             <div v-else class="bg-surface border border-border-muted rounded-lg p-6 text-text-default">
-              <div class="text-xs text-text-subtle mb-1"><strong>Para:</strong> {{ recipient || '—' }}</div>
+              <div class="text-xs text-text-subtle mb-1"><strong>Para:</strong> {{ recipientSummary(toRecipients) || '—' }}</div>
+              <div v-if="ccRecipients.length" class="text-xs text-text-subtle mb-1"><strong>CC:</strong> {{ recipientSummary(ccRecipients) }}</div>
               <div class="text-xs text-text-subtle mb-4"><strong>Asunto:</strong> {{ subject || '—' }}</div>
               <hr class="border-border-muted mb-4" />
               <p v-if="greeting" class="mb-3 text-sm">{{ greeting }}</p>
@@ -340,6 +336,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useDocumentStateStore } from '~/stores/document_states';
+import EmailRecipientFields from '~/components/emails/EmailRecipientFields.vue';
+import { recipientSummary } from '~/utils/emailRecipients';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -351,7 +349,8 @@ const documentStore = useDocumentStore();
 const stateStore = useDocumentStateStore();
 
 const activeTab = ref('edit');
-const recipient = ref('');
+const toRecipients = ref([]);
+const ccRecipients = ref([]);
 const subject = ref('');
 const greeting = ref('');
 const footer = ref('');
@@ -369,7 +368,7 @@ const postSendRecipient = ref('');
 let nextSectionId = 2;
 
 const canSend = computed(() => {
-  if (!recipient.value.trim() || !subject.value.trim()) return false;
+  if (!toRecipients.value.length || !subject.value.trim()) return false;
   return sections.value.some((s) => s.text.trim().length > 0);
 });
 
@@ -383,7 +382,8 @@ watch(
   async ([open, doc]) => {
     if (!open || !doc) return;
     activeTab.value = 'edit';
-    recipient.value = '';
+    toRecipients.value = [];
+    ccRecipients.value = [];
     subject.value = doc.title || '';
     sections.value = [{ id: 1, text: '' }];
     nextSectionId = 2;
@@ -444,7 +444,8 @@ async function send() {
   successMsg.value = '';
   rateLimited.value = false;
   const payload = {
-    recipient_email: recipient.value.trim(),
+    recipient_emails: toRecipients.value,
+    cc_emails: ccRecipients.value,
     subject: subject.value.trim(),
     greeting: greeting.value.trim(),
     footer: footer.value.trim(),
@@ -454,11 +455,13 @@ async function send() {
   const result = await documentStore.sendDocumentEmail(payload);
   isSending.value = false;
   if (result.success) {
-    successMsg.value = `Correo enviado a ${payload.recipient_email}.`;
+    const destinationSummary = recipientSummary(toRecipients.value);
+    const ccSummary = recipientSummary(ccRecipients.value);
+    successMsg.value = `Correo enviado a ${destinationSummary}${ccSummary ? ` con CC a ${ccSummary}` : ''}.`;
     emit('sent', result.data);
     if (result.data?.offer_sent_transition) {
       postSendData.value = result.data;
-      postSendRecipient.value = payload.recipient_email;
+      postSendRecipient.value = `${destinationSummary}${ccSummary ? ` (CC: ${ccSummary})` : ''}`;
       return;
     }
     setTimeout(close, 1200);

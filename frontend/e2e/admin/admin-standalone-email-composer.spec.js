@@ -66,6 +66,9 @@ const mockHistoryWithEntries = {
 function setupMocks(page, { history = mockHistoryEmpty } = {}) {
   return mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
+    if (apiPath.startsWith('proposals/client-profiles/search/')) {
+      return { status: 200, contentType: 'application/json', body: '[]' };
+    }
     if (apiPath === 'emails/defaults/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
     }
@@ -158,16 +161,30 @@ test.describe('Admin Standalone Email Composer', () => {
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByPlaceholder('correo@ejemplo.com').fill('client@example.com');
+    const toInput = page.getByTestId('standalone-email-to');
+    await toInput.fill('client@example.com');
+    await toInput.press('Enter');
+    await toInput.fill('stakeholder@example.com');
+    await toInput.press('Enter');
+    await page.getByTestId('standalone-email-show-cc').click();
+    const ccInput = page.getByTestId('standalone-email-cc');
+    await ccInput.fill('copy@example.com');
+    await ccInput.press('Enter');
     await page.getByPlaceholder('Asunto del correo').fill('Welcome Email');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Welcome to our platform.');
 
+    const sendRequest = page.waitForRequest(
+      (req) => req.url().includes('emails/send/') && req.method() === 'POST',
+    );
     const sendWait = page.waitForResponse(
       (res) => res.url().includes('emails/send/') && res.status() === 200,
     );
     await page.getByRole('button', { name: /enviar correo/i }).click();
+    const request = await sendRequest;
     await sendWait;
 
+    expect(request.postData()).toContain('["client@example.com","stakeholder@example.com"]');
+    expect(request.postData()).toContain('["copy@example.com"]');
     await expect(page.getByText('Correo enviado correctamente.')).toBeVisible({ timeout: 5000 });
   });
 

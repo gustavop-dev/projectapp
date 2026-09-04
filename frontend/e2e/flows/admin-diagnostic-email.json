@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Admin sends a follow-up branded email from the Correos tab of the diagnostic edit page. Composer includes recipient, subject, draggable body sections (per-section Markdown toggle), footer, optional attachments, and a server-rendered preview of the real branded template (POST /api/emails/preview/). NDA branch: checking 'Adjuntar acuerdo de confidencialidad' appends attach_confidentiality:1 to the FormData and the backend generates and attaches the confidentiality PDF. History lists previous sends (sections stored as legacy strings or {text, markdown} objects).",
+  "description": "Admin sends one follow-up branded email from the Correos tab of a diagnostic to multiple Para recipients and optional visible CC recipients. The shared hybrid picker starts with the diagnostic client, searches registered clients or accepts manual addresses, and enforces 10 unique destinations. The composer also includes subject, draggable Markdown sections, footer, attachments and real-template preview. The NDA branch generates the confidentiality PDF. History groups the delivery while retaining each address status.",
   "expectedSpecs": 1,
   "outcomes": [
     "display",

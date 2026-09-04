@@ -6,6 +6,7 @@ import {
   patch_request,
   delete_request,
 } from './services/request_http';
+import { recipientEmails } from '~/utils/emailRecipients';
 
 export const useEmailStore = defineStore('emails', {
   state: () => ({
@@ -107,12 +108,18 @@ export const useEmailStore = defineStore('emails', {
       }
     },
 
-    async resendEmail(logId, recipient) {
+    async resendEmail(logId, recipients, ccRecipients = []) {
       this.isResending = true;
       try {
+        const payload = typeof recipients === 'string'
+          ? { recipient: recipients }
+          : {
+            recipient_emails: recipientEmails(recipients),
+            cc_emails: recipientEmails(ccRecipients),
+          };
         const response = await create_request(
           `emails/history/${logId}/resend/`,
-          { recipient },
+          payload,
         );
         return { success: true, data: response.data };
       } catch (error) {

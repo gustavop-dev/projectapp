@@ -7,6 +7,16 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-04 — los compositores sólo permitían un destinatario y el
+> historial duplicaría un envío múltiple:** cada superficie mantenía un string
+> local y el modelo de trazabilidad no distinguía Para, CC y BCC. Un servicio
+> compartido valida ahora los grupos y su límite antes del SMTP; el gateway
+> conserva una fila por dirección bajo el mismo `delivery_id` y el historial
+> elige una representante estable para contar, filtrar y paginar una sola vez.
+> El snapshot guarda los encabezados visibles, por lo que el reenvío exacto los
+> restaura sin inferirlos desde metadata ni confundir CC visible con la copia BCC
+> automática.
+
 > **Resuelto 2026-09-03 — cambios comerciales podían reinterpretar borradores
 > y contratos anteriores:** guardar topes y porcentajes en una configuración
 > mutable habría cambiado retroactivamente su validación y su texto. Las reglas

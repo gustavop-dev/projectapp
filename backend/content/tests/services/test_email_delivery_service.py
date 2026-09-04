@@ -124,6 +124,53 @@ def test_client_delivery_uses_hidden_copy_envelope():
     assert mail.outbox[1].bcc == ['audit@example.com']
 
 
+def test_multi_recipient_delivery_uses_one_visible_envelope():
+    message = EmailMultiAlternatives(
+        subject='Seguimiento',
+        body='Contenido',
+        from_email='team@projectapp.co',
+        to=['uno@example.com', 'dos@example.com'],
+        cc=['copia@example.com'],
+    )
+
+    result = EmailDeliveryGateway.send(
+        message,
+        template_key='branded_email',
+        classification=DeliveryClassification.CLIENT,
+    )
+
+    assert result == 1
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ['uno@example.com', 'dos@example.com']
+    assert mail.outbox[0].cc == ['copia@example.com']
+
+
+def test_multi_recipient_delivery_archives_header_roles():
+    message = EmailMultiAlternatives(
+        subject='Seguimiento',
+        body='Contenido',
+        from_email='team@projectapp.co',
+        to=['uno@example.com', 'dos@example.com'],
+        cc=['copia@example.com'],
+    )
+
+    EmailDeliveryGateway.send(
+        message,
+        template_key='branded_email',
+        classification=DeliveryClassification.CLIENT,
+    )
+
+    snapshot = EmailDeliverySnapshot.objects.get()
+    roles = set(EmailLog.objects.values_list('recipient', 'recipient_kind'))
+    assert snapshot.to_recipients == ['uno@example.com', 'dos@example.com']
+    assert snapshot.cc_recipients == ['copia@example.com']
+    assert roles == {
+        ('uno@example.com', EmailLog.RecipientKind.TO),
+        ('dos@example.com', EmailLog.RecipientKind.TO),
+        ('copia@example.com', EmailLog.RecipientKind.CC),
+    }
+
+
 def test_every_registered_outbound_channel_uses_its_family_bcc_copy():
     """Falla si una clave inventariada deja de emitir su copia BCC única."""
     delivery_matrix = _exercise_outbound_inventory_bcc_matrix()

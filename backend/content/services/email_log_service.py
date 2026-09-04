@@ -14,6 +14,7 @@ is why the links are their own rows instead of a column pair on the log.
 """
 
 from django.db import transaction
+from django.db.models import Case, IntegerField, OuterRef, Q, Subquery, Value, When
 
 
 def client_for_entity(entity_type, object_id):
@@ -103,6 +104,7 @@ def record_send(
     audience=None,
     delivery_id=None,
     delivery_role=None,
+    recipient_contexts=None,
 ):
     """Write one ``EmailLog`` per recipient and return them.
 
@@ -152,8 +154,13 @@ def record_send(
         ):
             gateway_rows.setdefault(log.recipient.strip().lower(), []).append(log)
 
+    contexts_by_email = {
+        (item.get('email') or '').strip().lower(): item
+        for item in (recipient_contexts or ())
+    }
     for recipient in recipients:
         normalized = (recipient or '').strip().lower()
+        recipient_context = contexts_by_email.get(normalized, {})
         candidates = gateway_rows.get(normalized, [])
         log = candidates.pop(0) if candidates else None
         if log is None:
@@ -175,8 +182,11 @@ def record_send(
         log.origin_action = origin_action or ''
         log.retry_of = retry_of
         log.proposal = proposal
-        log.client_id = client_id
-        log.audience = audience
+        log.client_id = recipient_context.get('client_id', client_id)
+        log.audience = recipient_context.get('audience', audience)
+        log.recipient_kind = recipient_context.get(
+            'recipient_kind', log.recipient_kind,
+        )
         log.save()
         logs.append(log)
 
@@ -249,6 +259,134 @@ def attach_delivery_copies(logs):
     for log in logs:
         log._delivery_copies = copies_by_delivery.get(log.delivery_id, [])
     return logs
+
+
+def representative_delivery_queryset(logs):
+    """Collapse primary log rows to one stable row per SMTP delivery."""
+    from content.models import EmailLog
+
+    first_primary_id = (
+        EmailLog.objects.filter(
+            delivery_id=OuterRef('delivery_id'),
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
+        )
+        .annotate(
+            _kind_order=Case(
+                When(recipient_kind=EmailLog.RecipientKind.TO, then=Value(0)),
+                When(recipient_kind=EmailLog.RecipientKind.CC, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            ),
+        )
+        .order_by('_kind_order', 'id')
+        .values('id')[:1]
+    )
+    return logs.filter(
+        Q(delivery_id__isnull=True) | Q(pk=Subquery(first_primary_id)),
+    )
+
+
+def _retain_matching_deliveries(logs, matching_logs):
+    """Expand matching rows back to all primary siblings of each delivery."""
+    matching_delivery_ids = matching_logs.filter(
+        delivery_id__isnull=False,
+    ).order_by().values('delivery_id')
+    matching_legacy_ids = matching_logs.filter(
+        delivery_id__isnull=True,
+    ).order_by().values('id')
+    return logs.filter(
+        Q(delivery_id__in=Subquery(matching_delivery_ids))
+        | Q(pk__in=Subquery(matching_legacy_ids)),
+    )
+
+
+def filter_delivery_recipient(logs, search):
+    """Match any To/CC sibling while retaining the complete delivery group."""
+    search = (search or '').strip()
+    if not search:
+        return logs
+    return _retain_matching_deliveries(
+        logs,
+        logs.filter(recipient__icontains=search),
+    )
+
+
+def filter_delivery_status(logs, status):
+    """Match a per-address status without hiding the delivery representative."""
+    if not status:
+        return logs
+    return _retain_matching_deliveries(logs, logs.filter(status=status))
+
+
+def filter_delivery_log_id(logs, log_id):
+    """Resolve a deep link from any sibling row to its grouped delivery."""
+    if not log_id:
+        return logs
+    return _retain_matching_deliveries(logs, logs.filter(pk=log_id))
+
+
+def attach_delivery_recipients(logs):
+    """Batch-load every visible primary recipient for representative rows."""
+    from content.models import EmailLog
+
+    logs = list(logs)
+    delivery_ids = {log.delivery_id for log in logs if log.delivery_id}
+    recipients_by_delivery = {delivery_id: [] for delivery_id in delivery_ids}
+    if delivery_ids:
+        recipient_logs = (
+            EmailLog.objects.filter(
+                delivery_id__in=delivery_ids,
+                delivery_role=EmailLog.DeliveryRole.PRIMARY,
+            )
+            .select_related('client__user')
+            .annotate(
+                _kind_order=Case(
+                    When(recipient_kind=EmailLog.RecipientKind.TO, then=Value(0)),
+                    When(recipient_kind=EmailLog.RecipientKind.CC, then=Value(1)),
+                    default=Value(2),
+                    output_field=IntegerField(),
+                ),
+            )
+            .order_by('_kind_order', 'id')
+        )
+        for recipient_log in recipient_logs:
+            recipients_by_delivery.setdefault(
+                recipient_log.delivery_id, [],
+            ).append(recipient_log)
+    for log in logs:
+        log._delivery_recipients = (
+            recipients_by_delivery.get(log.delivery_id, [log])
+            if log.delivery_id else [log]
+        )
+    return logs
+
+
+def delivery_recipient_payloads(log):
+    """Return separate To/CC payloads for one grouped history result."""
+    from accounts.services.proposal_client_service import build_client_display_name
+    from content.models import EmailLog
+
+    recipient_logs = getattr(log, '_delivery_recipients', [log])
+    groups = {'to_recipients': [], 'cc_recipients': []}
+    for recipient_log in recipient_logs:
+        if recipient_log.recipient_kind == EmailLog.RecipientKind.BCC:
+            continue
+        profile = recipient_log.client
+        payload = {
+            'email': recipient_log.recipient,
+            'status': recipient_log.status,
+            'status_label': recipient_log.get_status_display(),
+            'error_message': recipient_log.error_message,
+            'client_id': profile.pk if profile else None,
+            'client_name': build_client_display_name(profile) if profile else '',
+        }
+        key = (
+            'cc_recipients'
+            if recipient_log.recipient_kind == EmailLog.RecipientKind.CC
+            else 'to_recipients'
+        )
+        groups[key].append(payload)
+    return groups
 
 
 def delivery_copy_payloads(log):

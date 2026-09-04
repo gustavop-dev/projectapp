@@ -131,6 +131,24 @@ def test_tool_list_exposes_administrative_communications_surface(
     } <= names
 
 
+@pytest.mark.parametrize('tool_name', ['send_email', 'resend_email'])
+def test_email_tool_describes_visible_recipient_groups(
+    api_client, communications_connector, tool_name,
+):
+    _, token = communications_connector
+
+    response = api_client.post(
+        f'/api/mcp/communications/{token}/', rpc('tools/list'), format='json',
+    )
+
+    tool = next(
+        item for item in response.data['result']['tools']
+        if item['name'] == tool_name
+    )
+    assert 'recipient_emails' in tool['description']
+    assert 'cc_emails' in tool['description']
+
+
 def test_list_threads_schema_exposes_reply_status(
     api_client, communications_connector,
 ):

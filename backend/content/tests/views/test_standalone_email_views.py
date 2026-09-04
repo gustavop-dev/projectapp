@@ -388,6 +388,30 @@ class TestPreviewComposedEmail:
 # ── send_standalone_email — success / failure ─────────────────────────────────
 
 class TestSendStandaloneEmailSuccess:
+    def test_forwards_multiple_visible_recipient_groups(self, admin_client):
+        url = reverse('send-standalone-email')
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
+            return_value=(True, []),
+        ) as mock_send:
+            response = admin_client.post(
+                url,
+                {
+                    'recipient_emails': ['uno@example.com', 'dos@example.com'],
+                    'cc_emails': ['copia@example.com'],
+                    'subject': 'Hello from ProjectApp',
+                    'sections': ['Section content here'],
+                },
+                format='json',
+            )
+
+        assert response.status_code == 200
+        assert mock_send.call_args.kwargs['recipient_emails'] == [
+            'uno@example.com',
+            'dos@example.com',
+        ]
+        assert mock_send.call_args.kwargs['cc_emails'] == ['copia@example.com']
+
     def test_returns_200_when_email_sent_successfully(self, admin_client):
         url = reverse('send-standalone-email')
         with patch(

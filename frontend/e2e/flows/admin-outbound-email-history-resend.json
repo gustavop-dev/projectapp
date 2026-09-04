@@ -4,6 +4,6 @@
   "module": "admin",
   "roles": ["admin"],
   "priority": "P1",
-  "description": "Admin expands a captured delivery, opens Reenviar exacto, changes only the recipient and confirms. Subject, body and attachments remain locked; success closes with confirmation and a server failure stays visible without claiming delivery.",
+  "description": "Admin expands a captured grouped delivery, opens Reenviar exacto, edits the original Para and visible CC recipient lists through the same hybrid picker, and confirms (10 unique addresses total). Subject, body and attachments remain locked; success closes with confirmation and a server failure stays visible without claiming delivery.",
   "outcomes": ["success", "failure"]
 }
