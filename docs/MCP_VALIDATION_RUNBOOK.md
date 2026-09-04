@@ -285,13 +285,15 @@ No se implementa un segundo CRUD con escrituras ORM paralelas.
    dashboard, y devolver `summary.by_confidence` para verde (`high`), naranja
    (`medium`), rojo (`low`) y seleccionados sin clasificar.
 2. Elegir un resultado abierto e invocar `update_income` con
-   `collection_confidence: "high"`. Verificar que la respuesta también deja
-   `is_receivable_candidate: true`, que el cambio aparece en el historial y que
-   se genera el aviso contable habitual.
-3. Volver a invocar `get_receivables`: `summary.high_total` debe sumar el
-   `total_amount` original del registro, no sólo su saldo restante. Luego se
-   puede retirar de la selección con `is_receivable_candidate: false`; el color
-   se conserva como contexto histórico.
+   `collection_confidence: "high"`. Verificar que la respuesta conserva el
+   valor anterior de `is_receivable_candidate` —no lo activa—, que sólo el nivel
+   aparece como cambio en el historial y que se genera el aviso habitual.
+3. Invocar `update_income` de forma explícita con
+   `is_receivable_candidate: true` y volver a consultar `get_receivables`:
+   `summary.high_total` debe sumar el `total_amount` original del registro, no
+   sólo su saldo restante. Luego se puede retirar de la selección con
+   `is_receivable_candidate: false`; el color se conserva como contexto
+   histórico.
 4. Casos negativos: intentar seleccionar un ingreso personal, líquido,
    perdido o completamente pagado debe fallar sin modificarlo. Al liquidar por
    completo un candidato, debe salir automáticamente de la selección activa.

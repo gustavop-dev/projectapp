@@ -44,6 +44,7 @@ function detail(overrides = {}) {
       id: 11,
       concept: 'Kore - Fase 2',
       kind: 'expected',
+      ledger: 'company',
       client_name: 'Kore SAS',
       project_name: 'Kore Web',
       period_label: 'Agosto 2026',
@@ -53,6 +54,8 @@ function detail(overrides = {}) {
       pending_amount: '250000.00',
       payment_status: 'partial',
       payment_status_label: 'Parcial',
+      is_receivable_candidate: false,
+      collection_confidence: '',
       ...(overrides.income || {}),
     },
     liquid: overrides.liquid ?? [
@@ -136,6 +139,25 @@ describe('IncomeDetailModal — the income and what it was paid', () => {
     expect(wrapper.find('[data-testid="income-detail-total"]').text()).toContain('900.000');
     expect(wrapper.text()).toContain('650.000');
     expect(wrapper.text()).toContain('250.000');
+  });
+
+  it('shows the forecast classification with its manual inclusion state', async () => {
+    get_request.mockResolvedValue({
+      data: detail({
+        income: {
+          is_receivable_candidate: true,
+          collection_confidence: 'high',
+        },
+      }),
+    });
+
+    const wrapper = await open();
+
+    const forecast = wrapper.get('[data-testid="income-detail-receivable"]');
+    expect(forecast.text()).toContain('Cobro muy probable');
+    expect(forecast.text()).toContain('Incluido en la previsión');
+    expect(forecast.get('[data-testid="receivable-confidence-dot"]').classes())
+      .toContain('bg-success-strong');
   });
 
   it('merges liquid children and deductions into one history, oldest first', async () => {

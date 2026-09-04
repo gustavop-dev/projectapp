@@ -7,6 +7,15 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección verificada 2026-09-04 — dos controles visibles deben seguir siendo
+> dos decisiones de dominio:** que un nivel de confianza haga más probable una
+> inclusión no autoriza a persistirla. Serializer, MCP, formulario, tabla y mocks
+> deben preservar el campo que el usuario no tocó. La representación también
+> necesita un dueño único: un círculo semántico reutilizable evita que lista,
+> modal y detalle diverjan, y su estado neutro comunica ausencia de clasificación
+> sin confundirla con riesgo bajo. Las copias de registros reinician estado
+> operativo; el histórico se conserva salvo una decisión explícita de migración.
+
 > **Lección 2026-09-04 — una entrega y sus destinatarios tienen cardinalidades
 > distintas:** SMTP necesita una sola envolvente visible para To/CC, mientras la
 > auditoría necesita estado, cliente y rol por dirección. Duplicar el envío como

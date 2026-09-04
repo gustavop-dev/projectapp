@@ -470,8 +470,8 @@ _ENTITY_FIELDS = {
                 'type': 'string',
                 'enum': ['', 'high', 'medium', 'low'],
                 'description': (
-                    'Probabilidad manual de cobro. Asignar un valor selecciona '
-                    'el ingreso automáticamente.'
+                    'Probabilidad manual de cobro. No cambia la inclusión en '
+                    'la previsión; usa is_receivable_candidate explícitamente.'
                 ),
             },
             'client': {

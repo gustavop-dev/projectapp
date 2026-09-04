@@ -65,6 +65,30 @@
             </div>
           </section>
 
+          <section data-testid="income-detail-receivable">
+            <h4 class="mb-2 text-sm font-semibold text-text-default">Previsión de cobro</h4>
+            <div v-if="receivableApplies" class="flex flex-wrap items-center gap-2">
+              <ReceivableConfidenceBadge :confidence="income.collection_confidence" />
+              <span
+                class="rounded-full border px-2.5 py-1 text-xs font-medium"
+                :class="income.is_receivable_candidate
+                  ? 'border-success-soft bg-success-soft text-success-strong'
+                  : 'border-border-muted bg-surface-raised text-text-muted'"
+                data-testid="income-detail-receivable-selection"
+              >
+                {{ income.is_receivable_candidate ? 'Incluido en la previsión' : 'Fuera de la previsión' }}
+              </span>
+            </div>
+            <div
+              v-else-if="income.collection_confidence"
+              class="flex flex-wrap items-center gap-2"
+            >
+              <ReceivableConfidenceBadge :confidence="income.collection_confidence" />
+              <span class="text-xs text-text-muted">Clasificación histórica · No aplica</span>
+            </div>
+            <p v-else class="text-sm text-text-subtle">No aplica</p>
+          </section>
+
           <!-- Split de socios: lo que dejó de ocupar dos columnas en la tabla -->
           <section class="grid gap-4 sm:grid-cols-3 text-sm" data-testid="income-detail-split">
             <div>
@@ -196,6 +220,7 @@ import { computed, ref, watch } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
 import PocketMovementAllocationsModal from '~/components/accounting/PocketMovementAllocationsModal.vue';
+import ReceivableConfidenceBadge from '~/components/accounting/ReceivableConfidenceBadge.vue';
 import { useAccountingStore } from '~/stores/accounting';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
@@ -220,6 +245,9 @@ const error = ref(false);
 
 const income = computed(() => detail.value?.income ?? null);
 const cuenta = computed(() => detail.value?.collection_account ?? null);
+const receivableApplies = computed(() => (
+  income.value?.kind === 'expected' && income.value?.ledger === 'company'
+));
 
 function money(value) {
   return formatMoney(Number(value ?? 0), 'COP');

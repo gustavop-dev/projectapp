@@ -7,6 +7,15 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-04 — elegir un color activaba la previsión sin consentimiento:**
+> el serializer interpretaba `collection_confidence` como una selección implícita,
+> aunque nivel de riesgo e inclusión son decisiones distintas. Ahora cada PATCH
+> preserva el otro campo, el formulario los envía explícitamente y el interruptor
+> sólo cambia desde su control. Un componente único dibuja círculo y estado neutro
+> en todas las superficies; las duplicaciones empiezan limpias y no se reescriben
+> filas históricas. El acceso rápido contable también dejó de priorizar Ads y
+> dirige a Cuentas de cobro.
+
 > **Resuelto 2026-09-04 — una propuesta podía enviarse sin explicar qué
 > resolvía:** `email_intro` era opcional, vivía fuera del flujo de correo y el
 > renderer sustituía su ausencia con copy genérico. **Correos** es ahora el

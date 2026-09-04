@@ -322,7 +322,6 @@ function buildHandler({
       const id = Number(apiPath.split('/')[2]);
       const target = rows.find((row) => row.id === id) || rows[0];
       const updated = { ...target, ...body };
-      if (body.collection_confidence) updated.is_receivable_candidate = true;
       Object.assign(target, updated);
       return {
         status: 200,
@@ -609,7 +608,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByText('Kore - Inicio 40%')).toBeVisible();
   });
 
-  test('assigning a collection color selects the expected income', {
+  test('assigning a collection color preserves the manual switch', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
@@ -621,11 +620,49 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     }).selectOption('high');
 
     await expect(page.getByRole('switch', {
-      name: 'Quitar Kore - Inicio 40% de pendientes por cobrar',
-    })).toBeChecked();
+      name: 'Agregar Kore - Inicio 40% de pendientes por cobrar',
+    })).not.toBeChecked();
     await expect.poll(() => calls.find((call) => (
       call.apiPath === 'accounting/incomes/1/update/'
     ))?.body).toEqual({ collection_confidence: 'high' });
+  });
+
+  test('the income form saves an unselected confidence classification', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByTestId('income-form-concept').fill('Soporte mensual Acme');
+    await page.getByRole('tab', { name: 'Desarrollo' }).click();
+    await page.getByTestId('income-form-period').fill('2026-09-04');
+    await page.getByTestId('partner-split-total').fill('800000');
+    await page.getByTestId('income-form-confidence').selectOption('medium');
+
+    await expect(page.getByTestId('income-form-candidate')).not.toBeChecked();
+    await page.getByTestId('income-form-submit').click();
+
+    const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
+    expect(created.body.collection_confidence).toBe('medium');
+    expect(created.body.is_receivable_candidate).toBe(false);
+  });
+
+  test('the income detail shows confidence outside the active forecast', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({ collection_confidence: 'low' })],
+      calls: [],
+    }));
+    await navigateToIncomesFromPanel(page);
+
+    await page.getByTestId('income-open-1').click();
+
+    const forecast = page.getByTestId('income-detail-receivable');
+    await expect(forecast).toContainText('Alto riesgo de pérdida');
+    await expect(forecast).toContainText('Fuera de la previsión');
   });
 
   test('renders the classic leading menu control track', {

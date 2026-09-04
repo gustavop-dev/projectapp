@@ -12,15 +12,23 @@
 > estado y atribución por dirección. El reenvío carga los Para/CC originales y
 > permite editarlos sin regenerar asunto, cuerpo ni adjuntos.
 
-> **Entrega 2026-09-03 — previsión manual de cuentas por cobrar:** el monto
+> **Corrección 2026-09-04 — previsión visual y activación exclusivamente manual:** el monto
 > “Pendiente por cobrar” deja de inferirse por mes y representa la suma global
 > del valor original de los ingresos esperados abiertos de empresa que el equipo
 > seleccionó y clasificó en verde. Selección y confianza son decisiones
-> independientes; verde significa muy probable, naranja 50/50 y rojo alto riesgo
-> de pérdida. El modal permite revisar totales por estado, la selección plana y
-> administrar candidatos con guardado inmediato; la tabla de Ingresos ofrece el
-> mismo control sólo sobre esperados. Al cobrar por completo, marcar perdido o
-> sacar de empresa, el ingreso se deselecciona y conserva su última clasificación.
+> independientes: cambiar el nivel nunca mueve el interruptor y la inclusión se
+> activa sólo por una acción manual. Verde significa cobro muy probable, naranja
+> cobro incierto y rojo alto riesgo; cada nivel aparece como círculo amable junto
+> a su texto completo en el listado, el modal de previsión, el formulario y el
+> detalle del ingreso. Sin nivel se muestra un círculo neutro con “Sin clasificar”.
+> Duplicar un ingreso reinicia nivel e interruptor, mientras los registros
+> existentes conservan su estado sin migración retroactiva. Al cobrar por
+> completo, marcar perdido o sacar de empresa, el ingreso se deselecciona y
+> conserva su última clasificación.
+>
+> En los accesos rápidos de Contabilidad, **Cuentas de cobro** ocupa el lugar de
+> **Ads** y abre `/panel/accounting/collections`; el módulo Ads continúa
+> disponible en la navegación contable interna.
 > La analítica de utilidad sustituye la gráfica “Utilidad por mes” dentro del
 > resumen como acordeón abierto por defecto y todos los gráficos deben conservar
 > contraste legible en modo oscuro.

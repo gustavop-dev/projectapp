@@ -12,7 +12,7 @@
 > `to_recipients` y `cc_recipients` con estado/cliente por dirección, pero
 > cuentan y paginan por entrega. MCP describe el mismo payload y límite.
 
-> **Contrato técnico de cuentas por cobrar — 2026-09-03:** la migración
+> **Contrato técnico de cuentas por cobrar — actualizado 2026-09-04:** la migración
 > `content.0244` añade booleano de selección, catálogo de confianza
 > `high|medium|low`, índice de lectura y constraint
 > `income_candidate_expected_company`. `GET /api/accounting/receivables/`
@@ -20,8 +20,12 @@
 > junto a `selected_*`, `high_*` y cuatro grupos de totales original/abonado/
 > pendiente. El KPI consume `high_total` —monto original, no saldo— y las
 > mutaciones usan el endpoint ordinario de ingresos, por lo que conservan
-> validación, auditoría y correo. La API MCP expone la misma lectura y admite los
-> dos campos en create/update. ApexCharts recibe `chart.foreColor`, `theme.mode`,
+> validación, auditoría y correo. `collection_confidence` nunca escribe
+> `is_receivable_candidate`: REST, MCP y el formulario admiten ambos campos como
+> decisiones independientes, y el frontend sólo cambia el interruptor desde su
+> control manual. Alta/edición muestran ambos ejes; duplicar los reinicia y una
+> fila ya cobrada conserva la clasificación en lectura. No hay nueva migración
+> ni corrección retroactiva. ApexCharts recibe `chart.foreColor`, `theme.mode`,
 > colores de leyenda/no-data y tooltip desde tokens reactivos.
 
 > **Contrato implementado — MCP operativo 2026-09-02:** la ampliación conserva
