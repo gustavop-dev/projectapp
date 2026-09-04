@@ -22,6 +22,11 @@ class EmailLog(models.Model):
         PRIMARY = 'primary', 'Envío principal'
         COPY = 'copy', 'Copia interna'
 
+    class RecipientKind(models.TextChoices):
+        TO = 'to', 'Para'
+        CC = 'cc', 'Copia visible'
+        BCC = 'bcc', 'Copia oculta'
+
     proposal = models.ForeignKey(
         'BusinessProposal',
         on_delete=models.SET_NULL,
@@ -109,6 +114,14 @@ class EmailLog(models.Model):
         choices=DeliveryRole.choices,
         default=DeliveryRole.PRIMARY,
     )
+    # Header-level role is independent from delivery_role: both To and CC
+    # belong to the primary SMTP envelope, while configured BCC recipients are
+    # delivered through isolated copy envelopes.
+    recipient_kind = models.CharField(
+        max_length=3,
+        choices=RecipientKind.choices,
+        default=RecipientKind.TO,
+    )
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -122,6 +135,10 @@ class EmailLog(models.Model):
             models.Index(
                 fields=['delivery_id', 'delivery_role'],
                 name='emaillog_delivery_role',
+            ),
+            models.Index(
+                fields=['delivery_id', 'recipient_kind'],
+                name='emaillog_delivery_kind',
             ),
             # Serves all three per-client annotations of the clients list:
             # the two counts seek on the (client, audience) prefix, and

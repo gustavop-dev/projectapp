@@ -257,6 +257,16 @@ def capture_delivery_snapshot(
                 family=family or '',
                 subject=(getattr(message, 'subject', '') or '')[:500],
                 from_email=(getattr(message, 'from_email', '') or '')[:320],
+                to_recipients=[
+                    (value or '').strip().lower()
+                    for value in (getattr(message, 'to', ()) or ())
+                    if (value or '').strip()
+                ],
+                cc_recipients=[
+                    (value or '').strip().lower()
+                    for value in (getattr(message, 'cc', ()) or ())
+                    if (value or '').strip()
+                ],
                 body=body,
                 message_size_bytes=len(raw_message),
                 attachment_size_bytes=total_attachment_bytes,
@@ -312,18 +322,25 @@ def capture_delivery_snapshot(
         ) from exc
 
 
-def resend_email_log(log, recipient):
+def resend_email_log(log, recipients, cc_recipients=()):
     """Send a new delivery from the exact retained body and attachment bytes."""
     from content.models import EmailLog
     from content.services import email_log_service
     from content.services.email_delivery_service import EmailDeliveryGateway
 
     snapshot = log.snapshot
+    recipients = [recipients] if isinstance(recipients, str) else list(recipients)
+    cc_recipients = (
+        [cc_recipients]
+        if isinstance(cc_recipients, str)
+        else list(cc_recipients)
+    )
     message = EmailMultiAlternatives(
         subject=snapshot.subject,
         body=snapshot.body.text,
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', snapshot.from_email),
-        to=[recipient],
+        to=recipients,
+        cc=cc_recipients,
     )
     if snapshot.body.html:
         message.attach_alternative(snapshot.body.html, 'text/html')
@@ -344,20 +361,30 @@ def resend_email_log(log, recipient):
 
     metadata = dict(log.metadata or {})
     metadata['resend_of_email_log_id'] = log.pk
+    metadata['to_recipients'] = recipients
+    metadata['cc_recipients'] = cc_recipients
     targets = [
         (target.entity_type, target.object_id, target.object_repr)
         for target in log.targets.all()
     ]
+    from content.services.email_recipient_service import recipient_log_contexts
+
+    recipient_contexts = recipient_log_contexts(
+        recipients,
+        cc_recipients,
+        contextual_client=log.client,
+    )
     common_log_fields = {
         'template_key': snapshot.template_key,
-        'recipients': [recipient],
+        'recipients': recipients + cc_recipients,
+        'recipient_contexts': recipient_contexts,
         'subject': snapshot.subject,
         'metadata': metadata,
         'targets': targets,
         'html_body': snapshot.body.html,
         'text_body': snapshot.body.text,
         'proposal': log.proposal,
-        'client': log.client,
+        'client': None,
         'audience': log.audience,
     }
     try:

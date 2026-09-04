@@ -11,8 +11,6 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.validators import validate_email
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -68,17 +66,16 @@ def _parse_standalone_email(request):
         )
 
     # ── Required text fields ──
-    recipient_email = (request.data.get('recipient_email') or '').strip()
-    if not recipient_email:
-        return None, Response(
-            {'error': 'El campo destinatario es obligatorio.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    from content.services.email_recipient_service import (
+        EmailRecipientValidationError,
+        parse_email_recipients,
+    )
+
     try:
-        validate_email(recipient_email)
-    except DjangoValidationError:
+        recipient_emails, cc_emails = parse_email_recipients(request.data)
+    except EmailRecipientValidationError as exc:
         return None, Response(
-            {'error': 'El correo del destinatario no es válido.'},
+            {'error': str(exc), 'code': exc.code, 'field': exc.field},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -170,7 +167,8 @@ def _parse_standalone_email(request):
             })
 
     return {
-        'recipient_email': recipient_email,
+        'recipient_emails': recipient_emails,
+        'cc_emails': cc_emails,
         'subject': subject,
         'greeting': greeting,
         'sections': sections,
@@ -191,7 +189,8 @@ def send_standalone_email(request):
 
     from content.services.proposal_email_service import ProposalEmailService
     sent, logs = ProposalEmailService.send_standalone_branded_email(
-        recipient_email=parsed['recipient_email'],
+        recipient_emails=parsed['recipient_emails'],
+        cc_emails=parsed['cc_emails'],
         subject=parsed['subject'],
         greeting=parsed['greeting'],
         sections=parsed['sections'],
@@ -205,8 +204,14 @@ def send_standalone_email(request):
     if sent:
         return Response(
             {
-                'message': f'Correo enviado a {parsed["recipient_email"]}.',
+                'message': (
+                    f'Correo enviado a {len(parsed["recipient_emails"])} '
+                    f'destinatario(s) con {len(parsed["cc_emails"])} CC.'
+                ),
                 'email_log_id': logs[0].pk if logs else None,
+                'delivery_id': str(logs[0].delivery_id) if logs else None,
+                'recipient_emails': parsed['recipient_emails'],
+                'cc_emails': parsed['cc_emails'],
                 'document_ids': [
                     target['object_id'] for target in parsed['document_targets']
                 ],
@@ -403,11 +408,7 @@ def list_standalone_emails(request):
     if template_key:
         logs = logs.filter(template_key=template_key)
     email_status = (request.query_params.get('status') or '').strip()
-    if email_status in EmailLog.Status.values:
-        logs = logs.filter(status=email_status)
     recipient = (request.query_params.get('recipient') or '').strip()
-    if recipient:
-        logs = logs.filter(recipient__icontains=recipient)
     date_from = parse_date(request.query_params.get('date_from') or '')
     date_to = parse_date(request.query_params.get('date_to') or '')
     if date_from:
@@ -415,9 +416,25 @@ def list_standalone_emails(request):
     if date_to:
         logs = logs.filter(sent_at__date__lte=date_to)
     email_id = (request.query_params.get('email_id') or '').strip()
-    if email_id.isdigit():
-        logs = logs.filter(pk=int(email_id))
     logs = apply_attachment_filters(logs, request.query_params)
+
+    from content.services.email_log_service import (
+        attach_delivery_copies,
+        attach_delivery_recipients,
+        delivery_copy_payloads,
+        delivery_recipient_payloads,
+        filter_delivery_log_id,
+        filter_delivery_recipient,
+        filter_delivery_status,
+        representative_delivery_queryset,
+    )
+
+    logs = filter_delivery_recipient(logs, recipient)
+    if email_status in EmailLog.Status.values:
+        logs = filter_delivery_status(logs, email_status)
+    if email_id.isdigit():
+        logs = filter_delivery_log_id(logs, int(email_id))
+    logs = representative_delivery_queryset(logs)
 
     total = logs.count()
     try:
@@ -427,18 +444,17 @@ def list_standalone_emails(request):
     page_size = 20
     offset = (page - 1) * page_size
 
-    from content.services.email_log_service import (
-        attach_delivery_copies,
-        delivery_copy_payloads,
-    )
     from content.serializers.client_emails import ClientEmailLogSerializer
 
-    page_logs = attach_delivery_copies(logs[offset:offset + page_size])
+    page_logs = attach_delivery_recipients(
+        attach_delivery_copies(logs[offset:offset + page_size]),
+    )
     family_labels = dict(EMAIL_COPY_FAMILY_CHOICES)
     data = []
     for log in page_logs:
         data.append({
             'id': log.pk,
+            'delivery_id': str(log.delivery_id) if log.delivery_id else None,
             'template_key': log.template_key,
             'template_label': ClientEmailLogSerializer().get_template_label(log),
             'family': outbound_email_family(log.template_key),
@@ -456,6 +472,7 @@ def list_standalone_emails(request):
             'metadata': log.metadata,
             'has_body': log.body_id is not None,
             'copies': delivery_copy_payloads(log),
+            **delivery_recipient_payloads(log),
             **snapshot_payload(log),
         })
     return Response({
@@ -522,12 +539,23 @@ def standalone_email_attachment(request, log_id, attachment_id):
 @permission_classes([IsAdminUser])
 def resend_standalone_email(request, log_id):
     """Resend exact retained content; only the destination may change."""
-    recipient = (request.data.get('recipient') or '').strip().lower()
+    from content.services.email_recipient_service import (
+        EmailRecipientValidationError,
+        parse_email_recipients,
+    )
+
     try:
-        validate_email(recipient)
-    except DjangoValidationError:
+        recipients, cc_recipients = parse_email_recipients(
+            request.data,
+            legacy_to_fields=('recipient', 'recipient_email'),
+        )
+    except EmailRecipientValidationError as exc:
         return Response(
-            {'recipient': 'Ingresa un correo válido.'},
+            {
+                'detail': str(exc),
+                'code': exc.code,
+                'field': exc.field,
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -556,7 +584,7 @@ def resend_standalone_email(request, log_id):
         resend_email_log,
     )
     try:
-        resent_log = resend_email_log(log, recipient)
+        resent_log = resend_email_log(log, recipients, cc_recipients)
     except EmailSnapshotCaptureError as exc:
         return Response(
             {'detail': str(exc), 'code': 'email_snapshot_capture_failed'},
@@ -568,9 +596,15 @@ def resend_standalone_email(request, log_id):
             status=status.HTTP_502_BAD_GATEWAY,
         )
     return Response({
-        'message': f'Correo reenviado a {recipient}.',
+        'message': (
+            f'Correo reenviado a {len(recipients)} destinatario(s) '
+            f'con {len(cc_recipients)} CC.'
+        ),
         'email_log_id': resent_log.pk,
+        'delivery_id': str(resent_log.delivery_id),
         'resend_of_email_log_id': log.pk,
+        'recipient_emails': recipients,
+        'cc_emails': cc_recipients,
         'copy_notice': (
             'Las copias BCC configuradas se intentaron después del envío principal.'
         ),

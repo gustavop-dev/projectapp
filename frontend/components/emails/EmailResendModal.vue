@@ -8,18 +8,15 @@
       <div>
         <h3 class="text-lg font-semibold text-text-default">Reenviar correo exacto</h3>
         <p class="mt-1 text-sm text-text-subtle">
-          Sólo puedes cambiar el destinatario. El asunto, el cuerpo y los adjuntos
+          Sólo puedes cambiar los destinatarios. El asunto, el cuerpo y los adjuntos
           saldrán desde la copia archivada.
         </p>
       </div>
 
-      <BaseInput
-        v-model="recipient"
-        type="email"
-        label="Destinatario"
-        autocomplete="email"
-        required
-        data-testid="email-resend-recipient"
+      <EmailRecipientFields
+        v-model:toRecipients="toRecipients"
+        v-model:ccRecipients="ccRecipients"
+        test-id-prefix="email-resend"
       />
 
       <div class="rounded-lg border border-border-muted bg-surface-muted p-3">
@@ -54,7 +51,7 @@
         <BaseButton
           type="submit"
           :loading="emailStore.isResending"
-          :disabled="!recipient.trim() || emailStore.isResending"
+          :disabled="!toRecipients.length || emailStore.isResending"
           data-testid="email-resend-confirm"
         >
           Reenviar sin cambios
@@ -67,6 +64,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useEmailStore } from '~/stores/emails';
+import EmailRecipientFields from '~/components/emails/EmailRecipientFields.vue';
+import { emailRecipient } from '~/utils/emailRecipients';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -74,14 +73,31 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'resent']);
 const emailStore = useEmailStore();
-const recipient = ref('');
+const toRecipients = ref([]);
+const ccRecipients = ref([]);
 const errorMessage = ref('');
 
 watch(
   () => [props.open, props.entry?.id],
   ([open]) => {
     if (!open) return;
-    recipient.value = props.entry?.recipient || '';
+    toRecipients.value = (props.entry?.to_recipients?.length
+      ? props.entry.to_recipients
+      : [props.entry?.recipient].filter(Boolean)
+    ).map((recipient) => (
+      typeof recipient === 'string'
+        ? emailRecipient(recipient)
+        : emailRecipient(recipient.email, {
+          name: recipient.client_name || '',
+          clientId: recipient.client_id || null,
+        })
+    ));
+    ccRecipients.value = (props.entry?.cc_recipients || []).map((recipient) => (
+      emailRecipient(recipient.email, {
+        name: recipient.client_name || '',
+        clientId: recipient.client_id || null,
+      })
+    ));
     errorMessage.value = '';
   },
   { immediate: true },
@@ -92,11 +108,12 @@ function handleVisibility(value) {
 }
 
 async function submit() {
-  if (!props.entry?.id || !recipient.value.trim()) return;
+  if (!props.entry?.id || !toRecipients.value.length) return;
   errorMessage.value = '';
   const result = await emailStore.resendEmail(
     props.entry.id,
-    recipient.value.trim(),
+    toRecipients.value,
+    ccRecipients.value,
   );
   if (result.success) emit('resent', result.data);
   else errorMessage.value = result.message;

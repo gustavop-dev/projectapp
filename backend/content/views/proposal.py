@@ -3165,9 +3165,11 @@ def email_deliverability_dashboard(request):
     now = timezone.now()
     thirty_days_ago = now - timedelta(days=30)
 
-    all_logs = EmailLog.objects.filter(
+    from content.services.email_log_service import representative_delivery_queryset
+
+    all_logs = representative_delivery_queryset(EmailLog.objects.filter(
         delivery_role=EmailLog.DeliveryRole.PRIMARY,
-    )
+    ))
     recent_logs = all_logs.filter(sent_at__gte=thirty_days_ago)
 
     # Overall counts
@@ -3763,9 +3765,6 @@ def _parse_composed_email(request, proposal, template_key):
     from datetime import timedelta
     from pathlib import Path
 
-    from django.core.exceptions import ValidationError as DjangoValidationError
-    from django.core.validators import validate_email
-
     from content.models import EmailLog
 
     # ── Rate limit: 1 email per minute per proposal per type ──
@@ -3781,17 +3780,16 @@ def _parse_composed_email(request, proposal, template_key):
         )
 
     # ── Required text fields ──
-    recipient_email = (request.data.get('recipient_email') or '').strip()
-    if not recipient_email:
-        return None, Response(
-            {'error': 'El campo destinatario es obligatorio.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    from content.services.email_recipient_service import (
+        EmailRecipientValidationError,
+        parse_email_recipients,
+    )
+
     try:
-        validate_email(recipient_email)
-    except DjangoValidationError:
+        recipient_emails, cc_emails = parse_email_recipients(request.data)
+    except EmailRecipientValidationError as exc:
         return None, Response(
-            {'error': 'El correo del destinatario no es válido.'},
+            {'error': str(exc), 'code': exc.code, 'field': exc.field},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -3851,7 +3849,8 @@ def _parse_composed_email(request, proposal, template_key):
         )
 
     return {
-        'recipient_email': recipient_email,
+        'recipient_emails': recipient_emails,
+        'cc_emails': cc_emails,
         'subject': subject,
         'greeting': greeting,
         'sections': sections,
@@ -3869,7 +3868,8 @@ def _send_composed_email_view(request, proposal_id, send_method, template_key):
 
     sent = send_method(
         proposal=proposal,
-        recipient_email=parsed['recipient_email'],
+        recipient_emails=parsed['recipient_emails'],
+        cc_emails=parsed['cc_emails'],
         subject=parsed['subject'],
         greeting=parsed['greeting'],
         sections=parsed['sections'],
@@ -3879,7 +3879,15 @@ def _send_composed_email_view(request, proposal_id, send_method, template_key):
 
     if sent:
         return Response(
-            {'message': f'Correo enviado a {parsed["recipient_email"]}.'},
+            {
+                'message': (
+                    f'Correo enviado a {", ".join(parsed["recipient_emails"])} '
+                    f'({len(parsed["recipient_emails"])} destinatario(s), '
+                    f'{len(parsed["cc_emails"])} CC).'
+                ),
+                'recipient_emails': parsed['recipient_emails'],
+                'cc_emails': parsed['cc_emails'],
+            },
             status=status.HTTP_200_OK,
         )
     return Response(
@@ -3914,7 +3922,6 @@ def _list_emails_view(request, proposal_id, template_key):
         delivery_role=EmailLog.DeliveryRole.PRIMARY,
     ).order_by('-sent_at')
 
-    total = logs.count()
     try:
         page = max(1, int(request.query_params.get('page', 1)))
     except (ValueError, TypeError):
@@ -3924,19 +3931,28 @@ def _list_emails_view(request, proposal_id, template_key):
 
     from content.services.email_log_service import (
         attach_delivery_copies,
+        attach_delivery_recipients,
         delivery_copy_payloads,
+        delivery_recipient_payloads,
+        representative_delivery_queryset,
     )
 
-    page_logs = attach_delivery_copies(logs[offset:offset + page_size])
+    logs = representative_delivery_queryset(logs)
+    total = logs.count()
+    page_logs = attach_delivery_recipients(
+        attach_delivery_copies(logs[offset:offset + page_size]),
+    )
     data = [
         {
             'id': log.pk,
+            'delivery_id': str(log.delivery_id) if log.delivery_id else None,
             'recipient': log.recipient,
             'subject': log.subject,
             'status': log.status,
             'sent_at': log.sent_at.isoformat(),
             'metadata': log.metadata,
             'copies': delivery_copy_payloads(log),
+            **delivery_recipient_payloads(log),
         }
         for log in page_logs
     ]

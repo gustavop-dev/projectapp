@@ -1,5 +1,17 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-04 — varios destinatarios y copia visible:** todos los
+> compositores manuales de correo —independiente, propuesta general,
+> seguimiento de propuesta, diagnóstico, envío de documento y reenvío exacto—
+> admiten uno o más destinatarios en **Para** y cero o más en **CC**. El operador
+> puede buscar clientes registrados o escribir direcciones manualmente; no se
+> admiten correos inválidos, temporales ni repetidos entre campos y el límite es
+> de 10 direcciones únicas combinadas. Cada acción genera un solo mensaje SMTP
+> con encabezados visibles, conserva las copias BCC automáticas como entregas
+> internas separadas y aparece como un envío agrupado en el historial, con
+> estado y atribución por dirección. El reenvío carga los Para/CC originales y
+> permite editarlos sin regenerar asunto, cuerpo ni adjuntos.
+
 > **Entrega 2026-09-03 — previsión manual de cuentas por cobrar:** el monto
 > “Pendiente por cobrar” deja de inferirse por mes y representa la suma global
 > del valor original de los ingresos esperados abiertos de empresa que el equipo
@@ -196,6 +208,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
 | One document status cannot describe concurrent work or preserve what already happened | User-managed cycle/signal states whose open and closed episodes form an attributable timeline |
 | The agency had no received copy of customer email | Every client-classified email leaves through one gateway, which sends configurable BCC-only internal copies and links their independent outcomes to the primary history row |
+| Manual email composers could address only one person and had no visible copy field | Every manual composer supports registered-client search plus typed addresses in visible To/CC groups, capped at 10 unique recipients and represented as one grouped delivery |
 | Email history could not prove which files or links were delivered | A mandatory pre-SMTP snapshot retains the exact attachment bytes and recognition metadata, body links, total MIME size, Document provenance and resend lineage; legacy gaps stay explicit |
 | Client conversations were drafted in disposable chats and reconstructed from memory | A client/project communications registry preserves ordered incoming and outgoing messages, manual send state, date corrections and references to existing documents |
 | Sparse or incoherent development data hid pagination, filters and edge defects until production | One guarded, deterministic dataset covers every visible module with explicit volume, skewed relationships, temporal buckets and intentional extremes |
@@ -277,6 +290,14 @@ OTP, invitation, temporary-credential and password-recovery messages. Copies
 are sent as separate BCC-only envelopes after the primary delivery succeeds;
 their success, skip or failure is nested in the same delivery history. The
 authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
+
+**Manual visible recipients** are a separate per-send choice. The standalone,
+proposal, diagnostic and document composers —plus exact resend— accept one or
+more **Para** addresses and optional **CC**, either selected from registered
+clients or typed manually. There may be at most 10 unique addresses across both
+headers; a repeated, malformed or placeholder address blocks the action. Para
+and CC travel in one visible SMTP envelope and one grouped history entry, while
+the configurable copies above remain independent BCC-only attempts.
 
 #### Admin Panel — Proposals
 

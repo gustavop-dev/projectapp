@@ -7,6 +7,16 @@ description: Project intelligence and lessons learned. Reference for project-spe
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 
+> **Lección 2026-09-04 — una entrega y sus destinatarios tienen cardinalidades
+> distintas:** SMTP necesita una sola envolvente visible para To/CC, mientras la
+> auditoría necesita estado, cliente y rol por dirección. Duplicar el envío como
+> solución de persistencia altera privacidad, métricas y semántica. La frontera
+> estable es un `delivery_id` compartido, una fila por dirección y una proyección
+> agrupada para listados; el snapshot conserva los encabezados originales para
+> que el reenvío exacto no dependa de una fila representante. La validación y el
+> límite deben vivir también en backend, aunque todos los compositores reutilicen
+> el mismo picker frontend.
+
 > **Lección verificada 2026-09-04 — desactivar efectos no debe romper el
 > contrato del composable:** una rama como preview puede omitir analytics,
 > storage, watchers y lifecycle hooks, pero sus consumidores deben seguir

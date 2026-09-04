@@ -23,6 +23,20 @@ const baseProposal = {
   client_email: 'carlos@example.com',
 };
 
+const EmailRecipientFieldsStub = {
+  name: 'EmailRecipientFields',
+  props: ['toRecipients', 'ccRecipients'],
+  emits: ['update:toRecipients', 'update:ccRecipients'],
+  template: `
+    <input
+      type="email"
+      placeholder="correo@ejemplo.com"
+      :value="toRecipients[0]?.email || ''"
+      @input="$emit('update:toRecipients', $event.target.value ? [{ email: $event.target.value }] : [])"
+    >
+  `,
+};
+
 function buildHistoryEntry(overrides = {}) {
   return {
     id: 1,
@@ -45,6 +59,9 @@ function mountTab(props = {}) {
     props: {
       proposal: baseProposal,
       ...props,
+    },
+    global: {
+      stubs: { EmailRecipientFields: EmailRecipientFieldsStub },
     },
   });
 }
@@ -229,7 +246,8 @@ describe('ProposalEmailsTab', () => {
 
     const [, formData, basePath] = proposalStore.sendComposedEmail.mock.calls[0];
     expect(basePath).toBe('proposal-email');
-    expect(formData.get('recipient_email')).toBe('carlos@example.com');
+    expect(formData.get('recipient_emails')).toBe('["carlos@example.com"]');
+    expect(formData.get('cc_emails')).toBe('[]');
     expect(formData.get('subject')).toBe('Seguimiento de propuesta');
     expect(formData.get('greeting')).toBe('Hola Carlos');
     expect(formData.get('sections')).toBe(JSON.stringify([{ text: 'Primer bloque', markdown: false }]));

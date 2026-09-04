@@ -21,11 +21,11 @@
 
       <!-- ── Edit sub-tab ── -->
       <div v-if="activeSubTab === 'edit'" class="space-y-4">
-        <div>
-          <label class="block text-xs text-text-muted dark:text-white/70 mb-1">Para</label>
-          <input v-model="recipient" type="email" placeholder="correo@ejemplo.com"
-            class="w-full px-3 py-2 border border-border-default dark:text-white dark:placeholder:text-text-muted rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500" />
-        </div>
+        <EmailRecipientFields
+          v-model:toRecipients="toRecipients"
+          v-model:ccRecipients="ccRecipients"
+          test-id-prefix="diagnostic-email"
+        />
 
         <div>
           <label class="block text-xs text-text-muted dark:text-white/70 mb-1">Asunto</label>
@@ -129,6 +129,10 @@
 
       <!-- ── Preview sub-tab ── -->
       <div v-else>
+        <div class="mb-3 space-y-1 rounded-lg bg-surface-muted px-3 py-2 text-xs text-text-muted">
+          <p><span class="font-medium text-text-default">Para:</span> {{ recipientSummary(toRecipients) || '—' }}</p>
+          <p v-if="ccRecipients.length"><span class="font-medium text-text-default">CC:</span> {{ recipientSummary(ccRecipients) }}</p>
+        </div>
         <div class="flex items-center gap-2 bg-surface-muted rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
           <span class="font-medium text-text-default dark:text-white/70">Asunto:</span>
           <span>{{ subject || '(sin asunto)' }}</span>
@@ -203,11 +207,17 @@ import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
 import AttachFromDocumentsModal from '~/components/AttachFromDocumentsModal.vue';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import EmailHistoryList from '~/components/EmailHistoryList.vue';
+import EmailRecipientFields from '~/components/emails/EmailRecipientFields.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmentHandler';
 import { useDocRefsAttachment } from '~/composables/useDocRefsAttachment';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { get_request } from '~/stores/services/request_http';
+import {
+  appendEmailRecipients,
+  emailRecipient,
+  recipientSummary,
+} from '~/utils/emailRecipients';
 
 const props = defineProps({
   diagnostic: { type: Object, required: true },
@@ -219,7 +229,13 @@ let sectionIdSeq = 0;
 const nextSectionId = () => ++sectionIdSeq;
 
 const activeSubTab = ref('edit');
-const recipient = ref(props.diagnostic.client?.email || '');
+const toRecipients = ref(props.diagnostic.client?.email
+  ? [emailRecipient(props.diagnostic.client.email, {
+    name: props.diagnostic.client.name || '',
+    clientId: props.diagnostic.client.id || null,
+  })]
+  : []);
+const ccRecipients = ref([]);
 const subject = ref('');
 const defaultGreeting = ref(
   props.diagnostic.client?.name ? `Hola ${props.diagnostic.client.name}` : 'Hola',
@@ -269,7 +285,7 @@ const canCreateMarkdownAttachment = computed(
 const { handleMarkdownAttach } = useMarkdownAttachmentHandler(attachments);
 
 const canSend = computed(() => {
-  if (!recipient.value.trim()) return false;
+  if (!toRecipients.value.length) return false;
   if (!subject.value.trim()) return false;
   if (!sections.value.some(s => s.text.trim())) return false;
   return true;
@@ -284,7 +300,7 @@ async function handleSend() {
   sendSuccess.value = false;
 
   const formData = new FormData();
-  formData.append('recipient_email', recipient.value.trim());
+  appendEmailRecipients(formData, toRecipients.value, ccRecipients.value);
   formData.append('subject', subject.value.trim());
   formData.append('greeting', greeting.value.trim());
   formData.append('sections', JSON.stringify(
@@ -313,6 +329,7 @@ async function handleSend() {
 }
 
 function resetForm() {
+  ccRecipients.value = [];
   subject.value = '';
   greeting.value = defaultGreeting.value;
   footer.value = defaultFooter.value;
@@ -348,7 +365,12 @@ function templateLabel(key) { return TEMPLATE_LABELS[key] || key; }
 async function loadDefaults() {
   const result = await store.fetchEmailDefaults(props.diagnostic.id);
   if (result.success && result.data) {
-    if (result.data.recipient_email) recipient.value = result.data.recipient_email;
+    if (result.data.recipient_email) {
+      toRecipients.value = [emailRecipient(result.data.recipient_email, {
+        name: props.diagnostic.client?.name || '',
+        clientId: props.diagnostic.client?.id || null,
+      })];
+    }
     if (result.data.subject) subject.value = result.data.subject;
     if (result.data.greeting) {
       defaultGreeting.value = result.data.greeting;

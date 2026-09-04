@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin sends a branded email with document PDFs attached from the documents list: actions sheet -> 'Enviar por correo' opens SendDocumentEmailModal -> POST /api/emails/send/ with document_ids. After delivery, an in-modal step identifies eligible document targets and offers to open Enviado episodes with origin=email; sending remains successful if the optional state transition is declined.",
+  "description": "Admin sends one branded email with document PDFs attached from the documents list to multiple Para recipients and optional visible CC recipients selected from registered clients or entered manually (10 unique addresses total). The actions sheet opens SendDocumentEmailModal, which posts recipient_emails, cc_emails and document_ids to /api/emails/send/. After delivery, an in-modal step offers to open Enviado episodes with origin=email; declining that optional transition does not undo the email.",
   "expectedSpecs": 1,
   "knownGaps": "Spec added 2026-07-22 (QA campaign): happy path, 429 rate-limited and generic-error branches over mocked API.",
   "outcomes": [

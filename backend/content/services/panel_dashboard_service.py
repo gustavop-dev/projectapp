@@ -156,10 +156,12 @@ def _additional_modules_summary():
 
 
 def _emails_summary(now):
-    last_30d = EmailLog.objects.filter(
+    from content.services.email_log_service import representative_delivery_queryset
+
+    last_30d = representative_delivery_queryset(EmailLog.objects.filter(
         sent_at__gte=now - timedelta(days=30),
         delivery_role=EmailLog.DeliveryRole.PRIMARY,
-    )
+    ))
     totals = last_30d.aggregate(
         total=Count('id'),
         sent_count=Count('id', filter=Q(status__in=EMAIL_OK_STATUSES)),
@@ -170,10 +172,10 @@ def _emails_summary(now):
         if totals['total'] else None
     )
     trend_rows = (
-        EmailLog.objects.filter(
+        representative_delivery_queryset(EmailLog.objects.filter(
             sent_at__gte=now - timedelta(days=14),
             delivery_role=EmailLog.DeliveryRole.PRIMARY,
-        )
+        ))
         .annotate(day=TruncDate('sent_at'))
         .values('day')
         .annotate(
@@ -258,11 +260,13 @@ def _attention_block(operations, today, now, *, include_finance):
             'meta': {},
         })
 
-    failed_emails_7d = EmailLog.objects.filter(
+    from content.services.email_log_service import representative_delivery_queryset
+
+    failed_emails_7d = representative_delivery_queryset(EmailLog.objects.filter(
         sent_at__gte=now - timedelta(days=7),
         status__in=EMAIL_FAILED_STATUSES,
         delivery_role=EmailLog.DeliveryRole.PRIMARY,
-    ).count()
+    )).count()
     if failed_emails_7d:
         items.append({
             'type': 'emails_failed',
