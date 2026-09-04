@@ -183,6 +183,7 @@ for (const profile of RESPONSIVE_PROFILES) {
 
     test('candidate grouping controls remain reachable', { tag: ['@flow:admin-accounting-receivables', '@outcome:display', '@responsive-special:accounting', `@viewport:${profile}`, '@responsive-batch:accounting-special-4'] }, async ({ page }) => {
       await setup(page);
+      // quality: allow-deep-link (the catalog flow covers panel entry; this special isolates modal controls across responsive profiles)
       await page.goto('/en-us/panel/accounting', { waitUntil: 'domcontentloaded' });
       await page.getByTestId('accounting-card-receivables').click();
       const dialog = page.getByRole('dialog', { name: 'Pendientes por cobrar', exact: true });

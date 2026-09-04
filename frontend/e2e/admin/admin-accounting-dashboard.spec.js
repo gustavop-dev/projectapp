@@ -363,6 +363,7 @@ test.describe('Admin Accounting Dashboard', () => {
     tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
+    // quality: allow-deep-link (dashboard navigation is covered separately; this test isolates the modal floating-layer contract)
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('accounting-card-receivables').click();
 
@@ -380,6 +381,7 @@ test.describe('Admin Accounting Dashboard', () => {
     tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
+    // quality: allow-deep-link (dashboard navigation is covered separately; this test isolates the receivables grouping controls)
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('accounting-card-receivables').click();
     await page.getByRole('tab', { name: /Gestionar candidatos/ }).click();
