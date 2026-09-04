@@ -417,6 +417,24 @@
           <p class="text-xs text-text-subtle mt-1">Si es mayor a 0, se enviará un email de urgencia con descuento 2 días antes de expirar. 0 = sin descuento.</p>
         </div>
 
+        <div class="space-y-2 border-t border-input-border pt-4">
+          <label for="create-email-intro" class="block text-sm font-medium text-text-default">
+            Mensaje personalizado del correo de envío
+          </label>
+          <p class="text-xs leading-relaxed text-text-muted">
+            Explica el problema concreto del cliente, cómo lo resuelve esta propuesta y el resultado de negocio esperado. Puedes guardar el borrador vacío, pero necesitarás este mensaje para enviarlo.
+          </p>
+          <textarea
+            id="create-email-intro"
+            v-model="form.email_intro"
+            rows="6"
+            class="w-full resize-y rounded-xl border border-input-border bg-input-bg px-4 py-2.5 text-sm text-input-text placeholder-input-placeholder outline-none focus:border-focus-ring focus:ring-2 focus:ring-focus-ring/30"
+            placeholder="Ej. Esta propuesta resuelve… mediante… para lograr…"
+            data-testid="create-email-intro"
+          ></textarea>
+          <p class="text-xs text-text-subtle">Texto plano con saltos de línea; no HTML ni Markdown.</p>
+        </div>
+
         <!-- Email design metadata -->
         <div class="space-y-3 pt-4 border-t border-input-border">
           <div>
@@ -731,6 +749,23 @@
                 />
               </div>
             </div>
+          </div>
+
+          <div>
+            <label for="json-email-intro" class="block text-xs font-medium text-text-muted mb-1">
+              Mensaje personalizado del correo de envío
+            </label>
+            <p class="text-xs leading-relaxed text-text-muted mb-2">
+              Se toma de <code>_meta.optional_metadata.email_intro</code>. Debe conectar problema, solución y resultado de negocio antes de enviar.
+            </p>
+            <textarea
+              id="json-email-intro"
+              v-model="jsonForm.email_intro"
+              rows="6"
+              class="w-full resize-y rounded-xl border border-input-border bg-input-bg px-4 py-2.5 text-sm text-input-text placeholder-input-placeholder outline-none focus:border-focus-ring focus:ring-2 focus:ring-focus-ring/30"
+              placeholder="Ej. Esta propuesta resuelve… mediante… para lograr…"
+              data-testid="json-email-intro"
+            ></textarea>
           </div>
 
           <!-- Investment + Currency -->
@@ -1280,6 +1315,7 @@ const form = reactive({
   urgency_reminder_days: 15,
   discount_percent: 0,
   show_contract_terms: true,
+  email_intro: '',
   email_features: [],
   email_method_phases: [
     { number: '01', title: 'Diagnóstico', duration: '', description: 'Mapeo de procesos y alcance final.' },
@@ -1322,10 +1358,17 @@ function onCreateInlineClient(typedName) {
 }
 
 const canSendDirectly = computed(() => {
-  return !!(form.client_email && form.client_name && form.total_investment > 0);
+  const candidate = mode.value === 'json' ? jsonForm : form;
+  return !!(
+    candidate.client_email
+    && candidate.client_name
+    && candidate.total_investment > 0
+    && candidate.email_intro?.trim()
+  );
 });
 
 function sanitizeEmailMetadata(payload) {
+  payload.email_intro = (payload.email_intro || '').trim();
   payload.email_features = (payload.email_features || [])
     .map((f) => (typeof f === 'string' ? f.trim() : ''))
     .filter(Boolean);
@@ -1427,6 +1470,7 @@ const jsonForm = reactive({
   urgency_reminder_days: 15,
   discount_percent: 0,
   show_contract_terms: true,
+  email_intro: '',
 });
 
 const jsonPreview = computed(() => {
@@ -1538,8 +1582,13 @@ function parseJson() {
   jsonForm.total_investment = parseInvestmentString(parsed.investment?.totalInvestment);
   jsonForm.currency = parsed.investment?.currency || 'COP';
 
-  const meta = parsed._meta?.optional_metadata || {};
+  const rawMeta = parsed._meta || {};
+  const meta = {
+    ...(rawMeta.optional_metadata || {}),
+    ...rawMeta,
+  };
   if (meta.client_email) jsonForm.client_email = meta.client_email;
+  if (typeof meta.email_intro === 'string') jsonForm.email_intro = meta.email_intro;
   if (meta.client_phone) jsonForm.client_phone = meta.client_phone;
   if (meta.client_company) jsonForm.client_company = meta.client_company;
   if (meta.project_type) jsonForm.project_type = meta.project_type;
@@ -1614,6 +1663,7 @@ async function handleJsonSubmit() {
     title: jsonForm.title,
     client_name: jsonForm.client_name,
     client_email: jsonForm.client_email || '',
+    email_intro: (jsonForm.email_intro || '').trim(),
     client_phone: jsonForm.client_phone || '',
     client_company: jsonForm.client_company || '',
     project_type: jsonForm.project_type || '',

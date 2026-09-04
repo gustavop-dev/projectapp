@@ -118,6 +118,28 @@ class TestBulkActionResend:
         assert response.data['affected'] == 0
         mock_resend.assert_not_called()
 
+    @patch('content.services.proposal_service.ProposalService.resend_proposal')
+    def test_missing_message_prevents_bulk_resend_side_effects(
+        self, mock_resend, admin_client, db,
+    ):
+        proposal = BusinessProposal.objects.create(
+            title='Sin mensaje',
+            client_name='Client',
+            client_email='client@example.com',
+            email_intro=' ',
+            status='sent',
+        )
+
+        response = admin_client.post(BULK_URL, {
+            'ids': [proposal.id],
+            'action': 'resend',
+        }, format='json')
+
+        assert response.status_code == 400
+        assert response.data['code'] == 'missing_email_intro'
+        assert 'Correos' in response.data['hint']
+        mock_resend.assert_not_called()
+
     @patch('content.services.proposal_service.ProposalService.resend_proposal', side_effect=Exception('SMTP error'))
     def test_resend_failure_does_not_crash(self, mock_resend, admin_client, sent_proposal):
         response = admin_client.post(BULK_URL, {

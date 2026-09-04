@@ -15,6 +15,7 @@ const currentProposal = {
   client: { id: 55 },
   client_name: 'ACME Corp',
   client_email: 'acme@test.com',
+  email_intro: 'La primera fase resuelve el registro manual de ACME.',
 }
 
 const proposal = (overrides = {}) => ({
@@ -26,6 +27,7 @@ const proposal = (overrides = {}) => ({
   expires_at: null,
   is_expired: false,
   days_remaining: null,
+  email_intro: 'Esta fase resuelve el siguiente cuello de botella de ACME.',
   ...overrides,
 })
 
@@ -93,6 +95,23 @@ describe('ProposalMultiSendModal', () => {
     await wrapper.get('[data-testid="proposal-multi-send-option-2"]').setValue(true)
 
     expect(wrapper.get('[data-testid="proposal-multi-send-confirm"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('blocks the selected set when one proposal has no personalized message', async () => {
+    const { wrapper, store } = mountModal({
+      candidates: [
+        ...CANDIDATES.filter((item) => item.id !== 2),
+        proposal({ id: 2, title: 'Fase sin mensaje', email_intro: '   ' }),
+      ],
+    })
+    await open(wrapper)
+
+    await wrapper.get('[data-testid="proposal-multi-send-option-2"]').setValue(true)
+
+    expect(wrapper.get('[data-testid="proposal-multi-send-missing-message"]').text()).toContain('1 propuesta seleccionada')
+    expect(wrapper.get('[data-testid="proposal-multi-send-confirm"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Completar en Correos')
+    expect(store.sendMultiProposal).not.toHaveBeenCalled()
   })
 
   it('filters out terminal statuses from the candidate list', async () => {

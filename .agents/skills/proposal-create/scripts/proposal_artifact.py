@@ -58,6 +58,8 @@ PLACEHOLDER_RE = re.compile(
 )
 FLOW_KEY_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+HTML_TAG_RE = re.compile(r"<\s*/?\s*[a-z][^>]*>", re.IGNORECASE)
+MARKDOWN_RE = re.compile(r"(?:\*\*|__|`|!?\[[^\]]+\]\([^)]+\)|^\s{0,3}#{1,6}\s)", re.MULTILINE)
 
 
 class ProposalArtifactError(RuntimeError):
@@ -165,10 +167,12 @@ def build_payload(
 ) -> dict[str, Any]:
     proposal = manifest.get("proposal") or {}
     defaults = runtime_defaults or {}
+    optional_metadata = (artifact.get("_meta") or {}).get("optional_metadata") or {}
     payload = {
         "title": proposal.get("title", ""),
         "client_name": proposal.get("client_name", ""),
         "client_email": proposal.get("client_email", ""),
+        "email_intro": optional_metadata.get("email_intro", ""),
         "client_phone": proposal.get("client_phone", ""),
         "client_company": proposal.get("client_company", ""),
         "project_type": proposal.get("project_type", ""),
@@ -339,6 +343,26 @@ def _manifest_audit(manifest: dict[str, Any], result: AuditResult) -> None:
         result.fail("ROI", "falta roi.enabled")
     elif roi.get("enabled") != visibility.get("roi_projection"):
         result.fail("ROI_VISIBILITY", "roi.enabled y visibilidad no coinciden")
+
+
+def _email_intro_audit(artifact: dict[str, Any], result: AuditResult) -> None:
+    metadata = artifact.get("_meta")
+    if not isinstance(metadata, dict):
+        result.fail("EMAIL_INTRO_META", "falta _meta")
+        return
+    optional_metadata = metadata.get("optional_metadata")
+    if not isinstance(optional_metadata, dict):
+        result.fail("EMAIL_INTRO_META", "falta _meta.optional_metadata")
+        return
+    email_intro = optional_metadata.get("email_intro")
+    if not isinstance(email_intro, str) or not email_intro.strip():
+        result.fail("EMAIL_INTRO", "_meta.optional_metadata.email_intro es obligatorio")
+        return
+    if HTML_TAG_RE.search(email_intro):
+        result.fail("EMAIL_INTRO_HTML", "email_intro debe ser texto plano")
+    if MARKDOWN_RE.search(email_intro):
+        result.fail("EMAIL_INTRO_MARKDOWN", "email_intro no admite Markdown")
+    result.details["email_intro_chars"] = len(email_intro.strip())
 
 
 def _functional_requirements_audit(
@@ -707,6 +731,7 @@ def audit_artifact(
     result = AuditResult()
     _manifest_audit(manifest, result)
     _section_shape_audit(artifact, template, result)
+    _email_intro_audit(artifact, result)
 
     general = artifact.get("general") or {}
     proposal = manifest.get("proposal") or {}
@@ -765,6 +790,10 @@ def live_template(
         "optional_metadata": {
             "title": "Propuesta de ... — Client Name",
             "client_email": "client@example.com",
+            "email_intro": (
+                "Mensaje específico en texto plano: problema del cliente, "
+                "solución propuesta y resultado de negocio esperado."
+            ),
             "language": language,
             "total_investment": 0,
             "currency": "COP | USD",

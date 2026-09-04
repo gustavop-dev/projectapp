@@ -93,6 +93,12 @@
                 >
                   Se reabrirá
                 </span>
+                <span
+                  v-if="!hasEmailIntro(p)"
+                  class="rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning-strong"
+                >
+                  Falta mensaje
+                </span>
               </div>
               <div class="flex items-center gap-3 mt-1 text-xs text-text-muted">
                 <span>{{ formatMoney(p.total_investment, p.currency) }}</span>
@@ -101,8 +107,30 @@
                   {{ p.is_expired ? 'Expirada' : `Vence en ${p.days_remaining} día${p.days_remaining === 1 ? '' : 's'}` }}
                 </span>
               </div>
+              <a
+                v-if="!hasEmailIntro(p)"
+                :href="`/panel/proposals/${p.id}/edit?tab=emails`"
+                target="_blank"
+                rel="noopener"
+                class="mt-2 inline-flex text-xs font-medium text-text-brand hover:underline"
+                @click.stop
+              >
+                Completar en Correos
+              </a>
             </div>
           </label>
+        </div>
+
+        <div
+          v-if="selectedMissingMessages.length"
+          class="rounded-xl border border-warning-strong/30 bg-warning-soft px-4 py-3"
+          role="alert"
+          data-testid="proposal-multi-send-missing-message"
+        >
+          <p class="text-sm font-medium text-warning-strong">
+            {{ selectedMissingMessages.length }} propuesta{{ selectedMissingMessages.length === 1 ? '' : 's' }} seleccionada{{ selectedMissingMessages.length === 1 ? '' : 's' }} sin mensaje personalizado.
+          </p>
+          <p class="mt-1 text-xs text-warning-strong">Completa cada mensaje en Correos antes del envío conjunto.</p>
         </div>
       </div>
     </div>
@@ -205,9 +233,25 @@ const hasAnyProposals = computed(() =>
 );
 
 const selectedCount = computed(() => selectedIds.value.size);
-const canSend = computed(
-  () => selectedCount.value >= 2 && selectedCount.value <= MAX_PROPOSALS_PER_EMAIL,
+const selectedProposals = computed(() => {
+  const byId = new Map(candidates.value.map((proposal) => [proposal.id, proposal]));
+  if (props.currentProposal?.id) byId.set(props.currentProposal.id, props.currentProposal);
+  return Array.from(selectedIds.value)
+    .map((id) => byId.get(id))
+    .filter(Boolean);
+});
+const selectedMissingMessages = computed(() =>
+  selectedProposals.value.filter((proposal) => !hasEmailIntro(proposal)),
 );
+const canSend = computed(
+  () => selectedCount.value >= 2
+    && selectedCount.value <= MAX_PROPOSALS_PER_EMAIL
+    && selectedMissingMessages.value.length === 0,
+);
+
+function hasEmailIntro(proposal) {
+  return Boolean((proposal?.email_intro || '').trim());
+}
 
 function isSelected(id) {
   return selectedIds.value.has(id);

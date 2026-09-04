@@ -9,10 +9,11 @@ allowed-tools: Bash, Read, Write, WebSearch, WebFetch, AskUserQuestion
 Crea propuestas nuevas sin convertir un brief incompleto en hechos inventados. El resultado normal es:
 
 1. decisiones comerciales confirmadas;
-2. JSON importable en ProjectApp;
-3. manifiesto de decisiones no representadas completamente por el JSON;
-4. auditoría mecánica aprobada;
-5. si el operador lo autoriza después de revisar el resumen, un borrador sin enviar.
+2. mensaje personalizado que explica qué resuelve la propuesta para el cliente;
+3. JSON importable en ProjectApp;
+4. manifiesto de decisiones no representadas completamente por el JSON;
+5. auditoría mecánica aprobada;
+6. si el operador lo autoriza después de revisar el resumen, un borrador sin enviar.
 
 Esta skill es de invocación explícita. Nunca actualiza propuestas existentes, envía correos ni cambia el estado a `sent`.
 
@@ -58,6 +59,7 @@ Trabaja a partir de la plantilla exportada, preservando sus secciones, claves, t
 - Guarda el JSON en `proposal-artifacts/<slug>_<dd_mm_yyyy>.json`.
 - Guarda el manifiesto en `proposal-artifacts/<slug>_<dd_mm_yyyy>.manifest.json`.
 - El JSON contiene la propuesta visible/importable.
+- `_meta.optional_metadata.email_intro` contiene un mensaje específico en texto plano que conecta problema, solución y resultado de negocio; nunca lo dejes como copy genérico.
 - El manifiesto contiene metadata operativa y decisiones explícitas: entorno, precio base/total cotizado, pagos, hosting, visibilidad, ROI y módulos.
 - Mantén `functionalRequirements` y `technicalDocument` enlazados mediante IDs estables.
 - Genera siempre el detalle técnico. Si será interno, deshabilita su sección en el manifiesto, pero no lo dejes vacío.
@@ -72,6 +74,7 @@ Ejecuta el auditor siguiendo `references/draft-creation.md`. Un `AUDIT_FAIL` obl
 Cuando obtengas `AUDIT_PASS`, presenta un resumen que permita aprobar sin leer todo el JSON:
 
 - cliente, objetivo y alcance;
+- mensaje personalizado del correo de envío;
 - inversión base, módulos con recargo y total efectivo;
 - cuotas y hitos;
 - hosting;
@@ -95,12 +98,13 @@ Después de una aprobación explícita posterior al resumen, ejecuta el comando 
 - persistir una selección de módulos confirmada, incluso si está vacía;
 - aplicar hosting y visibilidad desde el manifiesto;
 - verificar el total efectivo y el estado final;
+- verificar que el mensaje personalizado se persistió exactamente;
 - devolver únicamente la URL administrativa, sin abrir la URL pública.
 
 Si la creación falla, conserva los artefactos, reporta el error y no intentes rutas de escritura alternativas.
 
 ## Condiciones de salida
 
-Una ejecución queda completa como artefacto cuando existen JSON, manifiesto y `AUDIT_PASS`. Solo queda completa como borrador cuando, además, la verificación confirma `draft`, automatizaciones pausadas, selección exacta de módulos y total efectivo correcto.
+Una ejecución queda completa como artefacto cuando existen JSON, manifiesto, un `email_intro` específico y `AUDIT_PASS`. Solo queda completa como borrador cuando, además, la verificación confirma `draft`, automatizaciones pausadas, selección exacta de módulos, mensaje persistido y total efectivo correcto.
 
 Indica siempre si el resultado fue `artefacto auditado` o `borrador creado`. Nunca digas que la propuesta fue enviada.

@@ -10,7 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from freezegun import freeze_time
 
-from content.models import BusinessProposal, ProposalDefaultConfig
+from content.api_errors import ProposalActionError
+from content.models import BusinessProposal, ProposalChangeLog, ProposalDefaultConfig
 from content.services.proposal_service import (
     ProposalService,
     normalize_hosting_plan,
@@ -737,6 +738,27 @@ class TestSendProposal:
         proposal.refresh_from_db()
         assert proposal.status == 'draft'
 
+    @patch('content.services.proposal_snapshot_service.prepare_proposal_snapshots')
+    @patch('content.utils.validate_email_domain_mx', return_value=True)
+    def test_missing_email_intro_blocks_before_snapshot(
+        self, _mock_mx, mock_prepare,
+    ):
+        proposal = BusinessProposal.objects.create(
+            title='Missing Message',
+            client_name='Client',
+            client_email='client@example.com',
+            email_intro='   ',
+        )
+
+        with pytest.raises(ProposalActionError) as exc_info:
+            ProposalService.send_proposal(proposal)
+
+        assert exc_info.value.code == 'missing_email_intro'
+        mock_prepare.assert_not_called()
+        proposal.refresh_from_db()
+        assert proposal.status == BusinessProposal.Status.DRAFT
+        assert proposal.sent_at is None
+
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_sets_status_to_sent(self, mock_reminder, mock_urgency):
@@ -746,6 +768,7 @@ class TestSendProposal:
             title='Send Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
         )
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
@@ -762,6 +785,7 @@ class TestSendProposal:
             title='Timestamp Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
         )
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
@@ -780,6 +804,7 @@ class TestSendProposal:
             title='Reminder Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
             reminder_days=10,
             urgency_reminder_days=15,
         )
@@ -802,6 +827,7 @@ class TestSendProposal:
             title='Auto Expiry Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
         )
         assert proposal.expires_at is None
         ProposalService.send_proposal(proposal)
@@ -820,6 +846,7 @@ class TestSendProposal:
             title='Exception Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
         )
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
@@ -841,6 +868,71 @@ class TestResendProposal:
         proposal.refresh_from_db()
         assert proposal.status == 'sent'
 
+    @patch('content.services.proposal_snapshot_service.prepare_proposal_snapshots')
+    @patch('content.utils.validate_email_domain_mx', return_value=True)
+    def test_blank_replacement_keeps_saved_message(
+        self, _mock_mx, mock_prepare,
+    ):
+        proposal = BusinessProposal.objects.create(
+            title='Resend Guard',
+            client_name='Client',
+            client_email='client@example.com',
+            email_intro='Mensaje anterior que sigue siendo válido.',
+            status='sent',
+        )
+
+        with pytest.raises(ProposalActionError) as exc_info:
+            ProposalService.resend_proposal(proposal, email_intro='   ')
+
+        assert exc_info.value.code == 'missing_email_intro'
+        mock_prepare.assert_not_called()
+        proposal.refresh_from_db()
+        assert proposal.email_intro == 'Mensaje anterior que sigue siendo válido.'
+
+    @patch.object(ProposalService, '_schedule_email_tasks')
+    @patch.object(
+        ProposalService,
+        '_send_initial_email',
+        return_value={'ok': True, 'reason': 'sent', 'detail': ''},
+    )
+    @patch('content.services.proposal_snapshot_service.finalize_proposal_snapshots')
+    @patch('content.services.proposal_snapshot_service.prepare_proposal_snapshots')
+    @patch('content.utils.validate_email_domain_mx', return_value=True)
+    def test_replacement_is_saved_before_delivery(
+        self,
+        _mock_mx,
+        mock_prepare,
+        mock_finalize,
+        mock_send,
+        _mock_schedule,
+    ):
+        snapshot = object()
+        mock_prepare.return_value = [snapshot]
+        proposal = BusinessProposal.objects.create(
+            title='Editable Resend',
+            client_name='Client',
+            client_email='client@example.com',
+            email_intro='Mensaje anterior.',
+            status='viewed',
+        )
+
+        result = ProposalService.resend_proposal(
+            proposal,
+            email_intro='  Mensaje nuevo que resuelve el proceso.  ',
+        )
+
+        proposal.refresh_from_db()
+        assert result['ok'] is True
+        assert proposal.email_intro == 'Mensaje nuevo que resuelve el proceso.'
+        mock_send.assert_called_once_with(proposal, snapshot=snapshot)
+        mock_finalize.assert_called_once()
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal,
+            field_name='email_intro',
+            old_value='Mensaje anterior.',
+            new_value='Mensaje nuevo que resuelve el proceso.',
+        ).exists()
+
     @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
@@ -853,6 +945,7 @@ class TestResendProposal:
             title='Resend Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
             status='viewed',
             expires_at=original_expiry,
         )
@@ -877,6 +970,7 @@ class TestResendProposal:
             title='Reset Fields Test',
             client_name='Client',
             client_email='client@test.com',
+            email_intro='Esta propuesta resuelve el proceso principal del cliente.',
             status='viewed',
             expires_at=now + timedelta(days=30),
             reminder_sent_at=now - timedelta(days=2),
@@ -889,6 +983,36 @@ class TestResendProposal:
         assert proposal.sent_at == now
         mock_reminder.schedule.assert_called_once()
         mock_urgency.schedule.assert_called_once()
+
+
+class TestSendMultiProposalMessageGuard:
+    @patch('content.services.proposal_snapshot_service.prepare_proposal_snapshots')
+    @patch('content.utils.validate_email_domain_mx', return_value=True)
+    def test_missing_message_blocks_every_proposal_before_snapshot(
+        self, _mock_mx, mock_prepare,
+    ):
+        ready = BusinessProposal.objects.create(
+            title='Fase lista',
+            client_name='Client',
+            client_email='client@example.com',
+            email_intro='Esta fase resuelve el registro manual.',
+        )
+        missing = BusinessProposal.objects.create(
+            title='Fase incompleta',
+            client_name='Client',
+            client_email='client@example.com',
+            email_intro='',
+        )
+
+        with pytest.raises(ProposalActionError) as exc_info:
+            ProposalService.send_multi_proposals([ready, missing])
+
+        assert exc_info.value.code == 'missing_email_intro'
+        mock_prepare.assert_not_called()
+        ready.refresh_from_db()
+        missing.refresh_from_db()
+        assert ready.status == BusinessProposal.Status.DRAFT
+        assert missing.status == BusinessProposal.Status.DRAFT
 
 
 class TestRecordView:

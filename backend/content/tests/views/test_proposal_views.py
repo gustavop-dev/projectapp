@@ -963,6 +963,21 @@ class TestCreateProposalFromJSON:
         response = admin_client.post(url, self._minimal_payload(), format='json')
         assert response.data['title'] == 'JSON Proposal'
 
+    def test_persists_personalized_email_message(self, admin_client):
+        payload = self._minimal_payload()
+        payload['email_intro'] = (
+            'Esta propuesta elimina la captura manual para acelerar la operación.'
+        )
+
+        response = admin_client.post(
+            reverse('create-proposal-from-json'), payload, format='json',
+        )
+
+        assert response.status_code == 201
+        proposal = BusinessProposal.objects.get(pk=response.data['id'])
+        assert proposal.email_intro == payload['email_intro']
+        assert response.data['email_intro'] == payload['email_intro']
+
     def test_creates_default_sections_count_matches_expected(self, admin_client):
         """JSON import creates all default sections (see EXPECTED_DEFAULT_SECTION_COUNT)."""
         url = reverse('create-proposal-from-json')
@@ -1260,6 +1275,16 @@ class TestExportProposalJSON:
         assert response.data['_meta']['title'] == proposal.title
         assert response.data['_meta']['client_name'] == proposal.client_name
 
+    def test_contains_personalized_email_message(
+        self, admin_client, proposal, proposal_section,
+    ):
+        proposal.email_intro = 'Mensaje que explica el resultado para el cliente.'
+        proposal.save(update_fields=['email_intro'])
+
+        response = admin_client.get(self._url(proposal.id))
+
+        assert response.data['_meta']['email_intro'] == proposal.email_intro
+
     def test_contains_section_keys(self, admin_client, proposal, proposal_section):
         response = admin_client.get(self._url(proposal.id))
         assert 'general' in response.data
@@ -1334,6 +1359,22 @@ class TestUpdateProposalFromJSON:
             self._url(proposal.id), self._minimal_payload(), format='json',
         )
         assert response.data['client_name'] == 'Updated Client'
+
+    def test_updates_personalized_email_message(
+        self, admin_client, proposal, proposal_section,
+    ):
+        payload = self._minimal_payload()
+        payload['email_intro'] = (
+            'La solución centraliza solicitudes para reducir tiempos de respuesta.'
+        )
+
+        response = admin_client.put(
+            self._url(proposal.id), payload, format='json',
+        )
+
+        assert response.status_code == 200
+        proposal.refresh_from_db()
+        assert proposal.email_intro == payload['email_intro']
 
     def test_updates_section_content_json(self, admin_client, proposal, proposal_section):
         payload = self._minimal_payload()
@@ -2159,10 +2200,31 @@ class TestResendProposal:
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_resends_proposal_returns_200(self, mock_resend, admin_client, sent_proposal):
         mock_resend.return_value = {'ok': True, 'reason': 'sent', 'detail': ''}
-        response = admin_client.post(self._url(sent_proposal.id))
+        message = 'Mensaje editado para el nuevo envío.'
+        response = admin_client.post(
+            self._url(sent_proposal.id),
+            {'email_intro': message},
+            format='json',
+        )
         assert response.status_code == 200
         assert response.data['email_delivery']['ok'] is True
-        mock_resend.assert_called_once()
+        mock_resend.assert_called_once_with(
+            sent_proposal,
+            acting_user=response.wsgi_request.user,
+            email_intro=message,
+        )
+
+    @patch('content.services.proposal_service.ProposalService.resend_proposal')
+    def test_rejects_non_text_message(self, mock_resend, admin_client, sent_proposal):
+        response = admin_client.post(
+            self._url(sent_proposal.id),
+            {'email_intro': {'unexpected': 'object'}},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['code'] == 'invalid_resend_payload'
+        mock_resend.assert_not_called()
 
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_creates_change_log_entry(self, mock_resend, admin_client, sent_proposal):
@@ -4270,6 +4332,22 @@ class TestConditionalAcceptance:
 # ---------------------------------------------------------------------------
 
 class TestScorecardReadsFromSectionContent:
+    def test_scorecard_marks_personalized_message_as_blocking(self, admin_client, proposal):
+        proposal.email_intro = ''
+        proposal.save(update_fields=['email_intro'])
+
+        response = admin_client.get(
+            reverse('proposal-scorecard', kwargs={'proposal_id': proposal.id}),
+        )
+
+        checks = {check['key']: check for check in response.data['checks']}
+        assert checks['email_intro'] == {
+            'key': 'email_intro',
+            'label': 'Mensaje personalizado del correo',
+            'passed': False,
+            'blocker': True,
+        }
+
     @freeze_time('2026-03-01 12:00:00')
     def test_scorecard_passes_payment_options_from_investment_section(self, admin_client, db):
         """Scorecard payment_options check reads from investment section content_json."""

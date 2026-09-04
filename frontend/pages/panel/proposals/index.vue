@@ -17,6 +17,12 @@
       @confirm="handleContractConfirmFromList"
       @cancel="showContractModal = false; contractModalProposal = null"
     />
+    <ProposalResendModal
+      :visible="Boolean(resendModalProposal)"
+      :proposal="resendModalProposal || {}"
+      @close="resendModalProposal = null"
+      @resent="handleResendComplete"
+    />
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-text-default">Propuestas</h1>
       <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
@@ -530,6 +536,7 @@ import { computed, onMounted, reactive, ref, resolveComponent } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
+import ProposalResendModal from '~/components/BusinessProposal/admin/ProposalResendModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
@@ -584,6 +591,7 @@ function handleSelectTab(tabId) {
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const notify = usePanelNotify();
 const actionsModalProposal = ref(null);
+const resendModalProposal = ref(null);
 const copiedId = ref(null);
 const sendConfirmId = ref(null);
 const isSending = ref(false);
@@ -646,9 +654,14 @@ const expandedAlertGroups = ref(new Set());
 // Fed the FULL store list, not the page: the selection spans pages, so only a
 // proposal that stopped existing may drop out of it. Deleting one used to
 // leave its id behind and the batch bar went on counting it.
-const { selectedIds, clearSelection } = useRowSelection(
+const { selectedIds, selectedSet, clearSelection } = useRowSelection(
   () => proposalStore.proposals,
 );
+const selectedResendWithoutMessage = computed(() => proposalStore.proposals.filter(
+  (proposal) => selectedSet.value.has(proposal.id)
+    && ['sent', 'viewed'].includes(proposal.status)
+    && !(proposal.email_intro || '').trim(),
+));
 const isBulkActing = ref(false);
 const isRefreshing = ref(false);
 
@@ -667,6 +680,18 @@ const quickLogOpen = computed({
 
 function handleBulkAction(action) {
   const ids = [...selectedIds.value];
+  if (action === 'resend' && selectedResendWithoutMessage.value.length) {
+    const first = selectedResendWithoutMessage.value[0];
+    notify.warning({
+      title: 'Hay propuestas sin mensaje personalizado.',
+      detail: 'Completa cada mensaje en la pestaña Correos antes del reenvío masivo.',
+      action: {
+        label: 'Completar primero',
+        handler: () => router.push(localePath(`/panel/proposals/${first.id}/edit?tab=emails`)),
+      },
+    });
+    return;
+  }
   const labels = { delete: 'eliminar', expire: 'expirar', resend: 're-enviar' };
   requestConfirm({
     title: `${(labels[action] || action).charAt(0).toUpperCase() + (labels[action] || action).slice(1)} propuestas`,
@@ -686,7 +711,14 @@ function handleBulkAction(action) {
 }
 
 const bulkActionItems = computed(() => [
-  { label: 'Re-enviar', disabled: isBulkActing.value, description: isBulkActing.value ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulkAction('resend') },
+  {
+    label: 'Re-enviar',
+    disabled: isBulkActing.value || selectedResendWithoutMessage.value.length > 0,
+    description: selectedResendWithoutMessage.value.length
+      ? 'Completa el mensaje personalizado de todas las propuestas seleccionadas.'
+      : (isBulkActing.value ? 'Otra acción masiva está en curso.' : ''),
+    onClick: () => handleBulkAction('resend'),
+  },
   { label: 'Expirar', disabled: isBulkActing.value, description: isBulkActing.value ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulkAction('expire') },
   { divider: true },
   { label: 'Eliminar', danger: true, disabled: isBulkActing.value, description: isBulkActing.value ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulkAction('delete') },
@@ -1223,6 +1255,18 @@ function handleResetFilters() {
 }
 
 function handleSend(id) {
+  const proposal = proposals.value.find((item) => item.id === id);
+  if (proposal && !(proposal.email_intro || '').trim()) {
+    notify.warning({
+      title: 'Falta el mensaje personalizado del correo.',
+      detail: 'Escribe qué resuelve la propuesta antes de enviarla.',
+      action: {
+        label: 'Ir a Correos',
+        handler: () => router.push(localePath(`/panel/proposals/${id}/edit?tab=emails`)),
+      },
+    });
+    return;
+  }
   sendConfirmId.value = id;
 }
 
@@ -1250,26 +1294,18 @@ async function confirmSend() {
 }
 
 function handleResend(id) {
-  requestConfirm({
-    title: 'Re-enviar propuesta',
-    message: '¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.',
-    variant: 'info',
-    confirmText: 'Re-enviar',
-    onConfirm: async () => {
-      const result = await proposalStore.resendProposal(id);
-      proposalStore.fetchProposals();
-      if (result.success) {
-        const ed = result.email_delivery;
-        if (ed && ed.ok === false) {
-          notifyEmailFailure(id, ed, 'Reenvío registrado');
-        } else {
-          notify.success({ title: 'Propuesta re-enviada al cliente' });
-        }
-      } else {
-        notifyFailure(result, { title: 'No se pudo re-enviar la propuesta', proposalId: id });
-      }
-    },
-  });
+  resendModalProposal.value = proposals.value.find((proposal) => proposal.id === id) || null;
+}
+
+function handleResendComplete(result) {
+  const proposalId = resendModalProposal.value?.id;
+  proposalStore.fetchProposals();
+  const ed = result.email_delivery;
+  if (ed && ed.ok === false) {
+    notifyEmailFailure(proposalId, ed, 'Reenvío registrado');
+  } else {
+    notify.success({ title: 'Propuesta re-enviada al cliente' });
+  }
 }
 
 function handleToggleActive(id, currentlyActive) {

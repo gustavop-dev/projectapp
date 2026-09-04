@@ -66,6 +66,17 @@ class TestProposalsMcp:
         response = _call(api_client, token, 'get_proposal_template', {'lang': 'es'})
         text = response.data['result']['content'][0]['text']
         assert 'general.clientName' in text
+        assert 'email_intro' in text
+
+    def test_resend_tool_exposes_editable_message(self, api_client, proposals_connector):
+        _, token = proposals_connector
+
+        response = api_client.post(_url(token), _rpc('tools/list'), format='json')
+
+        tools = {tool['name']: tool for tool in response.data['result']['tools']}
+        schema = tools['resend_proposal']['inputSchema']
+        assert schema['properties']['email_intro']['type'] == 'string'
+        assert 'email_intro' not in schema['required']
 
     def test_create_requires_general_client_name(self, api_client, proposals_connector):
         _, token = proposals_connector
@@ -276,9 +287,13 @@ class TestProposalsMcpHandlers:
             title='Reenviar', client_name='C', status='sent',
         )
         _, token = proposals_connector
-        response = _call(api_client, token, 'resend_proposal', {'proposal_id': proposal.id})
+        message = 'El nuevo mensaje explica el resultado esperado.'
+        response = _call(api_client, token, 'resend_proposal', {
+            'proposal_id': proposal.id,
+            'email_intro': message,
+        })
         assert response.data['result']['isError'] is False
-        mock_resend.assert_called_once()
+        mock_resend.assert_called_once_with(proposal, email_intro=message)
 
     @mock.patch(
         'content.mcp.proposal_tools.ProposalService.resend_proposal',

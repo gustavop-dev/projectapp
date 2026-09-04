@@ -10,6 +10,7 @@ async function flushPromises() {
 }
 
 const proposalStore = {
+  updateProposal: jest.fn(),
   sendComposedEmail: jest.fn(),
   fetchEmailHistory: jest.fn(),
   fetchEmailDefaults: jest.fn(),
@@ -21,6 +22,14 @@ const baseProposal = {
   id: 42,
   client_name: 'Carlos',
   client_email: 'carlos@example.com',
+  email_intro: 'Esta propuesta centraliza las solicitudes para responder más rápido.',
+  status: 'sent',
+};
+
+const BaseTextareaStub = {
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
 };
 
 function buildHistoryEntry(overrides = {}) {
@@ -46,6 +55,9 @@ function mountTab(props = {}) {
       proposal: baseProposal,
       ...props,
     },
+    global: {
+      stubs: { BaseTextarea: BaseTextareaStub },
+    },
   });
 }
 
@@ -53,6 +65,7 @@ describe('ProposalEmailsTab', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     proposalStore.sendComposedEmail.mockReset();
+    proposalStore.updateProposal.mockReset();
     proposalStore.fetchEmailHistory.mockReset();
     proposalStore.fetchEmailDefaults.mockReset();
     proposalStore.fetchEmailDefaults.mockResolvedValue({
@@ -71,6 +84,7 @@ describe('ProposalEmailsTab', () => {
       },
     });
     proposalStore.sendComposedEmail.mockResolvedValue({ success: true });
+    proposalStore.updateProposal.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -87,6 +101,42 @@ describe('ProposalEmailsTab', () => {
     expect(proposalStore.fetchEmailHistory).toHaveBeenCalledWith(42, 1, 'proposal-email');
   });
 
+  it('lets a draft save an empty personalized message without loading follow-up data', async () => {
+    const wrapper = mountTab({
+      proposal: { ...baseProposal, status: 'draft', email_intro: '' },
+    });
+    await flushPromises();
+
+    expect(proposalStore.fetchEmailDefaults).not.toHaveBeenCalled();
+    expect(proposalStore.fetchEmailHistory).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('Requerido para enviar');
+
+    await wrapper.get('[data-testid="proposal-email-intro"]').setValue('   ');
+    await wrapper.get('[data-testid="proposal-email-intro-save"]').trigger('click');
+    await flushPromises();
+
+    expect(proposalStore.updateProposal).toHaveBeenCalledWith(42, { email_intro: '' });
+    expect(wrapper.emitted('email-intro-saved')[0]).toEqual(['']);
+  });
+
+  it('keeps an edited message visible when saving fails', async () => {
+    proposalStore.updateProposal.mockResolvedValueOnce({
+      success: false,
+      message: 'No fue posible guardar el mensaje.',
+    });
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const intro = wrapper.get('[data-testid="proposal-email-intro"]');
+    await intro.setValue('Mensaje nuevo para el cliente.');
+    await wrapper.get('[data-testid="proposal-email-intro-save"]').trigger('click');
+    await flushPromises();
+
+    expect(intro.element.value).toBe('Mensaje nuevo para el cliente.');
+    expect(wrapper.text()).toContain('No fue posible guardar el mensaje.');
+    expect(wrapper.emitted('email-intro-saved')).toBeUndefined();
+  });
+
   it('falls back to empty recipient and generic greeting when the proposal has no client data', async () => {
     proposalStore.fetchEmailDefaults.mockResolvedValueOnce({ success: true, data: {} });
     const wrapper = mountTab({
@@ -94,6 +144,8 @@ describe('ProposalEmailsTab', () => {
         id: 42,
         client_name: '',
         client_email: '',
+        email_intro: '',
+        status: 'sent',
       },
     });
     await flushPromises();
@@ -131,7 +183,7 @@ describe('ProposalEmailsTab', () => {
 
     const inputs = wrapper.findAll('input');
     await inputs[1].setValue('Asunto');
-    await wrapper.find('textarea').setValue('Contenido');
+    await wrapper.find('textarea[placeholder="Escribe el contenido de esta sección..."]').setValue('Contenido');
 
     expect(sendButton.attributes('disabled')).toBeUndefined();
   });
@@ -222,7 +274,7 @@ describe('ProposalEmailsTab', () => {
 
     const inputs = wrapper.findAll('input');
     await inputs[1].setValue('Seguimiento de propuesta');
-    await wrapper.find('textarea').setValue('Primer bloque');
+    await wrapper.find('textarea[placeholder="Escribe el contenido de esta sección..."]').setValue('Primer bloque');
 
     await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
     await flushPromises();
@@ -253,7 +305,7 @@ describe('ProposalEmailsTab', () => {
 
     const inputs = wrapper.findAll('input');
     await inputs[1].setValue('Seguimiento con adjunto');
-    await wrapper.find('textarea').setValue('Primer bloque');
+    await wrapper.find('textarea[placeholder="Escribe el contenido de esta sección..."]').setValue('Primer bloque');
     await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
     await flushPromises();
 
@@ -269,7 +321,7 @@ describe('ProposalEmailsTab', () => {
 
     const inputs = wrapper.findAll('input');
     await inputs[1].setValue('Seguimiento de propuesta');
-    await wrapper.find('textarea').setValue('Primer bloque');
+    await wrapper.find('textarea[placeholder="Escribe el contenido de esta sección..."]').setValue('Primer bloque');
 
     await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
     await flushPromises();

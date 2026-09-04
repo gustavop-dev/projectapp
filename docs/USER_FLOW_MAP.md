@@ -1411,15 +1411,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Description:** Admin sends a proposal email from the proposal edit page "Enviar correo" tab. Each send is logged as `ProposalChangeLog` activity.
-- **Visible when:** Proposal status in `sent`, `viewed`, `negotiating`, `accepted`, `rejected`
+- **Description:** The **Correos** tab is visible from draft onward. Its first card owns the editable plain-text personalized message used by initial send/re-send. After the first send, it also exposes the proposal follow-up composer; each follow-up is logged as `ProposalChangeLog` activity.
+- **Visible when:** Every proposal status; follow-up composer/history appear in `sent`, `viewed`, `negotiating`, `accepted`, and `rejected`.
 - **Steps:**
   1. Navigate to `/panel/proposals/:id/edit`
-  2. Click the "Enviar correo" tab
-  3. Fill same composer UI as branded email
-  4. Click "Enviar correo" → `POST /api/proposals/:id/proposal-email/send/`
-  5. Verify `ProposalChangeLog` entry created with `change_type=email_sent`
-  6. Verify `last_activity_at` updated on the proposal
+  2. Click the "Correos" tab
+  3. Write/preview/save the personalized initial-send message; a draft may save it empty but cannot be sent until completed
+  4. For an already-sent proposal, fill the follow-up composer and click "Enviar correo" → `POST /api/proposals/:id/proposal-email/send/`
+  5. Verify `ProposalChangeLog` entry created with `change_type=email_sent` and `last_activity_at` updated
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-email.spec.js`
 
@@ -3882,22 +3881,23 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/create` (JSON import tab)
-- **Description:** Admin creates a proposal by importing a pre-filled JSON payload (e.g., exported from a template). All 12 section `content_json` values are provided in the payload. Missing sections fall back to defaults.
+- **Description:** Admin creates a proposal by importing a pre-filled JSON payload. Alongside section data, `_meta.optional_metadata.email_intro` carries a generated plain-text message explaining the client's problem, this proposal's solution, and the expected outcome. The UI flattens that value to the API `email_intro` field; it remains editable later in **Correos**. Missing sections still fall back to defaults, while an omitted message is allowed only for a saved draft and blocks direct send.
 - **Steps:**
   1. Admin navigates to `/panel/proposals/create`.
   2. Admin clicks "Importar JSON" tab.
   3. JSON textarea/file input appears.
-  4. Admin pastes or loads a valid JSON payload (must include `sections.general.clientName`).
+  4. Admin pastes or loads a valid JSON payload (must include `sections.general.clientName`; generated artifacts should also include `_meta.optional_metadata.email_intro`).
   5. Admin submits.
   6. API call to `POST /api/proposals/create-from-json/` with `ProposalFromJSONSerializer` validation.
-  7. Backend creates proposal + all 12 sections with the provided `content_json`.
+  7. Backend creates the proposal, persists `email_intro`, and creates all section records with the provided `content_json`.
   8. Admin is redirected to `/panel/proposals/:id/edit`.
 - **Branches:**
   - [Branch A — Missing general key] Validation error `sections.general required`.
   - [Branch B — Past expires_at] Validation error on date.
   - [Branch C — Partial sections] Unspecified sections default to template defaults.
   - [Branch D — `_meta` key] Stripped from sections before saving.
-- **Coverage:** ✅ Covered
+  - [Branch E — Missing message] Draft creation remains valid, but "Crear y Enviar" stays unavailable until a message is provided.
+- **Coverage:** ✅ Covered — JSON flattening/persistence and direct-send gating are exercised in the create E2E spec; serializer/API persistence are pytest-covered.
 - **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
 
 ### FLOW: `admin-proposal-client-autocomplete`
@@ -4594,17 +4594,20 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/`, `/panel/proposals/:id/edit`
-- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section. The email body now interpolates the editable `email_intro` textarea (BusinessProposal.email_intro, persisted on the General tab) and the commercial PDF is attached automatically (`ProposalEmailService._attach_commercial_pdf`). The backend returns `email_delivery: { ok, reason, detail }`; when `ok=false`, the panel shows a red toast with the reason (`placeholder_email`, `template_disabled`, `send_failed`) instead of the generic "Propuesta enviada" toast, so the admin learns the email did not actually reach the client.
+- **Description:** Send a proposal to a client via email. The canonical **Correos** tab is available while the proposal is still a draft and owns the editable plain-text personalized message (`BusinessProposal.email_intro`). The message explains the client's problem, how this proposal solves it, and the expected business outcome. A draft may save it empty, but every send is blocked until it contains text. The delivered email keeps the predefined body and inserts the message immediately after it, before payment/timeline/commercial blocks; the commercial PDF is attached automatically. Editing the proposal later does not rewrite historical email snapshots.
 - **Steps:**
   1. Admin views the proposal edit page or the actions modal in the list page.
-  2. Admin (optional) edits the "Texto introductorio del correo" textarea (`data-testid=edit-email-intro`) in the General tab and saves the form. Empty falls back to a default derived from the title.
+  2. Admin opens **Correos**, writes or adjusts the message, previews it if desired, and clicks "Guardar mensaje". The tab saves only `{ email_intro }`; it does not overwrite unsaved changes in other tabs.
   3. Admin clicks "Enviar al Cliente".
-  4. Pre-send checklist modal opens showing pass/fail status for each item (✓/✗).
-  5. "Enviar al Cliente" button is disabled until all checks pass.
-  6. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
-  7. Backend changes status to `sent`, generates the commercial PDF, attaches it, sends the email, and returns the proposal payload with `email_delivery`. `EmailLog.metadata.pdf_attached` records whether the attachment succeeded.
-  8. If `email_delivery.ok === true`, success toast "Propuesta enviada al cliente". If `false`, error toast surfacing `email_delivery.detail || email_delivery.reason` with a hint to verify client email and use "Re-enviar".
-- **Coverage:** ✅ Covered — checklist modal + send, distinct toasts for `email_delivery.ok` true/false, and `email_intro` asserted in the update PATCH payload (reconciled 2026-07-22: the spec already covered what this entry listed as pending). PDF-attached metadata (`EmailLog.metadata.pdf_attached`) and the per-reason variants (`placeholder_email`, `template_disabled`, `send_failed`) are pytest-covered; the list-page red toast lives under `admin-proposal-inline-status-change`/`admin-proposal-resend` (still partial).
+  4. The scorecard checks client data, commercial readiness, and a nonblank personalized message. A missing message appears as a blocker with "Completar en Correos"; no send request is made.
+  5. Once all checks pass, admin confirms → `POST /api/proposals/:id/send/`.
+  6. Backend validates the message again before snapshots or state changes, changes status to `sent`, renders predefined body → personalized message → commercial blocks, attaches the PDF, sends, and returns `email_delivery`.
+  7. `email_delivery.ok=true` shows "Propuesta enviada al cliente"; a delivery failure shows its detail/reason instead of false success.
+- **Branches:**
+  - [Error — Missing message] The scorecard and backend return the `missing_email_intro` blocker before any send side effect.
+  - [Failure — Delivery] SMTP/template failure leaves an explicit warning even if the proposal state was advanced.
+  - [Display — History] The exact sent body is stored in the delivery snapshot and remains immutable after later edits.
+- **Coverage:** ✅ Covered — independent Correos save, missing-message blocker, successful send and delivery-failure feedback are E2E-covered; ordering, backend atomicity, PDF metadata and immutable snapshots are pytest-covered.
 - **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`
 
 ### FLOW: `admin-proposal-multi-send`
@@ -4613,37 +4616,36 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/:id/edit`
-- **Description:** Send a single email referencing 2+ proposals from the same client. From the edit page, the lightning-bolt button opens `ProposalActionsModal`; the new action "Enviar varias propuestas como un solo correo" (visible whenever `client_email` is set) opens `ProposalMultiSendModal`. The modal lists every proposal of that client grouped by status: Borradores (draft), Enviadas/Vistas/Negociación (sent/viewed/negotiating), and Expiradas (status=`expired` or past `expires_at`). The current proposal is pre-selected and the checkbox is disabled to keep it always included. Selecting an "Expiradas" item shows a "Se reabrirá" badge. The send button stays disabled until ≥2 are selected and is capped at 10. Click → `POST /api/proposals/:id/send-multi/` with `{ proposal_ids: [...] }`. The backend dispatches a single email rendering each proposal as a numbered phase ("Propuesta N de M") and attaches one PDF per proposal. Per-proposal side effects: draft→sent + Huey reminders, expired/past expires_at→reopen + extend expires_at, sent/viewed/negotiating→resend timers (no status change). One `EmailLog` row per proposal sharing a `group_uuid` in metadata, plus a `ProposalChangeLog` entry per proposal.
+- **Description:** Send one email containing 2–10 same-client proposals. The modal groups eligible proposals by status and requires a nonblank personalized message on every selected item. Missing items show "Falta mensaje" plus a link to that proposal's **Correos** tab; an aggregate warning disables the send. The email renders each proposal as a numbered phase with that proposal's own `email_intro` and PDF. Backend prevalidates the complete set before any snapshot or state transition.
 - **Steps:**
   1. Admin opens `/panel/proposals/:id/edit` for a client that has another eligible proposal.
   2. Admin clicks the lightning-bolt button next to "Guardar cambios".
   3. `ProposalActionsModal` opens; admin clicks "Enviar varias propuestas como un solo correo" (`data-testid=proposal-action-send-multi`).
   4. `ProposalMultiSendModal` opens, listing the client's other proposals grouped by status. The current proposal is pre-checked and locked.
-  5. Admin selects one or more additional proposals → "Enviar N propuestas" button enables.
-  6. Admin clicks the send button → `POST /api/proposals/:id/send-multi/` with `proposal_ids`.
-  7. Backend validates same-client, ≥2 proposals, ≤10 proposals, applies side effects, sends one email with N PDF attachments, returns the proposal payload + `email_delivery` + `transitions` map.
-  8. Modal closes; success toast "Correo enviado al cliente con N propuestas." renders. Page data refreshes so updated statuses/expires_at show.
-- **Coverage:** ✅ Covered
+  5. Admin selects one or more additional proposals. If any selected item lacks a message, the modal identifies it and keeps the action disabled.
+  6. With 2–10 valid selections, admin clicks send → `POST /api/proposals/:id/send-multi/` with `proposal_ids`.
+  7. Backend validates same client, count, and every message before side effects; then it renders each phase's message, attaches N PDFs, and applies draft→sent, expired→reopen, or resend timer transitions.
+  8. Modal closes on success and shows "Correo enviado al cliente con N propuestas." A server failure keeps the modal open with an error.
+- **Coverage:** ✅ Covered — success, missing-message validation, and server failure are E2E-covered; per-phase rendering and all-or-nothing validation are pytest-covered.
 - **E2E Spec:** `e2e/admin/admin-proposal-multi-send.spec.js`
-- **E2E Spec (suggested):** `e2e/admin/admin-proposal-multi-send.spec.js`. Mock `GET /api/proposals/?client_id=` to return ≥2 proposals across at least two of the status groups, click through the modal, mock `POST /api/proposals/:id/send-multi/` with `email_delivery.ok=true`, and assert the success toast.
 
 ### FLOW: `admin-proposal-resend`
 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/proposals/`
-- **Description:** Resend an already-sent proposal via the "Re-enviar" action in the proposals list actions modal. Keeps the existing `expires_at`, resets `sent_at`, `reminder_sent_at`, `urgency_email_sent_at`, re-schedules Huey reminders, and dispatches the proposal email again. The endpoint returns `email_delivery`; the panel toast surfaces success or failure with the reason — symmetric to `admin-proposal-send`.
+- **Routes:** `/panel/proposals/`, `/panel/proposals/:id/edit`
+- **Description:** Resend an already-sent proposal with its saved personalized message. The resend modal preloads `email_intro` and allows editing it. A nonblank message is mandatory; "Guardar y re-enviar" persists the edit, creates an audit entry, keeps `expires_at`, resets send/reminder timers, and dispatches the email again. The new delivery gets the new text while previous delivery snapshots remain immutable.
 - **Steps:**
   1. Admin opens the actions modal for a proposal whose status is `sent`/`viewed`.
   2. Admin clicks "Re-enviar".
-  3. Confirmation dialog "¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración." is shown.
-  4. On confirm → `POST /api/proposals/:id/resend/`.
-  5. Backend resets timers and re-sends the email, returning `email_delivery`.
-  6. Success toast "Propuesta re-enviada al cliente" or error toast with `email_delivery.detail || email_delivery.reason`.
-- **Coverage:** ✅ Covered (happy path + email_delivery failure detail surfaced instead of the success toast; asserted 2026-07-23)
+  3. The editor opens with the previously saved message. Admin may add or remove content.
+  4. If the result is blank, the action remains disabled and no request is made.
+  5. Admin clicks "Guardar y re-enviar" → `POST /api/proposals/:id/resend/` with `{ email_intro }`.
+  6. Backend validates before persistence/side effects, saves the changed message, resets timers, and re-sends.
+  7. Success toast says "Propuesta re-enviada al cliente"; delivery failure keeps the editor available and surfaces `email_delivery.detail || email_delivery.reason`.
+- **Coverage:** ✅ Covered — retained-message preload/edit payload, blank-message error, success and email-delivery failure are E2E-covered; persistence, audit log, no-side-effect validation and historical immutability are pytest-covered.
 - **E2E Spec:** `e2e/admin/admin-proposal-resend.spec.js`
-- **E2E Spec (suggested):** `e2e/admin/admin-proposal-resend.spec.js`
 
 ### FLOW: `admin-proposal-reopen-from-expired`
 
@@ -6299,7 +6301,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-log-activity` | admin | P2 | success,failure,display | 1 |
 | `admin-proposal-manual-alerts` | admin | P2 | success | 1 |
 | `admin-proposal-metrics-manual` | admin | P3 | display | 1 |
-| `admin-proposal-multi-send` | admin | P1 | success,failure | 1 |
+| `admin-proposal-multi-send` | admin | P1 | success,error,failure | 1 |
 | `admin-proposal-platform-handoff` | admin | P1 | success,failure | 1 |
 | `admin-proposal-post-rejection-revisit` | admin | P2 | — | 0 |
 | `admin-proposal-project-schedule` | admin | P1 | success,error | 1 |
@@ -6307,7 +6309,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-quick-log` | admin | P2 | success | 1 |
 | `admin-proposal-quick-send` | admin | P2 | success,failure | 1 |
 | `admin-proposal-reopen-from-expired` | admin | P1 | success,error | 1 |
-| `admin-proposal-resend` | admin | P2 | success,failure | 1 |
+| `admin-proposal-resend` | admin | P2 | success,error,failure | 1 |
 | `admin-proposal-scorecard` | admin | P2 | display | 1 |
 | `admin-proposal-section-add-delete` | admin | P2 | success,error | 1 |
 | `admin-proposal-section-completeness` | admin | P3 | display | 1 |
@@ -6317,7 +6319,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-section-edit-paste` | admin | P1 | success,error | 1 |
 | `admin-proposal-section-reorder` | admin | P2 | success,failure | 1 |
 | `admin-proposal-section-sync` | admin | P2 | success | 1 |
-| `admin-proposal-send` | admin | P1 | success,failure | 1 |
+| `admin-proposal-send` | admin | P1 | success,error,failure | 1 |
 | `admin-proposal-slug-edit` | admin | P1 | success,error | 1 |
 | `admin-proposal-update-client` | admin | P2 | success,error | 1 |
 | `admin-proposal-update-from-json` | admin | P2 | success,error | 1 |

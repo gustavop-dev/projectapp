@@ -17,6 +17,7 @@ const mockCreatedProposal = {
   title: 'Nueva Propuesta Web',
   client_name: 'Carlos López',
   client_email: 'carlos@test.com',
+  email_intro: 'Esta propuesta resuelve el proceso manual para acelerar las ventas.',
   status: 'draft',
   sections: [],
   requirement_groups: [],
@@ -75,6 +76,9 @@ test.describe('Admin Proposal Create', () => {
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
     await page.getByLabel('Nombre').fill('Carlos López');
     await page.getByLabel('Email').fill('carlos@test.com');
+    await page.getByTestId('create-email-intro').fill(
+      'Esta propuesta mejora la captación digital para generar nuevas ventas.',
+    );
 
     // Submit form — wait for the API response
     const [response] = await Promise.all([
@@ -88,6 +92,9 @@ test.describe('Admin Proposal Create', () => {
     expect(capturedPayload.title).toBe('Nueva Propuesta Web');
     expect(capturedPayload.client_name).toBe('Carlos López');
     expect(capturedPayload.client_email).toBe('carlos@test.com');
+    expect(capturedPayload.email_intro).toBe(
+      'Esta propuesta mejora la captación digital para generar nuevas ventas.',
+    );
   });
 
   test('a rejected submit shows the field error and keeps the admin on the create page', {
@@ -218,6 +225,11 @@ test.describe('Admin Proposal Create from JSON', () => {
   const validJson = JSON.stringify({
     general: { clientName: 'Ana Martínez' },
     executiveSummary: { paragraphs: ['Resumen ejecutivo.'] },
+    _meta: {
+      optional_metadata: {
+        email_intro: 'Esta propuesta centraliza la operación para reducir reprocesos.',
+      },
+    },
   });
 
   const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -342,6 +354,9 @@ test.describe('Admin Proposal Create from JSON', () => {
 
     expect(capturedPayload).not.toBeNull();
     expect(capturedPayload.client_name).toBe('Ana Martínez');
+    expect(capturedPayload.email_intro).toBe(
+      'Esta propuesta centraliza la operación para reducir reprocesos.',
+    );
     expect(capturedPayload.sections.general.clientName).toBe('Ana Martínez');
 
     // Post-creation interstitial modal appears — click "Ir a Editar"
@@ -383,7 +398,12 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByLabel('Email').fill('ana@test.com');
     await page.getByPlaceholder('3.500.000').fill('5000000');
 
-    // Button should now be visible
+    // Client and investment are insufficient until the send message exists.
+    await expect(page.getByRole('button', { name: /Crear y Enviar/i })).not.toBeVisible();
+    await page.getByTestId('create-email-intro').fill(
+      'Esta propuesta automatiza la operación para reducir reprocesos.',
+    );
+
     await expect(page.getByRole('button', { name: /Crear y Enviar/i })).toBeVisible();
   });
 
@@ -415,6 +435,9 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByLabel('Nombre').fill('Carlos López');
     await page.getByLabel('Email').fill('carlos@test.com');
     await page.getByPlaceholder('3.500.000').fill('15000000');
+    await page.getByTestId('create-email-intro').fill(
+      'Esta propuesta centraliza los pedidos para acelerar las entregas.',
+    );
 
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
 
@@ -450,6 +473,9 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByLabel('Nombre').fill('Laura Díaz');
     await page.getByLabel('Email').fill('laura@test.com');
     await page.getByPlaceholder('3.500.000').fill('8000000');
+    await page.getByTestId('create-email-intro').fill(
+      'Esta propuesta elimina tareas manuales para responder más rápido.',
+    );
 
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
 
@@ -523,6 +549,9 @@ test.describe('Admin Proposal Create Preview', () => {
     await page.getByLabel('Nombre').fill('Carlos López');
     await page.getByLabel('Email').fill('carlos@test.com');
     await page.getByPlaceholder('3.500.000').fill('15000000');
+    await page.getByTestId('create-email-intro').fill(
+      'Esta propuesta centraliza el proceso para reducir tiempos de atención.',
+    );
 
     const [response] = await Promise.all([
       page.waitForResponse(r => r.url().includes('proposals/create/')),

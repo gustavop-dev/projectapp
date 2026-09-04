@@ -205,10 +205,10 @@ class Command(BaseCommand):
                 'project_type': chosen_project_type,
                 'market_type': chosen_market_type,
                 'email_intro': (
-                    f'Esta propuesta cubre el alcance de {project_type.lower()} '
-                    f'para {client_name.split()[0]}, incluyendo diseño, desarrollo, '
-                    'pruebas y despliegue. Encontrarás el desglose completo dentro '
-                    'del documento.'
+                    f'Esta propuesta resuelve para {client_name.split()[0]} la falta '
+                    f'de una solución de {project_type.lower()}, mediante un alcance '
+                    'claro de diseño, desarrollo, pruebas y despliegue, para reducir '
+                    'reprocesos y acelerar la puesta en marcha del negocio.'
                 ),
             }
 

@@ -127,6 +127,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'project_type_custom', 'market_type_custom',
             'cached_heat_score', 'engagement_declining',
             'available_transitions', 'language', 'sent_at',
+            'email_intro',
             'client',
         )
 
@@ -684,6 +685,7 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     urgency_reminder_days = serializers.IntegerField(required=False, default=15)
     discount_percent = serializers.IntegerField(required=False, default=0)
     show_contract_terms = serializers.BooleanField(required=False, default=True)
+    email_intro = serializers.CharField(required=False, default='', allow_blank=True)
     sections = serializers.DictField(child=serializers.DictField(), required=True)
 
     def validate_client_email(self, value):
@@ -734,6 +736,12 @@ class ProposalFromJSONSerializer(serializers.Serializer):
         if schema_errors:
             raise serializers.ValidationError(schema_errors)
         return value
+
+
+class ProposalResendSerializer(serializers.Serializer):
+    """Optional editable message submitted by the individual resend modal."""
+
+    email_intro = serializers.CharField(required=False, allow_blank=True)
 
 
 class ProposalAlertSerializer(serializers.ModelSerializer):

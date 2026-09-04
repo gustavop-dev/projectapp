@@ -5,7 +5,7 @@ estado. `create_folder` hereda la asociación de su padre y `rename_folder`
 rechaza raíces automáticas de proyecto; estas protecciones se validan junto
 con los contratos de modelo antes de publicar cambios del gestor.
 
-Última revisión integral: 2026-09-02.
+Última revisión integral: 2026-09-04.
 
 Este documento es el procedimiento repetible para validar la plataforma MCP de
 ProjectApp: transporte moderno y compatible, credenciales con alcance,
@@ -50,6 +50,12 @@ con las áreas del Panel. La fuente ejecutable del inventario está en
   decisión explícita del superusuario en `/panel/mcps`.
 - Los handlers MCP reutilizan serializers y servicios del panel. Una regla que
   impide una acción en la interfaz también la impide por conversación.
+- En propuestas, `_meta.optional_metadata.email_intro` del template/artifact se
+  persiste como `BusinessProposal.email_intro`. Debe ser texto plano específico
+  del cliente y conectar problema, solución y resultado. `send_proposal`,
+  `resend_proposal` y el envío múltiple rechazan el mensaje vacío antes de
+  snapshots o transiciones; `resend_proposal` acepta un `email_intro` opcional
+  para editarlo y enviarlo en la misma operación.
 - Las carpetas con `system_key` pertenecen al archivado automático. El MCP puede
   listarlas para orientar al operador, pero no crearlas debajo, renombrarlas ni
   usarlas como destino de un documento markdown.
@@ -593,7 +599,7 @@ documento antes enlazado ya se puede eliminar (el `PROTECT` lo bloqueaba).
 | Tasks | detalle, comentarios y alertas reflejan el modelo actual | CRUD, archivo, orden y duplicación | comentario/alerta de otra tarea |
 | Accounting | detalle incluye pagos, deducciones, cuenta de cobro, período de hosting y ciclo de vida de recurrentes | `settle_income`/`bulk_settle_incomes` crean pagos; las seis tools de recurrentes preparan duplicado, cambian estado, archivan/restauran, silencian avisos y aplican lote por el mismo servicio del panel | no esperado, repetido, excedido, ID perdido o intento de activar/silenciar un recurrente archivado |
 | Diagnostics | detalle expone slug, expiración y cliente | update permite esos campos y usa el serializer actual | slug duplicado o cliente inválido |
-| Proposals | detalle expone metadata comercial completa | importación y duplicación conservan nacionalidad, tipos custom y modo de contrato; `update_proposal` con `technicalDocument` exige que cada ítem de los requerimientos funcionales quede referenciado en algún `linked_item_ids` | JSON incompleto, transición inválida o detalle técnico que deja ítems sin trazar (`technical_item_coverage_incomplete`) |
+| Proposals | detalle/template exponen metadata comercial completa, incluido `email_intro` | importación persiste el mensaje personalizado; reenvío permite editarlo; `update_proposal` con `technicalDocument` exige que cada ítem funcional quede referenciado en algún `linked_item_ids` | JSON incompleto, mensaje vacío al enviar/reenviar, transición inválida o detalle técnico sin trazar (`technical_item_coverage_incomplete`) |
 | LinkedIn | estado de token/post y errores de publicación | borrador, programación, edición, borrado y publicación de texto | token ausente/expirado o post no publicable |
 
 ## Verificación automatizada

@@ -6,10 +6,11 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "From /panel/proposals/:id/edit click the lightning-bolt button → ProposalActionsModal → 'Enviar varias propuestas como un solo correo'. The ProposalMultiSendModal opens showing all proposals of the same client grouped by status (Borradores / Enviadas-Vistas-Negociación / Expiradas). The current proposal is pre-selected and locked. Admin selects ≥2 proposals (max 10) and clicks 'Enviar N propuestas' → POST /api/proposals/:id/send-multi/ sends a single email with one PDF attachment per proposal and applies per-proposal side effects (draft→sent + reminders, expired→reopen + extend expires_at, sent/viewed/negotiating→resend timers). Success shows a toast with the count.",
+  "description": "From /panel/proposals/:id/edit, the lightning menu opens ProposalMultiSendModal with same-client proposals grouped by status. The current proposal is selected and locked; the admin selects 2–10 proposals. Every selected proposal must have a nonblank personalized message: missing-message badges, Correos links, and an alert keep the action disabled. POST /api/proposals/:id/send-multi/ sends one email whose numbered phase blocks each render that proposal's message and attach its PDF, then applies the normal send/reopen/resend side effects.",
   "expectedSpecs": 1,
   "outcomes": [
     "success",
+    "error",
     "failure"
   ]
 }

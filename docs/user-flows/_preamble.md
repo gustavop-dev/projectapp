@@ -1409,15 +1409,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Description:** Admin sends a proposal email from the proposal edit page "Enviar correo" tab. Each send is logged as `ProposalChangeLog` activity.
-- **Visible when:** Proposal status in `sent`, `viewed`, `negotiating`, `accepted`, `rejected`
+- **Description:** The **Correos** tab is visible from draft onward. Its first card owns the editable plain-text personalized message used by initial send/re-send. After the first send, it also exposes the proposal follow-up composer; each follow-up is logged as `ProposalChangeLog` activity.
+- **Visible when:** Every proposal status; follow-up composer/history appear in `sent`, `viewed`, `negotiating`, `accepted`, and `rejected`.
 - **Steps:**
   1. Navigate to `/panel/proposals/:id/edit`
-  2. Click the "Enviar correo" tab
-  3. Fill same composer UI as branded email
-  4. Click "Enviar correo" → `POST /api/proposals/:id/proposal-email/send/`
-  5. Verify `ProposalChangeLog` entry created with `change_type=email_sent`
-  6. Verify `last_activity_at` updated on the proposal
+  2. Click the "Correos" tab
+  3. Write/preview/save the personalized initial-send message; a draft may save it empty but cannot be sent until completed
+  4. For an already-sent proposal, fill the follow-up composer and click "Enviar correo" → `POST /api/proposals/:id/proposal-email/send/`
+  5. Verify `ProposalChangeLog` entry created with `change_type=email_sent` and `last_activity_at` updated
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-email.spec.js`
 

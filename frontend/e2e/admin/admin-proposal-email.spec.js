@@ -1,8 +1,8 @@
 /**
  * E2E tests for admin sending branded and proposal emails from proposal edit page.
  *
- * Covers: Correos tab visibility for negotiating proposals, composer sections render,
- * Enviar correo tab visibility for sent proposals, tab hidden for draft proposals.
+ * Covers: Correos tab visibility in draft and later states, the personalized
+ * initial-message editor, and the follow-up composer after the first send.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -21,6 +21,7 @@ function makeProposal(overrides = {}) {
     title: 'Email Test Proposal',
     client_name: 'Email Client',
     client_email: 'client@emailtest.com',
+    email_intro: 'Esta propuesta centraliza las solicitudes para acelerar la atención.',
     status: 'negotiating',
     language: 'es',
     total_investment: '8000000',
@@ -169,21 +170,22 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
     await expect(correosTab).toBeVisible({ timeout: 15000 });
   });
 
-  test('proposal email tab is not visible for draft proposal', {
+  test('draft proposal exposes Correos with the initial-message editor', {
     tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    // quality: allow-no-interaction (checks the Correos tab stays hidden for a draft proposal; permission/display check — there is no send action to drive before the tab exists)
+    // quality: allow-deep-link (the proposal edit view is the canonical entry point for its Correos tab)
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'draft' });
     await mockApi(page, emailApiRoutes(proposal));
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    // Wait for the page to load by checking another element is visible
-    await expect(page.locator('main')).toBeVisible({ timeout: 15000 });
-
     const correosTab = page.getByRole('tab', { name: /Correos/i });
-    await expect(correosTab).toHaveCount(0);
+    await expect(correosTab).toBeVisible({ timeout: 15000 });
+    await correosTab.click();
+    await expect(page.getByTestId('proposal-email-intro-card')).toBeVisible();
+    await expect(page.getByTestId('proposal-email-intro')).toHaveValue(proposal.email_intro);
+    await expect(page.getByText('El historial y los correos de seguimiento aparecerán después del primer envío.')).toBeVisible();
   });
 
   test('sending proposal follow-up email calls POST proposal-email/send/ and shows success toast', {

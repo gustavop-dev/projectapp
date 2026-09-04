@@ -46,6 +46,12 @@
       @close="showMultiSendModal = false"
       @sent="handleMultiSendSent"
     />
+    <ProposalResendModal
+      :visible="showResendModal"
+      :proposal="proposal || {}"
+      @close="showResendModal = false"
+      @resent="handleResendComplete"
+    />
     <BusinessProposalAdminSyncPreviewModal
       :visible="syncPreviewVisible"
       :project-info="syncPreviewData?.project"
@@ -135,7 +141,12 @@
 
       <!-- Tab: Correos -->
       <div v-if="visitedTabs.has('emails')" v-show="activeTab === 'emails'">
-        <ProposalEmailsTab :proposal="proposal" />
+        <ProposalEmailsTab
+          :proposal="proposal"
+          @email-intro-saved="handleEmailIntroSaved"
+          @dirty-state-change="emailIntroDirty = $event"
+          @open-email-preview="openInitialEmailPreview"
+        />
       </div>
 
       <!-- Tab: Documentos -->
@@ -274,7 +285,7 @@
       </div>
       <p class="text-sm text-text-muted mb-5">{{ scorecardLoading ? 'Verificando...' : 'Verifica que todo esté listo antes de enviar.' }}</p>
       <ul v-if="!scorecardLoading" class="space-y-3 mb-6">
-        <li v-for="(item, idx) in sendChecklist" :key="idx" class="flex items-center gap-3">
+        <li v-for="(item, idx) in sendChecklist" :key="item.key || idx" class="flex items-center gap-3">
           <span class="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
             :class="item.pass ? 'bg-success-soft text-success-strong' : item.blocker ? 'bg-danger-soft text-danger-strong' : 'bg-warning-soft text-warning-strong'">
             {{ item.pass ? '✓' : '✗' }}
@@ -283,6 +294,14 @@
             <span class="text-sm" :class="item.pass ? 'text-text-muted' : item.blocker ? 'text-danger-strong font-medium' : 'text-warning-strong'">{{ item.label }}</span>
             <span v-if="!item.pass && item.blocker" class="ml-1 text-[10px] text-danger-strong font-semibold uppercase">bloqueante</span>
           </div>
+          <BaseButton
+            v-if="item.key === 'email_intro' && !item.pass"
+            variant="link"
+            size="sm"
+            @click="openEmailsFromChecklist"
+          >
+            Completar en Correos
+          </BaseButton>
         </li>
       </ul>
       <div v-else class="flex items-center justify-center py-8">
@@ -441,6 +460,7 @@ const ProposalAnalytics = lazyTab(() => import('~/components/BusinessProposal/ad
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalActionsModal.vue';
 import ProposalMultiSendModal from '~/components/BusinessProposal/admin/ProposalMultiSendModal.vue';
+import ProposalResendModal from '~/components/BusinessProposal/admin/ProposalResendModal.vue';
 const ProposalDocumentsTab = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalDocumentsTab.vue'));
 const ProposalEmailsTab = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalEmailsTab.vue'));
 const ProjectScheduleEditor = lazyTab(() => import('~/components/BusinessProposal/admin/ProjectScheduleEditor.vue'));
@@ -473,6 +493,8 @@ const {
 const sectionsDirty = ref(false);
 // Same, for the hour-rate tab.
 const hourRateDirty = ref(false);
+// The initial-email message is saved independently from the General form.
+const emailIntroDirty = ref(false);
 
 const proposal = computed(() => proposalStore.currentProposal);
 
@@ -565,9 +587,6 @@ watch(activeTab, async (tab) => {
     hydrateFormFromProposal();
   }
 });
-const hasSendEmailTab = computed(() =>
-  ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
-);
 const hasDocumentsTab = computed(() =>
   ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
@@ -582,10 +601,8 @@ const hasDevTab = computed(() => proposal.value?.status === 'accepted');
 const tabs = computed(() => {
   const base = [
     { id: 'general', label: 'General' },
+    { id: 'emails', label: 'Correos' },
   ];
-  if (hasSendEmailTab.value) {
-    base.push({ id: 'emails', label: 'Correos' });
-  }
   if (hasDocumentsTab.value) {
     base.push({ id: 'documents', label: 'Documentos' });
   }
@@ -610,6 +627,7 @@ const tabs = computed(() => {
 // ── Actions menu (modal) ──
 const showActionsModal = ref(false);
 const showMultiSendModal = ref(false);
+const showResendModal = ref(false);
 
 async function handleMultiSendSent(payload) {
   if (payload?.error) {
@@ -886,6 +904,7 @@ const previewLoading = ref(false);
 const previewError = ref('');
 const previewHtml = ref('');
 const previewTemplateKey = ref('proposal_sent_client');
+const previewEmailIntroOverride = ref(null);
 
 async function loadPreview() {
   if (!proposal.value?.id) return;
@@ -894,6 +913,7 @@ async function loadPreview() {
   previewHtml.value = '';
   const result = await proposalStore.previewProposalEmail(proposal.value.id, {
     template_key: previewTemplateKey.value,
+    email_intro: previewEmailIntroOverride.value ?? form.email_intro,
     email_features: form.email_features
       .map((f) => (typeof f === 'string' ? f.trim() : ''))
       .filter(Boolean),
@@ -914,8 +934,21 @@ async function loadPreview() {
 }
 
 async function openEmailPreview() {
+  previewEmailIntroOverride.value = null;
   isPreviewOpen.value = true;
   await loadPreview();
+}
+
+async function openInitialEmailPreview(emailIntro) {
+  previewEmailIntroOverride.value = emailIntro;
+  previewTemplateKey.value = 'proposal_sent_client';
+  isPreviewOpen.value = true;
+  await loadPreview();
+}
+
+function handleEmailIntroSaved(emailIntro) {
+  form.email_intro = emailIntro;
+  scorecardData.value = null;
 }
 
 watch(previewTemplateKey, () => {
@@ -1177,8 +1210,13 @@ const {
   flags: {
     sections: () => sectionsDirty.value,
     hourRate: () => hourRateDirty.value,
+    emailIntro: () => emailIntroDirty.value,
   },
-  labels: { sections: 'secciones', hourRate: 'tarifa por hora' },
+  labels: {
+    sections: 'secciones',
+    hourRate: 'tarifa por hora',
+    emailIntro: 'mensaje del correo',
+  },
   reload: refreshData,
   // El modal de esta página ya existe: inyectarlo evita un segundo
   // confirmState que nadie renderiza.
@@ -1292,6 +1330,7 @@ const scorecardLoading = ref(false);
 const sendChecklist = computed(() => {
   if (scorecardData.value?.checks) {
     return scorecardData.value.checks.map(c => ({
+      key: c.key,
       label: c.label,
       pass: c.passed,
       blocker: c.blocker,
@@ -1301,6 +1340,7 @@ const sendChecklist = computed(() => {
   return [
     { label: 'Email del cliente configurado', pass: !!form.client_email?.trim(), blocker: true },
     { label: 'Nombre del cliente', pass: !!form.client_name?.trim(), blocker: true },
+    { key: 'email_intro', label: 'Mensaje personalizado del correo', pass: !!form.email_intro?.trim(), blocker: true },
     { label: 'Inversión > $0', pass: Number(form.total_investment) > 0, blocker: true },
     { label: 'Fecha de expiración futura', pass: !!form.expires_at && new Date(form.expires_at) > new Date(), blocker: true },
     { label: 'Al menos 1 sección habilitada', pass: allSections.value?.some(s => s.is_enabled), blocker: true },
@@ -1355,28 +1395,25 @@ async function confirmSend() {
 }
 
 function handleResend() {
-  requestConfirm({
-    title: 'Re-enviar propuesta',
-    message: '¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.',
-    variant: 'info',
-    confirmText: 'Re-enviar',
-    onConfirm: async () => {
-      const result = await proposalStore.resendProposal(proposal.value.id);
-      if (result.success) {
-        const ed = result.email_delivery;
-        if (ed && ed.ok === false) {
-          notify.warning({
-            title: 'Reenvío registrado',
-            detail: ed.detail || 'No se pudo enviar el correo al cliente.',
-          });
-        } else {
-          notify.success({ title: 'Propuesta re-enviada al cliente' });
-        }
-      } else {
-        notifyProposalFailure(result, 'No se pudo re-enviar la propuesta');
-      }
-    },
-  });
+  showResendModal.value = true;
+}
+
+function handleResendComplete(result) {
+  hydrateFormFromProposal();
+  const ed = result.email_delivery;
+  if (ed && ed.ok === false) {
+    notify.warning({
+      title: 'Reenvío registrado',
+      detail: ed.detail || 'No se pudo enviar el correo al cliente.',
+    });
+  } else {
+    notify.success({ title: 'Propuesta re-enviada al cliente' });
+  }
+}
+
+function openEmailsFromChecklist() {
+  showSendChecklist.value = false;
+  activeTab.value = 'emails';
 }
 
 async function toggleTechnicalSectionEnabled() {

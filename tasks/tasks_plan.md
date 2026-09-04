@@ -1,5 +1,13 @@
 # Task Plan — ProjectApp
 
+> **Mensaje personalizado de propuestas listo para integrar — 2026-09-04:**
+> **Correos** permite redactar, previsualizar y guardar el texto que explica
+> problema, solución y resultado para el cliente. El borrador puede quedar
+> vacío, pero envío, reenvío, bulk y multi-envío se bloquean antes de efectos;
+> reenvío precarga y persiste ediciones, y el historial enviado permanece
+> inmutable. JSON/MCP/fake data y las skills `proposal-create` de Codex y Claude
+> comparten el campo `email_intro`. No requiere migración ni backfill.
+
 > **Completado — política y elegibilidad de financiación (2026-09-03):** el
 > programa suma las condiciones 6 y 7: rango inclusivo $20–140 millones COP y
 > aporte inicial definido por riesgo, mínimo 20 %, con financiación máxima del

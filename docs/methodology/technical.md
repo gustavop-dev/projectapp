@@ -1282,3 +1282,11 @@ projectapp/
 12. **Deleted observations are recoverable but inactive** — every active queryset,
     count and prefetched episode filters `deleted_at IS NULL`; restoration must pass
     state compatibility in the same transaction before clearing the tombstone.
+13. **Proposal email-message contract** — `BusinessProposal.email_intro` is the
+    single persisted source. JSON artifacts use
+    `_meta.optional_metadata.email_intro`, while REST/MCP payloads use the flat
+    `email_intro` field. `ProposalService` validates trimmed content before
+    snapshots, state transitions or timer changes for send, resend, bulk resend
+    and multi-send. Email templates render plain text only; the initial message
+    belongs after resolved template `body` and before payment/timeline blocks.
+    No model change or data backfill is required for this contract.

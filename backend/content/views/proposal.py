@@ -78,6 +78,7 @@ from content.serializers.proposal import (
     ProposalFromJSONSerializer,
     ProposalListSerializer,
     ProposalProjectStageSerializer,
+    ProposalResendSerializer,
     ProposalSectionUpdateSerializer,
     ProposalShareLinkSerializer,
     SECTION_KEY_MAP,
@@ -603,6 +604,10 @@ def get_proposal_json_template(request):
         'optional_metadata': {
             'title': 'Propuesta de ... — Client Name',
             'client_email': 'client@example.com',
+            'email_intro': (
+                'Mensaje breve y específico: problema del cliente, solución '
+                'propuesta y resultado de negocio esperado.'
+            ),
             'language': 'es | en',
             'total_investment': 0,
             'currency': 'COP | USD',
@@ -635,6 +640,11 @@ def get_proposal_json_template(request):
             'Reference the client\'s specific industry, sector, and market.',
             'Include at least 2-3 metrics or statistics relevant to their sector (cite reliable sources).',
             'Tailor examples and case studies to their business type.',
+            (
+                'Write _meta.optional_metadata.email_intro as a concise, '
+                'client-specific plain-text message that connects the confirmed '
+                'problem, this proposal\'s solution, and the expected business outcome.'
+            ),
         ],
         'investment_anchoring': [
             'Present ROI and value BEFORE mentioning price.',
@@ -669,7 +679,9 @@ def get_proposal_json_template(request):
         ),
         'CRITICAL_metadata': (
             'Do NOT add any keys to "_meta.optional_metadata" beyond the ones already '
-            'listed there (title, client_email, language, total_investment, currency). '
+            'listed in the template. Populate email_intro for every generated proposal; '
+            'email_intro is required before sending and must be plain text, without '
+            'HTML or Markdown. '
             'In particular, NEVER add an "expires_at" field: the proposal expiration date '
             'is set automatically from the admin-configured default when the proposal is '
             'created, not from this JSON.'
@@ -928,6 +940,7 @@ def export_proposal_json(request, proposal_id):
         'title': proposal.title,
         'client_name': proposal.client_name,
         'client_email': proposal.client_email or '',
+        'email_intro': proposal.email_intro or '',
         'client_phone': proposal.client_phone or '',
         'project_type': proposal.project_type or '',
         'market_type': proposal.market_type or '',
@@ -1008,7 +1021,7 @@ def update_proposal(request, proposal_id):
         'client_email', 'client_phone', 'discount_percent', 'status',
         'language', 'project_type', 'market_type', 'slug',
         'expires_at', 'reminder_days', 'urgency_reminder_days',
-        'show_contract_terms',
+        'show_contract_terms', 'email_intro',
     ]
     old_values = {f: str(getattr(proposal, f, '')) for f in tracked_fields}
 
@@ -1146,7 +1159,22 @@ def bulk_action(request):
 
     elif action_type == 'resend':
         from content.services.proposal_service import ProposalService
-        for p in proposals.filter(status__in=['sent', 'viewed'], client_email__gt=''):
+        resendable = list(
+            proposals.filter(status__in=['sent', 'viewed'], client_email__gt='')
+        )
+        missing_message = [
+            p for p in resendable if not (p.email_intro or '').strip()
+        ]
+        if missing_message:
+            titles = ', '.join(p.title for p in missing_message[:3])
+            if len(missing_message) > 3:
+                titles += f' y {len(missing_message) - 3} más'
+            return error_response(
+                'Hay propuestas sin mensaje personalizado para el correo.',
+                code='missing_email_intro',
+                hint=f'Completa el mensaje en la pestaña Correos: {titles}.',
+            )
+        for p in resendable:
             try:
                 ProposalService.resend_proposal(p, acting_user=request.user)
                 affected += 1
@@ -1181,7 +1209,7 @@ def duplicate_proposal(request, proposal_id):
 def send_proposal(request, proposal_id):
     """
     Mark proposal as SENT, set sent_at, schedule Huey reminder task.
-    Requires client_email to be set.
+    Requires client_email and the personalized email message to be set.
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
@@ -1231,6 +1259,7 @@ def preview_proposal_email(request, proposal_id):
     Body (all optional, overrides the saved proposal data for the preview only):
         {
             "template_key": "proposal_sent_client",
+            "email_intro": "Qué resuelve esta propuesta para el cliente.",
             "email_features": ["...", ...],
             "email_method_phases": [{...}, ...],
             "email_signed_by": "gustavo" | "carlos"
@@ -1263,6 +1292,8 @@ def preview_proposal_email(request, proposal_id):
         overrides['email_method_phases'] = request.data.get('email_method_phases') or []
     if 'email_signed_by' in request.data:
         overrides['email_signed_by'] = request.data.get('email_signed_by') or 'gustavo'
+    if 'email_intro' in request.data:
+        overrides['email_intro'] = request.data.get('email_intro') or ''
     for k, v in overrides.items():
         setattr(proposal, k, v)
 
@@ -1547,7 +1578,16 @@ def proposal_scorecard(request, proposal_id):
         'blocker': True,
     })
 
-    # 3. Investment > 0
+    # 3. Personalized message for the initial/resend email
+    has_email_intro = bool((proposal.email_intro or '').strip())
+    checks.append({
+        'key': 'email_intro',
+        'label': 'Mensaje personalizado del correo',
+        'passed': has_email_intro,
+        'blocker': True,
+    })
+
+    # 4. Investment > 0
     has_investment = bool(proposal.total_investment and proposal.total_investment > 0)
     checks.append({
         'key': 'total_investment',
@@ -1556,7 +1596,7 @@ def proposal_scorecard(request, proposal_id):
         'blocker': True,
     })
 
-    # 4. Expiration date in the future
+    # 5. Expiration date in the future
     has_expiration = bool(
         proposal.expires_at and proposal.expires_at > timezone.now()
     )
@@ -1567,7 +1607,7 @@ def proposal_scorecard(request, proposal_id):
         'blocker': True,
     })
 
-    # 5. At least 1 enabled section
+    # 6. At least 1 enabled section
     enabled_sections = proposal.sections.filter(is_enabled=True).count()
     has_sections = enabled_sections >= 1
     checks.append({
@@ -1577,7 +1617,7 @@ def proposal_scorecard(request, proposal_id):
         'blocker': True,
     })
 
-    # 6. Title set
+    # 7. Title set
     has_title = bool(proposal.title and proposal.title.strip())
     checks.append({
         'key': 'title',
@@ -1693,10 +1733,20 @@ def resend_proposal(request, proposal_id):
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
+    serializer = ProposalResendSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(
+            'No se pudo validar el mensaje del reenvío.',
+            code='invalid_resend_payload',
+            errors=serializer.errors,
+        )
+
     from content.services.proposal_service import ProposalService
     try:
         delivery = ProposalService.resend_proposal(
-            proposal, acting_user=request.user,
+            proposal,
+            acting_user=request.user,
+            email_intro=serializer.validated_data.get('email_intro'),
         )
     except ValueError as e:
         return error_response_from_exc(e)

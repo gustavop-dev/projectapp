@@ -14,7 +14,8 @@ drift. Status/send flows delegate to `ProposalService`.
 Guardrails (mirror the panel):
 - Status changes respect `BusinessProposal.ALLOWED_TRANSITIONS`; draft→sent is
   routed through `send_proposal` (dispatches email + schedules reminders).
-- Sending requires a valid client email (the service raises otherwise).
+- Sending requires a valid client email and a personalized email message (the
+  service raises otherwise).
 - Delete is blocked when the proposal is launched to the platform (ProtectedError).
 
 Each entry: {'name', 'description', 'input_schema', 'handler'}.
@@ -73,6 +74,7 @@ def get_proposal_template(arguments):
             'required_fields': ['general.clientName'],
             'optional_metadata': [
                 'title', 'client_email', 'client_phone', 'language',
+                'email_intro',
                 'total_investment', 'currency', 'nationality',
                 'project_type', 'project_type_custom', 'market_type',
                 'market_type_custom', 'show_contract_terms',
@@ -82,7 +84,8 @@ def get_proposal_template(arguments):
             'Envía este shape (claves camelCase por sección) en `sections` a '
             'create_proposal/update_proposal. Los grupos y módulos de '
             'functionalRequirements se fusionan con los defaults (no se pueden '
-            'eliminar). Para la guía completa de redacción usa la plantilla '
+            'eliminar). `email_intro` debe explicar problema, solución y resultado '
+            'de negocio; es obligatorio antes de enviar. Para la guía completa de redacción usa la plantilla '
             'descargable del panel (/panel/proposals).'
         ),
     }
@@ -160,7 +163,9 @@ def send_proposal(arguments):
 def resend_proposal(arguments):
     proposal = _get_proposal_or_error(arguments.get('proposal_id'))
     try:
-        ProposalService.resend_proposal(proposal)
+        ProposalService.resend_proposal(
+            proposal, email_intro=arguments.get('email_intro'),
+        )
     except ValueError as exc:
         raise ToolError(str(exc))
     return _detail(proposal)
@@ -214,6 +219,13 @@ _FROM_JSON_PROPS = {
     'client_name': {'type': 'string'},
     'client_id': {'type': 'integer', 'description': 'ID de cliente existente (opcional).'},
     'client_email': {'type': 'string'},
+    'email_intro': {
+        'type': 'string',
+        'description': (
+            'Mensaje personalizado en texto plano que explica el problema, la '
+            'solución propuesta y el resultado de negocio esperado.'
+        ),
+    },
     'client_phone': {'type': 'string'},
     'client_company': {'type': 'string'},
     'project_type': {'type': 'string'},
@@ -319,7 +331,10 @@ PROPOSAL_TOOLS = [
     },
     {
         'name': 'send_proposal',
-        'description': 'Envía la propuesta al cliente (requiere client_email válido) y agenda recordatorios.',
+        'description': (
+            'Envía la propuesta al cliente y agenda recordatorios. Requiere '
+            'client_email válido y email_intro no vacío.'
+        ),
         'input_schema': {'type': 'object', 'properties': _PROPOSAL_ID_PROP, 'required': ['proposal_id']},
         'handler': send_proposal,
     },
@@ -327,9 +342,15 @@ PROPOSAL_TOOLS = [
         'name': 'resend_proposal',
         'description': (
             'Reenvía al cliente una propuesta que ya salió de borrador, usando '
-            'el mismo servicio de correo y validaciones del panel.'
+            'el mismo servicio de correo y validaciones del panel. Puede recibir '
+            'email_intro para editar y guardar el mensaje antes del reenvío; si '
+            'se omite, conserva el mensaje guardado.'
         ),
-        'input_schema': {'type': 'object', 'properties': _PROPOSAL_ID_PROP, 'required': ['proposal_id']},
+        'input_schema': {
+            'type': 'object',
+            'properties': {**_PROPOSAL_ID_PROP, 'email_intro': _FROM_JSON_PROPS['email_intro']},
+            'required': ['proposal_id'],
+        },
         'handler': resend_proposal,
     },
     {

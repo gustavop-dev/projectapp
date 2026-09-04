@@ -1770,3 +1770,17 @@ read-only facts, not an empty Markdown editor; orthogonal observations, archive
 state and relationships can remain mutable. Preview geometry is also part of the
 contract: constrain short content near document width/height and reserve internal
 scroll for long content instead of stretching every viewer to its container.
+
+## 66. Draft completeness and action eligibility are different contracts
+
+Allowing an incomplete draft is useful; allowing an irreversible or external
+action to silently repair it is not. Store optional work-in-progress as-is, but
+validate every required fact at the service boundary immediately before
+snapshots, transitions, timers or network delivery. UI blockers explain how to
+resolve the problem, while backend validation keeps every caller equivalent.
+
+Generated and manual content should converge on one persisted field. Keep the
+artifact path, REST/MCP path and editor path explicit, then render from that
+field without fallback copy. When a future edit is valid but history matters,
+snapshot the rendered output at send time: the live aggregate owns the next
+delivery, and the snapshot owns the previous one.
