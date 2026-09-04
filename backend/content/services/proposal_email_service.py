@@ -2784,10 +2784,15 @@ class ProposalEmailService:
         recipient_email=None,
     ):
         """Send a proposal-specific email and register it as a proposal activity."""
-        to_count = (
-            1 if isinstance(recipient_emails, str)
-            else len(recipient_emails or ([recipient_email] if recipient_email else []))
+        to_values = (
+            [recipient_emails]
+            if isinstance(recipient_emails, str)
+            else list(
+                recipient_emails
+                or ([recipient_email] if recipient_email else [])
+            )
         )
+        to_count = len(to_values)
         cc_count = 1 if isinstance(cc_emails, str) else len(cc_emails or [])
         sent = cls._send_composed_email(
             'proposal_email', proposal, recipient_emails, subject,
@@ -2801,8 +2806,8 @@ class ProposalEmailService:
                 change_type=ProposalChangeLog.ChangeType.EMAIL_SENT,
                 actor_type=ProposalChangeLog.ActorType.SELLER,
                 description=(
-                    f'Correo enviado a {to_count} destinatario(s) y '
-                    f'{cc_count} CC: {subject}'
+                    f'Correo enviado a {", ".join(to_values)} '
+                    f'({to_count} destinatario(s), {cc_count} CC): {subject}'
                 ),
             )
             proposal.last_activity_at = timezone.now()
