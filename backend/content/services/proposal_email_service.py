@@ -162,10 +162,10 @@ class ProposalEmailService:
         return recipients
 
     @classmethod
-    def _log_email(cls, template_key, recipient, subject='', proposal=None,
+    def _log_email(cls, template_key, recipient=None, subject='', proposal=None,
                    status='sent', error_message='', metadata=None,
                    client=None, audience=None, html_body='', text_body='',
-                   targets=()):
+                   targets=(), recipients=None, recipient_contexts=None):
         """Log an email send attempt, through the single writer.
 
         Delegates to ``email_log_service.record_send`` so proposal traffic
@@ -178,12 +178,13 @@ class ProposalEmailService:
             from content.models import EmailLog
             from content.services import email_log_service
 
-            if client is None and proposal is not None:
+            if client is None and proposal is not None and not recipient_contexts:
                 # No extra query: the FK id is already on the instance.
                 client = proposal.client_id
             return email_log_service.record_send(
                 template_key=template_key,
-                recipients=[recipient],
+                recipients=list(recipients or [recipient]),
+                recipient_contexts=recipient_contexts,
                 subject=subject[:500] if subject else '',
                 status=status,
                 error_message=error_message,
@@ -2627,9 +2628,10 @@ class ProposalEmailService:
 
     @classmethod
     def _send_composed_email(
-        cls, template_key, proposal, recipient_email, subject,
-        greeting, sections, footer='', attachments=None, targets=(),
-        return_logs=False, attachment_sources=None,
+        cls, template_key, proposal, recipient_emails=None, subject='',
+        greeting='', sections=(), footer='', attachments=None, targets=(),
+        return_logs=False, attachment_sources=None, cc_emails=None,
+        recipient_email=None,
     ):
         """
         Send a user-composed email with the standard Project App branding.
@@ -2637,6 +2639,21 @@ class ProposalEmailService:
         Shared implementation for branded emails and proposal emails.
         """
         from content.services.email_markdown import normalize_sections
+        from content.services.email_recipient_service import recipient_log_contexts
+
+        if recipient_emails is None:
+            recipient_emails = recipient_email
+        if isinstance(recipient_emails, str):
+            recipient_emails = [recipient_emails]
+        if isinstance(cc_emails, str):
+            cc_emails = [cc_emails]
+        to_recipients = [
+            value.strip().lower() for value in (recipient_emails or ()) if value
+        ]
+        cc_recipients = [
+            value.strip().lower() for value in (cc_emails or ()) if value
+        ]
+        all_recipients = to_recipients + cc_recipients
 
         attachment_names = [a[0] for a in attachments] if attachments else []
         normalized_sections = normalize_sections(sections)
@@ -2645,6 +2662,8 @@ class ProposalEmailService:
             'sections': normalized_sections,
             'footer': footer,
             'attachment_names': attachment_names,
+            'to_recipients': to_recipients,
+            'cc_recipients': cc_recipients,
         }
 
         # A composed email goes wherever the panel addressed it — a
@@ -2653,11 +2672,11 @@ class ProposalEmailService:
         # when it actually reached the client's own address.
         from content.models import EmailLog
 
-        client_email = (getattr(proposal, 'client_email', '') or '').strip().lower()
-        audience = (
-            EmailLog.Audience.CLIENT
-            if client_email and recipient_email.strip().lower() == client_email
-            else EmailLog.Audience.INTERNAL
+        contextual_client = getattr(proposal, 'client', None) if proposal else None
+        recipient_contexts = recipient_log_contexts(
+            to_recipients,
+            cc_recipients,
+            contextual_client=contextual_client,
         )
 
         html_content = text_content = ''
@@ -2671,7 +2690,8 @@ class ProposalEmailService:
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[recipient_email],
+                to=to_recipients,
+                cc=cc_recipients,
             )
             email.attach_alternative(html_content, 'text/html')
 
@@ -2681,7 +2701,10 @@ class ProposalEmailService:
 
             classification = (
                 DeliveryClassification.CLIENT
-                if proposal is None or audience == EmailLog.Audience.CLIENT
+                if proposal is None or any(
+                    item['audience'] == EmailLog.Audience.CLIENT
+                    for item in recipient_contexts
+                )
                 else DeliveryClassification.INTERNAL
             )
             EmailDeliveryGateway.send(
@@ -2692,24 +2715,28 @@ class ProposalEmailService:
             )
 
             logs = cls._log_email(
-                template_key, recipient_email,
+                template_key,
+                recipients=all_recipients,
+                recipient_contexts=recipient_contexts,
                 subject=subject, proposal=proposal, status='sent',
-                metadata=log_metadata, audience=audience,
+                metadata=log_metadata, audience=EmailLog.Audience.INTERNAL,
                 html_body=html_content, text_body=text_content,
                 targets=targets,
             )
             logger.info(
                 'Sent %s for proposal %s to %s',
-                template_key, proposal.pk if proposal else 'standalone', recipient_email,
+                template_key, proposal.pk if proposal else 'standalone', all_recipients,
             )
             return (True, logs) if return_logs else True
 
         except Exception as exc:
             logs = cls._log_email(
-                template_key, recipient_email,
+                template_key,
+                recipients=all_recipients,
+                recipient_contexts=recipient_contexts,
                 subject=subject, proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
-                metadata=log_metadata, audience=audience,
+                metadata=log_metadata, audience=EmailLog.Audience.INTERNAL,
                 html_body=html_content, text_body=text_content,
                 targets=targets,
             )
@@ -2720,37 +2747,51 @@ class ProposalEmailService:
 
     @classmethod
     def send_branded_email(
-        cls, proposal, recipient_email, subject, greeting,
-        sections, footer='', attachments=None,
+        cls, proposal, recipient_emails=None, subject='', greeting='',
+        sections=(), footer='', attachments=None, cc_emails=None,
+        recipient_email=None,
     ):
         """Send a user-composed branded email (generic, no activity logging)."""
         return cls._send_composed_email(
-            'branded_email', proposal, recipient_email, subject,
+            'branded_email', proposal, recipient_emails, subject,
             greeting, sections, footer, attachments,
+            cc_emails=cc_emails, recipient_email=recipient_email,
         )
 
     @classmethod
     def send_standalone_branded_email(
-        cls, recipient_email, subject, greeting,
-        sections, footer='', attachments=None, targets=(), return_logs=False,
-        attachment_sources=None,
+        cls, recipient_emails=None, subject='', greeting='',
+        sections=(), footer='', attachments=None, targets=(), return_logs=False,
+        attachment_sources=None, cc_emails=None, recipient_email=None,
     ):
         """Send a standalone branded email not tied to any proposal."""
         return cls._send_composed_email(
-            'branded_email', None, recipient_email, subject,
+            'branded_email', None, recipient_emails, subject,
             greeting, sections, footer, attachments, targets, return_logs,
-            attachment_sources,
+            attachment_sources, cc_emails, recipient_email,
         )
 
     @classmethod
     def send_proposal_email(
-        cls, proposal, recipient_email, subject, greeting,
-        sections, footer='', attachments=None,
+        cls, proposal, recipient_emails=None, subject='', greeting='',
+        sections=(), footer='', attachments=None, cc_emails=None,
+        recipient_email=None,
     ):
         """Send a proposal-specific email and register it as a proposal activity."""
+        to_values = (
+            [recipient_emails]
+            if isinstance(recipient_emails, str)
+            else list(
+                recipient_emails
+                or ([recipient_email] if recipient_email else [])
+            )
+        )
+        to_count = len(to_values)
+        cc_count = 1 if isinstance(cc_emails, str) else len(cc_emails or [])
         sent = cls._send_composed_email(
-            'proposal_email', proposal, recipient_email, subject,
+            'proposal_email', proposal, recipient_emails, subject,
             greeting, sections, footer, attachments,
+            cc_emails=cc_emails, recipient_email=recipient_email,
         )
         if sent:
             from content.models import ProposalChangeLog
@@ -2758,7 +2799,10 @@ class ProposalEmailService:
                 proposal=proposal,
                 change_type=ProposalChangeLog.ChangeType.EMAIL_SENT,
                 actor_type=ProposalChangeLog.ActorType.SELLER,
-                description=f'Correo enviado a {recipient_email}: {subject}',
+                description=(
+                    f'Correo enviado a {", ".join(to_values)} '
+                    f'({to_count} destinatario(s), {cc_count} CC): {subject}'
+                ),
             )
             proposal.last_activity_at = timezone.now()
             proposal.save(update_fields=['last_activity_at'])

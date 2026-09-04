@@ -44,6 +44,7 @@ def make_log(
     body=None,
     delivery_id=None,
     delivery_role=EmailLog.DeliveryRole.PRIMARY,
+    recipient_kind=EmailLog.RecipientKind.TO,
 ):
     return EmailLog.objects.create(
         template_key=template_key,
@@ -54,6 +55,7 @@ def make_log(
         body=body,
         delivery_id=delivery_id,
         delivery_role=delivery_role,
+        recipient_kind=recipient_kind,
     )
 
 
@@ -146,7 +148,7 @@ def test_default_scope_preserves_standalone_history(admin_client):
 
 
 def test_global_scope_nests_copy_attempt(admin_client):
-    delivery_id = uuid.uuid4()
+    delivery_id = uuid.UUID('00000000-0000-0000-0000-000000000001')
     primary = make_log('accounting_change', delivery_id=delivery_id)
     make_log(
         'accounting_change',
@@ -162,6 +164,76 @@ def test_global_scope_nests_copy_attempt(admin_client):
     assert response.data['results'][0]['copies'][0]['recipient'] == (
         'audit@example.com'
     )
+
+
+def test_global_history_groups_visible_recipients_by_delivery(admin_client):
+    delivery_id = uuid.UUID('00000000-0000-0000-0000-000000000002')
+    primary = make_log(
+        'branded_email',
+        recipient='uno@example.com',
+        delivery_id=delivery_id,
+    )
+    make_log(
+        'branded_email',
+        recipient='dos@example.com',
+        delivery_id=delivery_id,
+    )
+    make_log(
+        'branded_email',
+        recipient='copia@example.com',
+        delivery_id=delivery_id,
+        recipient_kind=EmailLog.RecipientKind.CC,
+    )
+
+    response = global_history(admin_client)
+
+    assert response.data['total'] == 1
+    assert response.data['results'][0]['id'] == primary.pk
+    assert [item['email'] for item in response.data['results'][0]['to_recipients']] == [
+        'uno@example.com',
+        'dos@example.com',
+    ]
+    assert [item['email'] for item in response.data['results'][0]['cc_recipients']] == [
+        'copia@example.com',
+    ]
+
+
+def test_recipient_filter_matches_cc_sibling(admin_client):
+    delivery_id = uuid.UUID('00000000-0000-0000-0000-000000000003')
+    primary = make_log(
+        'branded_email',
+        recipient='principal@example.com',
+        delivery_id=delivery_id,
+    )
+    make_log(
+        'branded_email',
+        recipient='copia-buscada@example.com',
+        delivery_id=delivery_id,
+        recipient_kind=EmailLog.RecipientKind.CC,
+    )
+
+    response = global_history(admin_client, {'recipient': 'copia-buscada'})
+
+    assert [row['id'] for row in response.data['results']] == [primary.pk]
+
+
+def test_email_id_filter_resolves_cc_sibling(admin_client):
+    delivery_id = uuid.UUID('00000000-0000-0000-0000-000000000004')
+    primary = make_log(
+        'branded_email',
+        recipient='principal@example.com',
+        delivery_id=delivery_id,
+    )
+    cc_log = make_log(
+        'branded_email',
+        recipient='copia@example.com',
+        delivery_id=delivery_id,
+        recipient_kind=EmailLog.RecipientKind.CC,
+    )
+
+    response = global_history(admin_client, {'email_id': cc_log.pk})
+
+    assert [row['id'] for row in response.data['results']] == [primary.pk]
 
 
 def test_family_filter_returns_matching_channel(admin_client):
@@ -374,6 +446,32 @@ def test_exact_resend_preserves_retained_delivery(admin_client):
     assert mail.outbox[1].bcc == ['carlos18bp@gmail.com']
     resent = EmailLog.objects.get(pk=response.data['email_log_id'])
     assert resent.snapshot.resend_of_id == log.snapshot_id
+
+
+def test_exact_resend_preserves_visible_header_groups(admin_client):
+    log = make_snapshot_log(attachment_bytes=b'pdf-original')
+
+    response = admin_client.post(
+        reverse('resend-standalone-email', kwargs={'log_id': log.pk}),
+        {
+            'recipient_emails': ['uno@example.com', 'dos@example.com'],
+            'cc_emails': ['copia@example.com'],
+        },
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert mail.outbox[0].to == ['uno@example.com', 'dos@example.com']
+    assert mail.outbox[0].cc == ['copia@example.com']
+    resent_logs = EmailLog.objects.filter(
+        delivery_id=response.data['delivery_id'],
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
+    )
+    assert set(resent_logs.values_list('recipient', 'recipient_kind')) == {
+        ('uno@example.com', EmailLog.RecipientKind.TO),
+        ('dos@example.com', EmailLog.RecipientKind.TO),
+        ('copia@example.com', EmailLog.RecipientKind.CC),
+    }
 
 
 def test_resend_returns_service_unavailable_when_snapshot_capture_fails(admin_client):

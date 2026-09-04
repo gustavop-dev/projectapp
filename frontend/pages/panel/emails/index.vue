@@ -43,12 +43,11 @@
 
       <!-- ── Edit sub-tab ── -->
       <div v-if="activeSubTab === 'edit'" class="space-y-4">
-        <!-- Recipient -->
-        <div>
-          <label class="block text-xs text-text-muted mb-1">Para</label>
-          <input v-model="recipient" type="email" placeholder="correo@ejemplo.com"
-            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
-        </div>
+        <EmailRecipientFields
+          v-model:toRecipients="toRecipients"
+          v-model:ccRecipients="ccRecipients"
+          test-id-prefix="standalone-email"
+        />
 
         <!-- Subject -->
         <div>
@@ -134,6 +133,10 @@
 
       <!-- ── Preview sub-tab ── -->
       <div v-else>
+        <div class="mb-3 space-y-1 rounded-lg bg-surface-muted px-3 py-2 text-xs text-text-muted">
+          <p><span class="font-medium text-text-default">Para:</span> {{ recipientSummary(toRecipients) || '—' }}</p>
+          <p v-if="ccRecipients.length"><span class="font-medium text-text-default">CC:</span> {{ recipientSummary(ccRecipients) }}</p>
+        </div>
         <!-- Subject badge -->
         <div class="mb-4 flex min-w-0 flex-col gap-1 rounded-lg bg-surface-muted px-3 py-2 text-xs text-text-muted panel-portrait:flex-row panel-portrait:items-center panel-portrait:gap-2">
           <span class="font-medium text-text-default">Asunto:</span>
@@ -260,7 +263,8 @@
                 <span class="shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-[10px] text-text-muted">{{ entry.family_label }}</span>
               </div>
               <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span class="break-all text-[11px] text-text-muted">{{ entry.recipient }}</span>
+                <span class="break-all text-[11px] text-text-muted">Para: {{ historyRecipientSummary(entry.to_recipients, entry.recipient) }}</span>
+                <span v-if="entry.cc_recipients?.length" class="break-all text-[11px] text-text-muted">CC: {{ historyRecipientSummary(entry.cc_recipients) }}</span>
                 <span class="text-[10px] text-text-subtle">{{ entry.template_label }}</span>
                 <span class="text-[10px] text-text-subtle">{{ entry.audience_label }}</span>
                 <span class="text-[10px] text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
@@ -284,6 +288,23 @@
               >
                 Reenviar exacto
               </BaseButton>
+            </div>
+            <div v-if="entry.to_recipients?.length || entry.cc_recipients?.length">
+              <p class="mb-1 text-[10px] uppercase tracking-wide text-text-subtle">Destinatarios</p>
+              <div class="space-y-1">
+                <div
+                  v-for="recipientEntry in [...(entry.to_recipients || []), ...(entry.cc_recipients || [])]"
+                  :key="`${recipientEntry.email}-${entry.id}`"
+                  class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-muted bg-surface px-3 py-2"
+                >
+                  <span class="break-all text-xs text-text-default">
+                    {{ entry.cc_recipients?.includes(recipientEntry) ? 'CC' : 'Para' }} · {{ recipientEntry.email }}
+                  </span>
+                  <span class="text-[10px] font-medium" :class="copyStatusClass(recipientEntry.status)">
+                    {{ statusLabel(recipientEntry.status) }}
+                  </span>
+                </div>
+              </div>
             </div>
             <div v-if="entry.metadata?.greeting">
               <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Saludo</p>
@@ -462,6 +483,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import ClientEmailCopySettings from '~/components/emails/ClientEmailCopySettings.vue';
+import EmailRecipientFields from '~/components/emails/EmailRecipientFields.vue';
 import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import EmailResendModal from '~/components/emails/EmailResendModal.vue';
 import PdfPreviewModal from '~/components/base/PdfPreviewModal.vue';
@@ -473,6 +495,7 @@ import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { formatDateTime } from '~/utils/formatDate';
+import { appendEmailRecipients, recipientSummary } from '~/utils/emailRecipients';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -512,7 +535,8 @@ const defaultFooter = ref('Quedamos atentos a tus comentarios.\nUn abrazo, el eq
 
 // ── Composer state ──
 const activeSubTab = ref('edit');
-const recipient = ref('');
+const toRecipients = ref([]);
+const ccRecipients = ref([]);
 const subject = ref('');
 const greeting = ref(defaultGreeting.value);
 const sections = ref([{ id: nextSectionId(), text: '', markdown: false }]);
@@ -585,7 +609,7 @@ function removeAttachment(idx) {
 
 // ── Validation ──
 const canSend = computed(() => {
-  if (!recipient.value.trim()) return false;
+  if (!toRecipients.value.length) return false;
   if (!subject.value.trim()) return false;
   if (!sections.value.some(s => s.text.trim())) return false;
   return true;
@@ -597,7 +621,7 @@ async function handleSend() {
   sendError.value = '';
 
   const formData = new FormData();
-  formData.append('recipient_email', recipient.value.trim());
+  appendEmailRecipients(formData, toRecipients.value, ccRecipients.value);
   formData.append('subject', subject.value.trim());
   formData.append('greeting', greeting.value.trim());
   formData.append('sections', JSON.stringify(
@@ -622,7 +646,8 @@ async function handleSend() {
 }
 
 function resetForm() {
-  recipient.value = '';
+  toRecipients.value = [];
+  ccRecipients.value = [];
   subject.value = '';
   greeting.value = defaultGreeting.value;
   footer.value = defaultFooter.value;
@@ -811,9 +836,13 @@ function statusLabel(s) {
 }
 
 function copyStatusClass(status) {
-  if (status === 'failed') return 'text-danger-strong';
+  if (status === 'failed' || status === 'bounced') return 'text-danger-strong';
   if (status === 'skipped') return 'text-warning-strong';
   return 'text-success-strong';
+}
+
+function historyRecipientSummary(recipients, fallback = '') {
+  return recipientSummary(recipients?.length ? recipients : [fallback]);
 }
 
 function formatBytes(value) {

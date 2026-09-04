@@ -94,6 +94,10 @@ con las áreas del Panel. La fuente ejecutable del inventario está en
   hecho externo y no contacta proveedores. El envío real pertenece a las
   herramientas separadas `send_email`/`resend_email`, clasificadas como
   sensibles y ejecutables únicamente después de vista previa y confirmación.
+  Sus payloads de destino usan `recipient_emails` (Para) y `cc_emails` (copia
+  visible): admiten hasta 10 direcciones únicas entre ambas listas. El campo
+  legado singular `recipient_email`/`recipient` sigue aceptándose para clientes
+  MCP anteriores, pero no permite expresar varios destinatarios.
 - `CommunicationThread.managed_project` / `managed_client` identifican la
   **comunicación madre** de un proyecto o un cliente, en paralelo con
   `DocumentFolder.managed_project` / `managed_client`. Son read-only para el MCP:

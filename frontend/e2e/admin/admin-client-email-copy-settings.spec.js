@@ -92,6 +92,8 @@ const exactHistory = {
     id: 51,
     subject: 'Cuenta de cobro agosto',
     recipient: 'cliente@example.com',
+    to_recipients: [{ email: 'cliente@example.com', status: 'sent' }],
+    cc_recipients: [{ email: 'contabilidad@example.com', status: 'sent' }],
     status: 'sent',
     sent_at: '2026-08-28T10:00:00Z',
     template_key: 'collection_account_client',
@@ -206,6 +208,7 @@ async function setupMocks(page, options = {}) {
   const calls = [];
   await mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
+    if (apiPath.startsWith('proposals/client-profiles/search/')) return json([]);
     if (apiPath === 'panel/dashboard/') return json({});
     if (apiPath === 'emails/defaults/' && method === 'GET') return json(defaults);
     if (apiPath === 'emails/history/41/body/' && method === 'GET') {
@@ -505,7 +508,7 @@ test('discloses that a legacy attachment cannot be downloaded exactly', {
   await expect(page.getByRole('link', { name: 'Descargar' })).toHaveCount(0);
 });
 
-test('resends an archived delivery after changing only its recipient', {
+test('resends an archived delivery after editing its visible recipient groups', {
   tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_RESEND, '@role:admin', '@outcome:success'],
 }, async ({ page }) => {
   const calls = await setupMocks(page, { history: exactHistory });
@@ -513,12 +516,26 @@ test('resends an archived delivery after changing only its recipient', {
   await page.getByRole('tab', { name: 'Historial' }).click();
   await page.getByText('Cuenta de cobro agosto', { exact: true }).first().click();
   await page.getByTestId('email-history-resend-51').click();
-  await page.getByTestId('email-resend-recipient').fill('nuevo@example.com');
+  await expect(page.getByTestId('email-resend-to-field')).toContainText('cliente@example.com');
+  await expect(page.getByTestId('email-resend-cc-field')).toContainText('contabilidad@example.com');
+  await page.getByRole('button', { name: 'Quitar cliente@example.com' }).click();
+  await page.getByRole('button', { name: 'Quitar contabilidad@example.com' }).click();
+  const toInput = page.getByTestId('email-resend-to');
+  await toInput.fill('nuevo@example.com');
+  await toInput.press('Enter');
+  await toInput.fill('socio@example.com');
+  await toInput.press('Enter');
+  const ccInput = page.getByTestId('email-resend-cc');
+  await ccInput.fill('copia@example.com');
+  await ccInput.press('Enter');
   await page.getByTestId('email-resend-confirm').click();
 
   await expect(page.getByTestId('email-resend-modal')).toHaveCount(0);
   expect(calls.find(call => call.path === 'emails/history/51/resend/').payload)
-    .toEqual({ recipient: 'nuevo@example.com' });
+    .toEqual({
+      recipient_emails: ['nuevo@example.com', 'socio@example.com'],
+      cc_emails: ['copia@example.com'],
+    });
 });
 
 test('keeps the resend failure visible for correction', {

@@ -1,5 +1,14 @@
 import { ref, watch, onBeforeUnmount, onMounted } from 'vue';
 
+function createDisabledTrackingState() {
+  return {
+    sessionId: ref(''),
+    sectionLog: ref([]),
+    isViewConfirmed: ref(false),
+    flush: async () => {},
+  };
+}
+
 function _getCsrfToken() {
   /* c8 ignore next */
   if (typeof document === 'undefined') return null;
@@ -20,8 +29,11 @@ function _getCsrfToken() {
  */
 export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   // Skip all tracking for admin previews to avoid polluting analytics
-  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1') {
-    return;
+  if (typeof window !== 'undefined') {
+    const previewValue = new URLSearchParams(window.location.search).get('preview');
+    if (previewValue === '1' || previewValue === 'true') {
+      return createDisabledTrackingState();
+    }
   }
 
   const FLUSH_INTERVAL_MS = 30_000;

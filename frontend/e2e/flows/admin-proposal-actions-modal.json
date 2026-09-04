@@ -6,9 +6,10 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin opens actions modal from listing with edit, preview, send/resend, copy, WhatsApp, duplicate, toggle, delete actions.",
+  "description": "Admin opens proposal action menus from the listing or edit page; the public preview action opens the client-facing proposal in a new tab without recording engagement.",
   "expectedSpecs": 1,
   "outcomes": [
-    "display"
+    "display",
+    "success"
   ]
 }

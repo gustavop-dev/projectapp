@@ -49,6 +49,9 @@ const emptyHistory = { results: [], total: 0, page: 1, has_next: false };
 function emailApiRoutes(proposal) {
   return async ({ apiPath }) => {
     if (apiPath === 'auth/check/') return authCheck;
+    if (apiPath.startsWith('proposals/client-profiles/search/')) {
+      return { status: 200, contentType: 'application/json', body: '[]' };
+    }
     if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(proposal) };
     }
@@ -64,13 +67,18 @@ function emailApiRoutes(proposal) {
 
 // Extends `emailApiRoutes` with the composer's POST .../{basePath}/send/ endpoint,
 // so tests can drive the actual send action instead of only checking tab/render state.
-function emailApiRoutesWithSend(proposal, sendBasePath, onSend) {
+function emailApiRoutesWithSend(
+  proposal,
+  sendBasePath,
+  onSend,
+  response = { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 501 }) },
+) {
   const base = emailApiRoutes(proposal);
   return async (ctx) => {
     const { apiPath, method } = ctx;
     if (apiPath === `proposals/${PROPOSAL_ID}/${sendBasePath}/send/` && method === 'POST') {
-      onSend();
-      return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 501 }) };
+      onSend(ctx);
+      return response;
     }
     return base(ctx);
   };
@@ -124,7 +132,11 @@ test.describe('Admin Proposal Email — Branded', () => {
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'negotiating' });
     let sendCalled = false;
-    await mockApi(page, emailApiRoutesWithSend(proposal, 'branded-email', () => { sendCalled = true; }));
+    let sendBody = '';
+    await mockApi(page, emailApiRoutesWithSend(proposal, 'branded-email', ({ route }) => {
+      sendCalled = true;
+      sendBody = route.request().postData() || '';
+    }));
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
@@ -135,6 +147,13 @@ test.describe('Admin Proposal Email — Branded', () => {
     // Switch from the default "Seguimiento" (proposal) mode to "General" (branded).
     await page.getByRole('button', { name: 'General' }).click();
 
+    const toInput = page.getByTestId('proposal-email-to');
+    await toInput.fill('stakeholder@example.com');
+    await toInput.press('Enter');
+    await page.getByTestId('proposal-email-show-cc').click();
+    const ccInput = page.getByTestId('proposal-email-cc');
+    await ccInput.fill('copy@example.com');
+    await ccInput.press('Enter');
     await page.getByPlaceholder('Asunto del correo').fill('Aviso general de la propuesta');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Contenido del correo de marca.');
 
@@ -144,7 +163,33 @@ test.describe('Admin Proposal Email — Branded', () => {
     ]);
 
     expect(sendCalled).toEqual(true);
+    expect(sendBody).toContain('client@emailtest.com');
+    expect(sendBody).toContain('stakeholder@example.com');
+    expect(sendBody).toContain('copy@example.com');
     await expect(page.getByText('Correo enviado correctamente.')).toContainText('Correo enviado correctamente.', { timeout: 5000 });
+  });
+
+  test('branded email reports a server-side send failure', {
+    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    test.setTimeout(60_000);
+    const proposal = makeProposal({ status: 'negotiating' });
+    await mockApi(page, emailApiRoutesWithSend(
+      proposal,
+      'branded-email',
+      () => {},
+      { status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'SMTP unavailable' }) },
+    ));
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: /Correos/i }).click();
+    await page.getByRole('button', { name: 'General' }).click();
+    await page.getByPlaceholder('Asunto del correo').fill('Aviso general');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Contenido listo para enviar.');
+
+    await page.getByRole('button', { name: 'Enviar correo' }).click();
+
+    await expect(page.getByText('Error al enviar el correo. Intenta de nuevo.')).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -194,7 +239,11 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'sent' });
     let sendCalled = false;
-    await mockApi(page, emailApiRoutesWithSend(proposal, 'proposal-email', () => { sendCalled = true; }));
+    let sendBody = '';
+    await mockApi(page, emailApiRoutesWithSend(proposal, 'proposal-email', ({ route }) => {
+      sendCalled = true;
+      sendBody = route.request().postData() || '';
+    }));
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
@@ -203,6 +252,13 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
     await correosTab.click();
 
     // Default mode is "Seguimiento" (proposal-email) — no mode switch needed.
+    const toInput = page.getByTestId('proposal-email-to');
+    await toInput.fill('decision-maker@example.com');
+    await toInput.press('Enter');
+    await page.getByTestId('proposal-email-show-cc').click();
+    const ccInput = page.getByTestId('proposal-email-cc');
+    await ccInput.fill('advisor@example.com');
+    await ccInput.press('Enter');
     await page.getByPlaceholder('Asunto del correo').fill('Seguimiento de tu propuesta');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Quedamos atentos a tu decisión.');
 
@@ -212,6 +268,31 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
     ]);
 
     expect(sendCalled).toEqual(true);
+    expect(sendBody).toContain('client@emailtest.com');
+    expect(sendBody).toContain('decision-maker@example.com');
+    expect(sendBody).toContain('advisor@example.com');
     await expect(page.getByText('Correo enviado correctamente.')).toContainText('Correo enviado correctamente.', { timeout: 5000 });
+  });
+
+  test('proposal follow-up reports a server-side send failure', {
+    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    test.setTimeout(60_000);
+    const proposal = makeProposal({ status: 'sent' });
+    await mockApi(page, emailApiRoutesWithSend(
+      proposal,
+      'proposal-email',
+      () => {},
+      { status: 502, contentType: 'application/json', body: JSON.stringify({ error: 'SMTP unavailable' }) },
+    ));
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: /Correos/i }).click();
+    await page.getByPlaceholder('Asunto del correo').fill('Seguimiento');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Mensaje listo para enviar.');
+
+    await page.getByRole('button', { name: 'Enviar correo' }).click();
+
+    await expect(page.getByText('Error al enviar el correo. Intenta de nuevo.')).toBeVisible({ timeout: 5000 });
   });
 });

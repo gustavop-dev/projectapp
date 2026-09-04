@@ -68,6 +68,20 @@ const DraggableStub = {
   template: '<div><slot name="item" v-for="(el, i) in modelValue" :key="i" :element="el" :index="i" /></div>',
 };
 
+const EmailRecipientFieldsStub = {
+  name: 'EmailRecipientFields',
+  props: ['toRecipients', 'ccRecipients'],
+  emits: ['update:toRecipients', 'update:ccRecipients'],
+  template: `
+    <input
+      type="email"
+      placeholder="correo@ejemplo.com"
+      :value="toRecipients[0]?.email || ''"
+      @input="$emit('update:toRecipients', $event.target.value ? [{ email: $event.target.value }] : [])"
+    >
+  `,
+};
+
 function mountTab(props = {}) {
   return mount(DiagnosticEmailsTab, {
     props: {
@@ -80,6 +94,7 @@ function mountTab(props = {}) {
         draggable: DraggableStub,
         MarkdownAttachmentModal: { template: '<div />' },
         AttachFromDocumentsModal: { template: '<div />' },
+        EmailRecipientFields: EmailRecipientFieldsStub,
       },
     },
   });
@@ -230,6 +245,9 @@ describe('DiagnosticEmailsTab', () => {
       await flushPromises();
 
       expect(mockDiagnosticsStore.sendCustomEmail).toHaveBeenCalledWith(42, expect.any(FormData));
+      const formData = mockDiagnosticsStore.sendCustomEmail.mock.calls[0][1];
+      expect(formData.get('recipient_emails')).toBe('["client@example.com"]');
+      expect(formData.get('cc_emails')).toBe('[]');
     });
 
     it('shows Correo enviado correctly after a successful send', async () => {

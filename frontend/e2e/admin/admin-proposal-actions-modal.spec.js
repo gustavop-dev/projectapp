@@ -264,4 +264,29 @@ test.describe('Proposal Actions Modal — edit page launch action', () => {
     await expect(launch).toBeVisible({ timeout: 15000 });
     await expect(launch).toContainText('Lanzar a Plataforma');
   });
+
+  test('public preview action opens the proposal view', {
+    tag: ['@outcome:success', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+  }, async ({ page }) => {
+    const proposal = mockEditProposal({ status: 'draft' });
+    await setupEditMocks(page, proposal);
+    await page.context().route(
+      new RegExp(`/api/proposals/${proposal.uuid}/$`),
+      (route) => route.fulfill(json(proposal)),
+    );
+
+    await page.goto(`/panel/proposals/${proposal.id}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('proposal-actions-menu').click();
+
+    const previewPagePromise = page.waitForEvent('popup');
+    await page.getByTestId('proposal-action-preview').click();
+    const previewPage = await previewPagePromise;
+
+    await expect(previewPage).toHaveURL(
+      new RegExp(`/proposal/${proposal.uuid}\\?preview=1$`),
+    );
+    await expect(previewPage.getByText(/MODO PREVIEW|PREVIEW MODE/)).toBeVisible();
+    await expect(previewPage.getByText('500', { exact: true })).toHaveCount(0);
+    await previewPage.close();
+  });
 });

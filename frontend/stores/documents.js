@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { DEFAULT_SCOPE, matchesScope, normalizeScope } from '~/utils/archiveScope';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
 import { normalizeApiError, normalizeBlobApiError } from './services/normalize_api_error';
+import { appendEmailRecipients } from '~/utils/emailRecipients';
 
 // Fuera del store para que no sean reactivos: descartan respuestas viejas
 // cuando dos peticiones se pisan (búsqueda con debounce, refrescos encadenados).
@@ -771,12 +772,12 @@ export const useDocumentStore = defineStore('documents', {
 
     /**
      * sendDocumentEmail: Send a branded email with optional document PDFs attached.
-     * @param {object} payload - { recipient_email, subject, greeting, footer, sections, document_ids }
+     * @param {object} payload - { recipient_emails, cc_emails, subject, greeting, footer, sections, document_ids }
      */
     async sendDocumentEmail(payload) {
       try {
         const formData = new FormData();
-        formData.append('recipient_email', payload.recipient_email);
+        appendEmailRecipients(formData, payload.recipient_emails, payload.cc_emails);
         formData.append('subject', payload.subject);
         formData.append('greeting', payload.greeting || '');
         formData.append('footer', payload.footer || '');

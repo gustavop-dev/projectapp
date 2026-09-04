@@ -58,6 +58,9 @@ function buildDiagnostic(overrides = {}) {
 function baseHandler(diagnostic, extra = {}) {
   return async ({ apiPath, method }) => {
     if (apiPath === 'auth/check/') return authOk;
+    if (apiPath.startsWith('proposals/client-profiles/search/')) {
+      return { status: 200, contentType: 'application/json', body: '[]' };
+    }
     if (apiPath === `diagnostics/${DIAG_ID}/detail/`) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(diagnostic) };
     }
@@ -107,7 +110,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
 
     await page.getByRole('tab', { name: 'Correos' }).click();
 
-    await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('diagnostic-email-to')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible();
     await expect(page.getByText('Secciones del correo')).toBeVisible();
     await expect(page.getByText('Agregar sección')).toBeVisible();
@@ -121,8 +124,10 @@ test.describe('Admin Diagnostic — Correos tab', () => {
 
     await page.getByRole('tab', { name: 'Correos' }).click();
 
-    const recipientInput = page.locator('input[type="email"]');
-    await expect(recipientInput).toHaveValue('client@example.com', { timeout: 10000 });
+    await expect(page.getByTestId('diagnostic-email-to-field')).toContainText(
+      'TechCorp · client@example.com',
+      { timeout: 10000 },
+    );
   });
 
   test('email history section renders after tab loads', {
@@ -151,11 +156,13 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let sendCalled = false;
-    await mockApi(page, async ({ apiPath, method }) => {
+    let sendBody = '';
+    await mockApi(page, async ({ apiPath, method, route }) => {
       const base = await baseHandler(buildDiagnostic())({ apiPath, method });
       if (base) return base;
       if (apiPath === `diagnostics/${DIAG_ID}/email/send/` && method === 'POST') {
         sendCalled = true;
+        sendBody = route.request().postData() || '';
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'sent' }) };
       }
       return null;
@@ -164,10 +171,36 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
     await page.getByRole('tab', { name: 'Correos' }).click();
 
+    const toInput = page.getByTestId('diagnostic-email-to');
+    await toInput.fill('stakeholder@example.com');
+    await toInput.press('Enter');
+    await page.getByTestId('diagnostic-email-show-cc').click();
+    const ccInput = page.getByTestId('diagnostic-email-cc');
+    await ccInput.fill('copy@example.com');
+    await ccInput.press('Enter');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Este es el cuerpo del correo de seguimiento.');
     await page.getByRole('button', { name: /Enviar correo/i }).click();
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
+    expect(sendBody).toContain('client@example.com');
+    expect(sendBody).toContain('stakeholder@example.com');
+    expect(sendBody).toContain('copy@example.com');
+  });
+
+  test('recipient validation rejects an address repeated between To and CC', {
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, baseHandler(buildDiagnostic()));
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('tab', { name: 'Correos' }).click();
+
+    await page.getByTestId('diagnostic-email-show-cc').click();
+    const ccInput = page.getByTestId('diagnostic-email-cc');
+    await ccInput.fill('client@example.com');
+    await ccInput.press('Enter');
+
+    await expect(page.getByText('client@example.com ya está agregado en otro campo.')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-email-recipient-count')).toHaveText('1/10 destinatarios entre Para y CC');
   });
 
 });
@@ -239,4 +272,3 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
     await expect(page.getByRole('button', { name: 'Generar acuerdo' })).toBeHidden();
   });
 });
-

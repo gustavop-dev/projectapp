@@ -47,6 +47,9 @@ class DeliveryTrace:
     classification: str
     family: str | None
     primary_recipients: tuple[str, ...]
+    to_recipients: tuple[str, ...] = ()
+    cc_recipients: tuple[str, ...] = ()
+    direct_bcc_recipients: tuple[str, ...] = ()
     copy_attempts: list[CopyAttempt] = field(default_factory=list)
     copy_error_message: str = ''
     body: object | None = None
@@ -64,6 +67,26 @@ def _normalized_recipients(values):
     return tuple(sorted({
         (value or '').strip().lower() for value in values or () if value
     }))
+
+
+def _message_recipient_groups(message):
+    """Return normalized header groups with To > CC > BCC precedence."""
+    seen = set()
+    groups = []
+    for values in (
+        getattr(message, 'to', ()),
+        getattr(message, 'cc', ()),
+        getattr(message, 'bcc', ()),
+    ):
+        group = []
+        for value in values or ():
+            normalized = (value or '').strip().lower()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            group.append(normalized)
+        groups.append(tuple(group))
+    return tuple(groups)
 
 
 def matching_delivery_trace(template_key, recipients):
@@ -135,6 +158,14 @@ def _persist_gateway_history(
                 trace.copy_error_message
             )
         audience = _audience_for(trace.classification)
+        recipient_kinds = {
+            **{recipient: EmailLog.RecipientKind.TO for recipient in trace.to_recipients},
+            **{recipient: EmailLog.RecipientKind.CC for recipient in trace.cc_recipients},
+            **{
+                recipient: EmailLog.RecipientKind.BCC
+                for recipient in trace.direct_bcc_recipients
+            },
+        }
         for recipient in trace.primary_recipients:
             log = EmailLog.objects.create(
                 template_key=trace.template_key,
@@ -148,6 +179,9 @@ def _persist_gateway_history(
                 audience=audience,
                 delivery_id=trace.delivery_id,
                 delivery_role=EmailLog.DeliveryRole.PRIMARY,
+                recipient_kind=recipient_kinds.get(
+                    recipient, EmailLog.RecipientKind.TO,
+                ),
             )
             trace.gateway_primary_log_ids.append(log.pk)
 
@@ -172,6 +206,7 @@ def _persist_gateway_history(
                 audience=EmailLog.Audience.INTERNAL,
                 delivery_id=trace.delivery_id,
                 delivery_role=EmailLog.DeliveryRole.COPY,
+                recipient_kind=EmailLog.RecipientKind.BCC,
             )
             trace.gateway_copy_log_ids.append(log.pk)
     except Exception:
@@ -211,13 +246,21 @@ class EmailDeliveryGateway:
             classification = DeliveryClassification.CLIENT
         if classification not in DeliveryClassification.VALUES:
             raise ValueError(f'Unknown email classification: {classification!r}.')
-        primary_recipients = _normalized_recipients(message.recipients())
+        to_recipients, cc_recipients, direct_bcc_recipients = (
+            _message_recipient_groups(message)
+        )
+        primary_recipients = _normalized_recipients(
+            (*to_recipients, *cc_recipients, *direct_bcc_recipients),
+        )
         trace = DeliveryTrace(
             delivery_id=uuid.uuid4(),
             template_key=template_key,
             classification=classification,
             family=family,
             primary_recipients=primary_recipients,
+            to_recipients=to_recipients,
+            cc_recipients=cc_recipients,
+            direct_bcc_recipients=direct_bcc_recipients,
             remaining_log_writes=max(1, int(primary_log_writes)),
         )
         _CURRENT_DELIVERY.set(trace)

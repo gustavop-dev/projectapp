@@ -1,5 +1,16 @@
 # Architecture — ProjectApp
 
+> **Arquitectura de destinatarios múltiples 2026-09-04:**
+> `email_recipient_service` es la frontera común de normalización, validación,
+> límite combinado y atribución de clientes para los envíos manuales.
+> `EmailDeliveryGateway` obtiene los grupos To/CC/BCC del mensaje, captura To/CC
+> en el snapshot y deja un `EmailLog` por dirección con `recipient_kind`, pero
+> conserva un único `delivery_id`. Las consultas eligen una fila Para estable
+> como representante y expanden filtros, destinatarios, estados y deep links al
+> grupo completo. El frontend concentra chips, búsqueda de clientes, entrada
+> manual y reglas cruzadas en `EmailRecipientFields`/`EmailRecipientPicker`; los
+> cinco compositores y el reenvío consumen el mismo contrato.
+
 > **Previsión contable manual 2026-09-03:** `IncomeRecord` separa
 > `is_receivable_candidate` de `collection_confidence` y protege por constraint
 > que una selección activa sea esperada y de empresa. `accounting_service`
@@ -500,8 +511,8 @@ branch before removing its now-empty parallel wrappers.
 | **DiagnosticDefaultConfig** | Per-language defaults applied at `WebAppDiagnostic` creation | language (unique), sections_json, payment_initial_pct (60), payment_final_pct (40), default_currency, default_investment_amount, default_duration_label, expiration_days, reminder_days, urgency_reminder_days. `clean()` enforces payment sum = 100. Read by `diagnostic_service.create_diagnostic` and surfaced through `/api/diagnostics/defaults/`. |
 | **ProposalProjectStage** | Internal project execution tracking (Cronograma) — internal-only, gated by `is_admin` in serializer | proposal_fk, stage_key (`design`/`development`), order, start_date, end_date, completed_at, warning_sent_at, last_overdue_reminder_at |
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
-| **EmailLog** | Universal outbound trace + composed email history | proposal_fk, template_key, recipient, audience, status (including skipped), error_message, metadata (JSONField), delivery_id, delivery_role (primary/copy), snapshot (PROTECT) |
-| **EmailDeliverySnapshot** | Immutable evidence captured before SMTP and shared by one primary delivery plus BCC attempts | delivery_id, template/family/classification, subject/from, body (OneToOne/PROTECT), MIME and attachment byte totals, attachment count, captured_at, optional resend_of lineage |
+| **EmailLog** | Universal per-address outbound trace + grouped composed email history | proposal_fk, template_key, recipient, recipient_kind (to/cc/bcc), audience, status (including skipped), error_message, metadata (JSONField), delivery_id, delivery_role (primary/copy), snapshot (PROTECT) |
+| **EmailDeliverySnapshot** | Immutable evidence captured before SMTP and shared by one visible delivery plus BCC attempts | delivery_id, template/family/classification, subject/from, to_recipients, cc_recipients, body (OneToOne/PROTECT), MIME and attachment byte totals, attachment count, captured_at, optional resend_of lineage |
 | **EmailAttachmentSnapshot / EmailLinkSnapshot** | Exact sent files plus user-facing links | attachment file/filename/MIME/size/SHA-256/order/format/business kind, optional protected Document provenance and historical type; link URL/SHA-256 fingerprint/label/content-vs-template group/order. The full URL remains evidence while `(snapshot, url_sha256)` provides MySQL-safe uniqueness. |
 | **EmailCopyRecipient** | Separate administrable BCC audience for every outbound email | email (unique), is_active, families (JSON list), created_at, updated_at |
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
@@ -569,11 +580,12 @@ flowchart TD
     Views --> PST["ProposalStageTracker"]
 
     PS -->|CRUD, lifecycle, analytics| Models["Django Models"]
-    PES -->|construct messages| EDG["EmailDeliveryGateway"]
+    PES -->|construct To/CC messages| ERS["EmailRecipientService"]
+    ERS --> EDG["EmailDeliveryGateway"]
     Views -->|other outbound messages| EDG
     EDG -->|capture before transport| EDS["EmailDeliverySnapshot"]
     EDS -->|exact bytes + provenance| Models
-    EDG -->|primary first; BCC copies after success| SMTP["Django Email Backend"]
+    EDG -->|one visible To/CC envelope; BCC copies after success| SMTP["Django Email Backend"]
     EDG -->|active recipients by family| CECR["EmailCopyRecipient"]
     PES -->|get content| ETR
     PST -->|get_or_create_stage / ensure_stages| Models
@@ -608,8 +620,9 @@ flowchart TD
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
 | **ProposalTrackingService** | Small | Atomic write-side contract for validated public heartbeats: session deduplication, section upserts, first-view state/alert, finalization, commercial signals and cached heat refresh. |
+| **EmailRecipientService** | Small | Parses legacy singular or current array payloads, normalizes and validates visible To/CC recipients, rejects duplicates/placeholders and enforces the combined limit of 10; resolves registered-client ownership in one query for per-address history. |
 | **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Initial/resend flows pass a prepared snapshot to `_attach_commercial_pdf`, so the retained bytes and attached bytes are identical; the generation fallback remains for non-send compatibility callers. Shared helpers also include `_build_initial_email_context(proposal)` and `_send_stage_notification`. |
-| **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires every key in the universal inventory plus explicit client/internal/security classification, captures an immutable body/link/attachment snapshot before transport and blocks SMTP if archival fails, persists baseline history, sends the primary envelope first, resolves segmented BCC recipients only after success, deduplicates original recipients, isolates copy failures and exposes one shared delivery trace/snapshot to `EmailLog`. |
+| **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires every key in the universal inventory plus explicit client/internal/security classification, captures immutable To/CC headers plus body/link/attachment evidence before transport and blocks SMTP if archival fails, persists one row per address under one delivery, sends one visible primary envelope first, resolves segmented BCC recipients only after success, deduplicates all recipients, isolates copy failures and exposes one shared delivery trace/snapshot to `EmailLog`. |
 | **OutboundEmailInventory** | Small | Authoritative mapping of all 56 outbound template keys to one of eight configurable copy families. Unknown keys fail closed; static tests reject mail calls outside the gateway. `ClientEmailInventory` remains the exact client-only compatibility subset. |
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
 | **ProposalPdfService** | Large | PDF generation with ReportLab: all 12 section types rendered to PDF |

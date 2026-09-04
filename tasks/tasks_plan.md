@@ -8,6 +8,14 @@
 > inmutable. JSON/MCP/fake data y las skills `proposal-create` de Codex y Claude
 > comparten el campo `email_intro`. No requiere migración ni backfill.
 
+> **Corrección lista para integrar — 2026-09-04:** «Vista previa pública» del
+> modal de acciones vuelve a abrir la propuesta sin el 500 de Nuxt. El modo
+> preview mantiene el contrato del composable de tracking, pero usa estado vacío
+> y `flush` no-op antes de instalar efectos o emitir analytics. Pruebas unitarias
+> cubren `preview=1|true`; Playwright recorre el botón, la pestaña nueva y el
+> banner de preview. El flow P1 `admin-proposal-actions-modal` queda cubierto en
+> `display` y `success`, con el registro agregado regenerado y fresco.
+
 > **Completado — política y elegibilidad de financiación (2026-09-03):** el
 > programa suma las condiciones 6 y 7: rango inclusivo $20–140 millones COP y
 > aporte inicial definido por riesgo, mínimo 20 %, con financiación máxima del
@@ -247,6 +255,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Emails — multiple visible To/CC recipients | 🟡 Ready for merge | 2026-09-04. Every manual composer and exact resend accepts registered clients or typed addresses in visible To/CC groups, with one required To, no duplicates/placeholders and a combined maximum of 10. One SMTP envelope and one delivery-level history record preserve per-address status/client attribution; configured BCC remains isolated. Migration `0246`, backward-compatible singular API fields, MCP documentation, grouped dashboards/history, backend/unit/E2E coverage and the Nuxt build are green. Production fake-data refresh was correctly skipped. |
 | Communications — MCP administrative parity | 🟡 Ready for merge | 2026-09-02. The connector expands from 6 to 14 tools: thread edit/close/reopen/archive/restore, draft deletion, historical annulment and audited date correction join the existing query/create/draft-edit/send-confirmation surface. List scope/order match the panel query service; every write uses the panel serializer/service boundary and no tool delivers email or WhatsApp. A description-only data migration preserves token, prefix, active state and last use. Ninety-eight focused cases, Django/migration checks and a 93/100 quality gate pass with zero errors/junk; local Ruff availability is the sole warning. |
 | Emails — semantic accounting notification colors | 🟡 Ready for merge | 2026-09-02. `accounting_change` now colors income and Pocket entries green; expenses, Pocket exits, recurring costs, Ads and card debt orange; and non-directional entities blue. The header and new values share the semantic accent while old values stay red. Pocket audit rows retain an immutable direction snapshot, with evidence-only historical backfill in `content.0237`, so queued sends and retries remain truthful. REST, MCP, panel and other email templates are unchanged. Focused result: 29 backend cases, migration drift check and a 93/100 quality gate with no warnings pass. |
 | Documents — immutable collection-account PDFs | 🟡 Ready for merge | 2026-09-02. Issuance atomically stores one hashed PDF in `Document.generated_file`; preview, download, initial email and resend consume the same bytes and replacement is rejected. Historical backfill uses the earliest exact email attachment before reconstruction. The document editor renders the account as a read-only PDF with accounting facts, retains private observations/archive/thread functions, shows a clickable folder path and constrains Markdown/PDF preview geometry. Fake seeders follow the same issuance boundary; production refresh was correctly refused. Focused backend/MCP/unit/E2E, Nuxt build, responsive/design checks and migration checks pass. |

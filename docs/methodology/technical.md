@@ -1,5 +1,17 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico de destinatarios múltiples — 2026-09-04:** los endpoints
+> manuales aceptan `recipient_emails: string[]` y `cc_emails: string[]`, y
+> conservan compatibilidad con `recipient_email`/`recipient` singulares. El
+> servidor normaliza a minúsculas, valida formato y correo temporal, rechaza
+> duplicados dentro o entre encabezados y aplica máximo 10 direcciones
+> combinadas. `content.0246` añade `EmailLog.recipient_kind`, el índice
+> `(delivery_id, recipient_kind)` y los arrays To/CC de
+> `EmailDeliverySnapshot`; el backfill clasifica primarios legados como To y
+> copias configuradas como BCC. Las APIs de historial devuelven
+> `to_recipients` y `cc_recipients` con estado/cliente por dirección, pero
+> cuentan y paginan por entrega. MCP describe el mismo payload y límite.
+
 > **Contrato técnico de cuentas por cobrar — 2026-09-03:** la migración
 > `content.0244` añade booleano de selección, catálogo de confianza
 > `high|medium|low`, índice de lectura y constraint
@@ -525,7 +537,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   SMTP, and every non-client message also requires an explicit classification.
   The same copy rule applies to client, internal and security traffic.
 - The primary envelope is sent before any copy lookup or copy SMTP attempt.
-  Configured internal recipients then receive independent BCC-only envelopes.
+  Manual sends place every visible To/CC address in that same envelope;
+  configured internal recipients then receive independent BCC-only envelopes.
   A lookup/copy failure is logged independently and cannot alter or retry the
   already-successful primary delivery.
 - Before the primary SMTP call, the gateway renders a clone into MIME and writes
@@ -545,11 +558,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   explicitly `atomic=False`, because Django otherwise opens a transaction around
   the recovery and MySQL rejects the required DDL. Migration `0228` backfills
   fingerprints before adding the short unique constraint.
-- `EmailLog.delivery_id` groups primary and copy attempts;
+- `EmailLog.delivery_id` groups every visible address and copy attempt;
   `delivery_role=primary|copy` keeps dashboards, cooldowns, contact counts and
   retry endpoints from treating internal copies as new primary sends. Every
   gateway send has baseline history, including internal and security messages;
-  complete bodies are retained by the explicit product policy.
+  `recipient_kind=to|cc|bcc` preserves header semantics while grouped queries
+  count one delivery and retain per-address status. Complete bodies are retained
+  by the explicit product policy.
 - Copy recipients are database configuration, separate from
   `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
   more stable families. Migration `content.0225` provisions
@@ -558,7 +573,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   See `docs/client-email-copy-inventory.md`.
 - `/api/emails/history/<log>/attachments/<attachment>/` streams retained bytes
   only to panel admins (`private, no-store`; inline only for PDF). Exact resend
-  accepts a validated recipient only, constructs a new snapshot with `resend_of`,
+  accepts validated To/CC groups, constructs a new snapshot with `resend_of`,
   and preserves archived subject/body/attachments. Rows without a snapshot are
   `legacy_partial` or `legacy_unknown` and cannot be downloaded or resent.
 

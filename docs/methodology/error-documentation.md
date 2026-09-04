@@ -14,6 +14,16 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 > de efectos, JSON/MCP/skills comparten el campo y cada entrega conserva su
 > snapshot aunque el mensaje se edite después.
 
+> **Resuelto 2026-09-04 — los compositores sólo permitían un destinatario y el
+> historial duplicaría un envío múltiple:** cada superficie mantenía un string
+> local y el modelo de trazabilidad no distinguía Para, CC y BCC. Un servicio
+> compartido valida ahora los grupos y su límite antes del SMTP; el gateway
+> conserva una fila por dirección bajo el mismo `delivery_id` y el historial
+> elige una representante estable para contar, filtrar y paginar una sola vez.
+> El snapshot guarda los encabezados visibles, por lo que el reenvío exacto los
+> restaura sin inferirlos desde metadata ni confundir CC visible con la copia BCC
+> automática.
+
 > **Resuelto 2026-09-03 — cambios comerciales podían reinterpretar borradores
 > y contratos anteriores:** guardar topes y porcentajes en una configuración
 > mutable habría cambiado retroactivamente su validación y su texto. Las reglas
@@ -191,6 +201,25 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-056] La vista previa pública de una propuesta devolvía 500
+
+- **Date**: 2026-09-04
+- **Context**: Desde la edición de cualquier propuesta activa, la acción
+  «Vista previa pública» abría `?preview=1` en otra pestaña, pero Nuxt mostraba
+  su página de error 500 antes de cargar los datos de la propuesta.
+- **Root Cause**: `useProposalTracking` devolvía `undefined` al detectar preview,
+  mientras la página pública siempre desestructuraba su método `flush`. El fallo
+  era de contrato frontend y no dependía del estado ni del contenido de la
+  propuesta.
+- **Resolution**: Mantener un objeto de retorno estable en preview con `refs`
+  vacíos y un `flush` asíncrono no-op, retornándolo antes de registrar watchers,
+  lifecycle hooks, storage o requests de tracking.
+- **Files Affected**: composable y pruebas unitarias de tracking, spec E2E del
+  modal de acciones, shard y documentación del flow.
+- **Verification**: cuatro casos unitarios focales para `preview=1|true`; un
+  recorrido Playwright desde el modal hasta el banner público, sin página 500;
+  flow P1 cubierto en `display` y `success` y flow-map fresco.
 
 ### [ERR-054] La columna Creado no ordenaba el listado documental
 

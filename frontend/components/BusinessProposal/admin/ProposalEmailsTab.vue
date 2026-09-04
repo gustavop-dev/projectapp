@@ -120,12 +120,11 @@
 
       <!-- ── Edit sub-tab ── -->
       <div v-if="activeSubTab === 'edit'" class="space-y-4">
-        <!-- Recipient -->
-        <div>
-          <label class="block text-xs text-text-muted mb-1">Para</label>
-          <input v-model="recipient" type="email" placeholder="correo@ejemplo.com"
-            class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
-        </div>
+        <EmailRecipientFields
+          v-model:toRecipients="toRecipients"
+          v-model:ccRecipients="ccRecipients"
+          test-id-prefix="proposal-email"
+        />
 
         <!-- Subject -->
         <div>
@@ -233,6 +232,10 @@
 
       <!-- ── Preview sub-tab ── -->
       <div v-else>
+        <div class="mb-3 space-y-1 rounded-lg bg-surface-raised px-3 py-2 text-xs text-text-muted">
+          <p><span class="font-medium text-text-default">Para:</span> {{ recipientSummary(toRecipients) || '—' }}</p>
+          <p v-if="ccRecipients.length"><span class="font-medium text-text-default">CC:</span> {{ recipientSummary(ccRecipients) }}</p>
+        </div>
         <!-- Subject badge -->
         <div class="flex items-center gap-2 bg-surface-raised rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
           <span class="font-medium text-text-default">Asunto:</span>
@@ -307,8 +310,14 @@ import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
 import AttachFromDocumentsModal from '~/components/AttachFromDocumentsModal.vue';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import EmailHistoryList from '~/components/EmailHistoryList.vue';
+import EmailRecipientFields from '~/components/emails/EmailRecipientFields.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { useDocRefsAttachment } from '~/composables/useDocRefsAttachment';
+import {
+  appendEmailRecipients,
+  emailRecipient,
+  recipientSummary,
+} from '~/utils/emailRecipients';
 
 const notify = usePanelNotify();
 
@@ -374,7 +383,13 @@ const nextSectionId = () => ++sectionIdSeq;
 
 // ── Composer state ──
 const activeSubTab = ref('edit');
-const recipient = ref(props.proposal.client_email || '');
+const toRecipients = ref(props.proposal.client_email
+  ? [emailRecipient(props.proposal.client_email, {
+    name: props.proposal.client_name || '',
+    clientId: props.proposal.client_id || null,
+  })]
+  : []);
+const ccRecipients = ref([]);
 const subject = ref('');
 const defaultGreeting = ref(
   props.proposal.client_name ? `Hola ${props.proposal.client_name}` : 'Hola',
@@ -426,7 +441,7 @@ const { handleMarkdownAttach } = useMarkdownAttachmentHandler(attachments);
 
 // ── Validation ──
 const canSend = computed(() => {
-  if (!recipient.value.trim()) return false;
+  if (!toRecipients.value.length) return false;
   if (!subject.value.trim()) return false;
   if (!sections.value.some(s => s.text.trim())) return false;
   return true;
@@ -437,7 +452,7 @@ async function handleSend() {
   sendError.value = '';
 
   const formData = new FormData();
-  formData.append('recipient_email', recipient.value.trim());
+  appendEmailRecipients(formData, toRecipients.value, ccRecipients.value);
   formData.append('subject', subject.value.trim());
   formData.append('greeting', greeting.value.trim());
   formData.append('sections', JSON.stringify(
@@ -462,6 +477,7 @@ async function handleSend() {
 }
 
 function resetForm() {
+  ccRecipients.value = [];
   subject.value = '';
   greeting.value = defaultGreeting.value;
   footer.value = defaultFooter.value;

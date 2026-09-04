@@ -32,6 +32,8 @@ class EmailDeliverySnapshot(models.Model):
     family = models.CharField(max_length=40, blank=True, default='')
     subject = models.CharField(max_length=500, blank=True, default='')
     from_email = models.CharField(max_length=320, blank=True, default='')
+    to_recipients = models.JSONField(default=list, blank=True)
+    cc_recipients = models.JSONField(default=list, blank=True)
     body = models.OneToOneField(
         'EmailBody',
         on_delete=models.PROTECT,

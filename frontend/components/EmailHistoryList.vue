@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { formatDateTime } from '~/utils/formatDate';
 import BaseCollapse from '~/components/base/BaseCollapse.vue';
+import { recipientSummary } from '~/utils/emailRecipients';
 
 /**
  * Sent-email history panel — shared by the Proposals and Diagnostics email
@@ -30,9 +31,20 @@ const STATUS_LABELS = {
 function statusLabel(s) { return STATUS_LABELS[s] || s }
 
 function copyStatusClass(status) {
-  if (status === 'failed') return 'text-danger-strong'
+  if (status === 'failed' || status === 'bounced') return 'text-danger-strong'
   if (status === 'skipped') return 'text-warning-strong'
   return 'text-success-strong'
+}
+
+function historyRecipientSummary(recipients, fallback = '') {
+  return recipientSummary(recipients?.length ? recipients : [fallback]);
+}
+
+function deliveryRecipients(entry) {
+  return [
+    ...(entry.to_recipients || []).map(recipient => ({ ...recipient, kindLabel: 'Para' })),
+    ...(entry.cc_recipients || []).map(recipient => ({ ...recipient, kindLabel: 'CC' })),
+  ];
 }
 
 function formatDate(isoString) {
@@ -75,8 +87,9 @@ function toggleExpand(id) {
                 'bg-danger-soft text-danger-strong': entry.status === 'failed' || entry.status === 'bounced',
               }">{{ statusLabel(entry.status) }}</span>
           </div>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-2xs text-text-muted">{{ entry.recipient }}</span>
+          <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span class="break-all text-2xs text-text-muted">Para: {{ historyRecipientSummary(entry.to_recipients, entry.recipient) }}</span>
+            <span v-if="entry.cc_recipients?.length" class="break-all text-2xs text-text-muted">CC: {{ historyRecipientSummary(entry.cc_recipients) }}</span>
             <span class="text-2xs text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
             <slot name="entry-meta" :entry="entry" />
           </div>
@@ -89,6 +102,24 @@ function toggleExpand(id) {
 
       <BaseCollapse :open="Boolean(expandedIds[entry.id])">
         <div class="border-t border-border-muted px-4 py-3 bg-surface-muted space-y-3">
+          <div v-if="deliveryRecipients(entry).length">
+            <p class="mb-1 text-2xs uppercase tracking-wide text-text-subtle">Destinatarios</p>
+            <div class="space-y-1.5">
+              <div
+                v-for="recipient in deliveryRecipients(entry)"
+                :key="`${recipient.kindLabel}-${recipient.email}`"
+                class="rounded-lg border border-border-muted bg-surface px-3 py-2"
+              >
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="break-all text-xs text-text-default">{{ recipient.kindLabel }} · {{ recipient.email }}</span>
+                  <span class="text-2xs font-medium" :class="copyStatusClass(recipient.status)">
+                    {{ statusLabel(recipient.status) }}
+                  </span>
+                </div>
+                <p v-if="recipient.error_message" class="mt-1 text-2xs text-danger-strong">{{ recipient.error_message }}</p>
+              </div>
+            </div>
+          </div>
           <div v-if="entry.metadata?.greeting">
             <p class="text-2xs text-text-subtle uppercase tracking-wide mb-0.5">Saludo</p>
             <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>

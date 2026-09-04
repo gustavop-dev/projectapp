@@ -12,6 +12,28 @@ de propuestas en Codex y Claude. No hay cambio de modelo, migración ni backfill
 los flows P1/P2 de crear, enviar, reenviar y multi-enviar están cubiertos en sus
 outcomes declarados.
 
+**2026-09-04 — destinatarios múltiples y CC listos para integrar:** los
+compositores independiente, de propuesta general/seguimiento, diagnóstico y
+documento, además del reenvío exacto, admiten selección de clientes y entrada
+manual en Para/CC con máximo 10 direcciones únicas. Backend conserva payloads
+singulares, valida el contrato completo y envía un solo mensaje visible; el
+gateway registra cada dirección bajo una entrega y mantiene aparte las copias
+BCC automáticas. Snapshot, historial universal, historiales contextuales,
+dashboard, filtros, documentos y MCP proyectan el grupo sin inflar conteos. La
+migración `content.0246` hace backfill seguro. Verificación focal: 24 pruebas
+backend, 55 unitarias, 11 casos Playwright, build Nuxt, Django/migraciones,
+guards de diseño/responsive y auditoría de flows en verde. El refresh de fake
+data se omitió porque `projects.yml` clasifica este entorno como producción.
+
+**2026-09-04 — vista previa pública de propuestas lista para integrar:** la
+acción del modal de edición vuelve a abrir la propuesta en una pestaña pública
+con `preview=1`, sin activar tracking ni devolver el 500 de Nuxt. El composable
+de tracking conserva ahora un contrato estable en preview (`refs` vacíos y
+`flush` no-op) y sale antes de registrar watchers, lifecycle hooks o requests.
+La cobertura focal valida `preview=1|true` y el recorrido real desde el botón
+hasta el banner de preview; el flow `admin-proposal-actions-modal` cubre
+`display` y `success`, y el mapa quedó fresco.
+
 **2026-09-03 — política de financiación lista para integrar:** la oferta y el
 otrosí comparten una política versionada con elegibilidad inclusiva de
 $20–140 millones COP, primer pago definido por análisis de riesgo con piso del
@@ -1630,7 +1652,7 @@ ProjectApp is in **production** at projectapp.co. No long-lived active branch: w
 - **Hybrid rendering** — SSR for SEO pages, SPA for admin, proposal, and platform views
 - **Dual auth strategy** — Session/CSRF for `/panel/` admin; JWT (SimpleJWT) for `/platform/`
 - **Stage tracking is admin-managed** — `ProposalProjectStage.start_date` / `end_date` are set manually from the Cronograma tab. We do NOT auto-derive them by parsing the free-text `timeline` proposal section ("1 semana", "2 weeks") because that text is sales/marketing copy, not project execution data.
-- **Internal team notifications use `_get_notification_recipients()` only** — recipient list lives in the `NOTIFICATION_EMAIL` env var (comma-separated). Do NOT add per-feature recipient settings. Internal sends are NOT logged to `EmailLog` (that table is for client-facing single-recipient sends).
+- **Internal team notifications use `_get_notification_recipients()` only** — recipient list lives in the `NOTIFICATION_EMAIL` env var (comma-separated). Do NOT add per-feature recipient settings. The gateway records baseline `EmailLog` rows for client, internal and security sends; manual visible To/CC groups share one `delivery_id`, while configured BCC copies keep `delivery_role=copy`.
 - **Internal-only model fields must be gated by `is_admin` in shared serializers** — when a model docstring says "internal-only" (e.g., `ProposalProjectStage`), the field on `ProposalDetailSerializer` must be a `SerializerMethodField` returning `[]` for non-admin context, never a nested `read_only=True` model serializer.
 - **Hosting has separate current and historical catalogs** — new selections are 9/6/3 months; monthly/annual values may be rendered for preserved history but must never re-enter offered choices. Proposal public/PDF consumers preserve closed snapshots; new platform/accounting operations use current terms.
 
