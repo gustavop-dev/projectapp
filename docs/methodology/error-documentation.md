@@ -7,6 +7,13 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-04 — una propuesta podía enviarse sin explicar qué
+> resolvía:** `email_intro` era opcional, vivía fuera del flujo de correo y el
+> renderer sustituía su ausencia con copy genérico. **Correos** es ahora el
+> dueño visible del mensaje; todos los límites de envío validan el texto antes
+> de efectos, JSON/MCP/skills comparten el campo y cada entrega conserva su
+> snapshot aunque el mensaje se edite después.
+
 > **Resuelto 2026-09-04 — los compositores sólo permitían un destinatario y el
 > historial duplicaría un envío múltiple:** cada superficie mantenía un string
 > local y el modelo de trazabilidad no distinguía Para, CC y BCC. Un servicio
@@ -1353,3 +1360,25 @@ contracts, not conventions repeated in individual commands.
   2560 px; dos resúmenes iguales en 412 y 835 px.
 - **Lesson**: Igualar el componente no basta si dos grupos hermanos usan grillas
   distintas; la paridad visual exige compartir layout y tracks de columnas.
+
+### [ERR-057] Una propuesta podía enviarse sin explicar qué resolvía
+
+- **Date**: 2026-09-04
+- **Context**: La propuesta tenía un `email_intro` opcional en General, pero el
+  correo sustituía el vacío con copy derivado del título. El operador no tenía
+  un lugar claro para escribir, revisar o adaptar el mensaje al reenviar.
+- **Root Cause**: Persistencia, composición y elegibilidad estaban mezcladas:
+  el campo podía quedar vacío, el servicio no lo validaba y el renderer ocultaba
+  esa ausencia con un fallback genérico.
+- **Resolution**: Mover la autoría visible a **Correos**, conservar el draft
+  opcional y hacer obligatorio el texto en todos los límites de envío. JSON,
+  MCP y las skills de Codex/Claude transportan el mismo campo; reenvío lo
+  precarga y permite editarlo. El renderer ya no inventa copy y las entregas
+  conservan snapshots inmutables.
+- **Files Affected**: servicios/serializers/vistas/templates de propuestas,
+  panel comercial, contratos JSON/MCP, fake data, flows y ambas skills.
+- **Verification**: Regresiones focales cubren validación previa a efectos,
+  orden HTML/texto, persistencia, reenvío, multi-envío, historial inmutable y
+  los outcomes E2E de éxito/error/fallo.
+- **Lesson**: Un fallback no debe convertir la ausencia de contenido comercial
+  obligatorio en una entrega aparentemente válida.

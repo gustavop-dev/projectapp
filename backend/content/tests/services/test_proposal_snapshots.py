@@ -39,6 +39,7 @@ def proposal(client_profile):
         client=client_profile,
         client_name='Nube SAS',
         client_email=client_profile.user.email,
+        email_intro='Esta propuesta centraliza la atención de clientes de Nube SAS.',
     )
 
 
@@ -235,6 +236,7 @@ def test_multi_generation_failure_saves_no_versions(
         client=client_profile,
         client_name='Nube SAS',
         client_email=client_profile.user.email,
+        email_intro='Esta propuesta extiende la atención de Nube SAS al canal móvil.',
     )
     with (
         patch(

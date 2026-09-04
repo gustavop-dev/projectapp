@@ -452,23 +452,6 @@
 
     </div>
 
-    <div>
-      <label class="block text-sm font-medium text-text-default mb-1" for="edit-email-intro">
-        Texto introductorio del correo
-      </label>
-      <p class="text-xs text-text-muted mb-2">
-        Párrafo descriptivo que aparecerá en el correo enviado al cliente cuando reciba la propuesta. Si lo dejas vacío se usa un texto por defecto basado en el título.
-      </p>
-      <BaseTextarea
-        id="edit-email-intro"
-        v-model="form.email_intro"
-        :rows="5"
-        size="sm"
-        placeholder="Ej. Esta primera fase contempla la construcción de la plataforma base de tu firma..."
-        data-testid="edit-email-intro"
-      />
-    </div>
-
     <div class="space-y-3 pt-2 border-t border-input-border">
       <div class="flex items-start justify-between gap-3">
         <div>

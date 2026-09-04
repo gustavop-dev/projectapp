@@ -101,7 +101,7 @@ const actions = computed(() => {
       key: 'send',
       action: 'send',
       label: 'Enviar al Cliente',
-      description: 'Envía por email la propuesta al cliente.',
+      description: 'Envía por email la propuesta con el mensaje preparado en Correos.',
       dotClass: 'bg-info-strong',
     });
   }
@@ -110,7 +110,7 @@ const actions = computed(() => {
       key: 'resend',
       action: 'resend',
       label: 'Re-enviar al Cliente',
-      description: 'Vuelve a enviar el email manteniendo la misma fecha de expiración.',
+      description: 'Permite editar el mensaje y vuelve a enviar sin cambiar la fecha de expiración.',
       dotClass: 'bg-info-strong',
     });
   }
@@ -119,7 +119,7 @@ const actions = computed(() => {
       key: 'send-multi',
       action: 'send',
       label: 'Enviar varias propuestas como un solo correo',
-      description: 'Selecciona otras propuestas del mismo cliente y envíalas en un único email con sus PDFs.',
+      description: 'Envía varias propuestas con sus mensajes guardados y PDFs en un único correo.',
       dotClass: 'bg-info-strong',
     });
   }

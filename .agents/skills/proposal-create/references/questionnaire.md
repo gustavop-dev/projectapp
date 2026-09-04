@@ -17,11 +17,14 @@ Antes de generar, debe quedar resuelto:
 - sector, ubicación y público objetivo;
 - situación actual y problema concreto;
 - objetivo de negocio y resultado esperado;
+- mensaje breve para el correo de envío que conecte el problema confirmado, la solución propuesta y ese resultado de negocio;
 - diferenciadores reales que deban mencionarse;
 - hechos, cifras o competidores aportados por el cliente;
 - alcance y exclusiones explícitas.
 
 Si falta un hecho que cambiaría la historia comercial, pregunta. No inventes métricas internas, clientes, volúmenes, competidores, integraciones ni casos de éxito.
+
+El mensaje del correo puede derivarse de hechos ya confirmados; no abras una pregunta separada si problema, solución y resultado ya están claros. Si alguno falta, resuélvelo en el ledger antes de redactar. Debe ser texto plano, específico para ese cliente y sin HTML ni Markdown.
 
 ### Alcance y entrega
 

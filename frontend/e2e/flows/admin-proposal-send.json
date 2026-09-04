@@ -6,11 +6,12 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. The email body now interpolates the editable email_intro field from the proposal and the commercial PDF is attached automatically. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
+  "description": "Send a proposal from the list or edit page. The Correos tab is available while the proposal is a draft and saves the editable plain-text email_intro independently. Every send requires a nonblank message; the scorecard links back to Correos when it is missing. Delivery renders the predefined body, then the personalized problem-to-solution-to-outcome message, then commercial blocks, and attaches the proposal PDF. Backend returns email_delivery so the panel distinguishes delivery success from SMTP/template failure.",
   "expectedSpecs": 1,
   "knownGaps": "The server-side PDF-attachment side effect on send is backend-only and not asserted at the UI layer.",
   "outcomes": [
     "success",
+    "error",
     "failure"
   ]
 }

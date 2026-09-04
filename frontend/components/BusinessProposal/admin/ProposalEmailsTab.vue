@@ -1,6 +1,63 @@
 <template>
-  <div>
-    <TabSplitLayout>
+  <div class="space-y-5">
+    <section class="rounded-xl border border-border-muted bg-surface p-5" data-testid="proposal-email-intro-card">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-text-default">Mensaje personalizado del correo de envío</h3>
+          <p class="mt-1 max-w-3xl text-xs leading-relaxed text-text-muted">
+            Cuenta qué problema concreto tiene el cliente, cómo lo resuelve esta propuesta y qué resultado de negocio espera conseguir.
+            Este mensaje aparece después del cuerpo predefinido y antes de los bloques comerciales.
+          </p>
+        </div>
+        <span
+          class="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide"
+          :class="normalizedEmailIntro ? 'bg-success-soft text-success-strong' : 'bg-warning-soft text-warning-strong'"
+        >
+          {{ normalizedEmailIntro ? 'Listo para enviar' : 'Requerido para enviar' }}
+        </span>
+      </div>
+
+      <div class="mt-4">
+        <label for="proposal-email-intro" class="mb-1 block text-xs font-medium text-text-muted">
+          Mensaje para {{ proposal.client_name || 'el cliente' }}
+        </label>
+        <BaseTextarea
+          id="proposal-email-intro"
+          v-model="emailIntroDraft"
+          :rows="7"
+          :error="Boolean(emailIntroError)"
+          placeholder="Ej. Esta propuesta resuelve… mediante… para lograr…"
+          data-testid="proposal-email-intro"
+        />
+        <p class="mt-1 text-xs text-text-subtle">
+          Texto plano editable. Se permiten saltos de línea; no HTML ni Markdown. El borrador puede guardarse vacío, pero no podrá enviarse.
+        </p>
+      </div>
+
+      <div v-if="emailIntroError" class="mt-3 rounded-lg border border-danger-strong/30 bg-danger-soft px-3 py-2 text-sm text-danger-strong" role="alert">
+        {{ emailIntroError }}
+      </div>
+
+      <div class="mt-4 flex flex-wrap justify-end gap-2">
+        <BaseButton variant="secondary" size="sm" @click="previewEmailIntro">
+          <BaseActionIcon action="view" />
+          Vista previa
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="sm"
+          :loading="savingEmailIntro"
+          :disabled="!isEmailIntroDirty || savingEmailIntro"
+          disabled-reason="Modifica el mensaje antes de guardarlo."
+          data-testid="proposal-email-intro-save"
+          @click="saveEmailIntro"
+        >
+          {{ savingEmailIntro ? 'Guardando…' : 'Guardar mensaje' }}
+        </BaseButton>
+      </div>
+    </section>
+
+    <TabSplitLayout v-if="hasFollowupComposer">
       <template #main>
     <!-- ── Email composer ── -->
     <section class="bg-surface border border-border-muted rounded-xl p-5">
@@ -220,6 +277,11 @@
       </template>
     </TabSplitLayout>
 
+    <section v-else class="rounded-xl border border-border-muted bg-surface-raised px-5 py-4">
+      <p class="text-sm font-medium text-text-default">El historial y los correos de seguimiento aparecerán después del primer envío.</p>
+      <p class="mt-1 text-xs text-text-muted">Mientras la propuesta esté en borrador, prepara y guarda aquí el mensaje personalizado.</p>
+    </section>
+
     <MarkdownAttachmentModal
       :open="showMarkdownModal"
       :endpoint="`proposals/${proposal.id}/proposal-email/markdown-attachment/`"
@@ -239,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmentHandler';
@@ -262,6 +324,7 @@ const notify = usePanelNotify();
 const props = defineProps({
   proposal: { type: Object, required: true },
 });
+const emit = defineEmits(['email-intro-saved', 'dirty-state-change', 'open-email-preview']);
 
 const activeMode = ref('proposal');
 
@@ -270,6 +333,50 @@ const basePath = computed(() =>
 );
 
 const proposalStore = useProposalStore();
+
+// ── Initial proposal email message ──
+const emailIntroDraft = ref(props.proposal.email_intro || '');
+const savedEmailIntro = ref(props.proposal.email_intro || '');
+const savingEmailIntro = ref(false);
+const emailIntroError = ref('');
+const normalizedEmailIntro = computed(() => emailIntroDraft.value.trim());
+const isEmailIntroDirty = computed(() => emailIntroDraft.value !== savedEmailIntro.value);
+const hasFollowupComposer = computed(() => [
+  'sent', 'viewed', 'negotiating', 'accepted', 'rejected',
+].includes(props.proposal.status));
+
+watch(isEmailIntroDirty, (dirty) => emit('dirty-state-change', dirty), { immediate: true });
+watch(
+  () => props.proposal.email_intro,
+  (value) => {
+    const incoming = value || '';
+    if (!isEmailIntroDirty.value || incoming === emailIntroDraft.value) {
+      emailIntroDraft.value = incoming;
+      savedEmailIntro.value = incoming;
+    }
+  },
+);
+
+async function saveEmailIntro() {
+  if (!props.proposal.id || savingEmailIntro.value) return;
+  savingEmailIntro.value = true;
+  emailIntroError.value = '';
+  const value = normalizedEmailIntro.value;
+  const result = await proposalStore.updateProposal(props.proposal.id, { email_intro: value });
+  savingEmailIntro.value = false;
+  if (result.success) {
+    emailIntroDraft.value = value;
+    savedEmailIntro.value = value;
+    emit('email-intro-saved', value);
+    notify.success({ title: 'Mensaje del correo guardado.' });
+    return;
+  }
+  emailIntroError.value = result.message || 'No se pudo guardar el mensaje del correo.';
+}
+
+function previewEmailIntro() {
+  emit('open-email-preview', emailIntroDraft.value);
+}
 
 let sectionIdSeq = 0;
 const nextSectionId = () => ++sectionIdSeq;
@@ -418,10 +525,20 @@ async function loadDefaults() {
 
 watch(activeMode, async () => {
   resetForm();
-  await Promise.all([loadDefaults(), loadHistory()]);
+  if (hasFollowupComposer.value) {
+    await Promise.all([loadDefaults(), loadHistory()]);
+  }
 });
 
 onMounted(() => {
-  Promise.all([loadDefaults(), loadHistory()]);
+  if (hasFollowupComposer.value) {
+    Promise.all([loadDefaults(), loadHistory()]);
+  }
 });
+
+watch(hasFollowupComposer, (enabled, wasEnabled) => {
+  if (enabled && !wasEnabled) Promise.all([loadDefaults(), loadHistory()]);
+});
+
+onBeforeUnmount(() => emit('dirty-state-change', false));
 </script>

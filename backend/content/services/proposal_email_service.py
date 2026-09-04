@@ -325,14 +325,8 @@ class ProposalEmailService:
             if '%' in opt.get('label', '')
         )
 
-        default_intro = (
-            f'Te compartimos los detalles de la propuesta "{proposal.title}". '
-            'Encontrarás el alcance, la inversión, el cronograma y los próximos '
-            'pasos para que puedas revisarla con calma y compartirla con tu equipo.'
-        )
-
         return {
-            'email_intro': proposal.email_intro or default_intro,
+            'email_intro': (proposal.email_intro or '').strip(),
             'payment_options': payment_options,
             'total_duration': total_duration,
             'payment_summary': payment_summary,

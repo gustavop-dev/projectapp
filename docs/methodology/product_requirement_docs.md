@@ -306,7 +306,7 @@ the configurable copies above remain independent BCC-only attempts.
 - **Create** (`/panel/proposals/create`): form with all metadata + JSON import option. Client identity is selected via `<ClientAutocomplete>` (searchable dropdown over `accounts.UserProfile` with `role='client'`); typing a brand-new name + email auto-creates a real `UserProfile` row, and an empty email gets a placeholder `cliente_<id>@temp.example.com` that pauses every email automation for that proposal. A top-level switch controls whether the generic contract mode is visible; it defaults on for Spanish proposals and does not enter the imported/exported section JSON.
 - **Edit** (`/panel/proposals/{id}/edit`): Tabs depending on proposal status:
   - **General** — metadata + same `<ClientAutocomplete>` picker + write-through snapshot fields + propagate-changes-to-profile checkbox + send button + immediate contract-mode visibility switch
-  - **Correos** (sent+ statuses) — branded email composer
+  - **Correos** — personalized initial-message editor from draft onward; sent+ statuses also expose the branded follow-up composer and delivery history
   - **Documentos** (negotiating/accepted/rejected) — contracts + uploaded annexes
   - **Cronograma** (accepted/finished) — project stage scheduling (design + development dates, mark-as-completed, status badges)
   - **Secciones** — section editor (expand/edit JSON per section)
@@ -988,3 +988,12 @@ The canonical counts, commands and exceptions are maintained in
     and income headers collapse to two actionable summaries whose drawers retain
     the full detail, including zero-valued states, so the first list row remains
     visible in the initial 412×915 viewport.
+28. **Proposal send messages are authored evidence, not fallback copy**: every
+    proposal stores one editable plain-text `email_intro` in the canonical
+    **Correos** tab. It states the client's problem, the proposal's solution and
+    the expected business outcome. Drafts may persist it empty, but initial,
+    repeated, bulk and multi-proposal sends all fail before side effects while
+    any required message is blank. The email keeps its predefined body, inserts
+    the message immediately afterward and before commercial blocks, and stores
+    the rendered delivery as immutable history. A resend starts from the latest
+    saved message and may persist an edit without changing prior deliveries.

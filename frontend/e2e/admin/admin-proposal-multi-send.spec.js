@@ -27,6 +27,7 @@ const mockPrimaryProposal = {
   title: 'Fase 1 — Plataforma',
   client_name: 'Juan García',
   client_email: 'juan@cliente.com',
+  email_intro: 'Esta fase centraliza la operación para reducir reprocesos.',
   client: baseClient,
   status: 'draft',
   language: 'es',
@@ -49,6 +50,7 @@ const mockSecondProposal = {
   title: 'Fase 2 — Vigilancia',
   client_name: 'Juan García',
   client_email: 'juan@cliente.com',
+  email_intro: 'Esta fase incorpora vigilancia para responder a incidentes antes.',
   client: baseClient,
   status: 'sent',
   language: 'es',
@@ -81,7 +83,7 @@ test.describe('Admin Proposal Multi Send', () => {
   });
 
   test('lightning menu opens multi-send modal, selects another proposal, posts ids and shows success toast', {
-    tag: [...ADMIN_PROPOSAL_MULTI_SEND, '@role:admin'],
+    tag: [...ADMIN_PROPOSAL_MULTI_SEND, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let capturedBody = null;
 
@@ -155,6 +157,37 @@ test.describe('Admin Proposal Multi Send', () => {
     // Verify request payload
     expect(capturedBody).toBeTruthy();
     expect(JSON.parse(capturedBody)).toEqual({ proposal_ids: [PRIMARY_ID, SECOND_ID] });
+  });
+
+  test('a selected proposal without a personalized message blocks the joint send', {
+    tag: [...ADMIN_PROPOSAL_MULTI_SEND, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    let sendCalled = false;
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PRIMARY_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPrimaryProposal) };
+      }
+      if (apiPath === 'proposals/' && route.request().url().includes(`client_id=${CLIENT_ID}`)) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([
+          { ...mockPrimaryProposal, sections: undefined, requirement_groups: undefined },
+          { ...mockSecondProposal, email_intro: '   ' },
+        ]) };
+      }
+      if (apiPath === `proposals/${PRIMARY_ID}/send-multi/`) sendCalled = true;
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PRIMARY_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('proposal-actions-menu').click();
+    await page.getByTestId('proposal-action-send-multi').click();
+    await page.getByTestId(`proposal-multi-send-option-${SECOND_ID}`).check();
+
+    await expect(page.getByTestId('proposal-multi-send-missing-message')).toContainText('1 propuesta seleccionada sin mensaje personalizado');
+    await expect(page.getByTestId('proposal-multi-send-confirm')).toBeDisabled();
+    expect(sendCalled).toBe(false);
   });
 
   test('a failed send keeps the modal open and shows the error toast', {

@@ -244,6 +244,14 @@ class TestProposalListSerializerComputedFields:
         serializer = ProposalListSerializer(proposal)
         assert serializer.data['sent_at'] is None
 
+    def test_personalized_email_message_is_present(self, proposal):
+        proposal.email_intro = 'Mensaje visible para decidir si la propuesta puede enviarse.'
+        proposal.save(update_fields=['email_intro'])
+
+        serializer = ProposalListSerializer(proposal)
+
+        assert serializer.data['email_intro'] == proposal.email_intro
+
     @freeze_time('2026-04-01 12:00:00')
     def test_sent_at_field_value_for_sent(self, proposal):
         from django.utils import timezone
@@ -646,6 +654,15 @@ class TestProposalFromJSONSerializer:
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['show_contract_terms'] is False
         assert 'show_contract_terms' not in serializer.validated_data['sections']
+
+    def test_accepts_personalized_email_message(self):
+        message = 'La propuesta automatiza el proceso para reducir tiempos de respuesta.'
+        serializer = ProposalFromJSONSerializer(data=self._valid_payload(
+            email_intro=message,
+        ))
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['email_intro'] == message
 
     def test_missing_general_key_is_invalid(self):
         payload = self._valid_payload()

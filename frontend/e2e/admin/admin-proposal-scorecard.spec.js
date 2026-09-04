@@ -16,6 +16,7 @@ const mockProposal = {
   title: 'Scorecard Proposal',
   client_name: 'Client Test',
   client_email: 'client@test.com',
+  email_intro: 'Esta propuesta ordena el proceso comercial para reducir demoras de Client Test.',
   status: 'draft',
   language: 'es',
   total_investment: '5000000',

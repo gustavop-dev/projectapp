@@ -1086,6 +1086,21 @@ describe('useProposalStore', () => {
       expect(store.currentProposal).toEqual(resent);
     });
 
+    it('posts the edited personalized message when provided', async () => {
+      const message = 'Mensaje actualizado para el cliente.';
+      create_request.mockResolvedValue({
+        data: { id: 1, status: 'sent', email_intro: message },
+      });
+
+      const result = await store.resendProposal(1, message);
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/1/resend/',
+        { email_intro: message },
+      );
+      expect(result.success).toBe(true);
+    });
+
     it('sets error on failure', async () => {
       create_request.mockRejectedValue({ response: { data: { error: 'not sent' } } });
 

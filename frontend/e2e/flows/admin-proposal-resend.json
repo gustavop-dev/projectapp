@@ -6,10 +6,11 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Resend an already-sent proposal via 'Re-enviar' from the actions modal. Confirmation dialog → POST /proposals/:id/resend/ keeps existing expires_at, resets sent_at and reminder timers, and returns email_delivery. The panel toast surfaces success or failure with the reason.",
+  "description": "Resend an already-sent proposal from the actions modal. An editor preloads the retained personalized message, lets the admin change it, and disables resend while it is blank. 'Guardar y re-enviar' persists the edited email_intro and POSTs /proposals/:id/resend/; the delivery keeps expires_at, resets sent_at and reminder timers, and returns email_delivery. Prior email snapshots remain unchanged.",
   "expectedSpecs": 1,
   "outcomes": [
     "success",
+    "error",
     "failure"
   ]
 }

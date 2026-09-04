@@ -1,5 +1,13 @@
 # Task Plan — ProjectApp
 
+> **Mensaje personalizado de propuestas listo para integrar — 2026-09-04:**
+> **Correos** permite redactar, previsualizar y guardar el texto que explica
+> problema, solución y resultado para el cliente. El borrador puede quedar
+> vacío, pero envío, reenvío, bulk y multi-envío se bloquean antes de efectos;
+> reenvío precarga y persiste ediciones, y el historial enviado permanece
+> inmutable. JSON/MCP/fake data y las skills `proposal-create` de Codex y Claude
+> comparten el campo `email_intro`. No requiere migración ni backfill.
+
 > **Corrección lista para integrar — 2026-09-04:** «Vista previa pública» del
 > modal de acciones vuelve a abrir la propuesta sin el 500 de Nuxt. El modo
 > preview mantiene el contrato del composable de tracking, pero usa estado vacío

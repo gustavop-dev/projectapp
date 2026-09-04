@@ -19,6 +19,7 @@ const mockDraftProposal = {
   title: 'Send Test Proposal',
   client_name: 'Test Client',
   client_email: 'client@test.com',
+  email_intro: 'Esta propuesta elimina el registro manual para acelerar la operación.',
   status: 'draft',
   language: 'es',
   total_investment: '5000000',
@@ -130,27 +131,73 @@ test.describe('Admin Proposal Send', () => {
     await expect(page.getByRole('button', { name: 'Enviar al Cliente' })).not.toBeVisible();
   });
 
-  test('editing the email intro persists it through the update PATCH', {
-    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
+  test('draft Correos tab saves the personalized message independently', {
+    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath, method }) => {
+    await mockApi(page, async ({ route, apiPath, method }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
-      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && method === 'PATCH') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && method === 'PATCH') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockDraftProposal, ...route.request().postDataJSON() }),
+        };
+      }
       return null;
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
-    const intro = page.getByTestId('edit-email-intro');
+    const intro = page.getByTestId('proposal-email-intro');
     await intro.waitFor({ state: 'visible', timeout: 15000 });
-    await intro.fill('Hola María, adjunto la propuesta actualizada.');
+    await intro.fill('Esta propuesta centraliza los pedidos para reducir errores y acelerar las entregas.');
 
     const [req] = await Promise.all([
       page.waitForRequest((r) => r.url().includes(`proposals/${PROPOSAL_ID}/update/`) && r.method() === 'PATCH'),
-      page.getByRole('button', { name: 'Guardar Cambios' }).click(),
+      page.getByTestId('proposal-email-intro-save').click(),
     ]);
-    expect(req.postDataJSON().email_intro).toEqual('Hola María, adjunto la propuesta actualizada.');
+    expect(req.postDataJSON()).toEqual({
+      email_intro: 'Esta propuesta centraliza los pedidos para reducir errores y acelerar las entregas.',
+    });
+    await expect(page.getByText('Mensaje del correo guardado.')).toBeVisible();
+  });
+
+  test('missing personalized message blocks the send checklist', {
+    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDraftProposal, email_intro: '' }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/scorecard/`) {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            can_send: false,
+            checks: [{
+              key: 'email_intro',
+              label: 'Mensaje personalizado del correo',
+              passed: false,
+              blocker: true,
+            }],
+          }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('button', { name: 'Enviar al Cliente' }).first().click();
+
+    await expect(
+      page.getByRole('listitem').getByText('Mensaje personalizado del correo', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Completar en Correos' })).toBeVisible();
+    await expect(page.locator('.fixed').getByRole('button', { name: 'Enviar al Cliente' })).toBeDisabled();
   });
 
   test('shows a warning toast when the email delivery fails on send', {
