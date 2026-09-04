@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Admin sends a proposal email from the Enviar correo tab once the proposal is sent or beyond. Each send writes ProposalChangeLog with EMAIL_SENT change type and updates last_activity_at. Reuses the same composer UI as branded email via mode prop (per-section Markdown toggle + server-rendered preview via POST /api/emails/preview/). Endpoints: POST /api/proposals/:id/proposal-email/send/, GET /api/proposals/:id/proposal-email/defaults/, GET /api/proposals/:id/proposal-email/history/, POST /api/proposals/:id/proposal-email/markdown-attachment/.",
+  "description": "Admin sends one proposal follow-up email from the Correos tab once the proposal is sent or beyond, addressed to multiple Para recipients and optional visible CC recipients through the hybrid client/manual picker (10 unique addresses total). Each delivery writes one ProposalChangeLog activity, updates last_activity_at and appears once in grouped history while retaining one status row per address. The shared composer also supports Markdown sections, preview and attachments. Endpoints: POST /api/proposals/:id/proposal-email/send/, GET defaults/history and POST markdown-attachment.",
   "expectedSpecs": 1,
   "outcomes": [
     "display",

@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Admin sends a branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status. Composer with draggable sections (per-section Markdown toggle), file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/ with proposal_id, sandboxed iframe), paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET /api/proposals/:id/branded-email/defaults/, GET /api/proposals/:id/branded-email/history/.",
+  "description": "Admin sends one branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status to multiple Para recipients and optional visible CC recipients. The shared hybrid picker starts with the proposal client, searches registered clients or accepts manual addresses, and enforces 10 unique destinations. Composer also has draggable Markdown sections, attachments, real-template preview and grouped paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET defaults/history and POST /api/emails/preview/.",
   "expectedSpecs": 1,
   "outcomes": [
     "display",

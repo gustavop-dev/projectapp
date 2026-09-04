@@ -148,6 +148,37 @@ def test_send_custom_email_logs_with_diagnostic_uuid(admin_client, diagnostic):
         },
     },
 )
+def test_diagnostic_email_preserves_visible_recipient_groups(
+    admin_client, diagnostic,
+):
+    resp = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/email/send/',
+        {
+            'recipient_emails': json.dumps([
+                'diag@example.com',
+                'stakeholder@example.com',
+            ]),
+            'cc_emails': json.dumps(['copia@example.com']),
+            'subject': 'Seguimiento',
+            'greeting': 'Hola Ana',
+            'sections': json.dumps(['Primer bloque del correo.']),
+            'footer': 'Un abrazo.',
+        },
+        format='multipart',
+    )
+
+    assert resp.status_code == 200
+    assert mail.outbox[0].to == ['diag@example.com', 'stakeholder@example.com']
+    assert mail.outbox[0].cc == ['copia@example.com']
+
+
+@override_settings(
+    MAILERS={
+        'default': {
+            'BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
+        },
+    },
+)
 def test_send_custom_email_attaches_confidentiality_pdf(
     admin_client, diagnostic, monkeypatch,
 ):

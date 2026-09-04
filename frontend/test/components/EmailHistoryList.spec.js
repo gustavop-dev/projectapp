@@ -26,6 +26,42 @@ describe('EmailHistoryList', () => {
     expect(wrapper.text()).toContain('Enviado');
   });
 
+  it('renders grouped To and CC recipients', () => {
+    const wrapper = mount(EmailHistoryList, {
+      props: {
+        history: [{
+          ...entry,
+          to_recipients: [
+            { email: 'ana@example.com', status: 'sent' },
+            { email: 'socio@example.com', status: 'sent' },
+          ],
+          cc_recipients: [{ email: 'copia@example.com', status: 'sent' }],
+        }],
+      },
+    });
+
+    expect(wrapper.text()).toContain('Para: ana@example.com, socio@example.com');
+    expect(wrapper.text()).toContain('CC: copia@example.com');
+  });
+
+  it('renders a bounced recipient with danger styling', async () => {
+    const wrapper = mount(EmailHistoryList, {
+      props: {
+        history: [{
+          ...entry,
+          to_recipients: [{ email: 'rebote@example.com', status: 'bounced' }],
+          cc_recipients: [],
+        }],
+      },
+    });
+
+    await wrapper.get('button').trigger('click');
+
+    const dangerLabels = wrapper.findAll('.text-danger-strong')
+      .map((node) => node.text());
+    expect(dangerLabels).toContain('Rebotado');
+  });
+
   it('toggles the entry body via aria-hidden (BaseCollapse stays in the DOM)', async () => {
     const wrapper = mount(EmailHistoryList, { props: { history: [entry] } });
     const body = () => wrapper.findAll('[aria-hidden]').find((n) => n.text().includes('Primer bloque'));

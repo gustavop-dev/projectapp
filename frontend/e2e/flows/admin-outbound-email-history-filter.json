@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin navigates to the universal outbound-email history and filters primary deliveries by recipient, family, status and date range, seeing the matching real row rather than scanning a module-specific list.",
+  "description": "Admin navigates to the universal outbound-email history and filters grouped primary deliveries by any Para/CC recipient, family, per-address status and date range, seeing one delivery row with all visible destinations rather than scanning duplicate recipient rows.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

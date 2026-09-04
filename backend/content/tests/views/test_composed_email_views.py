@@ -128,6 +128,30 @@ class TestSendBrandedEmailView:
         assert response.status_code == 200
         assert 'dest@example.com' in response.json()['message']
 
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_send_preserves_visible_recipient_groups(
+        self, mock_render, mock_email_cls, admin_client, proposal,
+    ):
+        mock_render.return_value = '<html>OK</html>'
+        mock_email_cls.return_value = stub_email_message()
+        payload = _valid_payload()
+        payload.pop('recipient_email')
+        payload['recipient_emails'] = json.dumps([
+            'uno@example.com',
+            'dos@example.com',
+        ])
+        payload['cc_emails'] = json.dumps(['copia@example.com'])
+
+        response = admin_client.post(_send_url(proposal.id), payload)
+
+        assert response.status_code == 200
+        assert mock_email_cls.call_args.kwargs['to'] == [
+            'uno@example.com',
+            'dos@example.com',
+        ]
+        assert mock_email_cls.call_args.kwargs['cc'] == ['copia@example.com']
+
 
 class TestSendProposalEmailView:
 

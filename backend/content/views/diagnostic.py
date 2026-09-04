@@ -1180,9 +1180,6 @@ def _parse_diagnostic_email(request, diagnostic):
     from datetime import timedelta
     from pathlib import Path
 
-    from django.core.exceptions import ValidationError as DjangoValidationError
-    from django.core.validators import validate_email
-
     from content.models import EmailLog
     from content.services.diagnostic_email_service import DiagnosticEmailService
 
@@ -1200,18 +1197,18 @@ def _parse_diagnostic_email(request, diagnostic):
             status=http_status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
-    recipient_email = (request.data.get('recipient_email') or '').strip()
-    if not recipient_email:
-        return None, error_response(
-            'El campo destinatario es obligatorio.',
-            code='recipient_required',
-        )
+    from content.services.email_recipient_service import (
+        EmailRecipientValidationError,
+        parse_email_recipients,
+    )
+
     try:
-        validate_email(recipient_email)
-    except DjangoValidationError:
+        recipient_emails, cc_emails = parse_email_recipients(request.data)
+    except EmailRecipientValidationError as exc:
         return None, error_response(
-            'El correo del destinatario no es válido.',
-            code='invalid_recipient_email',
+            str(exc),
+            code=exc.code,
+            errors={exc.field: [str(exc)]} if exc.field else None,
         )
 
     subject = (request.data.get('subject') or '').strip()
@@ -1284,7 +1281,8 @@ def _parse_diagnostic_email(request, diagnostic):
         )
 
     return {
-        'recipient_email': recipient_email,
+        'recipient_emails': recipient_emails,
+        'cc_emails': cc_emails,
         'subject': subject,
         'greeting': greeting,
         'sections': sections,
@@ -1305,7 +1303,8 @@ def send_diagnostic_email(request, diagnostic_id):
 
     ok = DiagnosticEmailService.send_custom_email(
         diagnostic,
-        recipient_email=parsed['recipient_email'],
+        recipient_emails=parsed['recipient_emails'],
+        cc_emails=parsed['cc_emails'],
         subject=parsed['subject'],
         greeting=parsed['greeting'],
         sections=parsed['sections'],
@@ -1316,10 +1315,20 @@ def send_diagnostic_email(request, diagnostic_id):
         diagnostic_service.log_change(
             diagnostic,
             change_type=DiagnosticChangeLog.ChangeType.EMAIL_SENT,
-            description=f'Correo enviado a {parsed["recipient_email"]}.',
+            description=(
+                f'Correo enviado a {len(parsed["recipient_emails"])} '
+                f'destinatario(s) y {len(parsed["cc_emails"])} CC.'
+            ),
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
-        return Response({'message': f'Correo enviado a {parsed["recipient_email"]}.'})
+        return Response({
+            'message': (
+                f'Correo enviado a {len(parsed["recipient_emails"])} '
+                f'destinatario(s) con {len(parsed["cc_emails"])} CC.'
+            ),
+            'recipient_emails': parsed['recipient_emails'],
+            'cc_emails': parsed['cc_emails'],
+        })
     return error_response(
         'Error al enviar el correo. Intenta de nuevo.',
         code='email_send_failed',

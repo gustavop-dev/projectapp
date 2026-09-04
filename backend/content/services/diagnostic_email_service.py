@@ -124,12 +124,14 @@ class DiagnosticEmailService:
     def send_custom_email(
         cls,
         diagnostic: WebAppDiagnostic,
-        recipient_email: str,
-        subject: str,
-        greeting: str,
-        sections: list,
+        recipient_emails=None,
+        subject: str = '',
+        greeting: str = '',
+        sections: list = (),
         footer: str = '',
         attachments: list | None = None,
+        cc_emails=None,
+        recipient_email=None,
     ) -> bool:
         """Send a composer-driven follow-up email for a diagnostic.
 
@@ -137,6 +139,21 @@ class DiagnosticEmailService:
         ``EmailLog`` with ``metadata.diagnostic_uuid`` (no ``proposal`` FK).
         """
         from content.services.email_markdown import normalize_sections
+        from content.services.email_recipient_service import recipient_log_contexts
+
+        if recipient_emails is None:
+            recipient_emails = recipient_email
+        if isinstance(recipient_emails, str):
+            recipient_emails = [recipient_emails]
+        if isinstance(cc_emails, str):
+            cc_emails = [cc_emails]
+        to_recipients = [
+            value.strip().lower() for value in (recipient_emails or ()) if value
+        ]
+        cc_recipients = [
+            value.strip().lower() for value in (cc_emails or ()) if value
+        ]
+        all_recipients = to_recipients + cc_recipients
 
         attachment_names = [a[0] for a in attachments] if attachments else []
         normalized_sections = normalize_sections(sections)
@@ -146,19 +163,18 @@ class DiagnosticEmailService:
             'sections': normalized_sections,
             'footer': footer,
             'attachment_names': attachment_names,
+            'to_recipients': to_recipients,
+            'cc_recipients': cc_recipients,
         }
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL',
                              'team@projectapp.co')
         # A composed email goes wherever the panel addressed it, so the
         # audience is a fact of this send and not of its template: it counts
         # as contact only when it actually reached the client's own address.
-        client_email = (
-            getattr(getattr(diagnostic.client, 'user', None), 'email', '') or ''
-        ).strip().lower()
-        audience = (
-            EmailLog.Audience.CLIENT
-            if client_email and recipient_email.strip().lower() == client_email
-            else EmailLog.Audience.INTERNAL
+        recipient_contexts = recipient_log_contexts(
+            to_recipients,
+            cc_recipients,
+            contextual_client=diagnostic.client,
         )
 
         html_body = text_body = ''
@@ -171,14 +187,18 @@ class DiagnosticEmailService:
                 subject=subject,
                 body=text_body,
                 from_email=from_email,
-                to=[recipient_email],
+                to=to_recipients,
+                cc=cc_recipients,
             )
             email.attach_alternative(html_body, 'text/html')
             for filename, data, mime_type in (attachments or []):
                 email.attach(filename, data, mime_type)
             classification = (
                 DeliveryClassification.CLIENT
-                if audience == EmailLog.Audience.CLIENT
+                if any(
+                    item['audience'] == EmailLog.Audience.CLIENT
+                    for item in recipient_contexts
+                )
                 else DeliveryClassification.INTERNAL
             )
             EmailDeliveryGateway.send(
@@ -188,24 +208,28 @@ class DiagnosticEmailService:
             )
 
             ProposalEmailService._log_email(
-                cls.TEMPLATE_CUSTOM, recipient_email,
+                cls.TEMPLATE_CUSTOM,
+                recipients=all_recipients,
+                recipient_contexts=recipient_contexts,
                 subject=subject, status='sent',
                 metadata=log_metadata,
-                client=diagnostic.client_id, audience=audience,
+                client=None, audience=EmailLog.Audience.INTERNAL,
                 html_body=html_body, text_body=text_body,
             )
             logger.info(
                 'Sent %s to %s for diagnostic %s',
-                cls.TEMPLATE_CUSTOM, recipient_email, diagnostic.uuid,
+                cls.TEMPLATE_CUSTOM, all_recipients, diagnostic.uuid,
             )
             return True
         except Exception as exc:
             ProposalEmailService._log_email(
-                cls.TEMPLATE_CUSTOM, recipient_email,
+                cls.TEMPLATE_CUSTOM,
+                recipients=all_recipients,
+                recipient_contexts=recipient_contexts,
                 subject=subject, status='failed',
                 error_message=str(exc)[:1000],
                 metadata=log_metadata,
-                client=diagnostic.client_id, audience=audience,
+                client=None, audience=EmailLog.Audience.INTERNAL,
                 html_body=html_body, text_body=text_body,
             )
             logger.exception(
@@ -226,18 +250,25 @@ class DiagnosticEmailService:
             delivery_role=EmailLog.DeliveryRole.PRIMARY,
         ).order_by('-sent_at')
 
-        total = logs.count()
         page = max(1, int(page or 1))
-        offset = (page - 1) * page_size
         from content.services.email_log_service import (
             attach_delivery_copies,
+            attach_delivery_recipients,
             delivery_copy_payloads,
+            delivery_recipient_payloads,
+            representative_delivery_queryset,
         )
 
-        page_logs = attach_delivery_copies(logs[offset:offset + page_size])
+        logs = representative_delivery_queryset(logs)
+        total = logs.count()
+        offset = (page - 1) * page_size
+        page_logs = attach_delivery_recipients(
+            attach_delivery_copies(logs[offset:offset + page_size]),
+        )
         results = [
             {
                 'id': log.pk,
+                'delivery_id': str(log.delivery_id) if log.delivery_id else None,
                 'recipient': log.recipient,
                 'subject': log.subject,
                 'status': log.status,
@@ -245,6 +276,7 @@ class DiagnosticEmailService:
                 'sent_at': log.sent_at.isoformat(),
                 'metadata': log.metadata,
                 'copies': delivery_copy_payloads(log),
+                **delivery_recipient_payloads(log),
             }
             for log in page_logs
         ]
