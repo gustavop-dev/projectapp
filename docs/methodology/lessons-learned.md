@@ -17,6 +17,13 @@ This file captures important patterns, preferences, and project intelligence tha
 > límite deben vivir también en backend, aunque todos los compositores reutilicen
 > el mismo picker frontend.
 
+> **Lección verificada 2026-09-04 — desactivar efectos no debe romper el
+> contrato del composable:** una rama como preview puede omitir analytics,
+> storage, watchers y lifecycle hooks, pero sus consumidores deben seguir
+> recibiendo la misma forma pública. Un objeto neutral con `refs` vacíos y
+> operaciones no-op mantiene la página renderizable y hace explícito qué se
+> desactiva, sin obligar a cada consumidor a defenderse de `undefined`.
+
 > **Lección verificada 2026-09-03 — una política comercial editable necesita
 > identidad temporal:** topes, porcentajes, mora y calendario forman parte del
 > significado legal de un otrosí. Una fila mutable sirve para preferencias, no

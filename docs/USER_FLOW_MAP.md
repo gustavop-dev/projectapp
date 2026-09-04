@@ -4801,16 +4801,17 @@ Two transitions that were previously bundled into other flows now have their own
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P1
-- **Routes:** `/panel/proposals`
-- **API:** (no direct API call — modal renders action buttons from listing row data)
-- **Description:** Admin opens an actions modal from a proposal row in the listing. Modal displays quick-action buttons: edit, preview, send/resend, copy link, WhatsApp, duplicate, toggle active, delete. Send/Resend visibility is conditional on proposal status.
+- **Routes:** `/panel/proposals`, `/panel/proposals/:id/edit`, `/proposal/:uuid?preview=1`
+- **API:** `GET /api/proposals/:uuid/` when the public preview tab loads; the modal itself renders from proposal data already loaded by the edit/list view.
+- **Description:** Admin opens an actions modal from a proposal row or the proposal edit page. The modal exposes the available actions for that context; public preview opens the client-facing proposal in a new tab without recording engagement. Send/Resend visibility is conditional on proposal status.
 - **Steps:**
   1. Admin is on the proposal listing `/panel/proposals`.
   2. Admin clicks the actions icon (⋮) on a proposal row.
   3. Actions modal opens with buttons: Edit, Preview, Send/Resend, Copy, WhatsApp, Duplicate, Toggle, Delete.
   4. [Branch A — Draft] "Send" action visible; "Resend" hidden.
   5. [Branch B — Sent/Viewed] "Resend" action visible; "Send" hidden.
-  6. Admin clicks any action → navigates or triggers the corresponding flow.
+  6. [Branch C — Public preview] Admin opens the edit-page actions modal and clicks "Vista previa pública".
+  7. A new tab renders the proposal with the preview banner and without tracking the visit.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-actions-modal.spec.js`
 
@@ -6256,7 +6257,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
 | `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 7 |
 | `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 9 |
-| `admin-proposal-actions-modal` | admin | P1 | display | 1 |
+| `admin-proposal-actions-modal` | admin | P1 | display,success | 1 |
 | `admin-proposal-advanced-filters` | admin | P2 | display | 1 |
 | `admin-proposal-analytics` | admin | P2 | display | 1 |
 | `admin-proposal-attach-from-documents` | admin | P1 | success | 1 |
