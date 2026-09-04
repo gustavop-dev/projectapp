@@ -73,7 +73,7 @@ def _normalize_list(values, *, field, label):
             validate_email(email)
         except DjangoValidationError as exc:
             raise EmailRecipientValidationError(
-                f'El correo "{raw_value}" no es válido.',
+                f'El correo del destinatario "{raw_value}" no es válido.',
                 'invalid_recipient_email',
                 field,
             ) from exc
