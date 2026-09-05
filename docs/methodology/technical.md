@@ -1,5 +1,14 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico de orden de ingresos — 2026-09-04:** el estado persistido
+> usa `projectapp-accounting-incomes-sort` con la forma `{ key, dir }` y acepta
+> sólo columnas declaradas y direcciones `asc|desc`; cualquier dato inválido
+> cae al baseline `period_label:desc`. Mes compara `period_date`, alterna dos
+> direcciones y nunca queda neutro. Total inicia en `desc`, sigue a `asc` y
+> luego restaura Mes descendente. El mismo ref reactivo sobrevive filtros,
+> quick tabs y Agrupado/Clásico; la recarga lo recupera del navegador. No hay
+> payload, endpoint, migración ni dependencia nueva.
+
 > **Contrato técnico de destinatarios múltiples — 2026-09-04:** los endpoints
 > manuales aceptan `recipient_emails: string[]` y `cc_emails: string[]`, y
 > conservan compatibilidad con `recipient_email`/`recipient` singulares. El
