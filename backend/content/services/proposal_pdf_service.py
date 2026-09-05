@@ -1436,7 +1436,10 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                         col_widths=[0.74, 0.26], aligns=['left', 'right'])
 
     # ── Hosting plan (detailed specs + pricing) ───────────────────
-    hosting = _safe(data, 'hostingPlan', {})
+    # Read the NORMALIZED plan hoisted above, not the raw content_json: that is
+    # where the free-month copy and its visibility flag get resolved, and where
+    # the web view reads them from too.
+    hosting = normalized_hosting
     h_title = _safe(hosting, 'title')
     if h_title:
         y -= 14
@@ -1529,13 +1532,12 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             y = _draw_callout_box(c, y, str(coverage), style='note',
                                   ps=ps, label='COBERTURA')
 
-        # Free-month gift block (copy is bilingual via content_json)
+        # Free-month gift block. Visibility is the explicit flag resolved by
+        # normalize_hosting_plan — the same gate the web view uses — and the
+        # copy is already filled in with the per-language default when the
+        # operator left the field empty.
         free_note = _safe(hosting, 'freeMonthNote')
-        try:
-            free_months_int = int(_safe(hosting, 'freeMonths', 0) or 0)
-        except (TypeError, ValueError):
-            free_months_int = 0
-        if free_months_int > 0 and free_note:
+        if hosting.get('freeMonthsVisible') and free_note:
             y -= 8
             y = _draw_callout_box(c, y, str(free_note), style='tip',
                                   ps=ps, label='REGALO')

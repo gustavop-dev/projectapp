@@ -9,6 +9,37 @@ from content.technical_document_defaults import EMPTY_TECHNICAL_DOCUMENT_JSON
 
 logger = logging.getLogger(__name__)
 
+#: Default copy for the hosting free-month gift block, per proposal language.
+#: Single source of truth: seeded into DEFAULT_SECTIONS at creation time AND
+#: resolved at read time by ``normalize_hosting_plan`` so the panel form, the
+#: public view and the PDF always show the same sentence. Keep the two
+#: languages in sync when editing.
+HOSTING_FREE_MONTH_NOTES = {
+    'es': (
+        'Los cobros del hosting inician el día 1° de cada mes. Desde la '
+        'entrega de tu proyecto hasta tu primer cobro, el hosting es gratis: '
+        'siempre te regalamos como mínimo un mes completo.'
+    ),
+    'en': (
+        'Hosting billing starts on the 1st of each month. From your project '
+        'delivery until your first charge, hosting is free: we always gift '
+        'you at least one full month.'
+    ),
+}
+
+
+def default_free_month_note(language):
+    """Return the free-month copy for ``language`` (Spanish is the fallback)."""
+    return HOSTING_FREE_MONTH_NOTES.get(language or 'es', HOSTING_FREE_MONTH_NOTES['es'])
+
+
+def _coerce_free_months(value):
+    """Read ``freeMonths`` as an int. Legacy content stores it as a string."""
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
 
 @transaction.atomic
 def duplicate_proposal(source, *, via_mcp=False):
@@ -891,11 +922,8 @@ DEFAULT_SECTIONS = [
                     'almacenamiento, ancho de banda y certificados SSL).'
                 ),
                 'freeMonths': 1,
-                'freeMonthNote': (
-                    'Los cobros del hosting inician el día 1° de cada mes. Desde la '
-                    'entrega de tu proyecto hasta tu primer cobro, el hosting es gratis: '
-                    'siempre te regalamos como mínimo un mes completo.'
-                ),
+                'freeMonthsVisible': True,
+                'freeMonthNote': HOSTING_FREE_MONTH_NOTES['es'],
             },
             'paymentMethods': [
                 'Transferencia bancaria',
@@ -2267,11 +2295,8 @@ DEFAULT_SECTIONS_EN = [
                     'everything running (server, storage, bandwidth and SSL certificates).'
                 ),
                 'freeMonths': 1,
-                'freeMonthNote': (
-                    'Hosting billing starts on the 1st of each month. From your project '
-                    'delivery until your first charge, hosting is free: we always gift '
-                    'you at least one full month.'
-                ),
+                'freeMonthsVisible': True,
+                'freeMonthNote': HOSTING_FREE_MONTH_NOTES['en'],
             },
             'paymentMethods': [
                 'Bank transfer',
@@ -3476,6 +3501,20 @@ def normalize_hosting_plan(
     )
 
     lang = getattr(proposal, 'language', 'es') or 'es'
+
+    # Free-month gift block. Resolved here — the one read-time hook shared by
+    # the panel form, the public view and the PDF — so all three agree.
+    #
+    # ``freeMonthsVisible`` is the explicit gate. Content written before the
+    # flag existed has no key, so it falls back to the old rule (a non-zero
+    # count meant visible) and those proposals keep their current appearance.
+    if 'freeMonthsVisible' not in base:
+        base['freeMonthsVisible'] = _coerce_free_months(base.get('freeMonths')) > 0
+    else:
+        base['freeMonthsVisible'] = bool(base['freeMonthsVisible'])
+    if not str(base.get('freeMonthNote') or '').strip():
+        base['freeMonthNote'] = default_free_month_note(lang)
+
     if (not force_current_terms
             and not proposal_uses_current_hosting_terms(proposal)):
         if not base.get('billingTiers'):
