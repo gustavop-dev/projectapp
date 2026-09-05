@@ -17,6 +17,15 @@ const sensitiveNote = {
   updated_by: 'Admin',
 }
 
+const regularNote = {
+  id: 13,
+  title: 'Deployment owner',
+  content: 'Operations team',
+  has_content: true,
+  is_sensitive: false,
+  updated_by: 'Admin',
+}
+
 const ConfirmModalStub = {
   props: ['modelValue'],
   emits: ['update:modelValue', 'confirm'],
@@ -98,5 +107,104 @@ describe('ProjectAccessNotes', () => {
       is_sensitive: true,
     })
     expect(onUpdated).toHaveBeenCalledWith({ notes: [] })
+  })
+
+  it('requires both fields before creating a note', async () => {
+    const { api, wrapper } = mountNotes({ notes: [] })
+    await wrapper.get('[data-testid="project-access-add-note"]').trigger('click')
+
+    await wrapper.get('[data-testid="project-access-create-note-save"]').trigger('click')
+
+    expect(api.createNote).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('projectAccess.errors.noteTitleRequired')
+    expect(wrapper.text()).toContain('projectAccess.errors.noteContentRequired')
+  })
+
+  it('updates a regular note without requesting its secret', async () => {
+    const { api, onUpdated, wrapper } = mountNotes({ notes: [regularNote] })
+    await wrapper.get('[data-testid="project-access-note-edit-13"]').trigger('click')
+    const note = wrapper.get('[data-testid="project-access-note-13"]')
+    await note.get('input').setValue('Release owner')
+    await note.get('textarea').setValue('Platform team')
+
+    await wrapper.get('[data-testid="project-access-note-save-13"]').trigger('click')
+    await flushPromises()
+
+    expect(api.revealNote).not.toHaveBeenCalled()
+    expect(api.updateNote).toHaveBeenCalledWith(13, {
+      title: 'Release owner',
+      content: 'Platform team',
+      is_sensitive: false,
+    })
+    expect(onUpdated).toHaveBeenCalledWith({ notes: [] })
+  })
+
+  it('requires content before updating a note', async () => {
+    const { api, wrapper } = mountNotes({ notes: [regularNote] })
+    await wrapper.get('[data-testid="project-access-note-edit-13"]').trigger('click')
+    await wrapper.get('[data-testid="project-access-note-13"] textarea').setValue('')
+
+    await wrapper.get('[data-testid="project-access-note-save-13"]').trigger('click')
+
+    expect(api.updateNote).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('projectAccess.errors.noteContentRequired')
+  })
+
+  it('hides a revealed note without another request', async () => {
+    const { api, wrapper } = mountNotes()
+    const revealButton = wrapper.get('[data-testid="project-access-note-reveal-12"]')
+
+    await revealButton.trigger('click')
+    await flushPromises()
+    await revealButton.trigger('click')
+
+    expect(api.revealNote).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('••••••••••••')
+    expect(wrapper.text()).not.toContain('recovery-secret')
+  })
+
+  it('copies regular note content without requesting a secret', async () => {
+    const { api, wrapper } = mountNotes({ notes: [regularNote] })
+
+    await wrapper.get('[data-testid="project-access-note-copy-13"]').trigger('click')
+    await flushPromises()
+
+    expect(api.revealNote).not.toHaveBeenCalled()
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Operations team')
+  })
+
+  it('loads sensitive content only when editing starts', async () => {
+    const { api, wrapper } = mountNotes()
+
+    await wrapper.get('[data-testid="project-access-note-edit-12"]').trigger('click')
+    await flushPromises()
+
+    expect(api.revealNote).toHaveBeenCalledWith(12)
+    expect(wrapper.get('[data-testid="project-access-note-12"] textarea').element.value)
+      .toBe('recovery-secret')
+  })
+
+  it('shows note field errors returned by the API', async () => {
+    const api = buildApi()
+    api.createNote.mockRejectedValue({
+      response: {
+        status: 400,
+        data: {
+          title: ['Use a unique title.'],
+          content: ['Content is not accepted.'],
+        },
+      },
+    })
+    const { wrapper } = mountNotes({ notes: [], api })
+    await wrapper.get('[data-testid="project-access-add-note"]').trigger('click')
+    const form = wrapper.get('[data-testid="project-access-note-create"]')
+    await form.get('input').setValue('Deployment owner')
+    await form.get('textarea').setValue('Operations team')
+
+    await wrapper.get('[data-testid="project-access-create-note-save"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Use a unique title.')
+    expect(wrapper.text()).toContain('Content is not accepted.')
   })
 })
