@@ -34,6 +34,8 @@ from accounts.models import (
     Notification,
     Payment,
     Project,
+    ProjectAccessNote,
+    ProjectAdminAccess,
     ProjectDataModelEntity,
     Requirement,
     RequirementComment,
@@ -41,6 +43,7 @@ from accounts.models import (
 )
 
 from accounts.management.commands._seed_helpers import ensure_phase
+from accounts.services.credential_cipher import encrypt_secret
 from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 User = get_user_model()
@@ -289,12 +292,14 @@ class Command(BaseCommand):
             ecommerce_project = Project.objects.filter(client=client_user, name='Plataforma E-commerce').first()
             inventory_project = Project.objects.filter(client=client_user, name='App Móvil Inventarios').first()
             if ecommerce_project:
+                self._ensure_project_access(ecommerce_project, admin_user)
                 self._create_deliverables(ecommerce_project, admin_user)
                 self._create_requirements(ecommerce_project)
                 self._create_change_requests(ecommerce_project, client_user, admin_user)
                 self._create_bug_reports(ecommerce_project, client_user, admin_user)
                 self._create_subscription(ecommerce_project)
             if inventory_project:
+                self._ensure_project_access(inventory_project, admin_user)
                 self._create_inventory_deliverables(inventory_project, admin_user)
                 self._create_inventory_requirements(inventory_project)
                 self._create_inventory_change_requests(inventory_project, client_user, admin_user)
@@ -321,9 +326,7 @@ class Command(BaseCommand):
             estimated_end_date=today + timedelta(days=60),
             production_url='https://tienda-demo.projectapp.co',
             staging_url='https://staging-tienda.projectapp.co',
-            admin_url='https://staging-tienda.projectapp.co/admin/',
             repository_url='https://github.com/projectapp/ecommerce-demo',
-            admin_username='admin_demo',
         )
 
         prop_deliverable = Deliverable.objects.create(
@@ -356,7 +359,9 @@ class Command(BaseCommand):
         self._create_subscription(ecommerce_project)
 
         inventory_project = Project.objects.filter(client=client_user, name='App Móvil Inventarios').first()
+        self._ensure_project_access(ecommerce_project, admin_user)
         if inventory_project:
+            self._ensure_project_access(inventory_project, admin_user)
             self._create_inventory_deliverables(inventory_project, admin_user)
             self._create_inventory_requirements(inventory_project)
             self._create_inventory_change_requests(inventory_project, client_user, admin_user)
@@ -367,6 +372,63 @@ class Command(BaseCommand):
                 ecommerce_project, inventory_project, client_user, admin_user,
             )
         self._create_extended_seed_data(admin_user, client_user, ecommerce_project)
+
+    @staticmethod
+    def _ensure_project_access(project, admin_user):
+        """Create representative, encrypted access detail for a demo project."""
+        production_url = project.production_url or f'https://project-{project.pk}.example.test'
+        staging_url = project.staging_url or f'https://staging-project-{project.pk}.example.test'
+        repository_url = project.repository_url or f'https://git.example.test/project-{project.pk}'
+        Project.objects.filter(pk=project.pk).update(
+            production_url=production_url,
+            staging_url=staging_url,
+            repository_url=repository_url,
+            admin_url='',
+            admin_username='',
+            admin_password_encrypted='',
+        )
+
+        for environment, site_url in (
+            (ProjectAdminAccess.Environment.PRODUCTION, production_url),
+            (ProjectAdminAccess.Environment.STAGING, staging_url),
+        ):
+            ProjectAdminAccess.objects.update_or_create(
+                project=project,
+                environment=environment,
+                defaults={
+                    'admin_url': f'{site_url.rstrip("/")}/admin/',
+                    'admin_username': f'demo_admin_{project.pk}',
+                    'admin_password_encrypted': encrypt_secret(
+                        f'demo-only-{project.pk}-{environment}'
+                    ),
+                    'updated_by': admin_user,
+                },
+            )
+
+        ProjectAccessNote.objects.update_or_create(
+            project=project,
+            title='Contacto técnico de respaldo',
+            defaults={
+                'content_encrypted': encrypt_secret(
+                    'Canal de soporte demo: soporte@example.test'
+                ),
+                'is_sensitive': False,
+                'created_by': admin_user,
+                'updated_by': admin_user,
+            },
+        )
+        ProjectAccessNote.objects.update_or_create(
+            project=project,
+            title='Token de integración demo',
+            defaults={
+                'content_encrypted': encrypt_secret(
+                    f'demo-token-not-secret-{project.pk}'
+                ),
+                'is_sensitive': True,
+                'created_by': admin_user,
+                'updated_by': admin_user,
+            },
+        )
 
     def _create_extended_seed_data(self, admin_user, client_user, ecommerce_project):
         """Extra rows for payments UI, notifications, comments, markdown docs (idempotent)."""

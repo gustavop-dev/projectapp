@@ -246,7 +246,11 @@
       "title": "Section 27 — Panel Projects Module / Plataforma (Aug 13, 2026)",
       "flows": [
         "admin-panel-projects",
-        "admin-project-fly-create"
+        "admin-project-fly-create",
+        "admin-project-access-detail",
+        "admin-project-access-field-edit",
+        "admin-project-access-secrets",
+        "admin-project-access-notes"
       ],
       "intro": "_intro-04.md"
     },
@@ -273,6 +277,12 @@
       "title": "Section 30 — Responsive Compatibility Routes (Sep 1, 2026)",
       "flows": [
         "platform-legacy-route-redirects"
+      ]
+    },
+    {
+      "title": "Section 31 — Project Access Detail (Sep 5, 2026)",
+      "flows": [
+        "platform-project-access-detail"
       ]
     }
   ]

@@ -49,9 +49,13 @@ guard compartido. Sólo se ejecuta cuando el settings module declara literalment
   una convención de nombre de base de datos.
 - Pytest habilita la capacidad explícitamente sobre su base aislada de test.
 
-No se crean contraseñas conocidas. Los usuarios demo reciben contraseña
-inutilizable salvo que el operador suministre `SEED_ADMIN_PASSWORD`,
-`SEED_CLIENT_PASSWORD` o `DEMO_CLIENT_PASSWORD` de forma explícita.
+No se crean contraseñas conocidas para cuentas de usuario. Los usuarios demo
+reciben contraseña inutilizable salvo que el operador suministre
+`SEED_ADMIN_PASSWORD`, `SEED_CLIENT_PASSWORD` o `DEMO_CLIENT_PASSWORD` de forma
+explícita. El detalle de cada proyecto sí recibe credenciales operativas
+marcadas `demo-only`, cifradas con `PROJECT_ACCESS_CIPHER_KEY` y ligadas sólo a
+hosts reservados `.example.test`; sirven para probar reveal/copy sin parecer
+secretos reales.
 
 `delete_fake_data --confirm` es un reset de desarrollo: elimina contenido,
 proyectos y usuarios no staff. Preserva cuentas staff/superuser, catálogos y
@@ -66,6 +70,7 @@ Los valores son objetivos mínimos o perfiles deliberados, no repartos uniformes
 |---|---:|---|
 | Clientes | 60 | 30 sin proyecto, 20 con uno, 9 con tres y 1 con veinte |
 | Proyectos | 67 | los siete significados reales: desarrollo, activo, evolución en producción, pausa, suspensión, cierre correcto y baja definitiva; cubren los seis efectos operativos sin estados nulos ni revisión pendiente |
+| Accesos de proyecto | 134 ambientes + 134 notas | producción y staging por cada proyecto; URL/admin/usuario/password cifrada, una nota ordinaria y una sensible con contenido cifrado |
 | Requerimientos del proyecto de carga | 60 | todos los estados Kanban y prioridades |
 | Entregables del proyecto de carga | 60 | seis categorías, versiones y archivados |
 | Solicitudes de cambio del proyecto de carga | 60 | seis estados, urgentes/no urgentes y costos grandes |
@@ -99,6 +104,8 @@ settings singleton) se aseguran o se reutilizan; no se inflan artificialmente a
 ```mermaid
 flowchart LR
     Client[UserProfile cliente] --> Project[Project]
+    Project --> Access[ProjectAdminAccess producción/staging]
+    Project --> AccessNote[ProjectAccessNote cifrada]
     Client --> Income[IncomeRecord]
     Project --> Income
     Income -->|servicio real| Account[Document cuenta de cobro]
@@ -112,6 +119,9 @@ flowchart LR
 
 - Todo ingreso tiene cliente; cuando lleva proyecto, ese proyecto pertenece al
   mismo cliente.
+- Todo proyecto del dataset tiene exactamente los dos ambientes de acceso y dos
+  notas representativas. Passwords y contenidos se guardan como Fernet, nunca
+  como los valores demo en claro.
 - Toda cuenta de cobro tiene `income_record` de origen y hereda su cliente y
   proyecto. La creación usa `create_income_collection_account`, no escritura
   paralela por ORM.
@@ -160,7 +170,7 @@ prueba no está completo.
 ## Verificación ejecutable
 
 El contrato focal vive en
-`backend/content/tests/management/test_fake_data_contract.py`. Sus 25 casos
+`backend/content/tests/management/test_fake_data_contract.py`. Sus 26 casos
 comprueban el guard positivo, el inventario de modelos, el replay de semilla,
 los volúmenes y sesgos, la integridad cliente/proyecto/origen, las distribuciones
 temporales y de comunicaciones, el rollback atómico y el reemplazo completo.

@@ -454,14 +454,14 @@ class Project(models.Model):
         help_text='Date when hosting billing should begin (set by admin).',
     )
 
-    # Quick-access URLs (admin-only visibility in the API)
+    # Product URLs. Operational access is served only by the dedicated detail API.
     production_url = models.URLField(max_length=500, blank=True, default='')
     staging_url = models.URLField(max_length=500, blank=True, default='')
     admin_url = models.URLField(max_length=500, blank=True, default='')
     repository_url = models.URLField(max_length=500, blank=True, default='')
 
-    # Django admin credentials for the project's own site. The password is stored
-    # as a Fernet ciphertext; see accounts/services/credential_cipher.py.
+    # Legacy Django-admin access awaiting environment classification. New writes
+    # belong to ProjectAdminAccess; the password remains a Fernet ciphertext.
     admin_username = models.CharField(max_length=150, blank=True, default='')
     admin_password_encrypted = models.TextField(blank=True, default='')
 
@@ -501,6 +501,85 @@ class Project(models.Model):
             .order_by('deliverable_id')
             .first()
         )
+
+
+class ProjectAdminAccess(models.Model):
+    """Django-admin access for one fixed project environment.
+
+    The password is always a Fernet token. Plaintext only exists for the
+    duration of a dedicated reveal/copy request and is never serialized by a
+    general project endpoint.
+    """
+
+    class Environment(models.TextChoices):
+        PRODUCTION = 'production', 'Producción'
+        STAGING = 'staging', 'Staging'
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='admin_accesses',
+    )
+    environment = models.CharField(max_length=20, choices=Environment.choices)
+    admin_url = models.URLField(max_length=500, blank=True, default='')
+    admin_username = models.CharField(max_length=150, blank=True, default='')
+    admin_password_encrypted = models.TextField(blank=True, default='')
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='updated_project_admin_accesses',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['environment']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'environment'],
+                name='unique_project_admin_access_environment',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.project.name} — {self.get_environment_display()}'
+
+
+class ProjectAccessNote(models.Model):
+    """Encrypted operational note attached to a project's access detail."""
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='access_notes',
+    )
+    title = models.CharField(max_length=255)
+    content_encrypted = models.TextField()
+    is_sensitive = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='created_project_access_notes',
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='updated_project_access_notes',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f'{self.project.name} — {self.title}'
 
 
 class ProjectPhase(models.Model):

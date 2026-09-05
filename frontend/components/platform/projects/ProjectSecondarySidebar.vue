@@ -42,6 +42,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const props = defineProps({
   projectId: { type: [String, Number], required: true },
@@ -49,10 +50,12 @@ const props = defineProps({
 
 const localePath = useLocalePath()
 const route = useRoute()
+const authStore = usePlatformAuthStore()
+const { t } = useI18n()
 
 const items = computed(() => {
   const base = `/platform/projects/${props.projectId}`
-  return [
+  const navigationItems = [
     { label: 'Resumen',           href: localePath(base) },
     { label: 'Tablero',           href: localePath(`${base}/board`) },
     { label: 'Solicitudes',       href: localePath(`${base}/changes`) },
@@ -61,8 +64,14 @@ const items = computed(() => {
     { label: 'Hosting',           href: localePath(`${base}/payments`) },
     { label: 'Cuentas de cobro',  href: localePath(`${base}/collection-accounts`), disabled: true },
     { label: 'Modelo de datos',   href: localePath(`${base}/data-model`), disabled: true },
-    { label: 'Accesos',           href: localePath(`${base}/access`), disabled: true },
   ]
+  if (authStore.isAdmin) {
+    navigationItems.push({
+      label: t('projectAccess.navigation'),
+      href: localePath(`${base}/access`),
+    })
+  }
+  return navigationItems
 })
 
 function isActive(href) {

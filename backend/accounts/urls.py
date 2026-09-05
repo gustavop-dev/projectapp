@@ -29,6 +29,15 @@ from accounts.views_panel_preferences import (
     document_panel_preferences,
     reset_communication_panel_preferences,
 )
+from accounts.views_project_access import (
+    platform_project_access_detail,
+    platform_project_access_legacy_classify,
+    platform_project_access_note_detail,
+    platform_project_access_note_reveal,
+    platform_project_access_notes,
+    platform_project_access_password_delete,
+    platform_project_access_password_reveal,
+)
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
@@ -162,6 +171,41 @@ urlpatterns = [
     path('projects/', project_list_view, name='platform-project-list'),
     path('projects/access/', project_access_list_view, name='platform-project-access-list'),
     path('projects/<int:project_id>/', project_detail_view, name='platform-project-detail'),
+    path(
+        'projects/<int:project_id>/access/',
+        platform_project_access_detail,
+        name='platform-project-access-detail',
+    ),
+    path(
+        'projects/<int:project_id>/access/environments/<str:environment>/password/reveal/',
+        platform_project_access_password_reveal,
+        name='platform-project-access-password-reveal',
+    ),
+    path(
+        'projects/<int:project_id>/access/environments/<str:environment>/password/',
+        platform_project_access_password_delete,
+        name='platform-project-access-password-delete',
+    ),
+    path(
+        'projects/<int:project_id>/access/notes/',
+        platform_project_access_notes,
+        name='platform-project-access-notes',
+    ),
+    path(
+        'projects/<int:project_id>/access/notes/<int:note_id>/',
+        platform_project_access_note_detail,
+        name='platform-project-access-note-detail',
+    ),
+    path(
+        'projects/<int:project_id>/access/notes/<int:note_id>/reveal/',
+        platform_project_access_note_reveal,
+        name='platform-project-access-note-reveal',
+    ),
+    path(
+        'projects/<int:project_id>/access/legacy/classify/',
+        platform_project_access_legacy_classify,
+        name='platform-project-access-legacy-classify',
+    ),
     path('projects/<int:project_id>/phases/', project_phases_view, name='platform-project-phases'),
     path('projects/<int:project_id>/phases/reorder/', project_phases_reorder_view, name='platform-project-phases-reorder'),
     path('projects/<int:project_id>/phases/<int:phase_id>/', project_phase_detail_view, name='platform-project-phase-detail'),

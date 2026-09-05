@@ -1,0 +1,9 @@
+{
+  "id": "admin-project-access-detail",
+  "name": "Admin Project Access Detail",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Panel staff opens a project's detail modal from the Projects list and sees repository, production/staging access cards, masked secrets, and notes; a failed load offers retry.",
+  "outcomes": ["display", "failure"]
+}

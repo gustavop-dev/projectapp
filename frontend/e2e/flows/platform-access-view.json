@@ -1,11 +1,11 @@
 {
   "id": "platform-access-view",
-  "name": "Platform Access View",
+  "name": "Legacy Platform Access Redirect",
   "module": "platform",
   "priority": "P2",
   "roles": [
     "platform-admin"
   ],
   "expectedSpecs": 0,
-  "description": "Admin-only quick-access hub at /platform/access: grid of project cards with clickable URLs (production, staging, Django admin, repository) and copy/reveal credential controls."
+  "description": "Compatibility route at /platform/access that redirects to the project list. Project credentials now live in each admin-only /platform/projects/:id/access detail."
 }
