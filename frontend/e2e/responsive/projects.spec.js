@@ -62,7 +62,7 @@ for (const profile of RESPONSIVE_PROFILES) {
     });
 
     test('project access detail preserves its stacked or paired environment layout', {
-      tag: ['@flow:admin-project-access-detail', '@outcome:display', '@responsive:projects', `@responsive-scenario:${projectsScenario.catalogKey}`, `@responsive-batch:${batchForScenario(projectsScenario.catalogKey)}`, `@viewport:${profile}`],
+      tag: ['@flow:admin-project-access-detail', '@outcome:display', '@responsive:projects', '@responsive-special:projects', '@responsive-batch:projects-special-1', `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupProjects(page);
       // quality: allow-deep-link (the authenticated panel home is the shell entry; this test reaches Projects through the visible responsive navigation)
