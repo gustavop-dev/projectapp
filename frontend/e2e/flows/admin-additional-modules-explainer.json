@@ -1,0 +1,14 @@
+{
+  "id": "admin-additional-modules-explainer",
+  "name": "Admin Additional Modules Explainer",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin previews the catalog explainer video from the compact card on the additional modules panel page.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

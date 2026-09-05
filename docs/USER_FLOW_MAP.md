@@ -6117,13 +6117,14 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-pocket` | admin | P2 | display,success,error | 6 |
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
 | `admin-accounting-project-coherence` | admin | P1 | success | 1 |
-| `admin-accounting-receivables` | admin | P1 | display,success,failure | 4 |
+| `admin-accounting-receivables` | admin | P1 | display,success,failure | 11 |
 | `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 27 |
 | `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
 | `admin-additional-modules-catalog` | admin | P1 | success,display,failure | 5 |
+| `admin-additional-modules-explainer` | admin | P3 | success | 1 |
 | `admin-additional-modules-manage` | admin | P1 | success,error,failure | 4 |
 | `admin-additional-modules-pdf` | admin | P2 | success,failure | 2 |
 | `admin-additional-modules-quick-access` | admin | P1 | success,display | 3 |
@@ -6227,6 +6228,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-financing-agreement-lifecycle` | admin | P1 | display,success,error,failure | 11 |
 | `admin-financing-agreement-second-cycle` | admin | P1 | display,success,error,failure | 5 |
 | `admin-financing-distribution` | admin | P1 | display,success,failure | — |
+| `admin-financing-explainer` | admin | P3 | success | 1 |
 | `admin-financing-settings` | admin | P1 | display,success,error,failure | 4 |
 | `admin-high-engagement-alert` | admin | P2 | — | 0 |
 | `admin-hour-packages-config` | admin | P3 | success,error,failure,display | — |
@@ -6254,6 +6256,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-portfolio-delete` | admin | P2 | display,success | 1 |
 | `admin-portfolio-edit` | admin | P2 | display,success,error | 1 |
 | `admin-portfolio-list` | admin | P2 | display | 1 |
+| `admin-project-access-detail` | admin | P1 | display,failure | — |
+| `admin-project-access-field-edit` | admin | P1 | success,error,failure | — |
+| `admin-project-access-notes` | admin | P2 | display,success,error,failure | — |
+| `admin-project-access-secrets` | admin | P1 | display,success,failure | — |
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
@@ -6380,6 +6386,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `platform-password-reset` | platform | P1 | success,error | 1 |
 | `platform-profile-avatar-picker` | platform | P2 | success | 1 |
 | `platform-profile-edit` | platform | P2 | success,error,display | 1 |
+| `platform-project-access-detail` | platform | P1 | display,success,error,failure | — |
 | `platform-project-collection-accounts` | platform | P2 | display | 1 |
 | `platform-project-data-model` | platform | P2 | success,error,display | 1 |
 | `platform-project-detail` | platform | P2 | success,display | 1 |
@@ -6411,7 +6418,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-executive-to-detailed` | proposal | P2 | display | 1 |
 | `proposal-expired-graceful` | proposal | P1 | failure | 1 |
 | `proposal-functional-requirements-modal` | proposal | P2 | display | 1 |
-| `proposal-hosting-plan-terms` | proposal | P2 | display | 1 |
+| `proposal-hosting-plan-terms` | proposal | P2 | display | 2 |
 | `proposal-investment-calculator` | proposal | P1 | success,display | 1 |
 | `proposal-kickoff-disclosure` | proposal | P2 | display | 1 |
 | `proposal-magic-link-request` | proposal | P1 | success | 1 |
@@ -6444,11 +6451,14 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-about-us` | public | P3 | — | 0 |
 | `public-additional-modules-catalog` | public | P1 | success,display,failure | 5 |
 | `public-additional-modules-detail` | public | P1 | success | 1 |
+| `public-additional-modules-explainer` | public | P2 | display,success,failure | 4 |
 | `public-additional-modules-guide` | public | P2 | success,display | 2 |
 | `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
 | `public-additional-modules-share` | public | P1 | success,display,failure | 4 |
 | `public-additional-modules-theme` | public | P2 | success,display | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
+| `public-financing-explainer` | public | P2 | display,success,failure | 3 |
+| `public-financing-guide` | public | P2 | success,display | 2 |
 | `public-financing-language` | public | P2 | success | — |
 | `public-financing-load` | public | P1 | failure,success | — |
 | `public-financing-overview` | public | P1 | display | — |
@@ -6498,15 +6508,17 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting`, `/panel/accounting/incomes`
-- **Description:** The “Pendiente por cobrar” card is a global, manually curated forecast. Its value is the sum of the original amounts of open expected company incomes that are both selected and green/high. The modal reads `GET /api/accounting/receivables/` and has three tabs: detail and totals grouped by traffic-light state (green/high, orange/medium, red/low and unclassified), a flat selected summary, and candidate management. Toggle and color save independently with `PATCH /api/accounting/incomes/:id/update/`: choosing a level never activates the switch. A soft semantic circle accompanies the full level label, and an unassigned level renders a neutral circle with “Sin clasificar”. The same contract appears in the Ingresos list, create/edit form and income detail. Closing an income by collecting it fully, writing it off or moving it outside the company ledger removes it from the selection while preserving its last color; existing states are not rewritten.
+- **Description:** The “Pendiente por cobrar” card is a global, manually curated forecast. Its value is the sum of the original amounts of open expected company incomes that are both selected and green/high. The modal reads `GET /api/accounting/receivables/` and has three tabs: detail and totals grouped by traffic-light state (green/high, orange/medium, red/low and unclassified), a flat selected summary, and candidate management. Candidate management opens grouped by client, can regroup by project or switch to a classic flat list, and shows count, original total, paid amount and open balance for each group. Closing and reopening the modal restores grouped-by-client without persisting the previous presentation. Toggle and color save independently with `PATCH /api/accounting/incomes/:id/update/`: choosing a level never activates the switch. A soft semantic circle accompanies the full level label, and an unassigned level renders a neutral circle with “Sin clasificar”. The same contract appears in the Ingresos list, create/edit form and income detail. The help legend floats inside the modal overlay so it remains fully readable. Closing an income by collecting it fully, writing it off or moving it outside the company ledger removes it from the selection while preserving its last color; existing states are not rewritten.
 - **Steps:**
   1. Superuser opens the accounting summary and sees the green selected total on “Pendiente por cobrar”.
   2. Superuser opens the card and reviews totals and rows by state.
-  3. Superuser reviews the flat selection or opens “Gestionar candidatos”.
-  4. Superuser changes a toggle or traffic-light state and the row saves immediately.
-  5. Superuser can make the same change directly from an expected row in Ingresos.
+  3. Superuser opens “Gestionar candidatos” and sees the rows grouped by client with totals per group.
+  4. Superuser can regroup the filtered rows by project or switch to the classic flat list.
+  5. Superuser changes a toggle or traffic-light state and the row saves immediately.
+  6. Superuser can make the same change directly from an expected row in Ingresos.
 - **Branches:**
-  - [Display] The modal exposes all three tabs and keeps selected rows without a color under “Sin clasificar”.
+  - [Display] The modal exposes all three tabs, keeps selected rows without a color under “Sin clasificar”, and renders its help legend above the modal content.
+  - [Display] Candidate management defaults to client grouping on every open, supports project grouping and a classic flat list, and recalculates group totals after filtering.
   - [Success] A saved color leaves the manual switch unchanged; only toggling inclusion changes the forecast and its green summary/card.
   - [Failure] A failed load leaves a visible retry action; a failed update preserves the previous row and raises an error notification.
   - [Error n/a] The controls only emit catalog values and booleans, so there is no user-entered validation state; invalid payloads are covered at the serializer/API layer.
@@ -6535,7 +6547,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`, `/panel/clients`
-- **Description:** Each income records the client it came from. The income form carries a searchable client picker (with inline client creation, so an unregistered client never blocks the entry) and an **Origen** control for the business line (desarrollo / hosting / diagnóstico / otro); the client stays **optional**, because a refund or a financial yield legitimately has none. The table shows a **Cliente** column; the filter panel gains **Cliente** (options derived from the loaded rows, plus a "Sin cliente" sentinel) and **Origen**; and a **"Sin cliente"** builtin tab isolates the rows still to complete. Those are completed in bulk from the shared `ClientBulkAssignBar` — the same component `/panel/accounting/hostings` uses, so the two views cannot drift apart. Checkboxes select rows (or every filtered row at once). The bulk bar holds only the selection count and one **[Acciones]** menu; **"Asignar cliente"** opens `BulkAssignModal` (picker + live plan + a confirm gated with the reason on the line beside it, while no client is picked — an empty picker no longer means unlink), and **"Desvincular cliente"** only appears in the menu when a selected row actually has a client. The menu opens upward (the bar is sticky at the bottom) and separates linking from collecting with a divider. Either way the scope is named *before* anything is written — how many rows gain a client, how many change one and **from which client**, the rows already on the target that will not move, and the full scrollable list of affected records. Only the rows that actually change travel in `POST /api/accounting/incomes/bulk-assign-client/` (one audit entry per income), and the toast afterwards reports how many the server really wrote. **"Totales por cliente"** opens a read-only modal breaking the FILTERED incomes into billed / collected / pending / weight per client with a totals row — the period is whatever the active filters say. Settling an income carries its client and origin into the liquid child and the follow-up expected records, and a client holding incomes can no longer be deleted (`client_has_incomes`, same guard family as proposals/projects/diagnostics). (Ago 2026) The list also renders **agrupada por cliente**: the backend setting `income_default_view_mode` (card "Vista de ingresos" in Configuración, default `grouped`) decides the landing mode on **every** visit; the in-page **Agrupado/Clásico** segmented toggle lasts only the session — deliberately unlike recurrentes' localStorage. The grouped table (`IncomeGroupedTable`, subgrid clone of the recurrentes one without drag) groups the WHOLE filtered set via `groupByClient` — per-client collapsible headers, a trailing "Sin cliente" bucket flagged "por completar", billed/collected/pending footer totals, and the row actions (liquidar, cuenta de cobro, write-off) intact; column sort and pagination stay classic-only. (Ago 2026) Cada encabezado **se lee como una unidad al inicio de la fila**: nombre del cliente con sus `(N)` registros y, a continuación y pegados a él, Facturado, Pendiente y Participación en lo facturado, cada uno en su propio bloque con la etiqueta encima del valor (en cuerpo menor y color secundario, así que el nombre conserva el peso visual). Ese bloque de dos líneas es lo que volvió legibles las cifras; **repartirlas a lo ancho de la fila quedó probado y descartado**, porque en una tabla ancha terminan tan lejos del nombre que vuelven a leerse como columnas de otra cosa. La separación entre los tres bloques es uniforme y compacta, sin separadores —cada bloque ya trae su etiqueta—, y el nombre con su conteo va centrado verticalmente contra los bloques de dos líneas. Un nombre largo cede espacio y elipsiza en vez de empujar una cifra fuera de la fila o partirla; los importes nunca se comprimen. El pie recibe el mismo tratamiento, así que la tabla se lee igual de arriba a abajo —conserva el orden Facturado · Pendiente · Cobrado—, a costa, a propósito, de la alineación vertical entre filas: cada nombre mide distinto. Los dos importes se pintan **siempre, el cero incluido** (misma regla que el pie y el modal de totales), la etiqueta del porcentaje dice qué ES la cifra (la parte del grupo dentro de lo facturado, no cuánto del grupo está facturado), y bajo `sm` los bloques bajan **juntos** a una segunda línea bajo el nombre, sin estirarse ni cortarse. Mismo tratamiento en el encabezado de grupo de recurrentes, el único otro con totales —que además estrena la misma redacción en su porcentaje, “Participación en pagos activos”—, y el modal de totales por cliente acota el nombre para que no parta los importes. (Ago 2026) **La selección múltiple ya vive también en la agrupada** — que es justamente donde se ve el bucket "Sin cliente", los candidatos naturales de la asignación masiva: checkbox por fila, checkbox por grupo (marca/limpia todo el cliente, con estado **indeterminado** mientras sólo va parte) y un "seleccionar todos" en la cabecera que abarca **todos los grupos**; como esta vista no pagina, eso es exactamente el conjunto filtrado. Un grupo colapsado declara cuántos de sus ingresos siguen seleccionados (siguen contando para la acción masiva), la selección la guarda la página y por eso **sobrevive al alternar Agrupado ↔ Clásico**, y la misma `ClientBulkAssignBar` —ahora **sticky abajo**, tanto aquí como en hostings, porque la lista agrupada puede ser larga— ofrece las mismas acciones desde su menú y avisa `· N fuera del filtro actual` cuando parte de lo seleccionado dejó de pasar los filtros: la acción los incluye igual y la confirmación los lista uno por uno. A **"Sin cliente"** KPI card (`without_client_count`, whole filtered set — legacy rows in past years included) surfaces the completion debt, the search box also matches the linked client's name/company (`q` server-side too), reassigning an expected's client **cascades to its settled liquids** (update + bulk paths, one audit row per child), creating a cuenta de cobro adopts the client on an orphan income or rejects a mismatched one, and each unassigned row in the classic table wears the **"sin vincular"** pill (mirror of hostings; the grouped bucket already carries its flag). Sibling fix on hostings: reassigning a hosting's client refreshes the billing snapshot (serializer + bulk paths — a stale `client_email` routed the cuenta to the previous client's inbox), with same-request overrides winning.
+- **Description:** Each income records the client it came from. The income form carries a searchable client picker (with inline client creation, so an unregistered client never blocks the entry) and an **Origen** control for the business line (desarrollo / hosting / diagnóstico / otro); the client stays **optional**, because a refund or a financial yield legitimately has none. The table shows a **Cliente** column; the filter panel gains **Cliente** (options derived from the loaded rows, plus a "Sin cliente" sentinel) and **Origen**; and a **"Sin cliente"** builtin tab isolates the rows still to complete. Those are completed in bulk from the shared `ClientBulkAssignBar` — the same component `/panel/accounting/hostings` uses, so the two views cannot drift apart. Checkboxes select rows (or every filtered row at once). The bulk bar holds only the selection count and one **[Acciones]** menu; **"Asignar cliente"** opens `BulkAssignModal` (picker + live plan + a confirm gated with the reason on the line beside it, while no client is picked — an empty picker no longer means unlink), and **"Desvincular cliente"** only appears in the menu when a selected row actually has a client. The menu opens upward (the bar is sticky at the bottom) and separates linking from collecting with a divider. Either way the scope is named *before* anything is written — how many rows gain a client, how many change one and **from which client**, the rows already on the target that will not move, and the full scrollable list of affected records. Only the rows that actually change travel in `POST /api/accounting/incomes/bulk-assign-client/` (one audit entry per income), and the toast afterwards reports how many the server really wrote. **"Totales por cliente"** opens a read-only modal breaking the FILTERED incomes into billed / collected / pending / weight per client with a totals row — the period is whatever the active filters say. Settling an income carries its client and origin into the liquid child and the follow-up expected records, and a client holding incomes can no longer be deleted (`client_has_incomes`, same guard family as proposals/projects/diagnostics). (Ago 2026) The list also renders **agrupada por cliente**: the backend setting `income_default_view_mode` (card "Vista de ingresos" in Configuración, default `grouped`) decides the landing mode on **every** visit; the in-page **Agrupado/Clásico** segmented toggle lasts only the session — deliberately unlike recurrentes' localStorage. The grouped table (`IncomeGroupedTable`, subgrid clone of the recurrentes one without drag) groups the WHOLE filtered set via `groupByClient` — per-client collapsible headers, a trailing "Sin cliente" bucket flagged "por completar", billed/collected/pending footer totals, and the row actions (liquidar, cuenta de cobro, write-off) intact; pagination stays classic-only, while sorting is shared: **Mes** opens newest-first and toggles oldest/newest; **Total** cycles highest/lowest/default Mes order. In grouped mode the selected order applies inside each client group without changing the billed-desc group ranking or the trailing "Sin cliente" bucket. The active sort survives filters, quick tabs, view changes and later visits through browser storage. (Ago 2026) Cada encabezado **se lee como una unidad al inicio de la fila**: nombre del cliente con sus `(N)` registros y, a continuación y pegados a él, Facturado, Pendiente y Participación en lo facturado, cada uno en su propio bloque con la etiqueta encima del valor (en cuerpo menor y color secundario, así que el nombre conserva el peso visual). Ese bloque de dos líneas es lo que volvió legibles las cifras; **repartirlas a lo ancho de la fila quedó probado y descartado**, porque en una tabla ancha terminan tan lejos del nombre que vuelven a leerse como columnas de otra cosa. La separación entre los tres bloques es uniforme y compacta, sin separadores —cada bloque ya trae su etiqueta—, y el nombre con su conteo va centrado verticalmente contra los bloques de dos líneas. Un nombre largo cede espacio y elipsiza en vez de empujar una cifra fuera de la fila o partirla; los importes nunca se comprimen. El pie recibe el mismo tratamiento, así que la tabla se lee igual de arriba a abajo —conserva el orden Facturado · Pendiente · Cobrado—, a costa, a propósito, de la alineación vertical entre filas: cada nombre mide distinto. Los dos importes se pintan **siempre, el cero incluido** (misma regla que el pie y el modal de totales), la etiqueta del porcentaje dice qué ES la cifra (la parte del grupo dentro de lo facturado, no cuánto del grupo está facturado), y bajo `sm` los bloques bajan **juntos** a una segunda línea bajo el nombre, sin estirarse ni cortarse. Mismo tratamiento en el encabezado de grupo de recurrentes, el único otro con totales —que además estrena la misma redacción en su porcentaje, “Participación en pagos activos”—, y el modal de totales por cliente acota el nombre para que no parta los importes. (Ago 2026) **La selección múltiple ya vive también en la agrupada** — que es justamente donde se ve el bucket "Sin cliente", los candidatos naturales de la asignación masiva: checkbox por fila, checkbox por grupo (marca/limpia todo el cliente, con estado **indeterminado** mientras sólo va parte) y un "seleccionar todos" en la cabecera que abarca **todos los grupos**; como esta vista no pagina, eso es exactamente el conjunto filtrado. Un grupo colapsado declara cuántos de sus ingresos siguen seleccionados (siguen contando para la acción masiva), la selección la guarda la página y por eso **sobrevive al alternar Agrupado ↔ Clásico**, y la misma `ClientBulkAssignBar` —ahora **sticky abajo**, tanto aquí como en hostings, porque la lista agrupada puede ser larga— ofrece las mismas acciones desde su menú y avisa `· N fuera del filtro actual` cuando parte de lo seleccionado dejó de pasar los filtros: la acción los incluye igual y la confirmación los lista uno por uno. A **"Sin cliente"** KPI card (`without_client_count`, whole filtered set — legacy rows in past years included) surfaces the completion debt, the search box also matches the linked client's name/company (`q` server-side too), reassigning an expected's client **cascades to its settled liquids** (update + bulk paths, one audit row per child), creating a cuenta de cobro adopts the client on an orphan income or rejects a mismatched one, and each unassigned row in the classic table wears the **"sin vincular"** pill (mirror of hostings; the grouped bucket already carries its flag). Sibling fix on hostings: reassigning a hosting's client refreshes the billing snapshot (serializer + bulk paths — a stale `client_email` routed the cuenta to the previous client's inbox), with same-request overrides winning.
 - **Steps:**
   1. Superuser creates or edits an income and picks its client and origin (or creates the client inline).
   2. The Cliente column and the Cliente/Origen filters read the ledger by client; the "Sin cliente" tab lists what is still unassigned.
@@ -6550,7 +6562,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Cancelled confirmation] No request fires and the selection survives untouched.
   - [Selected record deleted] (Ago 2026) La selección se reconcilia contra lo que existe de verdad: el id borrado se descarta solo —**sólo ése**, así que de tres seleccionados y uno eliminado quedan dos— el contador y el aviso "· N fuera del filtro actual" se recalculan sobre filas reales, y la barra se oculta sola cuando ya no queda nada que asignar, sin recargar ni pulsar Cancelar. Aplica a cualquier acción que cambie el conjunto, porque la reconciliación cuelga de los datos (`useRowSelection`) y no del handler que los cambió.
   - [Record deleted while the confirmation was open] `POST /api/accounting/incomes/bulk-assign-client/` responde **409 `records_not_found`** nombrando `missing_ids` y **no escribe nada** — una edición masiva se confirma contra un alcance nombrado, así que corre entera o no corre. El panel descarta esos ids de la selección y recarga la lista.
-- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, permanent catalog visible without typing, persisted A-Z/Z-A order, filtering and progressive loading inside the list-only scroll, five complete client rows, four-row review visible at once, full-screen compact modal, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, session-only toggle back to classic writing nothing, la selección depurándose tras un borrado —clásica, agrupada y tras "Seleccionar los N filtrados"— y el 409 reconciliando)
+- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, permanent catalog visible without typing, persisted A-Z/Z-A order, filtering and progressive loading inside the list-only scroll, five complete client rows, four-row review visible at once, full-screen compact modal, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, Mes/Total sorting within each group with browser persistence, session-only toggle back to classic writing nothing, la selección depurándose tras un borrado —clásica, agrupada y tras "Seleccionar los N filtrados"— y el 409 reconciliando)
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-income-crud`
@@ -6559,7 +6571,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Expected company rows expose a “Previsión” column with an independent candidate toggle and green/high, orange/medium or red/low confidence selector; changing the color never activates the toggle. A semantic circle accompanies the complete label in the list, forecast modal, create/edit form and income detail, with a neutral “Sin clasificar” state. Duplicating always clears both forecast fields. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Its indicator cards use the shared fixed label/value/reserved-support structure, so all heights match, and every visible card has contextual help plus an explicit filtering action. Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Expected company rows expose a “Previsión” column with an independent candidate toggle and green/high, orange/medium or red/low confidence selector; changing the color never activates the toggle. A semantic circle accompanies the complete label in the list, forecast modal, create/edit form and income detail, with a neutral “Sin clasificar” state. Duplicating always clears both forecast fields. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Its indicator cards use the shared fixed label/value/reserved-support structure, so all heights match, and every visible card has contextual help plus an explicit filtering action. Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The list opens ordered by **Mes**, newest first; Mes toggles newest/oldest and **Total** cycles highest/lowest/default Mes order. The active order survives filters, quick tabs, Agrupado/Clásico changes and later visits through browser storage. The form also carries the client and origin fields — see `admin-accounting-income-client`.
 - **Responsive contract:** En 412 px y 835 px la cabecera muestra exactamente dos resúmenes — **Resultado anual** y **Detalle operativo** — y sus drawers conservan las siete preguntas originales (esperado, líquido, perdido, mes actual, principal origen, sin cliente y sin proyecto). La primera fila queda dentro de la pantalla inicial del teléfono. Desde 1195 px se muestran cuatro tarjetas detalladas. Los cinco anchos de referencia verifican cantidad, alturas parejas y acceso al detalle.
 - **Steps:**
   1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner), and may activate an indicator to apply its year/month/kind/search/missing-relation filter.
@@ -6585,7 +6597,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch H] A settlement deduction is an `ExpenseRecord` flagged with `deduction_type` and linked to its origin via `source_income` (migration `content/0173` backfilled the link from the `income:<pk>:settlement` stamp and re-grossed the parents earlier settlements had netted): it books no pocket movement (the money never entered the pocket), keeps the expected income **gross** and counts as **payment credit** toward it — liquid children + linked deductions add up to the parent's total, so a fee-settled income still reads Pagado. Under the gross convention it **reduces expected utility** like any expense, while liquid utility subtracts only operational spending (the liquid total already arrives net of every fee — subtracting deductions there would double-count). It shows in the Gastos tab with a "Descuento de ingreso" pill whose tooltip names the origin income, filters by "Tipo de deducción" (shared catalog with the liquidation modal) or "Naturaleza", totalizes in the "Deducciones (año)" KPI with a per-type breakdown and in Operativo/Deducciones chips over the filtered rows, exports with "Tipo de deducción" + "Ingreso origen" columns, and is reported apart as `deductions_total` on the accounting dashboard. Deductions are created from Liquidar only: manual writes can neither set nor clear `deduction_type`, and editing one hides the pocket toggle behind a hint.
   - [Branch J] Duplicating (Aug 2026) always produces an **expected** record, whatever the original was — reopening the next period of an already collected hosting is the case it exists for — and never carries what belonged to the original occurrence: settlement links, cuenta de cobro, deductions, history and silenced reminders all stay behind, so the duplicate enters the payment calendar clean. The proposed date is the original's plus one hosting cycle, resolved server-side by matching the client (narrowed by project) among active hostings when the origin is Hosting; an ambiguous or absent match leaves the field empty and its `required` blocks the save until a date is chosen. A failing draft raises "No se pudo preparar el duplicado" and opens no form. (Ago 2026) **Origen is required** on every income the form writes — creating, editing and duplicating alike. `BaseSegmented` carries no native `required`, so the refusal is the form's own ("Elige la línea de negocio del ingreso."), held back until the first submit attempt so a freshly opened form never opens complaining; the write serializer enforces the same rule on create and on any update that writes the field, which is what turns editing a legacy row into the gradual backfill of the book. A partial PATCH that does not touch `origin` leaves the record as unclassified as it was, and settling is exempt on purpose: the liquid child and the rescheduled balance copy the parent's line of business, blank included, since refusing to collect money over a classification would block Liquidar on most of the book.
   - [Branch K] (Ago 2026) Una mutación **refresca en sitio**. Al eliminar, la fila deja su grupo de inmediato y el contador del grupo, el conteo de resultados y los totales de la cabecera (Total esperado / líquido / perdido) se recalculan solos, porque derivan del set filtrado. Dos cosas que hacían que eso *pareciera* una recarga se corrigieron con el mismo cambio, y valen para las seis vistas de contabilidad: las tablas pintan skeleton **sólo cuando todavía no hay nada en pantalla**, no encima de datos ya visibles, y la paginación vuelve a la página 1 cuando cambian los **filtros**, no cada vez que se reconstruyen las filas — borrar una fila desde la página 3 ya no deja al lector en la 1.
-- **Coverage:** ✅ Covered — all four outcome classes, including the five-width indicator header, its filtering actions, the settlement's deduction, follow-up income, over-allocation block and backend rejection, y el borrado recalculando totales sin recargar ni mover la página.
+- **Coverage:** ✅ Covered — all four outcome classes, including the default and persisted Mes/Total ordering, the five-width indicator header, its filtering actions, the settlement's deduction, follow-up income, over-allocation block and backend rejection, y el borrado recalculando totales sin recargar ni mover la página.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-income-bulk-settle`
@@ -7143,6 +7155,61 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 | `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
 | `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
 
+### FLOW: `admin-project-access-detail`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects` (modal)
+- **API:** `GET /api/projects/:id/access/`
+- **Interaction:** Open a project's detail icon from the list or card.
+- **Display outcome:** The modal identifies the project and client, renders production and staging separately, and keeps passwords and sensitive notes masked.
+- **Failure outcome:** A failed detail request renders a retry action in the modal; retry replaces the error with the project data.
+- **Success / error:** n/a — opening the modal is a read/display action with no user input.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js` plus the five responsive project profiles.
+
+### FLOW: `admin-project-access-field-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects` (project detail modal)
+- **API:** `PATCH /api/projects/:id/access/`
+- **Interaction:** Activate one field's edit icon, change its value, and explicitly save it.
+- **Success outcome:** The API receives exactly one mutable field (plus environment when applicable) and the returned value replaces the read view.
+- **Error outcome:** A serializer validation message remains beside the field and the draft stays editable.
+- **Failure outcome:** A server failure remains inline and does not discard the draft.
+- **Display:** n/a — the read-only values belong to `admin-project-access-detail`.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js`.
+
+### FLOW: `admin-project-access-secrets`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects` (project detail modal)
+- **API:** dedicated password/note reveal endpoints under `/api/projects/:id/access/`
+- **Interaction:** Reveal, hide, or copy a password or sensitive note through its icon control.
+- **Display outcome:** Secret values are absent from the initial payload and appear as a mask.
+- **Success outcome:** Reveal shows the requested secret until hidden or closed; copy writes it without first placing it in the modal.
+- **Failure outcome:** A failed reveal reports the API error while the value remains masked.
+- **Error:** n/a — there is no user-authored value to validate in reveal/copy.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js`.
+
+### FLOW: `admin-project-access-notes`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/projects` (project detail modal)
+- **API:** note create/update/delete/reveal endpoints under `/api/projects/:id/access/notes/`
+- **Interaction:** Inspect notes or open “Agregar nota”, enter title/content, choose sensitivity, and save.
+- **Display outcome:** Existing titled notes render; sensitive content stays masked.
+- **Success outcome:** A valid note is added to the project response and appears in the list.
+- **Error outcome:** Missing title/content is rejected locally without a request.
+- **Failure outcome:** A backend rejection preserves the entered content and shows an actionable error.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js`.
+
 
 ## Section 28 — Client/Project Coherence (Aug 16, 2026)
 
@@ -7293,6 +7360,23 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **E2E Spec:** `e2e/responsive/catalog-matrix.spec.js`
 
 
+## Section 31 — Project Access Detail (Sep 5, 2026)
+
+### FLOW: `platform-project-access-detail`
+
+- **Module:** platform
+- **Roles:** platform-admin, platform-client
+- **Priority:** P1
+- **Routes:** `/platform/projects/:id/access`
+- **API:** project access endpoints under `/api/accounts/projects/:id/access/`
+- **Interaction:** An admin reaches Accesos through project navigation and uses the shared editor over JWT transport.
+- **Display outcome:** The scoped project detail renders both environments and masked credentials.
+- **Success outcome:** An explicit field save updates the response through the platform endpoint.
+- **Error outcome:** A client profile is redirected before the protected editor renders.
+- **Failure outcome:** An API load failure appears with a retry control.
+- **Coverage:** `e2e/platform/platform-project-access-detail.spec.js` and the five responsive platform profiles.
+
+
 ## Unsectioned flows
 
 ### FLOW: `admin-accounting-income-reminder-mute`
@@ -7317,6 +7401,18 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Interaction:** Navigate from the panel sidebar, switch Spanish/English content, choose card/list/accordion presentation and retry a failed initial request. The chosen presentation is remembered for the panel surface.
 - **Outcomes:** `success`, `display`, `failure`
 - **Evidence:** `frontend/pages/panel/additional-modules/index.vue`, `GET /api/additional-modules/admin/`
+
+### FLOW: `admin-additional-modules-explainer`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P3
+- **Ruta:** `/:locale/panel/additional-modules`
+- **Interacción:** Ver la tarjeta compacta del video explicativo junto al
+  acceso rápido y reproducirlo para revisar lo que verá el cliente.
+- **Outcomes:** `success`
+- **Evidencia:** `pages/panel/additional-modules/index.vue`,
+  `ExplainerVideoCard.vue` y `e2e/admin/admin-additional-modules.spec.js`.
 
 ### FLOW: `admin-additional-modules-manage`
 
@@ -7449,6 +7545,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (aviso flotante único para título y acción, nombre corto sin ruido, carga tardía de fuentes, límite del inventario vigente, nombres reales sin espacios, contención geométrica en cinco viewports, expansión táctil en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-financing-explainer`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P3
+- **Ruta:** `/:locale/panel/financing`
+- **Interacción:** En la pestaña Programa, ver la tarjeta compacta del video
+  explicativo bajo la distribución comercial y reproducirlo; la vista previa
+  pública de más abajo no lo repite.
+- **Outcomes:** `success`
+- **Evidencia:** `pages/panel/financing/index.vue`, `ExplainerVideoCard.vue`
+  y `e2e/admin/admin-financing.spec.js`.
 
 ### FLOW: `admin-financing-settings`
 
@@ -7653,6 +7762,22 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`
 - **Evidence:** `AdditionalModules/CatalogView.vue`.
 
+### FLOW: `public-additional-modules-explainer`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Rutas:** `/:locale/additional-modules` y
+  `/:locale/additional-modules/share/:uuid`
+- **Interacción:** Encontrar la tarjeta del video explicativo debajo del título
+  (primer bloque antes del primer módulo), reproducirlo en el mismo lugar con
+  sonido y controles nativos, y usar el enlace directo al archivo si el
+  navegador no puede reproducirlo. En inglés la tarjeta no aparece hasta tener
+  el render en ese idioma.
+- **Outcomes:** `display`, `success`, `failure`
+- **Evidencia:** `ExplainerVideoCard.vue`, `useExplainerVideos.js`,
+  `AdditionalModules/CatalogView.vue` y `e2e/public/additional-modules.spec.js`.
+
 ### FLOW: `public-additional-modules-guide`
 
 - **Módulo:** public
@@ -7661,8 +7786,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Rutas:** `/:locale/additional-modules` y
   `/:locale/additional-modules/share/:uuid`
 - **Interacción:** En la primera visita, recorrer una guía específica del
-  catálogo y cerrarla; en visitas posteriores, reiniciarla desde el control
-  flotante.
+  catálogo que empieza en la tarjeta del video explicativo y cerrarla; en
+  visitas posteriores, reiniciarla desde el control flotante.
 - **Outcomes:** `success`, `display`
 - **Evidencia:** `AdditionalModules/Onboarding.vue` y
   `e2e/public/additional-modules.spec.js`.
@@ -7699,6 +7824,36 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`, `display`
 - **Evidencia:** `useAdditionalModulesTheme.js`, `CatalogView.vue` y
   `e2e/public/additional-modules.spec.js`.
+
+### FLOW: `public-financing-explainer`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Ruta:** `/:locale/financing`
+- **Interacción:** Reproducir el video explicativo desde el hero (debajo del
+  subtítulo y antes de los botones de WhatsApp y PDF) con sonido y controles
+  nativos; si el navegador no puede reproducirlo, abrir el archivo desde el
+  enlace de respaldo. En inglés la tarjeta no aparece hasta tener el render en
+  ese idioma.
+- **Outcomes:** `display`, `success`, `failure`
+- **Evidencia:** `ExplainerVideoCard.vue`, `useExplainerVideos.js`,
+  `Financing/ProgramView.vue` y `e2e/public/financing.spec.js`.
+
+### FLOW: `public-financing-guide`
+
+- **Módulo:** public
+- **Rol:** invitado
+- **Prioridad:** P2
+- **Ruta:** `/:locale/financing`
+- **Interacción:** En la primera visita, recorrer la guía del programa (empieza
+  en la tarjeta del video explicativo y sigue por opciones, condiciones,
+  calculadora, paquete, reglas y acciones flotantes) y cerrarla; en visitas
+  posteriores, reiniciarla desde el control flotante. La vista previa del panel
+  no la muestra.
+- **Outcomes:** `success`, `display`
+- **Evidencia:** `PublicGuidedTour.vue`, `Financing/Onboarding.vue`,
+  `Financing/ProgramView.vue` y `e2e/public/financing.spec.js`.
 
 ### FLOW: `public-financing-language`
 

@@ -1,0 +1,9 @@
+{
+  "id": "admin-project-access-field-edit",
+  "name": "Admin Project Access Inline Field Edit",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Panel staff edits and explicitly saves one repository, site, Django-admin URL, username, or replacement password field; validation and server failures remain inline without losing the draft.",
+  "outcomes": ["success", "error", "failure"]
+}

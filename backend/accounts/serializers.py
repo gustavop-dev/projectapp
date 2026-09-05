@@ -282,7 +282,6 @@ class ClientListSerializer(serializers.ModelSerializer):
 # =========================================================================
 
 from accounts.models import Project  # noqa: E402
-from accounts.services.credential_cipher import decrypt_password  # noqa: E402
 
 
 class ProjectListSerializer(serializers.ModelSerializer):
@@ -409,24 +408,22 @@ class ProjectListSerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(ProjectListSerializer):
     _ADMIN_ONLY_FIELDS = (
         'payment_milestones',
-        'production_url', 'staging_url', 'admin_url', 'repository_url',
-        'admin_username', 'admin_password',
+        'production_url', 'staging_url', 'repository_url',
+        'has_admin_password',
     )
 
     hosting_tiers = serializers.SerializerMethodField()
     has_subscription = serializers.SerializerMethodField()
     production_url = serializers.URLField(read_only=True)
     staging_url = serializers.URLField(read_only=True)
-    admin_url = serializers.URLField(read_only=True)
     repository_url = serializers.URLField(read_only=True)
-    admin_username = serializers.CharField(read_only=True)
-    admin_password = serializers.SerializerMethodField()
+    has_admin_password = serializers.SerializerMethodField()
 
     class Meta(ProjectListSerializer.Meta):
         fields = ProjectListSerializer.Meta.fields + [
             'payment_milestones', 'hosting_tiers', 'has_subscription',
-            'production_url', 'staging_url', 'admin_url', 'repository_url',
-            'admin_username', 'admin_password',
+            'production_url', 'staging_url', 'repository_url',
+            'has_admin_password',
         ]
 
     def get_hosting_tiers(self, obj):
@@ -482,8 +479,11 @@ class ProjectDetailSerializer(ProjectListSerializer):
     def get_has_subscription(self, obj):
         return hasattr(obj, 'hosting_subscription')
 
-    def get_admin_password(self, obj):
-        return decrypt_password(obj.admin_password_encrypted)
+    def get_has_admin_password(self, obj):
+        return bool(
+            obj.admin_password_encrypted
+            or obj.admin_accesses.exclude(admin_password_encrypted='').exists()
+        )
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -491,7 +491,12 @@ class ProjectDetailSerializer(ProjectListSerializer):
         profile = getattr(request.user, 'profile', None) if request else None
         if not (profile and profile.is_admin):
             for field in self._ADMIN_ONLY_FIELDS:
-                data[field] = [] if field == 'payment_milestones' else ''
+                if field == 'payment_milestones':
+                    data[field] = []
+                elif field == 'has_admin_password':
+                    data[field] = False
+                else:
+                    data[field] = ''
         else:
             data['payment_milestones'] = instance.payment_milestones or []
         return data
@@ -538,10 +543,7 @@ class UpdateProjectSerializer(serializers.Serializer):
     estimated_end_date = serializers.DateField(required=False, allow_null=True)
     production_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     staging_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
-    admin_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     repository_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
-    admin_username = serializers.CharField(required=False, allow_blank=True, max_length=150)
-    admin_password = serializers.CharField(required=False, allow_blank=True, max_length=500)
 
 
 # =========================================================================

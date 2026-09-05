@@ -516,12 +516,36 @@ PROJECT_CONTRACTS = (
         read_write=(
             'name description client status current_state state_review_required '
             'progress start_date estimated_end_date payment_milestones hosting_tiers '
-            'hosting_start_date production_url staging_url admin_url repository_url '
-            'admin_username'
+            'hosting_start_date'
         ),
+        excluded=(
+            _excluded(
+                'URLs y accesos operativos; sólo se administran desde el detalle '
+                'seguro del proyecto.',
+                'production_url staging_url repository_url admin_url admin_username',
+            )
+            | _excluded(
+                'Credencial cifrada del sitio: nunca se expone ni se modifica por MCP.',
+                'admin_password_encrypted',
+            )
+        ),
+    ),
+    _contract(
+        'accounts.ProjectAdminAccess',
         excluded=_excluded(
-            'Credencial cifrada del sitio: nunca se expone ni se modifica por MCP.',
-            'admin_password_encrypted',
+            'URLs administrativas, usuarios, secretos y auditoría reservados al '
+            'detalle seguro del proyecto; el MCP no los consulta ni modifica.',
+            'id project environment admin_url admin_username '
+            'admin_password_encrypted updated_by created_at updated_at',
+        ),
+    ),
+    _contract(
+        'accounts.ProjectAccessNote',
+        excluded=_excluded(
+            'Notas operativas cifradas reservadas al detalle seguro del proyecto; '
+            'el MCP no las consulta ni modifica.',
+            'id project title content_encrypted is_sensitive created_by updated_by '
+            'created_at updated_at',
         ),
     ),
     _contract(

@@ -1,5 +1,24 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato técnico de orden de ingresos — 2026-09-04:** el estado persistido
+> usa `projectapp-accounting-incomes-sort` con la forma `{ key, dir }` y acepta
+> sólo columnas declaradas y direcciones `asc|desc`; cualquier dato inválido
+> cae al baseline `period_label:desc`. Mes compara `period_date`, alterna dos
+> direcciones y nunca queda neutro. Total inicia en `desc`, sigue a `asc` y
+> luego restaura Mes descendente. El mismo ref reactivo sobrevive filtros,
+> quick tabs y Agrupado/Clásico; la recarga lo recupera del navegador. No hay
+> payload, endpoint, migración ni dependencia nueva.
+
+> **Contrato técnico de capas y agrupación de cobros — 2026-09-04:**
+> `BaseTooltip` resuelve por inyección el floating root del `BaseModal` dueño y
+> teletransporta allí su contenido; fuera de un modal conserva `body` como
+> fallback. Así el tooltip participa del stacking context del overlay sin
+> aumentar globalmente su `z-index`. `ReceivablesModal` agrupa en cliente o
+> proyecto mediante funciones puras sobre las filas ya filtradas, reutiliza
+> `IncomeGroupedTable` para bandas, colapso y totales, y mantiene Agrupado/
+> Cliente como estado local reiniciado al abrir. No cambia endpoints, esquema,
+> settings ni almacenamiento del navegador.
+
 > **Contrato técnico de destinatarios múltiples — 2026-09-04:** los endpoints
 > manuales aceptan `recipient_emails: string[]` y `cc_emails: string[]`, y
 > conservan compatibilidad con `recipient_email`/`recipient` singulares. El
@@ -400,7 +419,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 | `ENABLE_SILK` | `false` | Enable query profiler |
 | `DJANGO_CORS_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,...` | CORS origins |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `http://127.0.0.1:5173,...` | CSRF trusted |
-| `PROJECT_ACCESS_CIPHER_KEY` | *(required in prod)* | Fernet key for project admin credential encryption. Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `PROJECT_ACCESS_CIPHER_KEY` | *(required in prod)* | Fernet key for project admin passwords and encrypted project-note content. Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
 
 ---
 
@@ -941,14 +960,15 @@ description and preserves its credentials, active state and last-use timestamp.
 ### Backend Patterns
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
-- **Service layer** — business logic in `content/services/` (47 modules: ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf, DiagnosticService, DiagnosticEmailService, DiagnosticPdfService, DiagnosticDocumentsService, AccountingService, AccountingExportService, AccountingEmailService, AccountingCardReminderService, plus the `content/mcp/` tool package) and in `accounts/services/` (19 modules: archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
+- **Service layer** — business logic in `content/services/` (47 modules: ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf, DiagnosticService, DiagnosticEmailService, DiagnosticPdfService, DiagnosticDocumentsService, AccountingService, AccountingExportService, AccountingEmailService, AccountingCardReminderService, plus the `content/mcp/` tool package) and in `accounts/services/` (19 modules: archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_access, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
 - **Public proposal tracking** — document retrieval and commercial evidence are separate boundaries. `proposal_tracking_service.py` is the only writer for qualified proposal heartbeats; `proposal_tracking.py` validates the anonymous payload before any row changes. Drafts and staff previews return `skipped`.
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
 - **Huey tasks** — async operations: reminders, expiration, engagement-based emails, project-stage deadline scans, hosting recurring billing (`accounts/tasks.py::auto_charge_due_subscriptions` — daily 06:00 UTC, charges due hosting payments with the subscription's stored Wompi payment source)
-- **Custom admin site** — `content/admin.py` with custom `AdminSite` class; `accounts/admin.py` registers `ProjectAdmin` (URLs + encrypted credentials)
+- **Custom admin site** — `content/admin.py` with custom `AdminSite` class; `accounts/admin.py` registers `ProjectAdmin` for project metadata and product URLs. Environment credentials are intentionally writable only through the dedicated secure detail.
 - **Management commands** — fake data generation for development/testing
 - **Email template registry** — centralized email content management with admin-editable overrides
-- **Fernet encryption** — `accounts/services/credential_cipher.py`; `encrypt_password`/`decrypt_password` with key from `PROJECT_ACCESS_CIPHER_KEY`; `@lru_cache` on cipher instance
+- **Fernet encryption** — `accounts/services/credential_cipher.py`; generic `encrypt_secret`/`decrypt_secret` plus backward-compatible password wrappers use `PROJECT_ACCESS_CIPHER_KEY`; the cipher instance is cached with `@lru_cache`
+- **Project access boundary** — `accounts/services/project_access.py` owns environment fields, note encryption and conflict-safe legacy classification. `accounts/project_access_api.py` owns shared response contracts and `no-store`; thin FBVs select session/CSRF or JWT permissions. General serializers never deserialize a project-access password, and MCP excludes the complete operational detail.
 - **Bogotá time helpers** (`content/utils.py`) — `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`, `format_bogota_date(d)` (accepts both `date` and `datetime`), `format_bogota_datetime(dt)`. Use these for any day-level arithmetic instead of `date.today()` (UTC). Bogotá is fixed UTC-5 with no DST.
 - **Internal-only fields gated by `is_admin`** — when a model is internal-only (e.g., `ProposalProjectStage`), expose it via `SerializerMethodField` returning `[]` for non-admin context, never `read_only=True` model nesting. Precedent: `ProposalDetailSerializer.get_project_stages`.
 - **Gateway baseline history for every outbound message** — client, internal and
@@ -1228,8 +1248,8 @@ projectapp/
 ├── backend/
 │   ├── accounts/               # Platform app (auth, onboarding, projects, kanban, bug reports, changes, deliverables, notifications, payments, collection accounts, quick-access)
 │   │   ├── models.py            # 24 models (UserProfile, VerificationCode, SavedFilterTab, Project, ProjectPhase, ProjectScopeItem, Requirement, RequirementComment, RequirementHistory, BugReport, BugComment, ChangeRequest, ChangeRequestComment, Deliverable, DeliverableVersion, DeliverableFile, DeliverableClientFolder, DeliverableClientUpload, DataModelEntity, ProjectDataModelEntity, Notification, HostingSubscription, Payment, PaymentHistory)
-│   │   ├── admin.py             # ProjectAdmin — URL + encrypted credential fields
-│   │   ├── services/            # 19 service modules (archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
+│   │   ├── admin.py             # ProjectAdmin — project metadata + product URLs; no credential writes
+│   │   ├── services/            # 19 service modules (archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_access, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
 │   │   ├── management/commands/ # 6 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella, …)
 │   │   ├── document_views.py    # Client document portal (list/retrieve/pdf/sign) + email OTP verify (request/confirm)
 │   │   ├── tests/               # 67 test files
@@ -1288,7 +1308,7 @@ projectapp/
 6. **Large service files** — `proposal_service.py`, `proposal_pdf_service.py`, `proposal_email_service.py`, and `pdf_utils.py` remain large and would benefit from further splitting
 7. **Bogotá timezone for day-level arithmetic** — Django's `TIME_ZONE='UTC'` means `date.today()` returns UTC date. For day-level logic (e.g., the daily Huey task computing "is the stage overdue today?") always use `today_bogota()` from `content/utils.py`. Bogotá is fixed UTC-5 with no DST so the offset is stable year-round.
 8. **Huey cron schedule is in UTC** — `crontab(hour='13', minute='30')` means 13:30 UTC = 08:30 Bogotá. Document the offset in a comment above any periodic task that's meant to land in the team inbox at a specific local time.
-9. **`PROJECT_ACCESS_CIPHER_KEY` required** — must be set in production `.env`; generate with Fernet before first deploy of quick-access feature
+9. **`PROJECT_ACCESS_CIPHER_KEY` required** — must be set in production `.env`; it encrypts environment passwords and all project-note bodies. Never rotate it without a data re-encryption procedure.
 10. **Modal search results use the shared floating layer** — searchable listboxes
     inside `BaseModal` render through `BaseFloatingListbox`; consumers must pass
     their anchor and owner elements instead of positioning a results panel inside

@@ -16,7 +16,7 @@
       </slot>
     </div>
 
-    <Teleport to="body" :disabled="!floating">
+    <Teleport :to="teleportTarget" :disabled="!floating">
       <transition
         enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
         enter-from-class="transform scale-95 opacity-0 motion-reduce:transform-none"
@@ -61,10 +61,11 @@
 
 <script setup>
 import {
-  computed, nextTick, onBeforeUnmount, ref, useId, watch,
+  computed, inject, nextTick, onBeforeUnmount, ref, useId, watch,
 } from 'vue'
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import { onClickOutside } from '@vueuse/core'
+import { BASE_MODAL_FLOATING_CONTEXT } from './modalContext'
 import { oneOf } from './propValidators'
 
 const TOOLTIP_OFFSET = 8
@@ -118,6 +119,8 @@ const props = defineProps({
   viewportPadding: { type: Number, default: 8 },
 })
 
+const modalContext = inject(BASE_MODAL_FLOATING_CONTEXT, null)
+const teleportTarget = computed(() => modalContext?.floatingRoot?.value || 'body')
 const showTooltip = ref(false)
 const tooltipVisible = computed(() => !props.disabled && (props.forceOpen || showTooltip.value))
 const rootEl = ref(null)

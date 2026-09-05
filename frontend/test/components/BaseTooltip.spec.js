@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { defineComponent, nextTick } from 'vue'
 import BaseTooltip from '../../components/base/BaseTooltip.vue'
+import BaseModal from '../../components/base/BaseModal.vue'
 
 describe('BaseTooltip', () => {
   it('renders the trigger slot or a default question-mark icon', () => {
@@ -185,6 +186,33 @@ describe('BaseTooltip', () => {
 
     expect(wrapper.get('[data-base-tooltip-trigger]').text()).toContain('Action')
     expect(wrapper.classes()).not.toContain('relative')
+  })
+
+  it('renders a modal tooltip in the modal floating layer', async () => {
+    document.body.innerHTML = ''
+    const Harness = defineComponent({
+      components: { BaseModal, BaseTooltip },
+      template: `
+        <BaseModal :model-value="true">
+          <h2>Modal con ayuda</h2>
+          <BaseTooltip floating text="Ayuda visible">
+            <template #trigger><button type="button">Ayuda</button></template>
+          </BaseTooltip>
+        </BaseModal>
+      `,
+    })
+    const wrapper = mount(Harness, { attachTo: document.body })
+    await nextTick()
+
+    const trigger = document.body.querySelector('[data-base-tooltip-trigger]')
+    trigger.dispatchEvent(new MouseEvent('pointerenter', { bubbles: true }))
+    await nextTick()
+    await nextTick()
+
+    const floatingRoot = document.body.querySelector('[data-modal-floating-root]')
+    const tooltip = document.body.querySelector('[role="tooltip"]')
+    expect(floatingRoot.contains(tooltip)).toBe(true)
+    wrapper.unmount()
   })
 
   it('removes a teleported body when unmounted', async () => {

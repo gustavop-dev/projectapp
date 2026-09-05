@@ -1,5 +1,48 @@
 # Architecture — ProjectApp
 
+> **Estándar de presentación de vistas públicas 2026-09-04:** toda vista
+> pública de módulo (catálogo de módulos adicionales, financiación) abre con
+> H1 → tarjeta de video explicativo (`ExplainerVideoCard`, poster + play con
+> sonido, primer paso del tour) → tour guiado que corre una vez por navegador y
+> se reinicia desde un FAB → toggle de tema → FABs de PDF/compartir. El motor
+> del tour es `PublicGuidedTour` (props `steps`, `storageKey`, `testIdPrefix`,
+> `labels`; expone `start`/`forceStart`); `AdditionalModules/Onboarding` y
+> `Financing/Onboarding` sólo aportan pasos e i18n. Los videos se producen
+> offline en `explainers/` con HyperFrames desde la API pública y se publican
+> como assets con hash (`frontend/assets/videos/explainers/`); el panel reusa la
+> tarjeta en variante compacta y la vista previa de financiación la desactiva
+> con `showExplainer=false`. Sin páginas, endpoints ni modelos nuevos.
+
+> **Orden persistente de ingresos 2026-09-04:** `useTableSort` admite una
+> ordenación base opcional, ciclo de retorno a esa base y estado validado en
+> `localStorage`; `useAccountingCrudPage` sólo reenvía ese contrato. Ingresos
+> usa `period_date` como accessor ISO de la etiqueta Mes y aplica el resultado
+> al conjunto filtrado antes de paginar o agrupar. `IncomeGroupedTable` expone
+> el mismo estado controlado y emite la columna elegida; `groupByClient` conserva
+> el orden financiero de los grupos y recibe ya ordenadas las filas internas.
+> No cambian API, modelo ni ordenamiento backend.
+
+> **Detalle seguro de accesos por proyecto 2026-09-05:** `Project` conserva las
+> URLs del producto, mientras `ProjectAdminAccess` separa credenciales de
+> producción/staging y `ProjectAccessNote` normaliza notas múltiples; contraseña
+> y contenido se cifran con el mismo límite Fernet. Handlers FBV compartidos
+> proyectan el contrato por sesión/CSRF al modal del Panel y por JWT a la ruta
+> scoped de Plataforma, ambos sólo para administradores. Los payloads usan
+> `no-store`, los secretos sólo salen por endpoints de reveal, el frontend los
+> retiene en refs efímeras y todo el detalle operativo queda fuera de MCP. La
+> migración automática sólo clasifica datos legacy ante una coincidencia de
+> hostname única; el resto requiere una decisión explícita sin overwrite.
+
+> **Capas flotantes y proyección de candidatos 2026-09-04:** `BaseModal`
+> continúa siendo dueño de su floating root y `BaseTooltip` lo descubre por el
+> contexto inyectado; los overlays de ayuda quedan en la misma jerarquía visual
+> que el diálogo, mientras usos independientes siguen teletransportándose a
+> `body`. La agrupación de candidatos no crea estado de dominio: filtra primero,
+> proyecta grupos y agregados en `utils/receivables` y entrega ese contrato al
+> mismo `IncomeGroupedTable` usado por Ingresos. Modal y store conservan sus
+> responsabilidades: la presentación es efímera y las mutaciones de selección o
+> confianza continúan en el endpoint ordinario de ingresos.
+
 > **Arquitectura de destinatarios múltiples 2026-09-04:**
 > `email_recipient_service` es la frontera común de normalización, validación,
 > límite combinado y atribución de clientes para los envíos manuales.
@@ -445,6 +488,8 @@ erDiagram
     CommunicationMessage ||--o{ CommunicationMessageRevision : "audits draft edits"
 
     UserProfile ||--o{ Project : "owns projects"
+    Project ||--o{ ProjectAdminAccess : "has environment credentials"
+    Project ||--o{ ProjectAccessNote : "has encrypted notes"
     UserProfile ||--o{ VerificationCode : "has codes"
     UserProfile ||--o{ Document : "signs (optional)"
     Project ||--o{ ProjectPhase : "has phases"
@@ -539,7 +584,9 @@ branch before removing its now-empty parallel wrappers.
 | **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, **email_verified, email_verified_at**, document_navigation_mode (project/client panel preference), is_active |
 | **VerificationCode** | OTP codes (login + email validation) | user_fk, code, purpose, expires_at, is_used |
 | **SavedFilterTab** | Persisted admin filter tabs | user_fk, view, name, filters, base_filters, order |
-| **Project** | Client project in platform with a real lifecycle | client_fk, name, description, current_state FK, state_review_required, compatibility status mirror (development/active/suspended/completed/decommissioned; archived only for legacy review), progress, dates, payment/hosting snapshots and operational URLs/credentials |
+| **Project** | Client project in platform with a real lifecycle | client_fk, name, description, current_state FK, state_review_required, compatibility status mirror (development/active/suspended/completed/decommissioned; archived only for legacy review), progress, dates, payment/hosting snapshots, production/staging/repository URLs and temporary legacy access fields |
+| **ProjectAdminAccess** | One Django-admin credential set per fixed project environment | project_fk, unique environment (`production`/`staging`), admin_url, admin_username, admin_password_encrypted, updated_by and timestamps |
+| **ProjectAccessNote** | Multiple encrypted operational notes per project | project_fk, title, content_encrypted, is_sensitive, created/updated actors and timestamps |
 | **ProjectPhase** | Execution phase of a project (from an accepted proposal) | project_fk, business_proposal_fk (unique per project), order, hosting_start_date, hosting_activated_at |
 | **ProjectScopeItem** | Scope grouping mirrored from proposal FR groups | phase_fk, title, description, kind, order, archived. Chain: Project → ProjectPhase → ProjectScopeItem → Requirement |
 | **Requirement** | Kanban board card | project_fk, phase_fk, **scope_item_fk**, title, description, status (backlog/todo/in_progress/in_review), priority, order, deliverable_fk, **content_overridden** |
@@ -881,7 +928,8 @@ flowchart TD
         PlatformProjectDataModel["/platform/projects/:id/data-model"]
         PlatformDeliverableDetail["/platform/projects/:id/deliverables/:did"]
         PlatformProfilePage["/platform/profile"]
-        PlatformAccess["/platform/access (admin-only)"]
+        PlatformAccess["/platform/projects/:id/access (admin-only)"]
+        PlatformAccessLegacy["/platform/access (compatibility redirect)"]
         PlatformDocuments["/platform/documents (client document-signing portal — post-login landing for clients)"]
     end
 
@@ -973,7 +1021,8 @@ flowchart LR
         PanelAdmins["panel_admins.js"]
         PlatformAuth["platform-auth.js"]
         PlatformClients["platform-clients.js"]
-        PlatformProjects["platform-projects.js (+ fetchAccessList)"]
+        PlatformProjects["platform-projects.js"]
+        ProjectAccessTransport["services/projectAccessApi.js"]
         PlatformRequirements["platform-requirements.js"]
         PlatformBugReports["platform-bug-reports.js"]
         PlatformChangeRequests["platform-change-requests.js"]
@@ -1002,6 +1051,7 @@ flowchart LR
     PlatformAuth --> PlatformHTTP["composables/usePlatformApi"]
     PlatformClients --> PlatformHTTP
     PlatformProjects --> PlatformHTTP
+    ProjectAccessTransport --> PlatformHTTP
     PlatformRequirements --> PlatformHTTP
     PlatformBugReports --> PlatformHTTP
     PlatformChangeRequests --> PlatformHTTP

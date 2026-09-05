@@ -24,6 +24,8 @@ export const RECEIVABLE_CONFIDENCE_OPTIONS = [
   ...RECEIVABLE_CONFIDENCE.map(({ value, label }) => ({ value, label })),
 ];
 
+export const NO_RECEIVABLE_GROUP_KEY = 'none';
+
 export function confidenceDefinition(value) {
   return RECEIVABLE_CONFIDENCE.find((item) => item.value === value) || {
     value: '',
@@ -74,4 +76,69 @@ export function buildReceivablesSummary(rows = []) {
     ),
     by_confidence: byConfidence,
   };
+}
+
+function groupIdentity(row, criterion) {
+  const isProject = criterion === 'project';
+  const id = isProject ? row?.project : row?.client;
+  if (id == null) {
+    return {
+      id: NO_RECEIVABLE_GROUP_KEY,
+      name: isProject ? 'Sin proyecto' : 'Sin cliente',
+      isUnassigned: true,
+    };
+  }
+  return {
+    id,
+    name: (
+      isProject ? row?.project_name : row?.client_name
+    ) || `${isProject ? 'Proyecto' : 'Cliente'} #${id}`,
+    isUnassigned: false,
+  };
+}
+
+function receivableTotals(rows = []) {
+  return rows.reduce((totals, row) => ({
+    count: totals.count + 1,
+    total_amount: totals.total_amount + (Number(row?.total_amount) || 0),
+    paid_amount: totals.paid_amount + (Number(row?.paid_amount) || 0),
+    pending_amount: totals.pending_amount + (Number(row?.pending_amount) || 0),
+  }), {
+    count: 0,
+    total_amount: 0,
+    paid_amount: 0,
+    pending_amount: 0,
+  });
+}
+
+function compareReceivableGroups(left, right) {
+  if (left.isUnassigned !== right.isUnassigned) return left.isUnassigned ? 1 : -1;
+  if (left.total_amount !== right.total_amount) return right.total_amount - left.total_amount;
+  return left.name.localeCompare(right.name, 'es', { sensitivity: 'base' });
+}
+
+/**
+ * Group the candidate rows already visible in the modal. The endpoint remains
+ * authoritative for row order; only the group bands are ordered here, biggest
+ * original amount first with incomplete assignments kept in a trailing bucket.
+ */
+export function groupReceivables(rows = [], criterion = 'client') {
+  const buckets = new Map();
+
+  rows.forEach((row) => {
+    const identity = groupIdentity(row, criterion);
+    if (!buckets.has(identity.id)) {
+      buckets.set(identity.id, { ...identity, rows: [] });
+    }
+    buckets.get(identity.id).rows.push(row);
+  });
+
+  return [...buckets.values()]
+    .map((group) => ({ ...group, ...receivableTotals(group.rows) }))
+    .sort(compareReceivableGroups);
+}
+
+/** Totals for exactly the filtered rows represented by a grouped view. */
+export function sumReceivableGroups(groups = []) {
+  return receivableTotals(groups.flatMap((group) => group.rows));
 }

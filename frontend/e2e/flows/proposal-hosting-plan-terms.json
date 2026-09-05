@@ -6,10 +6,11 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "In the Investment section of the public proposal (/proposal/:uuid) the current hosting offer shows exactly three payment-frequency tiers (every 9 months 40% / semiannual 20% / quarterly 10%; monthly and annual are not offered) and a '1 free month of hosting' gift bucket. The public API and downloadable PDF share the same normalized terms in Spanish and English. Closed or inactive proposals preserve their stored historical tiers. The renewal conditions (for each renewal year from the second year the cost grows by Colombian SMLMV increase % + a fixed 8% over the previous year) render ONLY in the downloadable PDF, NOT in the web view.",
-  "expectedSpecs": 1,
+  "description": "In the Investment section of the public proposal (/proposal/:uuid) the current hosting offer shows exactly three payment-frequency tiers (every 9 months 40% / semiannual 20% / quarterly 10%; monthly and annual are not offered) and a free-hosting-month gift bucket whose title reflects the real count ('1 mes' / 'N meses'). The bucket is gated by the explicit hostingPlan.freeMonthsVisible checkbox, NOT by the count being non-zero; content saved before that flag existed falls back to the old rule (count > 0) so historical proposals look unchanged. The public API and downloadable PDF share the same normalized terms — including the free-month copy, which the backend fills with a per-language default when the operator leaves it empty — in Spanish and English. Closed or inactive proposals preserve their stored historical tiers. The renewal conditions (for each renewal year from the second year the cost grows by Colombian SMLMV increase % + a fixed 8% over the previous year) render ONLY in the downloadable PDF, NOT in the web view.",
+  "expectedSpecs": 2,
   "knownGaps": [
-    "The dedicated Playwright spec covers the Spanish public path; English labels and PDF pricing are covered by focused backend/unit tests rather than a second E2E variant."
+    "The dedicated Playwright spec covers the Spanish public path; English labels and PDF pricing are covered by focused backend/unit tests rather than a second E2E variant.",
+    "The PDF side of the visibility checkbox is covered by backend tests (test_proposal_pdf_free_months.py), not by an E2E download assertion."
   ],
   "outcomes": [
     "display"

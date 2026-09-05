@@ -1,0 +1,29 @@
+{
+  "name": "projectapp-explainers",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fuentes HyperFrames de los videos explicativos de ProjectApp (módulos adicionales y financiación).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "doctor": "hyperframes doctor",
+    "browser:ensure": "hyperframes browser ensure",
+    "content": "node scripts/fetch-content.mjs --lang es",
+    "sync": "node scripts/sync-assets.mjs",
+    "stage": "node scripts/stage.mjs",
+    "preview": "node scripts/run.mjs preview",
+    "lint": "node scripts/run.mjs lint",
+    "check": "node scripts/run.mjs check",
+    "snapshot": "node scripts/run.mjs snapshot",
+    "render": "node scripts/render.mjs",
+    "poster": "node scripts/poster.mjs",
+    "export": "node scripts/export.mjs",
+    "narration": "node scripts/build-narration.mjs"
+  },
+  "devDependencies": {
+    "gsap": "3.15.0",
+    "hyperframes": "0.8.27"
+  }
+}

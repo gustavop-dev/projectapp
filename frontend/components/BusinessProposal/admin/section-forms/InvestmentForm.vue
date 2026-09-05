@@ -88,9 +88,7 @@
         </draggable>
         <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })"><BaseActionIcon action="create" /> Agregar especificación</button>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="70" />
-      </div>
+      <FieldInput v-model="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="70" />
       <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-info-soft border border-info-strong/30 rounded-xl px-4 py-3 text-sm text-info-strong">
         💡 <strong>Referencia para calcular los pagos de hosting:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
         <span class="text-xs text-info-strong ml-2">({{ form.hostingPlan.hostingPercent }}% de ${{ Number(proposalData.total_investment).toLocaleString() }})</span>
@@ -115,21 +113,27 @@
           </div>
         </div>
       </div>
-      <FieldTextarea v-model="form.hostingPlan.renewalNote" label="Nota de renovación (visible al cliente)" help="Fórmula de incremento anual, SMLMV, etc." :rows="4" :isSingle="true" />
-      <FieldTextarea v-model="form.hostingPlan.coverageNote" label="Nota de cobertura (solo PDF)" help="Descripción de los 3 componentes del hosting (mantenimiento, soporte, recursos)" :rows="3" :isSingle="true" />
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <FieldInput v-model.number="form.hostingPlan.freeMonths" label="Meses gratis" type="number" placeholder="1" />
-        <div class="sm:col-span-2">
-          <FieldTextarea v-model="form.hostingPlan.freeMonthNote" label="Texto del mes gratis (web y PDF)" help="Si se deja vacío se usa el texto por defecto según idioma." :rows="2" :isSingle="true" />
+      <FieldTextarea v-model="form.hostingPlan.renewalNote" label="Nota de renovación (visible al cliente)" help="Fórmula de incremento anual, SMLMV, etc." :rows="3" />
+      <FieldTextarea v-model="form.hostingPlan.coverageNote" label="Nota de cobertura (solo PDF)" help="Descripción de los 3 componentes del hosting (mantenimiento, soporte, recursos)" :rows="3" />
+      <!-- Free months: count, visibility and copy travel together -->
+      <div>
+        <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Meses gratis de hosting</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldInput v-model="form.hostingPlan.freeMonths" label="Cantidad de meses" type="number" placeholder="1" />
+          <FieldCheckbox v-model="form.hostingPlan.freeMonthsVisible" label="Visibilidad" text="Mostrar el bloque en la propuesta y el PDF" />
         </div>
+        <p v-if="showFreeMonthsZeroHint" role="status" class="mt-2 text-xs text-warning-strong">
+          ⚠️ Con 0 meses el bloque se muestra igual, pero el título va sin número. Revisa que el texto tenga sentido.
+        </p>
+        <FieldTextarea v-model="form.hostingPlan.freeMonthNote" label="Texto del bloque (web y PDF)" help="Viene con el texto por defecto según el idioma. Edítalo para personalizarlo; para esconder el bloque usa la casilla." :rows="3" class="mt-4" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { FieldInput, FieldTextarea } from './fields.js';
+import { computed, ref, watch } from 'vue';
+import { FieldCheckbox, FieldInput, FieldTextarea } from './fields.js';
 import EmojiIconField from '~/components/BusinessProposal/admin/EmojiIconField.vue';
 import draggable from 'vuedraggable';
 
@@ -139,6 +143,12 @@ const props = defineProps({
 });
 
 const hostingCollapsed = ref(true);
+
+// Visible with a zero count is allowed — the copy can be qualitative — but it
+// is unusual enough to point out, without blocking the save.
+const showFreeMonthsZeroHint = computed(() =>
+  Boolean(props.form.hostingPlan?.freeMonthsVisible)
+  && Number(props.form.hostingPlan?.freeMonths ?? 0) === 0);
 
 function fillInvestmentFromProposal() {
   if (!props.proposalData?.total_investment) return;

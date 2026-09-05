@@ -5,7 +5,8 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
-from accounts.models import Project, UserProfile
+from accounts.models import Project, ProjectAccessNote, ProjectAdminAccess, UserProfile
+from accounts.services.credential_cipher import encrypt_secret
 from content.models import DocumentState
 from content.fake_data import (
     DEFAULT_COUNT,
@@ -169,10 +170,77 @@ class Command(BaseCommand):
         total_projects = Project.objects.filter(
             client__profile__in=profiles,
         ).count()
+        self._ensure_project_access(profiles, admin)
         self.stdout.write(self.style.SUCCESS(
             f'Representative graph ready: {len(profiles)} clients, '
             f'{total_projects} projects ({created_projects} new).',
         ))
+
+    @staticmethod
+    def _ensure_project_access(profiles, admin):
+        """Populate both environments plus ordinary/sensitive note examples."""
+        projects = Project.objects.filter(client__profile__in=profiles).order_by('pk')
+        for project in projects:
+            production_url = (
+                project.production_url
+                or f'https://project-{project.pk}.example.test'
+            )
+            staging_url = (
+                project.staging_url
+                or f'https://staging-project-{project.pk}.example.test'
+            )
+            repository_url = (
+                project.repository_url
+                or f'https://git.example.test/project-{project.pk}'
+            )
+            Project.objects.filter(pk=project.pk).update(
+                production_url=production_url,
+                staging_url=staging_url,
+                repository_url=repository_url,
+                admin_url='',
+                admin_username='',
+                admin_password_encrypted='',
+            )
+            for environment, site_url in (
+                (ProjectAdminAccess.Environment.PRODUCTION, production_url),
+                (ProjectAdminAccess.Environment.STAGING, staging_url),
+            ):
+                ProjectAdminAccess.objects.update_or_create(
+                    project=project,
+                    environment=environment,
+                    defaults={
+                        'admin_url': f'{site_url.rstrip("/")}/admin/',
+                        'admin_username': f'demo_admin_{project.pk}',
+                        'admin_password_encrypted': encrypt_secret(
+                            f'demo-only-{project.pk}-{environment}'
+                        ),
+                        'updated_by': admin,
+                    },
+                )
+            ProjectAccessNote.objects.update_or_create(
+                project=project,
+                title='Contacto técnico de respaldo',
+                defaults={
+                    'content_encrypted': encrypt_secret(
+                        'Canal de soporte demo: soporte@example.test'
+                    ),
+                    'is_sensitive': False,
+                    'created_by': admin,
+                    'updated_by': admin,
+                },
+            )
+            ProjectAccessNote.objects.update_or_create(
+                project=project,
+                title='Token de integración demo',
+                defaults={
+                    'content_encrypted': encrypt_secret(
+                        f'demo-token-not-secret-{project.pk}'
+                    ),
+                    'is_sensitive': True,
+                    'created_by': admin,
+                    'updated_by': admin,
+                },
+            )
 
     @staticmethod
     def _project_targets(count):

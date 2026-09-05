@@ -1,0 +1,15 @@
+{
+  "id": "public-financing-guide",
+  "name": "Public Financing Guide",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "First-time visitor sees the financing guide once, starting at the explainer video card, and can reopen it later from the floating restart control.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

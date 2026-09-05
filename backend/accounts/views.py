@@ -911,6 +911,14 @@ def project_detail_view(request, project_id):
             hint='Usa el flujo Cambiar estado en el panel.',
         )
 
+    legacy_access_fields = {'admin_url', 'admin_username', 'admin_password'}
+    if legacy_access_fields.intersection(request.data):
+        return error_response(
+            'Las credenciales se administran desde el detalle seguro del proyecto.',
+            code='project_access_detail_required',
+            hint='Abre Accesos y guarda cada ambiente por separado.',
+        )
+
     serializer = UpdateProjectSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
@@ -920,18 +928,12 @@ def project_detail_view(request, project_id):
     simple_fields = (
         'name', 'description', 'progress',
         'start_date', 'estimated_end_date',
-        'production_url', 'staging_url', 'admin_url', 'repository_url',
-        'admin_username',
+        'production_url', 'staging_url', 'repository_url',
     )
     for field in simple_fields:
         if field in data:
             setattr(project, field, data[field])
             update_fields.append(field)
-
-    if 'admin_password' in data:
-        from accounts.services.credential_cipher import encrypt_password
-        project.admin_password_encrypted = encrypt_password(data['admin_password'])
-        update_fields.append('admin_password_encrypted')
 
     project.save(update_fields=update_fields)
     project_service.log_project_event(
@@ -944,13 +946,13 @@ def project_detail_view(request, project_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def project_access_list_view(request):
-    """Admin-only quick-access list: project URLs + decrypted admin credentials."""
-    from accounts.services.credential_cipher import decrypt_password
+    """Deprecated admin summary without plaintext credentials."""
 
     qs = (
         Project.objects.select_related(
             'client', 'client__profile', 'current_state',
         )
+        .prefetch_related('admin_accesses')
         .exclude(status=Project.STATUS_ARCHIVED)
         .exclude(current_state__operational_effect='decommissioned')
         .order_by('name')
@@ -977,10 +979,11 @@ def project_access_list_view(request):
             'client_company': company,
             'production_url': p.production_url,
             'staging_url': p.staging_url,
-            'admin_url': p.admin_url,
             'repository_url': p.repository_url,
-            'admin_username': p.admin_username,
-            'admin_password': decrypt_password(p.admin_password_encrypted),
+            'has_password': bool(
+                p.admin_password_encrypted
+                or any(a.admin_password_encrypted for a in p.admin_accesses.all())
+            ),
         })
 
     return Response(data)

@@ -3,6 +3,7 @@ import { mockApi } from '../helpers/api.js'
 import {
   PUBLIC_ADDITIONAL_MODULES_CATALOG,
   PUBLIC_ADDITIONAL_MODULES_DETAIL,
+  PUBLIC_ADDITIONAL_MODULES_EXPLAINER,
   PUBLIC_ADDITIONAL_MODULES_GUIDE,
   PUBLIC_ADDITIONAL_MODULES_PDF,
   PUBLIC_ADDITIONAL_MODULES_SHARE,
@@ -327,8 +328,8 @@ test.describe('Public additional modules catalog', () => {
     await openFromFooter(page)
 
     await expect(page.getByTestId('additional-modules-guide')).toBeVisible()
-    await expect(page.getByTestId('additional-modules-guide')).toContainText('Modo claro y oscuro')
-    await expect(page.getByTestId('additional-modules-guide-progress')).toHaveText('1/7')
+    await expect(page.getByTestId('additional-modules-guide')).toContainText('Empieza por el video')
+    await expect(page.getByTestId('additional-modules-guide-progress')).toHaveText('1/8')
   })
 
   test('reopens the catalog guide from its floating control', {
@@ -371,6 +372,64 @@ test.describe('Public additional modules catalog', () => {
     await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toBeVisible()
     await page.getByTestId('additional-modules-download-pdf-floating').click()
     await expect(page.getByText('No pudimos generar el PDF. Vuelve a intentarlo.')).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/additional-modules/share/${shareUuid}$`))
+  })
+  test('shows the explainer video as the first block under the catalog title', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:display', '@responsive:public'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+
+    const card = page.getByTestId('additional-modules-explainer-card')
+    await expect(card).toBeVisible()
+    await expect(card).toContainText('Descubre el catálogo en un minuto')
+    const headingBox = await page.getByRole('heading', { name: 'Módulos adicionales' }).boundingBox()
+    const cardBox = await card.boundingBox()
+    const firstModuleBox = await page.getByTestId('additional-module-card-electronic-invoicing').boundingBox()
+    expect(cardBox.y).toBeGreaterThan(headingBox.y)
+    expect(cardBox.y).toBeLessThan(firstModuleBox.y)
+  })
+
+  test('plays the explainer inline with native controls', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await openFromFooter(page)
+
+    await page.getByTestId('additional-modules-explainer-play').click()
+
+    const player = page.getByTestId('additional-modules-explainer-player')
+    await expect(player).toBeVisible()
+    await expect(player).toHaveAttribute('controls', '')
+    await expect(player).toHaveAttribute('src', /additional-modules-es[^/]*\.mp4/)
+    await expect(page.getByTestId('additional-modules-explainer-play')).toHaveCount(0)
+  })
+
+  test('offers the video file when the browser cannot load the explainer', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:failure'],
+  }, async ({ page }) => {
+    await setupPublicApi(page)
+    await page.route(/additional-modules-es[^/?]*\.mp4$/, (route) => route.abort())
+    await openFromFooter(page)
+
+    await page.getByTestId('additional-modules-explainer-play').click()
+
+    await expect(page.getByTestId('additional-modules-explainer-error')).toContainText('No pudimos reproducir el video')
+    await expect(page.getByTestId('additional-modules-explainer-open')).toHaveAttribute('href', /additional-modules-es[^/]*\.mp4/)
+    await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toBeVisible()
+  })
+
+  test('plays the explainer on a shared selection', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (a prospect enters from the received message URL)
+    await setupPublicApi(page)
+    await page.goto(`/es-co/additional-modules/share/${shareUuid}`, { waitUntil: 'domcontentloaded' })
+    await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toBeVisible()
+
+    await page.getByTestId('additional-modules-explainer-play').click()
+
+    await expect(page.getByTestId('additional-modules-explainer-player')).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`/additional-modules/share/${shareUuid}$`))
   })
 })

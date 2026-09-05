@@ -138,8 +138,8 @@ function buildHandler({
   muteStatus = 200,
   // Landing mode the mocked backend setting dictates. Production defaults to
   // 'grouped'; the mock pins 'classic' because almost every test in this file
-  // exercises classic-only affordances (column sort, row checkboxes,
-  // pagination) — without this branch mockApi's empty fallback would leave
+  // exercises the classic presentation or its pagination — without this
+  // branch mockApi's empty fallback would leave
   // the page grouped and break them all.
   incomeViewMode = 'classic',
   // Non-empty makes the bulk endpoint answer 409 records_not_found, the way
@@ -445,6 +445,11 @@ async function gotoIncomes(page, query = '?accounting_incomeTab=all') {
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 40_000 });
+}
+
+async function visibleIncomeIds(page) {
+  return page.locator('[data-testid^="accounting-row-"]').evaluateAll((rows) =>
+    rows.map((row) => Number(row.getAttribute('data-testid').replace('accounting-row-', ''))));
 }
 
 async function openIncomeMute(page, incomeId = 1) {
@@ -2301,6 +2306,188 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await page.keyboard.press('Escape');
   });
 
+  test('opens with the newest income month first', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (the default sort before any action is
+    // the behavior under test; the interactive cycle is covered below)
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({
+          id: 1, period: '2026-01', period_label: 'Enero 2026', period_date: '2026-01-01',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 2, period: '2026-03', period_label: 'Marzo 2026', period_date: '2026-03-01',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 3, period: '2026-02', period_label: 'Febrero 2026', period_date: '2026-02-01',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('accounting-sort-period_label')).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Mes' }))
+      .toHaveAttribute('aria-sort', 'descending');
+    expect(await visibleIncomeIds(page)).toEqual([2, 3, 1]);
+  });
+
+  test('toggles Month between oldest and newest', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({
+          id: 1, period: '2026-01', period_label: 'Enero 2026', period_date: '2026-01-01',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 2, period: '2026-03', period_label: 'Marzo 2026', period_date: '2026-03-01',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 3, period: '2026-02', period_label: 'Febrero 2026', period_date: '2026-02-01',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    const monthSort = page.getByTestId('accounting-sort-period_label');
+    await monthSort.click();
+    await expect(page.getByRole('columnheader', { name: 'Mes' }))
+      .toHaveAttribute('aria-sort', 'ascending');
+    expect(await visibleIncomeIds(page)).toEqual([1, 3, 2]);
+
+    await monthSort.click();
+    await expect(page.getByRole('columnheader', { name: 'Mes' }))
+      .toHaveAttribute('aria-sort', 'descending');
+    expect(await visibleIncomeIds(page)).toEqual([2, 3, 1]);
+  });
+
+  test('cycles Total back to the default month order', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({
+          id: 1, period_date: '2026-01-01', total_amount: '300.00',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 2, period_date: '2026-03-01', total_amount: '100.00',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 3, period_date: '2026-02-01', total_amount: '200.00',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    const totalSort = page.getByTestId('accounting-sort-total_amount');
+    await totalSort.click();
+    await expect(page.getByRole('columnheader', { name: 'Total' }))
+      .toHaveAttribute('aria-sort', 'descending');
+    expect(await visibleIncomeIds(page)).toEqual([1, 3, 2]);
+
+    await totalSort.click();
+    await expect(page.getByRole('columnheader', { name: 'Total' }))
+      .toHaveAttribute('aria-sort', 'ascending');
+    expect(await visibleIncomeIds(page)).toEqual([2, 3, 1]);
+
+    await totalSort.click();
+    await expect(page.getByRole('columnheader', { name: 'Mes' }))
+      .toHaveAttribute('aria-sort', 'descending');
+    expect(await visibleIncomeIds(page)).toEqual([2, 3, 1]);
+  });
+
+  test('sorts rows inside each client without changing group order', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, total_amount: '300.00', client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({ id: 2, total_amount: '100.00', client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({ id: 3, total_amount: '700.00', client: null, client_name: null }),
+        incomeRow({ id: 4, total_amount: '500.00', client: 6, client_name: 'Beta SAS' }),
+        incomeRow({ id: 5, total_amount: '900.00', client: 6, client_name: 'Beta SAS' }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-sort-total_amount').click();
+
+    const groupOrder = await page
+      .getByTestId(/^income-group-(?:5|6|none)$/)
+      .evaluateAll((groups) => groups.map((group) => group.getAttribute('data-testid')));
+    expect(groupOrder).toEqual(['income-group-6', 'income-group-5', 'income-group-none']);
+    expect(await visibleIncomeIds(page.getByTestId('income-group-body-6'))).toEqual([5, 4]);
+    expect(await visibleIncomeIds(page.getByTestId('income-group-body-5'))).toEqual([1, 2]);
+    expect(await visibleIncomeIds(page.getByTestId('income-group-body-none'))).toEqual([3]);
+  });
+
+  test('persists the selected order across income view changes', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the accounting subnav is covered elsewhere)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({
+          id: 1, kind: 'liquid', kind_label: 'Líquido', payment_status: null,
+          payment_status_label: null, total_amount: '300.00',
+          client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 2, total_amount: '100.00', client: 5, client_name: 'Ana Pérez',
+        }),
+        incomeRow({
+          id: 3, total_amount: '200.00', client: 5, client_name: 'Ana Pérez',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-sort-total_amount').click();
+    await page.getByTestId('accounting-sort-total_amount').click();
+    expect(await visibleIncomeIds(page)).toEqual([2, 3, 1]);
+
+    await page.getByTestId('filter-tabs-tab-expected-pending').click();
+    expect(await visibleIncomeIds(page)).toEqual([2, 3]);
+
+    await page.getByTestId('incomes-view-mode')
+      .getByRole('tab', { name: 'Clásico' }).click();
+    await expect(page.getByRole('columnheader', { name: 'Total' }))
+      .toHaveAttribute('aria-sort', 'ascending');
+    expect(await visibleIncomeIds(page)).toEqual([2, 3]);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Ingresos', exact: true }))
+      .toBeVisible({ timeout: 40_000 });
+    await expect(page.getByRole('columnheader', { name: 'Total' }))
+      .toHaveAttribute('aria-sort', 'ascending');
+    expect(await visibleIncomeIds(page)).toEqual([2, 3]);
+  });
+
   test('the grouped income menu stays reachable on a compact viewport', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display', '@responsive:accounting'],
   }, async ({ page }) => {
@@ -2346,10 +2533,10 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await page.getByTestId('incomes-view-mode')
       .getByRole('tab', { name: 'Clásico' }).click();
 
-    // The classic table takes over: the client groups are gone and column
-    // sort — which stayed classic-only — is back.
+    // The classic table takes over: the groups disappear and Cliente returns
+    // as a sortable column (the grouped header already names the client).
     await expect(page.getByTestId('income-group-5')).toHaveCount(0);
-    await expect(page.getByTestId('accounting-sort-concept')).toBeVisible();
+    await expect(page.getByTestId('accounting-sort-client_name')).toBeVisible();
     // …and the switch wrote nothing: the landing mode belongs to the setting.
     expect(settingsWrites).toEqual([]);
   });
@@ -2447,7 +2634,7 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
       .getByRole('tab', { name: 'Clásico' }).click();
 
     // Same ids, other table: changing view must not cost the work done.
-    await expect(page.getByTestId('accounting-sort-concept')).toBeVisible();
+    await expect(page.getByTestId('accounting-sort-client_name')).toBeVisible();
     await expect(page.getByTestId('accounting-select-1')).toBeChecked();
     await expect(page.getByTestId('accounting-select-2')).toBeChecked();
     await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');

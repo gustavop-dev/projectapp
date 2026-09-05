@@ -2,6 +2,8 @@ import { test, expect } from '../helpers/test.js'
 import { mockApi } from '../helpers/api.js'
 import { financingProgramFixture } from '../helpers/financing-fixture.js'
 import {
+  PUBLIC_FINANCING_EXPLAINER,
+  PUBLIC_FINANCING_GUIDE,
   PUBLIC_FINANCING_LANGUAGE,
   PUBLIC_FINANCING_LOAD,
   PUBLIC_FINANCING_OVERVIEW,
@@ -16,6 +18,13 @@ function json(status, body) {
 }
 
 async function setupApi(page, scenario = {}) {
+  await page.addInitScript((showGuide) => {
+    if (showGuide) {
+      window.localStorage.removeItem('projectapp-financing-guide-seen')
+      return
+    }
+    window.localStorage.setItem('projectapp-financing-guide-seen', 'true')
+  }, Boolean(scenario.showGuide))
   await mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'financing/public/pdf/' && method === 'GET') {
       const language = new URL(route.request().url()).searchParams.get('lang') || 'es'
@@ -152,5 +161,74 @@ test.describe('Public financing program', () => {
     await page.getByRole('button', { name: 'Reintentar' }).click()
 
     await expect(page.getByRole('heading', { name: 'Construimos hoy. Crecemos contigo.' })).toBeVisible()
+  })
+  test('plays the financing explainer from the hero', {
+    tag: [...PUBLIC_FINANCING_EXPLAINER, '@role:guest', '@outcome:success', '@responsive:public'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openFromFooter(page)
+    await expect(page.getByTestId('financing-explainer-card')).toContainText('El programa de financiación en un minuto')
+
+    await page.getByTestId('financing-explainer-play').click()
+
+    const player = page.getByTestId('financing-explainer-player')
+    await expect(player).toBeVisible()
+    await expect(player).toHaveAttribute('controls', '')
+    await expect(player).toHaveAttribute('src', /financing-es[^/]*\.mp4/)
+  })
+
+  test('shows a fallback link when the financing video cannot load', {
+    tag: [...PUBLIC_FINANCING_EXPLAINER, '@role:guest', '@outcome:failure'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await page.route(/financing-es[^/?]*\.mp4$/, (route) => route.abort())
+    await openFromFooter(page)
+
+    await page.getByTestId('financing-explainer-play').click()
+
+    await expect(page.getByTestId('financing-explainer-error')).toContainText('No pudimos reproducir el video')
+    await expect(page.getByTestId('financing-explainer-open')).toHaveAttribute('href', /financing-es[^/]*\.mp4/)
+    await expect(page.getByTestId('financing-whatsapp-hero')).toBeVisible()
+  })
+
+  test('hides the explainer in the English program until that render exists', {
+    tag: [...PUBLIC_FINANCING_EXPLAINER, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openFromFooter(page)
+    await expect(page.getByTestId('financing-explainer-card')).toBeVisible()
+
+    await page.getByTestId('financing-language-en').click()
+
+    await expect(page).toHaveURL(/\/en-us\/financing$/)
+    await expect(page.getByRole('heading', { name: 'We build today. We grow with you.' })).toBeVisible()
+    await expect(page.getByTestId('financing-explainer-card')).toHaveCount(0)
+  })
+
+  test('introduces the financing program on the first visit', {
+    tag: [...PUBLIC_FINANCING_GUIDE, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupApi(page, { showGuide: true })
+    await openFromFooter(page)
+
+    await expect(page.getByTestId('financing-guide')).toBeVisible()
+    await expect(page.getByTestId('financing-guide')).toContainText('Empieza por el video')
+    await expect(page.getByTestId('financing-guide-progress')).toHaveText('1/8')
+  })
+
+  test('reopens the financing guide from its floating control', {
+    tag: [...PUBLIC_FINANCING_GUIDE, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openFromFooter(page)
+    await expect(page.getByTestId('financing-guide')).toHaveCount(0)
+
+    await page.getByTestId('financing-guide-restart').click()
+    await expect(page.getByTestId('financing-guide')).toBeVisible()
+    await page.getByRole('button', { name: 'Omitir' }).click()
+    await expect(page.getByTestId('financing-guide')).toHaveCount(0)
+
+    await page.getByTestId('financing-guide-restart').click()
+    await expect(page.getByTestId('financing-guide')).toBeVisible()
   })
 })

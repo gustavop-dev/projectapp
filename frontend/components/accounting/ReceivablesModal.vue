@@ -112,15 +112,69 @@
                   data-testid="receivables-search"
                 />
               </div>
-              <p class="text-xs text-text-muted">
-                {{ filteredCandidates.length }} de {{ store.receivables.length }} candidatos
-              </p>
+              <div class="flex flex-col items-start gap-2 panel-portrait:items-end">
+                <p class="text-xs text-text-muted">
+                  {{ filteredCandidates.length }} de {{ store.receivables.length }} candidatos
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <BaseSegmented
+                    :model-value="candidateViewMode"
+                    :options="candidateViewOptions"
+                    size="sm"
+                    aria-label="Vista de candidatos por cobrar"
+                    data-testid="receivables-view-mode"
+                    @update:model-value="candidateViewMode = $event"
+                  />
+                  <BaseSegmented
+                    v-if="candidateViewMode === 'grouped'"
+                    :model-value="candidateGroupBy"
+                    :options="candidateGroupOptions"
+                    size="sm"
+                    aria-label="Agrupar candidatos por cobrar por"
+                    data-testid="receivables-group-by"
+                    @update:model-value="changeCandidateGroupBy"
+                  />
+                </div>
+              </div>
             </div>
             <div class="rounded-xl border border-border-muted bg-surface-raised p-3 text-xs text-text-muted">
               Elige el nivel de cobro y activa el interruptor sólo cuando quieras incluir el ingreso en la previsión.
               Ambos controles son independientes y cada cambio se guarda de inmediato.
             </div>
+            <IncomeGroupedTable
+              v-if="candidateViewMode === 'grouped'"
+              :columns="groupedCandidateColumns"
+              :groups="candidateGroups"
+              :collapsed-ids="collapsedCandidateGroupIds"
+              :show-actions="false"
+              :group-metrics="candidateGroupMetrics"
+              :footer-metrics="candidateGroupMetrics"
+              :summary-totals="candidateGroupTotals"
+              :aria-label="candidateGroupAriaLabel"
+              :group-noun="candidateGroupNoun"
+              group-test-prefix="receivable-candidate"
+              row-noun="candidatos"
+              filtered-adjective="filtrados"
+              unassigned-badge="sin asignar"
+              footer-label="Total de candidatos filtrados"
+              @toggle-group="toggleCandidateGroup"
+            >
+              <template #cell-client_name="{ row }">
+                <span>{{ row.client_name || 'Sin cliente' }}</span>
+              </template>
+              <template #cell-project_name="{ row }">
+                <span>{{ row.project_name || 'Sin proyecto' }}</span>
+              </template>
+              <template #cell-collection_confidence="{ row }">
+                <ReceivableStateControl
+                  :row="row"
+                  :busy="store.receivableUpdatingIds.includes(row.id)"
+                  @change="updateState(row, $event)"
+                />
+              </template>
+            </IncomeGroupedTable>
             <ReceivableRowsTable
+              v-else
               :rows="filteredCandidates"
               manageable
               :busy-ids="store.receivableUpdatingIds"
@@ -143,14 +197,21 @@ import { computed, ref, watch } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseTabs from '~/components/base/BaseTabs.vue';
 import StatsSummaryStrip from '~/components/stats/StatsSummaryStrip.vue';
+import IncomeGroupedTable from '~/components/accounting/IncomeGroupedTable.vue';
 import ReceivableConfidenceBadge from '~/components/accounting/ReceivableConfidenceBadge.vue';
 import ReceivableLegend from '~/components/accounting/ReceivableLegend.vue';
 import ReceivableRowsTable from '~/components/accounting/ReceivableRowsTable.vue';
+import ReceivableStateControl from '~/components/accounting/ReceivableStateControl.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useAccountingStore } from '~/stores/accounting';
-import { buildReceivablesSummary } from '~/utils/receivables';
+import {
+  buildReceivablesSummary,
+  groupReceivables,
+  sumReceivableGroups,
+} from '~/utils/receivables';
 import { formatMoney } from '~/utils/formatMoney';
 
 const props = defineProps({
@@ -162,6 +223,57 @@ const store = useAccountingStore();
 const notify = usePanelNotify();
 const activeTab = ref('summary');
 const search = ref('');
+const candidateViewMode = ref('grouped');
+const candidateGroupBy = ref('client');
+const collapsedCandidateGroupIds = ref([]);
+
+const candidateViewOptions = [
+  { value: 'grouped', label: 'Agrupado', testId: 'receivables-view-grouped' },
+  { value: 'classic', label: 'Clásico', testId: 'receivables-view-classic' },
+];
+const candidateGroupOptions = [
+  { value: 'client', label: 'Cliente', testId: 'receivables-group-client' },
+  { value: 'project', label: 'Proyecto', testId: 'receivables-group-project' },
+];
+const candidateColumns = [
+  {
+    key: 'concept', label: 'Concepto', size: 'name',
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'client_name', label: 'Cliente', size: 'name',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'project_name', label: 'Proyecto', size: 'name',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'period_label', label: 'Período', size: 'date',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'total_amount', label: 'Total original', format: 'money',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'paid_amount', label: 'Abonado', format: 'money',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'pending_amount', label: 'Saldo abierto', format: 'money',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'collection_confidence', label: 'Previsión', size: 'name',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+];
+const candidateGroupMetrics = [
+  { key: 'total_amount', label: 'Total original', format: 'money', tone: 'default' },
+  { key: 'paid_amount', label: 'Abonado', format: 'money', tone: 'success' },
+  { key: 'pending_amount', label: 'Saldo abierto', format: 'money', tone: 'warning' },
+];
 
 const selectedRows = computed(() =>
   store.receivables.filter((row) => row.is_receivable_candidate),
@@ -221,6 +333,22 @@ const filteredCandidates = computed(() => {
   );
 });
 
+const candidateGroups = computed(() =>
+  groupReceivables(filteredCandidates.value, candidateGroupBy.value),
+);
+const candidateGroupTotals = computed(() => sumReceivableGroups(candidateGroups.value));
+const groupedCandidateColumns = computed(() => candidateColumns.filter((column) => (
+  candidateGroupBy.value === 'client'
+    ? column.key !== 'client_name'
+    : column.key !== 'project_name'
+)));
+const candidateGroupNoun = computed(() => (
+  candidateGroupBy.value === 'client' ? 'clientes' : 'proyectos'
+));
+const candidateGroupAriaLabel = computed(() => (
+  `Candidatos por cobrar agrupados por ${candidateGroupBy.value === 'client' ? 'cliente' : 'proyecto'}`
+));
+
 function money(value) {
   return formatMoney(Number(value ?? 0), 'COP');
 }
@@ -244,12 +372,26 @@ async function updateState(row, payload) {
   });
 }
 
+function toggleCandidateGroup(id) {
+  collapsedCandidateGroupIds.value = collapsedCandidateGroupIds.value.includes(id)
+    ? collapsedCandidateGroupIds.value.filter((groupId) => groupId !== id)
+    : [...collapsedCandidateGroupIds.value, id];
+}
+
+function changeCandidateGroupBy(criterion) {
+  candidateGroupBy.value = criterion;
+  collapsedCandidateGroupIds.value = [];
+}
+
 watch(
   () => props.open,
   (open) => {
     if (!open) return;
     activeTab.value = 'summary';
     search.value = '';
+    candidateViewMode.value = 'grouped';
+    candidateGroupBy.value = 'client';
+    collapsedCandidateGroupIds.value = [];
     load();
   },
   { immediate: true },

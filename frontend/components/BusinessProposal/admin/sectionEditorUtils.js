@@ -33,6 +33,24 @@ export const VALUE_ADDED_DEFAULT_MODULE_IDS = [
 ];
 
 /**
+ * Whether the hosting free-month gift block is shown to the client.
+ *
+ * Mirrors `normalize_hosting_plan` in the backend: the explicit flag wins, and
+ * content written before it existed falls back to the old rule — a non-zero
+ * count meant visible — so legacy proposals keep their current appearance.
+ *
+ * @param {object} hostingPlan
+ * @returns {boolean}
+ */
+export function resolveFreeMonthsVisible(hostingPlan) {
+  const hp = hostingPlan || {};
+  if (hp.freeMonthsVisible !== undefined && hp.freeMonthsVisible !== null) {
+    return Boolean(hp.freeMonthsVisible);
+  }
+  return Number(hp.freeMonths ?? 1) > 0;
+}
+
+/**
  * Build a reactive form object from a section's content_json.
  * @param {object} json - The content_json from the backend.
  * @param {string} type - The section_type.
@@ -105,6 +123,7 @@ export function buildFormFromJson(json, type, proposalData) {
           })),
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
           freeMonths: hp.freeMonths ?? 1, freeMonthNote: hp.freeMonthNote || '',
+          freeMonthsVisible: resolveFreeMonthsVisible(hp),
         },
         modules: (j.modules || []).map(m => ({ id: m.id || '', name: m.name || '', price: m.price ?? 0, included: m.included !== false, is_required: m.is_required !== false })),
         paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons),
@@ -289,6 +308,7 @@ export function formToJson(formData, type) {
           })),
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
           freeMonths: hp.freeMonths ?? 1, freeMonthNote: hp.freeMonthNote || '',
+          freeMonthsVisible: resolveFreeMonthsVisible(hp),
         },
         modules: (f.modules || []).map(m => ({ id: m.id, name: m.name, price: m.price ?? 0, included: m.included !== false, is_required: m.is_required !== false })),
         paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons),
@@ -504,6 +524,10 @@ export function formToReadableText(form, type) {
         for (const s of hp.specs) parts.push(`- ${s.icon || ''} ${s.label}: ${s.value}`);
       }
       if (hp.hostingPercent) parts.push(`Hosting: ${hp.hostingPercent}% de la inversión total`);
+      if (resolveFreeMonthsVisible(hp)) {
+        parts.push(`Meses gratis: ${Number(hp.freeMonths ?? 1)}`);
+        if (hp.freeMonthNote) parts.push(hp.freeMonthNote);
+      }
       if (hp.renewalNote) parts.push(`\n${hp.renewalNote}`);
     }
   } else if (type === 'final_note') {
