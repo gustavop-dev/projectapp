@@ -90,7 +90,9 @@ const EXPECTED_MONTH_ROWS = [
     id: 71,
     concept: 'Kore v2 (Fase 1) - Inicio 40%',
     period_label: 'Julio 2026',
+    client: 10,
     client_name: 'Kore',
+    project: 100,
     project_name: 'Kore v2',
     kind: 'expected',
     ledger: 'company',
@@ -106,8 +108,10 @@ const EXPECTED_MONTH_ROWS = [
     id: 72,
     concept: 'Hosting anual Acme',
     period_label: '17 Julio 2026',
+    client: 20,
     client_name: 'Acme',
-    project_name: '',
+    project: null,
+    project_name: null,
     kind: 'expected',
     ledger: 'company',
     total_amount: '1000000.00',
@@ -353,6 +357,52 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect.poll(() => calls.find((call) => (
       call.apiPath === 'accounting/incomes/72/update/'
     ))?.body).toEqual({ is_receivable_candidate: false });
+  });
+
+  test('receivables help stays above its modal', {
+    tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler());
+    // quality: allow-deep-link (dashboard navigation is covered separately; this test isolates the modal floating-layer contract)
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('accounting-card-receivables').click();
+
+    await page.getByTestId('receivable-legend-trigger').hover();
+
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText('Semáforo de cobro');
+    await expect.poll(() => tooltip.evaluate((element) => (
+      Boolean(element.closest('[data-modal-floating-root]'))
+    ))).toBe(true);
+  });
+
+  test('candidate management controls its grouping presentation', {
+    tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler());
+    // quality: allow-deep-link (dashboard navigation is covered separately; this test isolates the receivables grouping controls)
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('accounting-card-receivables').click();
+    await page.getByRole('tab', { name: /Gestionar candidatos/ }).click();
+
+    await expect(page.getByTestId('receivables-group-client')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('receivable-candidate-group-10')).toContainText('Kore');
+    await expect(page.getByTestId('receivable-candidate-group-total_amount-10'))
+      .toContainText('$2.000.000 COP');
+
+    await page.getByTestId('receivables-group-project').click();
+    await expect(page.getByTestId('receivable-candidate-group-100')).toContainText('Kore v2');
+    await expect(page.getByTestId('receivable-candidate-group-none')).toContainText('Sin proyecto');
+
+    await page.getByTestId('receivables-view-classic').click();
+    await expect(page.getByTestId('receivables-group-by')).toHaveCount(0);
+    await expect(page.getByTestId('receivables-manage-tab').getByRole('table')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await page.getByTestId('accounting-card-receivables').click();
+    await page.getByRole('tab', { name: /Gestionar candidatos/ }).click();
+    await expect(page.getByTestId('receivables-group-client')).toHaveAttribute('aria-selected', 'true');
   });
 
   test('assigning high confidence selects the receivable and refreshes the global forecast', {

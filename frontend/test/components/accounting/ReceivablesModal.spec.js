@@ -15,7 +15,9 @@ const ROWS = [
   {
     id: 1,
     concept: 'Kore - Entrega',
+    client: 10,
     client_name: 'Kore',
+    project: 100,
     project_name: 'Kore v2',
     period_label: 'Septiembre 2026',
     kind: 'expected',
@@ -30,8 +32,10 @@ const ROWS = [
   {
     id: 2,
     concept: 'Hosting Acme',
+    client: 20,
     client_name: 'Acme',
-    project_name: '',
+    project: null,
+    project_name: null,
     period_label: 'Octubre 2026',
     kind: 'expected',
     ledger: 'company',
@@ -120,6 +124,62 @@ describe('ReceivablesModal', () => {
       'accounting/incomes/1/update/',
       { is_receivable_candidate: false },
     );
+  });
+
+  it('opens candidate management grouped by client', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+
+    await wrapper.findAll('[role="tab"]')[2].trigger('click');
+
+    expect(wrapper.get('[data-testid="receivables-group-client"]').attributes('aria-selected'))
+      .toBe('true');
+    expect(wrapper.get('[data-testid="receivable-candidate-group-10"]').text())
+      .toContain('Kore');
+    expect(wrapper.get('[data-testid="receivable-candidate-group-total_amount-10"]').text())
+      .toContain('$1.000.000 COP');
+  });
+
+  it('switches candidate management to project groups', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+    await wrapper.findAll('[role="tab"]')[2].trigger('click');
+
+    await wrapper.get('[data-testid="receivables-group-project"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="receivable-candidate-group-100"]').text())
+      .toContain('Kore v2');
+    expect(wrapper.get('[data-testid="receivable-candidate-group-none"]').text())
+      .toContain('Sin proyecto');
+  });
+
+  it('offers the existing flat candidate list as classic view', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+    await wrapper.findAll('[role="tab"]')[2].trigger('click');
+
+    await wrapper.get('[data-testid="receivables-view-classic"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="receivables-group-by"]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-testid="receivable-row"]')).toHaveLength(4);
+  });
+
+  it('restores client grouping when the modal reopens', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+    await wrapper.findAll('[role="tab"]')[2].trigger('click');
+    await wrapper.get('[data-testid="receivables-group-project"]').trigger('click');
+    await wrapper.get('[data-testid="receivables-view-classic"]').trigger('click');
+
+    await wrapper.setProps({ open: false });
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+    await wrapper.findAll('[role="tab"]')[2].trigger('click');
+
+    expect(wrapper.get('[data-testid="receivables-view-grouped"]').attributes('aria-selected'))
+      .toBe('true');
+    expect(wrapper.get('[data-testid="receivables-group-client"]').attributes('aria-selected'))
+      .toBe('true');
   });
 
   it('shows the request error state', async () => {

@@ -7,6 +7,15 @@ description: Error documentation and known issues tracking. Reference when debug
 
 This file tracks known errors, their context, and resolutions. When a reusable fix or correction is found during development, document it here to avoid repeating the same mistake.
 
+> **Resuelto 2026-09-04 — la ayuda de pendientes por cobrar aparecía detrás
+> del modal y sus candidatos no podían agruparse:** el tooltip se
+> teletransportaba siempre a `body`, cuyo `z-index` quedaba fuera del stacking
+> context del overlay del diálogo. Ahora usa el floating root provisto por
+> `BaseModal`, con fallback global sólo cuando no tiene modal dueño. Gestionar
+> candidatos reutiliza la tabla agrupada de Ingresos, calcula grupos y totales
+> después de buscar, ofrece Cliente/Proyecto y Clásico, y reinicia la vista a
+> Agrupado/Cliente en cada apertura.
+
 > **Resuelto 2026-09-04 — una propuesta podía enviarse sin explicar qué
 > resolvía:** `email_intro` era opcional, vivía fuera del flujo de correo y el
 > renderer sustituía su ausencia con copy genérico. **Correos** es ahora el
