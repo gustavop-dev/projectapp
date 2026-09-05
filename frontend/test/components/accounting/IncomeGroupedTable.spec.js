@@ -156,6 +156,29 @@ describe('IncomeGroupedTable', () => {
     ]);
   });
 
+  it('exposes the active direction through aria-sort', () => {
+    const wrapper = mountTable({
+      columns: columns.map((column) => ({ ...column, sortable: true })),
+      sortKey: 'total_amount',
+      sortDir: 'desc',
+    });
+
+    expect(wrapper.get('[role="columnheader"][aria-sort="descending"]').text())
+      .toContain('Total');
+    expect(wrapper.get('[role="columnheader"][aria-sort="none"]').text())
+      .toContain('Concepto');
+  });
+
+  it('emits the selected sortable column', async () => {
+    const wrapper = mountTable({
+      columns: columns.map((column) => ({ ...column, sortable: true })),
+    });
+
+    await wrapper.get('[data-testid="accounting-sort-total_amount"]').trigger('click');
+
+    expect(wrapper.emitted('sort')).toEqual([['total_amount']]);
+  });
+
   it('orders the leading grouped-table controls', () => {
     const wrapper = mountTable({
       selectable: true,

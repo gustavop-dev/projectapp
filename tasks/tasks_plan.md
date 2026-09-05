@@ -1,5 +1,13 @@
 # Task Plan — ProjectApp
 
+> **Orden de ingresos listo para integrar — 2026-09-04:** Mes abre del más
+> reciente al más antiguo y alterna sus dos sentidos; Total recorre mayor,
+> menor y retorno al default de Mes. El estado se recuerda en el navegador y
+> se mantiene al filtrar, cambiar de tab o alternar Agrupado/Clásico. La vista
+> agrupada ordena dentro de cada cliente sin alterar el ranking financiero de
+> grupos. Sin cambios backend, esquema ni dependencias; cobertura focal en
+> composable, tabla agrupada y recorrido Playwright.
+
 > **Mensaje personalizado de propuestas listo para integrar — 2026-09-04:**
 > **Correos** permite redactar, previsualizar y guardar el texto que explica
 > problema, solución y resultado para el cliente. El borrador puede quedar

@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-04 — orden del listado de ingresos:** el tab Ingresos abre
+> ordenado por **Mes**, del más reciente al más antiguo. El encabezado de Mes
+> alterna únicamente entre reciente/antiguo; **Total** recorre mayor/menor y,
+> en el tercer clic, vuelve al orden predeterminado por Mes. La preferencia se
+> conserva entre filtros, tabs, vistas Agrupado/Clásico y visitas posteriores.
+> En Agrupado se ordenan las filas dentro de cada cliente, sin cambiar el ranking
+> de grupos por facturación ni la posición final de “Sin cliente”.
+
 > **Entrega 2026-09-04 — varios destinatarios y copia visible:** todos los
 > compositores manuales de correo —independiente, propuesta general,
 > seguimiento de propuesta, diagnóstico, envío de documento y reenvío exacto—
