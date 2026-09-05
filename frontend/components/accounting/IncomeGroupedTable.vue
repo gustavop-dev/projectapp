@@ -48,8 +48,32 @@
           :key="col.key"
           role="columnheader"
           :class="[col.headerPadClass, col.alignClass, responsiveGridCellClass(col)]"
+          :aria-sort="ariaSort(col)"
         >
-          {{ col.label }}
+          <button
+            v-if="col.sortable"
+            type="button"
+            class="inline-flex items-center gap-1 uppercase tracking-wider rounded hover:text-text-default transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            :class="sortKey === col.key ? 'text-text-default' : ''"
+            :data-testid="`accounting-sort-${col.key}`"
+            @click="emit('sort', col.key)"
+          >
+            <span>{{ col.label }}</span>
+            <BaseActionIcon
+              v-if="sortKey === col.key && sortDir === 'asc'"
+              action="sort-ascending"
+              class="h-3 w-3"
+            />
+            <BaseActionIcon
+              v-else-if="sortKey === col.key && sortDir === 'desc'"
+              action="sort-descending"
+              class="h-3 w-3"
+            />
+            <span v-else data-testid="sortable-hint" aria-hidden="true">
+              <BaseActionIcon action="sort" class="h-3 w-3 text-text-subtle" />
+            </span>
+          </button>
+          <template v-else>{{ col.label }}</template>
         </span>
         <span v-if="showActions && !hasMenuStart" role="columnheader" :class="[DENSITY.headerCell, 'text-center']">Acciones</span>
       </div>
@@ -138,6 +162,7 @@
           <div
             v-show="!isCollapsed(group.id)"
             :id="`${groupTestPrefix}-group-body-${group.id}`"
+            :data-testid="`${groupTestPrefix}-group-body-${group.id}`"
             class="accounting-grid-subgrid divide-y divide-border-muted"
           >
             <div
@@ -340,6 +365,9 @@ const props = defineProps({
   skeletonRows: { type: Number, default: 5 },
   highlightId: { type: [String, Number], default: null },
   highlightQuery: { type: String, default: '' },
+  /** Active sort state, controlled by the page through the `sort` event. */
+  sortKey: { type: String, default: '' },
+  sortDir: { type: String, default: 'asc' },
   /** Ids of the collapsed groups. */
   collapsedIds: { type: Array, default: () => [] },
   /** Mirrors AccountingTable: false lets the page own every row action. */
@@ -390,7 +418,7 @@ const props = defineProps({
   footerLabel: { type: String, default: 'Total del conjunto filtrado' },
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggle-group', 'update:selected']);
+const emit = defineEmits(['edit', 'delete', 'sort', 'toggle-group', 'update:selected']);
 
 const DENSITY = TABLE_DENSITY;
 const hasMenuStart = computed(() => (
@@ -402,6 +430,12 @@ const resolved = computed(() => resolveColumns(props.columns, {
   hasActions: props.showActions,
   rowActionsLayout: props.rowActionsLayout,
 }));
+
+function ariaSort(column) {
+  if (!column.sortable) return undefined;
+  if (props.sortKey !== column.key) return 'none';
+  return props.sortDir === 'desc' ? 'descending' : 'ascending';
+}
 
 const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
 const POLICY_CLASSES = {

@@ -30,8 +30,9 @@ const HIGHLIGHT_MS = 2500;
  *     one row can go stale on its siblings.
  * - beforeEdit(record) / beforeDelete(record)  optional guards; returning
  *     false aborts opening the edit modal / the delete confirm.
- * - sortAccessors / sortDefaults  forwarded to useTableSort (per-column
- *     sort field overrides and first-click directions).
+ * - sortAccessors / sortDefaults / baselineSort / sortStorageKey /
+ *     sortAllowedKeys  forwarded to useTableSort (per-column field overrides,
+ *     first-click directions, optional baseline and browser persistence).
  * - saveTab / resetFilters / isFilterPanelOpen  from useAccountingFilters,
  *     used by handleCreateFilterTab / handleResetFilters.
  * - resetPageOn  `currentFilters` from useAccountingFilters. Narrowing the
@@ -51,6 +52,9 @@ export function useAccountingCrudPage({
   beforeDelete = null,
   sortAccessors = {},
   sortDefaults = {},
+  baselineSort = null,
+  sortStorageKey = '',
+  sortAllowedKeys = [],
   saveTab = null,
   resetFilters = null,
   isFilterPanelOpen = null,
@@ -67,7 +71,13 @@ export function useAccountingCrudPage({
 
   const { sortKey, sortDir, toggleSort, sortedRecords } = useTableSort(
     filteredRecords,
-    { sortAccessors, sortDefaults },
+    {
+      sortAccessors,
+      sortDefaults,
+      baselineSort,
+      storageKey: sortStorageKey,
+      allowedKeys: sortAllowedKeys,
+    },
   );
 
   const {
