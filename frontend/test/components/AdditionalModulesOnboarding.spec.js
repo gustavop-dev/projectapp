@@ -8,6 +8,7 @@ global.useI18n = jest.fn(() => ({
 
 const STORAGE_KEY = 'projectapp-additional-modules-guide-seen'
 const ALL_TARGETS = [
+  'additional-modules-explainer',
   'additional-modules-theme-toggle',
   'additional-modules-controls',
   'additional-modules-category-nav',
@@ -67,8 +68,18 @@ describe('AdditionalModulesOnboarding', () => {
     document.body.innerHTML = ''
   })
 
-  it('starts with the catalog-specific theme explanation', async () => {
+  it('starts with the explainer video step', async () => {
     addTargets()
+    const wrapper = mountOnboarding()
+
+    await startGuide(wrapper)
+
+    expect(wrapper.get('[data-testid="additional-modules-guide-progress"]').text()).toBe('1/8')
+    expect(wrapper.text()).toContain('additionalModules.guideExplainerTitle')
+  })
+
+  it('falls back to the theme explanation when no explainer card is rendered', async () => {
+    addTargets(ALL_TARGETS.filter((target) => target !== 'additional-modules-explainer'))
     const wrapper = mountOnboarding()
 
     await startGuide(wrapper)
@@ -105,13 +116,13 @@ describe('AdditionalModulesOnboarding', () => {
     await startGuide(wrapper)
 
     await wrapper.get('[data-testid="additional-modules-guide-next"]').trigger('click')
-    expect(wrapper.get('[data-testid="additional-modules-guide-progress"]').text()).toBe('2/7')
+    expect(wrapper.get('[data-testid="additional-modules-guide-progress"]').text()).toBe('2/8')
 
     const backButton = wrapper.findAll('button')
       .find((button) => button.text() === 'additionalModules.guideBack')
     await backButton.trigger('click')
 
-    expect(wrapper.get('[data-testid="additional-modules-guide-progress"]').text()).toBe('1/7')
+    expect(wrapper.get('[data-testid="additional-modules-guide-progress"]').text()).toBe('1/8')
   })
 
   it('uses only controls that exist in the current catalog view', async () => {

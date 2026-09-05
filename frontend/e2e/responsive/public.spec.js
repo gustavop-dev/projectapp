@@ -44,7 +44,10 @@ const resolvedRoutes = {
 
 async function setupPublic(page) {
   await page.addInitScript(() => localStorage.setItem('proposal_onboarding_seen', 'true'));
-  await page.addInitScript(() => localStorage.setItem('projectapp-additional-modules-guide-seen', 'true'));
+  await page.addInitScript(() => {
+    localStorage.setItem('projectapp-additional-modules-guide-seen', 'true');
+    localStorage.setItem('projectapp-financing-guide-seen', 'true');
+  });
   await mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'portfolio/' && method === 'GET') return json([work]);
     if (apiPath === 'portfolio/responsive-fixture/' && method === 'GET') return json(work);

@@ -4,7 +4,7 @@ module.exports = {
         '^.+\\.vue$': '@vue/vue3-jest',
         '^.+\\.js$': 'babel-jest',
         '^.+\\.mjs$': 'babel-jest',
-        ".+\\.(css|styl|less|sass|scss|png|jpg|jpeg|webp|ttf|woff|woff2)$": "jest-transform-stub"
+        ".+\\.(css|styl|less|sass|scss|png|jpg|jpeg|webp|ttf|woff|woff2|mp4|webm)$": "jest-transform-stub"
     },
     testEnvironment: 'jest-environment-jsdom',
     setupFilesAfterEnv: ['<rootDir>/test/jest.setup.js'],
@@ -23,11 +23,14 @@ module.exports = {
         '/e2e/',
     ],
     moduleNameMapper: {
+        // Rendered explainer media (explainers/) may be absent in a fresh
+        // checkout; stub it before the ~/ alias resolves to a real path.
+        '^~/assets/.*\\.(mp4|webm|webp)$': 'jest-transform-stub',
         '^@/(.*)$': '<rootDir>/$1',
         '^~/service/CacheService$': '<rootDir>/service/CacheService.js',
         '^~/(.*)$': '<rootDir>/$1',
         '#imports': '<rootDir>/test/shared/nuxt-imports-mock.js',
-        '\\.(css|less|scss|sass|png|jpg|jpeg|webp|ttf|woff|woff2)$': 'jest-transform-stub',
+        '\\.(css|less|scss|sass|png|jpg|jpeg|webp|ttf|woff|woff2|mp4|webm)$': 'jest-transform-stub',
         '^vue3-emoji-picker/css$': 'jest-transform-stub',
     },
     // VueUse 14, Pinia 4, and Pinia's diagnostics helper publish ESM-only

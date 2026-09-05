@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 
+import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
+import { useExplainerVideo } from '~/composables/useExplainerVideos'
 import { usePanelNotify } from '~/composables/usePanelNotify'
 import { useFinancingAgreementsStore } from '~/stores/financing_agreements'
 import { get_request } from '~/stores/services/request_http'
@@ -19,6 +21,7 @@ const allowedTabs = new Set(['program', 'agreements', 'settings'])
 const activeSection = ref(allowedTabs.has(route.query.tab) ? route.query.tab : 'program')
 const isEnglish = computed(() => locale.value.startsWith('en'))
 const language = computed(() => (isEnglish.value ? 'en' : 'es'))
+const explainer = useExplainerVideo('financing', language)
 const program = ref(null)
 const isLoadingProgram = ref(false)
 const programLoadError = ref(false)
@@ -156,6 +159,15 @@ function modalityLabel(value, fallback = '') {
         </div>
       </section>
 
+      <ExplainerVideoCard
+        v-if="explainer"
+        :video="explainer"
+        i18n-namespace="financing"
+        variant="compact"
+        test-id="financing-explainer"
+        class="mt-5"
+      />
+
       <BaseAlert v-if="program && !program.package.catalog_synced" class="mt-5" variant="warning" data-testid="financing-package-warning">
         <p class="font-medium">{{ t('financing.catalogWarningTitle') }}</p>
         <p class="mt-1 text-sm">{{ t('financing.catalogWarningBody') }}</p>
@@ -167,7 +179,7 @@ function modalityLabel(value, fallback = '') {
       </div>
       <section v-else-if="program" class="mt-8 overflow-hidden rounded-2xl border border-border-default" aria-labelledby="financing-preview-title">
         <h2 id="financing-preview-title" class="border-b border-border-default bg-surface px-5 py-4 text-lg font-medium text-text-brand">{{ t('financing.previewTitle') }}</h2>
-        <FinancingProgramView :program="program" :download-url="pdfUrl" :language="language" :floating-actions="false" @change-language="changeLanguage" />
+        <FinancingProgramView :program="program" :download-url="pdfUrl" :language="language" :floating-actions="false" :show-explainer="false" @change-language="changeLanguage" />
       </section>
     </template>
 

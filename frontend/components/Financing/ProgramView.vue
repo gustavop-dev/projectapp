@@ -1,6 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, toRef, watch } from 'vue'
 
+import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
+import FinancingOnboarding from '~/components/Financing/Onboarding.vue'
+import { useExplainerVideo } from '~/composables/useExplainerVideos'
 import { useFinancingTheme } from '~/composables/useFinancingTheme'
 
 const props = defineProps({
@@ -8,11 +11,26 @@ const props = defineProps({
   downloadUrl: { type: String, default: '' },
   language: { type: String, default: 'es' },
   floatingActions: { type: Boolean, default: true },
+  /** The panel preview renders the explainer card separately; it disables this one. */
+  showExplainer: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['change-language'])
 const { t } = useI18n()
 const { isDark, toggle: toggleTheme } = useFinancingTheme()
+const explainer = useExplainerVideo('financing', toRef(props, 'language'))
+const explainerVisible = computed(() => props.showExplainer && Boolean(explainer.value))
+const onboardingRef = ref(null)
+const guideStarted = ref(false)
+
+// The guided tour only lives on the public view (floatingActions); the panel
+// preview reuses this component without it.
+watch([() => props.program, onboardingRef], async ([program, onboarding]) => {
+  if (!program || !onboarding || !props.floatingActions || guideStarted.value) return
+  guideStarted.value = true
+  await nextTick()
+  onboarding.start()
+}, { immediate: true, flush: 'post' })
 const expandedTerms = ref(new Set())
 const isDownloading = ref(false)
 const downloadError = ref(false)
@@ -127,6 +145,14 @@ async function shareProgram() {
             <p class="mt-6 max-w-3xl text-base leading-8 text-text-muted sm:text-lg">
               {{ program.hero.subtitle }}
             </p>
+            <ExplainerVideoCard
+              v-if="explainerVisible"
+              :video="explainer"
+              i18n-namespace="financing"
+              variant="hero"
+              test-id="financing-explainer"
+              class="financing-explainer mt-8 max-w-3xl"
+            />
             <div class="mt-8 flex flex-wrap gap-3">
               <BaseButton
                 as="a"
@@ -213,7 +239,7 @@ async function shareProgram() {
           <p class="mt-4 text-base leading-7 text-text-muted">{{ t('financing.conditionsIntro') }}</p>
         </div>
 
-        <nav class="mt-7 flex gap-2 overflow-x-auto pb-2 sm:flex-wrap" :aria-label="t('financing.conditionsTitle')">
+        <nav class="financing-conditions-nav mt-7 flex gap-2 overflow-x-auto pb-2 sm:flex-wrap" :aria-label="t('financing.conditionsTitle')">
           <a
             v-for="condition in conditions"
             :key="condition.id"
@@ -311,7 +337,7 @@ async function shareProgram() {
           <p class="mt-4 text-base leading-7 text-text-muted">{{ t('financing.termsIntro') }}</p>
         </div>
 
-        <div class="mt-8 space-y-3">
+        <div class="financing-terms mt-8 space-y-3">
           <article
             v-for="term in terms"
             :key="term.id"
@@ -395,8 +421,26 @@ async function shareProgram() {
       </BaseButton>
     </div>
 
+    <template v-if="floatingActions">
+      <BaseButton
+        unstyled
+        icon-only
+        type="button"
+        class="financing-restart-guide fixed bottom-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-text-brand shadow-raised transition-colors hover:bg-surface-muted"
+        :title="t('financing.restartGuide')"
+        :aria-label="t('financing.restartGuide')"
+        data-testid="financing-guide-restart"
+        @click="onboardingRef?.forceStart()"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0Z" />
+        </svg>
+      </BaseButton>
+      <FinancingOnboarding ref="onboardingRef" :is-dark="isDark" />
+    </template>
+
     <div class="sr-only" aria-live="polite">{{ shareFeedback }}</div>
-    <BaseAlert v-if="shareFailed" class="fixed bottom-4 left-4 z-40 max-w-sm" variant="danger">
+    <BaseAlert v-if="shareFailed" class="fixed bottom-20 left-4 z-40 max-w-sm" variant="danger">
       {{ t('financing.shareFailed') }}
     </BaseAlert>
   </article>
