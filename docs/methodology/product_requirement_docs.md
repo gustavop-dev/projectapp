@@ -1,5 +1,13 @@
 # Product Requirements Document — ProjectApp
 
+> **Entrega 2026-09-04 — orden del listado de ingresos:** el tab Ingresos abre
+> ordenado por **Mes**, del más reciente al más antiguo. El encabezado de Mes
+> alterna únicamente entre reciente/antiguo; **Total** recorre mayor/menor y,
+> en el tercer clic, vuelve al orden predeterminado por Mes. La preferencia se
+> conserva entre filtros, tabs, vistas Agrupado/Clásico y visitas posteriores.
+> En Agrupado se ordenan las filas dentro de cada cliente, sin cambiar el ranking
+> de grupos por facturación ni la posición final de “Sin cliente”.
+
 > **Corrección 2026-09-04 — ayuda y agrupación de pendientes por cobrar:** la
 > leyenda del semáforo se muestra siempre por encima del modal que la contiene.
 > En **Gestionar candidatos**, el listado abre agrupado por cliente, permite
@@ -742,17 +750,41 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 - **About Us** (`/about-us`): team and company information
 - All pages fully responsive with GSAP animations
 
-### 3.11 Platform — Quick Access (Admin URLs & Credentials)
+### 3.11 Project Detail — URLs, Django Credentials & Notes
 
-Admin-only space at `/platform/access` for rapid access to operational URLs and Django admin credentials per project.
+Each project has one operational detail for consulting, copying and editing its
+product access data. Panel staff open it as a modal from the project list or
+card; platform admins open the project-scoped route
+`/platform/projects/:id/access`. `/platform/access` remains only as a
+compatibility redirect.
 
-- **Purpose**: Centralise production URL, staging URL, Django admin URL, and repository URL per project; store Django admin credentials encrypted (Fernet) for copy-paste access
-- **Visibility**: Staff/admin only — clients cannot see this section
-- **Credential storage**: `admin_password_encrypted` (Fernet ciphertext); key configured via `PROJECT_ACCESS_CIPHER_KEY` env var
-- **UI**: Grid of project cards — click to open URL in new tab; "Copiar" / "Revelar" buttons for credentials; real-time search
-- **Sidebar entry**: "Accesos" under the Administración section in `PlatformSidebar.vue`
-- **Backend**: `GET /api/accounts/projects/access/` returns full list with decrypted passwords (admin-only via `IsAdminRole`); `PATCH /api/accounts/projects/<id>/` accepts the new URL/credential fields and encrypts on save
-- **Django admin**: `accounts/admin.py` — `ProjectAdmin` exposes the URL/credential fieldset; plaintext password input is encrypted in `save_model`
+- **Product URLs**: production, staging and repository URL.
+- **Fixed environments**: production and staging each own a Django admin URL,
+  admin username and independently encrypted admin password through
+  `ProjectAdminAccess` (one unique row per project/environment).
+- **Notes**: `ProjectAccessNote` stores multiple title/content entries. All note
+  content is encrypted at rest; a note marked sensitive is masked until an
+  explicit reveal or copy action.
+- **Interaction**: every value has an icon action for copy; fields save
+  individually without closing the detail. Passwords begin masked and use an
+  explicit reveal control. Destructive password/note deletion is confirmed.
+- **Visibility**: Django staff through the session/CSRF panel API and platform
+  users with the admin role through the JWT API. Client-role users cannot see
+  the navigation item or access the route/API.
+- **Security**: passwords and note bodies use Fernet with
+  `PROJECT_ACCESS_CIPHER_KEY`. General project serializers and the deprecated
+  access list never return plaintext credentials. Every project-access payload
+  is `Cache-Control: no-store`; plaintext is returned only by dedicated reveal
+  endpoints and is kept in ephemeral component state. Operational URLs, both
+  access models and legacy credential fields are explicitly excluded from MCP.
+- **Compatibility migration**: legacy generic admin credentials move
+  automatically only when the admin URL hostname matches exactly one of the
+  product hostnames. Ambiguous rows remain intact and the detail offers an
+  explicit production/staging classification that refuses overwrites.
+- **Backend**: the shared handlers in `accounts/project_access_api.py` serve
+  equivalent `/api/projects/:id/access/` (panel) and
+  `/api/accounts/projects/:id/access/` (platform) contracts for detail, per-field
+  update, reveal/delete password, note CRUD/reveal and legacy classification.
 
 ### 3.12 Admin Panel Enhancements
 

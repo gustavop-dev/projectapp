@@ -66,6 +66,15 @@ from content.views.panel_projects import (
     unarchive_panel_project,
     update_panel_project,
 )
+from content.views.panel_project_access import (
+    panel_project_access_detail,
+    panel_project_access_legacy_classify,
+    panel_project_access_note_detail,
+    panel_project_access_note_reveal,
+    panel_project_access_notes,
+    panel_project_access_password_delete,
+    panel_project_access_password_reveal,
+)
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
     portfolio_sitemap_data,
@@ -491,6 +500,41 @@ urlpatterns = [
     path('projects/', list_panel_projects, name='panel-projects-list'),
     path('projects/create/', create_panel_project, name='panel-projects-create'),
     path('projects/<int:project_id>/update/', update_panel_project, name='panel-projects-update'),
+    path(
+        'projects/<int:project_id>/access/',
+        panel_project_access_detail,
+        name='panel-project-access-detail',
+    ),
+    path(
+        'projects/<int:project_id>/access/environments/<str:environment>/password/reveal/',
+        panel_project_access_password_reveal,
+        name='panel-project-access-password-reveal',
+    ),
+    path(
+        'projects/<int:project_id>/access/environments/<str:environment>/password/',
+        panel_project_access_password_delete,
+        name='panel-project-access-password-delete',
+    ),
+    path(
+        'projects/<int:project_id>/access/notes/',
+        panel_project_access_notes,
+        name='panel-project-access-notes',
+    ),
+    path(
+        'projects/<int:project_id>/access/notes/<int:note_id>/',
+        panel_project_access_note_detail,
+        name='panel-project-access-note-detail',
+    ),
+    path(
+        'projects/<int:project_id>/access/notes/<int:note_id>/reveal/',
+        panel_project_access_note_reveal,
+        name='panel-project-access-note-reveal',
+    ),
+    path(
+        'projects/<int:project_id>/access/legacy/classify/',
+        panel_project_access_legacy_classify,
+        name='panel-project-access-legacy-classify',
+    ),
     path('projects/<int:project_id>/archive/', archive_panel_project, name='panel-projects-archive'),
     path('projects/<int:project_id>/unarchive/', unarchive_panel_project, name='panel-projects-unarchive'),
     path('projects/<int:project_id>/unlinked-records/', list_project_unlinked_records, name='panel-projects-unlinked-records'),

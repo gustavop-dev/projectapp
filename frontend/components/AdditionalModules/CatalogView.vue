@@ -1,7 +1,9 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, toRef, watch } from 'vue'
 import { useAdditionalModulesTheme } from '~/composables/useAdditionalModulesTheme'
 import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
+import { useExplainerVideo } from '~/composables/useExplainerVideos'
+import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
 import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
 import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
 import AdditionalModulesOnboarding from '~/components/AdditionalModules/Onboarding.vue'
@@ -20,6 +22,7 @@ const emit = defineEmits(['change-language'])
 const { t } = useI18n()
 const { viewMode } = useAdditionalModulesViewMode('public')
 const { isDark, toggle: toggleTheme } = useAdditionalModulesTheme()
+const explainer = useExplainerVideo('additional-modules', toRef(props, 'language'))
 const selectedModule = ref(null)
 const detailOpen = ref(false)
 const opener = ref(null)
@@ -103,6 +106,14 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
         <p class="mx-auto mt-5 max-w-3xl text-base leading-7 text-text-muted sm:text-lg">
           {{ t('additionalModules.subtitle') }}
         </p>
+        <ExplainerVideoCard
+          v-if="explainer"
+          :video="explainer"
+          i18n-namespace="additionalModules"
+          variant="hero"
+          test-id="additional-modules-explainer"
+          class="additional-modules-explainer mx-auto mt-8 max-w-4xl"
+        />
         <p
           v-if="isShared"
           class="mx-auto mt-5 w-fit rounded-full border border-border-default bg-surface px-4 py-2 text-sm text-text-muted"

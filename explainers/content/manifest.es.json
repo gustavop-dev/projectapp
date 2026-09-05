@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-09-04T23:13:23.392Z",
+  "origin": "https://projectapp.co",
+  "language": "es",
+  "additionalModules": {
+    "categories": 5,
+    "modules": 23
+  },
+  "financing": {
+    "conditions": 5,
+    "options": 2,
+    "financingMonths": 12
+  }
+}

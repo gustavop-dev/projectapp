@@ -103,6 +103,14 @@ function mountProgram(props = {}) {
       components: { BaseAlert, BaseBadge, BaseSegmented },
       stubs: {
         NuxtLink: { template: '<a><slot /></a>' },
+        FinancingOnboarding: {
+          template: '<div data-testid="financing-onboarding-stub" />',
+          methods: { start() {}, forceStart() {} },
+        },
+        ExplainerVideoCard: {
+          props: ['video', 'variant', 'testId'],
+          template: '<div :data-testid="`${testId}-card`" :data-variant="variant" :data-video-id="video.id" :data-language="video.language" />',
+        },
       },
     },
   })
@@ -203,5 +211,61 @@ describe('FinancingProgramView', () => {
     await flushPromises()
 
     expect(wrapper.get('[role="alert"]').text()).toContain('financing.shareFailed')
+  })
+})
+
+describe('FinancingProgramView explainer video', () => {
+  it('shows the Spanish explainer inside the hero, before the actions', () => {
+    const wrapper = mountProgram({ language: 'es' })
+
+    const card = wrapper.get('[data-testid="financing-explainer-card"]')
+    expect(card.attributes('data-variant')).toBe('hero')
+    expect(card.attributes('data-video-id')).toBe('financing')
+    expect(card.attributes('data-language')).toBe('es')
+
+    const heading = wrapper.get('h1').element
+    const whatsapp = wrapper.get('[data-testid="financing-whatsapp-hero"]').element
+    expect(heading.compareDocumentPosition(card.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(card.element.compareDocumentPosition(whatsapp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('lets the panel preview disable the explainer', () => {
+    const wrapper = mountProgram({ language: 'es', showExplainer: false })
+
+    expect(wrapper.find('[data-testid="financing-explainer-card"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="financing-option-five-year"]').exists()).toBe(true)
+  })
+
+  it('hides the explainer while no English render exists', () => {
+    const wrapper = mountProgram({ language: 'en' })
+
+    expect(wrapper.get('h1').text()).toContain('Construimos hoy')
+    expect(wrapper.find('[data-testid="financing-explainer-card"]').exists()).toBe(false)
+  })
+})
+
+describe('FinancingProgramView guided tour', () => {
+  it('mounts the tour and its restart control on the public view', () => {
+    const wrapper = mountProgram({ language: 'es' })
+
+    expect(wrapper.find('[data-testid="financing-onboarding-stub"]').exists()).toBe(true)
+    const restart = wrapper.get('[data-testid="financing-guide-restart"]')
+    expect(restart.attributes('aria-label')).toBe('financing.restartGuide')
+    expect(restart.classes()).toContain('financing-restart-guide')
+  })
+
+  it('leaves the tour out of the panel preview', () => {
+    const wrapper = mountProgram({ language: 'es', floatingActions: false })
+
+    expect(wrapper.find('[data-testid="financing-onboarding-stub"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="financing-guide-restart"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="financing-option-five-year"]').exists()).toBe(true)
+  })
+
+  it('marks the tour targets on the conditions index and the rules list', () => {
+    const wrapper = mountProgram({ language: 'es' })
+
+    expect(wrapper.find('nav.financing-conditions-nav').exists()).toBe(true)
+    expect(wrapper.find('.financing-terms [data-testid^="financing-term-"]').exists()).toBe(true)
   })
 })

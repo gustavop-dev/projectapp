@@ -1,0 +1,9 @@
+{
+  "id": "admin-project-access-notes",
+  "name": "Admin Project Access Notes",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Panel staff lists and adds titled project notes, optionally sensitive; required-field and backend failures preserve the note form for correction.",
+  "outcomes": ["display", "success", "error", "failure"]
+}

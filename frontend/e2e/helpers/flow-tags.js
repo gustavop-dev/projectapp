@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.96.1
+// Registry version: 2.97.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -50,6 +50,7 @@ export const ADMIN_ACCOUNTING_SETTINGS_RESET_TABS = ['@flow:admin-accounting-set
 export const ADMIN_ACCOUNTING_STATEMENTS = ['@flow:admin-accounting-statements', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_STATS_MODALS = ['@flow:admin-accounting-stats-modals', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_CATALOG = ['@flow:admin-additional-modules-catalog', '@module:admin', '@priority:P1'];
+export const ADMIN_ADDITIONAL_MODULES_EXPLAINER = ['@flow:admin-additional-modules-explainer', '@module:admin', '@priority:P3'];
 export const ADMIN_ADDITIONAL_MODULES_MANAGE = ['@flow:admin-additional-modules-manage', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_PDF = ['@flow:admin-additional-modules-pdf', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS = ['@flow:admin-additional-modules-quick-access', '@module:admin', '@priority:P1'];
@@ -153,6 +154,7 @@ export const ADMIN_FINANCING_AGREEMENT_CREATE = ['@flow:admin-financing-agreemen
 export const ADMIN_FINANCING_AGREEMENT_LIFECYCLE = ['@flow:admin-financing-agreement-lifecycle', '@module:admin', '@priority:P1'];
 export const ADMIN_FINANCING_AGREEMENT_SECOND_CYCLE = ['@flow:admin-financing-agreement-second-cycle', '@module:admin', '@priority:P1'];
 export const ADMIN_FINANCING_DISTRIBUTION = ['@flow:admin-financing-distribution', '@module:admin', '@priority:P1'];
+export const ADMIN_FINANCING_EXPLAINER = ['@flow:admin-financing-explainer', '@module:admin', '@priority:P3'];
 export const ADMIN_FINANCING_SETTINGS = ['@flow:admin-financing-settings', '@module:admin', '@priority:P1'];
 export const ADMIN_HIGH_ENGAGEMENT_ALERT = ['@flow:admin-high-engagement-alert', '@module:admin', '@priority:P2'];
 export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P3'];
@@ -178,6 +180,10 @@ export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:
 export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admin', '@priority:P2'];
+export const ADMIN_PROJECT_ACCESS_DETAIL = ['@flow:admin-project-access-detail', '@module:admin', '@priority:P1'];
+export const ADMIN_PROJECT_ACCESS_FIELD_EDIT = ['@flow:admin-project-access-field-edit', '@module:admin', '@priority:P1'];
+export const ADMIN_PROJECT_ACCESS_NOTES = ['@flow:admin-project-access-notes', '@module:admin', '@priority:P2'];
+export const ADMIN_PROJECT_ACCESS_SECRETS = ['@flow:admin-project-access-secrets', '@module:admin', '@priority:P1'];
 export const ADMIN_PROJECT_CHANGE_CLIENT = ['@flow:admin-project-change-client', '@module:admin', '@priority:P2'];
 export const ADMIN_PROJECT_FLY_CREATE = ['@flow:admin-project-fly-create', '@module:admin', '@priority:P2'];
 export const ADMIN_PROJECT_INLINE_ASSIGN_OFFER = ['@flow:admin-project-inline-assign-offer', '@module:admin', '@priority:P2'];
@@ -317,6 +323,7 @@ export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:
 export const PLATFORM_PASSWORD_RESET = ['@flow:platform-password-reset', '@module:platform', '@priority:P1'];
 export const PLATFORM_PROFILE_AVATAR_PICKER = ['@flow:platform-profile-avatar-picker', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROFILE_EDIT = ['@flow:platform-profile-edit', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_ACCESS_DETAIL = ['@flow:platform-project-access-detail', '@module:platform', '@priority:P1'];
 export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROJECT_DATA_MODEL = ['@flow:platform-project-data-model', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROJECT_DETAIL = ['@flow:platform-project-detail', '@module:platform', '@priority:P2'];
@@ -384,11 +391,14 @@ export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:pr
 export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
 export const PUBLIC_ADDITIONAL_MODULES_CATALOG = ['@flow:public-additional-modules-catalog', '@module:public', '@priority:P1'];
 export const PUBLIC_ADDITIONAL_MODULES_DETAIL = ['@flow:public-additional-modules-detail', '@module:public', '@priority:P1'];
+export const PUBLIC_ADDITIONAL_MODULES_EXPLAINER = ['@flow:public-additional-modules-explainer', '@module:public', '@priority:P2'];
 export const PUBLIC_ADDITIONAL_MODULES_GUIDE = ['@flow:public-additional-modules-guide', '@module:public', '@priority:P2'];
 export const PUBLIC_ADDITIONAL_MODULES_PDF = ['@flow:public-additional-modules-pdf', '@module:public', '@priority:P2'];
 export const PUBLIC_ADDITIONAL_MODULES_SHARE = ['@flow:public-additional-modules-share', '@module:public', '@priority:P1'];
 export const PUBLIC_ADDITIONAL_MODULES_THEME = ['@flow:public-additional-modules-theme', '@module:public', '@priority:P2'];
 export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
+export const PUBLIC_FINANCING_EXPLAINER = ['@flow:public-financing-explainer', '@module:public', '@priority:P2'];
+export const PUBLIC_FINANCING_GUIDE = ['@flow:public-financing-guide', '@module:public', '@priority:P2'];
 export const PUBLIC_FINANCING_LANGUAGE = ['@flow:public-financing-language', '@module:public', '@priority:P2'];
 export const PUBLIC_FINANCING_LOAD = ['@flow:public-financing-load', '@module:public', '@priority:P1'];
 export const PUBLIC_FINANCING_OVERVIEW = ['@flow:public-financing-overview', '@module:public', '@priority:P1'];

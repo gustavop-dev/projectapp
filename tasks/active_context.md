@@ -2,6 +2,47 @@
 
 ## Current State
 
+**2026-09-04 — módulo de experiencias audiovisuales listo para integrar:** el
+catálogo comercial suma su módulo 24 en *Marketing y adquisición*: creación de
+contenido audiovisual en lenguaje comercial, como piezas cortas hechas a la
+medida de la marca para que una vista se entienda de un vistazo. Se ofrece por
+paquetes —los iniciales son de 4, 8 y 16 recursos— y la invitación a consultar
+los disponibles con el representante cierra la tarjeta de requisitos, junto a
+los recursos que aporta el cliente: identidad de marca, material propio,
+mensajes clave y acceso a la plataforma. Entra como migración de datos, sin
+cambio de esquema, serializer, contrato MCP ni frontend; por eso los paquetes
+viven dentro de los campos existentes y no como bloque propio — si un segundo
+módulo se ofrece así, ahí conviene promoverlo a capacidad del catálogo. Un test
+blinda que el catálogo nunca nombre la herramienta con la que se produce el
+contenido.
+
+**2026-09-04 — orden de ingresos listo para integrar:** el listado abre por Mes
+descendente; Mes alterna reciente/antiguo y Total recorre mayor/menor/default.
+La selección persiste en el navegador y sobrevive filtros, quick tabs, cambio
+Agrupado/Clásico y recarga. En Agrupado se aplica dentro de cada cliente sin
+mover el orden financiero de los grupos ni el bucket “Sin cliente”. No hay
+cambios backend ni de esquema; composable, encabezado agrupado y flujo E2E
+quedaron cubiertos y el mapa P1 conserva todos sus outcomes satisfechos.
+
+**2026-09-05 — detalle seguro de accesos por proyecto listo para integrar:**
+Proyectos abre un modal desde tabla, tarjeta o acciones compactas del Panel, y
+los administradores de Plataforma usan `/platform/projects/:id/access`; la ruta
+global anterior sólo redirige. El editor compartido presenta producción y
+staging en columnas desde landscape, URL del repositorio, URL/usuario/password
+Django por ambiente y notas múltiples con título/contenido. Cada campo guarda
+por separado y se copia con acción iconográfica; passwords y notas sensibles
+empiezan ocultos. `ProjectAdminAccess` y `ProjectAccessNote` guardan secretos
+Fernet, registran actor/fecha y la migración `accounts.0063` mueve legacy sólo
+cuando un hostname identifica un único ambiente; los ambiguos se clasifican con
+acción explícita y guard de conflicto. Session/CSRF staff y JWT admin reutilizan
+handlers, pero clientes, serializers generales y MCP no ven secretos; todos los
+payloads del detalle usan `no-store`. Seeds representativos generan dos
+ambientes y notas cifradas con dominios reservados. Verificación focal: 31
+backend, 14 unitarias y 15 E2E funcionales, matriz responsive 10/10, build Nuxt,
+Django check/migration dry-run/SQL, contratos de flows y quality gates en verde.
+El refresh de fake data se omitió porque `projects.yml` clasifica este entorno
+como producción.
+
 **2026-09-04 — ayuda y agrupación de pendientes por cobrar listas para
 integrar:** el tooltip de la leyenda ahora se monta en la capa flotante del
 modal dueño y conserva `body` como fallback fuera de diálogos. Gestionar

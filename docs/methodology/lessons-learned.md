@@ -501,15 +501,27 @@ venv/bin/python <command>
 - `services/hosting_billing.py` + `services/payment_notifications.py` + `services/project_phases.py` — hosting multi-phase billing/proration + payment alerts
 - `services/impersonation.py` — panel→platform admin impersonation exchange
 - `services/image_utils.py` — avatar processing
-- `services/credential_cipher.py` — Fernet encrypt/decrypt for project admin passwords; `_get_cipher()` is `@lru_cache(maxsize=1)` so the key is read once; `PROJECT_ACCESS_CIPHER_KEY` env var; call `_get_cipher.cache_clear()` in tests after setting the env var
+- `services/credential_cipher.py` — generic Fernet encrypt/decrypt for project passwords and note bodies; `_get_cipher()` is `@lru_cache(maxsize=1)` so the key is read once; pytest supplies an isolated key and clears the cache per test
+- `services/project_access.py` — serializes the non-secret detail, encrypts writes and performs conflict-safe legacy classification for production/staging
 
-### Encrypted Credential Pattern (Quick Access)
-- Admin passwords stored as Fernet ciphertexts in `Project.admin_password_encrypted` (TextField)
-- Plain-text password is never stored; always encrypt before saving (`encrypt_password()`)
-- Django admin form uses `PasswordInput(render_value=False)` — password field always blank on edit; leave empty to keep existing
-- `ProjectDetailSerializer.to_representation()` blanks all admin-only fields in a single pass for non-admin — avoids N × `is_admin` checks from multiple `SerializerMethodField` getters
-- The dedicated `GET /api/accounts/projects/access/` endpoint uses `IsAdminRole` permission class (same as all other admin-only views in `accounts/views.py`); returns decrypted passwords only to admin
-- Frontend: password never persisted in store or localStorage; held in ephemeral Vue ref; `revealed` reactive object tracks per-card reveal state; `flashTimer` must be cleared in `onUnmounted`
+### Encrypted Project Access Pattern
+- `ProjectAdminAccess` owns one credential set per project/environment; a
+  database constraint prevents a second production or staging row.
+- `ProjectAccessNote` normalizes multiple title/content notes. Every body is
+  encrypted, not only notes marked sensitive; the flag controls presentation.
+- Plaintext passwords and sensitive note bodies leave the backend only through
+  dedicated reveal endpoints. All detail and reveal responses are `no-store`.
+- General project serializers expose at most `has_admin_password`; the legacy
+  list no longer returns usernames/passwords, and MCP explicitly excludes both
+  sensitive models plus legacy credential fields.
+- Panel and Platform reuse one Vue editor and one API adapter, but preserve the
+  authentication boundary: `request_http` for session/CSRF and
+  `usePlatformApi` for JWT.
+- Frontend plaintext stays in ephemeral refs/reactive entries and is cleared on
+  hide, save, deletion and unmount; it is never stored in Pinia or localStorage.
+- Legacy values are auto-moved only for one exact hostname match. Ambiguity is a
+  first-class state: the UI asks for production/staging, and a transactional
+  conflict guard refuses to overwrite populated destination fields.
 
 ### Platform Layout
 - `layouts/platform.vue` with collapsible sidebar, mobile drawer, theme toggle

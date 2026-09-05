@@ -153,7 +153,10 @@ export const RESPONSIVE_MODULES = Object.freeze({
   ]),
   public: module('public', [
     'frontend/components/AdditionalModules/CatalogView.vue',
+    'frontend/components/ExplainerVideoCard.vue',
     'frontend/components/Financing/',
+    'frontend/components/PublicGuidedTour.vue',
+    'frontend/composables/useExplainerVideos.js',
     'frontend/components/BusinessProposal/',
     'frontend/components/Linktree/',
     'frontend/components/WebAppDiagnostic/public/',
@@ -182,6 +185,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Recorrer una propuesta y un diagnóstico compartidos.',
     'Explorar el catálogo de módulos, abrir detalles y descargar la selección.',
     'Comparar las opciones de financiación, expandir condiciones y descargar el booklet.',
+    'Reproducir el video explicativo y recorrer el tour guiado sin desbordar el hero.',
     'Confirmar que controles flotantes no cubren el contenido.',
   ]),
 });

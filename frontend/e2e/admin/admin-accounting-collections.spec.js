@@ -724,7 +724,7 @@ test.describe('Admin Accounting Collections', () => {
     await expect(page.getByTestId('collection-group-none')).toContainText('Sin proyecto');
     await expect(page.getByTestId('collection-group-none')).toContainText('por completar');
     const headers = page.locator(
-      '[role="rowgroup"] > [data-testid^="collection-group-"]',
+      '[role="rowgroup"] > [data-testid^="collection-group-"]:not([data-testid^="collection-group-body-"])',
     );
     await expect(headers).toHaveCount(4);
     expect(await headers.evaluateAll((nodes) => nodes.map((node) => node.dataset.testid)))

@@ -4,9 +4,9 @@ Symmetric cipher for project access credentials (Django admin passwords).
 Stored ciphertext is a Fernet token (base64-encoded, URL-safe). The key must be a
 valid Fernet key and live in the ``PROJECT_ACCESS_CIPHER_KEY`` env var.
 
-If the key is missing, ``encrypt_password`` / ``decrypt_password`` raise
+If the key is missing, the encrypt/decrypt helpers raise
 ``ImproperlyConfigured``. Empty inputs are returned as empty strings so callers
-can treat "no credential saved" uniformly.
+can treat "no secret saved" uniformly.
 
 Generate a key once with::
 
@@ -38,19 +38,29 @@ def _get_cipher() -> Fernet:
         ) from exc
 
 
-def encrypt_password(plain: str) -> str:
-    """Encrypt a plaintext password. Empty input returns ''."""
+def encrypt_secret(plain: str) -> str:
+    """Encrypt a plaintext secret. Empty input returns ''."""
     if not plain:
         return ''
     token = _get_cipher().encrypt(plain.encode('utf-8'))
     return token.decode('ascii')
 
 
-def decrypt_password(token: str) -> str:
-    """Decrypt a stored token. Empty or invalid input returns ''."""
+def decrypt_secret(token: str) -> str:
+    """Decrypt a stored secret. Empty or invalid input returns ''."""
     if not token:
         return ''
     try:
         return _get_cipher().decrypt(token.encode('ascii')).decode('utf-8')
     except (InvalidToken, ValueError):
         return ''
+
+
+def encrypt_password(plain: str) -> str:
+    """Backward-compatible password wrapper around :func:`encrypt_secret`."""
+    return encrypt_secret(plain)
+
+
+def decrypt_password(token: str) -> str:
+    """Backward-compatible password wrapper around :func:`decrypt_secret`."""
+    return decrypt_secret(token)

@@ -3,7 +3,7 @@ import { mockApi } from '../helpers/api.js'
 import { setAuthLocalStorage } from '../helpers/auth.js'
 import { financingProgramFixture } from '../helpers/financing-fixture.js'
 import { financingSettingsFixture } from '../helpers/financing-agreement-fixture.js'
-import { ADMIN_FINANCING_DISTRIBUTION } from '../helpers/flow-tags.js'
+import { ADMIN_FINANCING_DISTRIBUTION, ADMIN_FINANCING_EXPLAINER } from '../helpers/flow-tags.js'
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js'
 
 
@@ -147,5 +147,19 @@ test.describe('Admin financing distribution', () => {
     await page.getByRole('button', { name: 'Reintentar' }).click()
 
     await expect(page.getByTestId('financing-public-url')).toBeVisible()
+  })
+  test('previews the financing explainer once from the Programa tab', {
+    tag: [...ADMIN_FINANCING_EXPLAINER, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openFinancing(page)
+    await expect(page.getByTestId('financing-program')).toBeVisible()
+    const card = page.getByTestId('financing-explainer-card')
+    await expect(card).toContainText('Video explicativo del programa')
+    await expect(page.getByTestId('financing-program').getByTestId('financing-explainer-card')).toHaveCount(0)
+
+    await page.getByTestId('financing-explainer-play').click()
+
+    await expect(page.getByTestId('financing-explainer-player')).toBeVisible()
   })
 })

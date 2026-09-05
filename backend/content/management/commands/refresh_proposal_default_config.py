@@ -9,6 +9,8 @@ cares about, copying their current values from code:
 
   - investment.hostingPlan.billingTiers   (nine-month/semiannual/quarterly, no monthly)
   - investment.hostingPlan.renewalNote     (new SMLMV + 8% formula)
+  - investment.hostingPlan free-month keys (freeMonths / freeMonthsVisible /
+    freeMonthNote — only when absent, so operator edits survive)
   - corporate_branding_module.selected / default_selected = True
   - reports_alerts_module.title/description/items          (Telegram removed)
   - dark_mode_module.title/description                     (renamed)
@@ -145,6 +147,18 @@ def _patch(sections, code):
         if 'coverageNote' in code_hp and hp.get('coverageNote') != code_hp['coverageNote']:
             hp['coverageNote'] = code_hp['coverageNote']
             changes.append('hosting coverageNote -> code')
+        # Free-month gift: the stored snapshot predates these three keys, so
+        # every proposal seeded from it was born without the copy and without
+        # the visibility flag. Only fill what is missing — an operator who
+        # already tuned the count or the wording keeps it.
+        for key, label in (
+            ('freeMonths', 'hosting freeMonths -> code'),
+            ('freeMonthsVisible', 'hosting freeMonthsVisible -> code'),
+            ('freeMonthNote', 'hosting freeMonthNote -> code'),
+        ):
+            if key in code_hp and key not in hp:
+                hp[key] = copy.deepcopy(code_hp[key])
+                changes.append(label)
 
     # --- functional_requirements modules ---
     fr = _section(sections, 'functional_requirements')

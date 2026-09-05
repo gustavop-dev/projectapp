@@ -237,6 +237,7 @@
             @assign="openAssign"
             @actions="projectActionTarget = $event"
             @change-state="openStateTransition"
+            @detail="openAccessDetail"
           />
         </div>
       </div>
@@ -321,6 +322,15 @@
           <span v-else class="tabular-nums text-text-muted">{{ row.incomes_count }}</span>
         </template>
         <template #cell-row_actions="{ row }">
+          <BaseActionButton
+            action="view"
+            variant="ghost"
+            size="sm"
+            label="Ver detalle del proyecto"
+            tooltip="Consultar URLs, accesos y notas"
+            :data-testid="`project-detail-${row.id}`"
+            @click.stop="openAccessDetail(row)"
+          />
           <!-- The platform space remains available for every historical row. -->
           <ProjectSpaceLink
             :project-id="row.id"
@@ -502,6 +512,15 @@
           variant="secondary"
           size="md"
           class="min-h-11 w-full justify-start"
+          data-testid="project-actions-detail"
+          @click="detailProjectFromActions"
+        >
+          Ver detalle
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
           @click="editProjectFromActions"
         >
           Editar proyecto
@@ -565,6 +584,12 @@
     <ProjectStateHistoryModal
       v-model="stateHistoryOpen"
       :project="historyProject"
+    />
+
+    <ProjectAccessModal
+      :open="accessDetailOpen"
+      :project="accessProject"
+      @close="closeAccessDetail"
     />
 
     <!-- Assign the client's unlinked records to a project (PA-51) -->
@@ -639,6 +664,7 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
+import ProjectAccessModal from '~/components/panel/projects/ProjectAccessModal.vue';
 import ProjectCard from '~/components/panel/projects/ProjectCard.vue';
 import ProjectChangeClientModal from '~/components/panel/projects/ProjectChangeClientModal.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
@@ -916,6 +942,12 @@ function editProjectFromActions() {
   if (row) openEditModal(row);
 }
 
+function detailProjectFromActions() {
+  const row = projectActionTarget.value;
+  projectActionTarget.value = null;
+  if (row) openAccessDetail(row);
+}
+
 function communicationsFromActions() {
   const row = projectActionTarget.value;
   projectActionTarget.value = null;
@@ -937,6 +969,21 @@ function historyProjectFromActions() {
   const row = projectActionTarget.value;
   projectActionTarget.value = null;
   if (row) openStateHistory(row);
+}
+
+// ── Secure access detail ──
+
+const accessDetailOpen = ref(false);
+const accessProject = ref(null);
+
+function openAccessDetail(project) {
+  accessProject.value = project;
+  accessDetailOpen.value = true;
+}
+
+function closeAccessDetail() {
+  accessDetailOpen.value = false;
+  accessProject.value = null;
 }
 
 // ── Lifecycle transition + immutable history ──

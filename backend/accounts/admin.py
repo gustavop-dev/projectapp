@@ -1,9 +1,6 @@
-from django import forms
 from django.contrib import admin
 
 from content.admin import admin_site
-
-from accounts.services.credential_cipher import encrypt_password
 
 from .models import (
     UserProfile,
@@ -30,27 +27,16 @@ from .models import (
 )
 
 
-class ProjectAdminForm(forms.ModelForm):
-    admin_password = forms.CharField(
-        label='Contraseña admin',
-        required=False,
-        widget=forms.PasswordInput(render_value=False),
-        help_text='Déjalo vacío para mantener la contraseña actual.',
-    )
-
-    class Meta:
-        model = Project
-        exclude = ('admin_password_encrypted',)
-
-
 class ProjectAdmin(admin.ModelAdmin):
-    form = ProjectAdminForm
     list_display = (
         'name', 'client', 'status',
-        'production_url', 'admin_url', 'updated_at',
+        'production_url', 'updated_at',
     )
     list_filter = ('status',)
-    search_fields = ('name', 'client__email', 'production_url', 'admin_url')
+    search_fields = (
+        'name', 'client__email',
+        'production_url', 'staging_url', 'repository_url',
+    )
     fieldsets = (
         (None, {'fields': (
             'name', 'description', 'client', 'status', 'progress',
@@ -60,19 +46,12 @@ class ProjectAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
             'fields': ('payment_milestones', 'hosting_tiers'),
         }),
-        ('Accesos rápidos', {
+        ('URLs del producto', {
             'fields': (
-                'production_url', 'staging_url', 'admin_url', 'repository_url',
-                'admin_username', 'admin_password',
+                'production_url', 'staging_url', 'repository_url',
             ),
         }),
     )
-
-    def save_model(self, request, obj, form, change):
-        plain = form.cleaned_data.get('admin_password')
-        if plain:
-            obj.admin_password_encrypted = encrypt_password(plain)
-        super().save_model(request, obj, form, change)
 
 
 admin_site.register(UserProfile)
