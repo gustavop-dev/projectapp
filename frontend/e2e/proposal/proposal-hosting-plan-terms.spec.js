@@ -4,9 +4,9 @@
  *
  * @flow: proposal-hosting-plan-terms
  * Covers: the nine-month (40% discount) billing tier renders, the free-month
- * gift bucket renders, and the PDF-only renewal note is NEVER leaked into
- * the web view — even though it travels through the same hostingPlan
- * payload as the rest of the section.
+ * gift bucket renders and obeys its visibility checkbox, and the PDF-only
+ * renewal note is NEVER leaked into the web view — even though it travels
+ * through the same hostingPlan payload as the rest of the section.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -15,6 +15,7 @@ import { PROPOSAL_HOSTING_PLAN_TERMS } from '../helpers/flow-tags.js';
 const MOCK_UUID = 'aaaaaaaa-bbbb-cccc-dddd-b05714b1a70e';
 
 const DISTINCTIVE_RENEWAL_TEXT = 'RENOVACION-SOLO-PDF-9f3a1c-nunca-en-la-web';
+const HIDDEN_GIFT_TEXT = 'REGALO-OCULTO-4b7e2d-nunca-visible-al-cliente';
 
 const mockProposal = {
   id: 1,
@@ -74,10 +75,13 @@ const mockProposal = {
   requirement_groups: [],
 };
 
-function setupMock(page) {
+function setupMock(page, hostingPlanOverrides = {}) {
+  const proposal = structuredClone(mockProposal);
+  const investment = proposal.sections.find(s => s.section_type === 'investment');
+  Object.assign(investment.content_json.hostingPlan, hostingPlanOverrides);
   return mockApi(page, async ({ apiPath }) => {
     if (apiPath === `proposals/${MOCK_UUID}/`) {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(proposal) };
     }
     return null;
   });
@@ -127,5 +131,28 @@ test.describe('Proposal Hosting Plan Terms', () => {
 
     // The PDF-only renewal note must never render in the web view.
     await expect(page.getByText(DISTINCTIVE_RENEWAL_TEXT)).toHaveCount(0);
+  });
+
+  // Catches: the visibility checkbox failing to reach the public view. The
+  // count stays at 1 on purpose — under the old rule that alone rendered the
+  // bucket, so this only passes if the flag is what gates it.
+  test('honors the visibility checkbox: an unchecked free-month block never reaches the client', {
+    tag: [...PROPOSAL_HOSTING_PLAN_TERMS, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the proposal link is the guest's only real entry
+    // point — it is shared via email/WhatsApp, there is no in-app UI to browse to
+    // it from; ?mode=detailed is the documented E2E/direct-link gateway bypass,
+    // matching every other spec in e2e/proposal/)
+    await setupMock(page, {
+      freeMonths: 1,
+      freeMonthsVisible: false,
+      freeMonthNote: HIDDEN_GIFT_TEXT,
+    });
+    await openInvestmentSection(page);
+
+    // The rest of the hosting subsection still renders — only the gift is gone.
+    await expect(page.getByText('Cada 9 meses', { exact: true })).toBeVisible();
+    await expect(page.getByText(HIDDEN_GIFT_TEXT)).toHaveCount(0);
+    await expect(page.getByText('mes de hosting gratis')).toHaveCount(0);
   });
 });

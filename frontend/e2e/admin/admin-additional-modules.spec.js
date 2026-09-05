@@ -4,6 +4,7 @@ import { setAuthLocalStorage } from '../helpers/auth.js'
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js'
 import {
   ADMIN_ADDITIONAL_MODULES_CATALOG,
+  ADMIN_ADDITIONAL_MODULES_EXPLAINER,
   ADMIN_ADDITIONAL_MODULES_MANAGE,
   ADMIN_ADDITIONAL_MODULES_PDF,
   ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS,
@@ -421,5 +422,18 @@ test.describe('Additional modules admin catalog', () => {
     await page.getByTestId('additional-selection-submit').click()
     await expect(page.getByText('No se pudo generar el PDF.')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Preparar PDF' })).toBeVisible()
+  })
+  test('previews the catalog explainer video from the panel', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_EXPLAINER, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openCatalog(page)
+    const card = page.getByTestId('additional-modules-explainer-card')
+    await expect(card).toContainText('Video explicativo del catálogo')
+    await expect(card).toHaveAttribute('data-variant', 'compact')
+
+    await page.getByTestId('additional-modules-explainer-play').click()
+
+    await expect(page.getByTestId('additional-modules-explainer-player')).toBeVisible()
   })
 })

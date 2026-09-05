@@ -272,10 +272,51 @@ describe('Investment', () => {
     });
 
     it('hides the free-month bucket when freeMonths is 0', () => {
+      // Backward compatibility: content written before freeMonthsVisible
+      // existed used a zero count as the way to hide the block.
       const wrapper = mountInvestment({
         hostingPlan: { title: 'Hosting', hostingPercent: 80, freeMonths: 0 },
       });
       expect(wrapper.text()).not.toContain('mes de hosting gratis');
+      // The rest of the hosting subsection is untouched by the gate.
+      expect(wrapper.text()).toContain('Hosting');
+    });
+
+    it('hides the bucket when freeMonthsVisible is false despite a count', () => {
+      const wrapper = mountInvestment({
+        hostingPlan: {
+          title: 'Hosting Administrado', hostingPercent: 80,
+          freeMonths: 3, freeMonthsVisible: false,
+          freeMonthNote: 'Tres meses de regalo.',
+        },
+      });
+      // The surrounding subsection must survive — only the gift is gated.
+      expect(wrapper.text()).toContain('Hosting Administrado');
+      expect(wrapper.text()).not.toContain('Tres meses de regalo.');
+      expect(wrapper.text()).not.toContain('meses de hosting gratis');
+    });
+
+    it('shows the bucket when freeMonthsVisible is true and the count is 0', () => {
+      const wrapper = mountInvestment({
+        hostingPlan: {
+          title: 'Hosting', hostingPercent: 80,
+          freeMonths: 0, freeMonthsVisible: true,
+          freeMonthNote: 'Hosting gratis hasta la entrega.',
+        },
+      });
+      expect(wrapper.text()).toContain('Hosting gratis hasta la entrega.');
+      // With no number to announce, the title drops it instead of lying.
+      expect(wrapper.text()).toContain('Hosting gratis');
+      expect(wrapper.text()).not.toContain('0 meses de hosting gratis');
+    });
+
+    it('puts the real count in the title instead of a fixed "1 mes"', () => {
+      const wrapper = mountInvestment({
+        hostingPlan: {
+          title: 'Hosting', hostingPercent: 80, freeMonths: 3,
+        },
+      });
+      expect(wrapper.text()).toContain('3 meses de hosting gratis');
     });
 
     it('never renders renewal conditions in the web view (PDF-only)', () => {

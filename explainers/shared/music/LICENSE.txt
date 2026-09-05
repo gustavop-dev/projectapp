@@ -1,0 +1,3 @@
+bed.mp3 — pad sintético generado con ffmpeg (scripts/make-placeholder-bed.sh).
+Sin autoría de terceros ni licencia externa: puede usarse libremente.
+Reemplazar por la pista definitiva y documentar acá su licencia.

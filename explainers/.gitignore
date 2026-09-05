@@ -1,0 +1,18 @@
+# Dependencias y cachés del CLI
+node_modules/
+.hyperframes/
+*.log
+
+# Salidas regenerables por video (renders, frames, audio intermedio)
+renders/
+snapshots/
+tts/
+audio/
+
+# Materializados por `npm run sync` y `npm run stage` desde shared/ y content/
+additional-modules/assets/
+additional-modules/content.js
+additional-modules/script.js
+financing/assets/
+financing/content.js
+financing/script.js

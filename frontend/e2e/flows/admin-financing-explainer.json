@@ -1,0 +1,14 @@
+{
+  "id": "admin-financing-explainer",
+  "name": "Admin Financing Explainer",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin previews the financing explainer video from the compact card on the Programa tab; the public preview below does not repeat it.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

@@ -109,6 +109,27 @@ class TestInvestmentSchema:
         })
         assert errors == []
 
+    def test_free_months_visible_accepts_a_boolean(self):
+        errors = validate_section_content('investment', {
+            'hostingPlan': {'freeMonths': 2, 'freeMonthsVisible': False},
+        })
+        assert errors == []
+
+    def test_rejects_non_boolean_free_months_visible(self):
+        """A truthy string must not sneak in as a visibility gate."""
+        errors = validate_section_content('investment', {
+            'hostingPlan': {'freeMonthsVisible': 'si'},
+        })
+        assert errors == [
+            'El campo «investment.hostingPlan.freeMonthsVisible» debe ser booleano.'
+        ]
+
+    def test_legacy_hosting_plan_without_the_flag_still_passes(self):
+        errors = validate_section_content('investment', {
+            'hostingPlan': {'freeMonths': 1, 'freeMonthNote': 'Un mes.'},
+        })
+        assert errors == []
+
     def test_rejects_bool_as_numeric_hosting_percent(self):
         errors = validate_section_content('investment', {
             'hostingPlan': {'hostingPercent': True},

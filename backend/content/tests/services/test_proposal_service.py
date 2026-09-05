@@ -643,6 +643,7 @@ class TestGetDefaultSections:
         assert hp['renewalNote'].strip()
         assert hp['coverageNote'].strip()
         assert hp['freeMonths'] == 1
+        assert hp['freeMonthsVisible'] is True
         assert hp['freeMonthNote'].strip()
         # New multiplicative +8% renewal formula (not the old absolute 6% one).
         assert '8%' in hp['renewalNote']
@@ -1237,6 +1238,93 @@ class TestNormalizeHostingPlan:
         assert result['title'] == 'Cloud'
         assert result['description'] == 'Managed.'
         assert result['specs'] == [{'label': 'SSL', 'value': 'included'}]
+
+
+class TestNormalizeHostingPlanFreeMonths:
+    """The free-month gift block: explicit visibility flag + resolved copy.
+
+    This is the single read-time hook the panel form, the public view and the
+    PDF all share, so what it returns is what the three of them show.
+    """
+
+    def _proposal(self, **overrides):
+        p = MagicMock()
+        p.language = overrides.get('language', 'es')
+        p.is_active = overrides.get('is_active', True)
+        p.status = overrides.get('status', 'draft')
+        p.hosting_percent = overrides.get('hosting_percent', 40)
+        p.hosting_discount_nine_month = 40
+        p.hosting_discount_semiannual = 20
+        p.hosting_discount_quarterly = 10
+        return p
+
+    # --- visibility ---
+
+    def test_explicit_false_hides_block_even_with_months(self):
+        """The checkbox wins: the count no longer decides visibility."""
+        result = normalize_hosting_plan(
+            self._proposal(),
+            {'freeMonths': 3, 'freeMonthsVisible': False},
+        )
+        assert result['freeMonthsVisible'] is False
+
+    def test_explicit_true_shows_block_with_zero_months(self):
+        result = normalize_hosting_plan(
+            self._proposal(),
+            {'freeMonths': 0, 'freeMonthsVisible': True},
+        )
+        assert result['freeMonthsVisible'] is True
+
+    @pytest.mark.parametrize(
+        'stored_months,expected',
+        [(1, True), (3, True), ('2', True), (0, False), ('0', False),
+         ('', False), (None, False)],
+    )
+    def test_missing_flag_falls_back_to_the_old_count_rule(
+        self, stored_months, expected,
+    ):
+        """Content written before the flag keeps the appearance it has today."""
+        result = normalize_hosting_plan(
+            self._proposal(), {'freeMonths': stored_months},
+        )
+        assert result['freeMonthsVisible'] is expected
+
+    def test_hosting_plan_without_any_free_month_key_stays_hidden(self):
+        result = normalize_hosting_plan(self._proposal(), {'title': 'Cloud'})
+        assert result['freeMonthsVisible'] is False
+
+    def test_closed_proposal_also_gets_the_flag_resolved(self):
+        """The early-return branch for historical terms must resolve it too."""
+        result = normalize_hosting_plan(
+            self._proposal(is_active=False, status='accepted'),
+            {'freeMonths': 1},
+        )
+        assert result['freeMonthsVisible'] is True
+
+    # --- copy ---
+
+    @pytest.mark.parametrize(
+        'lang,fragment',
+        [('es', 'hosting es gratis'), ('en', 'hosting is free')],
+    )
+    def test_empty_note_is_filled_with_the_language_default(self, lang, fragment):
+        result = normalize_hosting_plan(
+            self._proposal(language=lang), {'freeMonths': 1, 'freeMonthNote': ''},
+        )
+        assert fragment in result['freeMonthNote']
+
+    def test_blank_note_counts_as_empty(self):
+        result = normalize_hosting_plan(
+            self._proposal(), {'freeMonths': 1, 'freeMonthNote': '   '},
+        )
+        assert result['freeMonthNote'].strip()
+
+    def test_custom_note_is_never_overwritten(self):
+        result = normalize_hosting_plan(
+            self._proposal(),
+            {'freeMonths': 1, 'freeMonthNote': 'Tres meses de regalo.'},
+        )
+        assert result['freeMonthNote'] == 'Tres meses de regalo.'
 
 
 class TestAdminPinnedCalculatorGroupIds:

@@ -2,9 +2,14 @@
   "id": "public-additional-modules-guide",
   "name": "Public Additional Modules Guide",
   "module": "public",
-  "roles": ["guest"],
+  "roles": [
+    "guest"
+  ],
   "priority": "P2",
-  "description": "First-time visitor sees a catalog-specific guide once and can reopen it later from the floating restart control.",
+  "description": "First-time visitor sees a catalog-specific guide once, starting at the explainer video card, and can reopen it later from the floating restart control.",
   "expectedSpecs": 2,
-  "outcomes": ["success", "display"]
+  "outcomes": [
+    "success",
+    "display"
+  ]
 }
