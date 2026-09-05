@@ -65,6 +65,7 @@ for (const profile of RESPONSIVE_PROFILES) {
       tag: ['@flow:admin-project-access-detail', '@outcome:display', '@responsive:projects', `@responsive-scenario:${projectsScenario.catalogKey}`, `@responsive-batch:${batchForScenario(projectsScenario.catalogKey)}`, `@viewport:${profile}`],
     }, async ({ page }, testInfo) => {
       await setupProjects(page);
+      // quality: allow-deep-link (the authenticated panel home is the shell entry; this test reaches Projects through the visible responsive navigation)
       await enterProjects(page, profile);
       await page.getByTestId('project-detail-9').click();
       const modal = page.getByTestId('project-access-modal');
