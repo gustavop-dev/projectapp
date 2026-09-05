@@ -18,7 +18,8 @@ describe('useExplainerVideos', () => {
     })
   })
 
-  it('returns null while a language has no render and for unknown ids', () => {
+  it('only resolves languages that have a render and ids from the registry', () => {
+    expect(explainerVideoFor('financing', 'es')).toMatchObject({ id: 'financing', language: 'es' })
     expect(explainerVideoFor('financing', 'en')).toBeNull()
     expect(explainerVideoFor('proposal', 'es')).toBeNull()
   })
