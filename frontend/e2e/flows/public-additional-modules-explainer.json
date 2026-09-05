@@ -1,0 +1,16 @@
+{
+  "id": "public-additional-modules-explainer",
+  "name": "Public Additional Modules Explainer",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Visitor finds the one-minute explainer video under the catalog title (also on shared selections), plays it inline with sound and native controls, and gets a direct file link when the browser cannot play it.",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

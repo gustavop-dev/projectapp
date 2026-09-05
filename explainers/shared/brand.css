@@ -1,0 +1,31 @@
+/* Tokens de marca de ProjectApp — copiados de frontend/assets/styles/theme.css.
+   Mantener en sincronía a mano: el video no importa el CSS del sitio. */
+
+@font-face { font-family: 'Ubuntu'; font-weight: 300; font-style: normal; font-display: block; src: url('./fonts/Ubuntu-Light.ttf') format('truetype'); }
+@font-face { font-family: 'Ubuntu'; font-weight: 400; font-style: normal; font-display: block; src: url('./fonts/Ubuntu-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Ubuntu'; font-weight: 500; font-style: normal; font-display: block; src: url('./fonts/Ubuntu-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'Ubuntu'; font-weight: 700; font-style: normal; font-display: block; src: url('./fonts/Ubuntu-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'Noto Emoji'; font-weight: 400; font-style: normal; font-display: block; src: url('./fonts/NotoEmoji-Regular.ttf') format('truetype'); }
+
+:root {
+  --color-primary: #002921;          /* esmerald */
+  --color-primary-strong: #001713;   /* esmerald-dark */
+  --color-primary-soft: #E6EFEF;     /* esmerald-light */
+  --color-accent: #F0FF3D;           /* lemon */
+  --color-accent-mid: #E8F26E;
+  --color-accent-soft: #F9FFB0;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F1F5F9;
+  --color-surface-raised: #F8FAFC;
+  --color-text-default: #0F172A;
+  --color-text-muted: #475569;
+  --color-text-subtle: #64748B;
+  --color-text-brand: #002921;
+  --color-text-on-dark: #F8FAFC;
+  --color-text-on-dark-muted: rgba(248, 250, 252, 0.78);
+  --color-brand-mint: #6EE7B7;       /* text-brand en tema oscuro */
+  --color-border: #E2E8F0;
+
+  --font-sans: 'Ubuntu', 'Helvetica Neue', Arial, sans-serif;
+  --font-emoji: 'Noto Emoji', 'Ubuntu', sans-serif;
+}

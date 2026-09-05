@@ -1,0 +1,16 @@
+{
+  "id": "public-financing-explainer",
+  "name": "Public Financing Explainer",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Visitor plays the one-minute financing explainer from the hero with sound and native controls, gets a direct file link when playback fails, and sees no card in English until that render exists.",
+  "expectedSpecs": 3,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}
