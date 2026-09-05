@@ -17,9 +17,11 @@ from accounts.models import (
     CommunicationPanelPreference,
     Deliverable,
     Project,
+    ProjectAdminAccess,
     Requirement,
     UserProfile,
 )
+from accounts.services.credential_cipher import decrypt_secret
 from content.fake_data import SeedContext, covered_model_labels
 from content.models import (
     AdditionalModule,
@@ -255,6 +257,42 @@ def test_client_project_seed_covers_the_real_lifecycle():
     }
     assert not Project.objects.filter(current_state__isnull=True).exists()
     assert not Project.objects.filter(state_review_required=True).exists()
+
+
+def test_client_project_seed_populates_secure_access_detail():
+    run_command(
+        'create_fake_clients_projects', '--count', '1',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+
+    project = Project.objects.order_by('pk').first()
+    accesses = list(project.admin_accesses.order_by('environment'))
+    notes = list(project.access_notes.order_by('title'))
+
+    assert {access.environment for access in accesses} == {
+        ProjectAdminAccess.Environment.PRODUCTION,
+        ProjectAdminAccess.Environment.STAGING,
+    }
+    assert (
+        project.admin_url,
+        project.admin_username,
+        project.admin_password_encrypted,
+    ) == ('', '', '')
+    assert all(
+        decrypt_secret(access.admin_password_encrypted).startswith('demo-only-')
+        for access in accesses
+    )
+    assert {note.title for note in notes} == {
+        'Contacto técnico de respaldo',
+        'Token de integración demo',
+    }
+    assert all(
+        note.content_encrypted not in {
+            'Canal de soporte demo: soporte@example.test',
+            f'demo-token-not-secret-{project.pk}',
+        }
+        for note in notes
+    )
 
 
 def test_accounting_seed_links_each_record_to_a_client(seeded_accounting):

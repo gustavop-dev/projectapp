@@ -6254,6 +6254,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-portfolio-delete` | admin | P2 | display,success | 1 |
 | `admin-portfolio-edit` | admin | P2 | display,success,error | 1 |
 | `admin-portfolio-list` | admin | P2 | display | 1 |
+| `admin-project-access-detail` | admin | P1 | display,failure | — |
+| `admin-project-access-field-edit` | admin | P1 | success,error,failure | — |
+| `admin-project-access-notes` | admin | P2 | display,success,error,failure | — |
+| `admin-project-access-secrets` | admin | P1 | display,success,failure | — |
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
@@ -6380,6 +6384,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `platform-password-reset` | platform | P1 | success,error | 1 |
 | `platform-profile-avatar-picker` | platform | P2 | success | 1 |
 | `platform-profile-edit` | platform | P2 | success,error,display | 1 |
+| `platform-project-access-detail` | platform | P1 | display,success,error,failure | — |
 | `platform-project-collection-accounts` | platform | P2 | display | 1 |
 | `platform-project-data-model` | platform | P2 | success,error,display | 1 |
 | `platform-project-detail` | platform | P2 | success,display | 1 |
@@ -7141,6 +7146,61 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 | `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
 | `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
 
+### FLOW: `admin-project-access-detail`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects` (modal)
+- **API:** `GET /api/projects/:id/access/`
+- **Interaction:** Open a project's detail icon from the list or card.
+- **Display outcome:** The modal identifies the project and client, renders production and staging separately, and keeps passwords and sensitive notes masked.
+- **Failure outcome:** A failed detail request renders a retry action in the modal; retry replaces the error with the project data.
+- **Success / error:** n/a — opening the modal is a read/display action with no user input.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js` plus the five responsive project profiles.
+
+### FLOW: `admin-project-access-field-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects` (project detail modal)
+- **API:** `PATCH /api/projects/:id/access/`
+- **Interaction:** Activate one field's edit icon, change its value, and explicitly save it.
+- **Success outcome:** The API receives exactly one mutable field (plus environment when applicable) and the returned value replaces the read view.
+- **Error outcome:** A serializer validation message remains beside the field and the draft stays editable.
+- **Failure outcome:** A server failure remains inline and does not discard the draft.
+- **Display:** n/a — the read-only values belong to `admin-project-access-detail`.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js`.
+
+### FLOW: `admin-project-access-secrets`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects` (project detail modal)
+- **API:** dedicated password/note reveal endpoints under `/api/projects/:id/access/`
+- **Interaction:** Reveal, hide, or copy a password or sensitive note through its icon control.
+- **Display outcome:** Secret values are absent from the initial payload and appear as a mask.
+- **Success outcome:** Reveal shows the requested secret until hidden or closed; copy writes it without first placing it in the modal.
+- **Failure outcome:** A failed reveal reports the API error while the value remains masked.
+- **Error:** n/a — there is no user-authored value to validate in reveal/copy.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js`.
+
+### FLOW: `admin-project-access-notes`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/projects` (project detail modal)
+- **API:** note create/update/delete/reveal endpoints under `/api/projects/:id/access/notes/`
+- **Interaction:** Inspect notes or open “Agregar nota”, enter title/content, choose sensitivity, and save.
+- **Display outcome:** Existing titled notes render; sensitive content stays masked.
+- **Success outcome:** A valid note is added to the project response and appears in the list.
+- **Error outcome:** Missing title/content is rejected locally without a request.
+- **Failure outcome:** A backend rejection preserves the entered content and shows an actionable error.
+- **Coverage:** `e2e/admin/admin-project-access-detail.spec.js`.
+
 
 ## Section 28 — Client/Project Coherence (Aug 16, 2026)
 
@@ -7289,6 +7349,23 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcome:** `success`
 - **Coverage:** ✅ Covered in the five canonical responsive profiles.
 - **E2E Spec:** `e2e/responsive/catalog-matrix.spec.js`
+
+
+## Section 31 — Project Access Detail (Sep 5, 2026)
+
+### FLOW: `platform-project-access-detail`
+
+- **Module:** platform
+- **Roles:** platform-admin, platform-client
+- **Priority:** P1
+- **Routes:** `/platform/projects/:id/access`
+- **API:** project access endpoints under `/api/accounts/projects/:id/access/`
+- **Interaction:** An admin reaches Accesos through project navigation and uses the shared editor over JWT transport.
+- **Display outcome:** The scoped project detail renders both environments and masked credentials.
+- **Success outcome:** An explicit field save updates the response through the platform endpoint.
+- **Error outcome:** A client profile is redirected before the protected editor renders.
+- **Failure outcome:** An API load failure appears with a retry control.
+- **Coverage:** `e2e/platform/platform-project-access-detail.spec.js` and the five responsive platform profiles.
 
 
 ## Unsectioned flows

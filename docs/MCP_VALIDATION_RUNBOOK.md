@@ -72,6 +72,11 @@ con las áreas del Panel. La fuente ejecutable del inventario está en
   única raíz documental canónica. El MCP puede seguir referenciando proyectos
   existentes, pero no adopta carpetas históricas ni provisiona raíces por esa
   vía.
+- `ProjectAdminAccess`, `ProjectAccessNote` y los campos legacy
+  `Project.admin_url/admin_username/admin_password_encrypted` quedan excluidos
+  con motivo explícito. Ninguna tool MCP lista, revela, crea o modifica
+  URLs, credenciales o notas del detalle seguro; las operaciones MCP de proyecto
+  conservan únicamente identidad, ciclo y metadatos no operativos.
 - `DocumentFolder.managed_client` es el equivalente para clientes y se comporta
   igual desde el MCP: read-only, sin adopción ni provisión por esa vía. Con él
   `folder_kind` tiene **tres** valores (`project` / `client` / `manual`), que es
@@ -772,3 +777,14 @@ conectores existentes. Los conectores canónicos nuevos nacen inactivos. La
 rotación de las credenciales compartidas entregadas al inicio se realiza sólo
 después de merge, migración y verificación del corte; nunca dentro de esta
 corrida de desarrollo.
+
+## Ejecución focal — 2026-09-05 (detalle seguro de proyectos)
+
+| Verificación | Resultado |
+|---|---|
+| Contrato de campos del conector Proyectos | 1/1 verde |
+| Modelos `ProjectAdminAccess` / `ProjectAccessNote` | todos los campos excluidos con motivo explícito |
+| URLs y campos legacy de acceso en `Project` | excluidos del contrato MCP con motivo explícito |
+| Rotación o uso de credenciales MCP | no ejecutado; fuera del alcance de la entrega |
+
+La superficie humana nueva usa APIs staff/JWT dedicadas y no añade tools MCP.

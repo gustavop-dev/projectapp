@@ -119,6 +119,7 @@ SEEDED_MODELS = {
     'accounts.CommunicationPanelPreference',
     'accounts.Deliverable', 'accounts.HostingSubscription',
     'accounts.Notification', 'accounts.Payment', 'accounts.Project',
+    'accounts.ProjectAccessNote', 'accounts.ProjectAdminAccess',
     'accounts.ProjectDataModelEntity', 'accounts.Requirement',
     'accounts.SavedFilterTab', 'accounts.UserProfile',
     'content.AdsSpendRecord', 'content.BlogPost', 'content.BusinessProposal',

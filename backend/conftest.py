@@ -167,6 +167,20 @@ def allow_fake_data_for_tests(settings):
     settings.FAKE_DATA_ALLOWED = True
 
 
+@pytest.fixture(autouse=True)
+def project_access_cipher_for_tests(monkeypatch):
+    """Provide an isolated Fernet key to tests and fake-data commands."""
+    from accounts.services import credential_cipher
+
+    monkeypatch.setenv(
+        'PROJECT_ACCESS_CIPHER_KEY',
+        'uFJ2bxSRv2V4OLA4y-BxJcTYL8QxIrRiG4rZa_3BaiI=',
+    )
+    credential_cipher._get_cipher.cache_clear()
+    yield
+    credential_cipher._get_cipher.cache_clear()
+
+
 @pytest.fixture(scope='session', autouse=True)
 def isolate_seeded_email_copy_recipient(django_db_setup, django_db_blocker):
     """Keep recipient-dependent tests explicit while testing the seed separately.
