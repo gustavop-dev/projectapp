@@ -138,8 +138,8 @@
               </div>
             </div>
             <div class="rounded-xl border border-border-muted bg-surface-raised p-3 text-xs text-text-muted">
-              Activa el ingreso para incluirlo en la previsión. Elegir un color también lo activa automáticamente;
-              cada cambio se guarda de inmediato.
+              Elige el nivel de cobro y activa el interruptor sólo cuando quieras incluir el ingreso en la previsión.
+              Ambos controles son independientes y cada cambio se guarda de inmediato.
             </div>
             <IncomeGroupedTable
               v-if="candidateViewMode === 'grouped'"

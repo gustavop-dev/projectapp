@@ -111,6 +111,11 @@ class TestCreateFakeAccounting:
             kind=IncomeRecord.Kind.EXPECTED,
             ledger=Ledger.COMPANY,
         ).exists()
+        assert IncomeRecord.objects.filter(
+            kind=IncomeRecord.Kind.EXPECTED,
+            is_receivable_candidate=False,
+            collection_confidence=IncomeRecord.CollectionConfidence.HIGH,
+        ).exists()
 
     def test_written_off_income_never_has_payments(self):
         call_command('create_fake_accounting', '--count', '12')

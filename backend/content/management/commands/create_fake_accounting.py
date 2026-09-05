@@ -160,11 +160,14 @@ class Command(BaseCommand):
             # Written off: money we already know will never arrive. It stays
             # out of the expected projection, so it never gets a liquid row.
             is_lost = index % 8 == 3
-            # The open rows intentionally cover every manual forecast state:
-            # three partials cycle green/amber/red and a pending row remains
-            # selected without a colour. Paid and lost rows never enter the
-            # active shortlist.
-            confidence = ''
+            # The rows intentionally cover every manual forecast state: three
+            # partials cycle green/amber/red, a pending row remains selected
+            # without a colour, and a paid row keeps a historical colour while
+            # its independent switch is off. Paid and lost rows never enter
+            # the active shortlist.
+            confidence = (
+                IncomeRecord.CollectionConfidence.HIGH if index == 2 else ''
+            )
             is_receivable_candidate = False
             if not is_lost and index % 4 == 1:
                 confidence = (

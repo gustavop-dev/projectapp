@@ -427,9 +427,10 @@ class IncomeRecordCreateUpdateSerializer(
         ledger = effective('ledger', Ledger.COMPANY)
 
         # --- Manual receivable forecast --------------------------------
-        # A colour assignment is itself an explicit shortlist decision. A
-        # plain deselection keeps the colour, so the team's last judgement is
-        # still visible when the record is inspected later.
+        # Confidence and shortlist membership are independent operator
+        # decisions. Changing either one must preserve the other; a plain
+        # deselection keeps the colour so the team's last judgement remains
+        # visible when the record is inspected later.
         candidate_was_selected = data.get('is_receivable_candidate') is True
         confidence_was_assigned = bool(data.get('collection_confidence'))
         receivable_shape = (
@@ -442,15 +443,16 @@ class IncomeRecordCreateUpdateSerializer(
                     'puede seleccionarse como pendiente por cobrar.'
                 ),
             })
-        if receivable_shape and confidence_was_assigned:
-            data['is_receivable_candidate'] = True
         if not receivable_shape:
             # Kind/ledger transitions close the active forecast but preserve
             # collection_confidence as historical context.
             data['is_receivable_candidate'] = False
 
         candidate = effective('is_receivable_candidate', False)
-        if receivable_shape and candidate:
+        # A colour is only meaningful while the receivable is open, even when
+        # the independent inclusion switch stays off. Existing active rows
+        # still close automatically when another edit makes them fully paid.
+        if receivable_shape and (candidate or confidence_was_assigned):
             paid = (
                 paid_total_for_income(self.instance)
                 if self.instance is not None

@@ -44,6 +44,21 @@ describe('getPanelNavSections', () => {
     ]));
   });
 
+  it('offers collection accounts instead of ads in accounting quick access', () => {
+    const accounting = getPanelNavSections(identityLocalePath)
+      .find((section) => section.id === 'accounting');
+    const links = accounting.items.filter((item) => !item.divider);
+
+    expect(links).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        label: 'Cuentas de cobro',
+        href: '/panel/accounting/collections',
+        icon: 'file',
+      }),
+    ]));
+    expect(links.map((item) => item.label)).not.toContain('Ads');
+  });
+
   it('gives additional modules a dedicated puzzle icon', () => {
     const commercial = getPanelNavSections(identityLocalePath)
       .find((section) => section.id === 'commercial');

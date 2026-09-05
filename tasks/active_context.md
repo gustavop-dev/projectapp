@@ -96,22 +96,20 @@ puede adoptar la vigente mediante acción auditada. JSON/PDF público, contrato,
 calendario y formulario son dinámicos. Pasaron 81 pruebas backend, 22 unitarias,
 36 E2E y el build; los 11 flujos de financiación están totalmente cubiertos.
 
-**2026-09-03 — previsión manual de cobros lista para integrar:** cada ingreso
-esperado abierto de empresa puede entrar o salir de una shortlist y conservar
-un semáforo verde/naranja/rojo; elegir color lo selecciona y cada cambio se
-persiste de inmediato con auditoría y aviso contable. El total “Pendiente por
-cobrar” es global y suma el monto original únicamente de verdes seleccionados.
-Su modal separa estado, selección y gestión; Ingresos expone el mismo control
-sólo donde aplica. Un cobro total, ingreso perdido o cambio fuera del ledger de
-empresa retira automáticamente el candidato sin borrar su clasificación. La
-estadística de utilidad dejó de ser modal y ocupa el hero como acordeón abierto;
-se retiró el mini gráfico, se eliminó la altura que producía el espacio vacío y
-se reforzaron texto, leyendas, tooltips y estados vacíos de ApexCharts en dark
-mode. Esquema `content.0244`, endpoint REST, herramientas MCP, seeds y mapas E2E
-quedaron sincronizados. Verificación focal: 18 tests del dominio de cobros, 6
-del modal y el recorrido Playwright de auto-selección/KPI aprobados por `$qa`,
-además de Django check, migration dry-run, build Nuxt y flow audit fresco; no se
-refrescó fake data por la guardia de producción.
+**2026-09-04 — previsión visual con interruptor manual lista para integrar:**
+cada ingreso esperado abierto de empresa puede entrar o salir de una shortlist
+y conservar un semáforo verde/naranja/rojo; elegir color ya no lo selecciona y
+cada cambio se persiste sin alterar el otro eje. El interruptor sólo responde a
+la acción manual del usuario. El círculo acompaña el texto completo en tabla,
+modal, formulario y detalle; lo no clasificado usa un círculo neutro. Alta y
+edición guardan ambas decisiones, duplicar las reinicia y los estados históricos
+permanecen intactos. El total “Pendiente por cobrar” es global y suma el monto
+original únicamente de verdes seleccionados. Un cobro total, ingreso perdido o
+cambio fuera del ledger de empresa retira automáticamente el candidato sin
+borrar su clasificación. El acceso rápido Ads fue reemplazado por Cuentas de
+cobro sin retirar Ads del submenú contable. Esquema `content.0244`, endpoint
+REST, herramientas MCP, seeds y mapas E2E permanecen sincronizados sin migración
+nueva.
 
 **2026-09-02 — paridad operativa MCP lista para integrar:** los 16 conectores
 registrados —10 canónicos y 6 compatibles— exponen el Panel por área con

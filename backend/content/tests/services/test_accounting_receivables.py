@@ -145,7 +145,7 @@ def test_dashboard_green_forecast_ignores_selected_year(make_income):
 
 
 @pytest.mark.django_db
-def test_confidence_assignment_persists_forecast_with_notification(
+def test_confidence_assignment_preserves_manual_selection_state(
     super_client, make_income,
 ):
     income = make_income()
@@ -158,17 +158,34 @@ def test_confidence_assignment_persists_forecast_with_notification(
         )
 
     assert response.status_code == 200, response.data
-    assert response.data['is_receivable_candidate'] is True
+    assert response.data['is_receivable_candidate'] is False
     assert response.data['collection_confidence_label'] == 'Cobro muy probable'
     log = AccountingChangeLog.objects.filter(
         entity_type=AccountingChangeLog.EntityType.INCOME,
         object_id=income.pk,
         action=AccountingChangeLog.Action.UPDATED,
     ).get()
-    assert {change['field'] for change in log.changes} == {
-        'is_receivable_candidate', 'collection_confidence',
-    }
+    assert {change['field'] for change in log.changes} == {'collection_confidence'}
     notify.assert_called_once_with(log)
+
+
+@pytest.mark.django_db
+def test_confidence_change_keeps_selected_candidate(super_client, make_income):
+    income = make_income(
+        is_receivable_candidate=True,
+        collection_confidence=IncomeRecord.CollectionConfidence.HIGH,
+    )
+
+    with patch.object(accounting_service, '_notify'):
+        response = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'collection_confidence': 'medium'},
+            format='json',
+        )
+
+    assert response.status_code == 200, response.data
+    assert response.data['is_receivable_candidate'] is True
+    assert response.data['collection_confidence'] == 'medium'
 
 
 @pytest.mark.django_db

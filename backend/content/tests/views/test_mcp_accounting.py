@@ -188,7 +188,7 @@ class TestAccountingMcpNonCrud:
         payload = _payload(response)
         assert payload['summary']['high_total'] == '1234'
 
-    def test_update_income_accepts_collection_confidence(
+    def test_update_income_preserves_manual_receivable_selection(
         self, api_client, accounting_connector, make_income,
     ):
         income = make_income()
@@ -200,7 +200,7 @@ class TestAccountingMcpNonCrud:
 
         assert response.data['result']['isError'] is False
         income.refresh_from_db()
-        assert income.is_receivable_candidate is True
+        assert income.is_receivable_candidate is False
         assert income.collection_confidence == 'medium'
 
     def test_get_settings(self, api_client, accounting_connector, accounting_settings):

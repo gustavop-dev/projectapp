@@ -29,6 +29,24 @@ describe('ReceivableStateControl', () => {
     expect(wrapper.emitted('change')).toEqual([[{ collection_confidence: 'high' }]]);
   });
 
+  it('shows a neutral circle beside an unclassified forecast', () => {
+    const wrapper = mount(ReceivableStateControl, { props: { row: expectedRow() } });
+
+    expect(wrapper.get('[data-testid="receivable-confidence-dot"]').classes())
+      .toContain('bg-text-subtle');
+    expect(wrapper.get('select').element.value).toBe('');
+  });
+
+  it('keeps the full confidence label beside its circle', () => {
+    const wrapper = mount(ReceivableStateControl, {
+      props: { row: expectedRow({ collection_confidence: 'medium' }) },
+    });
+
+    expect(wrapper.get('[data-testid="receivable-confidence-dot"]').classes())
+      .toContain('bg-warning-strong');
+    expect(wrapper.get('select').text()).toContain('Cobro incierto (50/50)');
+  });
+
   it('disables controls during persistence', () => {
     const wrapper = mount(ReceivableStateControl, {
       props: { row: expectedRow(), busy: true },

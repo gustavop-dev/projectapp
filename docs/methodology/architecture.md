@@ -54,16 +54,20 @@
 > manual y reglas cruzadas en `EmailRecipientFields`/`EmailRecipientPicker`; los
 > cinco compositores y el reenvío consumen el mismo contrato.
 
-> **Previsión contable manual 2026-09-03:** `IncomeRecord` separa
+> **Previsión contable manual corregida 2026-09-04:** `IncomeRecord` separa
 > `is_receivable_candidate` de `collection_confidence` y protege por constraint
 > que una selección activa sea esperada y de empresa. `accounting_service`
 > concentra la consulta global de candidatos abiertos y sus agregados; el
-> serializer auto-selecciona al asignar color y los flujos de liquidación
-> deseleccionan al cerrar, preservando la clasificación. REST y MCP proyectan el
-> mismo contrato. En Vue, el store mantiene lista, resumen y locks por fila;
-> `ReceivablesModal` compone las tres vistas y `ReceivableStateControl` se
-> reutiliza en Ingresos. `UtilityStatsPanel` reemplaza el modal/gráfico del hero
-> y `useChartTheme` es la frontera común de contraste claro/oscuro.
+> serializer conserva cada eje cuando cambia el otro, y los flujos de liquidación
+> deseleccionan al cerrar preservando la clasificación. REST y MCP proyectan el
+> mismo contrato, sin migración adicional ni backfill de estados existentes. En
+> Vue, `ReceivableConfidenceDot` centraliza los tonos semánticos y el estado
+> neutro; badge, tabla, modal, alta/edición y detalle lo reutilizan. El formulario
+> envía nivel e inclusión como decisiones explícitas y una duplicación reinicia
+> ambos. `panelNav` sustituye sólo el acceso rápido Ads por Cuentas de cobro; el
+> submenú contable conserva ambos módulos. `UtilityStatsPanel` reemplaza el
+> modal/gráfico del hero y `useChartTheme` sigue siendo la frontera común de
+> contraste claro/oscuro.
 
 > **Implementado — plataforma MCP operativa 2026-09-02:** el registro de
 > herramientas se convierte en una capa común de metadatos, riesgo, resultados
