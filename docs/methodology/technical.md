@@ -9,6 +9,16 @@
 > quick tabs y Agrupado/Clásico; la recarga lo recupera del navegador. No hay
 > payload, endpoint, migración ni dependencia nueva.
 
+> **Contrato técnico de capas y agrupación de cobros — 2026-09-04:**
+> `BaseTooltip` resuelve por inyección el floating root del `BaseModal` dueño y
+> teletransporta allí su contenido; fuera de un modal conserva `body` como
+> fallback. Así el tooltip participa del stacking context del overlay sin
+> aumentar globalmente su `z-index`. `ReceivablesModal` agrupa en cliente o
+> proyecto mediante funciones puras sobre las filas ya filtradas, reutiliza
+> `IncomeGroupedTable` para bandas, colapso y totales, y mantiene Agrupado/
+> Cliente como estado local reiniciado al abrir. No cambia endpoints, esquema,
+> settings ni almacenamiento del navegador.
+
 > **Contrato técnico de destinatarios múltiples — 2026-09-04:** los endpoints
 > manuales aceptan `recipient_emails: string[]` y `cc_emails: string[]`, y
 > conservan compatibilidad con `recipient_email`/`recipient` singulares. El

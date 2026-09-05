@@ -43,6 +43,17 @@ Django check/migration dry-run/SQL, contratos de flows y quality gates en verde.
 El refresh de fake data se omitió porque `projects.yml` clasifica este entorno
 como producción.
 
+**2026-09-04 — ayuda y agrupación de pendientes por cobrar listas para
+integrar:** el tooltip de la leyenda ahora se monta en la capa flotante del
+modal dueño y conserva `body` como fallback fuera de diálogos. Gestionar
+candidatos reutiliza la tabla agrupada de Ingresos con Cliente/Proyecto,
+totales completos y alternativa Clásico; abre siempre en Agrupado/Cliente y no
+guarda la presentación entre visitas. La búsqueda precede al agrupamiento y las
+mutaciones inmediatas existentes no cambian. Pasaron 38 pruebas unitarias, 6
+E2E funcionales, los 5 perfiles responsive del modal, 10 celdas foundation,
+build Nuxt y checks de diseño, responsividad y flow registry. El flujo P1
+`admin-accounting-receivables` queda cubierto en display/success/failure.
+
 **2026-09-04 — mensaje personalizado de propuestas listo para integrar:** el
 tab **Correos** está disponible desde borrador y guarda de forma independiente
 un mensaje en texto plano que conecta problema, solución y resultado. Todos los

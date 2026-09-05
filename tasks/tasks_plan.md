@@ -8,6 +8,16 @@
 > grupos. Sin cambios backend, esquema ni dependencias; cobertura focal en
 > composable, tabla agrupada y recorrido Playwright.
 
+> **Corrección de ayuda y agrupación de cobros lista para integrar —
+> 2026-09-04:** la leyenda de ayuda de “Pendientes por cobrar” usa el floating
+> root del modal y ya no queda detrás del diálogo. **Gestionar candidatos** abre
+> agrupado por cliente, puede reagrupar por proyecto o mostrarse como lista
+> clásica y calcula cantidad, total original, abonado y saldo abierto después
+> de aplicar la búsqueda; cerrar y abrir restablece Cliente sin persistencia.
+> No cambian API, base de datos ni settings. Verificación: 38 unitarias, 6 E2E
+> del flujo, 5 especiales responsive del modal, 10 celdas foundation, build,
+> contratos de diseño/responsividad/registro y flow audit en verde.
+
 > **Mensaje personalizado de propuestas listo para integrar — 2026-09-04:**
 > **Correos** permite redactar, previsualizar y guardar el texto que explica
 > problema, solución y resultado para el cliente. El borrador puede quedar

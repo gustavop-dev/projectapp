@@ -40,6 +40,7 @@ const RESPONSIVE_SPECIAL_WARMUP_ROUTES = Object.freeze({
     '/en-us/panel/accounting/hostings',
     '/en-us/panel/accounting/statements',
   ],
+  'accounting-special-4': ['/en-us/panel/accounting'],
   'canvas-special': ['/en-us/panel/documents/1/edit'],
   'clients-special': ['/en-us/panel/clients'],
   'commercial-special': ['/en-us/panel/proposals'],
