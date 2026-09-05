@@ -6411,7 +6411,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-executive-to-detailed` | proposal | P2 | display | 1 |
 | `proposal-expired-graceful` | proposal | P1 | failure | 1 |
 | `proposal-functional-requirements-modal` | proposal | P2 | display | 1 |
-| `proposal-hosting-plan-terms` | proposal | P2 | display | 1 |
+| `proposal-hosting-plan-terms` | proposal | P2 | display | 2 |
 | `proposal-investment-calculator` | proposal | P1 | success,display | 1 |
 | `proposal-kickoff-disclosure` | proposal | P2 | display | 1 |
 | `proposal-magic-link-request` | proposal | P1 | success | 1 |

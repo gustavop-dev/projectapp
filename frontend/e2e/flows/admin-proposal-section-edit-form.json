@@ -9,7 +9,8 @@
   "description": "Edit proposal sections using structured form fields for each of the 12 section types.",
   "expectedSpecs": 1,
   "knownGaps": [
-    "value_added_modules section editor is not exercised; its money fields (min_price_usd/cop) use BaseCurrencyInput (2026-07). commercial_conditions covered 2026-07-28; its hour rates moved to the admin-proposal-hour-rate flow on 2026-07-28 and this spec now only asserts they round-trip untouched."
+    "value_added_modules section editor is not exercised; its money fields (min_price_usd/cop) use BaseCurrencyInput (2026-07). commercial_conditions covered 2026-07-28; its hour rates moved to the admin-proposal-hour-rate flow on 2026-07-28 and this spec now only asserts they round-trip untouched.",
+    "The hosting subsection's free-month visibility checkbox (hostingPlan.freeMonthsVisible, 2026-09-05) is not driven through the admin UI here: its round trip is covered by unit tests on buildFormFromJson/formToJson (SectionEditor.test.js) and its public effect by the proposal-hosting-plan-terms E2E flow."
   ],
   "outcomes": [
     "success",

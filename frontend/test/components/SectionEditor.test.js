@@ -1101,6 +1101,42 @@ describe('formToJson', () => {
       const json = formToJson(form, 'investment');
       expect(json.hostingPlan.hostingPercent).toBe(60);
     });
+
+    // formToJson is a whitelist: a hostingPlan key absent from it is destroyed
+    // on the next save of the section, silently.
+    it('survives the round trip when the operator unchecks the free-month block', () => {
+      const form = buildFormFromJson(investmentJson, 'investment');
+      form.hostingPlan.freeMonthsVisible = false;
+      const json = formToJson(form, 'investment');
+      expect(json.hostingPlan.freeMonthsVisible).toBe(false);
+    });
+
+    it('keeps an unchecked block unchecked across a reload', () => {
+      const stored = {
+        ...investmentJson,
+        hostingPlan: {
+          ...investmentJson.hostingPlan, freeMonths: 2, freeMonthsVisible: false,
+        },
+      };
+      const json = formToJson(buildFormFromJson(stored, 'investment'), 'investment');
+      expect(json.hostingPlan.freeMonthsVisible).toBe(false);
+      expect(json.hostingPlan.freeMonths).toBe(2);
+    });
+
+    it('derives visibility from the count for content that predates the flag', () => {
+      const withMonths = formToJson(
+        buildFormFromJson(
+          { hostingPlan: { title: 'H', freeMonths: 1 } }, 'investment',
+        ), 'investment',
+      );
+      const withoutMonths = formToJson(
+        buildFormFromJson(
+          { hostingPlan: { title: 'H', freeMonths: 0 } }, 'investment',
+        ), 'investment',
+      );
+      expect(withMonths.hostingPlan.freeMonthsVisible).toBe(true);
+      expect(withoutMonths.hostingPlan.freeMonthsVisible).toBe(false);
+    });
   });
 
   describe('final_note', () => {

@@ -240,11 +240,11 @@
         </div>
 
         <!-- Free month gift bucket -->
-        <div v-if="freeMonthsCount > 0" class="mt-8 pl-0 sm:pl-16">
+        <div v-if="freeMonthsVisible" class="mt-8 pl-0 sm:pl-16">
           <div class="flex items-start gap-4 rounded-2xl border-2 border-accent/40 bg-accent/10 p-5 sm:p-6">
             <div class="text-3xl flex-shrink-0">🎁</div>
             <div>
-              <div class="font-bold text-text-brand mb-1">{{ t.freeMonthTitle }}</div>
+              <div class="font-bold text-text-brand mb-1">{{ freeMonthTitle }}</div>
               <p class="text-sm text-text-brand/70 font-light leading-relaxed">{{ freeMonthBody }}</p>
             </div>
           </div>
@@ -389,6 +389,7 @@ const props = defineProps({
       renewalNote: '',
       coverageNote: '',
       freeMonths: 1,
+      freeMonthsVisible: true,
       freeMonthNote: ''
     })
   },
@@ -569,8 +570,10 @@ const i18n = {
       { icon: '🛟', title: 'Soporte ante incidencias', description: 'Resolución de bugs y asistencia técnica continua' },
       { icon: '☁️', title: 'Recursos computacionales', description: 'Servidor, almacenamiento, ancho de banda y certificados SSL' },
     ],
-    freeMonthTitle: '1 mes de hosting gratis',
-    freeMonthBody: 'Los cobros del hosting inician el día 1° de cada mes. Desde la entrega de tu proyecto hasta tu primer cobro, el hosting es gratis — siempre te regalamos como mínimo un mes completo.',
+    freeMonthTitleOne: '1 mes de hosting gratis',
+    freeMonthTitleMany: (n) => `${n} meses de hosting gratis`,
+    freeMonthTitleNone: 'Hosting gratis',
+    freeMonthBody: 'Los cobros del hosting inician el día 1° de cada mes. Desde la entrega de tu proyecto hasta tu primer cobro, el hosting es gratis: siempre te regalamos como mínimo un mes completo.',
   },
   en: {
     totalInvestment: 'Total Investment',
@@ -601,16 +604,32 @@ const i18n = {
       { icon: '🛟', title: 'Incident Support', description: 'Bug resolution and ongoing technical assistance' },
       { icon: '☁️', title: 'Computing Resources', description: 'Server, storage, bandwidth, and SSL certificates' },
     ],
-    freeMonthTitle: '1 free month of hosting',
-    freeMonthBody: 'Hosting billing starts on the 1st of each month. From your project delivery until your first charge, hosting is free — we always gift you at least one full month.',
+    freeMonthTitleOne: '1 free month of hosting',
+    freeMonthTitleMany: (n) => `${n} free months of hosting`,
+    freeMonthTitleNone: 'Free hosting',
+    freeMonthBody: 'Hosting billing starts on the 1st of each month. From your project delivery until your first charge, hosting is free: we always gift you at least one full month.',
   },
 };
 
 const t = computed(() => i18n[props.language] || i18n.es);
 
-// Free-month gift: shown as a highlighted bucket. Driven by hostingPlan.freeMonths
-// (default 1); copy can be overridden per-proposal via hostingPlan.freeMonthNote.
+// Free-month gift: shown as a highlighted bucket. Visibility is the explicit
+// hostingPlan.freeMonthsVisible flag, resolved by the backend's
+// normalize_hosting_plan; content written before the flag existed has no key
+// and falls back to the old rule (a non-zero count meant visible). The count
+// now only feeds the title, and the copy can be overridden per-proposal via
+// hostingPlan.freeMonthNote.
 const freeMonthsCount = computed(() => Number(props.hostingPlan?.freeMonths) || 0);
+const freeMonthsVisible = computed(() => {
+  const flag = props.hostingPlan?.freeMonthsVisible;
+  if (flag !== undefined && flag !== null) return Boolean(flag);
+  return freeMonthsCount.value > 0;
+});
+const freeMonthTitle = computed(() => {
+  const n = freeMonthsCount.value;
+  if (n <= 0) return t.value.freeMonthTitleNone;
+  return n === 1 ? t.value.freeMonthTitleOne : t.value.freeMonthTitleMany(n);
+});
 const freeMonthBody = computed(() => {
   const custom = props.hostingPlan?.freeMonthNote;
   return (custom && String(custom).trim()) || t.value.freeMonthBody;

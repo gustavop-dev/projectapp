@@ -295,6 +295,7 @@ SECTION_CONTENT_SCHEMAS = {
             'renewalNote': str,
             'coverageNote': str,
             'freeMonths': NUMERIC,
+            'freeMonthsVisible': bool,
             'freeMonthNote': str,
         },
         'modules': [{
