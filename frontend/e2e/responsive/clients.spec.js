@@ -14,6 +14,7 @@ import { RESPONSIVE_PROFILES, batchForScenario, getResponsiveScenario } from './
 
 const json = (body, status = 200) => ({ status, contentType: 'application/json', body: JSON.stringify(body) });
 const platformProject = { id: 1, name: 'Portal de clientes responsive', description: 'Proyecto de prueba con datos concretos', status: 'active', status_label: 'Activo', progress: 65, client_id: 9002, client_name: 'Client E2E', client_email: 'client@e2e.test', client_company: 'ACME Corp', production_url: 'https://portal-responsive.test', staging_url: 'https://staging-responsive.test', repository_url: 'https://git.test/projectapp/portal', credentials: [{ label: 'Administración', username: 'ana', password: 'secreto-visible' }] };
+const projectAccessDetail = { project: { id: 1, name: platformProject.name, client_name: platformProject.client_name }, repository_url: platformProject.repository_url, environments: [{ environment: 'production', label: 'Producción', site_url: platformProject.production_url, admin_url: 'https://portal-responsive.test/admin/', admin_username: 'ana', has_password: true }, { environment: 'staging', label: 'Staging', site_url: platformProject.staging_url, admin_url: 'https://staging-responsive.test/admin/', admin_username: 'ana-stage', has_password: true }], notes: [{ id: 1, title: 'Soporte', content: 'Contactar al equipo de operaciones', has_content: true, is_sensitive: false, updated_by: 'Admin' }], legacy_access: null };
 const projectPhase = { id: 1, order: 1, hosting_start_date: null, hosting_activated_at: null, proposal: { id: 1, title: 'Fase de diseño responsive', total_amount: '5000000.00', status: 'accepted', deliverable_id: null }, hosting_tiers: [] };
 const clientRow = { user_id: 9002, first_name: 'Client', last_name: 'E2E', email: 'client@e2e.test', company_name: 'ACME Corp', phone: '+57 300 000 0002', is_active: true, is_onboarded: true, created_at: '2026-01-01T00:00:00Z' };
 const clientFixture = { id: 101, name: 'Kore Healths', email: 'kore@test.com', phone: '+57 300 111 1111', company: 'Kore', is_onboarded: true, is_email_placeholder: false, total_proposals: 1, projects_count: 1, diagnostics_count: 1, is_orphan: false, is_archived: false, hostings_count: 2, active_hostings_count: 1, active_projects_count: 1, documents_count: 3, documents_no_project_count: 1, created_at: '2026-01-01T00:00:00Z' };
@@ -33,6 +34,7 @@ function platformHandler(user = mockPlatformAdmin) {
     if (apiPath === 'accounts/me/' && method === 'GET') return json(user);
     if (apiPath === 'accounts/projects/' && method === 'GET') return json([platformProject]);
     if (apiPath === 'accounts/projects/1/' && method === 'GET') return json(platformProject);
+    if (apiPath === 'accounts/projects/1/access/' && method === 'GET') return json(projectAccessDetail);
     if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') return json([projectPhase]);
     if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') return json([boardRequirement]);
     if (apiPath === 'accounts/projects/1/bug-reports/' && method === 'GET') return json([bugFixture]);
@@ -134,7 +136,7 @@ const flowForScenario = Object.freeze({
   'frontend/pages/platform/projects/[id]/payments.vue': 'platform-hosting-subscription',
   'frontend/pages/platform/clients/index.vue': 'platform-admin-client-list',
   'frontend/pages/platform/clients/[id].vue': 'platform-admin-client-detail',
-  'frontend/pages/platform/projects/[id]/access.vue': 'platform-access-view',
+  'frontend/pages/platform/projects/[id]/access.vue': 'platform-project-access-detail',
   'frontend/pages/platform/forgot-password.vue': 'platform-password-reset',
   'frontend/pages/platform/reset-password.vue': 'platform-password-reset',
   'frontend/pages/platform/verify-code.vue': 'platform-password-reset',

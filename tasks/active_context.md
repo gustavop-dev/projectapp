@@ -24,6 +24,25 @@ mover el orden financiero de los grupos ni el bucket “Sin cliente”. No hay
 cambios backend ni de esquema; composable, encabezado agrupado y flujo E2E
 quedaron cubiertos y el mapa P1 conserva todos sus outcomes satisfechos.
 
+**2026-09-05 — detalle seguro de accesos por proyecto listo para integrar:**
+Proyectos abre un modal desde tabla, tarjeta o acciones compactas del Panel, y
+los administradores de Plataforma usan `/platform/projects/:id/access`; la ruta
+global anterior sólo redirige. El editor compartido presenta producción y
+staging en columnas desde landscape, URL del repositorio, URL/usuario/password
+Django por ambiente y notas múltiples con título/contenido. Cada campo guarda
+por separado y se copia con acción iconográfica; passwords y notas sensibles
+empiezan ocultos. `ProjectAdminAccess` y `ProjectAccessNote` guardan secretos
+Fernet, registran actor/fecha y la migración `accounts.0063` mueve legacy sólo
+cuando un hostname identifica un único ambiente; los ambiguos se clasifican con
+acción explícita y guard de conflicto. Session/CSRF staff y JWT admin reutilizan
+handlers, pero clientes, serializers generales y MCP no ven secretos; todos los
+payloads del detalle usan `no-store`. Seeds representativos generan dos
+ambientes y notas cifradas con dominios reservados. Verificación focal: 31
+backend, 14 unitarias y 15 E2E funcionales, matriz responsive 10/10, build Nuxt,
+Django check/migration dry-run/SQL, contratos de flows y quality gates en verde.
+El refresh de fake data se omitió porque `projects.yml` clasifica este entorno
+como producción.
+
 **2026-09-04 — mensaje personalizado de propuestas listo para integrar:** el
 tab **Correos** está disponible desde borrador y guarda de forma independiente
 un mensaje en texto plano que conecta problema, solución y resultado. Todos los

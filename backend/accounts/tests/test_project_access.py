@@ -1,27 +1,13 @@
 """Tests for the project access feature (URLs + admin credentials)."""
 
-import os
-
-# Must be set before any import touches accounts.services.credential_cipher,
-# whose Fernet key is cached via lru_cache on first call.
-os.environ.setdefault('PROJECT_ACCESS_CIPHER_KEY', 'uFJ2bxSRv2V4OLA4y-BxJcTYL8QxIrRiG4rZa_3BaiI=')
-
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from accounts.models import Project, UserProfile
-from accounts.services import credential_cipher
 from accounts.services.credential_cipher import decrypt_password, encrypt_password
 
 User = get_user_model()
-
-
-@pytest.fixture(autouse=True)
-def _reset_cipher_cache():
-    credential_cipher._get_cipher.cache_clear()
-    yield
-    credential_cipher._get_cipher.cache_clear()
 
 
 @pytest.fixture
@@ -105,7 +91,7 @@ class TestCredentialCipher:
 class TestProjectAccessList:
     URL = '/api/accounts/projects/access/'
 
-    def test_admin_sees_access_list_with_decrypted_password(
+    def test_admin_sees_access_list_with_password_indicator(
         self, api_client, admin_headers, project_with_access,
     ):
         resp = api_client.get(self.URL, **admin_headers)
@@ -115,8 +101,9 @@ class TestProjectAccessList:
         entry = data[0]
         assert entry['id'] == project_with_access.id
         assert entry['production_url'] == 'https://gim.example.com'
-        assert entry['admin_username'] == 'root'
-        assert entry['admin_password'] == 's3cret-pass'
+        assert entry['has_password'] is True
+        assert {'admin_username', 'admin_password'}.isdisjoint(entry)
+        assert 's3cret-pass' not in resp.content.decode()
 
     def test_client_cannot_access_list(self, api_client, client_headers, project_with_access):
         resp = api_client.get(self.URL, **client_headers)
@@ -137,7 +124,7 @@ class TestProjectAccessList:
 
 @pytest.mark.django_db
 class TestProjectUpdateWritesEncryptedCredentials:
-    def test_admin_update_encrypts_password_before_storing(
+    def test_generic_project_update_rejects_admin_password(
         self, api_client, admin_headers, project_with_access,
     ):
         resp = api_client.patch(
@@ -150,9 +137,9 @@ class TestProjectUpdateWritesEncryptedCredentials:
             format='json',
             **admin_headers,
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 400
+        assert resp.json()['code'] == 'project_access_detail_required'
         project_with_access.refresh_from_db()
-        assert project_with_access.production_url == 'https://new.example.com'
-        assert project_with_access.admin_username == 'newroot'
-        assert project_with_access.admin_password_encrypted != 'newpass1'
-        assert decrypt_password(project_with_access.admin_password_encrypted) == 'newpass1'
+        assert project_with_access.production_url == 'https://gim.example.com'
+        assert project_with_access.admin_username == 'root'
+        assert decrypt_password(project_with_access.admin_password_encrypted) == 's3cret-pass'

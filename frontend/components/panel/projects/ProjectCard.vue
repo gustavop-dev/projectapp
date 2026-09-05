@@ -11,7 +11,7 @@ const props = defineProps({
   highlighted: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['actions', 'assign', 'change-state'])
+const emit = defineEmits(['actions', 'assign', 'change-state', 'detail'])
 
 const statusTone = computed(() => stateBadgeVariant(props.project.current_state))
 const isTerminal = computed(() => ['completed', 'decommissioned'].includes(
@@ -117,6 +117,14 @@ const unlinkedTotal = computed(() => (
     </BaseButton>
 
     <div class="mt-auto flex items-center justify-end gap-2 pt-4">
+      <BaseActionButton
+        action="view"
+        variant="secondary"
+        size="md"
+        :label="`Ver detalle de ${project.name}`"
+        :data-testid="`project-detail-${project.id}`"
+        @click="emit('detail', project)"
+      />
       <BaseButton
         as="NuxtLink"
         :to="{ path: '/panel/communications', query: { project: project.id } }"
