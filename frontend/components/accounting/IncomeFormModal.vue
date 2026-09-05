@@ -4,12 +4,15 @@ import PartnerSplitInput from './PartnerSplitInput.vue'
 import PeriodDateField from './PeriodDateField.vue'
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue'
+import ReceivableConfidenceBadge from '~/components/accounting/ReceivableConfidenceBadge.vue'
+import ReceivableConfidenceDot from '~/components/accounting/ReceivableConfidenceDot.vue'
 import ClientFormFields from '~/components/clients/ClientFormFields.vue'
 import { useProposalClientsStore } from '~/stores/proposal_clients'
 import { useHostingPeriod } from '~/composables/useHostingPeriod'
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode'
 import { formatDate } from '~/utils/formatDate'
 import { todayISO } from '~/utils/periodDates'
+import { RECEIVABLE_CONFIDENCE_OPTIONS } from '~/utils/receivables'
 import { FREQUENCY_OPTIONS } from '~/utils/recurring'
 
 const props = defineProps({
@@ -80,6 +83,8 @@ function defaultForm() {
     project: null,
     client_name: '',
     origin: '',
+    is_receivable_candidate: false,
+    collection_confidence: '',
     period_start: '',
     period_end: '',
     period_cadence: '',
@@ -98,6 +103,17 @@ const isPersonal = computed(() => form.value.ledger !== 'company')
 // Hosting is a service window, not a point payment: the date block swaps to
 // start + end + cadence, and the backend derives period_date from the start.
 const isHosting = computed(() => form.value.origin === 'hosting')
+const forecastApplicable = computed(() => (
+  form.value.kind === 'expected' && form.value.ledger === 'company'
+))
+// A paid expected income keeps its last classification as historical context,
+// but cannot be reintroduced into the active forecast from an ordinary edit.
+const forecastReadOnly = computed(() => (
+  isEdit.value
+  && props.record?.kind === 'expected'
+  && props.record?.ledger === 'company'
+  && props.record?.payment_status === 'paid'
+))
 
 const cadenceOptions = FREQUENCY_OPTIONS
 
@@ -288,6 +304,10 @@ function onOriginChange() {
  * `required` forces a date before saving.
  */
 function applyRecord(source) {
+  // A duplicate is a new collection event. Operational forecast state never
+  // travels from the occurrence it copies, even if a future draft payload
+  // starts exposing those fields.
+  const resetForecast = isDuplicate.value
   form.value = {
     concept: source.concept ?? '',
     kind: source.kind ?? 'expected',
@@ -298,6 +318,12 @@ function applyRecord(source) {
     project: source.project ?? null,
     client_name: source.client_name ?? '',
     origin: source.origin ?? '',
+    is_receivable_candidate: resetForecast
+      ? false
+      : Boolean(source.is_receivable_candidate),
+    collection_confidence: resetForecast
+      ? ''
+      : (source.collection_confidence ?? ''),
     period_start: source.period_start ?? '',
     period_end: source.period_end ?? '',
     period_cadence: source.period_cadence ?? '',
@@ -442,6 +468,14 @@ function onSubmit() {
   if (!isPersonal.value) {
     payload.gustavo_amount = form.value.gustavo_amount
     payload.carlos_amount = form.value.carlos_amount
+  }
+  // When the shape stops being eligible these fields are omitted: the
+  // serializer owns automatic deactivation and preserves the stored colour.
+  // Paid records are likewise read-only, so a routine edit cannot replay an
+  // old confidence value as a new assignment.
+  if (forecastApplicable.value && !forecastReadOnly.value) {
+    payload.is_receivable_candidate = Boolean(form.value.is_receivable_candidate)
+    payload.collection_confidence = form.value.collection_confidence || ''
   }
   payload.notes = form.value.notes
   emit('submit', payload)
@@ -637,6 +671,51 @@ function onSubmit() {
       <BaseFormField label="Contabilidad">
         <BaseSegmented v-model="form.ledger" :options="ledgerOptions" full-width />
       </BaseFormField>
+
+      <section
+        v-if="forecastApplicable"
+        class="rounded-xl border border-border-muted bg-surface-raised p-4"
+        data-testid="income-form-receivable"
+      >
+        <div class="mb-3">
+          <h4 class="text-sm font-semibold text-text-default">Previsión de cobro</h4>
+          <p class="mt-1 text-xs text-text-muted">
+            El nivel y el interruptor son independientes. Elegir un color no activa la previsión.
+          </p>
+        </div>
+
+        <div v-if="!forecastReadOnly" class="grid gap-4 panel-portrait:grid-cols-2">
+          <BaseFormField label="Nivel de cobro" for="income-form-confidence">
+            <div class="flex items-center gap-3">
+              <ReceivableConfidenceDot :confidence="form.collection_confidence" />
+              <BaseSelect
+                id="income-form-confidence"
+                v-model="form.collection_confidence"
+                :options="RECEIVABLE_CONFIDENCE_OPTIONS"
+                class="min-w-0 flex-1"
+                data-testid="income-form-confidence"
+              />
+            </div>
+          </BaseFormField>
+          <BaseFormField label="Incluir en la previsión">
+            <div class="flex min-h-10 items-center gap-3">
+              <BaseToggle
+                v-model="form.is_receivable_candidate"
+                aria-label="Incluir ingreso en pendientes por cobrar"
+                data-testid="income-form-candidate"
+              />
+              <span class="text-sm text-text-muted">
+                {{ form.is_receivable_candidate ? 'Interruptor activado' : 'Interruptor desactivado' }}
+              </span>
+            </div>
+          </BaseFormField>
+        </div>
+
+        <div v-else class="flex flex-wrap items-center gap-2" data-testid="income-form-receivable-readonly">
+          <ReceivableConfidenceBadge :confidence="form.collection_confidence" />
+          <span class="text-xs text-text-muted">Cobrado · previsión desactivada</span>
+        </div>
+      </section>
 
       <BaseFormField v-if="form.kind === 'liquid' && !isPersonal" label="Destino">
         <BaseSegmented v-model="form.destination" :options="destinationOptions" full-width />

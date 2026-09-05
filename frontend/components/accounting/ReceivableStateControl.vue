@@ -15,25 +15,25 @@
         :aria-label="candidateAriaLabel"
         @update:model-value="emit('change', { is_receivable_candidate: $event })"
       />
-      <BaseSelect
-        :model-value="row.collection_confidence || ''"
-        :options="RECEIVABLE_CONFIDENCE_OPTIONS"
-        size="sm"
-        class="min-w-0 flex-1"
-        :disabled="busy"
-        :aria-label="`Probabilidad de cobro de ${row.concept}`"
-        @update:model-value="emit('change', { collection_confidence: $event })"
-      />
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <ReceivableConfidenceDot :confidence="row.collection_confidence" />
+        <BaseSelect
+          :model-value="row.collection_confidence || ''"
+          :options="RECEIVABLE_CONFIDENCE_OPTIONS"
+          size="sm"
+          class="min-w-0 flex-1"
+          :disabled="busy"
+          :aria-label="`Probabilidad de cobro de ${row.concept}`"
+          @update:model-value="emit('change', { collection_confidence: $event })"
+        />
+      </div>
       <span v-if="busy" class="sr-only" role="status">Guardando</span>
     </div>
 
     <div v-else class="flex items-center gap-2">
       <ReceivableConfidenceBadge
-        v-if="row.collection_confidence"
         :confidence="row.collection_confidence"
-        compact
       />
-      <span v-else class="text-text-subtle">—</span>
       <span class="text-[10px] text-text-muted">{{ unavailableReason }}</span>
     </div>
   </div>
@@ -44,6 +44,7 @@ import { computed } from 'vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import ReceivableConfidenceBadge from '~/components/accounting/ReceivableConfidenceBadge.vue';
+import ReceivableConfidenceDot from '~/components/accounting/ReceivableConfidenceDot.vue';
 import {
   RECEIVABLE_CONFIDENCE_OPTIONS,
   isReceivableEligible,

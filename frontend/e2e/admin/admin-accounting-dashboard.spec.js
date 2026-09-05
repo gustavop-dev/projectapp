@@ -215,9 +215,7 @@ function buildHandler({
       calls.push({ method, apiPath, body: payload });
       receivableRows = receivableRows.map((row) => {
         if (row.id !== id) return row;
-        const updated = { ...row, ...payload };
-        if (payload.collection_confidence) updated.is_receivable_candidate = true;
-        return updated;
+        return { ...row, ...payload };
       });
       return {
         status: 200,
@@ -309,6 +307,25 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(secondaryIndicators).toContainText('$59.516.261 COP');
     await expect(secondaryIndicators).toContainText('Bolsillo ProjectApp');
     await expect(secondaryIndicators).toContainText('$1.147.378 COP');
+  });
+
+  test('accounting quick access replaces ads with collection accounts', {
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockApi(page, buildHandler());
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+
+    const navigation = page.getByRole('navigation', { name: 'Navegación del panel' });
+    const collections = navigation.getByRole('link', { name: 'Cuentas de cobro', exact: true });
+    await expect(collections).toHaveAttribute('href', /\/panel\/accounting\/collections$/);
+    await expect(navigation.getByRole('link', { name: 'Ads', exact: true })).toHaveCount(0);
+
+    await collections.click();
+
+    await expect(page).toHaveURL(/\/panel\/accounting\/collections$/);
+    await expect(page.getByRole('heading', { name: 'Cuentas de cobro', exact: true }))
+      .toBeVisible({ timeout: 25_000 });
   });
 
   test('receivables card shows the grouped global forecast and its three tabs', {
@@ -405,10 +422,10 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(page.getByTestId('receivables-group-client')).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('assigning high confidence selects the receivable and refreshes the global forecast', {
+  test('confidence change waits for manual forecast activation', {
     tag: [...ADMIN_ACCOUNTING_RECEIVABLES, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    // Bug caught: choosing green could persist without auto-selecting the income or refreshing the KPI.
+    // Bug caught: choosing green used to flip the independent candidate switch.
     const calls = [];
     await mockApi(page, buildHandler({ calls, unselectedHosting: true }));
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -422,6 +439,16 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect.poll(() => calls.find((call) => (
       call.apiPath === 'accounting/incomes/72/update/'
     ))?.body).toEqual({ collection_confidence: 'high' });
+    await expect(page.getByRole('switch', { name: /Agregar Hosting anual Acme/ }))
+      .toHaveAttribute('aria-checked', 'false');
+    await expect(page.getByTestId('accounting-card-receivables')).toContainText('$2.000.000 COP');
+    await expect(page.getByRole('tab', { name: /Selección/ })).toContainText('1');
+
+    await page.getByRole('switch', { name: /Agregar Hosting anual Acme/ }).click();
+
+    await expect.poll(() => calls.filter((call) => (
+      call.apiPath === 'accounting/incomes/72/update/'
+    )).at(-1)?.body).toEqual({ is_receivable_candidate: true });
     await expect(page.getByTestId('accounting-card-receivables')).toContainText('$3.000.000 COP');
     await page.getByRole('tab', { name: /Selección/ }).click();
     await expect(page.getByTestId('receivables-selected-tab')).toContainText('Hosting anual Acme');

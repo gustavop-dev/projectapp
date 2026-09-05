@@ -25,8 +25,9 @@
         {{ status.label }}.
       </p>
       <p>
-        “Sin clasificar” mantiene el ingreso seleccionado, pero no suma en la
-        tarjeta. Sólo los seleccionados en verde forman el valor de “Pendiente por cobrar”.
+        El círculo neutro identifica los ingresos “Sin clasificar”. El nivel y
+        el interruptor son decisiones independientes: sólo los ingresos con el
+        interruptor activo y nivel verde suman en “Pendiente por cobrar”.
       </p>
     </div>
   </BaseTooltip>

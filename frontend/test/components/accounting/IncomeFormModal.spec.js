@@ -188,6 +188,76 @@ describe('IncomeFormModal', () => {
     expect(wrapper.find('[data-testid="income-form-submit"]').exists()).toBe(true);
   });
 
+  it('submits forecast fields as independent decisions', async () => {
+    const wrapper = mountModal();
+    await segmentedButton(wrapper, 'Desarrollo').trigger('click');
+    await wrapper.get('[data-testid="income-form-confidence"]').setValue('high');
+
+    expect(wrapper.get('[data-testid="income-form-candidate"]').attributes('aria-checked'))
+      .toBe('false');
+
+    await wrapper.get('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      is_receivable_candidate: false,
+      collection_confidence: 'high',
+    });
+  });
+
+  it('hydrates the saved forecast while editing', () => {
+    const wrapper = mountModal({
+      record: {
+        concept: 'Hosting Acme',
+        kind: 'expected',
+        ledger: 'company',
+        origin: 'development',
+        payment_status: 'pending',
+        is_receivable_candidate: true,
+        collection_confidence: 'medium',
+      },
+    });
+
+    expect(wrapper.get('[data-testid="income-form-confidence"]').element.value).toBe('medium');
+    expect(wrapper.get('[data-testid="income-form-candidate"]').attributes('aria-checked'))
+      .toBe('true');
+  });
+
+  it('keeps a paid forecast classification visible without editable controls', () => {
+    const wrapper = mountModal({
+      record: {
+        concept: 'Hosting Acme',
+        kind: 'expected',
+        ledger: 'company',
+        origin: 'development',
+        payment_status: 'paid',
+        is_receivable_candidate: false,
+        collection_confidence: 'high',
+      },
+    });
+
+    expect(wrapper.get('[data-testid="income-form-receivable-readonly"]').text())
+      .toContain('Cobro muy probable');
+    expect(wrapper.find('[data-testid="income-form-confidence"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="income-form-candidate"]').exists()).toBe(false);
+  });
+
+  it('resets forecast state while duplicating', () => {
+    const wrapper = mountModal({
+      seed: {
+        concept: 'Hosting Acme',
+        kind: 'expected',
+        ledger: 'company',
+        origin: 'development',
+        is_receivable_candidate: true,
+        collection_confidence: 'low',
+      },
+    });
+
+    expect(wrapper.get('[data-testid="income-form-confidence"]').element.value).toBe('');
+    expect(wrapper.get('[data-testid="income-form-candidate"]').attributes('aria-checked'))
+      .toBe('false');
+  });
+
   it('defaults to the exact date prefilled with today', () => {
     // 20:00 local: toISOString() would already be tomorrow in Bogotá
     // (UTC-5) — this pins the local-date formatting.
@@ -450,6 +520,8 @@ describe('IncomeFormModal', () => {
       client: 7,
       project: 3,
       origin: 'hosting',
+      is_receivable_candidate: false,
+      collection_confidence: '',
       // Hosting sends the window and lets the backend derive period_date
       // from its start — two values would be two chances to disagree.
       period_start: '2027-03-01',

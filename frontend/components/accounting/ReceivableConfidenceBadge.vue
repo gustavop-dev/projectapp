@@ -4,11 +4,7 @@
     :size="size"
     :data-testid="testId"
   >
-    <span
-      class="h-2 w-2 shrink-0 rounded-full"
-      :class="dotClass"
-      aria-hidden="true"
-    />
+    <ReceivableConfidenceDot :confidence="confidence" size="sm" />
     {{ compact ? definition.shortLabel : definition.label }}
   </BaseBadge>
 </template>
@@ -16,6 +12,7 @@
 <script setup>
 import { computed } from 'vue';
 import BaseBadge from '~/components/base/BaseBadge.vue';
+import ReceivableConfidenceDot from '~/components/accounting/ReceivableConfidenceDot.vue';
 import { confidenceDefinition } from '~/utils/receivables';
 
 const props = defineProps({
@@ -26,9 +23,4 @@ const props = defineProps({
 });
 
 const definition = computed(() => confidenceDefinition(props.confidence));
-const dotClass = computed(() => ({
-  high: 'bg-success-strong',
-  medium: 'bg-warning-strong',
-  low: 'bg-danger-strong',
-}[props.confidence] || 'bg-text-subtle'));
 </script>

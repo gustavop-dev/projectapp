@@ -62,11 +62,13 @@ describe('accounting receivables store', () => {
 
   it('hydrates the global summary after a direct table edit', async () => {
     store.incomes = [greenRow({ is_receivable_candidate: false, collection_confidence: '' })];
-    patch_request.mockResolvedValue({ data: greenRow() });
+    patch_request.mockResolvedValue({
+      data: greenRow({ is_receivable_candidate: false }),
+    });
     get_request.mockResolvedValue({
       data: {
-        results: [greenRow()],
-        summary: { high_total: '1200.00', high_count: 1 },
+        results: [greenRow({ is_receivable_candidate: false })],
+        summary: { high_total: '0.00', high_count: 0 },
       },
     });
 
@@ -74,6 +76,8 @@ describe('accounting receivables store', () => {
 
     expect(get_request).toHaveBeenCalledWith('accounting/receivables/');
     expect(store.incomes[0].collection_confidence).toBe('high');
+    expect(store.incomes[0].is_receivable_candidate).toBe(false);
+    expect(store.receivablesSummary.high_total).toBe('0.00');
   });
 
   it('releases the row lock after a failed update', async () => {
