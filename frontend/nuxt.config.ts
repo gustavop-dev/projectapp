@@ -35,6 +35,7 @@ export default defineNuxtConfig({
   // Keep the existing Nuxt 3-era root layout while adopting Nuxt 4. Nuxt 4
   // otherwise defaults application sources to app/.
   srcDir: '.',
+  buildDir: '.nuxt',
   dir: {
     app: 'app',
   },
