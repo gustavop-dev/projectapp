@@ -2,7 +2,7 @@
 
 backend/conftest.py runs them at session start and aborts on any finding.
 They take the settings, environment and paths as arguments, so the refusals
-themselves are tested (tests/test_pytest_isolation.py).
+themselves are tested (projectapp/tests/test_pytest_isolation.py).
 """
 
 from pathlib import Path
@@ -26,7 +26,7 @@ def settings_refusals(settings, environ):
             '(an exported DJANGO_SETTINGS_MODULE or --ds overrides pytest.ini)'
         )
     if getattr(settings, 'IS_PRODUCTION', False):
-        reasons.append('IS_PRODUCTION is True: DJANGO_ENV=production is exported')
+        reasons.append('IS_PRODUCTION is True: DJANGO_ENV=production (exported or read from backend/.env)')
     engine = settings.DATABASES['default']['ENGINE']
     if engine != 'django.db.backends.sqlite3':
         reasons.append(f'database engine is {engine}; the suite runs on SQLite only')

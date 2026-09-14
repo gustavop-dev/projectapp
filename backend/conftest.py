@@ -29,11 +29,11 @@ def _refuse_unsafe_session() -> None:
     """Abort before collection if this session could reach production.
 
     Runs ahead of django_db_setup and of every test. The refusals live in
-    tests/isolation.py; projectapp/settings_test.py is what satisfies them.
+    projectapp/tests/isolation.py; projectapp/settings_test.py satisfies them.
     """
     from django.conf import settings
 
-    from tests.isolation import (
+    from projectapp.tests.isolation import (
         collect_storage_locations,
         deployed_clone_refusal,
         settings_refusals,

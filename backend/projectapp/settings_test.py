@@ -30,6 +30,12 @@ from .settings import *  # noqa: E402, F401, F403
 TEST_FILE_ROOT = Path(tempfile.mkdtemp(prefix='projectapp-pytest-'))
 atexit.register(shutil.rmtree, TEST_FILE_ROOT, ignore_errors=True)
 
+# The SQLite test database lives in memory. Django still opens the configured
+# NAME around its setup, which used to leave an empty backend/db.sqlite3.
+DATABASES = {
+    'default': {**DATABASES['default'], 'NAME': str(TEST_FILE_ROOT / 'db.sqlite3')},  # noqa: F405
+}
+
 MEDIA_ROOT = str(TEST_FILE_ROOT / 'media')
 PRIVATE_MEDIA_ROOT = str(TEST_FILE_ROOT / 'private_media')
 STORAGES = {

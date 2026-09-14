@@ -2,7 +2,7 @@
 
 backend/pytest.ini runs the suite on projectapp.settings_test, and
 backend/conftest.py refuses to start a session that could touch production
-(the refusals live in tests/isolation.py). These tests pin both halves.
+(the refusals live in projectapp/tests/isolation.py). These tests pin both halves.
 """
 
 import os
@@ -18,7 +18,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
 from content.models import FinancingAgreement
-from tests.isolation import (
+from projectapp.tests.isolation import (
     collect_storage_locations,
     deployed_clone_refusal,
     settings_refusals,
@@ -38,10 +38,10 @@ SAFE_SETTINGS = {
 DOTENV_OVERRIDES = ('DJANGO_ENV', 'DJANGO_SETTINGS_MODULE', 'REDIS_URL', 'CACHE_REDIS_URL')
 
 
-def _checkout_with_linked_dotenv(tmp_path, *, main_clone, django_env):
+def _checkout_with_linked_dotenv(tmp_path, *, main_clone, django_env, extra_lines=()):
     """A checkout whose backend/.env symlinks a deployed .env, as worktrees do."""
     deployed_env = tmp_path / 'deployed.env'
-    deployed_env.write_text(f'DJANGO_ENV={django_env}\n')
+    deployed_env.write_text(''.join(f'{line}\n' for line in (f'DJANGO_ENV={django_env}', *extra_lines)))
     backend = tmp_path / 'checkout' / 'backend'
     backend.mkdir(parents=True)
     (backend / '.env').symlink_to(deployed_env)
@@ -168,9 +168,10 @@ def test_deployed_clone_refusal_hits_only_a_main_clone_declaring_production(
 
 def test_suite_settings_ignore_a_symlinked_production_dotenv(tmp_path):
     """Worktrees symlink the deployed backend/.env: base settings read it, the suite's must not."""
-    backend = _checkout_with_linked_dotenv(tmp_path, main_clone=False, django_env='production')
-    with (tmp_path / 'deployed.env').open('a') as dotenv:
-        dotenv.write('CACHE_REDIS_URL=redis://localhost:6379/1\n')
+    backend = _checkout_with_linked_dotenv(
+        tmp_path, main_clone=False, django_env='production',
+        extra_lines=('CACHE_REDIS_URL=redis://localhost:6379/1',),
+    )
     package = backend / 'projectapp'
     package.mkdir()
     (package / '__init__.py').write_text('')
