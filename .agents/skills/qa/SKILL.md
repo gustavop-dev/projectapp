@@ -53,7 +53,9 @@ reimplement it.
   false-clean and exits 2 — never a pass. On a clean pass it clears the marker.
 - `qa-agent.sh --gate-hook` → the deterministic Stop-hook backstop (wired in this
   skill's frontmatter). While `<repo>/.qa-gate-pending` exists, ending the turn is
-  BLOCKED (exit 2) until the gate passes over the files it lists.
+  BLOCKED (exit 2) until the gate passes over the files it lists. Integrity
+  excludes exactly that root filename: it is non-executable, short-lived QA
+  coordination metadata, not a deployed-code mutation.
 - `qa-agent.sh --all-repos` / `--all-vps` → fleet sweep, analysis-only (see Fleet
   mode). `--report` is an alias of `--check`.
 
@@ -168,6 +170,14 @@ replaces measurement:**
   only ADDS work. No metrics live in memory (a stored number becomes a
   target — history lives in `docs/audits/*-qa.md`).
 
+**`PERF pending` watchlist lines** (written by $perf-pass §5b) point at a
+`brief-perf` script in the toolkit's `docs/audits/`: the Architect reads it and
+plans its items as budget tests in the owning layer (query / fetch / size
+counts — never time), re-verifying every `file:line` this run; the files it
+creates are what `perf-pass --record-qa` later measures. Report them as a
+`Presupuestos perf` row in the final table and add the Next step
+`$perf-pass <proj> --candidate=<id> --record-qa`.
+
 On `qa_memory=absent` for a repo worth remembering, Phase 7 creates the file
 at the printed path.
 
@@ -175,6 +185,17 @@ at the printed path.
 
 - If `docs/methodology/` is missing or stale, run **methodology-setup** (conductor
   work — no dedicated agent) to build the Memory Bank. Safe anywhere.
+- Mapa de vistas (trabajo del conductor, no del Analyst): sólo si el repo tiene
+  `frontend/config/viewCatalog.js` y la skill $view-map-update está
+  instalada para este runtime (Claude: `.claude/skills/view-map-update/`;
+  Codex: `.agents/skills/view-map-update/`); si no, `⏭️`. Dry-run →
+  `--check --diff` (reporta, no escribe); `--apply` → `--apply --diff` en el
+  worktree de QA: sus cambios entran al commit de Phase 7 junto al flow-map, y
+  los tests de conteos fijados que toque se suman a la unión de
+  `files_touched` del gate (`.qa-gate-pending`/`--verify`). Sus handoffs E2E
+  (escenario responsivo visual sin spec) pasan al Architect en Phase 2 como
+  ítems e2e. Nunca pregunta (hereda este gating), nunca en fleet mode, y si la
+  sesión ya la corrió sobre este mismo diff, cita ese resultado.
 - Flow map: the preflight emits `flow_map_fresh=yes|no`; **if the key is ABSENT,
   the map does not exist** — same action as `no`: dispatch **`qa-analyst`** (it
   preloads `e2e-user-flows-check`) to derive the flow registry from the app's
@@ -295,6 +316,11 @@ of `files_touched` (one repo-relative path per line) to `<repo>/.qa-gate-pending
 From that moment the Stop hook makes it impossible to end the turn until the gate
 passes over those files; Phase 5's `--verify` clears the marker on a clean pass.
 Never delete the marker by hand to "unblock" — fix the findings.
+
+Mutation testing is also worktree-only: `mutation-pilot.sh --run` requires
+`--projdir=<worktree-de-sesion>` and rejects a primary/deployed clone before it
+can seed config, install a dependency or execute mutants. `--plan` stays
+read-only and may inspect the maintained clone.
 
 **E2E needs the running app.** The preflight probes it: `app_reachable=local:<port>
 | staging:<url> | no` (production is NEVER probed nor validated — read-only by
@@ -481,7 +507,7 @@ Reportar siguiendo $output-protocol. Plantilla específica de `$qa`
 |---|---|---|
 | Preflight + coordenada | ✅ | layers=[…] · db=… · rama=<resolved_branch> · on-work-host |
 | Methodology (fase 1) | ⏭️ | docs/methodology fresco (✅ si se regeneró) |
-| Flow-map | ✅ | flow-definitions.json fresco (⏭️ si no aplica) |
+| Flow-map · Mapa de vistas | ✅ | flow-definitions.json fresco (⏭️ si no aplica) · mapa de vistas al día (sólo con mapa; ⚠️ N ajustes en dry-run) |
 | Fake data (fase 3) | ⏭️ | prod: skip silencioso · staging: preguntado/skip-sin-señal |
 | Auditoría cobertura | ⚠️ | junk-only: N · unvalidated: N (drafts sin ejecutar) · missing P1/P2: N · clases error/failure faltantes: N · exempt: N (no son gaps) |
 | Backend (subagente) | ✅ | N tests, valor concreto + "qué bug atrapa"; DJANGO_ENV=production |
@@ -497,6 +523,7 @@ Reportar siguiendo $output-protocol. Plantilla específica de `$qa`
 ## Next steps
 - `bash $HOME/webapps/vps-ops-toolkit/scripts/qa/qa-agent.sh --verify <proj> --files=<spec>` — reconfirmar el gate
 - (operador) `dev-up` + re-`$qa --apply` para VALIDAR los e2e en draft
+- `$perf-pass <proj> --candidate=<id> --record-qa` — sólo si la corrida consumió un puntero `PERF pending`: registra el veredicto medido en el ledger de rendimiento
 - (operador) `$merge-queue` — QA nunca mergea
 - (operador, opcional) `$deploy-and-check` — desplegar (sugerencia, nunca auto)
 ```

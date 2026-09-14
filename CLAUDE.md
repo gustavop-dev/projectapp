@@ -302,6 +302,13 @@ por ecosistema. La fuente de verdad es `vps-ops-toolkit/workflows/`.
 - Settings selector: the gunicorn and huey units pin `projectapp.settings_prod`. Without `DJANGO_SETTINGS_MODULE`, `manage.py` and `asgi.py` pick `settings_prod` when the exported `DJANGO_ENV` is `production` and `settings_dev` otherwise; `settings_dev` refuses to load when `DJANGO_ENV` (exported or in `backend/.env`) is `production`.
 - On the VPS: `DJANGO_SETTINGS_MODULE=projectapp.settings_prod venv/bin/python manage.py <command>`. In a worktree, only `makemigrations`/`sqlmigrate`, never `migrate`: `DJANGO_ENV=development ~/webapps/projectapp/backend/venv/bin/python manage.py makemigrations`.
 
+## View Map Maintenance
+- `/panel/views` (Mapa de vistas) is fed by hand-maintained data: `frontend/config/viewCatalog.js` (Lista and Mapa) and `frontend/config/viewCapabilityCatalog.js` (Explorador), plus the tests, responsive contract and docs that pin their contents. `npm run check:view-catalog` only catches structural drift; labels, references, notes, view types and Explorer summaries go stale silently.
+- When a change adds, removes, renames or re-purposes a page, tab, modal or user-visible capability under `frontend/pages/` (directly or through a component, composable or store a page mounts), run the `view-map-update` skill with `--apply --diff` from your session worktree as a final step, before reporting the work complete. `implement`, `new-feature-checklist` and `qa` invoke it automatically; one run per diff is enough.
+- For a read-only audit use `view-map-update --check` (legacy alias: `view-map-audit`); for catch-up sweeps use `--since` (changes since the last catalog commit on the base branch) or `--all`.
+- Does not apply to backend-only changes, pure styling, internal refactors, dependency bumps or test-only changes with no user-visible effect.
+- Writing responsive or E2E specs for a new page stays with `qa`; the skill only updates declarative contract data and pinned counts.
+
 ## Memory Bank
 - Core files: `docs/methodology/product_requirement_docs.md`, `architecture.md`, `technical.md`, `error-documentation.md`, `lessons-learned.md`, `tasks/tasks_plan.md`, `tasks/active_context.md`.
 - Update memory files when the user asks, or when you have verified a meaningful change to runtime surfaces, architecture, or recurring workflow guidance.
