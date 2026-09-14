@@ -283,7 +283,7 @@ por ecosistema. La fuente de verdad es `vps-ops-toolkit/workflows/`.
 - Write commit messages and PR descriptions in the project's normal voice (FIX/FEAT/REFACTOR prefixes, plain summary + test plan), with no AI-tooling attribution.
 
 ## Commands
-- Backend tests: `source .venv/bin/activate && cd backend && pytest path/to/test_file.py -v`
+- Backend tests (session worktree only, see Test And Settings Safety): from `<worktree>/backend`, `~/webapps/projectapp/backend/venv/bin/pytest path/to/test_file.py -v --no-cov`
 - Backend dev server: `source .venv/bin/activate && cd backend && python manage.py runserver`
 - Frontend dev server: `npm --prefix frontend run dev`
 - Frontend unit tests: `npm --prefix frontend test -- path/to/file.spec.js`
@@ -295,6 +295,12 @@ por ecosistema. La fuente de verdad es `vps-ops-toolkit/workflows/`.
 - Maximum 20 tests per batch and 3 test commands per cycle.
 - Run only the smallest backend, frontend unit, or E2E slice needed for the changed behavior.
 - For Playwright on Nuxt routes, use `domcontentloaded` and explicit waits, not `networkidle`.
+
+## Test And Settings Safety
+- Never run pytest in the deployed clone `~/webapps/projectapp`; run backend tests from a session worktree. `backend/conftest.py` aborts the session there, and whenever the setup could reach production: another settings module, `IS_PRODUCTION`, a non-SQLite engine, a Redis cache or an exported `REDIS_URL`/`CACHE_REDIS_URL`, Huey outside immediate mode, or a file storage outside the per-run temp dir.
+- pytest always runs on `projectapp.settings_test` (`backend/pytest.ini`). It reads only the process environment, never `backend/.env` (worktrees symlink the production one), and keeps media, private media and backups in a per-run temp dir. Do not export `DJANGO_SETTINGS_MODULE` or `DJANGO_ENV` in the shell that runs pytest.
+- Settings selector: the gunicorn and huey units pin `projectapp.settings_prod`. Without `DJANGO_SETTINGS_MODULE`, `manage.py` and `asgi.py` pick `settings_prod` when the exported `DJANGO_ENV` is `production` and `settings_dev` otherwise; `settings_dev` refuses to load when `DJANGO_ENV` (exported or in `backend/.env`) is `production`.
+- On the VPS: `DJANGO_SETTINGS_MODULE=projectapp.settings_prod venv/bin/python manage.py <command>`. In a worktree, only `makemigrations`/`sqlmigrate`, never `migrate`: `DJANGO_ENV=development ~/webapps/projectapp/backend/venv/bin/python manage.py makemigrations`.
 
 ## Memory Bank
 - Core files: `docs/methodology/product_requirement_docs.md`, `architecture.md`, `technical.md`, `error-documentation.md`, `lessons-learned.md`, `tasks/tasks_plan.md`, `tasks/active_context.md`.
