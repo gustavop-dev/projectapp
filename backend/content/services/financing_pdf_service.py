@@ -50,9 +50,9 @@ class FinancingPdfService:
             topMargin=18 * mm,
             bottomMargin=18 * mm,
             title=(
-                'Software Financing Program'
+                'Partnership Program'
                 if language == 'en'
-                else 'Programa de financiación de software'
+                else 'Programa de Alianza'
             ),
             author='Project App.',
         )
@@ -127,8 +127,7 @@ class FinancingPdfService:
             Spacer(1, 43 * mm),
             Paragraph('PROJECT APP.', styles['eyebrow']),
             Paragraph(
-                'Software Financing Program'
-                if english else 'Programa de financiación de software',
+                'Partnership Program' if english else 'Programa de Alianza',
                 styles['cover_title'],
             ),
             Table(

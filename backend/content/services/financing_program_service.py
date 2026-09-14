@@ -17,7 +17,7 @@ INCLUDED_PACKAGE_HOURS = 60
 PROGRAM_CONTENT = {
     'es': {
         'hero': {
-            'eyebrow': 'Financiación para productos con visión de largo plazo',
+            'eyebrow': 'Programa de Alianza para productos con visión de largo plazo',
             'title': 'Construimos hoy. Crecemos contigo.',
             'subtitle': (
                 'Project App. puede financiar el desarrollo e implementación de '
@@ -323,14 +323,15 @@ PROGRAM_CONTENT = {
         ],
         'cta': {
             'eyebrow': 'Conversemos sobre el potencial del proyecto',
-            'title': 'Solicita una evaluación de financiación',
+            'title': 'Solicita tu evaluación para el Programa de Alianza',
             'body': (
                 'Cuéntanos qué producto quieres construir, qué etapa necesitas financiar '
                 'y cuál es el resultado que esperas alcanzar.'
             ),
             'button': 'Hablar por WhatsApp',
             'message': (
-                'Hola, quiero solicitar una evaluación para financiar un proyecto de software con Project App.'
+                'Hola, quiero solicitar una evaluación de mi proyecto de software '
+                'para el Programa de Alianza de Project App.'
             ),
         },
         'disclaimer': (
@@ -340,7 +341,7 @@ PROGRAM_CONTENT = {
     },
     'en': {
         'hero': {
-            'eyebrow': 'Financing for products built with a long-term vision',
+            'eyebrow': 'Partnership Program for products built with a long-term vision',
             'title': 'We build today. We grow with you.',
             'subtitle': (
                 'Project App. may finance the development and implementation of '
@@ -643,14 +644,15 @@ PROGRAM_CONTENT = {
         ],
         'cta': {
             'eyebrow': 'Let’s discuss the project’s potential',
-            'title': 'Request a financing evaluation',
+            'title': 'Request your Partnership Program evaluation',
             'body': (
                 'Tell us what product you want to build, which stage you need to '
                 'finance, and the outcome you expect to achieve.'
             ),
             'button': 'Talk on WhatsApp',
             'message': (
-                'Hi, I would like to request an evaluation to finance a software project with Project App.'
+                'Hi, I would like to request a Partnership Program evaluation '
+                'for my software project with Project App.'
             ),
         },
         'disclaimer': (
@@ -918,7 +920,9 @@ def serialize_financing_program(*, language):
             policy.installment_due_day_end,
         ],
         'canonical_path': (
-            '/en-us/financing' if language == 'en' else '/es-co/financing'
+            '/en-us/partnership-program'
+            if language == 'en'
+            else '/es-co/partnership-program'
         ),
     })
     payload['package'].update(_included_package(language))

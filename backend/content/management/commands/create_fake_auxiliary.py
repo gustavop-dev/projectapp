@@ -204,20 +204,24 @@ class Command(BaseCommand):
             AdditionalModuleShareLink.objects.filter(
                 recipient_label__startswith='[Demo] Catálogo',
             ).delete()
+            # A short selection hides the explainer: the video presents the
+            # whole catalog, which is the noise a three-module link avoids.
             share_specs = (
-                ('Selección breve', 'es', 3, 0, True),
-                ('Selección consultada', 'es', 6, 1, True),
-                ('Catálogo completo', 'es', len(modules), 2, True),
-                ('Selection in English', 'en', 4, 1, True),
-                ('Enlace retirado', 'es', 3, 0, False),
+                ('Selección breve', 'es', 3, 0, True, False),
+                ('Selección consultada', 'es', 6, 1, True, True),
+                ('Catálogo completo', 'es', len(modules), 2, True, True),
+                ('Selection in English', 'en', 4, 1, True, True),
+                ('Enlace retirado', 'es', 3, 0, False, True),
             )
-            for index, (label, language, module_count, view_count, is_active) in enumerate(share_specs):
+            for index, spec in enumerate(share_specs):
+                label, language, module_count, view_count, is_active, show_video = spec
                 link = AdditionalModuleShareLink.objects.create(
                     uuid=context.uuid(f'additional-modules-share-{index}'),
                     recipient_label=f'[Demo] Catálogo — {label}',
                     client=clients[index % len(clients)] if clients else None,
                     language=language,
                     is_active=is_active,
+                    show_explainer_video=show_video,
                     revoked_at=(
                         context.anchor_now - timedelta(days=2)
                         if not is_active else None

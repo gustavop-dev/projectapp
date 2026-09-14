@@ -97,6 +97,7 @@ class AdditionalModuleShareCreateSerializer(serializers.Serializer):
         queryset=AdditionalModule.objects.filter(is_active=True),
         many=True,
     )
+    show_explainer_video = serializers.BooleanField(required=False, default=True)
 
     def validate_selected_module_ids(self, value):
         ids = [module.pk for module in value]
@@ -123,7 +124,8 @@ class AdditionalModuleShareAdminSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'recipient_label', 'client', 'client_name', 'language',
             'selected_modules', 'public_path', 'is_active', 'revoked_at',
-            'view_count', 'first_viewed_at', 'last_viewed_at', 'created_at',
+            'show_explainer_video', 'view_count', 'first_viewed_at',
+            'last_viewed_at', 'created_at',
         )
 
     def get_client_name(self, obj):
@@ -147,6 +149,15 @@ class AdditionalModuleShareAdminSerializer(serializers.ModelSerializer):
     def get_public_path(self, obj):
         locale = 'es-co' if obj.language == 'es' else 'en-us'
         return f'/{locale}/additional-modules/share/{obj.uuid}'
+
+
+class AdditionalModuleShareVideoSerializer(serializers.ModelSerializer):
+    """Only the explainer switch is editable once a link has been shared."""
+
+    class Meta:
+        model = AdditionalModuleShareLink
+        fields = ('show_explainer_video',)
+        extra_kwargs = {'show_explainer_video': {'required': True}}
 
 
 class AdditionalModulePdfSelectionSerializer(serializers.Serializer):

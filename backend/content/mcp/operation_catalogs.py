@@ -212,6 +212,9 @@ COMMERCIAL_PARITY_TOOLS = [
     _op('list_additional_module_shares', 'Lista enlaces compartidos del catálogo.', 'admin-additional-module-shares'),
     _op('create_additional_module_share', 'Crea un enlace compartido del catálogo.', 'admin-additional-module-shares', 'POST', risk='write'),
     _op('set_additional_module_share_status', 'Activa, archiva o restaura un enlace compartido.', 'set-additional-module-share-status', 'POST', ('share_uuid', 'action'), 'write'),
+    _op('update_additional_module_share', 'Muestra u oculta el video explicativo en un enlace compartido del catálogo (show_explainer_video).', 'update-additional-module-share', 'PATCH', ('share_uuid',), 'write'),
+    _op('get_explainer_video_settings', 'Obtiene si el catálogo y el Programa de Alianza muestran su video explicativo a los clientes.', 'explainer-video-settings'),
+    _op('update_explainer_video_settings', 'Muestra u oculta el video explicativo del catálogo o del Programa de Alianza en la vista pública.', 'update-explainer-video-settings', 'PATCH', risk='write'),
     _op('render_additional_modules_pdf', 'Genera el catálogo de módulos como asset temporal.', 'admin-additional-module-catalog-pdf', 'POST'),
     _op('list_hour_packages', 'Lista paquetes de horas y sus precios.', 'list-admin-hour-packages'),
     _op('get_hour_package', 'Abre un paquete de horas.', 'retrieve-admin-hour-package', path=('package_id',)),
@@ -221,8 +224,8 @@ COMMERCIAL_PARITY_TOOLS = [
     _op('get_hour_package_settings', 'Obtiene ajustes de paquetes de horas.', 'hour-package-settings'),
     _op('update_hour_package_settings', 'Actualiza ajustes de paquetes de horas.', 'update-hour-package-settings', 'PATCH', risk='write'),
     _op('restore_default_hour_packages', 'Restaura el catálogo inicial de paquetes.', 'restore-default-hour-packages', 'POST', risk='sensitive', confirm=True),
-    _op('get_financing_program', 'Obtiene el programa informativo de financiación.', 'public-financing-program'),
-    _op('render_financing_program_pdf', 'Genera el programa de financiación como asset temporal.', 'public-financing-program-pdf'),
+    _op('get_financing_program', 'Obtiene el Programa de Alianza informativo: financiación, exclusividad y paquete mensual.', 'public-financing-program'),
+    _op('render_financing_program_pdf', 'Genera el PDF del Programa de Alianza como asset temporal.', 'public-financing-program-pdf'),
 ]
 
 

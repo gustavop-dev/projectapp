@@ -223,6 +223,57 @@ class TestServeNuxtLegacyBlogRedirect:
             views_mod.FRONTEND_DIR = original
 
 
+class TestServeNuxtRenamedFinancingRedirect:
+    """/financing became /partnership-program (Programa de Alianza): old links 301."""
+
+    @pytest.mark.parametrize(('path', 'location'), [
+        ('es-co/financing', '/es-co/partnership-program'),
+        ('en-us/financing/', '/en-us/partnership-program'),
+        ('es-co/financing/_payload.json', '/es-co/partnership-program/_payload.json'),
+        ('financing', '/es-co/partnership-program'),
+    ])
+    def test_legacy_financing_path_redirects_permanently(self, rf, path, location):
+        response = serve_nuxt(rf.get(f'/{path}'), path=path)
+
+        assert response.status_code == 301
+        assert response['Location'] == location
+
+    def test_redirect_keeps_the_query_string(self, rf):
+        request = rf.get('/es-co/financing', {'utm_source': 'whatsapp'})
+
+        response = serve_nuxt(request, path='es-co/financing')
+
+        assert response['Location'] == '/es-co/partnership-program?utm_source=whatsapp'
+
+    def test_stale_prerendered_financing_page_still_redirects(
+        self, rf, frontend_dir, monkeypatch,
+    ):
+        """Fails if a leftover build file answers the old URL instead of the 301."""
+        import projectapp.views as views_mod
+        stale_dir = os.path.join(frontend_dir, 'es-co', 'financing')
+        os.makedirs(stale_dir)
+        with open(os.path.join(stale_dir, 'index.html'), 'w') as stale_page:
+            stale_page.write('<html><body>Módulo de financiación</body></html>')
+        monkeypatch.setattr(views_mod, 'FRONTEND_DIR', frontend_dir)
+
+        response = serve_nuxt(rf.get('/es-co/financing'), path='es-co/financing')
+
+        assert response.status_code == 301
+
+    @pytest.mark.parametrize('path', [
+        'es-co/panel/financing',
+        'panel/financing',
+        'es-co/financing-guide',
+    ])
+    def test_similar_paths_are_not_redirected(self, rf, frontend_dir, monkeypatch, path):
+        import projectapp.views as views_mod
+        monkeypatch.setattr(views_mod, 'FRONTEND_DIR', frontend_dir)
+
+        response = serve_nuxt(rf.get(f'/{path}'), path=path)
+
+        assert response.status_code == 200  # SPA fallback, not a redirect
+
+
 class TestServeNuxtRootRedirect:
     """Tests root path redirect behavior."""
 

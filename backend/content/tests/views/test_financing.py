@@ -1,11 +1,13 @@
+import re
 from decimal import Decimal
 from io import BytesIO
+from urllib.parse import quote
 
 import pytest
 from pypdf import PdfReader
 from rest_framework.test import APIClient
 
-from content.models import HourPackage, Nationality
+from content.models import ExplainerVideoSettings, HourPackage, Nationality
 from content.services.financing_program_service import serialize_financing_program
 
 
@@ -123,7 +125,23 @@ def test_public_pdf_sets_private_download_headers(pro_package):
     assert response.status_code == 200
     assert response['Content-Type'] == 'application/pdf'
     assert response['Cache-Control'] == 'private, no-store'
-    assert 'software-financing-program.pdf' in response['Content-Disposition']
+    assert 'partnership-program.pdf' in response['Content-Disposition']
+
+
+def test_public_pdf_names_spanish_download_after_partnership_program(pro_package):
+    response = APIClient().get('/api/financing/public/pdf/?lang=es')
+
+    assert response.status_code == 200
+    assert 'filename="programa-de-alianza.pdf"' in response['Content-Disposition']
+
+
+def test_public_pdf_titles_the_partnership_program(pro_package):
+    """Fails if the booklet keeps presenting itself as a financing-only program."""
+    response = APIClient().get('/api/financing/public/pdf/?lang=es')
+    reader = PdfReader(BytesIO(response.content))
+
+    assert reader.metadata.title == 'Programa de Alianza'
+    assert 'Programa de Alianza' in (reader.pages[0].extract_text() or '')
 
 
 def test_public_pdf_expands_financing_terms(pro_package):
@@ -139,9 +157,44 @@ def test_public_pdf_expands_financing_terms(pro_package):
     assert 'Paquete Pro vigente' in text
 
 
-def test_sitemap_includes_spanish_financing_route(pro_package):
-    """Fails if the canonical Spanish financing page disappears from the sitemap."""
+def test_sitemap_lists_partnership_program_instead_of_financing(pro_package):
+    """Fails if the sitemap drops the renamed page or keeps the redirected route."""
     response = APIClient().get('/sitemap.xml')
+    body = response.content.decode()
 
     assert response.status_code == 200
-    assert '<loc>https://projectapp.co/es-co/financing</loc>' in response.content.decode()
+    assert '<loc>https://projectapp.co/es-co/partnership-program</loc>' in body
+    assert '<loc>https://projectapp.co/en-us/partnership-program</loc>' in body
+    assert not re.search(r'/(?:es-co|en-us)/financing\b', body)
+
+
+def test_public_program_names_the_partnership_program(pro_package):
+    """Fails if the hero, CTA or WhatsApp message stop naming the Partnership Program."""
+    spanish = APIClient().get('/api/financing/public/?lang=es').data
+    english = APIClient().get('/api/financing/public/?lang=en').data
+
+    assert spanish['hero']['eyebrow'].startswith('Programa de Alianza')
+    assert spanish['cta']['title'] == 'Solicita tu evaluación para el Programa de Alianza'
+    assert quote('Programa de Alianza') in spanish['cta']['whatsapp_url']
+    assert english['hero']['eyebrow'].startswith('Partnership Program')
+    assert english['cta']['title'] == 'Request your Partnership Program evaluation'
+
+
+def test_public_program_points_canonical_path_to_partnership_program(pro_package):
+    spanish = APIClient().get('/api/financing/public/?lang=es').data
+    english = APIClient().get('/api/financing/public/?lang=en').data
+
+    assert spanish['canonical_path'] == '/es-co/partnership-program'
+    assert english['canonical_path'] == '/en-us/partnership-program'
+
+
+def test_public_program_follows_financing_video_switch(pro_package):
+    """Fails if hiding the Partnership Program video in the panel still shows it."""
+    visible = APIClient().get('/api/financing/public/?lang=es')
+    stored = ExplainerVideoSettings.load()
+    stored.show_financing_video = False
+    stored.save()
+    hidden = APIClient().get('/api/financing/public/?lang=es')
+
+    assert visible.data['show_explainer_video'] is True
+    assert hidden.data['show_explainer_video'] is False

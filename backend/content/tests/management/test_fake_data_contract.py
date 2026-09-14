@@ -501,6 +501,7 @@ def test_auxiliary_seed_populates_additional_module_share_history():
     assert AdditionalModuleShareView.objects.count() == 4
     assert AdditionalModuleShareLink.objects.filter(view_count=0).count() == 2
     assert AdditionalModuleShareLink.objects.filter(is_active=False).count() == 1
+    assert AdditionalModuleShareLink.objects.filter(show_explainer_video=False).count() == 1
     assert AdditionalModule.objects.filter(share_links__isnull=False).exists()
 
 

@@ -24,6 +24,7 @@ from content.serializers.additional_modules import (
     AdditionalModulePdfSelectionSerializer,
     AdditionalModuleShareAdminSerializer,
     AdditionalModuleShareCreateSerializer,
+    AdditionalModuleShareVideoSerializer,
     AdditionalModuleTrackSerializer,
 )
 from content.services.additional_module_catalog_service import (
@@ -41,6 +42,7 @@ from content.services.additional_module_catalog_service import (
 from content.services.additional_module_pdf_service import (
     AdditionalModulePdfService,
 )
+from content.services.explainer_video_service import explainer_video_visible
 from content.services.frontend_build import schedule_rebuild_after_publish
 from content.throttles import TrackingAnonThrottle
 from content.utils import get_client_ip, is_staff_session
@@ -307,6 +309,23 @@ def set_share_link_status(request, share_uuid, action):
     return Response(AdditionalModuleShareAdminSerializer(share_link).data)
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_share_link(request, share_uuid):
+    """Show or hide the explainer video on one link; selection stays immutable."""
+    share_link = get_object_or_404(AdditionalModuleShareLink, uuid=share_uuid)
+    serializer = AdditionalModuleShareVideoSerializer(share_link, data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save()
+    share_link = AdditionalModuleShareLink.objects.select_related(
+        'client', 'client__user',
+    ).prefetch_related('selected_modules', 'selected_modules__category').get(
+        pk=share_link.pk,
+    )
+    return Response(AdditionalModuleShareAdminSerializer(share_link).data)
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def admin_catalog_pdf(request):
@@ -333,6 +352,7 @@ def public_catalog(request):
     payload = serialize_public_catalog(language=language)
     payload.update({
         'is_shared': False,
+        'show_explainer_video': explainer_video_visible('additional-modules'),
         'canonical_path': (
             '/en-us/additional-modules'
             if language == 'en'
@@ -374,6 +394,9 @@ def public_share_catalog(request, share_uuid):
     payload.update({
         'is_shared': True,
         'share_uuid': str(share_link.uuid),
+        'show_explainer_video': explainer_video_visible(
+            'additional-modules', share_link=share_link,
+        ),
         'canonical_path': (
             '/en-us/additional-modules'
             if language == 'en'
