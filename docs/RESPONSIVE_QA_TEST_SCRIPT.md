@@ -2,7 +2,7 @@
 
 **Estado:** obligatorio
 
-**Cobertura automatizada:** 107 vistas × 5 perfiles = 535 celdas
+**Cobertura automatizada:** 111 vistas × 5 perfiles = 555 celdas
 
 **Fuente de verdad:** `frontend/config/viewCatalog.js`, `frontend/config/responsive.js` y `frontend/e2e/responsive/catalog-scenarios.js`
 
@@ -61,14 +61,14 @@ de compatibilidad y nunca acreditan layout, tablas o modales.
 | Documents | 2 | carpetas, activo/archivado, listado y acciones de fila |
 | Clients | 34 | filtros de dos niveles, tarjetas, administración y plataforma autenticada |
 | Projects | 2 | listado, crear/editar y cambio guiado de cliente con impacto |
-| Commercial | 13 | propuestas, diagnósticos, paquetes y módulos adicionales |
+| Commercial | 16 | propuestas, diagnósticos, paquetes, módulos adicionales y financiación |
 | Emails | 3 | compositor, adjuntos, preview, historial y entregabilidad |
 | Communications | 1 | ordenar, abrir hilo, leer estados/adjuntos y registrar mensaje |
 | Canvas | 2 | metadata, editor/preview y guard de salida |
 | Dashboard | 4 | pulso, radar, tareas, admins, estadísticas y mapa de vistas |
 | Content | 11 | blog, LinkedIn, portafolio, QR y linktrees |
 | MCP | 1 | expandir conector, actividad/tools, token y activación |
-| Public | 20 | marketing, contacto, legales, blog, portafolio y experiencias compartidas |
+| Public | 21 | marketing, contacto, legales, blog, portafolio y experiencias compartidas |
 
 ## Contabilidad: decisiones de los doce tabs
 
@@ -141,7 +141,7 @@ Cada batch de matriz contiene como máximo cuatro vistas y, por tanto, veinte
 pruebas (cuatro escenarios × cinco perfiles). Los batches especiales también
 se parten al llegar a veinte casos. Todos corren con cero reintentos; CI ejecuta
 sólo los batches de los módulos afectados en PR, mientras que el comando
-completo y la programación mensual recorren las 535 celdas más los especiales.
+completo y la programación mensual recorren las 555 celdas más los especiales.
 
 ## Reporte y criterio de cierre
 
@@ -151,7 +151,7 @@ El reporter responsive emite una fila por `catalogKey × profile` con:
 | --- | --- | --- | --- | --- | --- |
 | módulo dueño | archivo/ruta | alias y viewport | visual/redirect | `cumple`, `no cumple` o `cumple distinto` | test, error y artefacto |
 
-Una ejecución completa exige 535 filas únicas, cero omitidas, cero duplicadas,
+Una ejecución completa exige 555 filas únicas, cero omitidas, cero duplicadas,
 cero reintentos flaky, cero `draft-unvalidated`, cero junk-only y gate `$qa` limpio. Una variante
 funcional se reporta como `cumple distinto` y no se convierte silenciosamente
 en el estándar.
