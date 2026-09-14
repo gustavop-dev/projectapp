@@ -25,8 +25,40 @@ def _bar(pct, width):
     return "\u2588" * filled + "\u00b7" * (width - filled)
 
 
+def _refuse_unsafe_session() -> None:
+    """Abort before collection if this session could reach production.
+
+    Runs ahead of django_db_setup and of every test. The refusals live in
+    projectapp/tests/isolation.py; projectapp/settings_test.py satisfies them.
+    """
+    from django.conf import settings
+
+    from projectapp.tests.isolation import (
+        collect_storage_locations,
+        deployed_clone_refusal,
+        settings_refusals,
+        storage_refusals,
+    )
+
+    reasons = settings_refusals(settings, os.environ)
+    deployed_clone = deployed_clone_refusal(settings.BASE_DIR)
+    if deployed_clone:
+        reasons.append(deployed_clone)
+    reasons += storage_refusals(
+        getattr(settings, "TEST_FILE_ROOT", None),
+        settings.BASE_DIR,
+        collect_storage_locations(),
+    )
+    if reasons:
+        pytest.exit(
+            "Refusing to run the test suite:\n  - " + "\n  - ".join(reasons),
+            returncode=pytest.ExitCode.USAGE_ERROR,
+        )
+
+
 def pytest_sessionstart(session) -> None:
-    """Suppress the default pytest-cov terminal summary."""
+    """Refuse a production-reachable session, then trim the pytest-cov summary."""
+    _refuse_unsafe_session()
     cov_plugin = session.config.pluginmanager.get_plugin("_cov")
     if cov_plugin is None:
         return

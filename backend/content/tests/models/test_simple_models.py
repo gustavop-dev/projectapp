@@ -48,9 +48,12 @@ class TestPortfolioWork:
         )
         assert portfolio_work.slug == 'manual-slug'
 
-    def test_delete_removes_cover_image(self, db, tmp_path, monkeypatch):
+    def test_delete_removes_cover_image(self, db, tmp_path, settings):
         """Verify cover image file is removed from disk on delete."""
-        monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))
+        # The settings fixture fires setting_changed, which resets the storage's
+        # cached location. A bare monkeypatch skipped it, so default_storage
+        # could keep this tmp_path for the tests that ran after this one.
+        settings.MEDIA_ROOT = str(tmp_path)
         cover = SimpleUploadedFile('cover.png', b'\x89PNG\r\n', content_type='image/png')
         pw = PortfolioWork.objects.create(
             title_en='Del', title_es='Del',
