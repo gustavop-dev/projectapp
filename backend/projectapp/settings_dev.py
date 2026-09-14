@@ -12,11 +12,26 @@ Optional override file: `backend/.env_development`
       - FRONTEND_BASE_URL
     Used for host-only network access (e.g. VirtualBox 192.168.56.x).
     Never read by settings_prod.py — production is unaffected.
+
+Refuses to load when DJANGO_ENV is 'production': on a production host a bare
+`manage.py` would otherwise run on SQLite without a word, and create
+backend/db.sqlite3 inside the deployed tree.
 """
 
 from decouple import Config, Csv, RepositoryEnv
+from django.core.exceptions import ImproperlyConfigured
 
 from .settings import *  # noqa: F401, F403
+
+if DJANGO_ENV == 'production':  # noqa: F405
+    raise ImproperlyConfigured(
+        'projectapp.settings_dev refuses to load: DJANGO_ENV is "production" '
+        '(exported or read from backend/.env) and these settings run on SQLite. '
+        'To reach the production database export '
+        'DJANGO_SETTINGS_MODULE=projectapp.settings_prod. For a local, '
+        'non-production command on this host (e.g. makemigrations in a session '
+        'worktree) export DJANGO_ENV=development.'
+    )
 
 DEBUG = True
 FAKE_DATA_ALLOWED = True
