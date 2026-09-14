@@ -284,6 +284,18 @@
       "flows": [
         "platform-project-access-detail"
       ]
+    },
+    {
+      "title": "Section 32 — Explainer Videos and Programa de Alianza (Sep 14, 2026)",
+      "flows": [
+        "public-additional-modules-explainer",
+        "public-financing-explainer",
+        "admin-additional-modules-explainer",
+        "admin-additional-modules-explainer-visibility",
+        "admin-additional-modules-share-video",
+        "admin-financing-explainer",
+        "admin-financing-explainer-visibility"
+      ]
     }
   ]
 }

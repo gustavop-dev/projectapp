@@ -1,5 +1,25 @@
 # Architecture — ProjectApp
 
+> **Programa de Alianza y visibilidad de videos explicativos 2026-09-14:** el
+> módulo público de financiación se presenta como "Programa de Alianza" /
+> "Partnership Program" (financiación, exclusividad y custodia, calculadora,
+> paquete mensual y reglas de pago). Su ruta pública pasa a
+> `/partnership-program` y `serve_nuxt` responde 301 desde
+> `/<locale>/financing[/…]` (y `/financing` → es-co) antes de buscar archivos,
+> así ningún prerender viejo contesta. API, modelos, namespace i18n y la ruta
+> del panel conservan `financing`; los otrosíes siguen siendo "de
+> financiación". `ExplainerVideoSettings` (singleton `pk=1`) guarda un
+> interruptor por módulo y `AdditionalModuleShareLink.show_explainer_video`
+> uno por enlace; `explainer_video_visible()` los combina —el del catálogo
+> manda— y las vistas públicas exponen un único `show_explainer_video` (fuera
+> de los serializadores de contenido, que también alimentan los PDF). Un
+> cambio de interruptor entra en `latest_published_change()` y agenda el
+> rebuild del prerender. En Vue, `ExplainerVisibilityToggle` y el store
+> `explainer_videos` (optimista con reversión) viven junto a la tarjeta
+> compacta, fuera de ella; el video se ve si el interruptor está encendido y
+> existe render para el idioma. El video de financiación conserva el nombre y
+> la URL anteriores hasta un re-render.
+
 > **Estándar de presentación de vistas públicas 2026-09-04:** toda vista
 > pública de módulo (catálogo de módulos adicionales, financiación) abre con
 > H1 → tarjeta de video explicativo (`ExplainerVideoCard`, poster + play con
@@ -11,7 +31,9 @@
 > offline en `explainers/` con HyperFrames desde la API pública y se publican
 > como assets con hash (`frontend/assets/videos/explainers/`); el panel reusa la
 > tarjeta en variante compacta y la vista previa de financiación la desactiva
-> con `showExplainer=false`. Sin páginas, endpoints ni modelos nuevos.
+> con `showExplainer=false`. Esa entrega no sumó páginas, endpoints ni modelos;
+> desde 2026-09-14 un interruptor persistido decide si la tarjeta se muestra
+> (nota superior).
 
 > **Orden persistente de ingresos 2026-09-04:** `useTableSort` admite una
 > ordenación base opcional, ciclo de retorno a esa base y estado validado en

@@ -1,0 +1,15 @@
+{
+  "id": "admin-financing-explainer-visibility",
+  "name": "Admin Partnership Program Explainer Visibility",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin shows or hides the Partnership Program explainer video for clients from the switch on the Programa tab; the change is confirmed, and a failed save puts the switch back with an error.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

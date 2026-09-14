@@ -7,6 +7,7 @@ log warnings instead of silent 404s.
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import pytest
 from django.test import RequestFactory, override_settings
@@ -250,10 +251,9 @@ class TestServeNuxtRenamedFinancingRedirect:
     ):
         """Fails if a leftover build file answers the old URL instead of the 301."""
         import projectapp.views as views_mod
-        stale_dir = os.path.join(frontend_dir, 'es-co', 'financing')
-        os.makedirs(stale_dir)
-        with open(os.path.join(stale_dir, 'index.html'), 'w') as stale_page:
-            stale_page.write('<html><body>Módulo de financiación</body></html>')
+        stale_dir = Path(frontend_dir, 'es-co', 'financing')
+        stale_dir.mkdir(parents=True)
+        (stale_dir / 'index.html').write_text('<html><body>Módulo de financiación</body></html>')
         monkeypatch.setattr(views_mod, 'FRONTEND_DIR', frontend_dir)
 
         response = serve_nuxt(rf.get('/es-co/financing'), path='es-co/financing')

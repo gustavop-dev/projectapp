@@ -3,7 +3,11 @@ import { mockApi } from '../helpers/api.js'
 import { setAuthLocalStorage } from '../helpers/auth.js'
 import { financingProgramFixture } from '../helpers/financing-fixture.js'
 import { financingSettingsFixture } from '../helpers/financing-agreement-fixture.js'
-import { ADMIN_FINANCING_DISTRIBUTION, ADMIN_FINANCING_EXPLAINER } from '../helpers/flow-tags.js'
+import {
+  ADMIN_FINANCING_DISTRIBUTION,
+  ADMIN_FINANCING_EXPLAINER,
+  ADMIN_FINANCING_EXPLAINER_VISIBILITY,
+} from '../helpers/flow-tags.js'
 import { PANEL_BREAKPOINTS } from '../../config/responsive.js'
 
 
@@ -20,6 +24,14 @@ async function setupApi(page, scenario = {}) {
     if (apiPath === 'financing/settings/' && method === 'GET') {
       return json(200, financingSettingsFixture())
     }
+    if (apiPath === 'explainer-videos/admin/settings/' && method === 'GET') {
+      return json(200, { show_additional_modules_video: true, show_financing_video: true })
+    }
+    if (apiPath === 'explainer-videos/admin/settings/update/' && method === 'PATCH') {
+      scenario.videoPatch = route.request().postDataJSON()
+      if (scenario.videoSaveFails) return json(500, { detail: 'Unavailable' })
+      return json(200, { show_additional_modules_video: true, ...scenario.videoPatch })
+    }
     if (apiPath === 'financing/agreements/' && method === 'GET') {
       return json(200, {
         count: 0,
@@ -34,7 +46,7 @@ async function setupApi(page, scenario = {}) {
       return {
         status: 200,
         contentType: 'application/pdf',
-        headers: { 'Content-Disposition': 'attachment; filename="programa-financiacion-software.pdf"' },
+        headers: { 'Content-Disposition': 'attachment; filename="programa-de-alianza.pdf"' },
         body: '%PDF-1.4 financing',
       }
     }
@@ -73,14 +85,14 @@ test.describe('Admin financing distribution', () => {
     if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
       await page.getByRole('button', { name: 'Abrir menú' }).click()
     }
-    const link = page.getByRole('link', { name: 'Financiación', exact: true })
+    const link = page.getByRole('link', { name: 'Programa de Alianza', exact: true })
 
     await link.click()
 
     await expect(page).toHaveURL(/\/es-co\/panel\/financing$/)
-    await expect(page.getByRole('heading', { name: 'Módulo de financiación' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Programa de Alianza', exact: true })).toBeVisible()
     await expect(page.getByTestId('financing-public-url'))
-      .toHaveValue('https://projectapp.co/es-co/financing')
+      .toHaveValue('https://projectapp.co/es-co/partnership-program')
     await expect(page.getByTestId('financing-option-five-year')).toContainText('Alianza a 5 años')
   })
 
@@ -95,7 +107,7 @@ test.describe('Admin financing distribution', () => {
     await page.getByTestId('financing-copy-public-url').click()
 
     expect(await page.evaluate(() => navigator.clipboard.readText()))
-      .toBe('https://projectapp.co/es-co/financing')
+      .toBe('https://projectapp.co/es-co/partnership-program')
     await expect(page.getByRole('alert')).toContainText('URL pública copiada')
   })
 
@@ -107,13 +119,13 @@ test.describe('Admin financing distribution', () => {
     // quality: allow-deep-link (sidebar navigation is covered separately; this isolates the PDF shortcut)
     await openFinancing(page)
     await expect(page.getByTestId('financing-public-url'))
-      .toHaveValue('https://projectapp.co/es-co/financing')
+      .toHaveValue('https://projectapp.co/es-co/partnership-program')
 
     const downloadPromise = page.waitForEvent('download')
     await page.getByTestId('financing-panel-download-pdf').click()
     const download = await downloadPromise
 
-    expect(download.suggestedFilename()).toBe('programa-financiacion-software.pdf')
+    expect(download.suggestedFilename()).toBe('programa-de-alianza.pdf')
     expect(scenario.pdfLanguage).toBe('es')
   })
 
@@ -141,7 +153,7 @@ test.describe('Admin financing distribution', () => {
     const scenario = { programUnavailable: true }
     await setupApi(page, scenario)
     await page.goto('/es-co/panel/financing', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByRole('alert')).toContainText('No pudimos cargar el módulo de financiación')
+    await expect(page.getByRole('alert')).toContainText('No pudimos cargar el Programa de Alianza')
     scenario.programUnavailable = false
 
     await page.getByRole('button', { name: 'Reintentar' }).click()
@@ -161,5 +173,38 @@ test.describe('Admin financing distribution', () => {
     await page.getByTestId('financing-explainer-play').click()
 
     await expect(page.getByTestId('financing-explainer-player')).toBeVisible()
+  })
+
+  test('hides the Partnership Program video for clients from the panel switch', {
+    tag: [...ADMIN_FINANCING_EXPLAINER_VISIBILITY, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const scenario = {}
+    await setupApi(page, scenario)
+    // quality: allow-deep-link (sidebar navigation is covered in beforeEach; this isolates the video switch)
+    await openFinancing(page)
+    const toggle = page.getByTestId('financing-explainer-visibility-toggle')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await toggle.click()
+
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByRole('alert')).toContainText('El video quedó oculto en la vista pública del Programa de Alianza.')
+    expect(scenario.videoPatch).toEqual({ show_financing_video: false })
+  })
+
+  test('reverts the video switch when the save fails', {
+    tag: [...ADMIN_FINANCING_EXPLAINER_VISIBILITY, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const scenario = { videoSaveFails: true }
+    await setupApi(page, scenario)
+    // quality: allow-deep-link (sidebar navigation is covered in beforeEach; this isolates the failed save)
+    await openFinancing(page)
+    const toggle = page.getByTestId('financing-explainer-visibility-toggle')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await toggle.click()
+
+    await expect(page.getByRole('alert')).toContainText('No pudimos guardar la visibilidad del video.')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
   })
 })

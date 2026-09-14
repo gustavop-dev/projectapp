@@ -1,0 +1,15 @@
+{
+  "id": "admin-additional-modules-share-video",
+  "name": "Admin Additional Modules Share Link Video",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin creates a shared catalog link without the explainer video, turns it back on for one link from the history, and sees that no link shows the video while the catalog switch hides it.",
+  "expectedSpecs": 3,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

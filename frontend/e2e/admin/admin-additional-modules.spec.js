@@ -5,11 +5,13 @@ import { PANEL_BREAKPOINTS } from '../../config/responsive.js'
 import {
   ADMIN_ADDITIONAL_MODULES_CATALOG,
   ADMIN_ADDITIONAL_MODULES_EXPLAINER,
+  ADMIN_ADDITIONAL_MODULES_EXPLAINER_VISIBILITY,
   ADMIN_ADDITIONAL_MODULES_MANAGE,
   ADMIN_ADDITIONAL_MODULES_PDF,
   ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS,
   ADMIN_ADDITIONAL_MODULES_REORDER,
   ADMIN_ADDITIONAL_MODULES_SHARE,
+  ADMIN_ADDITIONAL_MODULES_SHARE_VIDEO,
 } from '../helpers/flow-tags.js'
 
 const categories = [
@@ -66,6 +68,18 @@ async function setupApi(page, scenario = {}) {
       return json(200, catalog)
     }
     if (apiPath === 'additional-modules/admin/shares/' && method === 'GET') return json(200, scenario.shareLinks || [])
+    if (apiPath === 'explainer-videos/admin/settings/' && method === 'GET') {
+      return json(200, { show_additional_modules_video: !scenario.catalogVideoHidden, show_financing_video: true })
+    }
+    if (apiPath === 'explainer-videos/admin/settings/update/' && method === 'PATCH') {
+      scenario.videoPatch = route.request().postDataJSON()
+      if (scenario.videoSaveFails) return json(500, { detail: 'Servicio no disponible' })
+      return json(200, { show_financing_video: true, ...scenario.videoPatch })
+    }
+    if (apiPath === `additional-modules/admin/shares/${trackedLink.uuid}/` && method === 'PATCH') {
+      scenario.shareVideoPatch = route.request().postDataJSON()
+      return json(200, { ...trackedLink, ...scenario.shareVideoPatch })
+    }
     if (apiPath === 'additional-modules/admin/modules/' && method === 'POST') {
       scenario.modulePayload = route.request().postDataJSON()
       return scenario.moduleFailure ? json(500, { detail: 'No se pudo guardar el módulo.' }) : json(201, modules[0])
@@ -435,5 +449,85 @@ test.describe('Additional modules admin catalog', () => {
     await page.getByTestId('additional-modules-explainer-play').click()
 
     await expect(page.getByTestId('additional-modules-explainer-player')).toBeVisible()
+  })
+
+  test('hides the catalog video for clients from the panel switch', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_EXPLAINER_VISIBILITY, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const scenario = {}
+    await setupApi(page, scenario)
+    await openCatalog(page)
+    const toggle = page.getByTestId('additional-modules-explainer-visibility-toggle')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await toggle.click()
+
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByRole('alert')).toContainText('El video quedó oculto en la vista pública del catálogo.')
+    expect(scenario.videoPatch).toEqual({ show_additional_modules_video: false })
+  })
+
+  test('reverts the catalog video switch when the save fails', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_EXPLAINER_VISIBILITY, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await setupApi(page, { videoSaveFails: true })
+    await openCatalog(page)
+    const toggle = page.getByTestId('additional-modules-explainer-visibility-toggle')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    await toggle.click()
+
+    await expect(page.getByRole('alert')).toContainText('No pudimos guardar la visibilidad del video.')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  })
+
+  test('creates a short share link without the explainer video', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_SHARE_VIDEO, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const scenario = {}
+    await setupApi(page, scenario)
+    await openCatalog(page)
+    await openSelection(page)
+    await page.getByTestId('additional-select-module-10').click()
+    await page.getByTestId('additional-share-recipient').fill('Acme — pagos')
+
+    await page.getByTestId('additional-share-video-toggle').click()
+    await page.getByTestId('additional-selection-submit').click()
+
+    await expect(page.getByText('Enlace listo para compartir')).toBeVisible()
+    expect(scenario.sharePayload.show_explainer_video).toBe(false)
+    expect(scenario.sharePayload.selected_module_ids).toEqual([10])
+  })
+
+  test('turns the video back on for one shared link from the history', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_SHARE_VIDEO, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const scenario = { shareLinks: [{ ...trackedLink, show_explainer_video: false }] }
+    await setupApi(page, scenario)
+    await openCatalog(page)
+    await page.getByTestId('additional-modules-tracking').click()
+    const toggle = page.getByTestId(`additional-share-history-video-toggle-${trackedLink.uuid}`)
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    await toggle.click()
+
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByRole('alert')).toContainText('El enlace de Acme — pagos vuelve a mostrar el video.')
+    expect(scenario.shareVideoPatch).toEqual({ show_explainer_video: true })
+  })
+
+  test('explains in the history that no link shows the video while the catalog hides it', {
+    tag: [...ADMIN_ADDITIONAL_MODULES_SHARE_VIDEO, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupApi(page, { catalogVideoHidden: true, shareLinks: [trackedLink] })
+    // quality: allow-deep-link (the commercial catalog navigation is covered above; this isolates the history notice)
+    await openCatalog(page)
+    await expect(page.getByTestId('additional-modules-explainer-visibility-toggle')).toHaveAttribute('aria-checked', 'false')
+
+    await page.getByTestId('additional-modules-tracking').click()
+
+    await expect(page.getByTestId('additional-share-history-video-catalog-off'))
+      .toHaveText('El video está oculto para todo el catálogo, así que ningún enlace lo muestra hasta volver a encenderlo.')
+    await expect(page.getByTestId('additional-share-history')).toContainText('Acme — pagos')
   })
 })
