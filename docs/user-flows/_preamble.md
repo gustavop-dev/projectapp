@@ -1979,7 +1979,7 @@ No active browser flow is registered for client profile editing at this time.
   5. Admin toggles to "Mapa" mode: module cards render with operational labels, view counts, sub-module counts and a viewType distribution bar.
   6. Admin clicks a module card, drills into its sub-modules and returns via the breadcrumb; the URL reflects the state for deep-linking.
   7. Admin toggles to "Explorador" and chooses Panel interno, Plataforma de clientes or Experiencias públicas. Hover/focus previews purpose and operational value without changing the URL; click selection writes a shared `?viewMode=explorer&node=<id>` state.
-  8. Admin explores Panel and Platform through eight main modules each, or the four public modules that connect acquisition, content/proof, proposal and diagnostic experiences. Representative submodules and technical references remain available in progressive disclosure.
+  8. Admin explores Panel and Platform through eight main modules each, or the six public modules that connect acquisition, content/proof, additional modules, financing, proposal and diagnostic experiences. Representative submodules and technical references remain available in progressive disclosure.
   9. Admin starts a guided space tour. `tour=<space-id>` and `node=<module-id>` track ordered progress; next/previous moves between main modules and exiting removes only `tour`, preserving context.
   10. At compact and portrait widths the hierarchy becomes cards; from landscape upward it uses the orbit. Admin can pause rotation, zoom, hide functional relations or rely on reduced motion.
   11. Admin switches to "Configuración", saves any default mode and receives success or failure feedback from the settings request.
