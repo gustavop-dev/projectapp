@@ -1,0 +1,45 @@
+"""Settings for the pytest suite (backend/pytest.ini).
+
+pytest has to see the same configuration wherever it runs (CI, a laptop, a
+session worktree), and none of it may reach production:
+
+* decouple reads only the process environment, never backend/.env. Session
+  worktrees symlink the deployed .env (DJANGO_ENV=production and the
+  production Redis URLs); read through decouple, it took Huey out of immediate
+  mode and put the test cache on the production Redis.
+* Every file storage writes under a per-run temp directory. It is set here,
+  before django.setup(), because some storages are bound at import time: a
+  FileField evaluates a callable storage once, and django-dbbackup copies
+  STORAGES['dbbackup'] when it is imported.
+
+backend/conftest.py refuses to start a session that breaks either guarantee.
+"""
+
+import atexit
+import shutil
+import tempfile
+from pathlib import Path
+
+import decouple
+
+# Has to run before the base module executes `from decouple import config`.
+decouple.config = decouple.Config(decouple.RepositoryEmpty())
+
+from .settings import *  # noqa: E402, F401, F403
+
+TEST_FILE_ROOT = Path(tempfile.mkdtemp(prefix='projectapp-pytest-'))
+atexit.register(shutil.rmtree, TEST_FILE_ROOT, ignore_errors=True)
+
+MEDIA_ROOT = str(TEST_FILE_ROOT / 'media')
+PRIVATE_MEDIA_ROOT = str(TEST_FILE_ROOT / 'private_media')
+STORAGES = {
+    **STORAGES,  # noqa: F405
+    'private': {
+        **STORAGES['private'],  # noqa: F405
+        'OPTIONS': {**STORAGES['private']['OPTIONS'], 'location': PRIVATE_MEDIA_ROOT},  # noqa: F405
+    },
+    'dbbackup': {
+        **STORAGES['dbbackup'],  # noqa: F405
+        'OPTIONS': {'location': str(TEST_FILE_ROOT / 'dbbackup')},
+    },
+}
