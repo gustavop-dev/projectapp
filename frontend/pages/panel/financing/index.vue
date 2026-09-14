@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 
 import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
+import ExplainerVisibilityToggle from '~/components/ExplainerVisibilityToggle.vue'
 import { useExplainerVideo } from '~/composables/useExplainerVideos'
 import { usePanelNotify } from '~/composables/usePanelNotify'
 import { useFinancingAgreementsStore } from '~/stores/financing_agreements'
@@ -32,7 +33,9 @@ const sectionOptions = computed(() => [
   { value: 'agreements', label: t('financing.agreementsTab'), testId: 'financing-tab-agreements' },
   { value: 'settings', label: t('financing.settingsTab'), testId: 'financing-tab-settings' },
 ])
-const publicPath = computed(() => (isEnglish.value ? '/en-us/financing' : '/es-co/financing'))
+const publicPath = computed(() => (
+  isEnglish.value ? '/en-us/partnership-program' : '/es-co/partnership-program'
+))
 const publicUrl = computed(() => `https://projectapp.co${publicPath.value}`)
 const pdfUrl = computed(() => `/api/financing/public/pdf/?lang=${language.value}`)
 const rows = computed(() => agreementsStore.agreements)
@@ -159,14 +162,20 @@ function modalityLabel(value, fallback = '') {
         </div>
       </section>
 
-      <ExplainerVideoCard
-        v-if="explainer"
-        :video="explainer"
-        i18n-namespace="financing"
-        variant="compact"
-        test-id="financing-explainer"
-        class="mt-5"
-      />
+      <div class="mt-5 space-y-3">
+        <ExplainerVisibilityToggle
+          module="financing"
+          i18n-namespace="financing"
+          test-id="financing-explainer"
+        />
+        <ExplainerVideoCard
+          v-if="explainer"
+          :video="explainer"
+          i18n-namespace="financing"
+          variant="compact"
+          test-id="financing-explainer"
+        />
+      </div>
 
       <BaseAlert v-if="program && !program.package.catalog_synced" class="mt-5" variant="warning" data-testid="financing-package-warning">
         <p class="font-medium">{{ t('financing.catalogWarningTitle') }}</p>

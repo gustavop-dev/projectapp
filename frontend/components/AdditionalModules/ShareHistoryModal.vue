@@ -3,9 +3,11 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   links: { type: Array, default: () => [] },
   saving: { type: Boolean, default: false },
+  /** Catalog-wide video switch: while off, no link shows the explainer. */
+  catalogVideoVisible: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['update:modelValue', 'status', 'copy'])
+const emit = defineEmits(['update:modelValue', 'status', 'copy', 'video'])
 const { t, locale } = useI18n()
 
 function formatDate(value) {
@@ -42,6 +44,13 @@ function opensLabel(link) {
       </header>
 
       <div class="overflow-y-auto px-5 py-5 sm:px-7">
+        <p
+          v-if="!catalogVideoVisible && links.length"
+          class="mb-4 rounded-lg bg-surface-raised px-4 py-3 text-sm text-text-muted"
+          data-testid="additional-share-history-video-catalog-off"
+        >
+          {{ t('additionalModules.shareVideoCatalogOff') }}
+        </p>
         <BaseEmptyState
           v-if="!links.length"
           :title="t('additionalModules.noShares')"
@@ -73,6 +82,17 @@ function opensLabel(link) {
                   <div><dt class="font-medium text-text-default">{{ t('additionalModules.firstOpened') }}</dt><dd>{{ formatDate(link.first_viewed_at) }}</dd></div>
                   <div><dt class="font-medium text-text-default">{{ t('additionalModules.lastOpened') }}</dt><dd>{{ formatDate(link.last_viewed_at) }}</dd></div>
                 </dl>
+                <div class="mt-4 flex items-center gap-3">
+                  <BaseToggle
+                    size="sm"
+                    :model-value="link.show_explainer_video !== false"
+                    :disabled="saving"
+                    :aria-label="t('additionalModules.shareVideoToggleAria', { label: link.recipient_label })"
+                    :data-testid="`additional-share-history-video-toggle-${link.uuid}`"
+                    @update:model-value="emit('video', { link, value: $event })"
+                  />
+                  <span class="text-sm text-text-muted">{{ t('additionalModules.shareVideoLabel') }}</span>
+                </div>
               </div>
               <div class="flex flex-wrap gap-2">
                 <BaseButton variant="secondary" size="sm" @click="emit('copy', link)">{{ t('additionalModules.copyLink') }}</BaseButton>

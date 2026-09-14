@@ -192,6 +192,24 @@ export const useAdditionalModulesStore = defineStore('additional_modules', {
       }
     },
 
+    /** Show or hide the explainer video on one already shared link. */
+    async setShareLinkVideo(uuid, showExplainerVideo) {
+      this.isUpdating = true
+      try {
+        const response = await patch_request(
+          `additional-modules/admin/shares/${uuid}/`,
+          { show_explainer_video: showExplainerVideo },
+        )
+        const index = this.shareLinks.findIndex((link) => link.uuid === uuid)
+        if (index !== -1) this.shareLinks.splice(index, 1, response.data)
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, errors: errorPayload(error) }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
     async downloadPdf(payload) {
       try {
         const response = await create_request(

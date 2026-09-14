@@ -19,7 +19,12 @@ const emit = defineEmits(['change-language'])
 const { t } = useI18n()
 const { isDark, toggle: toggleTheme } = useFinancingTheme()
 const explainer = useExplainerVideo('financing', toRef(props, 'language'))
-const explainerVisible = computed(() => props.showExplainer && Boolean(explainer.value))
+// The panel switch arrives in the public payload; a missing flag counts as visible.
+const explainerVisible = computed(() => (
+  props.showExplainer
+  && props.program?.show_explainer_video !== false
+  && Boolean(explainer.value)
+))
 const onboardingRef = ref(null)
 const guideStarted = ref(false)
 
@@ -51,7 +56,7 @@ function toggleTerm(termId) {
 function responseFilename(response) {
   const disposition = response.headers.get('content-disposition') || ''
   const match = disposition.match(/filename="?([^";]+)"?/i)
-  return match?.[1] || 'software-financing-program.pdf'
+  return match?.[1] || (props.language === 'en' ? 'partnership-program.pdf' : 'programa-de-alianza.pdf')
 }
 
 async function downloadPdf() {

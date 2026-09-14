@@ -135,6 +135,7 @@ async function changeLanguage(nextLanguage) {
       :total-modules="catalog?.total_modules || 0"
       :download-url="pdfUrl"
       :language="language"
+      :show-explainer="catalog?.show_explainer_video !== false"
       @change-language="changeLanguage"
     />
   </section>

@@ -69,7 +69,7 @@ describe('viewCapabilityCatalog', () => {
       'Marca y captación',
       'Contenido y prueba social',
       'Módulos adicionales',
-      'Financiación de software',
+      'Programa de Alianza',
       'Propuesta comercial',
       'Diagnóstico',
     ])

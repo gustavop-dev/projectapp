@@ -36,10 +36,10 @@ onMounted(loadProgram)
 watch(language, loadProgram)
 
 const canonicalPath = computed(() => (
-  isEnglish.value ? '/en-us/financing' : '/es-co/financing'
+  isEnglish.value ? '/en-us/partnership-program' : '/es-co/partnership-program'
 ))
 const alternatePath = computed(() => (
-  isEnglish.value ? '/es-co/financing' : '/en-us/financing'
+  isEnglish.value ? '/es-co/partnership-program' : '/en-us/partnership-program'
 ))
 const pdfUrl = computed(() => `/api/financing/public/pdf/?lang=${language.value}`)
 const baseUrl = 'https://projectapp.co'
@@ -55,7 +55,9 @@ const structuredData = computed(() => ({
     url: baseUrl,
   },
   areaServed: 'CO',
-  serviceType: isEnglish.value ? 'Software project financing' : 'Financiación de proyectos de software',
+  serviceType: isEnglish.value
+    ? 'Software development partnership with financing'
+    : 'Alianza de desarrollo de software con financiación',
   url: `${baseUrl}${canonicalPath.value}`,
 }))
 

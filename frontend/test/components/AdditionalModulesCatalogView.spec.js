@@ -217,4 +217,12 @@ describe('AdditionalModulesCatalogView explainer video', () => {
     expect(wrapper.find('[data-testid="additional-modules-explainer-card"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="additional-module-card-electronic-invoicing"]').exists()).toBe(true)
   })
+
+  it('hides the Spanish explainer when the panel switch turns it off', () => {
+    const wrapper = mountCatalog({ language: 'es', showExplainer: false })
+
+    expect(wrapper.find('[data-testid="additional-modules-explainer-card"]').exists()).toBe(false)
+    expect(wrapper.get('h1').text()).toContain('additionalModules.title')
+    expect(wrapper.find('[data-testid="additional-module-card-electronic-invoicing"]').exists()).toBe(true)
+  })
 })

@@ -194,13 +194,13 @@ describe('FinancingProgramView', () => {
   })
 
   it('copies the current URL when native sharing is unavailable', async () => {
-    window.history.replaceState({}, '', '/es-co/financing')
+    window.history.replaceState({}, '', '/es-co/partnership-program')
     const wrapper = mountProgram()
 
     await wrapper.get('[data-testid="financing-share"]').trigger('click')
     await flushPromises()
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/es-co/financing')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/es-co/partnership-program')
   })
 
   it('shows a visible error when clipboard sharing fails', async () => {
@@ -241,6 +241,42 @@ describe('FinancingProgramView explainer video', () => {
 
     expect(wrapper.get('h1').text()).toContain('Construimos hoy')
     expect(wrapper.find('[data-testid="financing-explainer-card"]').exists()).toBe(false)
+  })
+
+  it('hides the Spanish explainer when the panel switch turns it off', () => {
+    const wrapper = mountProgram({
+      language: 'es',
+      program: { ...program, show_explainer_video: false },
+    })
+
+    expect(wrapper.find('[data-testid="financing-explainer-card"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="financing-whatsapp-hero"]').exists()).toBe(true)
+  })
+})
+
+describe('FinancingProgramView PDF filename', () => {
+  beforeEach(() => {
+    URL.createObjectURL = jest.fn(() => 'blob:financing')
+    URL.revokeObjectURL = jest.fn()
+  })
+
+  it.each([
+    ['es', 'programa-de-alianza.pdf'],
+    ['en', 'partnership-program.pdf'],
+  ])('names the %s download after the Partnership Program when the server omits it', async (language, filename) => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => '' },
+      blob: jest.fn().mockResolvedValue(new Blob(['%PDF'])),
+    })
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const wrapper = mountProgram({ language })
+
+    await wrapper.get('[data-testid="financing-download-pdf"]').trigger('click')
+    await flushPromises()
+
+    expect(clickSpy.mock.instances[0].download).toBe(filename)
+    clickSpy.mockRestore()
   })
 })
 

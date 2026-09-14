@@ -10,6 +10,7 @@ jest.mock('../../stores/services/request_http', () => ({
 const {
   create_request,
   get_request,
+  patch_request,
 } = require('../../stores/services/request_http')
 
 const CATALOG = {
@@ -88,6 +89,36 @@ describe('useAdditionalModulesStore', () => {
 
     expect(result.success).toBe(true)
     expect(store.shareLinks).toEqual([link])
+  })
+
+  it('hides the explainer video on one share link and keeps its row in place', async () => {
+    const first = { uuid: 'share-1', show_explainer_video: true }
+    const second = { uuid: 'share-2', show_explainer_video: true }
+    store.shareLinks = [first, second]
+    patch_request.mockResolvedValue({ data: { ...first, show_explainer_video: false } })
+
+    const result = await store.setShareLinkVideo('share-1', false)
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'additional-modules/admin/shares/share-1/',
+      { show_explainer_video: false },
+    )
+    expect(result.success).toBe(true)
+    expect(store.shareLinks.map((link) => link.show_explainer_video)).toEqual([false, true])
+    expect(store.isUpdating).toBe(false)
+  })
+
+  it('leaves the share link untouched when the video switch fails to save', async () => {
+    const first = { uuid: 'share-1', show_explainer_video: true }
+    store.shareLinks = [first]
+    const error = new Error('bad request')
+    error.response = { data: { show_explainer_video: ['Este campo es requerido.'] } }
+    patch_request.mockRejectedValue(error)
+
+    const result = await store.setShareLinkVideo('share-1', false)
+
+    expect(result.success).toBe(false)
+    expect(store.shareLinks).toEqual([first])
   })
 
   it('requests the PDF as a blob', async () => {
