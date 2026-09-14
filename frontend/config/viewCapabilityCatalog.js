@@ -90,7 +90,7 @@ const panelCapabilities = [
         ['/panel/additional-modules'],
         { icon: 'puzzle', stage: 'Venta' }),
       feature('panel-financing', 'Gestionar el Programa de Alianza y sus otrosíes',
-        'Reúne las condiciones bilingües, la vista pública y la preparación, firma y seguimiento de otrosíes de financiación.',
+        'Reúne las condiciones bilingües, la vista pública, las políticas versionadas y la preparación, firma y seguimiento de otrosíes de financiación.',
         'Permite explicar la alianza y formalizar cada financiación con datos, calendario, documentos privados e historial trazable.',
         ['/panel/financing', '/panel/financing/new', '/panel/financing/:id'],
         { icon: 'credit-card', stage: 'Venta' }),
@@ -147,7 +147,7 @@ const panelCapabilities = [
         'Preserva decisiones, respuestas y referencias documentales.', ['/panel/communications'],
         { icon: 'mail', stage: 'Comunicación' }),
       feature('panel-email-center', 'Preparar y revisar emails',
-        'Centraliza composición, configuración e historial de correo.',
+        'Centraliza composición con varios destinatarios y copias, configuración e historial de correo.',
         'Da continuidad a los mensajes enviados desde distintos módulos.', ['/panel/emails'],
         { icon: 'send', stage: 'Comunicación' }),
     ],
@@ -177,7 +177,7 @@ const panelCapabilities = [
     'Hace visibles los compromisos financieros y su impacto en la operación.',
     [
       feature('panel-financial-flow', 'Leer ingresos y gastos',
-        'Resume resultados y permite gestionar entradas y salidas de dinero.',
+        'Resume resultados, estima la cartera pendiente por cobrar y permite gestionar entradas y salidas de dinero.',
         'Expone la utilidad y los movimientos que la explican.',
         ['/panel/accounting', '/panel/accounting/incomes', '/panel/accounting/expenses'],
         { icon: 'dashboard', stage: 'Resultados' }),
@@ -368,7 +368,7 @@ const platformCapabilities = [
     'Acelera el soporte y la operación sin exponer información sensible a clientes.',
     [
       feature('platform-project-access', 'Abrir accesos operativos',
-        'Centraliza accesos del proyecto y conserva el enlace global anterior.',
+        'Centraliza por ambiente URLs, usuarios, contraseñas cifradas y notas sensibles del proyecto, editables también desde el panel, y conserva el enlace global anterior.',
         'Permite al equipo llegar rápidamente a los entornos necesarios para operar.',
         ['/platform/projects/:id/access', '/platform/access'],
         { icon: 'key', actors: ['team'], stage: 'Administración' }),
@@ -434,7 +434,7 @@ const publicCapabilities = [
     'Ayuda al prospecto a descubrir posibilidades relevantes y retomarlas en la conversación comercial.',
     [
       feature('public-additional-modules', 'Explorar módulos adicionales',
-        'Presenta selector ES/EN, tarjetas, lista, acordeón y una descarga PDF sin precios.',
+        'Presenta selector ES/EN, tarjetas, lista, acordeón, tour guiado, video explicativo y una descarga PDF sin precios.',
         'Permite entender qué resuelve cada módulo sin depender de una explicación previa.',
         ['/additional-modules', '/additional-modules/share/:uuid'],
         { icon: 'puzzle', actors: ['prospect'], stage: 'Evaluación' }),
@@ -447,7 +447,7 @@ const publicCapabilities = [
     'Ayuda al prospecto a evaluar una alianza de largo plazo antes de formalizar una propuesta.',
     [
       feature('public-financing', 'Comprender el Programa de Alianza',
-        'Presenta dos opciones de alianza, siete condiciones, reglas expandibles, PDF y contacto directo.',
+        'Presenta dos opciones de alianza, siete condiciones, reglas expandibles, tour guiado, video explicativo, PDF y contacto directo.',
         'Convierte condiciones técnicas y legales en una explicación comercial clara y compartible.',
         ['/partnership-program'],
         { icon: 'credit-card', actors: ['prospect'], stage: 'Evaluación' }),

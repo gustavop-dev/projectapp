@@ -966,7 +966,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     Pages["frontend/pages inventory"] --> Audit["viewCatalog audit"]
-    Routes["viewCatalog: 104 route records"] --> Audit
+    Routes["viewCatalog: one record per page route"] --> Audit
     Routes --> List["Lista: complete reference"]
     Routes --> Map["Mapa: module drill-down"]
     Routes --> Capabilities["viewCapabilityCatalog"]
@@ -974,7 +974,7 @@ flowchart LR
     Explorer --> Spaces["3 product spaces"]
     Spaces --> Panel["Panel: 8 main modules"]
     Spaces --> Platform["Platform: 8 main modules"]
-    Spaces --> Public["Public experiences: 4 modules"]
+    Spaces --> Public["Public experiences: 6 modules"]
     Panel --> Benefits["Purpose, actors, stage and relations"]
     Platform --> Benefits
     Public --> Benefits
@@ -985,7 +985,7 @@ flowchart LR
 `viewCatalog.js` remains the canonical technical inventory. A CI scanner derives
 routes from real page files and rejects missing, stale, duplicated or invalid
 records. `viewCapabilityCatalog.js` is a curated operational projection: its
-validator requires all 104 routes and all seven technical sections to belong to
+validator requires every catalog route and every technical section to belong to
 exactly one product feature/space, while every relationship endpoint must exist.
 The hierarchy starts with Panel interno, Plataforma de clientes and Experiencias
 públicas; main modules lead to representative submodules and technical routes.
