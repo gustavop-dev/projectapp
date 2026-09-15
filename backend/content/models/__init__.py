@@ -124,6 +124,7 @@ from .additional_module import (
     AdditionalModuleShareLink,
     AdditionalModuleShareView,
 )
+from .explainer_video_settings import ExplainerVideoSettings
 from .financing_agreement import (
     FinancingAgreement,
     FinancingAgreementEvent,

@@ -4,7 +4,7 @@ global.useLocalePath = jest.fn(() => (path) => path);
 global.useI18n = jest.fn(() => ({
   t: jest.fn((key) => ({
     'additionalModules.title': 'Additional modules',
-    'financing.title': 'Software financing',
+    'financing.title': 'Partnership Program',
   }[key] || key)),
 }));
 global.requestAnimationFrame = jest.fn(() => 0);
@@ -144,11 +144,11 @@ describe('FooterDesktop', () => {
       .toBe('Additional modules');
   });
 
-  it('renders the financing program link', () => {
+  it('renders the partnership program link', () => {
     const wrapper = mountFooterDesktop();
 
-    expect(wrapper.get('a[href="/financing"]').attributes('aria-label'))
-      .toBe('Software financing');
+    expect(wrapper.get('a[href="/partnership-program"]').attributes('aria-label'))
+      .toBe('Partnership Program');
   });
 
   // ── modal open / close ────────────────────────────────────────────────────

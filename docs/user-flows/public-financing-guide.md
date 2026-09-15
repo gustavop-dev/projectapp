@@ -3,7 +3,7 @@
 - **Módulo:** public
 - **Rol:** invitado
 - **Prioridad:** P2
-- **Ruta:** `/:locale/financing`
+- **Ruta:** `/:locale/partnership-program`
 - **Interacción:** En la primera visita, recorrer la guía del programa (empieza
   en la tarjeta del video explicativo y sigue por opciones, condiciones,
   calculadora, paquete, reglas y acciones flotantes) y cerrarla; en visitas

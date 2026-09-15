@@ -1,13 +1,13 @@
 {
   "id": "public-financing-explainer",
-  "name": "Public Financing Explainer",
+  "name": "Public Partnership Program Explainer",
   "module": "public",
   "roles": [
     "guest"
   ],
   "priority": "P2",
-  "description": "Visitor plays the one-minute financing explainer from the hero with sound and native controls, gets a direct file link when playback fails, and sees no card in English until that render exists.",
-  "expectedSpecs": 3,
+  "description": "Visitor plays the one-minute Partnership Program explainer from the hero with sound and native controls, gets a direct file link when playback fails, sees no card in English until that render exists, and sees no card (the guide starts at the options) when the panel switch hides the video.",
+  "expectedSpecs": 4,
   "outcomes": [
     "display",
     "success",

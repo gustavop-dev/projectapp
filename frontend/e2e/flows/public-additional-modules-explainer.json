@@ -6,8 +6,8 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "Visitor finds the one-minute explainer video under the catalog title (also on shared selections), plays it inline with sound and native controls, and gets a direct file link when the browser cannot play it.",
-  "expectedSpecs": 4,
+  "description": "Visitor finds the one-minute explainer video under the catalog title (also on shared selections), plays it inline with sound and native controls, gets a direct file link when the browser cannot play it, and sees no card when the panel switch or the shared link hides the video.",
+  "expectedSpecs": 6,
   "outcomes": [
     "display",
     "success",

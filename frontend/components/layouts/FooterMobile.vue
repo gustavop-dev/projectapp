@@ -121,7 +121,7 @@ const solutions = computed(() => [
   { name: globalMessages.value?.solutions?.web_developments || 'Our work', href: '/portfolio-works' },
   { name: globalMessages.value?.solutions?.blog || 'Blog', href: '/blog' },
   { name: t('additionalModules.title'), href: '/additional-modules' },
-  { name: t('financing.title'), href: '/financing' },
+  { name: t('financing.title'), href: '/partnership-program' },
 ]);
 
 const mainVideo = ref(null);

@@ -1,7 +1,7 @@
 const content = {
   es: {
     hero: {
-      eyebrow: 'Financiación para productos con visión de largo plazo',
+      eyebrow: 'Programa de Alianza para productos con visión de largo plazo',
       title: 'Construimos hoy. Crecemos contigo.',
       subtitle: 'Financiamos productos con potencial y compartimos el riesgo operativo.',
       trust_note: 'Una oportunidad puede convertirse en un producto real.',
@@ -37,7 +37,7 @@ const content = {
     },
     cta: {
       eyebrow: 'Conversemos sobre el potencial del proyecto',
-      title: 'Solicita una evaluación de financiación',
+      title: 'Solicita tu evaluación para el Programa de Alianza',
       body: 'Cuéntanos qué producto quieres construir.',
       button: 'Hablar por WhatsApp',
     },
@@ -45,7 +45,7 @@ const content = {
   },
   en: {
     hero: {
-      eyebrow: 'Financing for products built with a long-term vision',
+      eyebrow: 'Partnership Program for products built with a long-term vision',
       title: 'We build today. We grow with you.',
       subtitle: 'We finance products with potential and share operational risk.',
       trust_note: 'An opportunity can become a real product.',
@@ -81,7 +81,7 @@ const content = {
     },
     cta: {
       eyebrow: 'Let’s discuss the project’s potential',
-      title: 'Request a financing evaluation',
+      title: 'Request your Partnership Program evaluation',
       body: 'Tell us what product you want to build.',
       button: 'Talk on WhatsApp',
     },
@@ -101,7 +101,8 @@ export function financingProgramFixture(language = 'es', overrides = {}) {
     ordinary_interest_rate: '0%',
     late_hosting_increase_percent: '2%',
     installment_due_day_range: [1, 5],
-    canonical_path: language === 'en' ? '/en-us/financing' : '/es-co/financing',
+    canonical_path: language === 'en' ? '/en-us/partnership-program' : '/es-co/partnership-program',
+    show_explainer_video: overrides.showExplainerVideo ?? true,
     hero: copy.hero,
     eligibility: copy.eligibility,
     options: copy.options.map(([id, name, badge, included, years]) => ({

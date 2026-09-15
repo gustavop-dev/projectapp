@@ -45,6 +45,7 @@ def latest_published_change():
         AdditionalModule,
         AdditionalModuleCategory,
         BlogPost,
+        ExplainerVideoSettings,
     )
 
     candidates = []
@@ -52,6 +53,8 @@ def latest_published_change():
         BlogPost.objects.filter(is_published=True),
         AdditionalModuleCategory.objects.all(),
         AdditionalModule.objects.all(),
+        # The video switches change what the prerendered module pages show.
+        ExplainerVideoSettings.objects.all(),
     ):
         row = queryset.order_by('-updated_at').first()
         if row:

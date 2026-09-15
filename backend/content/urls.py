@@ -318,6 +318,11 @@ from content.views.additional_modules import (
     track_public_share_catalog as track_public_additional_module_share,
     update_category as update_additional_module_category,
     update_module as update_additional_module,
+    update_share_link as update_additional_module_share,
+)
+from content.views.explainer_videos import (
+    get_explainer_video_settings,
+    update_explainer_video_settings,
 )
 from content.views.financing import (
     public_financing_program,
@@ -464,9 +469,26 @@ urlpatterns = [
         name='admin-additional-module-shares',
     ),
     path(
+        'additional-modules/admin/shares/<uuid:share_uuid>/',
+        update_additional_module_share,
+        name='update-additional-module-share',
+    ),
+    path(
         'additional-modules/admin/shares/<uuid:share_uuid>/<str:action>/',
         set_additional_module_share_status,
         name='set-additional-module-share-status',
+    ),
+
+    # Explainer videos — panel switches for the client-facing views (singleton)
+    path(
+        'explainer-videos/admin/settings/',
+        get_explainer_video_settings,
+        name='explainer-video-settings',
+    ),
+    path(
+        'explainer-videos/admin/settings/update/',
+        update_explainer_video_settings,
+        name='update-explainer-video-settings',
     ),
     path(
         'additional-modules/admin/pdf/',

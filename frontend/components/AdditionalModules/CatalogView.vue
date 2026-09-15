@@ -16,6 +16,8 @@ const props = defineProps({
   showHeader: { type: Boolean, default: true },
   isShared: { type: Boolean, default: false },
   language: { type: String, default: 'es' },
+  /** Panel switch (and, on a shared link, its own switch) from the public payload. */
+  showExplainer: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['change-language'])
@@ -23,6 +25,7 @@ const { t } = useI18n()
 const { viewMode } = useAdditionalModulesViewMode('public')
 const { isDark, toggle: toggleTheme } = useAdditionalModulesTheme()
 const explainer = useExplainerVideo('additional-modules', toRef(props, 'language'))
+const explainerVisible = computed(() => props.showExplainer && Boolean(explainer.value))
 const selectedModule = ref(null)
 const detailOpen = ref(false)
 const opener = ref(null)
@@ -107,7 +110,7 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
           {{ t('additionalModules.subtitle') }}
         </p>
         <ExplainerVideoCard
-          v-if="explainer"
+          v-if="explainerVisible"
           :video="explainer"
           i18n-namespace="additionalModules"
           variant="hero"

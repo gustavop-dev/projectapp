@@ -1,0 +1,15 @@
+{
+  "id": "admin-additional-modules-explainer-visibility",
+  "name": "Admin Additional Modules Explainer Visibility",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin shows or hides the catalog explainer video for clients from the panel switch next to the compact card; the change is confirmed, and a failed save puts the switch back with an error.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

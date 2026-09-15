@@ -99,7 +99,10 @@ async function setupPublicApi(page, scenario = {}) {
       if (scenario.catalogUnavailable || catalogCalls <= (scenario.catalogFailures || 0)) {
         return json(503, { detail: 'Unavailable' })
       }
-      return json(200, localizedCatalog(fullCatalog, requestedLanguage))
+      return json(200, {
+        ...localizedCatalog(fullCatalog, requestedLanguage),
+        show_explainer_video: !scenario.videoHidden,
+      })
     }
     if (apiPath === `additional-modules/public/shares/${shareUuid}/pdf/`) {
       scenario.pdfLanguage = requestedLanguage
@@ -120,7 +123,10 @@ async function setupPublicApi(page, scenario = {}) {
     if (apiPath === `additional-modules/public/shares/${shareUuid}/` && method === 'GET') {
       return scenario.shareGone
         ? json(410, { detail: 'Este enlace fue retirado.' })
-        : json(200, localizedCatalog(selectedCatalog, requestedLanguage))
+        : json(200, {
+          ...localizedCatalog(selectedCatalog, requestedLanguage),
+          show_explainer_video: !scenario.videoHidden,
+        })
     }
     return null
   })
@@ -431,5 +437,33 @@ test.describe('Public additional modules catalog', () => {
 
     await expect(page.getByTestId('additional-modules-explainer-player')).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`/additional-modules/share/${shareUuid}$`))
+  })
+
+  test('hides the explainer under the catalog title when the panel switch is off', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupPublicApi(page, { videoHidden: true })
+    await openFromFooter(page)
+
+    await expect(page.getByRole('heading', { name: 'Módulos adicionales' })).toBeVisible()
+    await expect(page.getByTestId('additional-modules-explainer-card')).toHaveCount(0)
+    await expect(page.getByTestId('additional-module-card-landing-page')).toBeVisible()
+  })
+
+  test('hides the explainer on a shared selection whose link turned it off', {
+    tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (a prospect enters from the received message URL)
+    await setupPublicApi(page, { videoHidden: true })
+    await page.goto(`/es-co/additional-modules/share/${shareUuid}`, { waitUntil: 'domcontentloaded' })
+    const card = page.getByTestId('additional-module-card-electronic-invoicing')
+    await expect(card).toBeVisible()
+    await expect(page.getByTestId('additional-modules-explainer-card')).toHaveCount(0)
+
+    await card.click()
+
+    await expect(page.getByRole('dialog')).toContainText('Credenciales fiscales')
+    await expect(page.getByTestId('additional-modules-explainer-card')).toHaveCount(0)
+    await expect(page.getByTestId('additional-module-card-landing-page')).toHaveCount(0)
   })
 })

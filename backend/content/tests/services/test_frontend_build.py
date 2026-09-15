@@ -9,7 +9,12 @@ from django.core import mail
 from django.core.cache import cache
 from django.utils import timezone
 
-from content.models import AdditionalModule, AdditionalModuleCategory, BlogPost
+from content.models import (
+    AdditionalModule,
+    AdditionalModuleCategory,
+    BlogPost,
+    ExplainerVideoSettings,
+)
 from content.services import frontend_build
 
 
@@ -69,6 +74,17 @@ class TestRebuildNeeded:
         write_marker_now(marker_path)
         additional_module_category.name_es = 'Pagos digitales'
         additional_module_category.save()
+
+        assert frontend_build.rebuild_needed() is True
+
+    def test_true_again_after_explainer_video_switch(self, db, marker_path):
+        """Fails if hiding a video leaves the prerendered public page showing it."""
+        AdditionalModule.objects.all().delete()
+        AdditionalModuleCategory.objects.all().delete()
+        write_marker_now(marker_path)
+        video_settings = ExplainerVideoSettings.load()
+        video_settings.show_financing_video = False
+        video_settings.save()
 
         assert frontend_build.rebuild_needed() is True
 

@@ -13,6 +13,7 @@ from content.models import (
     AdditionalModuleCategory,
     AdditionalModuleShareLink,
     AdditionalModuleShareView,
+    ExplainerVideoSettings,
 )
 
 
@@ -51,6 +52,12 @@ ADMIN_ENDPOINTS = (
         '/api/additional-modules/admin/shares/'
         '00000000-0000-4000-8000-000000000099/revoke/',
         id='share-status',
+    ),
+    pytest.param(
+        'patch',
+        '/api/additional-modules/admin/shares/'
+        '00000000-0000-4000-8000-000000000099/',
+        id='share-update',
     ),
     pytest.param('post', '/api/additional-modules/admin/pdf/', id='pdf'),
 )
@@ -133,10 +140,17 @@ def create_share(user, modules, **overrides):
     share = AdditionalModuleShareLink.objects.create(
         recipient_label=overrides.get('recipient_label', 'Cliente demo'),
         language=overrides.get('language', 'es'),
+        show_explainer_video=overrides.get('show_explainer_video', True),
         created_by=user,
     )
     share.selected_modules.set(modules)
     return share
+
+
+def set_catalog_video(visible):
+    settings = ExplainerVideoSettings.load()
+    settings.show_additional_modules_video = visible
+    settings.save()
 
 
 def test_public_catalog_localizes_content_without_price_fields(catalog):
@@ -242,6 +256,69 @@ def test_share_create_defaults_to_spanish(catalog, staff_client):
     assert response.status_code == 201
     assert response.data['language'] == 'es'
     assert response.data['public_path'].startswith('/es-co/additional-modules/')
+
+
+def test_share_create_keeps_explainer_video_by_default(catalog, staff_client):
+    _commerce, _experience, landing, _pwa = catalog
+
+    response = staff_client.post(
+        '/api/additional-modules/admin/shares/',
+        {'recipient_label': 'Cliente con video', 'selected_module_ids': [landing.id]},
+        format='json',
+    )
+
+    assert response.status_code == 201
+    assert response.data['show_explainer_video'] is True
+
+
+def test_share_create_can_hide_explainer_video(catalog, staff_client):
+    """Fails if a link created without the video still shows it to that client."""
+    _commerce, _experience, landing, _pwa = catalog
+
+    response = staff_client.post(
+        '/api/additional-modules/admin/shares/',
+        {
+            'recipient_label': 'Tres módulos puntuales',
+            'selected_module_ids': [landing.id],
+            'show_explainer_video': False,
+        },
+        format='json',
+    )
+
+    share = AdditionalModuleShareLink.objects.get(uuid=response.data['uuid'])
+    assert response.status_code == 201
+    assert response.data['show_explainer_video'] is False
+    assert share.show_explainer_video is False
+
+
+def test_public_catalog_follows_catalog_video_switch(catalog):
+    """Fails if hiding the catalog video in the panel still shows it to clients."""
+    visible = APIClient().get('/api/additional-modules/public/?lang=es')
+    set_catalog_video(False)
+    hidden = APIClient().get('/api/additional-modules/public/?lang=es')
+
+    assert visible.data['show_explainer_video'] is True
+    assert hidden.data['show_explainer_video'] is False
+
+
+@pytest.mark.parametrize(
+    ('catalog_on', 'link_on', 'expected'),
+    [(True, True, True), (True, False, False), (False, True, False)],
+)
+def test_public_share_shows_video_only_with_both_switches_on(
+    catalog, staff_client, catalog_on, link_on, expected,
+):
+    """Fails if a shared selection shows the video while the catalog or the link hides it."""
+    _commerce, _experience, landing, _pwa = catalog
+    share = create_share(staff_client.user, [landing], show_explainer_video=link_on)
+    set_catalog_video(catalog_on)
+
+    response = APIClient().get(
+        f'/api/additional-modules/public/shares/{share.uuid}/',
+    )
+
+    assert response.status_code == 200
+    assert response.data['show_explainer_video'] is expected
 
 
 def test_public_share_hides_internal_recipient_and_metrics(catalog, staff_client):
@@ -517,6 +594,71 @@ def test_public_share_pdf_accepts_viewer_language(catalog, staff_client):
         module_ids=[landing.id],
         recipient_label='Acme',
     )
+
+
+def test_share_update_hides_video_on_that_link_only(catalog, staff_client):
+    """Fails if turning off one link's video is not persisted or leaks to other links."""
+    _commerce, _experience, landing, pwa = catalog
+    share = create_share(staff_client.user, [landing])
+    other = create_share(staff_client.user, [pwa], recipient_label='Otro cliente')
+
+    response = staff_client.patch(
+        f'/api/additional-modules/admin/shares/{share.uuid}/',
+        {'show_explainer_video': False},
+        format='json',
+    )
+
+    share.refresh_from_db()
+    other.refresh_from_db()
+    assert response.status_code == 200
+    assert response.data['show_explainer_video'] is False
+    assert share.show_explainer_video is False
+    assert other.show_explainer_video is True
+
+
+def test_share_update_requires_the_video_flag(catalog, staff_client):
+    _commerce, _experience, landing, _pwa = catalog
+    share = create_share(staff_client.user, [landing])
+
+    response = staff_client.patch(
+        f'/api/additional-modules/admin/shares/{share.uuid}/',
+        {},
+        format='json',
+    )
+
+    assert response.status_code == 400
+    assert 'show_explainer_video' in response.data
+
+
+def test_share_update_keeps_language_and_selection_immutable(catalog, staff_client):
+    """Fails if the video endpoint lets a sent link change its language or modules."""
+    _commerce, _experience, landing, pwa = catalog
+    share = create_share(staff_client.user, [landing])
+
+    response = staff_client.patch(
+        f'/api/additional-modules/admin/shares/{share.uuid}/',
+        {
+            'show_explainer_video': False,
+            'language': 'en',
+            'selected_module_ids': [pwa.id],
+        },
+        format='json',
+    )
+
+    share.refresh_from_db()
+    assert response.status_code == 200
+    assert share.language == 'es'
+    assert list(share.selected_modules.values_list('id', flat=True)) == [landing.id]
+
+
+def test_share_update_unknown_link_returns_not_found(catalog, staff_client):
+    response = staff_client.patch(
+        '/api/additional-modules/admin/shares/00000000-0000-4000-8000-000000000099/',
+        {'show_explainer_video': False},
+        format='json',
+    )
+
+    assert response.status_code == 404
 
 
 def test_unknown_share_returns_not_found(catalog):

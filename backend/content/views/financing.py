@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from content.services.explainer_video_service import explainer_video_visible
 from content.services.financing_pdf_service import FinancingPdfService
 from content.services.financing_program_service import serialize_financing_program
 
@@ -27,7 +28,9 @@ def public_financing_program(request):
     language = _language_from_query(request)
     if language is None:
         return _invalid_language_response()
-    return Response(serialize_financing_program(language=language))
+    payload = serialize_financing_program(language=language)
+    payload['show_explainer_video'] = explainer_video_visible('financing')
+    return Response(payload)
 
 
 @api_view(['GET'])
@@ -40,9 +43,9 @@ def public_financing_program_pdf(request):
 
     pdf_bytes = FinancingPdfService.build(language=language)
     filename = (
-        'software-financing-program.pdf'
+        'partnership-program.pdf'
         if language == 'en'
-        else 'programa-financiacion-software.pdf'
+        else 'programa-de-alianza.pdf'
     )
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'

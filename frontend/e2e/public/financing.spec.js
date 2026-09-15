@@ -34,7 +34,7 @@ async function setupApi(page, scenario = {}) {
         status: 200,
         contentType: 'application/pdf',
         headers: {
-          'Content-Disposition': `attachment; filename="${language === 'en' ? 'software-financing-program.pdf' : 'programa-financiacion-software.pdf'}"`,
+          'Content-Disposition': `attachment; filename="${language === 'en' ? 'partnership-program.pdf' : 'programa-de-alianza.pdf'}"`,
         },
         body: '%PDF-1.4 financing',
       }
@@ -42,7 +42,7 @@ async function setupApi(page, scenario = {}) {
     if (apiPath === 'financing/public/' && method === 'GET') {
       if (scenario.programUnavailable) return json(503, { detail: 'Unavailable' })
       const language = new URL(route.request().url()).searchParams.get('lang') || 'es'
-      return json(200, financingProgramFixture(language))
+      return json(200, financingProgramFixture(language, { showExplainerVideo: !scenario.videoHidden }))
     }
     return null
   })
@@ -50,10 +50,10 @@ async function setupApi(page, scenario = {}) {
 
 async function openFromFooter(page) {
   await page.goto('/es-co', { waitUntil: 'domcontentloaded' })
-  const link = page.getByRole('link', { name: 'Módulo de financiación', exact: true }).first()
+  const link = page.getByRole('link', { name: 'Programa de Alianza', exact: true }).first()
   await link.scrollIntoViewIfNeeded()
   await link.click()
-  await expect(page).toHaveURL(/\/es-co\/financing$/)
+  await expect(page).toHaveURL(/\/es-co\/partnership-program$/)
   await expect(page.getByRole('heading', { name: 'Construimos hoy. Crecemos contigo.' })).toBeVisible()
 }
 
@@ -87,7 +87,7 @@ test.describe('Public financing program', () => {
 
     await page.getByTestId('financing-language-en').click()
 
-    await expect(page).toHaveURL(/\/en-us\/financing$/)
+    await expect(page).toHaveURL(/\/en-us\/partnership-program$/)
     await expect(page.getByRole('heading', { name: 'We build today. We grow with you.' })).toBeVisible()
     await expect(page.getByTestId('financing-option-five-year')).toContainText('5-year partnership')
   })
@@ -119,7 +119,7 @@ test.describe('Public financing program', () => {
     await page.getByTestId('financing-share').click()
 
     expect(await page.evaluate(() => navigator.clipboard.readText()))
-      .toMatch(/\/es-co\/financing$/)
+      .toMatch(/\/es-co\/partnership-program$/)
   })
 
   test('downloads the Spanish financing booklet', {
@@ -133,7 +133,7 @@ test.describe('Public financing program', () => {
     await page.getByTestId('financing-download-pdf').click()
     const download = await downloadPromise
 
-    expect(download.suggestedFilename()).toBe('programa-financiacion-software.pdf')
+    expect(download.suggestedFilename()).toBe('programa-de-alianza.pdf')
     expect(scenario.pdfLanguage).toBe('es')
   })
 
@@ -154,8 +154,8 @@ test.describe('Public financing program', () => {
   }, async ({ page }) => {
     const scenario = { programUnavailable: true }
     await setupApi(page, scenario)
-    await page.goto('/es-co/financing', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByRole('heading', { name: 'No pudimos cargar el módulo de financiación.' })).toBeVisible()
+    await page.goto('/es-co/partnership-program', { waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('heading', { name: 'No pudimos cargar el Programa de Alianza.' })).toBeVisible()
     scenario.programUnavailable = false
 
     await page.getByRole('button', { name: 'Reintentar' }).click()
@@ -167,7 +167,7 @@ test.describe('Public financing program', () => {
   }, async ({ page }) => {
     await setupApi(page)
     await openFromFooter(page)
-    await expect(page.getByTestId('financing-explainer-card')).toContainText('El programa de financiación en un minuto')
+    await expect(page.getByTestId('financing-explainer-card')).toContainText('El Programa de Alianza en un minuto')
 
     await page.getByTestId('financing-explainer-play').click()
 
@@ -200,9 +200,21 @@ test.describe('Public financing program', () => {
 
     await page.getByTestId('financing-language-en').click()
 
-    await expect(page).toHaveURL(/\/en-us\/financing$/)
+    await expect(page).toHaveURL(/\/en-us\/partnership-program$/)
     await expect(page.getByRole('heading', { name: 'We build today. We grow with you.' })).toBeVisible()
     await expect(page.getByTestId('financing-explainer-card')).toHaveCount(0)
+  })
+
+  test('hides the explainer and starts the guide at the options when the panel switch is off', {
+    tag: [...PUBLIC_FINANCING_EXPLAINER, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await setupApi(page, { videoHidden: true, showGuide: true })
+    await openFromFooter(page)
+
+    await expect(page.getByTestId('financing-guide')).toContainText('Dos formas de alianza')
+    await expect(page.getByTestId('financing-guide-progress')).toHaveText('1/7')
+    await expect(page.getByTestId('financing-explainer-card')).toHaveCount(0)
+    await expect(page.getByTestId('financing-whatsapp-hero')).toBeVisible()
   })
 
   test('introduces the financing program on the first visit', {

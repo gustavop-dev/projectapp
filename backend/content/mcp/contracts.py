@@ -596,7 +596,15 @@ COMMERCIAL_CATALOG_CONTRACTS = (
             'id uuid created_by revoked_at view_count first_viewed_at last_viewed_at '
             'created_at'
         ),
-        read_write='recipient_label client language is_active selected_modules',
+        read_write=(
+            'recipient_label client language is_active selected_modules '
+            'show_explainer_video'
+        ),
+    ),
+    _contract(
+        'content.ExplainerVideoSettings',
+        read_only='id created_at updated_at',
+        read_write='show_additional_modules_video show_financing_video',
     ),
     _contract(
         'content.HourPackage',

@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.97.0
+// Registry version: 2.98.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -51,11 +51,13 @@ export const ADMIN_ACCOUNTING_STATEMENTS = ['@flow:admin-accounting-statements',
 export const ADMIN_ACCOUNTING_STATS_MODALS = ['@flow:admin-accounting-stats-modals', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_CATALOG = ['@flow:admin-additional-modules-catalog', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_EXPLAINER = ['@flow:admin-additional-modules-explainer', '@module:admin', '@priority:P3'];
+export const ADMIN_ADDITIONAL_MODULES_EXPLAINER_VISIBILITY = ['@flow:admin-additional-modules-explainer-visibility', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_MANAGE = ['@flow:admin-additional-modules-manage', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_PDF = ['@flow:admin-additional-modules-pdf', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_QUICK_ACCESS = ['@flow:admin-additional-modules-quick-access', '@module:admin', '@priority:P1'];
 export const ADMIN_ADDITIONAL_MODULES_REORDER = ['@flow:admin-additional-modules-reorder', '@module:admin', '@priority:P2'];
 export const ADMIN_ADDITIONAL_MODULES_SHARE = ['@flow:admin-additional-modules-share', '@module:admin', '@priority:P1'];
+export const ADMIN_ADDITIONAL_MODULES_SHARE_VIDEO = ['@flow:admin-additional-modules-share-video', '@module:admin', '@priority:P2'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
 export const ADMIN_AUTO_ARCHIVE_ZOMBIE = ['@flow:admin-auto-archive-zombie', '@module:admin', '@priority:P3'];
 export const ADMIN_BLOG_CALENDAR = ['@flow:admin-blog-calendar', '@module:admin', '@priority:P2'];
@@ -155,6 +157,7 @@ export const ADMIN_FINANCING_AGREEMENT_LIFECYCLE = ['@flow:admin-financing-agree
 export const ADMIN_FINANCING_AGREEMENT_SECOND_CYCLE = ['@flow:admin-financing-agreement-second-cycle', '@module:admin', '@priority:P1'];
 export const ADMIN_FINANCING_DISTRIBUTION = ['@flow:admin-financing-distribution', '@module:admin', '@priority:P1'];
 export const ADMIN_FINANCING_EXPLAINER = ['@flow:admin-financing-explainer', '@module:admin', '@priority:P3'];
+export const ADMIN_FINANCING_EXPLAINER_VISIBILITY = ['@flow:admin-financing-explainer-visibility', '@module:admin', '@priority:P2'];
 export const ADMIN_FINANCING_SETTINGS = ['@flow:admin-financing-settings', '@module:admin', '@priority:P1'];
 export const ADMIN_HIGH_ENGAGEMENT_ALERT = ['@flow:admin-high-engagement-alert', '@module:admin', '@priority:P2'];
 export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P3'];

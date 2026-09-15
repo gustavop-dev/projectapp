@@ -18,6 +18,11 @@ SPA_ROUTE_PREFIXES = ('panel', 'proposal')
 
 VALID_LOCALES = ('en-us', 'es-co')
 
+# Public pages renamed after they were shared and indexed: old slug → new slug.
+# /financing became /partnership-program when the module was renamed
+# "Programa de Alianza" (2026-09); the explainer video still shows the old URL.
+RENAMED_PUBLIC_SLUGS = {'financing': 'partnership-program'}
+
 # Códigos ISO-3166 alpha-2 de países hispanohablantes → locale es-co.
 SPANISH_COUNTRIES = frozenset({
     'CO', 'MX', 'AR', 'PE', 'CL', 'EC', 'VE', 'BO', 'PY', 'UY',
@@ -39,6 +44,26 @@ def _resolve_locale(request):
     if country in SPANISH_COUNTRIES:
         return 'es-co'
     return DEFAULT_LOCALE
+
+
+def _renamed_page_redirect(request, clean_path):
+    """301 an old public slug to its new name, keeping locale, rest and query.
+
+    Only the first segment after the (optional) locale is matched, so
+    /panel/financing and /es-co/financing-guide never redirect. Unprefixed
+    paths land on es-co, like the legacy blog redirect.
+    """
+    segments = clean_path.split('/')
+    locale = segments[0] if segments[0] in VALID_LOCALES else None
+    rest = segments[1:] if locale else segments
+    if not rest or rest[0] not in RENAMED_PUBLIC_SLUGS:
+        return None
+    target = '/'.join([locale or 'es-co', RENAMED_PUBLIC_SLUGS[rest[0]], *rest[1:]])
+    location = f'/{target}'
+    query_string = request.META.get('QUERY_STRING', '')
+    if query_string:
+        location = f'{location}?{query_string}'
+    return HttpResponsePermanentRedirect(location)
 
 
 def serve_nuxt(request, path=''):
@@ -65,6 +90,12 @@ def serve_nuxt(request, path=''):
     # crawlers consolidate signals on the canonical URL.
     if clean_path == 'blog' or clean_path.startswith('blog/'):
         return HttpResponsePermanentRedirect(f'/es-co/{clean_path}')
+
+    # Renamed public pages: redirect before the file lookup so a leftover
+    # prerendered index.html under the old slug can never answer.
+    renamed = _renamed_page_redirect(request, clean_path)
+    if renamed:
+        return renamed
 
     # Security: prevent path traversal
     resolved = os.path.realpath(os.path.join(FRONTEND_DIR, clean_path))

@@ -152,7 +152,7 @@ con las áreas del Panel. La fuente ejecutable del inventario está en
 | Slug | Herramientas | Alcance |
 |---|---:|---|
 | `operations` | 4 | Dashboard, indicadores, alertas y conteos globales de sólo lectura |
-| `commercial` | 132 | Clientes, propuestas, diagnósticos, módulos adicionales, horas, financiación, archivos y correos comerciales |
+| `commercial` | 135 | Clientes, propuestas, diagnósticos, módulos adicionales, horas, Programa de Alianza (financiación), visibilidad de videos explicativos, archivos y correos comerciales |
 | `projects` | 21 | Proyectos, asignaciones, estados, transiciones, documentos asociados e historial |
 | `documents` | 64 | Documentos Markdown editables, carpetas, estados, tags, observaciones, hilos, correo, imports y exports |
 | `communications` | 33 | Hilos, mensajes, compositor, previews, envío/reenvío, adjuntos, historial, templates y entregabilidad |
@@ -302,6 +302,25 @@ No se implementa un segundo CRUD con escrituras ORM paralelas.
 4. Casos negativos: intentar seleccionar un ingreso personal, líquido,
    perdido o completamente pagado debe fallar sin modificarlo. Al liquidar por
    completo un candidato, debe salir automáticamente de la selección activa.
+
+### Comercial: visibilidad de los videos explicativos
+
+1. Invocar `get_explainer_video_settings`: sin configuración previa devuelve
+   `show_additional_modules_video` y `show_financing_video` en `true`.
+2. Invocar `update_explainer_video_settings` con
+   `{"show_additional_modules_video": false}`. La respuesta refleja el cambio,
+   `GET /api/additional-modules/public/` pasa a `show_explainer_video: false`
+   y el panel agenda el rebuild de la página pre-generada; repetir el mismo
+   valor no agenda otro rebuild.
+3. Crear un enlace con `create_additional_module_share` incluyendo
+   `show_explainer_video: false` y luego invocar
+   `update_additional_module_share` con su `share_uuid` y
+   `{"show_explainer_video": true}`: la respuesta de administración refleja el
+   valor, y el payload público del enlace sólo lo muestra si el interruptor del
+   catálogo también está encendido. Idioma y selección siguen inmutables.
+4. Casos negativos: `update_additional_module_share` sin el campo responde 400
+   y no modifica el enlace; un valor no booleano en
+   `update_explainer_video_settings` responde 400.
 
 ## Comunicaciones: guion por herramienta
 
@@ -790,3 +809,16 @@ corrida de desarrollo.
 | Rotación o uso de credenciales MCP | no ejecutado; fuera del alcance de la entrega |
 
 La superficie humana nueva usa APIs staff/JWT dedicadas y no añade tools MCP.
+
+## Ejecución focal — 2026-09-14 (videos explicativos y Programa de Alianza)
+
+| Verificación | Resultado |
+|---|---|
+| Contrato de campos del conector Comercial (`ExplainerVideoSettings`, `show_explainer_video` del enlace) | verde |
+| Adaptadores `get/update_explainer_video_settings` y `update_additional_module_share` resuelven a vistas con el método declarado | verde |
+| Descripciones de `get_financing_program` / `render_financing_program_pdf` | nombran el Programa de Alianza; los nombres de las tools no cambian |
+| Invocación en vivo contra producción | no ejecutada; fuera del alcance de la entrega |
+
+El conector Comercial pasa de 132 a 135 herramientas. La descripción del
+conector sembrada en BD por la migración 0240 se conserva sin migración de
+datos.

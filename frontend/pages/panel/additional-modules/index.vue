@@ -5,7 +5,9 @@ import { useAdditionalModulesStore } from '~/stores/additional_modules'
 import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
 import { usePanelNotify } from '~/composables/usePanelNotify'
 import { useExplainerVideo } from '~/composables/useExplainerVideos'
+import { useExplainerVideosStore } from '~/stores/explainer_videos'
 import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
+import ExplainerVisibilityToggle from '~/components/ExplainerVisibilityToggle.vue'
 import AdditionalModulesAdminModuleActions from '~/components/AdditionalModules/AdminModuleActions.vue'
 import AdditionalModulesCatalogControls from '~/components/AdditionalModules/CatalogControls.vue'
 import AdditionalModulesModuleDetails from '~/components/AdditionalModules/ModuleDetails.vue'
@@ -18,6 +20,7 @@ const switchLocalePath = useSwitchLocalePath()
 const route = useRoute()
 const router = useRouter()
 const store = useAdditionalModulesStore()
+const explainerVideos = useExplainerVideosStore()
 const notify = usePanelNotify()
 const { viewMode } = useAdditionalModulesViewMode('panel')
 
@@ -43,6 +46,7 @@ const expandedModuleId = ref(null)
 const isEnglish = computed(() => locale.value.startsWith('en'))
 const language = computed(() => (isEnglish.value ? 'en' : 'es'))
 const explainer = useExplainerVideo('additional-modules', language)
+const catalogVideoVisible = computed(() => explainerVideos.isVisible('additional-modules'))
 const orderedCategories = computed(() => [...store.categories].sort((a, b) => a.order - b.order))
 const groupedModules = computed(() => orderedCategories.value.map((category) => ({
   ...category,
@@ -245,6 +249,19 @@ async function changeShareStatus({ link, action }) {
   if (!result.success) notify.error({ title: humanError(result.errors) })
 }
 
+async function changeShareVideo({ link, value }) {
+  const result = await store.setShareLinkVideo(link.uuid, value)
+  if (!result.success) {
+    notify.error({ title: t('additionalModules.shareVideoError') })
+    return
+  }
+  notify.success({
+    title: t(value ? 'additionalModules.shareVideoShown' : 'additionalModules.shareVideoHidden', {
+      label: link.recipient_label,
+    }),
+  })
+}
+
 async function copyShare(link) {
   try {
     await navigator.clipboard.writeText(`${window.location.origin}${link.public_path}`)
@@ -302,14 +319,20 @@ async function closeDetail() {
       @tracking="openHistory"
     />
 
-    <ExplainerVideoCard
-      v-if="explainer"
-      :video="explainer"
-      i18n-namespace="additionalModules"
-      variant="compact"
-      test-id="additional-modules-explainer"
-      class="mb-8"
-    />
+    <div class="mb-8 space-y-3">
+      <ExplainerVisibilityToggle
+        module="additional-modules"
+        i18n-namespace="additionalModules"
+        test-id="additional-modules-explainer"
+      />
+      <ExplainerVideoCard
+        v-if="explainer"
+        :video="explainer"
+        i18n-namespace="additionalModules"
+        variant="compact"
+        test-id="additional-modules-explainer"
+      />
+    </div>
 
     <div v-if="store.isLoading && !store.modules.length" class="flex min-h-64 items-center justify-center" role="status">
       <span class="h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-primary" />
@@ -509,6 +532,7 @@ async function closeDetail() {
       :saving="store.isUpdating"
       :error-message="selectionError"
       :generated-url="generatedUrl"
+      :catalog-video-visible="catalogVideoVisible"
       @update:model-value="updateSelectionOpen"
       @submit="submitSelection"
     />
@@ -516,9 +540,11 @@ async function closeDetail() {
       :model-value="historyOpen"
       :links="store.shareLinks"
       :saving="store.isUpdating"
+      :catalog-video-visible="catalogVideoVisible"
       @update:model-value="updateHistoryOpen"
       @status="changeShareStatus"
       @copy="copyShare"
+      @video="changeShareVideo"
     />
 
     <BaseModal v-model="detailOpen" kind="detail" padding="none" @close="closeDetail">

@@ -1,10 +1,20 @@
 # Videos explicativos (HyperFrames)
 
 Fuentes de los videos de un minuto que abren las vistas públicas de **Módulos
-adicionales** (`/additional-modules`) y **Financiación** (`/financing`), y que el
-panel muestra en tarjeta compacta. Se producen offline con
+adicionales** (`/additional-modules`) y del **Programa de Alianza**
+(`/partnership-program`, antes Financiación en `/financing`), y que el panel
+muestra en tarjeta compacta. Se producen offline con
 [HyperFrames](https://hyperframes.heygen.com) (HTML + GSAP → MP4 determinista) y
 se publican como assets con hash en `frontend/assets/videos/explainers/`.
+
+Cada módulo tiene un interruptor en su página del panel ("Mostrar el video a
+los clientes") y cada enlace compartido del catálogo el suyo; oculto, la tarjeta
+no se renderiza. **Pendiente (decisión del 2026-09-14):** el render de
+financiación conserva el nombre "programa de financiación" y la URL
+`projectapp.co/es-co/financing` (que responde 301). Al re-renderizarlo, ajustar
+`financing/script.es.js` (caption y narración de la escena 1 y el `pill` final)
+y regenerar `content/financing.es.js` con `npm run content` una vez desplegado el
+nombre nuevo.
 
 ## Requisitos
 

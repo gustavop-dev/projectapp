@@ -91,7 +91,7 @@ describe('ViewOperationalExplorer', () => {
     expect(wrapper.findAll('[data-testid^="view-explorer-node-"]')).toHaveLength(6)
     expect(wrapper.text()).toContain('Contenido y prueba social')
     expect(wrapper.text()).toContain('Módulos adicionales')
-    expect(wrapper.text()).toContain('Financiación de software')
+    expect(wrapper.text()).toContain('Programa de Alianza')
     expect(wrapper.text()).toContain('Propuesta comercial')
   })
 

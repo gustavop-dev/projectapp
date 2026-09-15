@@ -10,6 +10,8 @@ const props = defineProps({
   saving: { type: Boolean, default: false },
   errorMessage: { type: String, default: '' },
   generatedUrl: { type: String, default: '' },
+  /** Catalog-wide video switch: while off, no link shows the explainer. */
+  catalogVideoVisible: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['update:modelValue', 'submit'])
@@ -18,7 +20,7 @@ const selectedIds = ref([])
 const localError = ref('')
 const copied = ref(false)
 const autoRecipientLabel = ref('')
-const form = reactive({ recipient_label: '', client_id: '', language: 'es' })
+const form = reactive({ recipient_label: '', client_id: '', language: 'es', show_explainer_video: true })
 
 const activeModules = computed(() => props.modules.filter((module) => (
   module.is_active && props.categories.find((category) => category.id === module.category)?.is_active
@@ -41,6 +43,7 @@ watch(() => props.modelValue, (open) => {
   form.recipient_label = ''
   form.client_id = ''
   form.language = 'es'
+  form.show_explainer_video = true
   localError.value = ''
   copied.value = false
   autoRecipientLabel.value = ''
@@ -92,6 +95,7 @@ function submit() {
     client_id: form.client_id ? Number(form.client_id) : null,
     language: form.language,
     selected_module_ids: selectedIds.value,
+    show_explainer_video: form.show_explainer_video,
   } : {
     language: form.language,
     module_ids: selectedIds.value,
@@ -207,6 +211,26 @@ async function copyGeneratedUrl() {
                 ]"
               />
             </BaseFormField>
+            <div v-if="mode === 'share'" class="space-y-2">
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-text-default">{{ t('additionalModules.shareVideoLabel') }}</p>
+                  <p class="mt-1 text-xs leading-5 text-text-muted">{{ t('additionalModules.shareVideoHint') }}</p>
+                </div>
+                <BaseToggle
+                  v-model="form.show_explainer_video"
+                  :aria-label="t('additionalModules.shareVideoLabel')"
+                  data-testid="additional-share-video-toggle"
+                />
+              </div>
+              <p
+                v-if="!catalogVideoVisible"
+                class="rounded-lg bg-surface px-3 py-2 text-xs leading-5 text-text-muted"
+                data-testid="additional-share-video-catalog-off"
+              >
+                {{ t('additionalModules.shareVideoCatalogOff') }}
+              </p>
+            </div>
             <BaseAlert variant="info">{{ t('additionalModules.noPriceNotice') }}</BaseAlert>
             <BaseAlert v-if="localError || errorMessage" variant="danger">{{ localError || errorMessage }}</BaseAlert>
           </aside>

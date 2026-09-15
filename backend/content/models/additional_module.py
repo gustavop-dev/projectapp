@@ -118,6 +118,9 @@ class AdditionalModuleShareLink(models.Model):
     )
     is_active = models.BooleanField(default=True, db_index=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    # Per-link switch for the catalog explainer video. The catalog-wide switch
+    # (ExplainerVideoSettings) governs: the link shows it only if both are on.
+    show_explainer_video = models.BooleanField(default=True)
     view_count = models.PositiveIntegerField(default=0)
     first_viewed_at = models.DateTimeField(null=True, blank=True)
     last_viewed_at = models.DateTimeField(null=True, blank=True)

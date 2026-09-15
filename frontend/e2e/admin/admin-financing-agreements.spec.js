@@ -270,7 +270,7 @@ async function setupApi(page, scenario = {}) {
 
 async function openFinancingPanel(page) {
   await page.goto('/es-co/panel/proposals', { waitUntil: 'domcontentloaded' })
-  await page.getByRole('link', { name: 'Financiación', exact: true }).click()
+  await page.getByRole('link', { name: 'Programa de Alianza', exact: true }).click()
   await expect(page).toHaveURL(/\/es-co\/panel\/financing$/)
 }
 
