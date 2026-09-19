@@ -1,5 +1,16 @@
 # Product Requirements Document — ProjectApp
 
+> **Primer alcance — monitoreo operativo 2026-09-19:** centralizar en el Panel
+> las observaciones de vps-projectapp-prod y sus tres proyectos activos:
+> ProjectApp, Mimittos y Tenndalux. Separar casos de servidor y proyecto,
+> agrupar repeticiones y registrar estado manual, notas y autor. La recuperación
+> técnica no cierra el seguimiento; una detección posterior al cierre reabre el
+> caso. Los reportes informativos son independientes y se conservan 90 días.
+> Ingestión estructurada con credenciales acotadas y cola durable; sin importar
+> correo, asignaciones ni notificaciones nuevas. Correo actual coexistente,
+> inventario explícito y rollout Silk autorizado por etapas. Detalle:
+> `docs/monitoring.md`.
+
 > **Entrega 2026-09-04 — orden del listado de ingresos:** el tab Ingresos abre
 > ordenado por **Mes**, del más reciente al más antiguo. El encabezado de Mes
 > alterna únicamente entre reciente/antiguo; **Total** recorre mayor/menor y,
