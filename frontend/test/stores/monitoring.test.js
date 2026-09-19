@@ -1,0 +1,142 @@
+import { createPinia, setActivePinia } from 'pinia'
+import { useMonitoringStore } from '../../stores/monitoring'
+
+jest.mock('../../stores/services/request_http', () => ({
+  get_request: jest.fn(),
+  create_request: jest.fn(),
+}))
+
+const { get_request, create_request } = require('../../stores/services/request_http')
+
+const deferred = () => {
+  let resolve
+  let reject
+  const promise = new Promise((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
+}
+
+describe('useMonitoringStore', () => {
+  let store
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    store = useMonitoringStore()
+    jest.clearAllMocks()
+  })
+
+  it('keeps the newer list result when an older request resolves last', async () => {
+    // Falla si una recarga anterior vuelve a reemplazar los filtros más nuevos.
+    const first = deferred()
+    const second = deferred()
+    get_request.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+
+    const firstLoad = store.list({ state: 'pending' })
+    const secondLoad = store.list({ state: 'resolved' })
+    second.resolve({ data: { results: [{ id: 22, title: 'Caso resuelto' }], count: 1, page_size: 50 } })
+    await secondLoad
+    first.resolve({ data: { results: [{ id: 11, title: 'Caso pendiente' }], count: 9, page_size: 25 } })
+    await firstLoad
+
+    expect(store.records).toEqual([{ id: 22, title: 'Caso resuelto' }])
+    expect(store.count).toBe(1)
+    expect(store.pageSize).toBe(50)
+    expect(store.loading).toBe(false)
+  })
+
+  it('shows the API detail when the current list request fails', async () => {
+    // Falla si un error de carga queda oculto o deja el indicador activo.
+    get_request.mockRejectedValue({ response: { data: { detail: 'Sin permiso para ver los casos.' } } })
+
+    await store.list({})
+
+    expect(store.error).toBe('Sin permiso para ver los casos.')
+    expect(store.loading).toBe(false)
+  })
+
+  it('clears stale cases when the current list request fails', async () => {
+    // Falla si una falla deja visibles casos que no pertenecen al filtro actual.
+    store.records = [{ id: 4, title: 'Caso de un filtro anterior' }]
+    store.count = 1
+    get_request.mockRejectedValue({ response: { data: { detail: 'Sin permiso para ver los casos.' } } })
+
+    await store.list({ state: 'resolved' })
+
+    expect(store.records).toEqual([])
+    expect(store.count).toBe(0)
+  })
+
+  it('keeps the detail closed when its request resolves after close', async () => {
+    // Falla si una respuesta tardía vuelve a abrir un modal que el operador cerró.
+    const detailRequest = deferred()
+    get_request.mockReturnValue(detailRequest.promise)
+
+    const opening = store.open(7)
+    store.close()
+    detailRequest.resolve({ data: { id: 7, title: 'Caso que ya no debe mostrarse' } })
+    await opening
+
+    // quality: allow-negation-only (el contrato observable de close es no reabrir ningún detalle).
+    expect(store.detail).toBeNull()
+  })
+
+  it('sends the displayed case version on a state transition', async () => {
+    // Falla si el cambio de estado pierde el control de versión del caso mostrado.
+    store.detail = { id: 7, version: 3, state: 'pending' }
+    create_request.mockResolvedValue({ data: { state: 'reviewing' } })
+    get_request.mockResolvedValue({ data: { id: 7, version: 4, state: 'reviewing', title: 'Base lenta' } })
+
+    await store.transition('reviewing')
+
+    expect(create_request).toHaveBeenCalledWith('monitoring/cases/7/state/', { state: 'reviewing', version: 3 })
+  })
+
+  it('replaces the case detail after a state transition', async () => {
+    // Falla si la vista conserva el estado anterior después de una transición aceptada.
+    store.detail = { id: 7, version: 3, state: 'pending' }
+    create_request.mockResolvedValue({ data: { state: 'reviewing' } })
+    get_request.mockResolvedValue({ data: { id: 7, version: 4, state: 'reviewing', title: 'Base lenta' } })
+
+    await store.transition('reviewing')
+
+    expect(store.detail).toEqual({ id: 7, version: 4, state: 'reviewing', title: 'Base lenta' })
+  })
+
+  it('posts a note to the selected case', async () => {
+    // Falla si una nota se envía al caso equivocado.
+    store.detail = { id: 9, version: 2, activities: [] }
+    create_request.mockResolvedValue({ data: { id: 31 } })
+    get_request.mockResolvedValue({
+      data: { id: 9, version: 2, activities: [{ id: 31, text: 'Revisé los índices.' }] },
+    })
+
+    await store.note('Revisé los índices.')
+
+    expect(create_request).toHaveBeenCalledWith('monitoring/cases/9/notes/', { text: 'Revisé los índices.' })
+  })
+
+  it('replaces case activities after a note', async () => {
+    // Falla si la vista conserva el historial viejo tras registrar una nota.
+    store.detail = { id: 9, version: 2, activities: [] }
+    create_request.mockResolvedValue({ data: { id: 31 } })
+    get_request.mockResolvedValue({
+      data: { id: 9, version: 2, activities: [{ id: 31, text: 'Revisé los índices.' }] },
+    })
+
+    await store.note('Revisé los índices.')
+
+    expect(store.detail.activities).toEqual([{ id: 31, text: 'Revisé los índices.' }])
+  })
+
+  it('clears saving after a rejected state transition', async () => {
+    // Falla si un rechazo del servidor bloquea para siempre los controles de seguimiento.
+    store.detail = { id: 7, version: 3 }
+    create_request.mockRejectedValue(new Error('conflicto de versión'))
+
+    await expect(store.transition('resolved')).rejects.toThrow('conflicto de versión')
+
+    expect(store.saving).toBe(false)
+  })
+})
