@@ -68,8 +68,16 @@ def related_documents(proposal, payload):
         contract = proposal.proposal_documents.filter(document_type=ProposalDocument.DOC_TYPE_CONTRACT, is_generated=True).first()
         if not contract:
             raise FormalizationError('Genera el contrato final desde Documentos.', 'contract_missing')
-        if not proposal.contract_params:
-            raise FormalizationError('Completa los parámetros del contrato final.', 'contract_incomplete')
+        params = proposal.contract_params or {}
+        required = ['contract_date', 'custom_contract_markdown'] if params.get('contract_source') == 'custom' else [
+            'contractor_full_name', 'contractor_email', 'contract_city', 'bank_name',
+            'bank_account_number', 'client_full_name', 'client_cedula', 'client_email', 'contract_date',
+        ]
+        missing = [key for key in required if not str(params.get(key) or '').strip()]
+        if params.get('contract_source') != 'custom' and not (params.get('contractor_nit') or params.get('contractor_cedula')):
+            missing.append('contractor_identity')
+        if missing:
+            raise FormalizationError('Completa los parámetros del contrato final: ' + ', '.join(missing) + '.', 'contract_incomplete')
         result.insert(0, ('contract', contract))
     if any(doc.document_type == ProposalDocument.DOC_TYPE_CONTRACT for key, doc in result if key != 'contract'):
         raise FormalizationError('Selecciona el contrato mediante su casilla principal.', 'duplicate_contract')
@@ -223,6 +231,9 @@ def send(preparation):
 def cleanup_expired():
     # Delivery snapshots already own their own copies; expiration only removes preparations.
     count = 0
+    ProposalFormalization.objects.filter(expires_at__lte=timezone.now(), status='sending').update(
+        status='unknown', error='La entrega no se confirmó antes del vencimiento.',
+    )
     for preparation in ProposalFormalization.objects.filter(expires_at__lte=timezone.now()).exclude(status='sending').iterator(chunk_size=100):
         preparation.delete()
         count += 1

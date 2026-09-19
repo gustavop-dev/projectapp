@@ -87,6 +87,8 @@ def prepare_formalization(request, proposal_id):
 @permission_classes([IsAdminUser])
 def retrieve_formalization(request, proposal_id, preparation_id):
     preparation = _preparation(request, proposal_id, preparation_id)
+    if preparation.expires_at <= timezone.now():
+        return _response({'error': 'La preparación venció. Prepara nuevamente el correo.', 'code': 'expired_preparation'}, 410)
     return _response(_payload(preparation))
 
 

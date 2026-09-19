@@ -75,8 +75,8 @@ const panelCapabilities = [
     'Conecta la oportunidad inicial con una propuesta medible y lista para cerrar.',
     [
       feature('panel-proposals', 'Gestionar propuestas',
-        'Crea, edita, envía y sigue propuestas comerciales personalizadas.',
-        'Mantiene el proceso de venta en un flujo medible y reutilizable.',
+        'Crea, edita y sigue propuestas; formaliza con contrato final, anexos curados y correo por secciones con vista previa de los adjuntos.',
+        'Conecta la venta con la documentación formal y conserva evidencia del correo y los archivos enviados.',
         ['/panel/proposals', '/panel/proposals/create', '/panel/proposals/:id/edit'],
         { icon: 'send', stage: 'Venta' }),
       feature('panel-diagnostics', 'Entregar diagnósticos',

@@ -1331,3 +1331,8 @@ projectapp/
     and multi-send. Email templates render plain text only; the initial message
     belongs after resolved template `body` and before payment/timeline blocks.
     No model change or data backfill is required for this contract.
+
+
+## Implementación de formalización
+
+Servicios: `formalization_content`, `formalization_pdf` y `proposal_formalization_service`; vistas FBV y serializers separados. Modelos `ProposalFormalization` y `ProposalFormalizationFile` (migración 0249), archivos en storage `private`. Plantilla administrable `proposal_formalization`; gateway de correo y snapshots compartidos. Máximo 18 MB de adjuntos por preparación, 20 secciones adicionales y 10 destinatarios entre Para/CC. `cleanup_proposal_formalizations` corre diariamente a las 04:25. Los tests usan settings_test, almacenamiento temporal y correo local; nunca ejecutar migraciones ni envíos reales desde el worktree.

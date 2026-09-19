@@ -124,6 +124,11 @@ async function send() {
     emit('sent');
   } catch (err) {
     error.value = errorMessage(err);
+    if (['expired_preparation', 'stale_preparation', 'attachment_changed'].includes(err?.response?.data?.code)) {
+      clearPdf();
+      preparation.value = null;
+      return;
+    }
     try {
       preparation.value = await store.detail(props.proposal.id, preparation.value.id);
       if (preparation.value.status === 'sent') emit('sent');

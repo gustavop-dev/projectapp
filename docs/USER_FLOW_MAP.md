@@ -6301,6 +6301,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-engagement-decay-alert` | admin | P2 | — | 0 |
 | `admin-proposal-engagement-score` | admin | P2 | display | 1 |
 | `admin-proposal-first-view-retry` | admin | P1 | success,failure | 2 |
+| `admin-proposal-formalization-delivery` | admin | P1 | success,error,failure,display | — |
 | `admin-proposal-functional-requirements-form` | admin | P1 | success,error | 1 |
 | `admin-proposal-functional-requirements-paste` | admin | P1 | success,error | 1 |
 | `admin-proposal-hour-rate` | admin | P1 | success,display,failure | 1 |
@@ -7789,6 +7790,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcome classes:** success and failure covered; validation error is n/a because the retry action is hidden outside the failed state; delivery-state display is covered by `admin-proposal-analytics`.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-analytics.spec.js`
+
+### FLOW: `admin-proposal-formalization-delivery`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P1
+- **Ruta:** `/panel/proposals/:id/edit` → Documentos
+- **Recorrido:** abrir una propuesta desde el panel; entrar en Documentos; descargar o previsualizar anexos formales; abrir Formalización; elegir contrato final, anexos y adjuntos propios; editar Para/CC, asunto y secciones; preparar; revisar correo y archivos exactos; enviar.
+- **Display:** contenido real de la propuesta, plantilla precargada, disponibilidad, destinatarios y manifiesto de archivos preparados.
+- **Success:** preparar una selección válida, revisar sus bytes y enviarla; aparece confirmación y evidencia en Correos.
+- **Error:** datos requeridos o adjuntos no disponibles impiden preparar; revisión obsoleta, vencida o consumida muestra un error accionable.
+- **Failure:** falla de carga o preparación conserva el formulario; resultado incierto de envío consulta el estado y evita un segundo envío automático.
+- **Límites:** preparación privada de 24 horas, hasta 20 secciones y 10 destinatarios; sin transición automática del estado comercial.
 
 ### FLOW: `proposal-closing-contact`
 

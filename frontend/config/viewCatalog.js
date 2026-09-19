@@ -332,7 +332,7 @@ export const viewCatalogSections = [
         group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/[id]/edit.vue',
         reference: 'vista de edicion/detalle de propuesta del panel',
-        notes: 'Usa el id interno de la propuesta, no el uuid publico.',
+        notes: 'Usa el id interno de la propuesta. Documentos permite descargar anexos formales curados y preparar un correo con contrato final, adjuntos seleccionables y revisión previa de los archivos exactos.',
         audience: 'admin',
         viewType: 'edit',
       },
