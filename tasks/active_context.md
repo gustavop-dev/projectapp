@@ -1,5 +1,13 @@
 # Active Context — ProjectApp
 
+## En curso — Monitoreo operativo (2026-09-19)
+
+Módulo interno para administradores: casos por proyecto/servidor, notas, cierre
+manual y reportes separados. Primera integración: vps-projectapp-prod y sus
+proyectos activos ProjectApp, Mimittos y Tenndalux. Recepción estructurada con
+credenciales limitadas, idempotencia y cola durable local; correo coexistente.
+Silk se habilitará gradualmente mediante deploy, nunca desde el worktree.
+
 ## Current State
 
 **2026-09-04 — módulo de experiencias audiovisuales listo para integrar:** el

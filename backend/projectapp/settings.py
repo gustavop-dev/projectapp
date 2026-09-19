@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'content',
     'accounts',
+    'monitoring',
     'corsheaders',
     # Third-party (operations)
     'dbbackup',
