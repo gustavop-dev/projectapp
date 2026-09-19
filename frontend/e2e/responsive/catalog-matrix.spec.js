@@ -52,6 +52,9 @@ const proposalDefaultsRedirect = redirectScenario('/panel/proposals/defaults');
 const diagnosticDefaultsRedirect = redirectScenario('/panel/diagnostics/defaults');
 const deliverableRedirect = redirectScenario('/platform/projects/:id/deliverables/:deliverableId');
 const adminLoginRedirect = redirectScenario('/platform/admin-login');
+const partnershipRedirects = [
+  '/panel/financing', '/panel/financing/new', '/panel/financing/:id',
+].map(redirectScenario);
 
 function belongsToRequestedBatch(scenario) {
   return !requestedBatch || batchForScenario(scenario.catalogKey) === requestedBatch;
@@ -121,6 +124,16 @@ for (const profile of RESPONSIVE_PROFILES) {
     tag: [`@viewport:${profile}`],
   }, () => {
     test.use(viewportUse(profile));
+
+    for (const scenario of partnershipRedirects.filter(belongsToRequestedBatch)) {
+      test(`partnership alias ${scenario.url} retains its destination`, {
+        tag: ['@flow:admin-partnership-legacy-redirects', '@outcome:success', ...redirectTags(scenario, profile)],
+      }, async ({ page }) => {
+        // quality: allow-no-interaction (opening a legacy bookmark invokes the compatibility redirect)
+        await navigateCompatibilityRedirect(page, scenario);
+        await expect(page).toHaveURL(redirectUrlPattern(scenario));
+      });
+    }
 
     test.describe('platform legacy aliases', () => {
       if (belongsToRequestedBatch(legacyPlatformRedirects[0])) {

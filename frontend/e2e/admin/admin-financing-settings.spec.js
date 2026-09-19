@@ -71,7 +71,7 @@ async function openSettings(page) {
   await page.goto('/es-co/panel/proposals', { waitUntil: 'domcontentloaded' })
   await page.getByRole('link', { name: 'Programa de Alianza', exact: true }).click()
   await page.getByTestId('financing-tab-settings').click()
-  await expect(page).toHaveURL(/\/es-co\/panel\/financing\?tab=settings$/)
+  await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\?tab=settings$/)
 }
 
 test.describe('Admin financing policy settings', () => {

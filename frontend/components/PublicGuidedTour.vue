@@ -282,7 +282,7 @@ defineExpose({ start, forceStart })
         ref="tooltipRef"
         :data-theme="props.isDark ? 'dark' : 'light'"
         :style="tooltipStyle"
-        class="fixed z-[10000] w-[calc(100vw-1.5rem)] max-w-xs rounded-2xl border border-border-default bg-surface p-5 shadow-overlay"
+        class="public-document-theme fixed z-[10000] w-[calc(100vw-1.5rem)] max-w-xs rounded-2xl border border-border-default bg-surface p-5 shadow-overlay"
         role="dialog"
         :aria-labelledby="`${testIdPrefix}-title-${currentStep}`"
         :data-testid="testIdPrefix"
@@ -292,7 +292,7 @@ defineExpose({ start, forceStart })
             v-for="stepNumber in totalSteps"
             :key="stepNumber"
             class="h-1.5 rounded-full transition-all"
-            :class="stepNumber - 1 === currentStep ? 'w-5 bg-primary' : 'w-1.5 bg-border-default'"
+            :class="stepNumber - 1 === currentStep ? 'w-5 bg-text-brand' : 'w-1.5 bg-border-default'"
           />
           <span class="ml-auto text-xs font-medium tabular-nums text-text-subtle" :data-testid="`${testIdPrefix}-progress`">
             {{ currentStep + 1 }}/{{ totalSteps }}

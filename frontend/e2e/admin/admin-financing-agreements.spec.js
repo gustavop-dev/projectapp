@@ -271,19 +271,19 @@ async function setupApi(page, scenario = {}) {
 async function openFinancingPanel(page) {
   await page.goto('/es-co/panel/proposals', { waitUntil: 'domcontentloaded' })
   await page.getByRole('link', { name: 'Programa de Alianza', exact: true }).click()
-  await expect(page).toHaveURL(/\/es-co\/panel\/financing$/)
+  await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program$/)
 }
 
 async function openAgreementList(page) {
   await openFinancingPanel(page)
   await page.getByTestId('financing-tab-agreements').click()
-  await expect(page).toHaveURL(/\/es-co\/panel\/financing\?tab=agreements$/)
+  await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\?tab=agreements$/)
 }
 
 async function openAgreementDetail(page, id = 501) {
   await openAgreementList(page)
   await page.getByTestId(`financing-agreement-row-${id}`).click()
-  await expect(page).toHaveURL(new RegExp(`/es-co/panel/financing/${id}$`))
+  await expect(page).toHaveURL(new RegExp(`/es-co/panel/partnership-program/${id}$`))
 }
 
 async function chooseFinancingClient(page) {
@@ -337,13 +337,13 @@ test.describe('Admin financing agreements', () => {
     await setupApi(page, scenario)
     await openAgreementList(page)
     await page.getByTestId('financing-new-agreement').click()
-    await expect(page).toHaveURL(/\/es-co\/panel\/financing\/new$/)
+    await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\/new$/)
     await chooseFinancingClient(page)
     await fillRequiredAgreementFields(page)
 
     await page.getByTestId('financing-agreement-save').click()
 
-    await expect(page).toHaveURL(/\/es-co\/panel\/financing\/501$/)
+    await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\/501$/)
     await expect(page.getByTestId('financing-installment-12')).toBeVisible()
     await expect(page.getByTestId('financing-late-payment-rule')).toContainText('aumenta 2%')
     expect(scenario.createdPayload.client_id).toBe(financingClientFixture.id)
@@ -365,7 +365,7 @@ test.describe('Admin financing agreements', () => {
     tag: [...ADMIN_FINANCING_AGREEMENT_CREATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupApi(page, { createError: true })
-    await page.goto('/es-co/panel/financing/new', { waitUntil: 'domcontentloaded' })
+    await page.goto('/es-co/panel/partnership-program/new', { waitUntil: 'domcontentloaded' })
     await page.getByTestId('financing-original-contract').fill('Contrato que debe conservarse')
 
     await page.getByTestId('financing-agreement-save').click()
@@ -589,7 +589,7 @@ test.describe('Admin financing agreements', () => {
 
     await runConfirmedAction(page, 'financing-create-second-cycle')
 
-    await expect(page).toHaveURL(/\/es-co\/panel\/financing\/502$/)
+    await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\/502$/)
     await expect(page.getByText('Este segundo ciclo conserva la modalidad')).toBeVisible()
     await expect(page.getByText('Ciclo 2')).toBeVisible()
     await expect(page.getByTestId('financing-modality-five')).toHaveCount(0)
@@ -612,7 +612,7 @@ test.describe('Admin financing agreements', () => {
     await runConfirmedAction(page, 'financing-create-second-cycle')
 
     await expect(page.getByRole('alert').first()).toContainText('pago íntegro')
-    await expect(page).toHaveURL(/\/es-co\/panel\/financing\/501$/)
+    await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\/501$/)
   })
 
   test('shows a second-cycle service failure', {

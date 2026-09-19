@@ -34,6 +34,8 @@ const props = defineProps({
     default: '',
     validator: oneOf(['', 'light', 'dark']),
   },
+  /** Optional palette scope carried onto the teleported dialog. */
+  themeClass: { type: String, default: '' },
   /** Pins the panel to a fixed 90vh column that never scrolls itself, so the
    * slot can own its scroll regions (fixed header/footer + independently
    * scrolling panes). Off by default: the panel grows to its content and
@@ -167,6 +169,7 @@ watch(
         ref="dialogRef"
         tabindex="-1"
         :data-theme="theme || undefined"
+        :class="themeClass"
         class="fixed inset-0 z-[9999] flex items-center justify-center p-0 panel-portrait:p-4"
         role="dialog"
         aria-modal="true"

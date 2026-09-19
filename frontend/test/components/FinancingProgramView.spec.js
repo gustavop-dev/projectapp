@@ -1,9 +1,11 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 
 import BaseAlert from '../../components/base/BaseAlert.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
 import BaseSegmented from '../../components/base/BaseSegmented.vue'
 import FinancingProgramView from '../../components/Financing/ProgramView.vue'
+
+enableAutoUnmount(afterEach)
 
 
 global.useI18n = jest.fn(() => ({
@@ -102,6 +104,7 @@ function mountProgram(props = {}) {
     global: {
       components: { BaseAlert, BaseBadge, BaseSegmented },
       stubs: {
+        Teleport: true,
         NuxtLink: { template: '<a><slot /></a>' },
         FinancingOnboarding: {
           template: '<div data-testid="financing-onboarding-stub" />',
@@ -198,6 +201,7 @@ describe('FinancingProgramView', () => {
     const wrapper = mountProgram()
 
     await wrapper.get('[data-testid="financing-share"]').trigger('click')
+    await wrapper.get('[data-testid="financing-copy-link"]').trigger('click')
     await flushPromises()
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/es-co/partnership-program')
@@ -208,9 +212,10 @@ describe('FinancingProgramView', () => {
     const wrapper = mountProgram()
 
     await wrapper.get('[data-testid="financing-share"]').trigger('click')
+    await wrapper.get('[data-testid="financing-copy-link"]').trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('financing.shareFailed')
+    expect(wrapper.get('[role="alert"]').text()).toContain('financing.copyFailed')
   })
 })
 

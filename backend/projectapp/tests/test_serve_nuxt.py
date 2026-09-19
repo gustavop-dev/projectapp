@@ -261,8 +261,8 @@ class TestServeNuxtRenamedFinancingRedirect:
         assert response.status_code == 301
 
     @pytest.mark.parametrize('path', [
-        'es-co/panel/financing',
-        'panel/financing',
+        'es-co/panel/financing-guide',
+        'panel/financing-guide',
         'es-co/financing-guide',
     ])
     def test_similar_paths_are_not_redirected(self, rf, frontend_dir, monkeypatch, path):

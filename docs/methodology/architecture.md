@@ -1,13 +1,23 @@
 # Architecture — ProjectApp
 
+> **Interfaz comercial pública — 2026-09-19:** catálogo, selecciones y Programa
+> de Alianza comparten `PublicDocumentAction` y `PublicDocumentShareButton`,
+> con el patrón de propuestas (tema/guía a la izquierda; PDF/compartir sobre
+> WhatsApp a la derecha). `usePublicDocumentTheme` comparte el tema entre la
+> página y su visor por provide/inject, aislado por clave de almacenamiento;
+> `.public-document-theme` delimita la paleta en página, modales y guía.
+> El panel usa `/panel/partnership-program`, `/new` y `/:id`; Django redirige
+> las rutas antiguas con 301 antes del fallback, y Nuxt conserva query/hash
+> en navegación interna. API, modelos y namespace `financing` se mantienen.
+
 > **Programa de Alianza y visibilidad de videos explicativos 2026-09-14:** el
 > módulo público de financiación se presenta como "Programa de Alianza" /
 > "Partnership Program" (financiación, exclusividad y custodia, calculadora,
 > paquete mensual y reglas de pago). Su ruta pública pasa a
 > `/partnership-program` y `serve_nuxt` responde 301 desde
 > `/<locale>/financing[/…]` (y `/financing` → es-co) antes de buscar archivos,
-> así ningún prerender viejo contesta. API, modelos, namespace i18n y la ruta
-> del panel conservan `financing`; los otrosíes siguen siendo "de
+> así ningún prerender viejo contesta. API, modelos y namespace i18n
+> conservan `financing`; los otrosíes siguen siendo "de
 > financiación". `ExplainerVideoSettings` (singleton `pk=1`) guarda un
 > interruptor por módulo y `AdditionalModuleShareLink.show_explainer_video`
 > uno por enlace; `explainer_video_visible()` los combina —el del catálogo
