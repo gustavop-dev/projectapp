@@ -83,7 +83,7 @@ class Case(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['source', 'fingerprint_hash'], name='monitor_case_fingerprint')]
-        indexes = [models.Index(fields=['state', '-last_seen_at']), models.Index(fields=['severity', '-last_seen_at'])]
+        indexes = [models.Index(fields=['state', '-last_seen_at']), models.Index(fields=['severity', '-last_seen_at']), models.Index(fields=['-last_seen_at', '-id'])]
         ordering = ['-last_seen_at', '-pk']
 
 
@@ -111,6 +111,7 @@ class Delivery(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['source', 'external_id'], name='monitor_delivery_identity')]
+        indexes = [models.Index(fields=['case', '-observed_at']), models.Index(fields=['kind', 'received_at'])]
         ordering = ['-observed_at', '-pk']
 
 
@@ -125,4 +126,5 @@ class CaseActivity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        indexes = [models.Index(fields=['case', '-created_at'])]
         ordering = ['-created_at', '-pk']
