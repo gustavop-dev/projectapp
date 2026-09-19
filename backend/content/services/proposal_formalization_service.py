@@ -143,18 +143,23 @@ def prepare(proposal, user, payload):
     reference = f'PROP-{proposal.pk} / {str(preparation.id)[:8]}'
     content = FormalContent(proposal)
     attachments = []
+
+    def append_attachment(key, name, description, mime, data):
+        # Reject as soon as the cumulative budget is exceeded, before loading more files.
+        if sum(len(item[4]) for item in attachments) + len(data) > MAX_ATTACHMENT_BYTES:
+            raise FormalizationError('Los adjuntos superan el límite de 18 MB.', 'attachments_too_large')
+        attachments.append((key, name, description, mime, data))
+
     for key in payload['documents']:
         data = document_bytes(proposal, key, issued_at=now, reference=reference, content=content)
         label, description = DOCUMENTS[key]
         name = safe_pdf_filename(label, proposal.title, now.strftime('%Y-%m-%d'))
-        attachments.append((key, name, description, 'application/pdf', data))
+        append_attachment(key, name, description, 'application/pdf', data)
     for key, doc in related_documents(proposal, payload):
         if key == 'contract':
             continue
         name = doc.file.name.rsplit('/', 1)[-1]
-        attachments.append((key, name, doc.title, mimetypes.guess_type(name)[0] or 'application/octet-stream', read_document(doc)))
-    if sum(len(item[4]) for item in attachments) > MAX_ATTACHMENT_BYTES:
-        raise FormalizationError('Los adjuntos superan el límite de 18 MB.', 'attachments_too_large')
+        append_attachment(key, name, doc.title, mimetypes.guess_type(name)[0] or 'application/octet-stream', read_document(doc))
     if captured_hash != source_hash(load_proposal(proposal.pk), payload):
         raise FormalizationError('La propuesta cambió durante la preparación. Vuelve a preparar el correo.', 'stale_preparation', 409)
     descriptions = '\n'.join(f'{name} — {description}' for _, name, description, _, _ in attachments)

@@ -107,6 +107,39 @@ def test_prepare_freezes_the_requested_manifest(
     assert annex.filename in preparation.text_body
 
 
+def test_prepare_rejects_combined_attachments_over_the_limit(
+    monkeypatch, formalization_proposal, admin_user, formalization_payload,
+):
+    """Fails if individually valid attachments exceed the package limit after allocation."""
+    first = ProposalDocument.objects.create(
+        proposal=formalization_proposal,
+        document_type=ProposalDocument.DOC_TYPE_OTHER,
+        title='Primer anexo',
+    )
+    first.file.save('first.pdf', ContentFile(b'12345'), save=True)
+    second = ProposalDocument.objects.create(
+        proposal=formalization_proposal,
+        document_type=ProposalDocument.DOC_TYPE_OTHER,
+        title='Segundo anexo',
+    )
+    second.file.save('second.pdf', ContentFile(b'67890'), save=True)
+    payload = {
+        **formalization_payload,
+        'documents': [],
+        'additional_doc_ids': [first.pk, second.pk],
+    }
+    monkeypatch.setattr(
+        'content.services.proposal_formalization_service.MAX_ATTACHMENT_BYTES', 8,
+    )
+
+    with pytest.raises(FormalizationError) as error:
+        prepare(formalization_proposal, admin_user, payload)
+
+    assert error.value.code == 'attachments_too_large'
+    assert ProposalFormalization.objects.count() == 0
+    assert ProposalFormalizationFile.objects.count() == 0
+
+
 def test_send_records_the_frozen_package_in_history(
     mailoutbox, formalization_proposal, admin_user, formalization_payload, formalization_attachment,
 ):
