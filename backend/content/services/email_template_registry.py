@@ -1173,6 +1173,21 @@ EMAIL_TEMPLATE_REGISTRY = {
     # -----------------------------------------------------------------------
     # Document dispatch (manual send from documents tab)
     # -----------------------------------------------------------------------
+    'proposal_formalization': {
+        'name': 'Formalización de proyecto',
+        'description': 'Documentación formal para revisión y firma desde Documentos de la propuesta.',
+        'category': 'client',
+        'html_template': 'emails/proposal_formalization.html',
+        'txt_template': 'emails/proposal_formalization.txt',
+        'editable_fields': [
+            {'key': 'subject', 'label': 'Asunto', 'type': 'text', 'default': 'Documentación para formalización — {title}'},
+            {'key': 'greeting', 'label': 'Saludo', 'type': 'text', 'default': 'Hola {client_name},'},
+            {'key': 'body', 'label': 'Introducción', 'type': 'textarea', 'default': 'Te compartimos la documentación de {title} para su revisión y para coordinar la firma de los documentos que correspondan.'},
+            {'key': 'footer', 'label': 'Cierre', 'type': 'textarea', 'default': 'Por favor, compártenos tus observaciones respondiendo este correo. Una vez revisada la documentación, coordinaremos la firma.'},
+        ],
+        'available_variables': ['client_name', 'title'],
+        'sample_context': {**_client_sample(), 'sections': ['Documentación para revisión y firma.']},
+    },
     'proposal_documents_sent': {
         'name': 'Documentos Enviados al Cliente',
         'description': 'Se envía cuando el vendedor envía documentos (borrador de contrato, propuesta, etc.) al cliente desde el tab de documentos.',

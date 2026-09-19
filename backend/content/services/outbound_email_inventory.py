@@ -57,6 +57,7 @@ OUTBOUND_EMAIL_CHANNELS = {
     'diagnostic_documents_sent': DIAGNOSTICS,
 
     # Attachments, manual messages and the future Communications delivery seam.
+    'proposal_formalization': DOCUMENTS_COMMUNICATIONS,
     'proposal_documents_sent': DOCUMENTS_COMMUNICATIONS,
     'branded_email': DOCUMENTS_COMMUNICATIONS,
     'proposal_email': DOCUMENTS_COMMUNICATIONS,

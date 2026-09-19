@@ -132,3 +132,4 @@ from .financing_agreement import (
     FinancingAgreementTemplate,
     FinancingPolicyRevision,
 )
+from .proposal_formalization import ProposalFormalization, ProposalFormalizationFile

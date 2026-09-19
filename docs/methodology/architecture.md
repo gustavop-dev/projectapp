@@ -1631,3 +1631,8 @@ then renders body → personalized message → commercial blocks in both HTML an
 text templates. Delivery snapshots store the final rendered body, so editing
 `email_intro` after delivery changes only future sends and never rewrites the
 historical record.
+
+
+## Formalización de propuestas
+
+Los endpoints administrativos `proposals/{id}/formalization/` delegan en un servicio independiente. `FormalContent` proyecta campos permitidos y genera anexos con ReportLab; no llama al generador comercial público ni refresca catálogos. Una preparación privada conserva payload, HTML/texto, huella de origen y bytes de adjuntos por 24 horas. El envío reclama la preparación mediante actualización condicional de estado y entrega esos mismos bytes al gateway existente, que conserva snapshots e historial. El envío no cambia el estado comercial. Los archivos temporales se eliminan por tarea diaria y también al borrar su propuesta.

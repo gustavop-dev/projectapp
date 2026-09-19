@@ -339,7 +339,18 @@ from content.views.financing_agreements import (
     financing_settings,
 )
 
+from content.views.formalization import (
+    formalization_options, formalization_pdf, prepare_formalization,
+    retrieve_formalization, formalization_attachment, send_formalization,
+)
+
 urlpatterns = [
+    path('proposals/<int:proposal_id>/formalization/', formalization_options, name='formalization-options'),
+    path('proposals/<int:proposal_id>/formalization/pdf/<str:kind>/', formalization_pdf, name='formalization-pdf'),
+    path('proposals/<int:proposal_id>/formalization/prepare/', prepare_formalization, name='formalization-prepare'),
+    path('proposals/<int:proposal_id>/formalization/preparations/<uuid:preparation_id>/', retrieve_formalization, name='formalization-detail'),
+    path('proposals/<int:proposal_id>/formalization/preparations/<uuid:preparation_id>/files/<int:file_id>/', formalization_attachment, name='formalization-file'),
+    path('proposals/<int:proposal_id>/formalization/preparations/<uuid:preparation_id>/send/', send_formalization, name='formalization-send'),
     path('contacts/', contact_list, name='contact-list'),
     path('new-contact/', new_contact, name='new-contact'),
 

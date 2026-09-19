@@ -195,3 +195,7 @@ Todos aceptan `--seed` y `--anchor-date` y aplican el mismo guard de entorno.
 | Comunicaciones | `create_fake_communications` |
 | Email / QR / Linktree / LinkedIn / MCP | `create_fake_auxiliary` |
 | Limpieza | `delete_fake_data --confirm` |
+
+Las preparaciones de formalización y sus archivos privados son efímeros y se
+clasifican como EXEMPT: los recorridos de prueba los generan desde propuestas
+representativas mediante la API, sin sembrar envíos reutilizables.
