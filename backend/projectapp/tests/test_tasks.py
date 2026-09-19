@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
@@ -14,6 +14,9 @@ from projectapp.tasks import (
     silk_reports_cleanup,
     weekly_slow_queries_report,
 )
+
+
+urlpatterns = []
 
 
 class FakeQuerySet:
@@ -110,16 +113,18 @@ class TestWeeklySlowQueriesReport:
     @override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
     @patch('projectapp.tasks.logger')
     @patch('projectapp.tasks.timezone.now')
-    def test_generates_report_with_slow_queries_and_n_plus_one(
+    def test_generates_report_with_query_findings(
         self,
         mock_now,
         mock_logger,
         tmp_path,
         settings,
     ):
-        fixed_now = timezone.now()
+        fixed_now = datetime(2026, 9, 19, 8, tzinfo=UTC)
         mock_now.return_value = fixed_now
         settings.BASE_DIR = tmp_path
+        settings.ROOT_URLCONF = __name__
+        report_path = tmp_path / 'logs' / 'silk-reports' / 'silk-report-2026-09-19.log'
 
         slow_queries = FakeQuerySet([
             SimpleNamespace(
@@ -139,12 +144,11 @@ class TestWeeklySlowQueriesReport:
         with patch.dict('sys.modules', {'silk.models': fake_module}):
             report = weekly_slow_queries_report.call_local()
 
-        report_path = tmp_path / 'logs' / 'silk-reports' / f'silk-report-{fixed_now.strftime("%Y-%m-%d")}.log'
         assert 'SLOW QUERIES (>500ms)' in report
         assert '/api/projects' in report
         assert 'POTENTIAL N+1 (>10 queries/request)' in report
         assert '/platform/projects' in report
-        assert report_path.exists()
+        assert report_path.read_text() == report + '\n'
         assert 'Slow queries: 1' in mock_logger.info.call_args.args[0]
 
     @override_settings(ENABLE_SILK=True)
@@ -157,9 +161,11 @@ class TestWeeklySlowQueriesReport:
         tmp_path,
         settings,
     ):
-        fixed_now = timezone.now()
+        fixed_now = datetime(2026, 9, 19, 8, tzinfo=UTC)
         mock_now.return_value = fixed_now
         settings.BASE_DIR = tmp_path
+        settings.ROOT_URLCONF = __name__
+        report_path = tmp_path / 'logs' / 'silk-reports' / 'silk-report-2026-09-19.log'
 
         fake_module = SimpleNamespace(
             SQLQuery=SimpleNamespace(objects=FakeQuerySet([])),
@@ -171,6 +177,7 @@ class TestWeeklySlowQueriesReport:
 
         assert 'No slow queries found this week' in report
         assert 'No N+1 patterns detected this week' in report
+        assert report_path.read_text() == report + '\n'
         mock_logger.info.assert_called_once()
 
 
