@@ -1,6 +1,6 @@
 <script setup>
 definePageMeta({
-  middleware: ['legacy-partnership-route'],
+  middleware: ['legacy-partnership-route', 'admin-auth'],
 })
 </script>
 
