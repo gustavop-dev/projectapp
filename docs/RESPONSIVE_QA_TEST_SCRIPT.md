@@ -61,7 +61,7 @@ de compatibilidad y nunca acreditan layout, tablas o modales.
 | Documents | 2 | carpetas, activo/archivado, listado y acciones de fila |
 | Clients | 34 | filtros de dos niveles, tarjetas, administración y plataforma autenticada |
 | Projects | 3 | listado, crear/editar, cambio guiado de cliente y seguimiento de monitoreo |
-| Commercial | 16 | propuestas, diagnósticos, paquetes, módulos adicionales y financiación |
+| Commercial | 19 | propuestas, diagnósticos, paquetes, módulos adicionales y financiación |
 | Emails | 3 | compositor, adjuntos, preview, historial y entregabilidad |
 | Communications | 1 | ordenar, abrir hilo, leer estados/adjuntos y registrar mensaje |
 | Canvas | 2 | metadata, editor/preview y guard de salida |
