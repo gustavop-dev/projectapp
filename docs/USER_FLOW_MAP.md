@@ -6255,6 +6255,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-panel-projects` | admin | P1 | display,success,error | 17 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
+| `admin-partnership-legacy-redirects` | admin | P2 | success,error | — |
 | `admin-portfolio-create` | admin | P2 | display,success,error | 1 |
 | `admin-portfolio-delete` | admin | P2 | display,success | 1 |
 | `admin-portfolio-edit` | admin | P2 | display,success,error | 1 |
@@ -6458,7 +6459,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-additional-modules-guide` | public | P2 | success,display | 2 |
 | `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
 | `public-additional-modules-share` | public | P1 | success,display,failure | 4 |
-| `public-additional-modules-theme` | public | P2 | success,display | 2 |
+| `public-additional-modules-theme` | public | P2 | success,display,failure | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
 | `public-financing-explainer` | public | P2 | display,success,failure | 4 |
 | `public-financing-guide` | public | P2 | success,display | 2 |
@@ -6466,8 +6467,9 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-financing-load` | public | P1 | failure,success | — |
 | `public-financing-overview` | public | P1 | display | — |
 | `public-financing-pdf` | public | P2 | success,failure | — |
-| `public-financing-share` | public | P2 | success | — |
+| `public-financing-share` | public | P2 | success,failure | — |
 | `public-financing-terms` | public | P2 | success | — |
+| `public-financing-theme` | public | P2 | success,failure | — |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
 | `public-landing-software` | public | P3 | display | 1 |
@@ -7730,6 +7732,16 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   4. **display:** el modal enumera el asunto y adjuntos bloqueados antes de confirmar.
 - **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
 
+# Enlaces anteriores del Programa de Alianza
+
+- **Rol:** administrador.
+- **Success:** abrir `/panel/financing`, `/new` o `/:id` conduce a la ruta
+  equivalente en `/panel/partnership-program`; conserva idioma y parámetros.
+- **Error:** sin sesión, el destino exige autenticación administrativa.
+- **Failure:** no aplica a la redirección local; los errores de datos pertenecen
+  a los flujos existentes del programa y sus otrosíes.
+- **Display:** no aplica: la ruta anterior no muestra una vista propia.
+
 ### FLOW: `admin-project-lifecycle-states`
 
 - **Module:** admin
@@ -7900,7 +7912,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   `/:locale/additional-modules/share/:uuid`
 - **Interacción:** Alternar entre modo claro y oscuro, leer el índice y el
   detalle con el mismo tema y recuperar esa preferencia en una visita posterior.
-- **Outcomes:** `success`, `display`
+- **Outcomes:** `success`, `display`, `failure`
+- **Failure:** El mensaje de carga fallida y el catálogo recuperado con
+  Reintentar conservan el tema elegido, también en selecciones compartidas.
 - **Evidencia:** `useAdditionalModulesTheme.js`, `CatalogView.vue` y
   `e2e/public/additional-modules.spec.js`.
 
@@ -7965,9 +7979,10 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P2
 - **Route:** `/:locale/partnership-program`
-- **Interaction:** Share the exact localized URL through the native share sheet or clipboard fallback.
-- **Outcomes:** `success`
-- **Evidence:** floating share control in `Financing/ProgramView.vue`.
+- **Interaction:** Abrir el diálogo de Compartir; copiar la URL exacta (idioma, query y hash) o abrir el selector nativo. Escape devuelve el foco al control flotante.
+- **Outcomes:** `success`, `failure`
+- **Failure:** Si falla el portapapeles, mostrar un error recuperable dentro del diálogo. Cancelar el selector nativo no es un error.
+- **Evidence:** `PublicDocumentShareButton.vue`, montado desde `Financing/ProgramView.vue`.
 
 ### FLOW: `public-financing-terms`
 
@@ -7978,3 +7993,16 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Interaction:** Expand one legal-rule accordion and read the complete detail associated with that condition.
 - **Outcomes:** `success`
 - **Evidence:** `Financing/ProgramView.vue` agreement-rule disclosures.
+
+# Tema del Programa de Alianza
+
+- **Rol:** visitante.
+- **Success:** cambiar entre claro y oscuro conserva legibilidad de contenido,
+  controles y diálogos en los cinco perfiles responsive. Recargar restaura la
+  elección sin cambiar el tema del panel.
+- **Failure:** una carga fallida conserva el tema guardado en el mensaje de
+  error y al recuperar el programa con Reintentar.
+- **Error:** no hay entradas inválidas para este interruptor; almacenamiento
+  no disponible no impide usar el tema durante la visita.
+- **Display:** no se registra una interacción adicional; se valida como parte
+  del cambio de tema.

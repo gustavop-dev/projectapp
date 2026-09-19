@@ -1,5 +1,14 @@
 # Technical Documentation — ProjectApp
 
+> **Controles públicos comerciales — 2026-09-19:** el tema claro se restablece
+> explícitamente dentro del scope público, incluso si el panel dejó `.dark` en
+> un ancestro. Se preservan las claves `projectapp-additional-modules-theme` y
+> `projectapp-financing-theme`. Compartir usa la URL actual completa y ofrece
+> copia con feedback y Web Share; `AbortError` es una cancelación silenciosa.
+> Las rutas antiguas `/panel/financing[/…]` redirigen a
+> `/panel/partnership-program[/…]`, conservando idioma y query en Django y
+> también hash en Nuxt. El destino mantiene `admin-auth`. No hay migraciones.
+
 > **Contrato técnico de orden de ingresos — 2026-09-04:** el estado persistido
 > usa `projectapp-accounting-incomes-sort` con la forma `{ key, dir }` y acepta
 > sólo columnas declaradas y direcciones `asc|desc`; cualquier dato inválido
@@ -84,7 +93,7 @@
 > y el output —esfuerzo relativo XS–XL, trabajo/tiempo y rango de precio con
 > supuestos—; no expone fórmulas, tarifas ni metodología interna. El tema local
 > persiste en `projectapp-financing-theme`. El catálogo responsive vigente
-> queda en 109 páginas: 94 visuales y 15 redirects, para 545 celdas.
+> se deriva del Mapa de vistas y del contrato de aceptación responsive.
 
 > **Contrato paginado del Gestor Documental — 2026-09-02:**
 > `GET /api/documents/browse/` acepta los mismos filtros de
@@ -1273,7 +1282,7 @@ projectapp/
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (96 pages)
+│   ├── pages/                   # Nuxt file-based routing (114 pages)
 │   │   ├── panel/               # Admin pages (proposals, diagnostics, blog, portfolio, clients, documents, admins, tasks, accounting/*, mcps, defaults, styleguide, views). Proposal edit page has Cronograma tab; `/panel/tasks` is the internal Kanban board; `/panel/accounting/*` and `/panel/mcps` are superuser-gated.
 │   │   ├── platform/            # Platform pages (login/verify/complete-profile, projects/*, board, bugs, changes, deliverables, collection-accounts, data-model, payments, notifications, clients, profile, documents — client document-signing portal)
 │   │   ├── blog/                # Blog listing + detail

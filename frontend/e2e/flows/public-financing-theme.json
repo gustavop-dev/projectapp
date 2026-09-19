@@ -1,0 +1,9 @@
+{
+  "id": "public-financing-theme",
+  "name": "Tema del Programa de Alianza",
+  "module": "public",
+  "roles": ["guest"],
+  "priority": "P2",
+  "description": "Cambiar el tema local del Programa de Alianza mantiene legibles contenido, controles y diálogos y persiste tras recargar.",
+  "outcomes": ["success", "failure"]
+}

@@ -4,6 +4,6 @@
   "module": "public",
   "roles": ["guest"],
   "priority": "P2",
-  "description": "Visitor shares or copies the exact localized financing URL through the browser's available sharing mechanism.",
-  "outcomes": ["success"]
+  "description": "Visitor opens the localized partnership sharing dialog, copies its exact URL or opens native sharing, and gets recoverable feedback if copying fails.",
+  "outcomes": ["success", "failure"]
 }
