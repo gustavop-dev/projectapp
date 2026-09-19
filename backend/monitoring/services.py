@@ -2,12 +2,12 @@ import hashlib
 import json
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied
 
-from .models import Case, CaseActivity, Delivery, Report, Source
+from .models import Case, CaseActivity, Delivery, Report, Resource, Source
 
 
 class Conflict(APIException):
@@ -94,3 +94,14 @@ def change_state(case_id, actor, data):
         case.version += 1
         case.save(update_fields=['state', 'closed_at', 'version'])
     return case
+
+
+def link_resource(resource_id, project):
+    try:
+        with transaction.atomic():
+            resource = get_object_or_404(Resource.objects.select_for_update(), pk=resource_id, kind='project')
+            resource.project = project
+            resource.save(update_fields=['project'])
+            return resource
+    except IntegrityError as exc:
+        raise Conflict('El proyecto ya está vinculado a otro recurso.') from exc

@@ -44,6 +44,23 @@ banned_tokens:
   - "deep"
 flow_definitions_dir: flows
 
+# --- Performance (consumido por /perf-pass; el quality gate lo IGNORA) ---
+# performance_dataset_ceiling: ["monitoring.Case=10000"]
+# performance_query_budget_default: 6
+# performance_query_budget_detail: 4
+# performance_query_budget_mutation: 8
+# performance_page_size_max: 100
+# performance_task_budget_s: 30
+# performance_payload_kb: 256
+# performance_bundle_kb: ["initial=300", "route=150"]
+# performance_index_threshold_rows: 10000
+performance_paths: ["monitoring=backend/monitoring,frontend/pages/panel/monitoring,frontend/stores/monitoring.js"]
+# performance_exclude: ["module=razón de exclusión"]
+# performance_project_doc: docs/methodology/performance-standard.md
+# performance_host_override: vps-projectapp-staging
+performance_budget_tests: ["backend/monitoring/tests/test_query_budget.py", "backend/monitoring/tests/test_retention.py"]
+performance_silk_reports: backend/logs/monitoring
+
 # Responsive overrides consumed by the fleet's responsive ledger. ProjectApp
 # intentionally uses its panel vocabulary and the 835x1195 portrait viewport;
 # leaving these implicit made the ledger report the generic 835x1194 matrix and
@@ -85,7 +102,7 @@ responsive_module_paths:
   - "accounting=frontend/components/accounting,frontend/pages/panel/accounting"
   - "documents=frontend/components/panel/documents,frontend/pages/panel/documents/index.vue,frontend/pages/panel/documents/statuses.vue"
   - "clients=frontend/components/clients,frontend/components/platform,frontend/layouts/platform.vue,frontend/pages/panel/clients,frontend/pages/platform"
-  - "projects=frontend/components/panel/projects,frontend/pages/panel/projects"
+  - "projects=frontend/components/panel/projects,frontend/pages/panel/projects,frontend/pages/panel/monitoring"
   - "commercial=frontend/components/AdditionalModules/CatalogOrderModal.vue,frontend/components/AdditionalModules/CatalogSelectionModal.vue,frontend/components/AdditionalModules/CategoryManagerModal.vue,frontend/components/AdditionalModules/ModuleFormModal.vue,frontend/components/AdditionalModules/ShareHistoryModal.vue,frontend/components/BusinessProposal/admin,frontend/components/WebAppDiagnostic/admin,frontend/components/proposals,frontend/pages/panel/additional-modules,frontend/pages/panel/defaults.vue,frontend/pages/panel/diagnostics,frontend/pages/panel/hour-packages,frontend/pages/panel/proposals"
   - "emails=frontend/components/email,frontend/pages/panel/emails,frontend/pages/panel/proposals/email-deliverability.vue,frontend/pages/panel/proposals/email-templates.vue"
   - "communications=frontend/components/communications,frontend/composables/useCommunicationFilters.js,frontend/pages/panel/communications"

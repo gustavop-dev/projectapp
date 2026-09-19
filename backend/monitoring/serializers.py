@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import serializers
+from accounts.models import Project
 
 from .models import Case, CaseActivity, Delivery, Report, Resource, Source
 
@@ -11,6 +12,10 @@ class ResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resource
         fields = ['id', 'key', 'name', 'kind', 'server', 'project', 'environment', 'enabled']
+
+
+class ResourceLinkSerializer(serializers.Serializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), allow_null=True)
 
 
 class SourceSerializer(serializers.ModelSerializer):

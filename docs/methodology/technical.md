@@ -1,5 +1,14 @@
 # Technical Documentation — ProjectApp
 
+> **Monitoreo operativo — 2026-09-19:** app `monitoring`, migraciones aditivas,
+> API `/api/monitoring/`, página `/panel/monitoring` y provisión explícita con
+> `configure_monitoring`. El backend distingue orden de observación y orden de
+> recepción; `external_id` es único por fuente. Credenciales Bearer nunca se
+> almacenan en texto; administración con sesión/CSRF. Las pruebas se ejecutan en
+> `projectapp.settings_test` dentro del worktree. `create_fake_monitoring` exige
+> desarrollo explícito y nunca se corre en este VPS. Runbook: `docs/monitoring.md`.
+
+
 > **Contrato técnico de orden de ingresos — 2026-09-04:** el estado persistido
 > usa `projectapp-accounting-incomes-sort` con la forma `{ key, dir }` y acepta
 > sólo columnas declaradas y direcciones `asc|desc`; cualquier dato inválido

@@ -17,6 +17,7 @@ const note = ref('')
 const selectedState = ref('pending')
 const actionError = ref('')
 const detailLoading = ref(false)
+const detailReports = ref(false)
 const catalogError = ref(false)
 const detailPage = ref(1)
 let timer
@@ -25,7 +26,13 @@ const resourceOptions = computed(() => [{ value: '', label: tr('any') }, ...stor
 const visibleSources = computed(() => store.sources.filter(s => (!filters.resource || String(s.resource) === String(filters.resource)) && (reports.value || store.resources.some(r => r.id === s.resource && r.kind === tab.value))))
 const sourceOptions = computed(() => [{ value: '', label: tr('any') }, ...visibleSources.value.map(s => ({ value: s.id, label: `${s.resource_name} · ${s.name}` }))])
 const formatDate = value => value ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
-const detailOpen = computed({ get: () => Boolean(store.detail) || detailLoading.value, set: value => { if (!value) store.close() } })
+const detailOpen = computed({ get: () => Boolean(store.detail) || detailLoading.value, set: value => { if (!value) closeDetail() } })
+
+function closeDetail() {
+  if (store.saving) return
+  store.close()
+  detailLoading.value = false
+}
 
 async function refresh() {
   const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value))
@@ -40,18 +47,21 @@ async function applyFilters(reset = true) {
   await refresh()
 }
 async function selectTab(value) {
-  store.close()
+  closeDetail()
+  store.records = []
+  store.count = 0
   tab.value = value
   filters.resource = ''
   filters.source = ''
   await applyFilters()
 }
-async function openRecord(id, detailNumber = 1) {
+async function openRecord(id, detailNumber = 1, isReport = reports.value) {
   actionError.value = ''
   detailLoading.value = true
+  detailReports.value = isReport
   detailPage.value = detailNumber
   try {
-    await store.open(id, reports.value, detailNumber)
+    await store.open(id, isReport, detailNumber)
     selectedState.value = store.detail?.state || 'pending'
     note.value = ''
   } catch { actionError.value = tr('load') }
@@ -107,7 +117,7 @@ onBeforeUnmount(() => { clearInterval(timer); store.requestId += 1; store.close(
     </details>
     <p v-if="reports" class="mb-4 text-sm text-text-subtle">{{ tr('retained') }}</p>
     <p v-if="store.loading" role="status" class="mb-3 text-text-subtle">{{ tr('loading') }}</p>
-    <p v-else-if="!store.records.length" class="rounded-xl border border-input-border p-8 text-center text-text-subtle">{{ tr('empty') }}</p>
+    <p v-else-if="!store.error && !store.records.length" class="rounded-xl border border-input-border p-8 text-center text-text-subtle">{{ tr('empty') }}</p>
     <ul class="space-y-3" :aria-busy="store.loading">
       <li v-for="record in store.records" :key="record.id" class="rounded-xl border border-input-border bg-surface p-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
@@ -124,14 +134,15 @@ onBeforeUnmount(() => { clearInterval(timer); store.requestId += 1; store.close(
       <p class="text-sm text-text-subtle">{{ tr('page', { page, count: store.count }) }}</p>
       <div class="flex gap-2"><BaseButton v-if="page > 1" variant="secondary" @click="page--; applyFilters(false)">{{ tr('previous') }}</BaseButton><BaseButton v-if="page * store.pageSize < store.count" variant="secondary" @click="page++; applyFilters(false)">{{ tr('next') }}</BaseButton></div>
     </footer>
-    <BaseModal v-model="detailOpen" kind="detail" padding="md" :close-on-backdrop="!store.saving" :close-on-esc="!store.saving">
-      <div class="space-y-5" data-testid="monitoring-detail">
-        <h2 class="break-words text-xl font-medium text-text-default">{{ store.detail?.title || tr('loading') }}</h2>
+    <BaseModal v-model="detailOpen" kind="detail" padding="md" full-height :close-on-backdrop="!store.saving" :close-on-esc="!store.saving">
+      <div class="flex min-h-0 flex-1 flex-col gap-5" data-testid="monitoring-detail">
+        <h2 class="shrink-0 break-words text-xl font-medium text-text-default">{{ store.detail?.title || tr('loading') }}</h2>
+        <div class="min-h-0 flex-1 space-y-5 overflow-y-auto">
         <p v-if="actionError" role="alert" class="text-text-default">{{ actionError }}</p>
         <p v-if="detailLoading" role="status">{{ tr('loading') }}</p>
         <template v-if="store.detail && !detailLoading">
           <p class="text-sm text-text-subtle">{{ store.detail.resource.name }} · {{ store.detail.source_name }}</p>
-          <template v-if="reports"><p class="text-sm text-text-subtle">{{ tr('readOnlyReport') }}</p><pre class="whitespace-pre-wrap break-words text-sm text-text-default">{{ store.detail.text }}</pre></template>
+          <template v-if="detailReports"><p class="text-sm text-text-subtle">{{ tr('readOnlyReport') }}</p><pre class="whitespace-pre-wrap break-words text-sm text-text-default">{{ store.detail.text }}</pre></template>
           <template v-else>
             <p class="text-text-default">{{ tr(store.detail.condition) }} · {{ tr(store.detail.state) }}</p>
             <p class="text-sm text-text-subtle">{{ tr('first') }}: {{ formatDate(store.detail.first_seen_at) }}<br>{{ tr('last') }}: {{ formatDate(store.detail.last_seen_at) }}</p>
@@ -148,13 +159,14 @@ onBeforeUnmount(() => { clearInterval(timer); store.requestId += 1; store.close(
               <p v-if="!store.detail.activities.results.length" class="text-sm text-text-subtle">{{ tr('noNotes') }}</p>
               <ol class="space-y-3"><li v-for="item in store.detail.activities.results" :key="item.id" class="rounded-lg border border-input-border p-3 text-sm text-text-default"><p>{{ item.actor_name || tr('system') }} · {{ formatDate(item.created_at) }}</p><p v-if="item.to_state">{{ tr(item.from_state) }} → {{ tr(item.to_state) }}</p><p class="whitespace-pre-wrap break-words">{{ item.text }}</p></li></ol>
             </section>
-            <section><h3 class="mb-3 font-medium text-text-default">{{ tr('history') }}</h3><ol class="space-y-2"><li v-for="item in store.detail.deliveries.results" :key="item.id" class="text-sm text-text-subtle">{{ tr(item.kind) }} · {{ formatDate(item.observed_at) }}<pre class="whitespace-pre-wrap break-words">{{ JSON.stringify(item.evidence, null, 2) }}</pre></li></ol></section>
+            <section><h3 class="mb-3 font-medium text-text-default">{{ tr('history') }}</h3><ol class="space-y-2"><li v-for="item in store.detail.deliveries.results" :key="item.id" class="text-sm text-text-subtle">{{ tr(item.kind) }} · {{ formatDate(item.observed_at) }}<pre class="whitespace-pre-wrap break-words">{{ JSON.stringify(item.evidence, null, 2) }}</pre><BaseButton v-if="item.report" variant="ghost" @click="openRecord(item.report, 1, true)">{{ tr('readOnlyReport') }}</BaseButton></li></ol></section>
             <div class="flex gap-2"><BaseButton v-if="detailPage > 1" variant="secondary" @click="openRecord(store.detail.id, detailPage - 1)">{{ tr('previous') }}</BaseButton><BaseButton v-if="detailPage * 25 < Math.max(store.detail.activities.count, store.detail.deliveries.count)" variant="secondary" @click="openRecord(store.detail.id, detailPage + 1)">{{ tr('next') }}</BaseButton></div>
           </template>
         </template>
-        <BaseModalActions>
-          <BaseButton v-if="store.detail" variant="secondary" :disabled="store.saving" :disabled-reason="tr('busy')" @click="openRecord(store.detail.id, detailPage)">{{ tr('refreshDetail') }}</BaseButton>
-          <BaseButton variant="secondary" :disabled="store.saving" :disabled-reason="tr('busy')" @click="store.close()">{{ tr('close') }}</BaseButton>
+        </div>
+        <BaseModalActions class="shrink-0">
+          <BaseButton v-if="store.detail" variant="secondary" :disabled="store.saving" :disabled-reason="tr('busy')" @click="openRecord(store.detail.id, detailPage, detailReports)">{{ tr('refreshDetail') }}</BaseButton>
+          <BaseButton variant="secondary" :disabled="store.saving" :disabled-reason="tr('busy')" @click="closeDetail">{{ tr('close') }}</BaseButton>
         </BaseModalActions>
       </div>
     </BaseModal>

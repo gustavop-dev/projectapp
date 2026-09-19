@@ -340,10 +340,14 @@ DBBACKUP_CLEANUP_KEEP_MEDIA = 4
 # ==============================================================================
 
 if ENABLE_SILK:
-    SILKY_PYTHON_PROFILER = True
-    SILKY_PYTHON_PROFILER_BINARY = True
-    SILKY_META = True
-    SILKY_ANALYZE_QUERIES = True
+    from .monitoring_export import should_profile
+
+    SILKY_PYTHON_PROFILER = False
+    SILKY_PYTHON_PROFILER_BINARY = False
+    SILKY_META = False
+    SILKY_ANALYZE_QUERIES = False
+    MONITORING_SILK_SAMPLE_PERCENT = max(0, min(100, config('MONITORING_SILK_SAMPLE_PERCENT', default=5, cast=int)))
+    SILKY_INTERCEPT_FUNC = should_profile
 
     SILKY_AUTHENTICATION = True
     SILKY_AUTHORISATION = True
@@ -353,7 +357,7 @@ if ENABLE_SILK:
 
     SILKY_PERMISSIONS = silk_permissions
 
-    SILKY_MAX_RECORDED_REQUESTS = 10000
+    SILKY_MAX_RECORDED_REQUESTS = 1000
     SILKY_MAX_RECORDED_REQUESTS_CHECK_PERCENT = 10
 
     SILKY_IGNORE_PATHS = [
@@ -363,8 +367,9 @@ if ENABLE_SILK:
         '/silk/',
     ]
 
-    SILKY_MAX_REQUEST_BODY_SIZE = 1024
-    SILKY_MAX_RESPONSE_BODY_SIZE = 1024
+    SILKY_MAX_REQUEST_BODY_SIZE = 0
+    SILKY_MAX_RESPONSE_BODY_SIZE = 0
+    SILKY_SENSITIVE_KEYS = {'username', 'api', 'token', 'key', 'secret', 'password', 'signature', 'cookie', 'authorization'}
 
 # ==============================================================================
 # DRF + JWT

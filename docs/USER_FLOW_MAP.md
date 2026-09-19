@@ -6248,6 +6248,10 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success,error,failure | 10 |
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
+| `admin-monitoring-case-follow-up` | monitoring | P1 | display,success,error,failure | — |
+| `admin-monitoring-case-list` | monitoring | P1 | display,success,failure | — |
+| `admin-monitoring-case-note` | monitoring | P2 | success,error,failure,display | — |
+| `admin-monitoring-reports` | monitoring | P2 | display,success,failure | — |
 | `admin-outbound-email-history-attachments` | admin | P1 | display | — |
 | `admin-outbound-email-history-body` | admin | P1 | display | 1 |
 | `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
@@ -7673,6 +7677,47 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-financing-settings.spec.js`
 - **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_policy_service.py`
+
+### FLOW: `admin-monitoring-case-follow-up`
+
+- **Módulo / rol:** monitoreo / administrador del panel.
+- **Ruta:** `/panel/monitoring`, modal desde el título de un caso.
+- **Display:** evidencia, condición técnica y estado manual separados; historial paginado y enlace al reporte de origen cuando existe.
+- **Success:** cambiar Pendiente / En revisión / Resuelto persiste el estado y la autoría.
+- **Error:** una versión desactualizada devuelve conflicto y solicita actualizar.
+- **Failure:** un fallo de guardado se anuncia sin perder la selección.
+- **API:** detalle del caso y `POST /api/monitoring/cases/:id/state/`.
+- **Cobertura:** `e2e/admin/admin-monitoring-case-follow-up.spec.js`.
+
+### FLOW: `admin-monitoring-case-list`
+
+- **Módulo / rol:** monitoreo / administrador del panel.
+- **Ruta:** `/panel/monitoring` desde Monitoreo en la navegación.
+- **Display:** casos de proyectos, identidad del recurso y salud de las fuentes.
+- **Success:** cambiar a Servidores o aplicar filtros muestra la lista correspondiente, con paginación de 25.
+- **Failure:** una carga fallida muestra un aviso y permite actualizar, sin simular una lista saludable.
+- **API:** `GET /api/monitoring/catalog/`, `GET /api/monitoring/cases/`.
+- **Cobertura:** `e2e/admin/admin-monitoring-case-list.spec.js`.
+
+### FLOW: `admin-monitoring-case-note`
+
+- **Módulo / rol:** monitoreo / administrador del panel.
+- **Ruta:** `/panel/monitoring`, modal de caso.
+- **Display:** historial con texto, autor y fecha de la nota.
+- **Success:** escribir y agregar una nota la incorpora al historial compartido.
+- **Error / failure:** un rechazo o fallo de API muestra el error y conserva el texto escrito.
+- **API:** `POST /api/monitoring/cases/:id/notes/` y detalle del caso.
+- **Cobertura:** `e2e/admin/admin-monitoring-case-follow-up.spec.js`.
+
+### FLOW: `admin-monitoring-reports`
+
+- **Módulo / rol:** monitoreo / administrador del panel.
+- **Ruta:** `/panel/monitoring`, pestaña Reportes.
+- **Display:** reportes informativos y aviso de retención de 90 días.
+- **Success:** abrir un reporte presenta texto plano, sin controles de seguimiento de casos.
+- **Failure:** una carga fallida se comunica y permite volver a intentar.
+- **API:** `GET /api/monitoring/reports/` y `GET /api/monitoring/reports/:id/`.
+- **Cobertura:** `e2e/admin/admin-monitoring-case-list.spec.js`.
 
 ### FLOW: `admin-outbound-email-history-attachments`
 

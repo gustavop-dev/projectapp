@@ -1,0 +1,9 @@
+{
+  "id": "admin-monitoring-reports",
+  "name": "Admin Monitoring Reports",
+  "module": "monitoring",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Staff opens informational reports separately from cases, reads plain-text details and the retention notice, and sees load errors.",
+  "outcomes": ["display", "success", "failure"]
+}

@@ -23,7 +23,11 @@ export const useMonitoringStore = defineStore('monitoring', {
         this.count = data.count
         this.pageSize = data.page_size
       } catch (error) {
-        if (requestId === this.requestId) this.error = error.response?.data?.detail || 'load'
+        if (requestId === this.requestId) {
+          this.error = error.response?.data?.detail || 'load'
+          this.records = []
+          this.count = 0
+        }
       } finally {
         if (requestId === this.requestId) this.loading = false
       }
@@ -41,16 +45,18 @@ export const useMonitoringStore = defineStore('monitoring', {
       this.saving = true
       try {
         const { id, version } = this.detail
+        const detailId = this.detailId
         await create_request(`monitoring/cases/${id}/state/`, { state, version })
-        await this.open(id)
+        if (detailId === this.detailId) await this.open(id)
       } finally { this.saving = false }
     },
     async note(text) {
       this.saving = true
       try {
         const id = this.detail.id
+        const detailId = this.detailId
         await create_request(`monitoring/cases/${id}/notes/`, { text })
-        await this.open(id)
+        if (detailId === this.detailId) await this.open(id)
       } finally { this.saving = false }
     },
   },

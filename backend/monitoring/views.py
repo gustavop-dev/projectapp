@@ -8,10 +8,10 @@ from .authentication import IngestAuthentication
 from .models import Case, CaseActivity, Report, Resource, Source
 from .serializers import (
     ActivitySerializer, CaseSerializer, DeliverySerializer, FilterSerializer,
-    IngestSerializer, NoteSerializer, ReportSerializer, ResourceSerializer,
+    IngestSerializer, NoteSerializer, ReportSerializer, ResourceLinkSerializer, ResourceSerializer,
     SourceSerializer, StateSerializer,
 )
-from .services import change_state, ingest
+from .services import change_state, ingest, link_resource
 
 
 def admin_api(methods):
@@ -109,17 +109,6 @@ def report_detail(request, pk):
 
 @admin_api(['PATCH'])
 def resource_link(request, pk):
-    from accounts.models import Project
-    from rest_framework import serializers
-
-    class LinkSerializer(serializers.Serializer):
-        project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), allow_null=True)
-
-    resource = get_object_or_404(Resource, pk=pk, kind='project')
-    data = validated(LinkSerializer, request.data)
-    project = data['project']
-    if project and Resource.objects.filter(project=project).exclude(pk=pk).exists():
-        return Response({'detail': 'El proyecto ya está vinculado a otro recurso.'}, status=409)
-    resource.project = project
-    resource.save(update_fields=['project'])
+    data = validated(ResourceLinkSerializer, request.data)
+    resource = link_resource(pk, data['project'])
     return Response(ResourceSerializer(resource).data)

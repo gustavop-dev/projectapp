@@ -60,6 +60,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
   projects: module('projects', [
     'frontend/components/panel/projects/',
     'frontend/pages/panel/projects/',
+    'frontend/pages/panel/monitoring/',
   ], [
     'Buscar y cambiar el alcance del listado.',
     'Crear o editar un proyecto.',
@@ -254,7 +255,7 @@ export function responsiveOwnerForView(sectionId, view) {
 
   if (url === '/panel/login' || url === '/panel/styleguide') return 'foundation';
   if (url === '/panel/clients') return 'clients';
-  if (url === '/panel/projects' || url === '/panel/projects/statuses') return 'projects';
+  if (url === '/panel/projects' || url === '/panel/projects/statuses' || url === '/panel/monitoring') return 'projects';
   if (url === '/panel/documents' || url === '/panel/documents/statuses') return 'documents';
   if (url === '/panel/communications') return 'communications';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';

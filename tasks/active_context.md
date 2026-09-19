@@ -8,6 +8,13 @@ proyectos activos ProjectApp, Mimittos y Tenndalux. Recepción estructurada con
 credenciales limitadas, idempotencia y cola durable local; correo coexistente.
 Silk se habilitará gradualmente mediante deploy, nunca desde el worktree.
 
+Implementación en `feat/19092026-project-monitoring`, PR #393. Incluye catálogo
+de vistas y flows nuevos, pruebas aisladas de permisos/CSRF/idempotencia/orden,
+historial manual y presupuesto de consultas/retención. Conectores locales en
+el toolkit y exportadores en worktrees independientes de Mimittos/Tenndalux.
+Activación, migraciones productivas y rollout Silk quedan al deploy del operador;
+la sesión entrega PRs abiertos, no los mergea. Runbook: `docs/monitoring.md`.
+
 ## Current State
 
 **2026-09-04 — módulo de experiencias audiovisuales listo para integrar:** el

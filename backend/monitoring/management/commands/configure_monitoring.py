@@ -63,12 +63,19 @@ class Command(BaseCommand):
             resource, _ = Resource.objects.update_or_create(key=item['key'], defaults={'name': item['name'], 'kind': kind, 'server': server, 'environment': 'production'})
             resources.append(resource)
             for source in item['sources']:
-                Source.objects.update_or_create(resource=resource, key=source['key'], defaults={k: v for k, v in source.items() if k != 'key'})
+                record, created = Source.objects.get_or_create(resource=resource, key=source['key'], defaults={k: v for k, v in source.items() if k != 'key'})
+                if not created:
+                    # Credential rotation must not reset the collector's live
+                    # enabled/disabled state, last observation or last error.
+                    record.name = source['name']
+                    record.expected_interval = source['expected_interval']
+                    record.save(update_fields=['name', 'expected_interval'])
             if server is None:
                 server = resource
         if options['issue']:
             credential, token = Credential.issue(options['issue'])
             credential.resources.set(resources)
+            self.stderr.write(f'Credencial emitida: id={credential.pk}. Guardar el token de stdout en el archivo protegido.')
             self.stdout.write(token)
         else:
             self.stdout.write(f'Inventario importado: {len(resources)} recursos.')
