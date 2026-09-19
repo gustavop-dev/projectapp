@@ -19,6 +19,25 @@
 > Storage ni guarda HTML autenticado, APIs o documentos. Las actualizaciones
 > esperan el cierre de los clientes existentes, sin recargas forzadas.
 
+## Monitoreo operativo (2026-09-19)
+
+La app Django `monitoring` separa inventario técnico (`Resource`, `Source`),
+credenciales de máquina con alcance explícito, entregas idempotentes (`Delivery`),
+casos de seguimiento (`Case`, `CaseActivity`) y reportes informativos (`Report`).
+La identidad histórica del recurso se guarda como snapshot; el vínculo opcional
+con `accounts.Project` se establece explícitamente y no dirige la ingestión.
+
+`/api/monitoring/v1/ingest/` usa Bearer con hash almacenado; las API del panel
+son FBV con sesión/CSRF e `IsAdminUser`. Un lock por fuente serializa la ingestión;
+las mutaciones manuales bloquean el caso y comparan `version`. La condición técnica
+y el estado humano son independientes. La cola SQLite del toolkit amortigua fallos
+de ProjectApp y conserva envíos hasta el acuse, sin sustituir los correos.
+
+La página `/panel/monitoring` reutiliza `request_http` y un store Pinia Options.
+Los listados e historiales están paginados; los reportes/evidencias grandes sólo
+se cargan en detalle. La tarea de retención es acotada por lotes. Alcance, contrato,
+seguridad y activación manual: `docs/monitoring.md`.
+
 > **Programa de Alianza y visibilidad de videos explicativos 2026-09-14:** el
 > módulo público de financiación se presenta como "Programa de Alianza" /
 > "Partnership Program" (financiación, exclusividad y custodia, calculadora,

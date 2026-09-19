@@ -22,6 +22,7 @@ export default defineI18nLocale(async () => {
     financing,
     projectAccess,
     pwa,
+    monitoring,
   ] = await Promise.all([
     import('~/locales/global/es.js'),
     import('~/locales/home/es.js'),
@@ -45,6 +46,7 @@ export default defineI18nLocale(async () => {
     import('~/locales/financing/es.js'),
     import('~/locales/projectAccess/es.js'),
     import('~/locales/pwa/es.js'),
+    import('~/locales/monitoring/es.js'),
   ])
 
   return {
@@ -70,5 +72,6 @@ export default defineI18nLocale(async () => {
     financing: financing.default,
     projectAccess: projectAccess.default,
     pwa: pwa.default,
+    monitoring: monitoring.default,
   }
 })

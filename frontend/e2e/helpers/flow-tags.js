@@ -301,6 +301,12 @@ export const LAYOUT_ICON_INTERACTION_FEEDBACK = ['@flow:layout-icon-interaction-
 export const LAYOUT_LOCALE_SWITCH = ['@flow:layout-locale-switch', '@module:layout', '@priority:P2'];
 export const LAYOUT_NAVBAR_NAVIGATION = ['@flow:layout-navbar-navigation', '@module:layout', '@priority:P2'];
 
+// ── monitoring ──
+export const ADMIN_MONITORING_CASE_FOLLOW_UP = ['@flow:admin-monitoring-case-follow-up', '@module:monitoring', '@priority:P1'];
+export const ADMIN_MONITORING_CASE_LIST = ['@flow:admin-monitoring-case-list', '@module:monitoring', '@priority:P1'];
+export const ADMIN_MONITORING_CASE_NOTE = ['@flow:admin-monitoring-case-note', '@module:monitoring', '@priority:P2'];
+export const ADMIN_MONITORING_REPORTS = ['@flow:admin-monitoring-reports', '@module:monitoring', '@priority:P2'];
+
 // ── platform ──
 export const PLATFORM_ACCESS_VIEW = ['@flow:platform-access-view', '@module:platform', '@priority:P2'];
 export const PLATFORM_ADMIN_CLIENT_DETAIL = ['@flow:platform-admin-client-detail', '@module:platform', '@priority:P2'];

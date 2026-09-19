@@ -1,0 +1,9 @@
+{
+  "id": "admin-monitoring-case-list",
+  "name": "Admin Monitoring Case List",
+  "module": "monitoring",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Staff navigates to Monitoring and filters paginated project/server cases, source freshness and dates; load failures remain explicit.",
+  "outcomes": ["display", "success", "failure"]
+}
