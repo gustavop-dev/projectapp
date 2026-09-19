@@ -47,18 +47,21 @@ def _resolve_locale(request):
 
 
 def _renamed_page_redirect(request, clean_path):
-    """301 an old public slug to its new name, keeping locale, rest and query.
+    """301 renamed pages, keeping locale, remaining segments and query.
 
-    Only the first segment after the (optional) locale is matched, so
-    /panel/financing and /es-co/financing-guide never redirect. Unprefixed
-    paths land on es-co, like the legacy blog redirect.
+    Public slugs and the exact panel/financing prefix are matched separately.
+    Unprefixed paths land on es-co, like the legacy blog redirect.
     """
     segments = clean_path.split('/')
     locale = segments[0] if segments[0] in VALID_LOCALES else None
     rest = segments[1:] if locale else segments
-    if not rest or rest[0] not in RENAMED_PUBLIC_SLUGS:
+    if rest[:2] == ['panel', 'financing']:
+        renamed_path = ['panel', 'partnership-program', *rest[2:]]
+    elif rest and rest[0] in RENAMED_PUBLIC_SLUGS:
+        renamed_path = [RENAMED_PUBLIC_SLUGS[rest[0]], *rest[1:]]
+    else:
         return None
-    target = '/'.join([locale or 'es-co', RENAMED_PUBLIC_SLUGS[rest[0]], *rest[1:]])
+    target = '/'.join([locale or 'es-co', *renamed_path])
     location = f'/{target}'
     query_string = request.META.get('QUERY_STRING', '')
     if query_string:

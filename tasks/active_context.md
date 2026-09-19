@@ -11,6 +11,20 @@ excluidas del MCP y la limpieza diaria conserva las evidencias del historial.
 
 ## Current State
 
+**2026-09-19 — interfaz pública comercial y URL de Alianza listas para integrar:**
+catálogo, selecciones y Programa de Alianza comparten controles flotantes con el
+patrón de propuestas; el tema local persistente llega a diálogos, guía y errores,
+sin recolorear el panel. Compartir conserva la URL completa y ofrece copiar o
+usar el selector nativo con feedback recuperable. El panel vive en
+`/panel/partnership-program` (incluidos nuevo y detalle); enlaces anteriores
+redirigen por Django y Nuxt conservando idioma, parámetros y destino protegido.
+API, datos e identificadores internos de financiación no cambian. Se verificaron
+18 casos backend, regresiones unitarias de componentes/middleware, 15 escenarios
+de tema y 15 redirects en los cinco perfiles, más compartir, errores, PDF y panel.
+Los nueve flujos E2E afectados están cubiertos; el gate focal E2E pasó 100/100.
+Mapa de vistas, contrato responsive y registro de flows actualizados. Sin
+migraciones, acceso a datos reales ni despliegue desde esta sesión.
+
 **2026-09-04 — módulo de experiencias audiovisuales listo para integrar:** el
 catálogo comercial suma su módulo 24 en *Marketing y adquisición*: creación de
 contenido audiovisual en lenguaje comercial, como piezas cortas hechas a la

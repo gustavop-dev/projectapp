@@ -92,7 +92,7 @@ const panelCapabilities = [
       feature('panel-financing', 'Gestionar el Programa de Alianza y sus otrosíes',
         'Reúne las condiciones bilingües, la vista pública, las políticas versionadas y la preparación, firma y seguimiento de otrosíes de financiación.',
         'Permite explicar la alianza y formalizar cada financiación con datos, calendario, documentos privados e historial trazable.',
-        ['/panel/financing', '/panel/financing/new', '/panel/financing/:id'],
+        ['/panel/partnership-program', '/panel/partnership-program/new', '/panel/partnership-program/:id', '/panel/financing', '/panel/financing/new', '/panel/financing/:id'],
         { icon: 'credit-card', stage: 'Venta' }),
       feature('panel-clients-offers', 'Administrar clientes y paquetes',
         'Centraliza identidades comerciales y ofertas de horas reutilizables.',
@@ -434,7 +434,7 @@ const publicCapabilities = [
     'Ayuda al prospecto a descubrir posibilidades relevantes y retomarlas en la conversación comercial.',
     [
       feature('public-additional-modules', 'Explorar módulos adicionales',
-        'Presenta selector ES/EN, tarjetas, lista, acordeón, tour guiado, video explicativo y una descarga PDF sin precios.',
+        'Presenta selector ES/EN, tarjetas, lista, acordeón, tema local, guía, video y controles flotantes para PDF sin precios y compartir la selección.',
         'Permite entender qué resuelve cada módulo sin depender de una explicación previa.',
         ['/additional-modules', '/additional-modules/share/:uuid'],
         { icon: 'puzzle', actors: ['prospect'], stage: 'Evaluación' }),
@@ -447,7 +447,7 @@ const publicCapabilities = [
     'Ayuda al prospecto a evaluar una alianza de largo plazo antes de formalizar una propuesta.',
     [
       feature('public-financing', 'Comprender el Programa de Alianza',
-        'Presenta dos opciones de alianza, siete condiciones, reglas expandibles, tour guiado, video explicativo, PDF y contacto directo.',
+        'Presenta dos opciones de alianza, siete condiciones, reglas expandibles, tema local, guía, video, PDF y un diálogo para compartir el programa.',
         'Convierte condiciones técnicas y legales en una explicación comercial clara y compartible.',
         ['/partnership-program'],
         { icon: 'credit-card', actors: ['prospect'], stage: 'Evaluación' }),

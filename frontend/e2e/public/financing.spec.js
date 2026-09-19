@@ -117,6 +117,7 @@ test.describe('Public financing program', () => {
     await openFromFooter(page)
 
     await page.getByTestId('financing-share').click()
+    await page.getByTestId('financing-copy-link').click()
 
     expect(await page.evaluate(() => navigator.clipboard.readText()))
       .toMatch(/\/es-co\/partnership-program$/)

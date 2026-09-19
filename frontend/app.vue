@@ -24,6 +24,7 @@
           shadow-[0_0_15px_4px_rgba(34,197,94,0.6)]
           cursor-pointer transition-transform hover:scale-110"
     aria-label="Contact our web design team via WhatsApp"
+    :class="{ 'public-document-whatsapp': isCommercialDocument }"
     @click="handleWhatsAppClick"
   >
     <svg 
@@ -92,12 +93,21 @@ const showWhatsApp = computed(() => {
   return !path.includes('/panel') && !path.includes('/platform') && !path.includes('/lk/')
 })
 
+const isCommercialDocument = computed(() => (
+  /\/(?:additional-modules|partnership-program)(?:\/|$)/.test(route.path)
+  && !route.path.includes('/panel/')
+))
+
 const handleWhatsAppClick = () => {
   trackWhatsAppClick()
 }
 </script>
 
 <style>
+.public-document-whatsapp {
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+}
 /* Hide horizontal overflow and optimize scrolling */
 body {
   overflow-x: hidden;

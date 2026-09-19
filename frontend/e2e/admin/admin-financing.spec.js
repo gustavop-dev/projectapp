@@ -17,7 +17,9 @@ function json(status, body) {
 
 async function setupApi(page, scenario = {}) {
   await mockApi(page, async ({ apiPath, method, route }) => {
-    if (apiPath === 'auth/check/') return json(200, { user: { username: 'admin', is_staff: true } })
+    if (apiPath === 'auth/check/') return scenario.unauthorized
+      ? json(401, { detail: 'Authentication required' })
+      : json(200, { user: { username: 'admin', is_staff: true } })
     if (apiPath === 'proposals/' && method === 'GET') return json(200, [])
     if (apiPath === 'proposals/dashboard/') return json(200, { total: 0, by_status: {} })
     if (apiPath === 'proposals/alerts/') return json(200, [])
@@ -62,7 +64,7 @@ async function setupApi(page, scenario = {}) {
 }
 
 async function openFinancing(page) {
-  await page.goto('/es-co/panel/financing', { waitUntil: 'domcontentloaded' })
+  await page.goto('/es-co/panel/partnership-program', { waitUntil: 'domcontentloaded' })
   await expect(page.getByTestId('financing-public-url')).toBeVisible({ timeout: 30_000 })
 }
 
@@ -89,11 +91,36 @@ test.describe('Admin financing distribution', () => {
 
     await link.click()
 
-    await expect(page).toHaveURL(/\/es-co\/panel\/financing$/)
+    await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program$/)
     await expect(page.getByRole('heading', { name: 'Programa de Alianza', exact: true })).toBeVisible()
     await expect(page.getByTestId('financing-public-url'))
       .toHaveValue('https://projectapp.co/es-co/partnership-program')
     await expect(page.getByTestId('financing-option-five-year')).toContainText('Alianza a 5 años')
+  })
+
+  test('preserves tab selection when following a legacy panel link', {
+    tag: ['@flow:admin-partnership-legacy-redirects', '@outcome:success', '@role:admin'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    // quality: allow-deep-link (the behavior under test starts with a saved legacy link)
+    // quality: allow-no-interaction (navigation invokes this compatibility behavior)
+    await page.goto('/es-co/panel/financing?tab=agreements#history', { waitUntil: 'domcontentloaded' })
+
+    await expect(page).toHaveURL(/\/es-co\/panel\/partnership-program\?tab=agreements#history$/)
+    await expect(page.getByTestId('financing-new-agreement')).toBeVisible()
+  })
+
+  test('requires staff authentication at the redirected panel destination', {
+    tag: ['@flow:admin-partnership-legacy-redirects', '@outcome:error', '@role:guest'],
+  }, async ({ page }) => {
+    await setupApi(page, { unauthorized: true })
+    await page.route('**/admin/login/**', (route) => route.fulfill({ contentType: 'text/html', body: '<main>Admin login</main>' }))
+    // quality: allow-deep-link (an unauthenticated visitor follows a legacy bookmark)
+    // quality: allow-no-interaction (the route guard itself is the behavior under test)
+    await page.goto('/en-us/panel/financing/new', { waitUntil: 'domcontentloaded' })
+
+    await expect(page).toHaveURL(/\/admin\/login\/\?next=/)
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/en-us/panel/partnership-program/new')
   })
 
   test('copies the canonical public financing URL', {
@@ -141,7 +168,7 @@ test.describe('Admin financing distribution', () => {
 
     await page.getByTestId('financing-language-en').click()
 
-    await expect(page).toHaveURL(/\/en-us\/panel\/financing$/)
+    await expect(page).toHaveURL(/\/en-us\/panel\/partnership-program$/)
     await expect(page.getByTestId('financing-package-warning'))
       .toContainText('Hour package fallback is active')
   })
@@ -152,7 +179,7 @@ test.describe('Admin financing distribution', () => {
     // quality: allow-deep-link (isolates the panel's API failure and retry states)
     const scenario = { programUnavailable: true }
     await setupApi(page, scenario)
-    await page.goto('/es-co/panel/financing', { waitUntil: 'domcontentloaded' })
+    await page.goto('/es-co/panel/partnership-program', { waitUntil: 'domcontentloaded' })
     await expect(page.getByRole('alert')).toContainText('No pudimos cargar el Programa de Alianza')
     scenario.programUnavailable = false
 

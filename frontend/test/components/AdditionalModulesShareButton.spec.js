@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 
 import AdditionalModulesShareButton from '../../components/AdditionalModules/ShareButton.vue'
 
@@ -120,8 +121,40 @@ describe('AdditionalModulesShareButton', () => {
     await wrapper.get('[data-testid="additional-modules-share-floating"]').trigger('click')
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    await wrapper.vm.$nextTick()
+    await nextTick()
 
     expect(wrapper.find('[data-testid="additional-modules-share-dialog"]').exists()).toBe(false)
+  })
+
+  it('keeps native cancellation silent', async () => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: jest.fn().mockRejectedValue(new DOMException('Cancelled', 'AbortError')),
+    })
+    const wrapper = mountShareButton()
+    await wrapper.get('[data-testid="additional-modules-share-floating"]').trigger('click')
+
+    await wrapper.get('[data-testid="additional-modules-native-share"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="additional-modules-copy-link"]').isVisible()).toBe(true)
+  })
+
+  it('offers copying after native sharing fails', async () => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: jest.fn().mockRejectedValue(new Error('Unavailable')),
+    })
+    const wrapper = mountShareButton()
+    await wrapper.get('[data-testid="additional-modules-share-floating"]').trigger('click')
+
+    await wrapper.get('[data-testid="additional-modules-native-share"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('additionalModules.shareFailed')
+    await wrapper.get('[data-testid="additional-modules-copy-link"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toContain('additionalModules.copied')
   })
 })
