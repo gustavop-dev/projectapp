@@ -1052,3 +1052,8 @@ The canonical counts, commands and exceptions are maintained in
     the message immediately afterward and before commercial blocks, and stores
     the rendered delivery as immutable history. A resend starts from the latest
     saved message and may persist an edit without changing prior deliveries.
+
+
+## Documentación para formalización
+
+En Documentos de cada propuesta se descargan el contrato final y los anexos comercial/técnico curados. El correo de formalización precarga tres adjuntos seleccionables, admite documentos de la propuesta, Para/CC y secciones ordenables con Markdown seguro. La revisión muestra los archivos que se enviarán. Las secciones de venta, ROI, CTA y evolución futura quedan fuera de los anexos; la curaduría no inventa obligaciones ni criterios. Si falta información estructurada indispensable, se corrige en la propuesta o se desmarca el documento. Una preparación obsoleta o vencida no se puede enviar.

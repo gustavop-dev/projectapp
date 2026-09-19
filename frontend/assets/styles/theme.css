@@ -50,7 +50,8 @@
        match design intent. Prefer the bare token without a modifier.
    ===================================================================== */
 
-:root {
+:root,
+.public-document-theme[data-theme="light"] {
   /* Brand — stable across modes */
   --color-primary: #002921;          /* esmerald */
   --color-primary-strong: #001713;   /* esmerald-dark */
@@ -150,6 +151,13 @@
   --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 }
 
+/* Scoped public documents can opt out of an inherited panel theme. */
+.public-document-theme[data-theme="light"] { color-scheme: light; }
+
+.public-document-view {
+  padding-bottom: calc(12.5rem + env(safe-area-inset-bottom));
+}
+
 /* The same dark-mode token overrides are activated by:
    - the global `.dark` class on <html> (toggled by useDiagnosticDarkMode), and
    - the local `[data-theme="dark"]` attribute used by the public proposal
@@ -245,6 +253,22 @@
   --shadow-card:    0 1px 2px 0 rgb(0 0 0 / 0.45);
   --shadow-raised:  0 4px 16px -2px rgb(0 0 0 / 0.55);
   --shadow-overlay: 0 25px 60px -12px rgb(0 0 0 / 0.70);
+}
+
+/* Public sales documents use the proposal's deeper wash and clear edges.
+   Keep this local, including teleported dialogs, rather than recoloring the panel. */
+.public-document-theme[data-theme="dark"] {
+  color-scheme: dark;
+  --color-surface: #0a1f1c;
+  --color-surface-rgb: 10 31 28;
+  --color-surface-muted: #112e29;
+  --color-surface-muted-rgb: 17 46 41;
+  --color-surface-raised: rgba(230, 239, 239, 0.08);
+  --color-border: rgba(230, 239, 239, 0.25);
+  --color-border-muted: rgba(230, 239, 239, 0.20);
+  --color-primary-soft: rgba(16, 185, 129, 0.18);
+  --color-accent-soft: #193a29;
+  --color-accent-soft-rgb: 25 58 41;
 }
 
 /* Touch has no hover state. Elements intentionally muted until hover on a

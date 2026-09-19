@@ -1,4 +1,5 @@
 export default {
+  shareFailed: 'No pudimos compartir el enlace. Intenta copiarlo.',
   explainerTitle: 'Descubre el catálogo en un minuto',
   explainerDescription: 'Qué son los módulos, cómo explorarlos y qué esperar de cada ficha. Sin precios, sin sorpresas.',
   explainerNoAudioNote: 'Se entiende sin sonido: incluye títulos y subtítulos en pantalla.',

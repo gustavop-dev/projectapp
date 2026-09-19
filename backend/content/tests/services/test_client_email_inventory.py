@@ -37,6 +37,7 @@ EXPECTED_CHANNELS = (
     ('diagnostic_custom_email', DIAGNOSTICS),
     ('diagnostic_documents_sent', DIAGNOSTICS),
     ('proposal_documents_sent', DOCUMENTS_MANUAL),
+    ('proposal_formalization', DOCUMENTS_MANUAL),
     ('branded_email', DOCUMENTS_MANUAL),
     ('proposal_email', DOCUMENTS_MANUAL),
     ('collection_account_sent', COLLECTIONS),

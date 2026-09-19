@@ -1,4 +1,5 @@
 export default {
+  shareFailed: 'We could not share the link. Try copying it.',
   explainerTitle: 'Discover the catalog in one minute',
   explainerDescription: 'What the modules are, how to explore them and what each entry covers. No prices, no surprises.',
   explainerNoAudioNote: 'Works without sound: titles and captions are on screen.',

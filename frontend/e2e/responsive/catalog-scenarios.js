@@ -34,6 +34,9 @@ const OWNER_FLOW = Object.freeze({
 });
 
 const REDIRECT_DESTINATIONS = Object.freeze({
+  '/panel/financing': '/panel/partnership-program',
+  '/panel/financing/new': '/panel/partnership-program/new',
+  '/panel/financing/:id': '/panel/partnership-program/1',
   '/panel/proposals/email-templates': '/panel/defaults?mode=proposal&tab=emails',
   '/panel/proposals/defaults': '/panel/defaults?mode=proposal',
   '/panel/diagnostics/defaults': '/panel/defaults?mode=diagnostic',
@@ -57,6 +60,9 @@ const REDIRECT_DESTINATIONS = Object.freeze({
  * inherit an unrelated owner-level flow and inflate functional coverage.
  */
 const REDIRECT_FLOW_BY_URL = Object.freeze({
+  '/panel/financing': 'admin-partnership-legacy-redirects',
+  '/panel/financing/new': 'admin-partnership-legacy-redirects',
+  '/panel/financing/:id': 'admin-partnership-legacy-redirects',
   '/panel/proposals/email-templates': 'admin-defaults-unified',
   '/panel/proposals/defaults': 'admin-defaults-unified',
   '/panel/diagnostics/defaults': 'admin-defaults-unified',

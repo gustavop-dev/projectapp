@@ -187,6 +187,7 @@ EXEMPT_MODELS = {
     # Ephemeral verification/confirmation/upload material and real OAuth/MCP
     # credentials must never be fabricated as reusable demo secrets.
     'accounts.VerificationCode', 'content.LinkedInToken',
+    'content.ProposalFormalization', 'content.ProposalFormalizationFile',
     'content.McpActionIntent', 'content.McpCredential', 'content.McpUpload',
 }
 

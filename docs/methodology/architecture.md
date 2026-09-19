@@ -1,5 +1,15 @@
 # Architecture — ProjectApp
 
+> **Interfaz comercial pública — 2026-09-19:** catálogo, selecciones y Programa
+> de Alianza comparten `PublicDocumentAction` y `PublicDocumentShareButton`,
+> con el patrón de propuestas (tema/guía a la izquierda; PDF/compartir sobre
+> WhatsApp a la derecha). `usePublicDocumentTheme` comparte el tema entre la
+> página y su visor por provide/inject, aislado por clave de almacenamiento;
+> `.public-document-theme` delimita la paleta en página, modales y guía.
+> El panel usa `/panel/partnership-program`, `/new` y `/:id`; Django redirige
+> las rutas antiguas con 301 antes del fallback, y Nuxt conserva query/hash
+> en navegación interna. API, modelos y namespace `financing` se mantienen.
+
 > **PWA del panel interno — 2026-09-19:** el frontend generado incluye
 > manifiesto y worker nativo, servidos por rutas Django explícitas en la raíz
 > con MIME correcto y revalidación. El plugin client-only registra el worker
@@ -15,8 +25,8 @@
 > paquete mensual y reglas de pago). Su ruta pública pasa a
 > `/partnership-program` y `serve_nuxt` responde 301 desde
 > `/<locale>/financing[/…]` (y `/financing` → es-co) antes de buscar archivos,
-> así ningún prerender viejo contesta. API, modelos, namespace i18n y la ruta
-> del panel conservan `financing`; los otrosíes siguen siendo "de
+> así ningún prerender viejo contesta. API, modelos y namespace i18n
+> conservan `financing`; los otrosíes siguen siendo "de
 > financiación". `ExplainerVideoSettings` (singleton `pk=1`) guarda un
 > interruptor por módulo y `AdditionalModuleShareLink.show_explainer_video`
 > uno por enlace; `explainer_video_visible()` los combina —el del catálogo
@@ -1640,3 +1650,8 @@ then renders body → personalized message → commercial blocks in both HTML an
 text templates. Delivery snapshots store the final rendered body, so editing
 `email_intro` after delivery changes only future sends and never rewrites the
 historical record.
+
+
+## Formalización de propuestas
+
+Los endpoints administrativos `proposals/{id}/formalization/` delegan en un servicio independiente. `FormalContent` proyecta campos permitidos y genera anexos con ReportLab; no llama al generador comercial público ni refresca catálogos. Una preparación privada conserva payload, HTML/texto, huella de origen y bytes de adjuntos por 24 horas. El envío reclama la preparación mediante actualización condicional de estado y entrega esos mismos bytes al gateway existente, que conserva snapshots e historial. El envío no cambia el estado comercial. Los archivos temporales se eliminan por tarea diaria y también al borrar su propuesta.

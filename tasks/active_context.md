@@ -1,5 +1,14 @@
 # Active Context — ProjectApp
 
+**2026-09-19 — formalización de propuestas implementada para revisión:** perfil documental
+curado (comercial y técnico), contrato final, preparación privada con revisión
+exacta de adjuntos y correo configurable desde Documentos. La vista pública y
+el estado de la propuesta conservan sus flujos existentes. La validación se
+ejecuta en el worktree `proposal-formalization`, sin envíos reales. La matriz de
+contenido y el recorrido están en `docs/PROPOSAL_FORMALIZATION.md`. La migración
+`content.0249` queda para el despliegue; las preparaciones privadas están
+excluidas del MCP y la limpieza diaria conserva las evidencias del historial.
+
 **2026-09-19 — PWA del panel interno:** implementación en la rama de sesión
 `feat/19092026-panel-pwa`. Instalación desde navegación de escritorio/móvil,
 ayuda bilingüe y pantalla autónoma de desconexión con reintento. La invitación
@@ -11,6 +20,20 @@ frontera del navegador; la instalación en dispositivos físicos queda como
 comprobación manual posterior al despliegue.
 
 ## Current State
+
+**2026-09-19 — interfaz pública comercial y URL de Alianza listas para integrar:**
+catálogo, selecciones y Programa de Alianza comparten controles flotantes con el
+patrón de propuestas; el tema local persistente llega a diálogos, guía y errores,
+sin recolorear el panel. Compartir conserva la URL completa y ofrece copiar o
+usar el selector nativo con feedback recuperable. El panel vive en
+`/panel/partnership-program` (incluidos nuevo y detalle); enlaces anteriores
+redirigen por Django y Nuxt conservando idioma, parámetros y destino protegido.
+API, datos e identificadores internos de financiación no cambian. Se verificaron
+18 casos backend, regresiones unitarias de componentes/middleware, 15 escenarios
+de tema y 15 redirects en los cinco perfiles, más compartir, errores, PDF y panel.
+Los nueve flujos E2E afectados están cubiertos; el gate focal E2E pasó 100/100.
+Mapa de vistas, contrato responsive y registro de flows actualizados. Sin
+migraciones, acceso a datos reales ni despliegue desde esta sesión.
 
 **2026-09-04 — módulo de experiencias audiovisuales listo para integrar:** el
 catálogo comercial suma su módulo 24 en *Marketing y adquisición*: creación de

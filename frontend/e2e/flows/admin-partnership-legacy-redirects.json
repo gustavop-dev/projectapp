@@ -1,0 +1,9 @@
+{
+  "id": "admin-partnership-legacy-redirects",
+  "name": "Enlaces anteriores del Programa de Alianza",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Abrir un enlace anterior de financiación redirige al Programa de Alianza conservando idioma, detalle, parámetros y autenticación.",
+  "outcomes": ["success", "error"]
+}
