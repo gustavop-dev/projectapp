@@ -6,9 +6,13 @@
         <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-text-default dark:text-white">Documentos</h3>
+        <h3 class="text-sm font-semibold text-text-default dark:text-white">Documentos para formalización</h3>
       </div>
 
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs text-text-muted">Versiones formales con alcance y condiciones del proyecto.</p>
+        <BaseButton variant="primary" size="sm" data-testid="proposal-formalization-open" @click="formalizationOpen = true">Preparar correo de formalización</BaseButton>
+      </div>
       <ul class="divide-y divide-border-muted">
         <!-- Contrato de desarrollo -->
         <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
@@ -46,8 +50,8 @@
         <!-- Propuesta comercial -->
         <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">
-            <div class="text-sm font-medium text-text-default dark:text-white">Propuesta comercial</div>
-            <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF con branding</div>
+            <div class="text-sm font-medium text-text-default dark:text-white">Propuesta comercial formal</div>
+            <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF formal · Contenido curado</div>
           </div>
           <div class="flex items-center gap-2">
             <BaseActionButton action="view" label="Vista previa de la propuesta comercial"
@@ -64,8 +68,8 @@
         <!-- Detalle técnico -->
         <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">
-            <div class="text-sm font-medium text-text-default dark:text-white">Detalle técnico</div>
-            <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF con branding</div>
+            <div class="text-sm font-medium text-text-default dark:text-white">Detalle técnico formal</div>
+            <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF formal · Contenido curado</div>
           </div>
           <div class="flex items-center gap-2">
             <BaseActionButton action="view" label="Vista previa del detalle técnico"
@@ -157,6 +161,7 @@
       </div>
     </section>
 
+    <ProposalFormalizationModal v-if="formalizationOpen" :proposal="proposal" :documents="documents" @close="formalizationOpen = false" @sent="emit('refresh')" />
     <MarkdownPreviewModal v-model="previewOpen" :title="previewTitle">
       <div v-if="previewLoading"
         class="flex items-center justify-center h-[60vh] text-sm text-text-muted">
@@ -176,6 +181,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import ProposalFormalizationModal from './ProposalFormalizationModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { CONTRACT_LOCKED_STATUSES } from '~/stores/proposals_constants';
 import { isPdfUrl, isImageUrl, canPreviewFile } from '~/utils/filePreview';
@@ -193,6 +199,7 @@ const emit = defineEmits(['refresh', 'editContract', 'generateContract']);
 
 const proposalStore = useProposalStore();
 const isUploading = ref(false);
+const formalizationOpen = ref(false);
 const uploadTitle = ref('');
 const uploadType = ref('other');
 const uploadCustomLabel = ref('');
@@ -213,10 +220,10 @@ const draftContractPdfUrl = computed(() =>
   `/api/proposals/${props.proposal.id}/contract/draft-pdf/`,
 );
 const commercialPdfUrl = computed(() =>
-  `/api/proposals/${props.proposal.uuid}/pdf/`,
+  `/api/proposals/${props.proposal.id}/formalization/pdf/commercial/`,
 );
 const technicalPdfUrl = computed(() =>
-  `/api/proposals/${props.proposal.uuid}/pdf/?doc=technical`,
+  `/api/proposals/${props.proposal.id}/formalization/pdf/technical/`,
 );
 
 const additionalDocs = computed(() =>
