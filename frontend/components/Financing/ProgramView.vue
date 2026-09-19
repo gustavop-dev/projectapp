@@ -1,4 +1,6 @@
 <script setup>
+import PublicDocumentAction from '~/components/PublicDocumentAction.vue'
+import PublicDocumentShareButton from '~/components/PublicDocumentShareButton.vue'
 import { computed, nextTick, ref, toRef, watch } from 'vue'
 
 import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
@@ -39,8 +41,6 @@ watch([() => props.program, onboardingRef], async ([program, onboarding]) => {
 const expandedTerms = ref(new Set())
 const isDownloading = ref(false)
 const downloadError = ref(false)
-const shareFeedback = ref('')
-const shareFailed = ref(false)
 
 const conditions = computed(() => props.program?.conditions || [])
 const options = computed(() => props.program?.options || [])
@@ -78,32 +78,12 @@ async function downloadPdf() {
     isDownloading.value = false
   }
 }
-
-async function shareProgram() {
-  shareFeedback.value = ''
-  shareFailed.value = false
-  const url = window.location.href
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: props.program.hero.title,
-        text: props.program.hero.subtitle,
-        url,
-      })
-      return
-    }
-    await navigator.clipboard.writeText(url)
-    shareFeedback.value = t('financing.shared')
-  } catch (error) {
-    if (error?.name === 'AbortError') return
-    shareFailed.value = true
-  }
-}
 </script>
 
 <template>
   <article
-    class="min-h-screen w-full bg-surface text-text-default"
+    class="public-document-theme min-h-screen w-full bg-surface text-text-default"
+    :class="{ 'public-document-view': floatingActions }"
     :data-theme="isDark ? 'dark' : 'light'"
     data-testid="financing-program"
   >
@@ -127,6 +107,7 @@ async function shareProgram() {
               @update:model-value="emit('change-language', $event)"
             />
             <BaseButton
+              v-if="!floatingActions"
               variant="secondary"
               icon-only
               :aria-label="t('financing.toggleTheme')"
@@ -403,50 +384,38 @@ async function shareProgram() {
       </section>
     </main>
 
-    <div v-if="floatingActions" class="fixed bottom-4 right-20 z-40 flex flex-col gap-2 sm:bottom-6 sm:right-24">
-      <BaseButton
+    <template v-if="floatingActions">
+      <PublicDocumentAction
         v-if="downloadUrl"
-        variant="secondary"
-        icon-only
+        action="pdf"
         :loading="isDownloading"
-        :aria-label="isDownloading ? t('financing.generatingPdf') : t('financing.downloadPdf')"
+        :label="isDownloading ? t('financing.generatingPdf') : t('financing.downloadPdf')"
         data-testid="financing-download-pdf-floating"
         @click="downloadPdf"
-      >
-        <span aria-hidden="true">↓</span>
-      </BaseButton>
-      <BaseButton
-        variant="secondary"
-        icon-only
-        :aria-label="t('financing.share')"
-        data-testid="financing-share"
-        @click="shareProgram"
-      >
-        <span aria-hidden="true">↗</span>
-      </BaseButton>
-    </div>
-
-    <template v-if="floatingActions">
-      <BaseButton
-        unstyled
-        icon-only
-        type="button"
-        class="financing-restart-guide fixed bottom-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-text-brand shadow-raised transition-colors hover:bg-surface-muted"
-        :title="t('financing.restartGuide')"
-        :aria-label="t('financing.restartGuide')"
+      />
+      <PublicDocumentShareButton
+        :is-dark="isDark"
+        namespace="financing"
+        test-id-prefix="financing"
+        trigger-test-id="financing-share"
+        trigger-class="financing-share-btn share-btn"
+      />
+      <PublicDocumentAction
+        action="guide"
+        class="financing-restart-guide restart-tutorial-btn"
+        :label="t('financing.restartGuide')"
         data-testid="financing-guide-restart"
         @click="onboardingRef?.forceStart()"
-      >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0Z" />
-        </svg>
-      </BaseButton>
+      />
+      <PublicDocumentAction
+        action="theme"
+        class="financing-theme-toggle dark-mode-toggle"
+        :label="t('financing.toggleTheme')"
+        :is-dark="isDark"
+        data-testid="financing-theme-toggle"
+        @click="toggleTheme"
+      />
       <FinancingOnboarding ref="onboardingRef" :is-dark="isDark" />
     </template>
-
-    <div class="sr-only" aria-live="polite">{{ shareFeedback }}</div>
-    <BaseAlert v-if="shareFailed" class="fixed bottom-20 left-4 z-40 max-w-sm" variant="danger">
-      {{ t('financing.shareFailed') }}
-    </BaseAlert>
   </article>
 </template>

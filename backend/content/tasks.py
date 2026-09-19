@@ -1738,3 +1738,11 @@ def send_payment_calendar():
     )
 
     return run_payment_calendar()
+
+
+@periodic_task(crontab(hour='4', minute='25'))
+def cleanup_proposal_formalizations():
+    """Remove expired private previews; sent email evidence remains in history."""
+    from content.services.proposal_formalization_service import cleanup_expired
+
+    return cleanup_expired()

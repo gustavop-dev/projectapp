@@ -74,6 +74,8 @@
             {{ isBridging ? 'Abriendo...' : 'Plataforma' }}
           </BaseButton>
 
+          <PanelPwaInstallButton class="mt-2" @install="$emit('close')" />
+
           <BaseButton variant="secondary" size="md" class="mt-2 w-full" @click="$emit('close'); $emit('toggle-theme')">
             <BaseActionIcon :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'" />
             {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
@@ -91,6 +93,7 @@ import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
 import { useProposalStore } from '~/stores/proposals'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
+import PanelPwaInstallButton from '~/components/pwa/PanelPwaInstallButton.vue'
 import { useFocusTrap } from '~/composables/useFocusTrap'
 
 const emit = defineEmits(['close', 'toggle-theme'])

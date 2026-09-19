@@ -1,5 +1,19 @@
 # Task Plan — ProjectApp
 
+> **Formalización documental implementada — 2026-09-19:** Documentos incorpora
+> anexos comercial y técnico curados, contrato final, selección de adjuntos,
+> plantilla de correo con secciones adicionales y revisión exacta antes de
+> enviar. Las preparaciones privadas vencen en 24 horas y rechazan cambios de
+> origen o intentos repetidos; el gateway conserva evidencias e historial.
+> Alcance editorial y recorrido: `docs/PROPOSAL_FORMALIZATION.md`.
+
+> **PWA del panel interno — 2026-09-19:** entregar ProjectApp instalable con
+> entrada al panel, botón en ambos menús, ayuda por navegador y aviso offline
+> sin persistir datos privados. Cubrir manifiesto/worker, instalación,
+> cancelación/fallo y reconexión con pruebas focales; registrar los flujos y
+> actualizar el Mapa de vistas. La entrega es PR abierto con CI verde; merge y
+> despliegue siguen el flujo del operador.
+
 > **Implementado, pendiente de CI e integración — monitoreo 2026-09-19:**
 > panel interno con casos separados por proyecto/servidor, seguimiento manual,
 > notas e historial, reportes con retención y salud de fuentes. El alcance se

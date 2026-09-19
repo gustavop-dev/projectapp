@@ -78,6 +78,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'frontend/components/Financing/',
     'frontend/pages/panel/defaults.vue',
     'frontend/pages/panel/additional-modules/',
+    'frontend/pages/panel/partnership-program/',
     'frontend/pages/panel/financing/',
     'frontend/pages/panel/diagnostics/',
     'frontend/pages/panel/hour-packages/',
@@ -157,6 +158,9 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'frontend/components/ExplainerVideoCard.vue',
     'frontend/components/Financing/',
     'frontend/components/PublicGuidedTour.vue',
+    'frontend/components/PublicDocumentAction.vue',
+    'frontend/components/PublicDocumentShareButton.vue',
+    'frontend/composables/usePublicDocumentTheme.js',
     'frontend/composables/useExplainerVideos.js',
     'frontend/components/BusinessProposal/',
     'frontend/components/Linktree/',
@@ -260,7 +264,7 @@ export function responsiveOwnerForView(sectionId, view) {
   if (url === '/panel/communications') return 'communications';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';
   if (url === '/panel/emails' || url.includes('/email-')) return 'emails';
-  if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url.startsWith('/panel/additional-modules') || url.startsWith('/panel/financing') || url === '/panel/defaults') return 'commercial';
+  if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url.startsWith('/panel/additional-modules') || url.startsWith('/panel/partnership-program') || url.startsWith('/panel/financing') || url === '/panel/defaults') return 'commercial';
   if (url.startsWith('/panel/blog') || url.startsWith('/panel/linkedin') || url.startsWith('/panel/portfolio') || url.startsWith('/panel/qr-cards') || url.startsWith('/panel/linktrees')) return 'content';
   if (url === '/panel' || url.startsWith('/panel/tasks') || url.startsWith('/panel/admins') || url === '/panel/views') return 'dashboard';
   return null;

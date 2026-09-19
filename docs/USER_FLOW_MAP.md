@@ -6259,6 +6259,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-panel-projects` | admin | P1 | display,success,error | 17 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
+| `admin-partnership-legacy-redirects` | admin | P2 | success,error | — |
 | `admin-portfolio-create` | admin | P2 | display,success,error | 1 |
 | `admin-portfolio-delete` | admin | P2 | display,success | 1 |
 | `admin-portfolio-edit` | admin | P2 | display,success,error | 1 |
@@ -6305,6 +6306,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-engagement-decay-alert` | admin | P2 | — | 0 |
 | `admin-proposal-engagement-score` | admin | P2 | display | 1 |
 | `admin-proposal-first-view-retry` | admin | P1 | success,failure | 2 |
+| `admin-proposal-formalization-delivery` | admin | P1 | success,error,failure,display | — |
 | `admin-proposal-functional-requirements-form` | admin | P1 | success,error | 1 |
 | `admin-proposal-functional-requirements-paste` | admin | P1 | success,error | 1 |
 | `admin-proposal-hour-rate` | admin | P1 | success,display,failure | 1 |
@@ -6340,6 +6342,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-win-rate-dashboard` | admin | P2 | display | 1 |
 | `admin-proposal-zombie-segment` | admin | P2 | display | 1 |
 | `admin-proposals-config-tab` | admin | P3 | — | 0 |
+| `admin-pwa-install` | admin | P2 | success,display,failure | — |
+| `admin-pwa-offline` | admin | P2 | success,failure | — |
 | `admin-qr-cards` | admin | P2 | success | 1 |
 | `admin-seller-inactivity-escalation` | admin | P2 | — | 0 |
 | `admin-send-branded-email` | admin | P2 | display,success,failure | 1 |
@@ -6462,7 +6466,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-additional-modules-guide` | public | P2 | success,display | 2 |
 | `public-additional-modules-pdf` | public | P2 | success,failure | 2 |
 | `public-additional-modules-share` | public | P1 | success,display,failure | 4 |
-| `public-additional-modules-theme` | public | P2 | success,display | 2 |
+| `public-additional-modules-theme` | public | P2 | success,display,failure | 2 |
 | `public-contact-submit` | public | P1 | success,error | 1 |
 | `public-financing-explainer` | public | P2 | display,success,failure | 4 |
 | `public-financing-guide` | public | P2 | success,display | 2 |
@@ -6470,8 +6474,9 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-financing-load` | public | P1 | failure,success | — |
 | `public-financing-overview` | public | P1 | display | — |
 | `public-financing-pdf` | public | P2 | success,failure | — |
-| `public-financing-share` | public | P2 | success | — |
+| `public-financing-share` | public | P2 | success,failure | — |
 | `public-financing-terms` | public | P2 | success | — |
+| `public-financing-theme` | public | P2 | success,failure | — |
 | `public-home` | public | P1 | display | 1 |
 | `public-landing-apps` | public | P3 | display | 1 |
 | `public-landing-software` | public | P3 | display | 1 |
@@ -7775,6 +7780,16 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   4. **display:** el modal enumera el asunto y adjuntos bloqueados antes de confirmar.
 - **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
 
+# Enlaces anteriores del Programa de Alianza
+
+- **Rol:** administrador.
+- **Success:** abrir `/panel/financing`, `/new` o `/:id` conduce a la ruta
+  equivalente en `/panel/partnership-program`; conserva idioma y parámetros.
+- **Error:** sin sesión, el destino exige autenticación administrativa.
+- **Failure:** no aplica a la redirección local; los errores de datos pertenecen
+  a los flujos existentes del programa y sus otrosíes.
+- **Display:** no aplica: la ruta anterior no muestra una vista propia.
+
 ### FLOW: `admin-project-lifecycle-states`
 
 - **Module:** admin
@@ -7834,6 +7849,51 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcome classes:** success and failure covered; validation error is n/a because the retry action is hidden outside the failed state; delivery-state display is covered by `admin-proposal-analytics`.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-analytics.spec.js`
+
+### FLOW: `admin-proposal-formalization-delivery`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P1
+- **Ruta:** `/panel/proposals/:id/edit` → Documentos
+- **Recorrido:** abrir una propuesta desde el panel; entrar en Documentos; descargar o previsualizar anexos formales; abrir Formalización; elegir contrato final, anexos y adjuntos propios; editar Para/CC, asunto y secciones; preparar; revisar correo y archivos exactos; enviar.
+- **Display:** contenido real de la propuesta, plantilla precargada, disponibilidad, destinatarios y manifiesto de archivos preparados.
+- **Success:** preparar una selección válida, revisar sus bytes y enviarla; aparece confirmación y evidencia en Correos.
+- **Error:** datos requeridos o adjuntos no disponibles impiden preparar; revisión obsoleta, vencida o consumida muestra un error accionable.
+- **Failure:** falla de carga o preparación conserva el formulario; resultado incierto de envío consulta el estado y evita un segundo envío automático.
+- **Límites:** preparación privada de 24 horas, hasta 20 secciones y 10 destinatarios; sin transición automática del estado comercial.
+
+# admin-pwa-install — Instalación del panel interno
+
+- **Rol:** administrador. **Prioridad:** P2.
+- **Entrada:** barra lateral o menú móvil de cualquier vista del panel.
+- **Success:** pulsar Instalar ProjectApp, aceptar el diálogo y ocultar la oferta.
+  Cancelarlo permite intentarlo después; cerrar la invitación persiste durante
+  la sesión del navegador. La invitación solo aparece en el dashboard y no
+  desplaza los datos de los módulos operativos.
+- **Display:** abrir el menú móvil y la ayuda; consultar instrucciones del
+  navegador y el requisito de conexión.
+- **Failure:** el navegador rechaza el diálogo; mostrar ayuda y mensaje de error.
+- **Error:** no aplica; no hay formulario ni nuevos permisos.
+- **Specs:** `frontend/e2e/admin/admin-pwa-install.spec.js`. El diálogo del
+  sistema operativo se simula en esa frontera; las interacciones del panel son reales.
+- **Límite manual:** verificar el ícono instalado y la apertura standalone en
+  dispositivos Chrome/Edge y Safari iOS; Playwright no acredita esa instalación nativa.
+
+# admin-pwa-offline — Apertura y recuperación sin conexión
+
+- **Rol:** administrador. **Prioridad:** P2.
+- **Entrada:** abrir o recargar la app instalada.
+- **Success:** al volver internet, Reintentar recupera la URL original. Abrir
+  el start_url sin sesión conduce al login real de Django con next al panel.
+- **Failure:** sin conexión, Reintentar mantiene el aviso y la URL.
+- **Display:** integrado en el resultado del fallo de navegación.
+- **Error:** no agrega validaciones; los HTTP 4xx/5xx conservan su respuesta.
+- **Specs:** `frontend/e2e/pwa/panel-offline.spec.js`, ejecutado contra un
+  build servido por Django mediante `playwright.pwa.config.js`.
+- **Privacidad:** solo falla a una pantalla autónoma; no escribe Cache Storage,
+  no guarda respuestas privadas y no encola operaciones. Las exclusiones de
+  rutas y métodos se verifican en los tests del worker.
 
 ### FLOW: `proposal-closing-contact`
 
@@ -7945,7 +8005,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   `/:locale/additional-modules/share/:uuid`
 - **Interacción:** Alternar entre modo claro y oscuro, leer el índice y el
   detalle con el mismo tema y recuperar esa preferencia en una visita posterior.
-- **Outcomes:** `success`, `display`
+- **Outcomes:** `success`, `display`, `failure`
+- **Failure:** El mensaje de carga fallida y el catálogo recuperado con
+  Reintentar conservan el tema elegido, también en selecciones compartidas.
 - **Evidencia:** `useAdditionalModulesTheme.js`, `CatalogView.vue` y
   `e2e/public/additional-modules.spec.js`.
 
@@ -8010,9 +8072,10 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest
 - **Priority:** P2
 - **Route:** `/:locale/partnership-program`
-- **Interaction:** Share the exact localized URL through the native share sheet or clipboard fallback.
-- **Outcomes:** `success`
-- **Evidence:** floating share control in `Financing/ProgramView.vue`.
+- **Interaction:** Abrir el diálogo de Compartir; copiar la URL exacta (idioma, query y hash) o abrir el selector nativo. Escape devuelve el foco al control flotante.
+- **Outcomes:** `success`, `failure`
+- **Failure:** Si falla el portapapeles, mostrar un error recuperable dentro del diálogo. Cancelar el selector nativo no es un error.
+- **Evidence:** `PublicDocumentShareButton.vue`, montado desde `Financing/ProgramView.vue`.
 
 ### FLOW: `public-financing-terms`
 
@@ -8023,3 +8086,16 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Interaction:** Expand one legal-rule accordion and read the complete detail associated with that condition.
 - **Outcomes:** `success`
 - **Evidence:** `Financing/ProgramView.vue` agreement-rule disclosures.
+
+# Tema del Programa de Alianza
+
+- **Rol:** visitante.
+- **Success:** cambiar entre claro y oscuro conserva legibilidad de contenido,
+  controles y diálogos en los cinco perfiles responsive. Recargar restaura la
+  elección sin cambiar el tema del panel.
+- **Failure:** una carga fallida conserva el tema guardado en el mensaje de
+  error y al recuperar el programa con Reintentar.
+- **Error:** no hay entradas inválidas para este interruptor; almacenamiento
+  no disponible no impide usar el tema durante la visita.
+- **Display:** no se registra una interacción adicional; se valida como parte
+  del cambio de tema.

@@ -39,6 +39,7 @@ CLIENT_EMAIL_CHANNELS = {
     'diagnostic_documents_sent': DIAGNOSTICS,
 
     # Attachments and manually composed customer communication.
+    'proposal_formalization': DOCUMENTS_MANUAL,
     'proposal_documents_sent': DOCUMENTS_MANUAL,
     'branded_email': DOCUMENTS_MANUAL,
     'proposal_email': DOCUMENTS_MANUAL,

@@ -79,6 +79,7 @@
         <span class="text-text-muted">{{ _panelViewLabel }}</span>
       </div>
       <BasePageShell width="panel">
+        <PanelPwaHost />
         <slot />
       </BasePageShell>
     </main>
@@ -105,6 +106,7 @@ import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
 import PanelRefreshButton from '~/components/panel/PanelRefreshButton.vue'
 import PanelNotificationHost from '~/components/panel/PanelNotificationHost.vue'
 import BasePageShell from '~/components/base/BasePageShell.vue'
+import PanelPwaHost from '~/components/pwa/PanelPwaHost.vue'
 
 const refreshStore = usePanelRefreshStore()
 

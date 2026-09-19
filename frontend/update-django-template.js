@@ -136,6 +136,17 @@ try {
 }
 console.log(`Validated Nuxt SPA fallback: ${fallbackPath}`);
 
+// Root PWA URLs must exist before atomically publishing the generated site.
+const manifest = JSON.parse(fs.readFileSync(path.join(sourceDir, 'manifest.webmanifest'), 'utf8'));
+if (manifest.start_url !== '/es-co/panel' || manifest.id !== '/panel') {
+  throw new Error('PWA manifest must launch the internal panel');
+}
+for (const asset of ['sw.js', ...manifest.icons.map((icon) => icon.src.replace(/^\//, ''))]) {
+  if (!fs.statSync(path.join(sourceDir, asset)).size) {
+    throw new Error(`Empty PWA asset: ${asset}`);
+  }
+}
+
 // 3. Copy output to a staging dir next to the live one, then swap with two
 // renames. Gunicorn serves these files straight from disk on every request,
 // so the live dir must never be empty or half-written.

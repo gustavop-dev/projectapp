@@ -1,0 +1,16 @@
+{
+  "id": "/panel",
+  "name": "ProjectApp",
+  "short_name": "ProjectApp",
+  "description": "Panel interno de ProjectApp",
+  "lang": "es-CO",
+  "start_url": "/es-co/panel",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#002921",
+  "icons": [
+    { "src": "/img/icons/icon-logo-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icons/icon-logo-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

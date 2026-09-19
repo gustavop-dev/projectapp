@@ -1,5 +1,29 @@
 # Technical Documentation — ProjectApp
 
+> **Controles públicos comerciales — 2026-09-19:** el tema claro se restablece
+> explícitamente dentro del scope público, incluso si el panel dejó `.dark` en
+> un ancestro. Se preservan las claves `projectapp-additional-modules-theme` y
+> `projectapp-financing-theme`. Compartir usa la URL actual completa y ofrece
+> copia con feedback y Web Share; `AbortError` es una cancelación silenciosa.
+> Las rutas antiguas `/panel/financing[/…]` redirigen a
+> `/panel/partnership-program[/…]`, conservando idioma y query en Django y
+> también hash en Nuxt. El destino mantiene `admin-auth`. No hay migraciones.
+
+> **Contrato PWA del panel — 2026-09-19:** `/manifest.webmanifest` identifica
+> `/panel`, abre `/es-co/panel` y usa `standalone`; `/sw.js` se registra con
+> `scope: /` y `updateViaCache: none`. Ambos son públicos, GET/HEAD, MIME
+> explícito, `Cache-Control: no-cache` y 404 cuando falta el build; nunca usan
+> el fallback Nuxt ni la caché immutable de `/static/`. El worker no usa Cache
+> Storage y solo transforma errores de red de navegaciones GET del panel o
+> `/admin/login/` en un aviso bilingüe 503/no-store con Reintentar. HTTP 4xx/5xx,
+> APIs, POST, callbacks y otras páginas mantienen el comportamiento ordinario.
+> El estado de instalación vive por instancia Nuxt; únicamente la invitación
+> usa sessionStorage tolerante a errores. No hay dependencia, migración ni
+> cambio de autenticación. `npm run build:django` valida los assets antes del
+> swap; `npm run e2e:pwa` prueba el build con Django aislado mediante
+> `projectapp.settings_test` (venv opcional: `PWA_TEST_PYTHON`). CI ejecuta y
+> combina esos resultados con los de Nuxt dev.
+
 > **Monitoreo operativo — 2026-09-19:** app `monitoring`, migraciones aditivas,
 > API `/api/monitoring/`, página `/panel/monitoring` y provisión explícita con
 > `configure_monitoring`. El backend distingue orden de observación y orden de
@@ -93,7 +117,7 @@
 > y el output —esfuerzo relativo XS–XL, trabajo/tiempo y rango de precio con
 > supuestos—; no expone fórmulas, tarifas ni metodología interna. El tema local
 > persiste en `projectapp-financing-theme`. El catálogo responsive vigente
-> queda en 109 páginas: 94 visuales y 15 redirects, para 545 celdas.
+> se deriva del Mapa de vistas y del contrato de aceptación responsive.
 
 > **Contrato paginado del Gestor Documental — 2026-09-02:**
 > `GET /api/documents/browse/` acepta los mismos filtros de
@@ -1282,7 +1306,7 @@ projectapp/
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (96 pages)
+│   ├── pages/                   # Nuxt file-based routing (114 pages)
 │   │   ├── panel/               # Admin pages (proposals, diagnostics, blog, portfolio, clients, documents, admins, tasks, accounting/*, mcps, defaults, styleguide, views). Proposal edit page has Cronograma tab; `/panel/tasks` is the internal Kanban board; `/panel/accounting/*` and `/panel/mcps` are superuser-gated.
 │   │   ├── platform/            # Platform pages (login/verify/complete-profile, projects/*, board, bugs, changes, deliverables, collection-accounts, data-model, payments, notifications, clients, profile, documents — client document-signing portal)
 │   │   ├── blog/                # Blog listing + detail
@@ -1340,3 +1364,8 @@ projectapp/
     and multi-send. Email templates render plain text only; the initial message
     belongs after resolved template `body` and before payment/timeline blocks.
     No model change or data backfill is required for this contract.
+
+
+## Implementación de formalización
+
+Servicios: `formalization_content`, `formalization_pdf` y `proposal_formalization_service`; vistas FBV y serializers separados. Modelos `ProposalFormalization` y `ProposalFormalizationFile` (migración 0249), archivos en storage `private`. Plantilla administrable `proposal_formalization`; gateway de correo y snapshots compartidos. Máximo 18 MB de adjuntos por preparación, 20 secciones adicionales y 10 destinatarios entre Para/CC. `cleanup_proposal_formalizations` corre diariamente a las 04:25. Los tests usan settings_test, almacenamiento temporal y correo local; nunca ejecutar migraciones ni envíos reales desde el worktree.

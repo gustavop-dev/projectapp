@@ -822,3 +822,13 @@ La superficie humana nueva usa APIs staff/JWT dedicadas y no añade tools MCP.
 El conector Comercial pasa de 132 a 135 herramientas. La descripción del
 conector sembrada en BD por la migración 0240 se conserva sin migración de
 datos.
+
+## Revisión de formalización — 2026-09-19
+
+`ProposalFormalization` y `ProposalFormalizationFile` clasifican todos sus
+campos como excluidos del MCP: son preparaciones privadas de 24 horas,
+revisadas y enviadas por el administrador que las creó desde Documentos.
+El conector Comercial conserva sus herramientas actuales; no expone el HTML,
+destinatarios, rutas privadas ni el envío de estas preparaciones. La regresión
+focal verifica los contratos de campos de `proposals` y `commercial` y sus
+adaptadores, sin invocar conectores contra producción.
