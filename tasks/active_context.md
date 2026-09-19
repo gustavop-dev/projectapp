@@ -19,6 +19,21 @@ con settings de test y sin migraciones. El diálogo nativo se simula solo en la
 frontera del navegador; la instalación en dispositivos físicos queda como
 comprobación manual posterior al despliegue.
 
+## En curso — Monitoreo operativo (2026-09-19)
+
+Módulo interno para administradores: casos por proyecto/servidor, notas, cierre
+manual y reportes separados. Primera integración: vps-projectapp-prod y sus
+proyectos activos ProjectApp, Mimittos y Tenndalux. Recepción estructurada con
+credenciales limitadas, idempotencia y cola durable local; correo coexistente.
+Silk se habilitará gradualmente mediante deploy, nunca desde el worktree.
+
+Implementación en `feat/19092026-project-monitoring`, PR #393. Incluye catálogo
+de vistas y flows nuevos, pruebas aisladas de permisos/CSRF/idempotencia/orden,
+historial manual y presupuesto de consultas/retención. Conectores locales en
+el toolkit y exportadores en worktrees independientes de Mimittos/Tenndalux.
+Activación, migraciones productivas y rollout Silk quedan al deploy del operador;
+la sesión entrega PRs abiertos, no los mergea. Runbook: `docs/monitoring.md`.
+
 ## Current State
 
 **2026-09-19 — interfaz pública comercial y URL de Alianza listas para integrar:**

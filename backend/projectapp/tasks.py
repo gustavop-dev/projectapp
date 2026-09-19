@@ -111,6 +111,9 @@ def weekly_slow_queries_report():
         query_count__gte=n_plus_one_threshold
     ).order_by('-query_count')[:20]
 
+    from .monitoring_export import export_report_safely
+    export_report_safely(slow_queries, n_plus_one_suspects)
+
     # Generate report
     report_lines = [
         "=" * 60,

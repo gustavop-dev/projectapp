@@ -14,6 +14,15 @@
 > actualizar el Mapa de vistas. La entrega es PR abierto con CI verde; merge y
 > despliegue siguen el flujo del operador.
 
+> **Implementado, pendiente de CI e integración — monitoreo 2026-09-19:**
+> panel interno con casos separados por proyecto/servidor, seguimiento manual,
+> notas e historial, reportes con retención y salud de fuentes. El alcance se
+> limita a vps-projectapp-prod y ProjectApp/Mimittos/Tenndalux. Recepción
+> autenticada e idempotente, cola local y exportación Silk saneada; correo
+> coexistente. QA focal aprobado; PR #393 y PRs de exportadores independientes.
+> El deploy, las migraciones y la activación gradual son del operador.
+> Contrato y procedimiento: `docs/monitoring.md`.
+
 > **Orden de ingresos listo para integrar — 2026-09-04:** Mes abre del más
 > reciente al más antiguo y alterna sus dos sentidos; Total recorre mayor,
 > menor y retorno al default de Mes. El estado se recuerda en el navegador y

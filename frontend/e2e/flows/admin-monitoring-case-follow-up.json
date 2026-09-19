@@ -1,0 +1,9 @@
+{
+  "id": "admin-monitoring-case-follow-up",
+  "name": "Admin Monitoring Case Follow-up",
+  "module": "monitoring",
+  "roles": ["admin"],
+  "priority": "P1",
+  "description": "Staff opens a case, reads technical evidence and history, changes its workflow state with concurrency protection and sees actionable errors.",
+  "outcomes": ["display", "success", "error", "failure"]
+}

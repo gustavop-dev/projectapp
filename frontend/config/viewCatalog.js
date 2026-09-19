@@ -675,6 +675,16 @@ export const viewCatalogSections = [
         audience: 'admin',
         viewType: 'config',
       },
+      {
+        label: 'Monitoreo de proyectos y servidores',
+        url: '/panel/monitoring',
+        group: 'Plataforma',
+        file: 'frontend/pages/panel/monitoring/index.vue',
+        reference: 'bandeja de eventos técnicos y reportes del VPS de producción',
+        audience: 'admin',
+        viewType: 'list',
+        notes: 'Separa proyectos, servidores y reportes; filtra eventos, muestra salud de fuentes y permite cambiar estado, agregar notas y consultar el historial en un modal. La recuperación técnica no cierra el seguimiento.',
+      },
     ],
   },
   {
