@@ -1,0 +1,9 @@
+{
+  "id": "admin-pwa-offline",
+  "name": "Retry the panel after losing connectivity",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "The installed panel requests the real Django session on launch. If a panel or Django login navigation fails at the network boundary, a localized offline page offers Retry at the original URL. Reconnection restores the online page; continued loss keeps the notice. The worker does not cache data or intercept API calls, writes, public pages or platform routes. Executed against the generated build through playwright.pwa.config.js.",
+  "outcomes": ["success", "failure"]
+}

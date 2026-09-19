@@ -58,7 +58,7 @@ const panelCapabilities = [
     'Ayuda al equipo a decidir qué atender primero y convertirlo en acciones visibles.',
     [
       feature('panel-command-center', 'Leer el estado del negocio',
-        'Resume pipeline, operación, alertas y señales financieras relevantes.',
+        'Resume pipeline, operación, alertas y señales financieras relevantes. El panel se puede instalar como ProjectApp desde la navegación, con ayuda por navegador y reintento sin conexión.',
         'Reduce el tiempo necesario para detectar riesgos y oportunidades.', ['/panel'],
         { icon: 'dashboard', stage: 'Dirección' }),
       feature('panel-team-tasks', 'Organizar el trabajo del equipo',
