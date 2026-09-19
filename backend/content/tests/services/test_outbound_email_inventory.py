@@ -70,6 +70,7 @@ def test_diagnostic_inventory_lists_every_channel():
 
 def test_documents_inventory_lists_every_channel():
     assert _channels_for(DOCUMENTS_COMMUNICATIONS) == {
+        'proposal_formalization',
         'proposal_documents_sent',
         'branded_email',
         'proposal_email',
@@ -121,5 +122,5 @@ def test_security_inventory_lists_every_channel():
     }
 
 
-def test_inventory_contains_56_unique_channels():
-    assert len(OUTBOUND_EMAIL_CHANNELS) == 56
+def test_inventory_contains_57_unique_channels():
+    assert len(OUTBOUND_EMAIL_CHANNELS) == 57

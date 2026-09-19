@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **Formalización documental implementada — 2026-09-19:** Documentos incorpora
+> anexos comercial y técnico curados, contrato final, selección de adjuntos,
+> plantilla de correo con secciones adicionales y revisión exacta antes de
+> enviar. Las preparaciones privadas vencen en 24 horas y rechazan cambios de
+> origen o intentos repetidos; el gateway conserva evidencias e historial.
+> Alcance editorial y recorrido: `docs/PROPOSAL_FORMALIZATION.md`.
+
 > **Orden de ingresos listo para integrar — 2026-09-04:** Mes abre del más
 > reciente al más antiguo y alterna sus dos sentidos; Total recorre mayor,
 > menor y retorno al default de Mes. El estado se recuerda en el navegador y

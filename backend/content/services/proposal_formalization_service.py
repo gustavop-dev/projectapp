@@ -91,7 +91,10 @@ def source_hash(proposal, payload):
     sources = {
         'proposal': {field: getattr(proposal, field) for field in SOURCE_FIELDS},
         'confirmed_selection': proposal.has_confirmed_module_selection,
-        'sections': list(proposal.sections.values('section_type', 'content_json', 'is_enabled', 'order')),
+        'sections': [
+            {field: getattr(section, field) for field in ('section_type', 'content_json', 'is_enabled', 'order')}
+            for section in proposal.sections.all()
+        ],
         'files': document_sources,
         'signature': _build_design_context(proposal),
         'template_html': get_template('emails/proposal_formalization.html').template.source,
@@ -120,7 +123,7 @@ def availability(proposal):
         error = ''
         try:
             if key == 'contract':
-                related_documents(proposal, {'documents': ['contract']})
+                document_bytes(proposal, 'contract')
             elif key == 'commercial':
                 content.commercial()
             else:
@@ -183,7 +186,7 @@ def check_current(preparation):
         raise FormalizationError('Los datos de origen cambiaron. Prepara y revisa nuevamente el correo.', 'stale_preparation', 409)
 
 
-def send(preparation):
+def send_preparation(preparation):
     check_current(preparation)
     if not ProposalEmailService._is_template_active(TEMPLATE_KEY):
         raise FormalizationError('La plantilla de formalización está desactivada.', 'template_disabled')
@@ -192,8 +195,11 @@ def send(preparation):
     message.attach_alternative(preparation.html_body, 'text/html')
     sources = []
     for attachment in preparation.files.all():
-        with attachment.file.open('rb') as stored:
-            raw = stored.read()
+        try:
+            with attachment.file.open('rb') as stored:
+                raw = stored.read(MAX_ATTACHMENT_BYTES + 1)
+        except (OSError, ValueError) as exc:
+            raise FormalizationError('Un adjunto ya no está disponible. Prepara nuevamente el correo.', 'attachment_changed', 409) from exc
         if hashlib.sha256(raw).hexdigest() != attachment.sha256:
             raise FormalizationError('Un adjunto cambió. Prepara nuevamente el correo.', 'attachment_changed', 409)
         message.attach(attachment.filename, raw, attachment.mime_type)
@@ -231,10 +237,12 @@ def send(preparation):
 def cleanup_expired():
     # Delivery snapshots already own their own copies; expiration only removes preparations.
     count = 0
-    ProposalFormalization.objects.filter(expires_at__lte=timezone.now(), status='sending').update(
+    # Give an already claimed send time to finish across the expiry boundary.
+    now = timezone.now()
+    ProposalFormalization.objects.filter(expires_at__lte=now - timedelta(hours=1), status='sending').update(
         status='unknown', error='La entrega no se confirmó antes del vencimiento.',
     )
-    for preparation in ProposalFormalization.objects.filter(expires_at__lte=timezone.now()).exclude(status='sending').iterator(chunk_size=100):
+    for preparation in ProposalFormalization.objects.filter(expires_at__lte=now).exclude(status='sending').iterator(chunk_size=100):
         preparation.delete()
         count += 1
     return count

@@ -110,7 +110,7 @@ def formalization_attachment(request, proposal_id, preparation_id, file_id):
 def send_formalization(request, proposal_id, preparation_id):
     preparation = _preparation(request, proposal_id, preparation_id)
     try:
-        service.send(preparation)
+        service.send_preparation(preparation)
     except FormalizationError as exc:
         return _error(exc)
     return _response(_payload(preparation), 200 if preparation.status == 'sent' else 502)

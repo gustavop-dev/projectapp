@@ -422,6 +422,23 @@ MCP_MODEL_CONTRACTS = {
             ),
             read_write='shared_by_name shared_by_email',
         ),
+        _contract(
+            'content.ProposalFormalization',
+            excluded=_excluded(
+                'Preparación privada y temporal del administrador: su revisión y envío '
+                'se realizan exclusivamente en el panel, sin exposición por MCP.',
+                'id proposal created_by payload source_hash html_body text_body '
+                'status created_at expires_at sent_at error',
+            ),
+        ),
+        _contract(
+            'content.ProposalFormalizationFile',
+            excluded=_excluded(
+                'Adjunto privado de una preparación; requiere la sesión de su creador '
+                'y no admite lectura ni descarga por MCP.',
+                'id preparation key filename description mime_type file sha256 size',
+            ),
+        ),
     ),
     'linkedin-personal': (
         _contract(

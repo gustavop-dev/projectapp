@@ -37,6 +37,48 @@ def test_commercial_pdf_excludes_sales_copy(formal_proposal):
 
 
 @freeze_time('2026-09-19 12:00:00')
+def test_commercial_pdf_excludes_unselected_priceable_requirement(formal_proposal):
+    """Fails if a declined priced requirement or its amount enters the formal annex."""
+    requirements = formal_proposal.sections.get(section_type='functional_requirements')
+    requirements.content_json['groups'][0]['items'].append({
+        'id': 'campaigns',
+        'name': 'Módulo comercial opcional',
+        'description': 'OPTIONAL_SALES_SCOPE',
+        'price': '5000',
+        'is_required': False,
+    })
+    requirements.save(update_fields=['content_json'])
+
+    raw = generate_formal_pdf(FormalContent(formal_proposal), 'commercial', timezone.now(), 'PROP-TEST')
+    rendered = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(raw)).pages)
+
+    assert 'OPTIONAL_SALES_SCOPE' not in rendered
+    assert 'Módulo comercial opcional' not in rendered
+    assert '10.000,00 COP' in rendered
+
+
+@freeze_time('2026-09-19 12:00:00')
+def test_curated_pdfs_preserve_legacy_requirement_traceability(formal_proposal):
+    """Fails if legacy requirement references diverge between the commercial and technical annexes."""
+    requirements = formal_proposal.sections.get(section_type='functional_requirements')
+    del requirements.content_json['groups'][0]['items'][0]['id']
+    requirements.save(update_fields=['content_json'])
+    technical = formal_proposal.sections.get(section_type='technical_document')
+    technical.content_json['epics'][0]['requirements'][0]['linked_item_ids'] = ['item-core-pedidos']
+    technical.save(update_fields=['content_json'])
+
+    commercial = generate_formal_pdf(FormalContent(formal_proposal), 'commercial', timezone.now(), 'PROP-TEST')
+    technical = generate_formal_pdf(FormalContent(formal_proposal), 'technical', timezone.now(), 'PROP-TEST')
+    commercial_text = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(commercial)).pages)
+    technical_text = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(technical)).pages)
+
+    assert 'item-core-pedidos' in commercial_text
+    assert 'item-core-pedidos' in technical_text
+    assert 'fr-core-pedidos' not in commercial_text
+    assert 'fr-core-pedidos' not in technical_text
+
+
+@freeze_time('2026-09-19 12:00:00')
 def test_technical_pdf_excludes_future_scope(formal_proposal):
     raw = generate_formal_pdf(FormalContent(formal_proposal), 'technical', timezone.now(), 'PROP-TEST')
     rendered = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(raw)).pages)

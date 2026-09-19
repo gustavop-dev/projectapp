@@ -161,7 +161,7 @@
       </div>
     </section>
 
-    <ProposalFormalizationModal v-if="formalizationOpen" :proposal="proposal" :documents="documents" @close="formalizationOpen = false" @sent="emit('refresh')" />
+    <ProposalFormalizationModal v-if="formalizationOpen" :proposal="proposal" :documents="documents" @close="closeFormalization" @sent="formalizationSent = true" />
     <MarkdownPreviewModal v-model="previewOpen" :title="previewTitle">
       <div v-if="previewLoading"
         class="flex items-center justify-center h-[60vh] text-sm text-text-muted">
@@ -200,6 +200,15 @@ const emit = defineEmits(['refresh', 'editContract', 'generateContract']);
 const proposalStore = useProposalStore();
 const isUploading = ref(false);
 const formalizationOpen = ref(false);
+const formalizationSent = ref(false);
+
+function closeFormalization() {
+  formalizationOpen.value = false;
+  if (formalizationSent.value) {
+    formalizationSent.value = false;
+    emit('refresh');
+  }
+}
 const uploadTitle = ref('');
 const uploadType = ref('other');
 const uploadCustomLabel = ref('');

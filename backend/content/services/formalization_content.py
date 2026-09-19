@@ -8,6 +8,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import re
 
 from content.services.proposal_pdf_service import default_selected_modules_from_content
+from content.services.proposal_module_links import ensure_functional_requirements_item_ids
 from content.services.proposal_totals_service import effective_total_for_proposal, safe_decimal
 from content.services.technical_document_filter import get_filtered_technical_document
 
@@ -38,6 +39,9 @@ class FormalContent:
             {'section_type': sec.section_type, 'content_json': deepcopy(sec.content_json or {})}
             for sec in proposal.sections.all() if sec.is_enabled
         ]
+        for section in self.sections:
+            if section['section_type'] == 'functional_requirements':
+                section['content_json'] = ensure_functional_requirements_item_ids(section['content_json'])
         self.data = {sec['section_type']: sec['content_json'] for sec in self.sections}
         self.selected = default_selected_modules_from_content(proposal)
         self.total = effective_total_for_proposal(proposal)
@@ -124,7 +128,6 @@ class FormalContent:
         return included
 
     def commercial(self):
-        p = self.proposal
         inv = self.structured('investment')
         if not inv or self.total <= 0:
             raise FormalizationError('Completa la inversión de la propuesta.', 'investment_missing')

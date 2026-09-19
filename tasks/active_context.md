@@ -1,10 +1,13 @@
 # Active Context — ProjectApp
 
-**2026-09-19 — formalización de propuestas en implementación:** perfil documental
+**2026-09-19 — formalización de propuestas implementada para revisión:** perfil documental
 curado (comercial y técnico), contrato final, preparación privada con revisión
 exacta de adjuntos y correo configurable desde Documentos. La vista pública y
 el estado de la propuesta conservan sus flujos existentes. La validación se
-ejecuta en el worktree `proposal-formalization`, sin envíos reales.
+ejecuta en el worktree `proposal-formalization`, sin envíos reales. La matriz de
+contenido y el recorrido están en `docs/PROPOSAL_FORMALIZATION.md`. La migración
+`content.0249` queda para el despliegue; las preparaciones privadas están
+excluidas del MCP y la limpieza diaria conserva las evidencias del historial.
 
 ## Current State
 

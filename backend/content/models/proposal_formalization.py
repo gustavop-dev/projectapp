@@ -2,7 +2,9 @@
 import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 from content.storage import get_private_storage
 
@@ -44,14 +46,9 @@ class ProposalFormalizationFile(models.Model):
         constraints = [models.UniqueConstraint(fields=['preparation', 'key'], name='unique_formalization_file_key')]
 
 
-# Also remove private files when the proposal itself is deleted.
-from django.db import transaction
-from django.db.models.signals import post_delete
-from django.dispatch import receiver
-
-
 @receiver(post_delete, sender=ProposalFormalizationFile)
 def delete_preparation_file(sender, instance, **kwargs):
+    """Also remove private files when their proposal is deleted."""
     if instance.file:
         storage, name = instance.file.storage, instance.file.name
         transaction.on_commit(lambda: storage.delete(name))

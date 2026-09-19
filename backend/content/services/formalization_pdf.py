@@ -28,6 +28,7 @@ def generate_formal_pdf(content, kind, issued_at, reference):
     normal = ParagraphStyle('AnnexBody', fontName=_font('regular'), fontSize=9, leading=13, spaceAfter=8, splitLongWords=True)
     heading = ParagraphStyle('AnnexHeading', parent=normal, fontName=_font('bold'), fontSize=14, leading=19, spaceBefore=18, spaceAfter=10, keepWithNext=True)
     cover = ParagraphStyle('AnnexCover', parent=heading, fontSize=24, leading=30)
+    cover_label = ParagraphStyle('AnnexCoverLabel', parent=heading)
     small = ParagraphStyle('AnnexSmall', parent=normal, fontSize=8, leading=11)
 
     def paragraph(value, style=normal):
@@ -36,7 +37,7 @@ def generate_formal_pdf(content, kind, issued_at, reference):
 
     stream = BytesIO()
     doc = AnnexDocument(stream, pagesize=A4, rightMargin=42, leftMargin=42, topMargin=50, bottomMargin=48, title=title, author='Project App')
-    story = [Spacer(1, 55), paragraph('Project App', heading), paragraph(title, cover), Spacer(1, 25), paragraph(content.proposal.title, heading), paragraph(content.proposal.client_name), paragraph(content.label('Referencia: ', 'Reference: ') + reference), paragraph(content.label('Emisión: ', 'Issued: ') + issued_at.strftime('%Y-%m-%d %H:%M UTC')), PageBreak()]
+    story = [Spacer(1, 55), paragraph('Project App', cover_label), paragraph(title, cover), Spacer(1, 25), paragraph(content.proposal.title, cover_label), paragraph(content.proposal.client_name), paragraph(content.label('Referencia: ', 'Reference: ') + reference), paragraph(content.label('Emisión: ', 'Issued: ') + issued_at.strftime('%Y-%m-%d %H:%M UTC')), PageBreak()]
     toc = TableOfContents()
     toc.levelStyles = [ParagraphStyle('AnnexTOC', parent=normal, spaceBefore=8)]
     story.extend([paragraph(content.label('Índice', 'Contents'), cover), toc, PageBreak()])
