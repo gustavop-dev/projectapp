@@ -24,6 +24,9 @@ if (isResponsiveRun) {
 export default defineConfig({
   globalSetup: './e2e/global-setup.js',
   testDir: './e2e',
+  // Actual worker/offline checks require a production build served by Django.
+  // They run in CI through playwright.pwa.config.js, separately from Nuxt dev.
+  testIgnore: ['**/pwa/**'],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
