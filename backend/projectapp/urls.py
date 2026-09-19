@@ -8,6 +8,7 @@ from content.admin import admin_site
 from django.conf.urls.static import static
 
 from .views import serve_nuxt
+from .pwa import serve_pwa_file
 from content.views.blog import serve_sitemap_xml
 from content.views.qr_cards import qr_card_redirect
 from content.views.linktree import linktree_short_redirect
@@ -36,6 +37,8 @@ def oauth_discovery_not_found(request, *args, **kwargs):
 
 
 urlpatterns = [
+    path('manifest.webmanifest', serve_pwa_file, {'filename': 'manifest.webmanifest'}, name='pwa-manifest'),
+    path('sw.js', serve_pwa_file, {'filename': 'sw.js'}, name='pwa-worker'),
     path('api/health/', health_check, name='health-check'),
     # /admin without the trailing slash would fall through to the SPA
     # catch-all and 404 — APPEND_SLASH never kicks in because the URL

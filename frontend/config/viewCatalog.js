@@ -259,6 +259,7 @@ export const viewCatalogSections = [
         group: 'Acceso y dashboard',
         file: 'frontend/pages/panel/index.vue',
         reference: 'vista dashboard del panel',
+        notes: 'App ProjectApp instalable desde la barra lateral o el menú móvil; ayuda por navegador y aviso sin conexión con reintento. Los datos requieren internet.',
         audience: 'admin',
         viewType: 'dashboard',
       },

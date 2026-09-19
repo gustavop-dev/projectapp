@@ -1,0 +1,9 @@
+{
+  "id": "admin-pwa-install",
+  "name": "Install the internal panel",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "An operator installs ProjectApp from the desktop sidebar or mobile menu. Native installation can be accepted, cancelled or fail; browsers without a prompt show localized help. A dismissible invitation appears once per browser session. Standalone mode hides installation controls.",
+  "outcomes": ["success", "display", "failure"]
+}

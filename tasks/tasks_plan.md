@@ -1,5 +1,12 @@
 # Task Plan — ProjectApp
 
+> **PWA del panel interno — 2026-09-19:** entregar ProjectApp instalable con
+> entrada al panel, botón en ambos menús, ayuda por navegador y aviso offline
+> sin persistir datos privados. Cubrir manifiesto/worker, instalación,
+> cancelación/fallo y reconexión con pruebas focales; registrar los flujos y
+> actualizar el Mapa de vistas. La entrega es PR abierto con CI verde; merge y
+> despliegue siguen el flujo del operador.
+
 > **Orden de ingresos listo para integrar — 2026-09-04:** Mes abre del más
 > reciente al más antiguo y alterna sus dos sentidos; Total recorre mayor,
 > menor y retorno al default de Mes. El estado se recuerda en el navegador y

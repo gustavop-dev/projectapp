@@ -6336,6 +6336,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-win-rate-dashboard` | admin | P2 | display | 1 |
 | `admin-proposal-zombie-segment` | admin | P2 | display | 1 |
 | `admin-proposals-config-tab` | admin | P3 | — | 0 |
+| `admin-pwa-install` | admin | P2 | success,display,failure | — |
+| `admin-pwa-offline` | admin | P2 | success,failure | — |
 | `admin-qr-cards` | admin | P2 | success | 1 |
 | `admin-seller-inactivity-escalation` | admin | P2 | — | 0 |
 | `admin-send-branded-email` | admin | P2 | display,success,failure | 1 |
@@ -7789,6 +7791,37 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcome classes:** success and failure covered; validation error is n/a because the retry action is hidden outside the failed state; delivery-state display is covered by `admin-proposal-analytics`.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-analytics.spec.js`
+
+# admin-pwa-install — Instalación del panel interno
+
+- **Rol:** administrador. **Prioridad:** P2.
+- **Entrada:** barra lateral o menú móvil de cualquier vista del panel.
+- **Success:** pulsar Instalar ProjectApp, aceptar el diálogo y ocultar la oferta.
+  Cancelarlo permite intentarlo después; cerrar la invitación persiste durante
+  la sesión del navegador.
+- **Display:** abrir el menú móvil y la ayuda; consultar instrucciones del
+  navegador y el requisito de conexión.
+- **Failure:** el navegador rechaza el diálogo; mostrar ayuda y mensaje de error.
+- **Error:** no aplica; no hay formulario ni nuevos permisos.
+- **Specs:** `frontend/e2e/admin/admin-pwa-install.spec.js`. El diálogo del
+  sistema operativo se simula en esa frontera; las interacciones del panel son reales.
+- **Límite manual:** verificar el ícono instalado y la apertura standalone en
+  dispositivos Chrome/Edge y Safari iOS; Playwright no acredita esa instalación nativa.
+
+# admin-pwa-offline — Apertura y recuperación sin conexión
+
+- **Rol:** administrador. **Prioridad:** P2.
+- **Entrada:** abrir o recargar la app instalada.
+- **Success:** al volver internet, Reintentar recupera la URL original. Abrir
+  el start_url sin sesión conduce al login real de Django con next al panel.
+- **Failure:** sin conexión, Reintentar mantiene el aviso y la URL.
+- **Display:** integrado en el resultado del fallo de navegación.
+- **Error:** no agrega validaciones; los HTTP 4xx/5xx conservan su respuesta.
+- **Specs:** `frontend/e2e/pwa/panel-offline.spec.js`, ejecutado contra un
+  build servido por Django mediante `playwright.pwa.config.js`.
+- **Privacidad:** solo falla a una pantalla autónoma; no escribe Cache Storage,
+  no guarda respuestas privadas y no encola operaciones. Las exclusiones de
+  rutas y métodos se verifican en los tests del worker.
 
 ### FLOW: `proposal-closing-contact`
 

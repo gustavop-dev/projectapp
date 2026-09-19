@@ -98,6 +98,8 @@
         <span v-if="!isCollapsed" class="truncate">{{ isBridging ? 'Abriendo...' : 'Plataforma' }}</span>
       </button>
 
+      <PanelPwaInstallButton :collapsed="isCollapsed" />
+
       <!-- Theme toggle with label (expanded only) -->
       <BaseButton variant="secondary" size="sm" class="mb-1.5 w-full" v-if="!isCollapsed" :aria-label="themeToggleLabel(isDark)" @click="$emit('toggle-theme')">
         <BaseActionIcon :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'" />
@@ -141,6 +143,7 @@ import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge
 import { themeToggleLabel } from '~/composables/useDarkMode'
 import { useProposalStore } from '~/stores/proposals'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
+import PanelPwaInstallButton from '~/components/pwa/PanelPwaInstallButton.vue'
 
 defineEmits(['toggle-theme'])
 

@@ -1,5 +1,14 @@
 # Architecture — ProjectApp
 
+> **PWA del panel interno — 2026-09-19:** el frontend generado incluye
+> manifiesto y worker nativo, servidos por rutas Django explícitas en la raíz
+> con MIME correcto y revalidación. El plugin client-only registra el worker
+> desde el panel en builds de producción. El scope raíz conserva las rutas
+> localizadas y el login Django; el handler solo intercepta navegaciones GET
+> del panel/login y devuelve HTML autónomo al fallar la red. No usa Cache
+> Storage ni guarda HTML autenticado, APIs o documentos. Las actualizaciones
+> esperan el cierre de los clientes existentes, sin recargas forzadas.
+
 > **Programa de Alianza y visibilidad de videos explicativos 2026-09-14:** el
 > módulo público de financiación se presenta como "Programa de Alianza" /
 > "Partnership Program" (financiación, exclusividad y custodia, calculadora,

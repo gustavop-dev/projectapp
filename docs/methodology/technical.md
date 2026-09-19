@@ -1,5 +1,20 @@
 # Technical Documentation — ProjectApp
 
+> **Contrato PWA del panel — 2026-09-19:** `/manifest.webmanifest` identifica
+> `/panel`, abre `/es-co/panel` y usa `standalone`; `/sw.js` se registra con
+> `scope: /` y `updateViaCache: none`. Ambos son públicos, GET/HEAD, MIME
+> explícito, `Cache-Control: no-cache` y 404 cuando falta el build; nunca usan
+> el fallback Nuxt ni la caché immutable de `/static/`. El worker no usa Cache
+> Storage y solo transforma errores de red de navegaciones GET del panel o
+> `/admin/login/` en un aviso bilingüe 503/no-store con Reintentar. HTTP 4xx/5xx,
+> APIs, POST, callbacks y otras páginas mantienen el comportamiento ordinario.
+> El estado de instalación vive por instancia Nuxt; únicamente la invitación
+> usa sessionStorage tolerante a errores. No hay dependencia, migración ni
+> cambio de autenticación. `npm run build:django` valida los assets antes del
+> swap; `npm run e2e:pwa` prueba el build con Django aislado mediante
+> `projectapp.settings_test` (venv opcional: `PWA_TEST_PYTHON`). CI ejecuta y
+> combina esos resultados con los de Nuxt dev.
+
 > **Contrato técnico de orden de ingresos — 2026-09-04:** el estado persistido
 > usa `projectapp-accounting-incomes-sort` con la forma `{ key, dir }` y acepta
 > sólo columnas declaradas y direcciones `asc|desc`; cualquier dato inválido
