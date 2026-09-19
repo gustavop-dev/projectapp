@@ -78,6 +78,105 @@ def test_curated_pdfs_preserve_legacy_requirement_traceability(formal_proposal):
     assert 'fr-core-pedidos' not in technical_text
 
 
+@pytest.fixture
+def module_terms_proposal(formal_proposal):
+    requirements = formal_proposal.sections.get(section_type='functional_requirements')
+    requirements.content_json['groups'].extend([
+        {
+            'id': 'priority-support',
+            'title': 'Soporte prioritario',
+            'is_calculator_module': True,
+            'selected': True,
+            'price_percent': 10,
+            'items': [{'id': 'priority-channel', 'name': 'Canal prioritario', 'description': 'Soporte incluido.'}],
+        },
+        {
+            'id': 'catalog-support',
+            'title': 'Soporte de catálogo',
+            'is_calculator_module': True,
+            'selected': False,
+            'price_percent': 5,
+            'items': [{'id': 'catalog-channel', 'name': 'Canal catálogo', 'description': 'No seleccionado.'}],
+        },
+        {
+            'id': 'threshold-support',
+            'title': 'Soporte condicionado',
+            'is_calculator_module': True,
+            'selected': True,
+            'price_percent': 1,
+            'items': [{'id': 'threshold-channel', 'name': 'Canal condicionado', 'description': 'Umbral no alcanzado.'}],
+        },
+    ])
+    requirements.save(update_fields=['content_json'])
+    ProposalSection.objects.create(
+        proposal=formal_proposal,
+        section_type='value_added_modules',
+        title='Módulos incluidos',
+        order=10,
+        content_json={
+            'module_ids': ['priority-support', 'catalog-support', 'threshold-support'],
+            'conditions': {
+                'priority-support': {
+                    'min_price_cop': 10000,
+                    'duration_months': 12,
+                    'discretionary_note': 'NOTA_DISCRECIONAL_ELEGIBLE',
+                    'terms_clauses': [{'label': 'Cobertura', 'text': 'CLÁUSULA_ELEGIBLE'}],
+                },
+                'catalog-support': {
+                    'min_price_cop': 0,
+                    'terms_clauses': [{'label': 'Cobertura', 'text': 'TERMINO_NO_SELECCIONADO'}],
+                },
+                'threshold-support': {
+                    'min_price_cop': 20000,
+                    'terms_clauses': [{'label': 'Cobertura', 'text': 'TERMINO_BAJO_UMBRAL'}],
+                },
+            },
+        },
+    )
+    return formal_proposal
+
+
+@freeze_time('2026-09-19 12:00:00')
+def test_commercial_pdf_includes_only_earned_module_terms(module_terms_proposal):
+    """Fails if eligible module terms disappear or ineligible catalog terms become contractual obligations."""
+    formal_proposal = module_terms_proposal
+
+    raw = generate_formal_pdf(FormalContent(formal_proposal), 'commercial', timezone.now(), 'PROP-TEST')
+    rendered = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(raw)).pages)
+
+    assert 'CLÁUSULA_ELEGIBLE' in rendered
+    assert 'Meses de vigencia: 12' in rendered
+    assert 'NOTA_DISCRECIONAL_ELEGIBLE' in rendered
+    assert 'TERMINO_NO_SELECCIONADO' not in rendered
+    assert 'TERMINO_BAJO_UMBRAL' not in rendered
+
+
+@freeze_time('2026-09-19 12:00:00')
+def test_commercial_pdf_preserves_saved_hosting_options(formal_proposal):
+    """Fails if the formal annex changes saved hosting prices or presents one option as selected."""
+    formal_proposal.hosting_percent = 24
+    formal_proposal.save(update_fields=['hosting_percent'])
+    investment = formal_proposal.sections.get(section_type='investment')
+    investment.content_json['hostingPlan'] = {
+        'title': 'Hosting administrado',
+        'freeMonths': 2,
+        'freeMonthsVisible': True,
+        'billingTiers': [
+            {'label': 'Mensual', 'months': 1, 'discountPercent': 0},
+            {'label': 'Trimestral', 'months': 3, 'discountPercent': 10},
+        ],
+    }
+    investment.save(update_fields=['content_json'])
+
+    raw = generate_formal_pdf(FormalContent(formal_proposal), 'commercial', timezone.now(), 'PROP-TEST')
+    rendered = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(raw)).pages)
+
+    assert '300,00 COP' in rendered
+    assert '810,00 COP' in rendered
+    assert 'Meses incluidos sin costo: 2' in rendered
+    assert 'Modalidades disponibles; esta tabla no registra una elección de periodicidad.' in rendered
+
+
 @freeze_time('2026-09-19 12:00:00')
 def test_technical_pdf_excludes_future_scope(formal_proposal):
     raw = generate_formal_pdf(FormalContent(formal_proposal), 'technical', timezone.now(), 'PROP-TEST')

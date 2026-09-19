@@ -10,6 +10,7 @@ from freezegun import freeze_time
 
 from content.models import (
     BusinessProposal,
+    EmailTemplateConfig,
     EmailLog,
     ProposalDocument,
     ProposalFormalization,
@@ -17,7 +18,14 @@ from content.models import (
     ProposalSection,
 )
 from content.services.formalization_content import FormalizationError
-from content.services.proposal_formalization_service import cleanup_expired, load_proposal, prepare, send_preparation
+from content.services.email_snapshot_service import EmailSnapshotCaptureError
+from content.services.proposal_formalization_service import (
+    availability,
+    cleanup_expired,
+    load_proposal,
+    prepare,
+    send_preparation,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -82,6 +90,43 @@ def _send(preparation):
     return send_preparation(preparation)
 
 
+@pytest.fixture
+def complete_contract_params():
+    return {
+        'contractor_full_name': 'ProjectApp S.A.S.',
+        'contractor_email': 'legal@projectapp.co',
+        'contract_city': 'Medellín',
+        'bank_name': 'Banco de Prueba',
+        'bank_account_number': '123456789',
+        'contractor_nit': '900123456-7',
+        'client_full_name': 'Acme Corp',
+        'client_cedula': '1234567890',
+        'client_email': 'contact@acme.com',
+        'contract_date': '2026-09-19',
+    }
+
+
+def test_availability_marks_an_invalid_final_contract_unavailable(
+    formalization_proposal, complete_contract_params,
+):
+    """Fails if the panel enables a final contract whose saved bytes are not a PDF."""
+    formalization_proposal.contract_params = complete_contract_params
+    formalization_proposal.save(update_fields=['contract_params'])
+    contract = ProposalDocument.objects.create(
+        proposal=formalization_proposal,
+        document_type=ProposalDocument.DOC_TYPE_CONTRACT,
+        title='Contrato final',
+        is_generated=True,
+    )
+    contract.file.save('contract.pdf', ContentFile(b'not a PDF'), save=True)
+
+    contract_option = availability(formalization_proposal)[0]
+
+    assert contract_option['key'] == 'contract'
+    assert contract_option['available'] is False
+    assert 'no es un PDF válido' in contract_option['error']
+
+
 def test_prepare_freezes_the_requested_manifest(
     formalization_proposal, admin_user, formalization_payload, formalization_attachment,
 ):
@@ -140,6 +185,23 @@ def test_prepare_rejects_combined_attachments_over_the_limit(
     assert ProposalFormalizationFile.objects.count() == 0
 
 
+def test_prepare_rejects_an_inactive_formalization_template(
+    formalization_proposal, admin_user, formalization_payload,
+):
+    """Fails if a disabled email template still writes a private review package."""
+    EmailTemplateConfig.objects.create(
+        template_key='proposal_formalization',
+        is_active=False,
+    )
+
+    with pytest.raises(FormalizationError) as error:
+        prepare(formalization_proposal, admin_user, formalization_payload)
+
+    assert error.value.code == 'template_disabled'
+    assert ProposalFormalization.objects.count() == 0
+    assert ProposalFormalizationFile.objects.count() == 0
+
+
 def test_send_records_the_frozen_package_in_history(
     mailoutbox, formalization_proposal, admin_user, formalization_payload, formalization_attachment,
 ):
@@ -166,6 +228,25 @@ def test_send_records_the_frozen_package_in_history(
     assert list(history.snapshot.attachments.values_list('filename', flat=True)) == [
         commercial.filename, annex.filename,
     ]
+
+
+def test_send_marks_snapshot_failure_as_consumed(
+    formalization_proposal, admin_user, formalization_payload,
+):
+    """Fails if an unarchived formalization can be delivered on a later retry."""
+    preparation = prepare(formalization_proposal, admin_user, formalization_payload)
+
+    with patch(
+        'content.services.proposal_formalization_service.EmailDeliveryGateway.send',
+        side_effect=EmailSnapshotCaptureError('snapshot unavailable'),
+    ):
+        delivery = _send(preparation)
+        with pytest.raises(FormalizationError) as error:
+            _send(preparation)
+
+    assert delivery.status == ProposalFormalization.Status.FAILED
+    assert delivery.error == 'No se pudo guardar la evidencia del envío; el correo no fue enviado.'
+    assert error.value.code == 'preparation_consumed'
 
 
 @pytest.mark.parametrize(
