@@ -77,6 +77,7 @@ test.describe('Panel installation', () => {
     tag: [...ADMIN_PWA_INSTALL, '@outcome:success', '@role:admin'],
   }, async ({ page }) => {
     await openPanel(page)
+    await page.getByRole('link', { name: 'Dashboard', exact: true }).click()
     await page.getByRole('button', { name: 'Cerrar invitación de instalación' }).click()
     await page.reload({ waitUntil: 'domcontentloaded' })
     await expect(page.getByTestId('panel-pwa-install')).toBeVisible()

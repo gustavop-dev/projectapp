@@ -7798,7 +7798,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Entrada:** barra lateral o menú móvil de cualquier vista del panel.
 - **Success:** pulsar Instalar ProjectApp, aceptar el diálogo y ocultar la oferta.
   Cancelarlo permite intentarlo después; cerrar la invitación persiste durante
-  la sesión del navegador.
+  la sesión del navegador. La invitación solo aparece en el dashboard y no
+  desplaza los datos de los módulos operativos.
 - **Display:** abrir el menú móvil y la ayuda; consultar instrucciones del
   navegador y el requisito de conexión.
 - **Failure:** el navegador rechaza el diálogo; mostrar ayuda y mensaje de error.

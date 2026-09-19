@@ -2,7 +2,8 @@
 
 **2026-09-19 — PWA del panel interno:** implementación en la rama de sesión
 `feat/19092026-panel-pwa`. Instalación desde navegación de escritorio/móvil,
-ayuda bilingüe y pantalla autónoma de desconexión con reintento. Sin caché
+ayuda bilingüe y pantalla autónoma de desconexión con reintento. La invitación
+solo aparece en el dashboard para no desplazar los datos de otros módulos. Sin caché
 privada ni cambios de auth. Rutas raíz explícitas en Django y verificación del
 build; CI incorpora Chromium contra el frontend generado servido por Django
 con settings de test y sin migraciones. El diálogo nativo se simula solo en la

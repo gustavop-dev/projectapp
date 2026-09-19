@@ -2,7 +2,7 @@
 
 > **PWA interna — 2026-09-19:** el equipo puede instalar ProjectApp desde la
 > barra lateral o el menú móvil del panel. La app abre el panel y conserva el
-> login Django; ofrece una invitación descartable una vez por sesión y ayuda
+> login Django; ofrece una invitación descartable en el dashboard una vez por sesión y ayuda
 > de instalación por navegador en español/inglés. Sin internet muestra un
 > aviso con Reintentar; consultar datos y trabajar requiere conexión. Esta
 > versión no incluye push, operaciones offline ni publicación en tiendas.

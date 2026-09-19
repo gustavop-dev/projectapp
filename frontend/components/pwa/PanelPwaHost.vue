@@ -1,20 +1,28 @@
 <script setup>
-import { onMounted } from 'vue'
-import { useI18n } from '#imports'
+import { computed, onMounted, watch } from 'vue'
+import { useI18n, useRoute } from '#imports'
 import { usePanelPwa } from '~/composables/usePanelPwa'
 
 const { t } = useI18n()
+const route = useRoute()
+const isDashboard = computed(() => /^\/(?:(?:es-co|en-us)\/)?panel\/?$/.test(route.path))
 const {
   canOffer, isPrompting, invitationVisible, instructionsOpen, installError,
   browserKind, install, dismissInvitation, showInvitationOnce,
 } = usePanelPwa()
 
-onMounted(showInvitationOnce)
+// The invitation must not displace operational data in other panel modules.
+// Visiting a module first does not consume the session's dashboard invitation.
+function offerInvitation() {
+  if (isDashboard.value) showInvitationOnce()
+}
+onMounted(offerInvitation)
+watch(isDashboard, offerInvitation)
 </script>
 
 <template>
   <div
-    v-if="canOffer && invitationVisible"
+    v-if="isDashboard && canOffer && invitationVisible"
     class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border-default bg-surface p-4"
     role="status"
     data-testid="panel-pwa-invitation"
