@@ -50,6 +50,8 @@ def catalog(request):
 def filtered(request, model):
     data = validated(FilterSerializer, request.query_params)
     query = model.objects.select_related('source__resource__server')
+    # Large evidence/report bodies belong to the detail endpoint, not a list.
+    query = query.defer('evidence' if model is Case else 'text')
     for parameter, field in [('resource', 'source__resource_id'), ('source', 'source_id'), ('kind', 'source__resource__kind')]:
         if parameter in data:
             query = query.filter(**{field: data[parameter]})
