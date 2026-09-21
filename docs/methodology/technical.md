@@ -1395,3 +1395,9 @@ sin renderizar SVG, HTML ni contenido activo en el panel. Al borrar recursos
 (o el proyecto) el archivo se elimina tras commit. Migración aditiva 0251.
 Acceso desde Marca y recursos en tabla/Acciones compactas. Biblioteca exclusiva
 del panel; no comparte documentos automáticamente con clientes o Linktrees.
+
+El generador `create_fake_auxiliary` crea recursos Markdown privados de ejemplo
+por proyecto (branding, manual y sistema de diseño), conservando los archivos
+al repetir la generación. Incluye Linktrees asignados y sin proyecto. El reset
+de desarrollo elimina también la biblioteca; nunca ejecutar estos comandos
+contra producción. La validación se realiza exclusivamente con settings_test.
