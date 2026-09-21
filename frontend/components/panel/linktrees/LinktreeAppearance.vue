@@ -5,8 +5,8 @@
     <BaseFormRow :cols="2" :gap="4" at="md">
       <BaseFormField v-for="color in colors" :key="color.key" :label="color.label" :for="`lt-${color.key}`" :error="errors[color.key]">
         <div class="flex items-center gap-2">
-          <BaseInput :id="`lt-${color.key}`" type="color" :model-value="form[color.key]" class="w-14 shrink-0" @update:model-value="emit('update-field', color.key, $event)" />
-          <BaseInput :aria-label="`${color.label} hexadecimal`" :model-value="form[color.key]" @update:model-value="emit('update-field', color.key, $event)" />
+          <input :id="`lt-${color.key}`" type="color" :value="form[color.key]" class="h-11 w-14 shrink-0 rounded-xl border border-input-border bg-input-bg text-input-text p-1 focus-visible:ring-2 focus-visible:ring-focus-ring" @input="emit('update-field', color.key, $event.target.value)" />
+          <BaseInput :aria-label="`${color.label} hexadecimal`" class="min-w-0 flex-1" :model-value="form[color.key]" @update:model-value="emit('update-field', color.key, $event)" />
         </div>
       </BaseFormField>
     </BaseFormRow>
