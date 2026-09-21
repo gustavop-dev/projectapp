@@ -1493,6 +1493,8 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
         return obj.project.name
 
     def get_pending_payments(self, obj):
+        if hasattr(obj, '_pending_payments_count'):
+            return obj._pending_payments_count
         from django.utils import timezone
         from datetime import timedelta
         cutoff = timezone.now().date() + timedelta(days=7)

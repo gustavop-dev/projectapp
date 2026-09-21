@@ -3381,6 +3381,10 @@ def subscription_list_view(request):
     """
     Admin sees all subscriptions. Client sees only their projects' subscriptions.
     """
+    from datetime import timedelta
+
+    from django.db.models import Count, Q
+
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
@@ -3392,6 +3396,19 @@ def subscription_list_view(request):
         )
 
     qs = filter_subscriptions_for_list(qs, request, is_admin=is_admin)
+    cutoff = timezone.now().date() + timedelta(days=7)
+    qs = qs.annotate(
+        _pending_payments_count=Count(
+            'payments',
+            filter=Q(
+                payments__is_archived=False,
+                payments__status__in=[
+                    Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED,
+                ],
+                payments__due_date__lte=cutoff,
+            ),
+        ),
+    )
 
     serializer = HostingSubscriptionListSerializer(qs, many=True)
     return Response(serializer.data)
