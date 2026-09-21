@@ -1195,10 +1195,9 @@ class ProjectScopeItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_requirements_count(self, obj):
-        return getattr(
-            obj, '_requirements_count',
-            obj.requirements.filter(is_archived=False).count(),
-        )
+        if hasattr(obj, '_requirements_count'):
+            return obj._requirements_count
+        return obj.requirements.filter(is_archived=False).count()
 
 
 class DeliverableDetailSerializer(DeliverableListSerializer):
