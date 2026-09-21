@@ -593,7 +593,9 @@ class RequirementListSerializer(serializers.ModelSerializer):
         ]
 
     def get_comments_count(self, obj):
-        return getattr(obj, '_comments_count', obj.comments.count())
+        if hasattr(obj, '_comments_count'):
+            return obj._comments_count
+        return obj.comments.count()
 
     def get_phase_title(self, obj):
         ph = getattr(obj, 'phase', None)

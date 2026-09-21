@@ -1109,6 +1109,8 @@ def requirement_list_view(request, project_id):
     GET  — Requirements for a project; optional ?phase_id=X filter.
     POST — Admin creates a new requirement (phase_id required).
     """
+    from django.db.models import Count
+
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
@@ -1117,7 +1119,21 @@ def requirement_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Requirement.objects.filter(phase__project=proj).select_related('phase', 'scope_item')
+        qs = (
+            Requirement.objects.filter(phase__project=proj)
+            .select_related('phase__business_proposal', 'scope_item')
+            .only(
+                'id', 'title', 'description', 'configuration', 'flow',
+                'status', 'priority', 'order',
+                'source_epic_key', 'source_epic_title', 'source_flow_key',
+                'synced_from_proposal', 'is_archived', 'archived_at',
+                'created_at', 'updated_at',
+                'phase__id', 'phase__order', 'phase__business_proposal__id',
+                'phase__business_proposal__title',
+                'scope_item__id', 'scope_item__name', 'scope_item__group_id',
+            )
+            .annotate(_comments_count=Count('comments'))
+        )
         qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
         phase_id = request.query_params.get('phase_id')
         if phase_id:
