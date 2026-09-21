@@ -1379,3 +1379,19 @@ CSS2 carga sólo la familia seleccionada con `display=swap`; el editor verifica
 familias nuevas por nombre contra Google antes de seleccionarlas. Sin conexión
 se conserva la familia elegida y el navegador usa su fallback. Logos JPG/PNG/WebP
 hasta 5 MB se validan por contenido en el endpoint staff POST/DELETE `logo/`.
+
+### Biblioteca de marca por proyecto (2026-09-21)
+
+`Linktree.project` es una relación opcional con `accounts.Project` (`SET_NULL`):
+un proyecto admite varios Linktrees y cada Linktree pertenece como máximo a uno.
+El contrato público no expone esa relación; el panel y MCP pueden asignarla o
+quitarla con `project: null`. La URL pública y los QR siguen vigentes.
+`ProjectBrandAsset` guarda archivos en el storage `private` con categoría y nombre;
+no retorna URLs MEDIA. GET/POST `projects/<id>/brand/` lista/sube y GET/DELETE
+`projects/<id>/brand/<asset_id>/` descarga/elimina bajo IsAdminUser. Se valida
+extensión, contenido no vacío, categoría y límite de 25 MB. Todos los archivos
+son descargas `attachment`, `application/octet-stream`, `nosniff` y `no-store`,
+sin renderizar SVG, HTML ni contenido activo en el panel. Al borrar recursos
+(o el proyecto) el archivo se elimina tras commit. Migración aditiva 0251.
+Acceso desde Marca y recursos en tabla/Acciones compactas. Biblioteca exclusiva
+del panel; no comparte documentos automáticamente con clientes o Linktrees.

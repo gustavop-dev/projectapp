@@ -24,7 +24,7 @@ from content.serializers.linktree import (
 @permission_classes([IsAdminUser])
 def list_admin_linktrees(request):
     """List all linktrees for admin management."""
-    qs = Linktree.objects.all()
+    qs = Linktree.objects.prefetch_related('buttons')
     serializer = LinktreeListSerializer(qs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 

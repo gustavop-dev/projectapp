@@ -6269,6 +6269,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-access-field-edit` | admin | P1 | success,error,failure | — |
 | `admin-project-access-notes` | admin | P2 | display,success,error,failure | — |
 | `admin-project-access-secrets` | admin | P1 | display,success,failure | — |
+| `admin-project-brand` | admin | P2 | success,error,failure,display | — |
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
@@ -7802,6 +7803,15 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Failure:** no aplica a la redirección local; los errores de datos pertenecen
   a los flujos existentes del programa y sus otrosíes.
 - **Display:** no aplica: la ruta anterior no muestra una vista propia.
+
+# Marca y recursos del proyecto
+
+- **Ruta/rol:** `/panel/projects`, admin, Acciones → Marca y recursos.
+- **Success:** vincular/desvincular un Linktree conserva su URL pública; subir un archivo con nombre y categoría, descargarlo y eliminarlo previa confirmación.
+- **Error:** carga rechazada conserva los campos y no añade un recurso.
+- **Failure:** carga de biblioteca fallida muestra aviso y reintento.
+- **Display:** abrir el modal desde el listado muestra los recursos o estados vacíos, también en móvil.
+- **Cobertura:** `frontend/e2e/admin/admin-project-brand.spec.js`, API simulada; `backend/content/tests/views/test_project_brand.py` verifica persistencia, aislamiento, permisos y archivos privados reales.
 
 ### FLOW: `admin-project-lifecycle-states`
 

@@ -133,3 +133,5 @@ from .financing_agreement import (
     FinancingPolicyRevision,
 )
 from .proposal_formalization import ProposalFormalization, ProposalFormalizationFile
+
+from .project_brand_asset import ProjectBrandAsset

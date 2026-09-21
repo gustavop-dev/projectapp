@@ -55,6 +55,7 @@ from content.views.collection_accounts_panel import (
 )
 from content.views.contact import contact_list, new_contact
 from content.views.panel_dashboard import panel_dashboard
+from content.views.project_brand import project_brand, project_brand_asset
 from content.views.panel_projects import (
     archive_panel_project,
     assign_project_unlinked_records,
@@ -530,6 +531,8 @@ urlpatterns = [
     path('panel/dashboard/', panel_dashboard, name='panel-dashboard'),
 
     # Panel — Projects module (Plataforma space)
+    path('projects/<int:project_id>/brand/', project_brand, name='project-brand'),
+    path('projects/<int:project_id>/brand/<int:asset_id>/', project_brand_asset, name='project-brand-asset'),
     path('projects/', list_panel_projects, name='panel-projects-list'),
     path('projects/create/', create_panel_project, name='panel-projects-create'),
     path('projects/<int:project_id>/update/', update_panel_project, name='panel-projects-update'),

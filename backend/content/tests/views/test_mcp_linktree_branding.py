@@ -45,3 +45,18 @@ def test_mcp_rejects_invalid_branding(call_content):
     assert result['isError'] is True
     tree.refresh_from_db()
     assert tree.accent_color == '#f0ff3d'
+
+
+def test_mcp_links_and_unlinks_project(call_content, admin_user):
+    from accounts.models import Project
+    project = Project.objects.create(name='MCP project', client=admin_user)
+    created = call_content('create_linktree', {'data': {
+        'handle': 'mcp-project', 'name': 'Project link', 'project': project.pk,
+    }})
+    card = json.loads(created['content'][0]['text'])
+    assert card['project'] == project.pk
+    updated = call_content('update_linktree', {'linktree_id': card['id'], 'data': {'project': None}})
+    assert json.loads(updated['content'][0]['text'])['project'] is None
+    invalid = call_content('update_linktree', {'linktree_id': card['id'], 'data': {'project': 999999}})
+    assert invalid['isError'] is True
+    assert Linktree.objects.get(pk=card['id']).project_id is None

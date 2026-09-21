@@ -842,3 +842,12 @@ validan los datos del panel y MCP. `upload_linktree_logo` usa `asset_id` para un
 JPG/PNG/WebP real de hasta 5 MB; `remove_linktree_logo` lo elimina. El logo es
 independiente del avatar. Comprobar lectura pública tras actualizar y rechazo de
 color/CSS inválidos o archivo falso; no modificar tarjetas reales al validar.
+
+### Linktrees asociados a proyectos
+
+`create_linktree`/`update_linktree` aceptan `data.project` (ID de Project) o null.
+Verificar lectura de la relación, desvinculación y rechazo de IDs inexistentes.
+Las mismas reglas corren en el serializer del panel. `ProjectBrandAsset` queda
+excluido explícitamente del conector: documentos privados disponibles sólo en
+el panel, sin URLs públicas ni descargas vía MCP. Prueba focal:
+`content/tests/views/test_mcp_linktree_branding.py::test_mcp_links_and_unlinks_project`.

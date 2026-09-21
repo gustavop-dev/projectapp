@@ -1815,3 +1815,7 @@ ProjectApp is in **production** at projectapp.co. No long-lived active branch: w
 ## Linktrees: personalización de marca (2026-09-21)
 
 Implementado: colores por tarjeta, logo independiente del avatar y familia Google Fonts, conservando los valores iniciales del diseño. QR Cards mantiene su redirección estable. Misma tarjeta para vista previa y página pública. El editor espera la carga antes de permitir cambios. Validación local: 14 pruebas de marca backend, 3 MCP de create/read/update/error, 11 contratos MCP/redirecciones QR, 18 pruebas unitarias de componentes/store. Editor revisado sin overflow a 412/835/1195/1440/2560 px. Flow admin-linktree-branding registra success/error/failure/display; catálogo de vistas y contrato responsivo válidos. PR #396; estado final de CI verificable en GitHub.
+
+## Marca por proyecto (2026-09-21)
+
+Implementado: relación opcional Linktree → Project y biblioteca privada por proyecto con categorías de branding, manual, sistema de diseño y logos. Entrada desde Acciones en Proyectos; reutiliza el almacenamiento privado y las sesiones del panel.

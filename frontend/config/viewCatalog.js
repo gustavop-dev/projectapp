@@ -662,7 +662,7 @@ export const viewCatalogSections = [
         url: '/panel/projects',
         group: 'Plataforma',
         file: 'frontend/pages/panel/projects/index.vue',
-        reference: 'modulo de proyectos: ciclo real, filtros, creacion, edicion, historico y accesos en modal',
+        reference: 'modulo de proyectos: ciclo real, filtros, creacion, edicion, historico, accesos y marca en modal (Linktrees, manuales y assets privados)',
         audience: 'admin',
         viewType: 'list',
       },

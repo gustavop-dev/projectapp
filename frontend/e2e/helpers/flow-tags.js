@@ -189,6 +189,7 @@ export const ADMIN_PROJECT_ACCESS_DETAIL = ['@flow:admin-project-access-detail',
 export const ADMIN_PROJECT_ACCESS_FIELD_EDIT = ['@flow:admin-project-access-field-edit', '@module:admin', '@priority:P1'];
 export const ADMIN_PROJECT_ACCESS_NOTES = ['@flow:admin-project-access-notes', '@module:admin', '@priority:P2'];
 export const ADMIN_PROJECT_ACCESS_SECRETS = ['@flow:admin-project-access-secrets', '@module:admin', '@priority:P1'];
+export const ADMIN_PROJECT_BRAND = ['@flow:admin-project-brand', '@module:admin', '@priority:P2'];
 export const ADMIN_PROJECT_CHANGE_CLIENT = ['@flow:admin-project-change-client', '@module:admin', '@priority:P2'];
 export const ADMIN_PROJECT_FLY_CREATE = ['@flow:admin-project-fly-create', '@module:admin', '@priority:P2'];
 export const ADMIN_PROJECT_INLINE_ASSIGN_OFFER = ['@flow:admin-project-inline-assign-offer', '@module:admin', '@priority:P2'];
