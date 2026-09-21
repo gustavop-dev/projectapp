@@ -281,7 +281,7 @@ test.describe('Linktree branding', () => {
     tag: ['@flow:admin-linktree-branding', '@outcome:success'],
   }, async ({ page }) => {
     await page.goto(`/en-us/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
-    await page.getByLabel('Logo de marca').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from('image fixture') });
+    await page.getByLabel('Logo de marca').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMfsAAAAASUVORK5CYII=', 'base64') });
     await expect(page.getByTestId('linktree-brand-logo')).toHaveAttribute('src', /^data:image/);
     await page.getByRole('button', { name: 'Quitar logo' }).click();
     await expect(page.getByTestId('linktree-brand-logo')).toHaveCount(0);

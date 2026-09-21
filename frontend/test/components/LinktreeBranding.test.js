@@ -68,3 +68,11 @@ test('Google connection failure lets the user retry without losing the selection
   expect(wrapper.text()).toContain('No se pudo conectar');
   expect(wrapper.get('#lt-font').element.value).toBe('Ubuntu');
 });
+
+test('color text input updates the corresponding preview color', async () => {
+  const form = reactive(tree());
+  const wrapper = appearance(form);
+  await wrapper.get('input[aria-label="Fondo hexadecimal"]').setValue('#abcdef');
+  expect(form.background_color).toBe('#abcdef');
+  expect(wrapper.get('#lt-background_color').element.value).toBe('#abcdef');
+});

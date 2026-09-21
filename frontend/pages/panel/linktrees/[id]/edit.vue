@@ -40,7 +40,7 @@
       {{ loadError || 'Cargando linktree...' }}
     </div>
 
-    <div v-else class="lg:flex lg:items-start lg:gap-6">
+    <div v-else class="panel-landscape:flex panel-landscape:items-start panel-landscape:gap-6">
       <div class="flex-1 min-w-0 space-y-6">
       <!-- "error" no es una variante de BaseAlert: caía en `info` sin avisar y
            pintaba de azul un error de los botones. -->
@@ -333,7 +333,7 @@
       </div>
 
       <!-- Live preview available on every viewport -->
-      <aside class="mt-6 w-full shrink-0 lg:sticky lg:top-6 lg:mt-0 lg:w-96" data-testid="linktree-preview">
+      <aside class="mt-6 w-full shrink-0 panel-landscape:sticky panel-landscape:top-6 panel-landscape:mt-0 panel-landscape:w-96" data-testid="linktree-preview">
         <div class="bg-surface border border-border-default rounded-xl shadow-card p-4">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-semibold text-text-default">Vista previa</h2>
