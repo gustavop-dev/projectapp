@@ -6244,6 +6244,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-kanban-tasks` | admin | P2 | display,success,failure | 1 |
 | `admin-layout-title-mapping` | admin | P3 | display | 1 |
 | `admin-linkedin-module` | admin | P2 | display,success,failure | 1 |
+| `admin-linktree-branding` | admin | P2 | success,error,failure,display | — |
 | `admin-linktrees` | admin | P2 | success,error | 1 |
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success,error,failure | 10 |
@@ -7682,6 +7683,18 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-financing-settings.spec.js`
 - **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_policy_service.py`
+
+# Personalizar la marca del Linktree
+
+- **Rol:** admin. **Ruta:** `/panel/linktrees/:id/edit`.
+- **Success:** editar colores/fuente, guardar y recargar conserva la apariencia;
+  cargar una familia de Google Fonts la selecciona; subir/quitar logo actualiza la tarjeta.
+- **Error:** una familia inexistente muestra error y conserva la selección.
+- **Failure:** fallo de conexión a Google Fonts muestra aviso y permite reintentar.
+- **Display:** entrar desde el listado muestra la apariencia y vista previa, también en móvil.
+- **API:** PATCH de Linktree persiste colores y familia; POST/DELETE `logo/` guarda inmediatamente el logo independiente del avatar.
+- **Cobertura:** `frontend/e2e/admin/admin-linktrees.spec.js` (API y Google Fonts simulados).
+  Backend verifica persistencia real, serialización pública y rechazo de imágenes falsas.
 
 ### FLOW: `admin-monitoring-case-follow-up`
 

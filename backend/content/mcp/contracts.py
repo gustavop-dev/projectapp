@@ -660,7 +660,8 @@ CONTENT_CATALOG_CONTRACTS = (
         'content.Linktree',
         read_only='id created_at updated_at',
         read_write=(
-            'handle name kind display_name role bio avatar claim_line_1 claim_line_2 '
+            'handle name kind display_name role bio avatar logo background_color accent_color '
+            'text_color muted_color button_text_color font_family claim_line_1 claim_line_2 '
             'badge_text footer_tagline show_brand_header pwa_enabled pwa_title '
             'pwa_description vcard_first_name vcard_last_name vcard_org vcard_email '
             'vcard_tel vcard_url is_active'

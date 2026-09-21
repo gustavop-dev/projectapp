@@ -832,3 +832,13 @@ El conector Comercial conserva sus herramientas actuales; no expone el HTML,
 destinatarios, rutas privadas ni el envío de estas preparaciones. La regresión
 focal verifica los contratos de campos de `proposals` y `commercial` y sus
 adaptadores, sin invocar conectores contra producción.
+
+### Linktrees — marca personalizada (2026-09-21)
+
+`create_linktree` y `update_linktree` aceptan `background_color`, `accent_color`,
+`text_color`, `muted_color`, `button_text_color` (hexadecimal de seis dígitos) y
+`font_family` (nombre de Google Fonts, sin URL ni CSS). Los serializers compartidos
+validan los datos del panel y MCP. `upload_linktree_logo` usa `asset_id` para un
+JPG/PNG/WebP real de hasta 5 MB; `remove_linktree_logo` lo elimina. El logo es
+independiente del avatar. Comprobar lectura pública tras actualizar y rechazo de
+color/CSS inválidos o archivo falso; no modificar tarjetas reales al validar.

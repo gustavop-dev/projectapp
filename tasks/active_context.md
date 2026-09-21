@@ -1811,3 +1811,7 @@ ProjectApp is in **production** at projectapp.co. No long-lived active branch: w
 - Consider splitting the largest proposal/backend modules (`views/proposal.py`, `proposal_service.py`, `proposal_email_service.py`) now that the shared PDF helpers already live in `pdf_utils.py`
 - Credential rotation for production secrets exposed in git history
 - Explore API rate limiting for public endpoints
+
+## Linktrees: personalización de marca (2026-09-21)
+
+En desarrollo: colores por tarjeta, logo independiente del avatar y familia Google Fonts, conservando los valores iniciales del diseño. QR Cards mantiene su redirección estable. Misma tarjeta para vista previa y página pública.

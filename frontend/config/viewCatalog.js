@@ -517,7 +517,7 @@ export const viewCatalogSections = [
         url: '/panel/linktrees/:id/edit',
         group: 'Linktrees',
         file: 'frontend/pages/panel/linktrees/[id]/edit.vue',
-        reference: 'editor de identidad, botones por niveles, bloque instalar y vCard de un linktree',
+        reference: 'editor de identidad, colores, logo, tipografia Google Fonts, botones por niveles, bloque instalar y vCard de un linktree',
         audience: 'admin',
         viewType: 'edit',
       },

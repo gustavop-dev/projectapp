@@ -255,6 +255,8 @@ CONTENT_PARITY_TOOLS = [
     _op('create_linktree', 'Crea un Linktree y sus botones.', 'create-linktree', 'POST', risk='write'),
     _op('update_linktree', 'Actualiza un Linktree y sus botones.', 'update-linktree', 'PATCH', ('linktree_id',), 'write'),
     _op('delete_linktree', 'Elimina un Linktree.', 'delete-linktree', 'DELETE', ('linktree_id',), 'sensitive', True),
+    _op('upload_linktree_logo', 'Asigna un logo JPG, PNG o WebP (máximo 5 MB) al Linktree.', 'upload-linktree-logo', 'POST', ('linktree_id',), 'write', assets={'asset_id': {'field': 'logo'}}),
+    _op('remove_linktree_logo', 'Elimina el logo personalizado del Linktree.', 'upload-linktree-logo', 'DELETE', ('linktree_id',), 'write'),
     _op('upload_linktree_avatar', 'Asigna un asset de avatar al Linktree.', 'upload-linktree-avatar', 'POST', ('linktree_id',), 'write', assets={
         'asset_id': {'field': 'avatar'},
     }),

@@ -104,16 +104,24 @@ export const useLinktreesStore = defineStore('linktrees', {
     },
 
     async uploadAvatar(id, file) {
+      return this.uploadImage(id, file, 'avatar');
+    },
+
+    async uploadLogo(id, file) {
+      return this.uploadImage(id, file, 'logo');
+    },
+
+    async uploadImage(id, file, field) {
       this.isUpdating = true;
       this.error = null;
       try {
         const formData = new FormData();
-        formData.append('avatar', file);
+        formData.append(field, file);
         const csrfToken = document.cookie
           .split('; ')
           .find((c) => c.startsWith('csrftoken='))
           ?.split('=')[1] || '';
-        const response = await fetch(`/api/linktrees/admin/${id}/avatar/`, {
+        const response = await fetch(`/api/linktrees/admin/${id}/${field}/`, {
           method: 'POST',
           headers: { 'X-CSRFToken': csrfToken },
           body: formData,
@@ -133,10 +141,18 @@ export const useLinktreesStore = defineStore('linktrees', {
     },
 
     async removeAvatar(id) {
+      return this.removeImage(id, 'avatar');
+    },
+
+    async removeLogo(id) {
+      return this.removeImage(id, 'logo');
+    },
+
+    async removeImage(id, field) {
       this.isUpdating = true;
       this.error = null;
       try {
-        const response = await delete_request(`linktrees/admin/${id}/avatar/`);
+        const response = await delete_request(`linktrees/admin/${id}/${field}/`);
         this.currentLinktree = response.data;
         return { success: true, data: response.data };
       } catch (error) {

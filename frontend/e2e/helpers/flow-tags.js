@@ -170,6 +170,7 @@ export const ADMIN_IMPERSONATE_USER = ['@flow:admin-impersonate-user', '@module:
 export const ADMIN_KANBAN_TASKS = ['@flow:admin-kanban-tasks', '@module:admin', '@priority:P2'];
 export const ADMIN_LAYOUT_TITLE_MAPPING = ['@flow:admin-layout-title-mapping', '@module:admin', '@priority:P3'];
 export const ADMIN_LINKEDIN_MODULE = ['@flow:admin-linkedin-module', '@module:admin', '@priority:P2'];
+export const ADMIN_LINKTREE_BRANDING = ['@flow:admin-linktree-branding', '@module:admin', '@priority:P2'];
 export const ADMIN_LINKTREES = ['@flow:admin-linktrees', '@module:admin', '@priority:P2'];
 export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];
 export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];

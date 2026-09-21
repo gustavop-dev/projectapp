@@ -1369,3 +1369,13 @@ projectapp/
 ## Implementación de formalización
 
 Servicios: `formalization_content`, `formalization_pdf` y `proposal_formalization_service`; vistas FBV y serializers separados. Modelos `ProposalFormalization` y `ProposalFormalizationFile` (migración 0249), archivos en storage `private`. Plantilla administrable `proposal_formalization`; gateway de correo y snapshots compartidos. Máximo 18 MB de adjuntos por preparación, 20 secciones adicionales y 10 destinatarios entre Para/CC. `cleanup_proposal_formalizations` corre diariamente a las 04:25. Los tests usan settings_test, almacenamiento temporal y correo local; nunca ejecutar migraciones ni envíos reales desde el worktree.
+
+### Marca de Linktrees (2026-09-21)
+
+La apariencia se persiste en `Linktree`: cinco colores hexadecimales, `font_family`
+y `logo` independiente de `avatar` (migración 0250). `LinktreeCard` comparte el
+render entre editor y URL pública mediante variables CSS locales. Google Fonts
+CSS2 carga sólo la familia seleccionada con `display=swap`; el editor verifica
+familias nuevas por nombre contra Google antes de seleccionarlas. Sin conexión
+se conserva la familia elegida y el navegador usa su fallback. Logos JPG/PNG/WebP
+hasta 5 MB se validan por contenido en el endpoint staff POST/DELETE `logo/`.

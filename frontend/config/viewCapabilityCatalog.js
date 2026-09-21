@@ -124,7 +124,7 @@ const panelCapabilities = [
         ['/panel/portfolio', '/panel/portfolio/create', '/panel/portfolio/:id/edit'],
         { icon: 'portfolio', stage: 'Prueba social' }),
       feature('panel-shareable-resources', 'Crear recursos compartibles',
-        'Configura tarjetas QR y Linktrees para conectar puntos físicos y digitales.',
+        'Configura tarjetas QR y Linktrees con colores, logo y tipografías de Google Fonts para conectar puntos físicos y digitales.',
         'Facilita distribuir accesos y campañas con destinos administrables.',
         ['/panel/qr-cards', '/panel/linktrees', '/panel/linktrees/:id/edit'],
         { icon: 'qrcode', stage: 'Distribución' }),
