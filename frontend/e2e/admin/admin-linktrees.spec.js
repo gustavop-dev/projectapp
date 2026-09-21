@@ -231,7 +231,7 @@ test.describe('Linktree branding', () => {
   test('saves custom colors and font and keeps them after reopening', {
     tag: ['@flow:admin-linktree-branding', '@outcome:success'],
   }, async ({ page }) => {
-    await page.goto(`/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/en-us/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('textbox', { name: 'Fondo hexadecimal', exact: true }).fill('#abcdef');
     await page.getByRole('combobox', { name: 'Tipografía', exact: true }).selectOption('Montserrat');
     await expect(page.getByTestId('linktree-card')).toHaveCSS('background-color', 'rgb(171, 205, 239)');
@@ -248,7 +248,7 @@ test.describe('Linktree branding', () => {
     await page.route('https://fonts.googleapis.com/css2?family=Lora*', (route) => route.fulfill({
       status: 200, contentType: 'text/css', body: '@font-face {font-family: Lora; src: local(serif);}',
     }));
-    await page.goto(`/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/en-us/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('textbox', { name: 'Añadir desde Google Fonts' }).fill('Lora');
     await page.getByRole('button', { name: 'Cargar tipografía' }).click();
     await expect(page.getByRole('combobox', { name: 'Tipografía', exact: true })).toHaveValue('Lora');
@@ -259,7 +259,7 @@ test.describe('Linktree branding', () => {
     tag: ['@flow:admin-linktree-branding', '@outcome:error'],
   }, async ({ page }) => {
     await page.route('https://fonts.googleapis.com/css2?family=Missing*', (route) => route.fulfill({ status: 400, body: 'Unknown font' }));
-    await page.goto(`/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/en-us/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('textbox', { name: 'Añadir desde Google Fonts' }).fill('Missing Family');
     await page.getByRole('button', { name: 'Cargar tipografía' }).click();
     await expect(page.getByText('No se encontró esa familia en Google Fonts. Verifica el nombre.')).toBeVisible();
@@ -270,7 +270,7 @@ test.describe('Linktree branding', () => {
     tag: ['@flow:admin-linktree-branding', '@outcome:failure'],
   }, async ({ page }) => {
     await page.route('https://fonts.googleapis.com/css2?family=Lora*', (route) => route.abort());
-    await page.goto(`/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/en-us/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('textbox', { name: 'Añadir desde Google Fonts' }).fill('Lora');
     await page.getByRole('button', { name: 'Cargar tipografía' }).click();
     await expect(page.getByText('No se pudo conectar con Google Fonts. Inténtalo de nuevo.')).toBeVisible();
@@ -280,7 +280,7 @@ test.describe('Linktree branding', () => {
   test('uploads and removes the brand logo', {
     tag: ['@flow:admin-linktree-branding', '@outcome:success'],
   }, async ({ page }) => {
-    await page.goto(`/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/en-us/panel/linktrees/${TREE_ID}/edit`, { waitUntil: 'domcontentloaded' });
     await page.getByLabel('Logo de marca').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from('image fixture') });
     await expect(page.getByTestId('linktree-brand-logo')).toHaveAttribute('src', /^data:image/);
     await page.getByRole('button', { name: 'Quitar logo' }).click();
@@ -293,7 +293,7 @@ test.describe('Linktree branding', () => {
   }, async ({ page }) => {
     // quality: allow-deep-link (the list is the entry point; the editor is reached through its real Edit action)
     await page.setViewportSize({ width: 412, height: 915 });
-    await page.goto('/panel/linktrees', { waitUntil: 'domcontentloaded' });
+    await page.goto('/en-us/panel/linktrees', { waitUntil: 'domcontentloaded' });
     await page.getByTestId(`linktree-actions-${TREE_ID}`).click();
     await page.getByTestId(`linktree-edit-${TREE_ID}`).click();
     await expect(page.getByRole('combobox', { name: 'Tipografía', exact: true })).toHaveValue('Ubuntu');

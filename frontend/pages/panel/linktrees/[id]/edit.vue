@@ -27,6 +27,8 @@
           size="sm"
           :loading="store.isUpdating"
           data-testid="linktree-save"
+          :disabled="!loaded"
+          disabled-reason="Espera a que cargue el linktree"
           @click="onSave"
         >
           Guardar cambios
@@ -34,8 +36,8 @@
       </div>
     </div>
 
-    <div v-if="store.isLoading && !loaded" class="text-center py-16 text-text-subtle text-sm">
-      Cargando linktree...
+    <div v-if="!loaded" class="text-center py-16 text-text-subtle text-sm">
+      {{ loadError || 'Cargando linktree...' }}
     </div>
 
     <div v-else class="lg:flex lg:items-start lg:gap-6">
@@ -434,6 +436,7 @@ const notify = usePanelNotify();
 const localePath = useLocalePath();
 
 const loaded = ref(false);
+const loadError = ref('');
 const buttonsError = ref('');
 const fieldErrors = reactive({});
 const avatarInput = ref(null);
@@ -597,6 +600,7 @@ function moveButton(index, delta) {
 onMounted(async () => {
   const result = await store.fetchLinktree(route.params.id);
   if (!result.success) {
+    loadError.value = 'No se pudo cargar el linktree. Recarga la página para intentarlo de nuevo.';
     notify.error({ title: 'No se pudo cargar el linktree' });
     return;
   }
