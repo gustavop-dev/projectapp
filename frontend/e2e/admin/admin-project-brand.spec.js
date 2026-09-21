@@ -91,9 +91,9 @@ test('shows retry after a library loading failure', { tag: [...ADMIN_PROJECT_BRA
   await expect(modal.getByRole('button', { name: 'Upload file' })).toHaveCount(0)
 })
 
-// quality: allow-deep-link (project listing is the entry; the tested modal opens through its action)
 for (const width of [412, 835, 1195, 1440, 2560]) {
 test(`opens the project brand library at ${width}px`, { tag: [...ADMIN_PROJECT_BRAND, '@role:admin', '@outcome:display'] }, async ({ page }) => {
+  // quality: allow-deep-link (the project listing is the entry; this flow opens the brand modal through its visible action)
   await page.setViewportSize({ width, height: 915 })
   const modal = await setup(page)
   await expect(modal.getByText('No brand resources yet.')).toBeVisible()
