@@ -1909,6 +1909,27 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+def _bug_report_list_queryset(qs):
+    """Load the list payload while keeping optional source relations nullable."""
+    from django.db.models import Count
+
+    return (
+        qs.select_related('reported_by', 'project', 'source_requirement__phase__business_proposal')
+        .only(
+            'id', 'project_id', 'reported_by_id', 'source_requirement_id', 'phase_id',
+            'title', 'description', 'severity', 'status', 'environment', 'device_browser',
+            'is_recurring', 'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
+            'admin_response', 'linked_bug_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'reported_by__id', 'reported_by__first_name', 'reported_by__last_name',
+            'reported_by__email', 'project__id', 'project__name',
+            *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        )
+        .annotate(_comments_count=Count('comments'))
+        .order_by('-created_at')
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def bug_report_all_view(request):
@@ -1920,12 +1941,11 @@ def bug_report_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = BugReport.objects.select_related('reported_by', 'project').all()
+        qs = BugReport.objects.all()
     else:
-        qs = BugReport.objects.select_related('reported_by', 'project').filter(
-            project__client=request.user,
-        )
+        qs = BugReport.objects.filter(project__client=request.user)
 
+    qs = _bug_report_list_queryset(qs)
     qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
 
     status_filter = request.query_params.get('status')
@@ -1960,7 +1980,7 @@ def bug_report_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = BugReport.objects.filter(project=proj).select_related('reported_by')
+        qs = _bug_report_list_queryset(BugReport.objects.filter(project=proj))
         qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:

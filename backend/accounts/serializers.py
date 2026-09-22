@@ -878,7 +878,9 @@ class BugReportListSerializer(serializers.ModelSerializer):
         return f'{u.first_name} {u.last_name}'.strip() or u.email
 
     def get_comments_count(self, obj):
-        return getattr(obj, '_comments_count', obj.comments.count())
+        if hasattr(obj, '_comments_count'):
+            return obj._comments_count
+        return obj.comments.count()
 
     def get_screenshot_url(self, obj):
         if not obj.screenshot:
