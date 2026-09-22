@@ -1061,7 +1061,9 @@ class DeliverableListSerializer(serializers.ModelSerializer):
         return url
 
     def get_versions_count(self, obj):
-        return getattr(obj, '_versions_count', obj.versions.count())
+        if hasattr(obj, '_versions_count'):
+            return obj._versions_count
+        return obj.versions.count()
 
 
 class DeliverableFileSerializer(serializers.ModelSerializer):

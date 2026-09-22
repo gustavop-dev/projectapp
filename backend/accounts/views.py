@@ -2243,6 +2243,8 @@ def deliverable_all_view(request):
     GET — All deliverables across all projects the user has access to.
     Admin sees all; client sees only their projects.
     """
+    from django.db.models import Count
+
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
@@ -2254,6 +2256,7 @@ def deliverable_all_view(request):
         )
 
     qs = filter_deliverables_for_list(qs, request, is_admin=is_admin)
+    qs = qs.annotate(_versions_count=Count('versions')).order_by('category', '-updated_at')
 
     category_filter = request.query_params.get('category')
     if category_filter:
@@ -2276,6 +2279,8 @@ def deliverable_list_view(request, project_id):
     GET  — All deliverables for a project (both roles, filtered by category optionally).
     POST — Admin uploads a new deliverable.
     """
+    from django.db.models import Count
+
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
@@ -2284,7 +2289,12 @@ def deliverable_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Deliverable.objects.filter(project=proj).select_related('uploaded_by')
+        qs = (
+            Deliverable.objects.filter(project=proj)
+            .select_related('uploaded_by')
+            .annotate(_versions_count=Count('versions'))
+            .order_by('category', '-updated_at')
+        )
         qs = filter_deliverables_for_list(qs, request, is_admin=is_admin)
         category_filter = request.query_params.get('category')
         if category_filter:
