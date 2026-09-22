@@ -1,10 +1,10 @@
 <template>
-  <div class="lt-card" data-testid="linktree-card">
+  <div class="lt-card" :style="linktreeTheme(tree)" data-testid="linktree-card">
     <!-- Header: wordmark (personal) + event badge -->
     <div class="lt-header">
       <div v-if="tree.kind === 'personal' && tree.show_brand_header" class="lt-wordmark">
-        <span>Project</span>
-        <span>App.</span>
+        <img v-if="tree.logo" :src="tree.logo" :alt="`Logo de ${tree.display_name || tree.name || tree.handle}`" class="lt-logo" data-testid="linktree-brand-logo" />
+        <template v-else><span>Project</span><span>App.</span></template>
       </div>
       <span v-if="tree.badge_text" class="lt-badge" data-testid="linktree-badge">{{ tree.badge_text }}</span>
     </div>
@@ -24,8 +24,8 @@
 
     <div v-else class="lt-identity lt-identity--company">
       <div v-if="tree.show_brand_header" class="lt-wordmark lt-wordmark--big">
-        <span>Project</span>
-        <span>App.</span>
+        <img v-if="tree.logo" :src="tree.logo" :alt="`Logo de ${tree.display_name || tree.name || tree.handle}`" class="lt-logo" data-testid="linktree-brand-logo" />
+        <template v-else><span>Project</span><span>App.</span></template>
       </div>
       <div v-if="tree.claim_line_1 || tree.claim_line_2" class="lt-claim">
         <span>{{ tree.claim_line_1 }}</span>
@@ -75,6 +75,8 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useHead } from '#imports';
+import { googleFontUrl, linktreeTheme } from '~/utils/linktreeTheme';
 import LinktreeButtonPill from './LinktreeButtonPill.vue';
 import LinktreePwaBlock from './LinktreePwaBlock.vue';
 
@@ -82,6 +84,8 @@ const props = defineProps({
   tree: { type: Object, required: true },
 });
 defineEmits(['action', 'install']);
+
+useHead(() => ({ link: [{ key: 'linktree-font', rel: 'stylesheet', href: googleFontUrl(props.tree.font_family) }] }));
 
 // Fallback for the avatar circle when there is no photo: initials of the
 // first two words of the display name ("Gustavo Pérez" → "GP").
@@ -110,18 +114,18 @@ const buttonGroups = computed(() => {
 </script>
 
 <style scoped>
-/* Fixed brand palette by design (Linktree.dc.html) — not theme tokens. */
+/* Card branding is isolated from the panel theme. */
 .lt-card {
   width: 100%;
   max-width: 390px;
-  background: #001713;
+  background: var(--lt-background, #001713);
   display: flex;
   flex-direction: column;
   /* Extra bottom padding so the footer tagline doesn't sit flush with the edge */
   padding: 32px 28px 44px;
   box-sizing: border-box;
   gap: 24px;
-  font-family: 'Ubuntu', system-ui, sans-serif;
+  font-family: var(--lt-font);
 }
 
 .lt-header {
@@ -135,9 +139,11 @@ const buttonGroups = computed(() => {
   font-size: 15px;
   line-height: 1.14;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--lt-text, #ffffff);
   letter-spacing: -0.01em;
 }
+.lt-logo { max-width: 160px; height: 48px; object-fit: contain; object-position: left; }
+.lt-wordmark--big .lt-logo { max-width: 100%; height: 84px; }
 .lt-wordmark--big {
   font-size: 38px;
   line-height: 1.08;
@@ -147,13 +153,13 @@ const buttonGroups = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
-  border: 1px solid #f0ff3d;
+  border: 1px solid var(--lt-accent, #f0ff3d);
   border-radius: 999px;
-  background: rgba(240, 255, 61, 0.12);
+  background: var(--lt-accent-soft, rgba(240, 255, 61, 0.12));
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 1.4px;
-  color: #f0ff3d;
+  color: var(--lt-accent, #f0ff3d);
   margin-left: auto;
 }
 
@@ -163,8 +169,8 @@ const buttonGroups = computed(() => {
   width: 84px;
   height: 84px;
   border-radius: 999px;
-  border: 1px solid #f0ff3d;
-  background: rgba(240, 255, 61, 0.12);
+  border: 1px solid var(--lt-accent, #f0ff3d);
+  background: var(--lt-accent-soft, rgba(240, 255, 61, 0.12));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,7 +179,7 @@ const buttonGroups = computed(() => {
 .lt-avatar span {
   font-size: 30px;
   font-weight: 700;
-  color: #f0ff3d;
+  color: var(--lt-accent, #f0ff3d);
   letter-spacing: -0.02em;
 }
 .lt-avatar__photo {
@@ -182,23 +188,23 @@ const buttonGroups = computed(() => {
   object-fit: cover;
 }
 .lt-identity__names { display: flex; flex-direction: column; gap: 4px; }
-.lt-name { margin: 0; font-size: 27px; line-height: 1.15; font-weight: 500; color: #ffffff; }
-.lt-role { font-size: 14px; font-weight: 400; color: #f0ff3d; }
+.lt-name { margin: 0; font-size: 27px; line-height: 1.15; font-weight: 500; color: var(--lt-text, #ffffff); }
+.lt-role { font-size: 14px; font-weight: 400; color: var(--lt-accent, #f0ff3d); }
 .lt-claim {
   display: flex;
   flex-direction: column;
   font-size: 19px;
   line-height: 1.28;
   font-weight: 300;
-  color: #ffffff;
+  color: var(--lt-text, #ffffff);
 }
-.lt-claim__accent { font-weight: 700; color: #f0ff3d; }
+.lt-claim__accent { font-weight: 700; color: var(--lt-accent, #f0ff3d); }
 .lt-bio {
   margin: 0;
   font-size: 14px;
   line-height: 21px;
   font-weight: 300;
-  color: #e6efef;
+  color: var(--lt-text, #e6efef);
   max-width: 30ch;
   text-wrap: pretty;
 }
@@ -209,13 +215,13 @@ const buttonGroups = computed(() => {
 
 .lt-footer { display: flex; flex-direction: column; gap: 10px; }
 .lt-footer__divider { display: flex; align-items: center; gap: 14px; }
-.lt-footer__line { flex: 1; height: 1px; background: rgba(128, 148, 144, 0.2); }
-.lt-footer__dot { width: 6px; height: 6px; border-radius: 999px; background: #f0ff3d; }
+.lt-footer__line { flex: 1; height: 1px; background: var(--lt-muted-line, rgba(128, 148, 144, 0.2)); }
+.lt-footer__dot { width: 6px; height: 6px; border-radius: 999px; background: var(--lt-accent, #f0ff3d); }
 .lt-footer__tagline {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 1.6px;
-  color: #809490;
+  color: var(--lt-muted, #809490);
   text-align: center;
 }
 

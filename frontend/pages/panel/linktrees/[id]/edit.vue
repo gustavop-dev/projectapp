@@ -27,6 +27,8 @@
           size="sm"
           :loading="store.isUpdating"
           data-testid="linktree-save"
+          :disabled="!loaded"
+          disabled-reason="Espera a que cargue el linktree"
           @click="onSave"
         >
           Guardar cambios
@@ -34,11 +36,11 @@
       </div>
     </div>
 
-    <div v-if="store.isLoading && !loaded" class="text-center py-16 text-text-subtle text-sm">
-      Cargando linktree...
+    <div v-if="!loaded" class="text-center py-16 text-text-subtle text-sm">
+      {{ loadError || 'Cargando linktree...' }}
     </div>
 
-    <div v-else class="lg:flex lg:items-start lg:gap-6">
+    <div v-else class="panel-landscape:flex panel-landscape:items-start panel-landscape:gap-6">
       <div class="flex-1 min-w-0 space-y-6">
       <!-- "error" no es una variante de BaseAlert: caía en `info` sin avisar y
            pintaba de azul un error de los botones. -->
@@ -173,12 +175,15 @@
               <BaseInput id="lt-tagline" v-model="form.footer_tagline" />
             </BaseFormField>
 
-            <BaseFormField label="Mostrar marca ProjectApp" for="lt-brand">
+            <BaseFormField label="Mostrar logo o marca" for="lt-brand">
               <BaseToggle id="lt-brand" v-model="form.show_brand_header" aria-label="Mostrar marca" />
             </BaseFormField>
           </BaseFormRow>
         </div>
       </section>
+
+      <LinktreeAppearance :form="form" :logo="logoUrl" :errors="fieldErrors" :busy="store.isUpdating"
+        @upload-logo="onLogoSelected" @remove-logo="onRemoveLogo" @update-field="(key, value) => form[key] = value" />
 
       <!-- Buttons -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
@@ -327,8 +332,8 @@
       </section>
       </div>
 
-      <!-- Live preview (desktop only) -->
-      <aside class="sticky top-6 hidden w-[440px] shrink-0 panel-landscape:block" data-testid="linktree-preview">
+      <!-- Live preview available on every viewport -->
+      <aside class="mt-6 w-full shrink-0 panel-landscape:sticky panel-landscape:top-6 panel-landscape:mt-0 panel-landscape:w-96" data-testid="linktree-preview">
         <div class="bg-surface border border-border-default rounded-xl shadow-card p-4">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-semibold text-text-default">Vista previa</h2>
@@ -362,6 +367,8 @@
 </template>
 
 <script setup>
+import { LINKTREE_DEFAULTS } from '~/utils/linktreeTheme';
+import LinktreeAppearance from '~/components/panel/linktrees/LinktreeAppearance.vue';
 import { computed, onMounted, reactive, ref } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
@@ -383,17 +390,6 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 // Ubuntu is the linktree brand font — loaded here so the live preview
 // matches the public page exactly.
-useHead({
-  link: [
-    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' },
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap',
-    },
-  ],
-});
-
 // Mirror of the backend LINKTREE_ACTIONS catalog (icon + behavior kind)
 // so the preview derives the same render hints the public API returns.
 const ACTION_META = {
@@ -426,6 +422,7 @@ const ACTION_OPTIONS = [
 ];
 
 const FORM_FIELDS = [
+  ...Object.keys(LINKTREE_DEFAULTS),
   'handle', 'name', 'kind', 'display_name', 'role', 'bio',
   'claim_line_1', 'claim_line_2', 'badge_text', 'footer_tagline',
   'show_brand_header', 'pwa_enabled', 'pwa_title', 'pwa_description',
@@ -439,11 +436,14 @@ const notify = usePanelNotify();
 const localePath = useLocalePath();
 
 const loaded = ref(false);
+const loadError = ref('');
 const buttonsError = ref('');
 const fieldErrors = reactive({});
 const avatarInput = ref(null);
 const avatarUrl = ref('');
+const logoUrl = ref('');
 const form = reactive({
+  ...LINKTREE_DEFAULTS,
   handle: '', name: '', kind: 'personal',
   display_name: '', role: '', bio: '',
   claim_line_1: '', claim_line_2: '', badge_text: '',
@@ -471,6 +471,9 @@ const {
 } = useUnsavedGuard({
   snapshot: () => ({ ...form }),
   labels: {
+    background_color: 'color de fondo', accent_color: 'color de acento',
+    text_color: 'color de texto', muted_color: 'texto secundario',
+    button_text_color: 'texto del botón principal', font_family: 'tipografía',
     handle: 'handle',
     name: 'nombre interno',
     kind: 'tipo',
@@ -529,6 +532,7 @@ async function onAvatarSelected(event) {
 const previewTree = computed(() => ({
   ...form,
   avatar: avatarUrl.value || null,
+  logo: logoUrl.value || null,
   buttons: form.buttons
     .filter((button) => button.is_active)
     .map((button, index) => {
@@ -542,6 +546,28 @@ const previewTree = computed(() => ({
       };
     }),
 }));
+
+async function onLogoSelected(file) {
+  fieldErrors.logo = '';
+  const result = await store.uploadLogo(route.params.id, file);
+  if (!result.success) {
+    fieldErrors.logo = result.errors?.logo || 'No se pudo subir el logo.';
+    return;
+  }
+  logoUrl.value = result.data.logo || '';
+  notify.success({ title: 'Logo actualizado' });
+}
+
+async function onRemoveLogo() {
+  fieldErrors.logo = '';
+  const result = await store.removeLogo(route.params.id);
+  if (!result.success) {
+    fieldErrors.logo = 'No se pudo quitar el logo.';
+    return;
+  }
+  logoUrl.value = '';
+  notify.success({ title: 'Logo eliminado' });
+}
 
 async function onRemoveAvatar() {
   const result = await store.removeAvatar(route.params.id);
@@ -574,10 +600,12 @@ function moveButton(index, delta) {
 onMounted(async () => {
   const result = await store.fetchLinktree(route.params.id);
   if (!result.success) {
+    loadError.value = 'No se pudo cargar el linktree. Recarga la página para intentarlo de nuevo.';
     notify.error({ title: 'No se pudo cargar el linktree' });
     return;
   }
-  for (const field of FORM_FIELDS) form[field] = result.data[field];
+  for (const field of FORM_FIELDS) form[field] = result.data[field] ?? form[field];
+  logoUrl.value = result.data.logo || '';
   avatarUrl.value = result.data.avatar || '';
   form.buttons = result.data.buttons.map((button) => ({
     tier: button.tier,
@@ -620,7 +648,7 @@ async function onSave() {
 
 <style scoped>
 /* Phone-like dark frame around the live preview — the card inside uses the
-   fixed brand palette, same as the public page. */
+   custom palette, same as the public page. */
 .lt-preview-frame {
   background: #121212;
   border-radius: 12px;

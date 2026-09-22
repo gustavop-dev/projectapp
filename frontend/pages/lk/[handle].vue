@@ -37,14 +37,6 @@ useHead(() => ({
   title: tree.value?.display_name
     ? `${tree.value.display_name} · ProjectApp.`
     : 'ProjectApp.',
-  link: [
-    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' },
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap',
-    },
-  ],
   meta: [{ name: 'robots', content: 'noindex' }],
 }));
 

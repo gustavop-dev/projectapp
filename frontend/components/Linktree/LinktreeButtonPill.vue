@@ -49,8 +49,7 @@ const onClick = (event) => {
 </script>
 
 <style scoped>
-/* Fixed brand palette by design (Linktree.dc.html): esmerald #001713,
-   lemon #F0FF3D, muted #809490 — deliberately NOT theme tokens. */
+/* Inherits the card’s custom palette. */
 .lt-btn {
   min-width: 0;
   display: flex;
@@ -71,49 +70,49 @@ const onClick = (event) => {
 
 .lt-btn--primary {
   padding: 17px 24px;
-  background: #f0ff3d;
+  background: var(--lt-accent, #f0ff3d);
   border: none;
-  color: #001713;
+  color: var(--lt-button-text, #001713);
   font-size: 15px;
   font-weight: 700;
 }
-.lt-btn--primary:hover { background: #ffffff; }
+.lt-btn--primary:hover { background: var(--lt-text, #ffffff); }
 .lt-btn--primary:active { transform: scale(0.97); }
 
 .lt-btn--featured {
   padding: 16px 22px;
-  border: 1px solid #f0ff3d;
-  color: #f0ff3d;
+  border: 1px solid var(--lt-accent, #f0ff3d);
+  color: var(--lt-accent, #f0ff3d);
   font-size: 15px;
 }
-.lt-btn--featured:hover { background: rgba(240, 255, 61, 0.12); }
+.lt-btn--featured:hover { background: var(--lt-accent-soft, rgba(240, 255, 61, 0.12)); }
 
 .lt-btn--pair {
   flex: 1;
   padding: 16px 12px;
   gap: 8px;
-  border: 1px solid #f0ff3d;
-  color: #f0ff3d;
+  border: 1px solid var(--lt-accent, #f0ff3d);
+  color: var(--lt-accent, #f0ff3d);
 }
-.lt-btn--pair:hover { background: rgba(240, 255, 61, 0.12); }
+.lt-btn--pair:hover { background: var(--lt-accent-soft, rgba(240, 255, 61, 0.12)); }
 
 .lt-btn--row {
   justify-content: flex-start;
   gap: 12px;
   padding: 15px 22px;
-  border: 1px solid rgba(128, 148, 144, 0.34);
-  color: #ffffff;
+  border: 1px solid var(--lt-muted-border, rgba(128, 148, 144, 0.34));
+  color: var(--lt-text, #ffffff);
 }
-.lt-btn--row:hover { border-color: #f0ff3d; color: #f0ff3d; }
+.lt-btn--row:hover { border-color: var(--lt-accent, #f0ff3d); color: var(--lt-accent, #f0ff3d); }
 .lt-btn--row .lt-btn__label { flex: 1; text-align: left; }
-.lt-btn__arrow { color: #809490; flex: 0 0 auto; }
+.lt-btn__arrow { color: var(--lt-muted, #809490); flex: 0 0 auto; }
 
 /* Unresolved destination: dashed gray, never lemon (design rule). */
 .lt-btn--pending,
 .lt-btn--pending:hover {
   background: transparent;
-  border: 1px dashed rgba(128, 148, 144, 0.6);
-  color: #809490;
+  border: 1px dashed var(--lt-muted-pending, rgba(128, 148, 144, 0.6));
+  color: var(--lt-muted, #809490);
   cursor: default;
   transform: none;
 }
@@ -121,6 +120,6 @@ const onClick = (event) => {
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 1.4px;
-  color: #809490;
+  color: var(--lt-muted, #809490);
 }
 </style>

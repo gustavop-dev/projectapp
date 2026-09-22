@@ -135,3 +135,5 @@ from .financing_agreement import (
 from .proposal_formalization import ProposalFormalization, ProposalFormalizationFile
 
 from .entity_history import EntityHistory, EntityRevision
+
+from .project_brand_asset import ProjectBrandAsset

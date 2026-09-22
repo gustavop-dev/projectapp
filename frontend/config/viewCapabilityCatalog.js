@@ -124,7 +124,7 @@ const panelCapabilities = [
         ['/panel/portfolio', '/panel/portfolio/create', '/panel/portfolio/:id/edit'],
         { icon: 'portfolio', stage: 'Prueba social' }),
       feature('panel-shareable-resources', 'Crear recursos compartibles',
-        'Configura tarjetas QR y Linktrees para conectar puntos físicos y digitales.',
+        'Configura tarjetas QR y Linktrees con colores, logo y tipografías de Google Fonts para conectar puntos físicos y digitales.',
         'Facilita distribuir accesos y campañas con destinos administrables.',
         ['/panel/qr-cards', '/panel/linktrees', '/panel/linktrees/:id/edit'],
         { icon: 'qrcode', stage: 'Distribución' }),
@@ -160,7 +160,7 @@ const panelCapabilities = [
     'Convierte una venta cerrada en una iniciativa gobernada y visible.',
     [
       feature('panel-project-portfolio', 'Administrar proyectos',
-        'Relaciona cada proyecto con su cliente, contexto y accesos operativos. Incluye historial por registro con fecha, autor y consulta de versiones.',
+        'Relaciona cada proyecto con su cliente, accesos y Linktrees; organiza documentos y assets privados de branding y diseño. Incluye historial por registro con fecha, autor y consulta de versiones.',
         'Crea una referencia común entre el panel y la plataforma del cliente.', ['/panel/projects'],
         { icon: 'folder', stage: 'Ejecución' }),
       feature('panel-project-lifecycle', 'Gobernar el ciclo del proyecto',

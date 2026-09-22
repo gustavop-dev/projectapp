@@ -3,6 +3,10 @@ import uuid
 from django.core.validators import RegexValidator
 from django.db import models
 
+COLOR_VALIDATOR = RegexValidator(
+    r'^#[0-9a-fA-F]{6}$', 'Usa un color hexadecimal de 6 dígitos.',
+)
+
 HANDLE_VALIDATOR = RegexValidator(
     regex=r'^[a-z0-9][a-z0-9_.-]{2,29}$',
     message=(
@@ -44,6 +48,11 @@ class Linktree(models.Model):
         PERSONAL = 'personal', 'Personal'
         COMPANY = 'company', 'Empresa'
 
+    project = models.ForeignKey(
+        'accounts.Project', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='linktrees',
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     handle = models.CharField(
         max_length=30, unique=True, validators=[HANDLE_VALIDATOR],
@@ -66,6 +75,30 @@ class Linktree(models.Model):
         max_length=80, blank=True, default='DISEÑO · CÓDIGO · RESULTADOS'
     )
     show_brand_header = models.BooleanField(default=True)
+
+    # Per-card branding; defaults preserve existing published cards.
+    logo = models.ImageField(upload_to='linktrees/logos/', null=True, blank=True)
+    background_color = models.CharField(
+        max_length=7, default='#001713', validators=[COLOR_VALIDATOR],
+    )
+    accent_color = models.CharField(
+        max_length=7, default='#f0ff3d', validators=[COLOR_VALIDATOR],
+    )
+    text_color = models.CharField(
+        max_length=7, default='#ffffff', validators=[COLOR_VALIDATOR],
+    )
+    muted_color = models.CharField(
+        max_length=7, default='#809490', validators=[COLOR_VALIDATOR],
+    )
+    button_text_color = models.CharField(
+        max_length=7, default='#001713', validators=[COLOR_VALIDATOR],
+    )
+    font_family = models.CharField(
+        max_length=100, default='Ubuntu', validators=[RegexValidator(
+            r'^[A-Za-z][A-Za-z0-9 -]{0,99}$',
+            'Usa el nombre de una familia de Google Fonts.',
+        )],
+    )
 
     # "Save the card on your phone" block
     pwa_enabled = models.BooleanField(default=True)

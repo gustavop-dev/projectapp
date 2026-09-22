@@ -252,9 +252,11 @@ CONTENT_PARITY_TOOLS = [
     _op('delete_qr_card', 'Elimina una tarjeta QR.', 'delete-qr-card', 'DELETE', ('card_id',), 'sensitive', True),
     _op('list_linktrees', 'Lista Linktrees administrables.', 'list-admin-linktrees'),
     _op('get_linktree', 'Abre un Linktree completo.', 'retrieve-admin-linktree', path=('linktree_id',)),
-    _op('create_linktree', 'Crea un Linktree y sus botones.', 'create-linktree', 'POST', risk='write'),
-    _op('update_linktree', 'Actualiza un Linktree y sus botones.', 'update-linktree', 'PATCH', ('linktree_id',), 'write'),
+    _op('create_linktree', 'Crea un Linktree y sus botones; project permite asociarlo a un proyecto.', 'create-linktree', 'POST', risk='write'),
+    _op('update_linktree', 'Actualiza un Linktree y sus botones; project asigna un proyecto y null lo desvincula.', 'update-linktree', 'PATCH', ('linktree_id',), 'write'),
     _op('delete_linktree', 'Elimina un Linktree.', 'delete-linktree', 'DELETE', ('linktree_id',), 'sensitive', True),
+    _op('upload_linktree_logo', 'Asigna un logo JPG, PNG o WebP (máximo 5 MB) al Linktree.', 'upload-linktree-logo', 'POST', ('linktree_id',), 'write', assets={'asset_id': {'field': 'logo'}}),
+    _op('remove_linktree_logo', 'Elimina el logo personalizado del Linktree.', 'upload-linktree-logo', 'DELETE', ('linktree_id',), 'write'),
     _op('upload_linktree_avatar', 'Asigna un asset de avatar al Linktree.', 'upload-linktree-avatar', 'POST', ('linktree_id',), 'write', assets={
         'asset_id': {'field': 'avatar'},
     }),
