@@ -1586,8 +1586,7 @@ class _NestedProposalSerializer(serializers.Serializer):
         return getattr(obj, 'total_investment', None) or 0
 
     def get_deliverable_id(self, obj):
-        d = getattr(obj, 'deliverable', None)
-        return d.id if d else None
+        return obj.deliverable_id
 
 
 class ProjectPhaseSerializer(serializers.Serializer):
