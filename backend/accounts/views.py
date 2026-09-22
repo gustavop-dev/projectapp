@@ -2590,10 +2590,17 @@ def deliverable_detail_view(request, project_id, deliverable_id):
     if err:
         return err
 
-    try:
-        deliverable = Deliverable.objects.select_related('business_proposal').get(
-            id=deliverable_id, project=proj,
+    queryset = Deliverable.objects.select_related('business_proposal')
+    if request.method == 'GET':
+        queryset = queryset.select_related('uploaded_by').only(
+            'id', 'project_id', 'category', 'title', 'description',
+            'source_epic_key', 'source_epic_title', 'file', 'current_version',
+            'uploaded_by_id', 'is_archived', 'archived_at', 'created_at', 'updated_at',
+            'uploaded_by__id', 'uploaded_by__first_name', 'uploaded_by__last_name',
+            'uploaded_by__email', 'business_proposal__id', 'business_proposal__title',
         )
+    try:
+        deliverable = queryset.get(id=deliverable_id, project=proj)
     except Deliverable.DoesNotExist:
         return Response(
             {'detail': 'Entregable no encontrado.'},
@@ -2606,6 +2613,9 @@ def deliverable_detail_view(request, project_id, deliverable_id):
                 {'detail': 'Entregable no encontrado.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        deliverable._detail_versions = list(
+            deliverable.versions.select_related('uploaded_by').all(),
+        )
         return Response(
             DeliverableDetailSerializer(deliverable, context={'request': request}).data,
         )

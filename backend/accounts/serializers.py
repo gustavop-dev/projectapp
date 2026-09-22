@@ -1316,9 +1316,17 @@ class DeliverableDetailSerializer(DeliverableListSerializer):
             'data_model_entities',
         ]
 
+    def get_versions_count(self, obj):
+        if hasattr(obj, '_detail_versions'):
+            return len(obj._detail_versions)
+        return super().get_versions_count(obj)
+
     def get_versions(self, obj):
-        qs = obj.versions.select_related('uploaded_by').all()
-        return DeliverableVersionSerializer(qs, many=True, context=self.context).data
+        versions = (
+            obj._detail_versions if hasattr(obj, '_detail_versions')
+            else obj.versions.select_related('uploaded_by').all()
+        )
+        return DeliverableVersionSerializer(versions, many=True, context=self.context).data
 
     def get_has_business_proposal(self, obj):
         bp = getattr(obj, 'business_proposal', None)
@@ -1363,7 +1371,7 @@ class DeliverableDetailSerializer(DeliverableListSerializer):
             project_id=obj.project_id,
             document_type__code=COLLECTION_ACCOUNT,
             deliverable_id=obj.id,
-        ).select_related('document_type').order_by('-created_at')[:50]
+        ).only('id', 'uuid', 'title', 'public_number', 'commercial_status').order_by('-created_at')[:50]
         return [
             {
                 'id': d.id,
