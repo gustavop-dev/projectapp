@@ -189,7 +189,7 @@ onBeforeUnmount(() => { listGeneration++; detailGeneration++; revealed.value = {
       <div v-if="detail?.protected_fields?.length && !comparison" class="space-y-3">
         <p class="text-sm text-text-muted">Valores protegidos de esta versión. Se ocultan al cerrar la consulta.</p>
         <div v-for="field in detail.protected_fields" :key="field" class="space-y-2">
-          <BaseButton size="sm" variant="secondary" text-policy="wrap" @click="reveal(field)">{{ field in revealed ? 'Ocultar' : 'Revelar' }} {{ protectedLabel(field) }}</BaseButton>
+          <BaseButton size="sm" variant="secondary" textPolicy="wrap" @click="reveal(field)">{{ field in revealed ? 'Ocultar' : 'Revelar' }} {{ protectedLabel(field) }}</BaseButton>
           <p v-if="field in revealed" class="whitespace-pre-wrap break-words text-sm" data-testid="history-revealed">{{ revealed[field] || 'Sin valor' }}</p>
         </div>
       </div>
