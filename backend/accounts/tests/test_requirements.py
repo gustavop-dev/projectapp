@@ -1,10 +1,13 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from accounts.models import (
     Project,
     ProjectPhase,
+    ProjectScopeItem,
     Requirement,
     RequirementComment,
     RequirementHistory,
@@ -13,6 +16,14 @@ from accounts.models import (
 from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
+MAX_REQUIREMENT_LIST_QUERIES = 6
+REQUIREMENT_LIST_FIELDS = {
+    'id', 'phase_id', 'phase_title', 'title', 'description', 'configuration', 'flow',
+    'status', 'priority', 'order', 'source_epic_key', 'source_epic_title',
+    'source_flow_key', 'synced_from_proposal', 'scope_item_id', 'scope_item_name',
+    'scope_item_group_id', 'is_archived', 'archived_at', 'comments_count', 'created_at',
+    'updated_at',
+}
 
 
 @pytest.fixture
@@ -101,6 +112,89 @@ def _detail_url(project_id, req_id, suffix=''):
     return f'/api/accounts/projects/{project_id}/requirements/{req_id}/{suffix}'
 
 
+def _create_requirement_list_rows(project, count, *, comment_user=None):
+    start = BusinessProposal.objects.filter(title__startswith='Budget proposal ').count()
+    proposals = [
+        BusinessProposal(
+            title=f'Budget proposal {index}',
+            client_name='Carlos',
+            slug=f'budget-proposal-{index}',
+        )
+        for index in range(start, start + count)
+    ]
+    persisted_proposals = BusinessProposal.objects.bulk_create(proposals)
+    phases = [
+        ProjectPhase(project=project, business_proposal=proposal, order=index + 10)
+        for index, proposal in enumerate(persisted_proposals)
+    ]
+    persisted_phases = ProjectPhase.objects.bulk_create(phases)
+    scope_items = [
+        ProjectScopeItem(
+            phase=phase,
+            source_item_id=f'budget-scope-{phase.id}',
+            name=f'Budget scope {phase.id}',
+            group_id='budget',
+            group_title='Budget',
+        )
+        for phase in persisted_phases
+    ]
+    persisted_scope_items = ProjectScopeItem.objects.bulk_create(scope_items)
+    requirements = Requirement.objects.bulk_create([
+        Requirement(
+            phase=phase,
+            scope_item=scope_item,
+            title=f'Budget requirement {phase.id}',
+            source_flow_key=f'budget-requirement-{phase.id}',
+        )
+        for phase, scope_item in zip(persisted_phases, persisted_scope_items)
+    ])
+    if comment_user:
+        RequirementComment.objects.bulk_create([
+            RequirementComment(
+                requirement=requirement,
+                user=comment_user,
+                content=f'Budget comment {requirement.id}',
+            )
+            for requirement in requirements
+        ])
+
+
+def _create_serialized_requirement(project, admin_user):
+    proposal = BusinessProposal.objects.create(title='Discovery proposal', client_name='Carlos')
+    phase = ProjectPhase.objects.create(project=project, business_proposal=proposal, order=2)
+    scope_item = ProjectScopeItem.objects.create(
+        phase=phase,
+        source_item_id='discovery-scope',
+        name='Discovery scope',
+        group_id='discovery',
+        group_title='Discovery',
+    )
+    requirement = Requirement.objects.create(
+        phase=phase,
+        scope_item=scope_item,
+        title='Mapped requirement',
+        description='Description',
+        configuration='Admin only',
+        flow='Open then review',
+        status=Requirement.STATUS_IN_PROGRESS,
+        priority=Requirement.PRIORITY_CRITICAL,
+        order=3,
+        source_epic_key='EPIC-1',
+        source_epic_title='Discovery',
+        source_flow_key='FLOW-1',
+        synced_from_proposal=True,
+    )
+    RequirementComment.objects.bulk_create([
+        RequirementComment(
+            requirement=requirement, user=admin_user, content='Public comment', is_internal=False,
+        ),
+        RequirementComment(
+            requirement=requirement, user=admin_user, content='Internal comment', is_internal=True,
+        ),
+    ])
+    return requirement, phase, scope_item
+
+
 @pytest.mark.django_db
 class TestRequirementList:
     def test_admin_lists_requirements_for_project(
@@ -135,6 +229,64 @@ class TestRequirementList:
 
         assert resp.status_code == 403
 
+    def test_requirement_list_preserves_serialized_fields(
+        self, api_client, admin_headers, admin_user, project,
+    ):
+        """Fails if the optimized list projection omits a requirement serializer field."""
+        requirement, phase, scope_item = _create_serialized_requirement(project, admin_user)
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()[0]
+        assert set(data) == REQUIREMENT_LIST_FIELDS
+        expected = {
+            'id': requirement.id,
+            'phase_id': phase.id,
+            'phase_title': 'Discovery proposal',
+            'title': 'Mapped requirement',
+            'description': 'Description',
+            'configuration': 'Admin only',
+            'flow': 'Open then review',
+            'status': Requirement.STATUS_IN_PROGRESS,
+            'priority': Requirement.PRIORITY_CRITICAL,
+            'order': 3,
+            'source_epic_key': 'EPIC-1',
+            'source_epic_title': 'Discovery',
+            'source_flow_key': 'FLOW-1',
+            'synced_from_proposal': True,
+            'scope_item_id': scope_item.id,
+            'scope_item_name': 'Discovery scope',
+            'scope_item_group_id': 'discovery',
+            'is_archived': False,
+            'archived_at': None,
+            'comments_count': 2,
+        }
+        assert {key: data[key] for key in expected} == expected
+        assert data['created_at'] is not None
+        assert data['updated_at'] is not None
+
+    def test_requirement_list_query_budget_is_constant(
+        self, api_client, admin_headers, admin_user, project,
+    ):
+        """Fails if each listed requirement again loads comments or its proposal."""
+        _create_requirement_list_rows(project, 1)
+
+        with CaptureQueriesContext(connection) as one_requirement_queries:
+            one_requirement_response = api_client.get(_url(project.id), **admin_headers)
+
+        _create_requirement_list_rows(project, 49, comment_user=admin_user)
+
+        with CaptureQueriesContext(connection) as fifty_requirement_queries:
+            fifty_requirement_response = api_client.get(_url(project.id), **admin_headers)
+
+        assert one_requirement_response.status_code == 200
+        assert fifty_requirement_response.status_code == 200
+        assert len(one_requirement_response.json()) == 1
+        assert len(fifty_requirement_response.json()) == 50
+        assert len(one_requirement_queries) == len(fifty_requirement_queries)
+        assert len(fifty_requirement_queries) <= MAX_REQUIREMENT_LIST_QUERIES
+
 
 @pytest.mark.django_db
 class TestRequirementCreate:
@@ -155,6 +307,8 @@ class TestRequirementCreate:
         assert data['priority'] == 'high'
         assert data['configuration'] == 'Solo rol: Admin'
         assert data['flow'] == 'Admin abre panel → crea tarea.'
+        assert data['comments_count'] == 0
+        assert data['phase_title'] == 'Board proposal'
 
     def test_create_requirement_recalculates_project_progress(
         self, api_client, admin_headers, project, default_phase,
@@ -247,6 +401,8 @@ class TestRequirementMove:
 
         assert resp.status_code == 200
         assert resp.json()['status'] == 'in_progress'
+        assert resp.json()['comments_count'] == 0
+        assert resp.json()['phase_title'] == 'Board proposal'
 
     def test_move_creates_history_entry(self, api_client, admin_headers, project, sample_requirements):
         req = sample_requirements[0]
@@ -296,6 +452,26 @@ class TestRequirementMove:
         )
 
         assert RequirementHistory.objects.filter(requirement=req).count() == 0
+
+
+@pytest.mark.django_db
+class TestRequirementBulkUpload:
+    def test_bulk_upload_uses_unannotated_serializer_fallback(
+        self, api_client, admin_headers, project, default_phase,
+    ):
+        """Fails if bulk-created requirements cannot serialize their unannotated relations."""
+        response = api_client.post(
+            f'{_url(project.id, "bulk/")}?phase_id={default_phase.id}',
+            [{'title': 'Bulk requirement'}],
+            format='json',
+            **admin_headers,
+        )
+
+        assert response.status_code == 201
+        data = response.json()['requirements'][0]
+        assert data['title'] == 'Bulk requirement'
+        assert data['comments_count'] == 0
+        assert data['phase_title'] == 'Board proposal'
 
 
 @pytest.mark.django_db

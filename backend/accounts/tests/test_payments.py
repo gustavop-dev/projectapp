@@ -1,8 +1,11 @@
+from datetime import date, datetime, timezone as datetime_timezone
 from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from accounts.models import (
@@ -16,6 +19,62 @@ from accounts.models import (
 from accounts.tests.wompi_event_helpers import signed_transaction_event
 
 User = get_user_model()
+MAX_SUBSCRIPTION_LIST_QUERIES = 6
+
+
+def _create_subscription(project, *, start_date='2026-01-01'):
+    subscription = HostingSubscription(
+        project=project,
+        plan=HostingSubscription.PLAN_QUARTERLY,
+        base_monthly_amount=Decimal('330000'),
+        discount_percent=10,
+        start_date=start_date,
+        next_billing_date='2026-04-01',
+        status=HostingSubscription.STATUS_ACTIVE,
+    )
+    subscription.calculate_amounts()
+    subscription.save()
+    return subscription
+
+
+def _create_subscriptions_for_query_budget(client_user, count, *, add_pending_payments=False):
+    projects = [
+        Project(
+            name=f'Budget subscription project {index}',
+            client=client_user,
+            status=Project.STATUS_ACTIVE,
+            progress=0,
+        )
+        for index in range(count)
+    ]
+    persisted_projects = Project.objects.bulk_create(projects)
+    subscriptions = [
+        HostingSubscription(
+            project=project,
+            plan=HostingSubscription.PLAN_QUARTERLY,
+            base_monthly_amount=Decimal('330000'),
+            discount_percent=10,
+            start_date='2026-01-01',
+            next_billing_date='2026-04-01',
+            status=HostingSubscription.STATUS_ACTIVE,
+            effective_monthly_amount=Decimal('297000'),
+            billing_amount=Decimal('891000'),
+        )
+        for project in persisted_projects
+    ]
+    persisted_subscriptions = HostingSubscription.objects.bulk_create(subscriptions)
+    if add_pending_payments:
+        Payment.objects.bulk_create([
+            Payment(
+                subscription=subscription,
+                amount=subscription.billing_amount,
+                billing_period_start=date(2026, 1, 1),
+                billing_period_end=date(2026, 1, 31),
+                due_date=date(2026, 1, 1),
+                status=Payment.STATUS_PENDING,
+            )
+            for subscription in persisted_subscriptions
+        ])
 
 
 @pytest.fixture
@@ -78,18 +137,7 @@ def project(client_user):
 
 @pytest.fixture
 def subscription(project):
-    sub = HostingSubscription(
-        project=project,
-        plan=HostingSubscription.PLAN_QUARTERLY,
-        base_monthly_amount=Decimal('330000'),
-        discount_percent=10,
-        start_date='2026-01-01',
-        next_billing_date='2026-04-01',
-        status=HostingSubscription.STATUS_ACTIVE,
-    )
-    sub.calculate_amounts()
-    sub.save()
-    return sub
+    return _create_subscription(project)
 
 
 @pytest.fixture
@@ -210,6 +258,84 @@ class TestSubscriptionList:
 
         assert resp.status_code == 401
 
+    def test_pending_payments_uses_inclusive_cutoff(
+        self, api_client, admin_headers, subscription,
+    ):
+        """Fails if the pending payment aggregate excludes the seven-day cutoff date."""
+        fixed_now = datetime(2026, 1, 15, tzinfo=datetime_timezone.utc)
+        Payment.objects.create(
+            subscription=subscription, amount=subscription.billing_amount,
+            billing_period_start=date(2026, 1, 1), billing_period_end=date(2026, 1, 31),
+            due_date=date(2026, 1, 15), status=Payment.STATUS_PENDING,
+        )
+        Payment.objects.create(
+            subscription=subscription, amount=subscription.billing_amount,
+            billing_period_start=date(2026, 2, 1), billing_period_end=date(2026, 2, 28),
+            due_date=date(2026, 1, 22), status=Payment.STATUS_FAILED,
+        )
+        Payment.objects.create(
+            subscription=subscription, amount=subscription.billing_amount,
+            billing_period_start=date(2026, 3, 1), billing_period_end=date(2026, 3, 31),
+            due_date=date(2026, 1, 22), status=Payment.STATUS_PAID,
+        )
+        Payment.objects.create(
+            subscription=subscription, amount=subscription.billing_amount,
+            billing_period_start=date(2026, 4, 1), billing_period_end=date(2026, 4, 30),
+            due_date=date(2026, 1, 22), status=Payment.STATUS_OVERDUE, is_archived=True,
+        )
+        Payment.objects.create(
+            subscription=subscription, amount=subscription.billing_amount,
+            billing_period_start=date(2026, 5, 1), billing_period_end=date(2026, 5, 31),
+            due_date=date(2026, 1, 23), status=Payment.STATUS_OVERDUE,
+        )
+
+        with patch('accounts.views.timezone.now', return_value=fixed_now):
+            response = api_client.get('/api/accounts/subscriptions/', **admin_headers)
+
+        assert response.status_code == 200
+        assert response.json()[0]['pending_payments'] == 2
+
+    def test_subscription_list_query_budget_is_constant(
+        self, api_client, admin_headers, client_user,
+    ):
+        """Fails if serializing each subscription restores a filtered payment COUNT query."""
+        _create_subscriptions_for_query_budget(client_user, 1)
+
+        with CaptureQueriesContext(connection) as one_subscription_queries:
+            one_subscription_response = api_client.get('/api/accounts/subscriptions/', **admin_headers)
+
+        _create_subscriptions_for_query_budget(client_user, 49, add_pending_payments=True)
+
+        with CaptureQueriesContext(connection) as fifty_subscription_queries:
+            fifty_subscription_response = api_client.get('/api/accounts/subscriptions/', **admin_headers)
+
+        assert one_subscription_response.status_code == 200
+        assert fifty_subscription_response.status_code == 200
+        assert len(one_subscription_response.json()) == 1
+        assert len(fifty_subscription_response.json()) == 50
+        assert len(one_subscription_queries) == len(fifty_subscription_queries)
+        assert len(fifty_subscription_queries) <= MAX_SUBSCRIPTION_LIST_QUERIES
+
+    def test_client_does_not_receive_other_clients_subscription(
+        self, api_client, admin_user, client_headers,
+    ):
+        """Fails if the subscription list exposes another client's project."""
+        other_client = User.objects.create_user(
+            username='other-pay@test.com', email='other-pay@test.com', password='pass12345',
+        )
+        UserProfile.objects.create(
+            user=other_client, role=UserProfile.ROLE_CLIENT,
+            is_onboarded=True, profile_completed=True, created_by=admin_user,
+        )
+        foreign_project = Project.objects.create(
+            name='Other client project', client=other_client, status=Project.STATUS_ACTIVE, progress=0,
+        )
+        foreign_subscription = _create_subscription(foreign_project)
+
+        response = api_client.get('/api/accounts/subscriptions/', **client_headers)
+
+        assert response.status_code == 200
+        assert foreign_subscription.id not in [item['id'] for item in response.json()]
 
 @pytest.mark.django_db
 class TestProjectSubscription:

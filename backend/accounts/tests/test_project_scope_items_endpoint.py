@@ -8,6 +8,8 @@ from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from accounts.models import (
@@ -24,6 +26,7 @@ pytestmark = pytest.mark.django_db
 User = get_user_model()
 
 URL = '/api/accounts/projects/{pid}/scope-items/'
+MAX_SCOPE_ITEM_LIST_QUERIES = 6
 
 
 def _make_phase(project, order=1):
@@ -44,6 +47,31 @@ def _make_scope_item(phase, source_id, *, name='Item', archived=False):
         si.archived_at = timezone.now()
         si.save(update_fields=['is_archived', 'archived_at'])
     return si
+
+
+def _create_scope_items_with_requirements(phase, count, *, add_requirements=True):
+    start = ProjectScopeItem.objects.filter(phase=phase, group_id='budget').count()
+    items = [
+        ProjectScopeItem(
+            phase=phase,
+            source_item_id=f'budget-item-{index}',
+            name=f'Budget item {index}',
+            group_id='budget',
+            group_title='Budget',
+        )
+        for index in range(start, start + count)
+    ]
+    persisted_items = ProjectScopeItem.objects.bulk_create(items)
+    if add_requirements:
+        Requirement.objects.bulk_create([
+            Requirement(
+                phase=phase,
+                scope_item=item,
+                title=f'Budget requirement {item.id}',
+                source_flow_key=f'budget-flow-{item.id}',
+            )
+            for item in persisted_items
+        ])
 
 
 @pytest.fixture
@@ -147,14 +175,45 @@ def test_client_cannot_include_archived(api_client, client_headers, project):
 
 
 def test_requirements_count_excludes_archived_requirements(api_client, admin_headers, project):
+    """Fails if archived requirements are included in an item's visible count."""
     phase = _make_phase(project)
     si = _make_scope_item(phase, 'item-a')
+    archived_only = _make_scope_item(phase, 'item-archived-only')
     Requirement.objects.create(phase=phase, scope_item=si, title='Live', source_flow_key='f1')
     Requirement.objects.create(
         phase=phase, scope_item=si, title='Archived', source_flow_key='f2',
         is_archived=True,
     )
+    Requirement.objects.create(
+        phase=phase, scope_item=archived_only, title='Archived only', source_flow_key='f3',
+        is_archived=True,
+    )
 
     resp = api_client.get(URL.format(pid=project.id), **admin_headers)
 
-    assert resp.json()[0]['requirements_count'] == 1
+    counts = {item['source_item_id']: item['requirements_count'] for item in resp.json()}
+    assert counts['item-a'] == 1
+    assert counts['item-archived-only'] == 0
+
+
+def test_scope_items_requirement_count_query_budget_is_constant(
+    api_client, admin_headers, project,
+):
+    """Fails if serializing each scope item restores the requirements COUNT query."""
+    phase = _make_phase(project)
+    _create_scope_items_with_requirements(phase, 1, add_requirements=False)
+
+    with CaptureQueriesContext(connection) as one_item_queries:
+        one_item_response = api_client.get(URL.format(pid=project.id), **admin_headers)
+
+    _create_scope_items_with_requirements(phase, 49)
+
+    with CaptureQueriesContext(connection) as fifty_item_queries:
+        fifty_item_response = api_client.get(URL.format(pid=project.id), **admin_headers)
+
+    assert one_item_response.status_code == 200
+    assert fifty_item_response.status_code == 200
+    assert len(one_item_response.json()) == 1
+    assert len(fifty_item_response.json()) == 50
+    assert len(one_item_queries) == len(fifty_item_queries)
+    assert len(fifty_item_queries) <= MAX_SCOPE_ITEM_LIST_QUERIES

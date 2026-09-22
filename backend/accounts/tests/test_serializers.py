@@ -1,3 +1,5 @@
+from datetime import date, datetime, timezone as datetime_timezone
+from decimal import Decimal
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -12,6 +14,8 @@ from accounts.models import (
     DeliverableClientUpload,
     DeliverableFile,
     DeliverableVersion,
+    HostingSubscription,
+    Payment,
     Project,
     ProjectPhase,
     Requirement,
@@ -43,6 +47,7 @@ from accounts.serializers import (
     DeliverableListSerializer,
     DeliverableVersionSerializer,
     EvaluateBugReportSerializer,
+    HostingSubscriptionListSerializer,
     LoginSerializer,
     MoveRequirementSerializer,
     ProjectListSerializer,
@@ -738,6 +743,50 @@ class TestRequirementListSerializerCommentsCount:
         data = RequirementListSerializer(req).data
 
         assert data['comments_count'] == 0
+
+
+# =========================================================================
+# HostingSubscriptionListSerializer.get_pending_payments
+# =========================================================================
+
+@pytest.mark.django_db
+class TestHostingSubscriptionListSerializerPendingPayments:
+    def test_unannotated_subscription_serializer_uses_fallback(self):
+        """Fails if direct subscription serialization loses the payment count fallback."""
+        client = User.objects.create_user(
+            username='subscription-serializer@test.com',
+            email='subscription-serializer@test.com',
+            password='pass',
+        )
+        UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Subscription serializer project', client=client)
+        subscription = HostingSubscription(
+            project=project,
+            plan=HostingSubscription.PLAN_QUARTERLY,
+            base_monthly_amount=Decimal('100000'),
+            discount_percent=0,
+            start_date=date(2026, 1, 1),
+            next_billing_date=date(2026, 4, 1),
+            status=HostingSubscription.STATUS_ACTIVE,
+        )
+        subscription.calculate_amounts()
+        subscription.save()
+        Payment.objects.create(
+            subscription=subscription,
+            amount=subscription.billing_amount,
+            billing_period_start=date(2026, 1, 1),
+            billing_period_end=date(2026, 1, 31),
+            due_date=date(2026, 1, 22),
+            status=Payment.STATUS_PENDING,
+        )
+
+        with patch(
+            'django.utils.timezone.now',
+            return_value=datetime(2026, 1, 15, tzinfo=datetime_timezone.utc),
+        ):
+            data = HostingSubscriptionListSerializer(subscription).data
+
+        assert data['pending_payments'] == 1
 
 
 # =========================================================================
