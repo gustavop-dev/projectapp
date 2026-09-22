@@ -2,9 +2,10 @@
 
 from datetime import timedelta
 
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 from content.models import (
     AdditionalModule,
@@ -17,6 +18,7 @@ from content.models import (
     LinktreeButton,
     McpConnector,
     McpRequestLog,
+    ProjectBrandAsset,
     QRCard,
     ViewMapSettings,
 )
@@ -38,11 +40,13 @@ class Command(BaseCommand):
         clients = list(UserProfile.objects.clients().order_by('pk'))
 
         linktree_target = max(1, round(count * 0.20))
+        projects = list(Project.objects.order_by('pk')[:linktree_target])
         linktrees = []
         for index in range(linktree_target):
             linktree, _ = Linktree.objects.update_or_create(
                 id=context.uuid(f'linktree-{index}'),
                 defaults={
+                    'project': projects[index % len(projects)] if projects and index % 3 != 0 else None,
                     'handle': f'demo-{index + 1:02d}',
                     'name': f'Linktree demo {index + 1:02d}',
                     'kind': (
@@ -79,6 +83,22 @@ class Command(BaseCommand):
                         'is_active': True,
                     },
                 )
+
+        for project in projects:
+            for category in ('branding', 'manual', 'design_system'):
+                title = f'[Demo] {category} — {project.name}'[:200]
+                asset, _ = ProjectBrandAsset.objects.get_or_create(
+                    project=project, title=title,
+                    defaults={'category': category, 'filename': f'{category}.md', 'size': 0},
+                )
+                if not asset.file:
+                    content = (
+                        f'# {title}\n\nRecurso de demostración para {project.name}.\n'
+                        'Paleta: #001713 y #f0ff3d. Tipografía: Ubuntu.\n'
+                        'Utilizar el logo con margen libre y mantener el contraste.\n'
+                    ).encode('utf-8')
+                    asset.size = len(content)
+                    asset.file.save(asset.filename, ContentFile(content), save=True)
 
         qr_target = max(1, round(count * 0.50))
         for index in range(qr_target):

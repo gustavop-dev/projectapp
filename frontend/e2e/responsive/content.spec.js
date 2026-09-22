@@ -29,7 +29,7 @@ async function setup(page) {
     if (apiPath === 'portfolio/admin/create/' && method === 'POST') return json(work);
     if (apiPath === 'portfolio/admin/1/update/' && method === 'PATCH') return json(work);
     if (apiPath.includes('qr-cards')) return json([card]);
-    if (apiPath.includes('linktrees')) return json(apiPath.split('/').filter(Boolean).length > 3 ? tree : [tree]);
+    if (apiPath.includes('linktrees')) return json(apiPath === 'linktrees/admin/' ? [tree] : tree);
     if (apiPath.includes('linkedin')) return json({ connected: true, posts: [post] });
     if (method === 'PATCH' || method === 'POST') return json({ ...post, ...work });
     return null;

@@ -135,6 +135,7 @@ SEEDED_MODELS = {
     'content.FinancingAgreement',
     'content.HostingRecord', 'content.HourPackage', 'content.IncomeRecord',
     'content.IssuerProfile', 'content.LinkedInPost', 'content.Linktree',
+    'content.ProjectBrandAsset',
     'content.McpConnector', 'content.McpRequestLog', 'content.MerchantAlias',
     'content.NotificationRecipient', 'content.PocketMovement',
     'content.PortfolioWork', 'content.ProposalDefaultConfig', 'content.QRCard',

@@ -21,6 +21,7 @@ from content.models import (
     Linktree,
     McpRequestLog,
     PortfolioWork,
+    ProjectBrandAsset,
     QRCard,
     Task,
     WebAppDiagnostic,
@@ -158,6 +159,7 @@ class Command(BaseCommand):
             (EmailLog, 'email history'),
             (LinkedInPost, 'LinkedIn history'),
             (Linktree, 'linktrees'),
+            (ProjectBrandAsset, 'project brand resources'),
             (QRCard, 'QR cards'),
             (McpRequestLog, 'MCP request history'),
         ):

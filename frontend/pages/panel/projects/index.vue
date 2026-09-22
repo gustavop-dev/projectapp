@@ -322,6 +322,7 @@
           <span v-else class="tabular-nums text-text-muted">{{ row.incomes_count }}</span>
         </template>
         <template #cell-row_actions="{ row }">
+          <BaseActionButton action="folders" variant="ghost" size="sm" :label="$t('projectBrand.title')" :tooltip="$t('projectBrand.title')" :data-testid="`project-brand-${row.id}`" @click.stop="brandProject = row" />
           <BaseActionButton
             action="view"
             variant="ghost"
@@ -508,6 +509,9 @@
       test-id="project-actions-drawer"
     >
       <div v-if="projectActionTarget" class="space-y-2 p-4 panel-portrait:p-6">
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" data-testid="project-actions-brand" @click="brandProject = projectActionTarget; showProjectActions = false">
+          {{ $t('projectBrand.title') }}
+        </BaseButton>
         <BaseButton
           variant="secondary"
           size="md"
@@ -585,6 +589,8 @@
       v-model="stateHistoryOpen"
       :project="historyProject"
     />
+
+    <ProjectBrandModal v-if="brandProject" :key="brandProject.id" :project="brandProject" @close="brandProject = null" />
 
     <ProjectAccessModal
       :open="accessDetailOpen"
@@ -664,6 +670,7 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
+import ProjectBrandModal from '~/components/panel/projects/ProjectBrandModal.vue';
 import ProjectAccessModal from '~/components/panel/projects/ProjectAccessModal.vue';
 import ProjectCard from '~/components/panel/projects/ProjectCard.vue';
 import ProjectChangeClientModal from '~/components/panel/projects/ProjectChangeClientModal.vue';
@@ -975,6 +982,7 @@ function historyProjectFromActions() {
 
 const accessDetailOpen = ref(false);
 const accessProject = ref(null);
+const brandProject = ref(null);
 
 function openAccessDetail(project) {
   accessProject.value = project;

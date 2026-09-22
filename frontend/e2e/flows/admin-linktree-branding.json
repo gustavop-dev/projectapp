@@ -1,0 +1,9 @@
+{
+  "id": "admin-linktree-branding",
+  "name": "Personalizar la marca del Linktree",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Editar colores, cargar o quitar logo y elegir o añadir Google Fonts con vista previa y persistencia.",
+  "outcomes": ["success", "error", "failure", "display"]
+}

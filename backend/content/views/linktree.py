@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -23,7 +24,7 @@ from content.serializers.linktree import (
 @permission_classes([IsAdminUser])
 def list_admin_linktrees(request):
     """List all linktrees for admin management."""
-    qs = Linktree.objects.all()
+    qs = Linktree.objects.prefetch_related('buttons')
     serializer = LinktreeListSerializer(qs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -106,6 +107,36 @@ def upload_linktree_avatar(request, linktree_id):
     linktree.save(update_fields=['avatar', 'updated_at'])
     detail = LinktreeDetailSerializer(linktree)
     return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAdminUser])
+def upload_linktree_logo(request, linktree_id):
+    """Manage a separate brand logo, validating the actual image contents."""
+    from pathlib import Path
+    from rest_framework import serializers
+
+    linktree = get_object_or_404(Linktree, pk=linktree_id)
+    if request.method == 'DELETE':
+        linktree.logo.delete(save=False)
+        linktree.logo = None
+    else:
+        logo = request.FILES.get('logo')
+        if not logo:
+            return Response({'logo': 'No se adjuntó ninguna imagen.'}, status=400)
+        if Path(logo.name).suffix.lower() not in AVATAR_ALLOWED_EXTENSIONS:
+            return Response({'logo': 'Usa JPG, PNG o WebP.'}, status=400)
+        if logo.size > AVATAR_MAX_SIZE:
+            return Response({'logo': 'La imagen supera el máximo de 5MB.'}, status=400)
+        try:
+            logo = serializers.ImageField().run_validation(logo)
+        except (serializers.ValidationError, DjangoValidationError):
+            return Response({'logo': 'El archivo no es una imagen válida.'}, status=400)
+        if logo.image.format not in {'JPEG', 'PNG', 'WEBP'}:
+            return Response({'logo': 'Usa JPG, PNG o WebP.'}, status=400)
+        linktree.logo = logo
+    linktree.save(update_fields=['logo', 'updated_at'])
+    return Response(LinktreeDetailSerializer(linktree).data)
 
 
 @api_view(['DELETE'])

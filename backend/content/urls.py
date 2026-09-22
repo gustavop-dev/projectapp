@@ -55,6 +55,7 @@ from content.views.collection_accounts_panel import (
 )
 from content.views.contact import contact_list, new_contact
 from content.views.panel_dashboard import panel_dashboard
+from content.views.project_brand import project_brand, project_brand_asset
 from content.views.panel_projects import (
     archive_panel_project,
     assign_project_unlinked_records,
@@ -86,7 +87,7 @@ from content.views.portfolio_works import (
 )
 from content.views.linktree import (
     list_admin_linktrees, retrieve_admin_linktree, create_linktree,
-    update_linktree, delete_linktree, public_linktree, upload_linktree_avatar,
+    update_linktree, delete_linktree, public_linktree, upload_linktree_avatar, upload_linktree_logo,
 )
 from content.views.qr_cards import (
     list_admin_qr_cards, create_qr_card, update_qr_card, delete_qr_card,
@@ -539,6 +540,8 @@ urlpatterns = [
     path('panel/dashboard/', panel_dashboard, name='panel-dashboard'),
 
     # Panel — Projects module (Plataforma space)
+    path('projects/<int:project_id>/brand/', project_brand, name='project-brand'),
+    path('projects/<int:project_id>/brand/<int:asset_id>/', project_brand_asset, name='project-brand-asset'),
     path('projects/', list_panel_projects, name='panel-projects-list'),
     path('projects/create/', create_panel_project, name='panel-projects-create'),
     path('projects/<int:project_id>/update/', update_panel_project, name='panel-projects-update'),
@@ -1112,6 +1115,7 @@ urlpatterns = [
     path('linktrees/admin/<uuid:linktree_id>/update/', update_linktree, name='update-linktree'),
     path('linktrees/admin/<uuid:linktree_id>/delete/', delete_linktree, name='delete-linktree'),
     path('linktrees/admin/<uuid:linktree_id>/avatar/', upload_linktree_avatar, name='upload-linktree-avatar'),
+    path('linktrees/admin/<uuid:linktree_id>/logo/', upload_linktree_logo, name='upload-linktree-logo'),
     path('linktrees/public/<str:handle>/', public_linktree, name='public-linktree'),
 
     # Hour packages — admin catalog CRUD (per-nationality pricing)

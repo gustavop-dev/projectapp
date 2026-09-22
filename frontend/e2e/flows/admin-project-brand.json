@@ -1,0 +1,9 @@
+{
+  "id": "admin-project-brand",
+  "name": "Marca y recursos del proyecto",
+  "module": "admin",
+  "roles": ["admin"],
+  "priority": "P2",
+  "description": "Vincular Linktrees y cargar, descargar o eliminar documentos y assets privados del proyecto.",
+  "outcomes": ["success", "error", "failure", "display"]
+}

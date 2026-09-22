@@ -47,7 +47,7 @@ class LinktreeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Linktree
         fields = (
-            'id', 'handle', 'name', 'kind', 'display_name',
+            'id', 'handle', 'name', 'kind', 'project', 'display_name',
             'is_active', 'public_path', 'buttons_count', 'created_at',
         )
 
@@ -61,10 +61,12 @@ class LinktreeDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Linktree
         fields = (
-            'id', 'handle', 'name', 'kind',
-            'display_name', 'role', 'bio', 'avatar',
+            'id', 'handle', 'name', 'kind', 'project',
+            'display_name', 'role', 'bio', 'avatar', 'logo',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
+            'background_color', 'accent_color', 'text_color', 'muted_color',
+            'button_text_color', 'font_family',
             'pwa_enabled', 'pwa_title', 'pwa_description',
             'vcard_first_name', 'vcard_last_name', 'vcard_org',
             'vcard_email', 'vcard_tel', 'vcard_url',
@@ -82,9 +84,11 @@ class PublicLinktreeSerializer(serializers.ModelSerializer):
         model = Linktree
         fields = (
             'handle', 'kind',
-            'display_name', 'role', 'bio', 'avatar',
+            'display_name', 'role', 'bio', 'avatar', 'logo',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
+            'background_color', 'accent_color', 'text_color', 'muted_color',
+            'button_text_color', 'font_family',
             'pwa_enabled', 'pwa_title', 'pwa_description',
             'vcard_first_name', 'vcard_last_name', 'vcard_org',
             'vcard_email', 'vcard_tel', 'vcard_url',
@@ -113,10 +117,12 @@ class LinktreeCreateUpdateSerializer(serializers.ModelSerializer):
         # `avatar` is deliberately absent: the photo is managed only through
         # the dedicated upload/delete endpoint, never via the JSON payload.
         fields = (
-            'handle', 'name', 'kind',
+            'handle', 'name', 'kind', 'project',
             'display_name', 'role', 'bio',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
+            'background_color', 'accent_color', 'text_color', 'muted_color',
+            'button_text_color', 'font_family',
             'pwa_enabled', 'pwa_title', 'pwa_description',
             'vcard_first_name', 'vcard_last_name', 'vcard_org',
             'vcard_email', 'vcard_tel', 'vcard_url',

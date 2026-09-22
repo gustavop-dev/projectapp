@@ -22,6 +22,7 @@ from accounts.models import (
     ProjectPhase,
     UserProfile,
 )
+from accounts.services.credential_cipher import encrypt_secret
 from accounts.services.tokens import get_tokens_for_user
 from content.models import BusinessProposal, Document, DocumentType
 from content.services.document_type_codes import COLLECTION_ACCOUNT
@@ -541,7 +542,7 @@ def test_project_detail_masks_access_presence_from_owning_client():
     ProjectAdminAccess.objects.create(
         project=project,
         environment=ProjectAdminAccess.Environment.PRODUCTION,
-        admin_password_encrypted='encrypted-secret',
+        admin_password_encrypted=encrypt_secret('access-password'),
         updated_by=admin,
     )
 

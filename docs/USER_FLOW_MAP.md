@@ -6247,6 +6247,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-kanban-tasks` | admin | P2 | display,success,failure | 1 |
 | `admin-layout-title-mapping` | admin | P3 | display | 1 |
 | `admin-linkedin-module` | admin | P2 | display,success,failure | 1 |
+| `admin-linktree-branding` | admin | P2 | success,error,failure,display | — |
 | `admin-linktrees` | admin | P2 | success,error | 1 |
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success,error,failure | 10 |
@@ -6271,6 +6272,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-access-field-edit` | admin | P1 | success,error,failure | — |
 | `admin-project-access-notes` | admin | P2 | display,success,error,failure | — |
 | `admin-project-access-secrets` | admin | P1 | display,success,failure | — |
+| `admin-project-brand` | admin | P2 | success,error,failure,display | — |
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-change-history` | admin | P1 | display,success,failure | — |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
@@ -7727,6 +7729,18 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **E2E Spec:** `e2e/admin/admin-financing-settings.spec.js`
 - **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_policy_service.py`
 
+# Personalizar la marca del Linktree
+
+- **Rol:** admin. **Ruta:** `/panel/linktrees/:id/edit`.
+- **Success:** editar colores/fuente, guardar y recargar conserva la apariencia;
+  cargar una familia de Google Fonts la selecciona; subir/quitar logo actualiza la tarjeta.
+- **Error:** una familia inexistente muestra error y conserva la selección.
+- **Failure:** fallo de conexión a Google Fonts muestra aviso y permite reintentar.
+- **Display:** entrar desde el listado muestra la apariencia y vista previa, también en móvil.
+- **API:** PATCH de Linktree persiste colores y familia; POST/DELETE `logo/` guarda inmediatamente el logo independiente del avatar.
+- **Cobertura:** `frontend/e2e/admin/admin-linktrees.spec.js` (API y Google Fonts simulados).
+  Backend verifica persistencia real, serialización pública y rechazo de imágenes falsas.
+
 ### FLOW: `admin-monitoring-case-follow-up`
 
 - **Módulo / rol:** monitoreo / administrador del panel.
@@ -7833,6 +7847,15 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Failure:** no aplica a la redirección local; los errores de datos pertenecen
   a los flujos existentes del programa y sus otrosíes.
 - **Display:** no aplica: la ruta anterior no muestra una vista propia.
+
+# Marca y recursos del proyecto
+
+- **Ruta/rol:** `/panel/projects`, admin, Acciones → Marca y recursos.
+- **Success:** vincular/desvincular un Linktree conserva su URL pública; subir un archivo con nombre y categoría, descargarlo y eliminarlo previa confirmación.
+- **Error:** carga rechazada conserva los campos y no añade un recurso.
+- **Failure:** carga de biblioteca fallida muestra aviso y reintento.
+- **Display:** abrir el modal desde el listado muestra los recursos o estados vacíos, también en móvil.
+- **Cobertura:** `frontend/e2e/admin/admin-project-brand.spec.js`, API simulada; `backend/content/tests/views/test_project_brand.py` verifica persistencia, aislamiento, permisos y archivos privados reales.
 
 ### FLOW: `admin-project-change-history`
 
