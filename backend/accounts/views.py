@@ -6,7 +6,8 @@ logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.db import transaction
+from django.db import connection, transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -415,6 +416,40 @@ def complete_profile_view(request):
 # Admin — Client management
 # ==========================================================================
 
+def _client_list_profiles(queryset):
+    """Prepare table aggregates without loading every client's related rows."""
+    from django.db.models import Count, Max, OuterRef, Q, Subquery
+    from accounts.models import HostingSubscription, Project
+
+    active_subscription = HostingSubscription.objects.filter(
+        project__client_id=OuterRef('user_id'),
+        status=HostingSubscription.STATUS_ACTIVE,
+    ).order_by('next_billing_date')
+    profiles = list(queryset.annotate(
+        _list_active_projects_count=Count(
+            'user__projects', filter=Q(user__projects__status=Project.STATUS_ACTIVE),
+        ),
+        _list_total_projects_count=Count(
+            'user__projects', filter=~Q(user__projects__status=Project.STATUS_ARCHIVED),
+        ),
+        _list_latest_project_update=Max('user__projects__updated_at'),
+        _list_active_subscription_id=Subquery(active_subscription.values('pk')[:1]),
+    ).order_by('-created_at'))
+    subscription_ids = {
+        profile._list_active_subscription_id for profile in profiles
+        if profile._list_active_subscription_id is not None
+    }
+    subscriptions = {
+        subscription.pk: subscription
+        for subscription in HostingSubscription.objects.filter(pk__in=subscription_ids).only(
+            'id', 'plan', 'next_billing_date', 'billing_amount',
+        )
+    } if subscription_ids else {}
+    for profile in profiles:
+        profile._list_active_subscription = subscriptions.get(profile._list_active_subscription_id)
+    return profiles
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def client_list_view(request):
@@ -430,7 +465,9 @@ def client_list_view(request):
         elif filter_param == 'inactive':
             qs = qs.filter(user__is_active=False)
 
-        serializer = ClientListSerializer(qs, many=True, context={'request': request})
+        serializer = ClientListSerializer(
+            _client_list_profiles(qs), many=True, context={'request': request},
+        )
         return Response(serializer.data)
 
     serializer = CreateClientSerializer(data=request.data)
@@ -459,7 +496,14 @@ def client_list_view(request):
 def client_detail_view(request, user_id):
     """Get, update, or deactivate a client."""
     try:
-        profile = UserProfile.objects.clients().get(user_id=user_id)
+        profiles = UserProfile.objects.clients().filter(user_id=user_id)
+        if request.method == 'GET':
+            loaded_profiles = _client_list_profiles(profiles)
+            if not loaded_profiles:
+                raise UserProfile.DoesNotExist
+            profile = loaded_profiles[0]
+        else:
+            profile = profiles.get()
     except UserProfile.DoesNotExist:
         return Response(
             {'detail': 'Cliente no encontrado.'},
@@ -749,6 +793,101 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+def _project_list_projects(queryset):
+    """Keep each aggregate independent and load only the selected proposals."""
+    from django.db.models import Count, DecimalField, OuterRef, Subquery, Sum, Value
+    from django.db.models.functions import Coalesce
+    from accounts.models import BugReport, ChangeRequest, ProjectPhase
+    from content.models import BusinessProposal
+
+    open_bugs = BugReport.objects.filter(
+        project_id=OuterRef('pk'),
+        status__in=[
+            BugReport.STATUS_REPORTED, BugReport.STATUS_CONFIRMED,
+            BugReport.STATUS_FIXING, BugReport.STATUS_QA,
+        ],
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    pending_changes = ChangeRequest.objects.filter(
+        project_id=OuterRef('pk'), status=ChangeRequest.STATUS_PENDING,
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    phases = ProjectPhase.objects.filter(project_id=OuterRef('pk'))
+    phase_totals = phases.order_by().values('project_id').annotate(
+        total=Sum('business_proposal__total_investment'),
+    ).values('total')
+    first_phase_proposal = phases.order_by('order').values('business_proposal_id')[:1]
+    legacy_proposal = BusinessProposal.objects.filter(
+        deliverable__project_id=OuterRef('pk'),
+    ).order_by('deliverable_id').values('pk')[:1]
+    projects = list(queryset.select_related(
+        'client', 'client__profile', 'current_state', 'hosting_subscription',
+    ).only(
+        'id', 'name', 'description', 'current_state_id', 'state_review_required',
+        'progress', 'start_date', 'estimated_end_date', 'client_id',
+        'hosting_start_date', 'created_at', 'updated_at',
+        'client__id', 'client__first_name', 'client__last_name', 'client__email',
+        'client__profile__id', 'client__profile__user_id', 'client__profile__company_name',
+        'current_state__id', 'current_state__name', 'current_state__slug',
+        'current_state__color', 'current_state__system_key', 'current_state__operational_effect',
+        'hosting_subscription__id', 'hosting_subscription__project_id',
+        'hosting_subscription__status', 'hosting_subscription__plan',
+        'hosting_subscription__next_billing_date', 'hosting_subscription__billing_amount',
+    ).annotate(
+        _list_bugs_open_count=Coalesce(Subquery(open_bugs), Value(0)),
+        _list_changes_pending_count=Coalesce(Subquery(pending_changes), Value(0)),
+        _list_phases_total_amount=Coalesce(
+            Subquery(phase_totals), Value(0),
+            output_field=DecimalField(max_digits=20, decimal_places=2),
+        ),
+        _list_business_proposal_id=Coalesce(
+            Subquery(first_phase_proposal), Subquery(legacy_proposal),
+            output_field=BusinessProposal._meta.pk,
+        ),
+    ).order_by('-updated_at'))
+    proposal_ids = {
+        project._list_business_proposal_id for project in projects
+        if project._list_business_proposal_id is not None
+    }
+    proposals = {
+        proposal.pk: proposal
+        for proposal in BusinessProposal.objects.filter(pk__in=proposal_ids).only('id', 'title')
+    } if proposal_ids else {}
+    for project in projects:
+        project._list_business_proposal = proposals.get(project._list_business_proposal_id)
+    return projects
+
+
+def _project_detail_queryset(queryset):
+    """Resolve scalar detail fields without multiplying independent relations."""
+    from django.db.models import Count, Exists, OuterRef, Subquery, Value
+    from django.db.models.functions import Coalesce
+    from accounts.models import BugReport, ChangeRequest, ProjectAdminAccess
+    from content.models import BusinessProposal
+
+    open_bugs = BugReport.objects.filter(
+        project_id=OuterRef('pk'),
+        status__in=[
+            BugReport.STATUS_REPORTED, BugReport.STATUS_CONFIRMED,
+            BugReport.STATUS_FIXING, BugReport.STATUS_QA,
+        ],
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    pending_changes = ChangeRequest.objects.filter(
+        project_id=OuterRef('pk'), status=ChangeRequest.STATUS_PENDING,
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    legacy_proposals = BusinessProposal.objects.filter(
+        deliverable__project_id=OuterRef('pk'),
+    ).order_by('deliverable_id')
+    admin_accesses = ProjectAdminAccess.objects.filter(
+        project_id=OuterRef('pk'),
+    ).exclude(admin_password_encrypted='')
+    return queryset.select_related('hosting_subscription').annotate(
+        _list_bugs_open_count=Coalesce(Subquery(open_bugs), Value(0)),
+        _list_changes_pending_count=Coalesce(Subquery(pending_changes), Value(0)),
+        _detail_legacy_proposal_id=Subquery(legacy_proposals.values('pk')[:1]),
+        _detail_legacy_proposal_title=Subquery(legacy_proposals.values('title')[:1]),
+        _detail_has_admin_access=Exists(admin_accesses),
+    )
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def project_list_view(request):
@@ -773,7 +912,9 @@ def project_list_view(request):
             qs = Project.objects.select_related(
                 'client', 'client__profile', 'current_state',
             ).filter(client=request.user)
-        serializer = ProjectListSerializer(qs, many=True, context={'request': request})
+        serializer = ProjectListSerializer(
+            _project_list_projects(qs), many=True, context={'request': request},
+        )
         return Response(serializer.data)
 
     if not profile or not profile.is_admin:
@@ -874,10 +1015,11 @@ def project_detail_view(request, project_id):
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
+    queryset = Project.objects.select_related('client', 'client__profile', 'current_state')
+    if request.method == 'GET':
+        queryset = _project_detail_queryset(queryset)
     try:
-        project = Project.objects.select_related(
-            'client', 'client__profile', 'current_state',
-        ).get(id=project_id)
+        project = queryset.get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Proyecto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -947,12 +1089,35 @@ def project_detail_view(request, project_id):
 @permission_classes([IsAuthenticated, IsAdminRole])
 def project_access_list_view(request):
     """Deprecated admin summary without plaintext credentials."""
+    from django.db.models import BooleanField, Case, Exists, OuterRef, Value, When
+    from django.db.models.functions import Length
+
+    from accounts.models import ProjectAdminAccess
+
+    accesses_with_password = (
+        ProjectAdminAccess.objects.filter(project_id=OuterRef('pk'))
+        .alias(_password_length=Length('admin_password_encrypted'))
+        .filter(_password_length__gt=0)
+    )
 
     qs = (
         Project.objects.select_related(
             'client', 'client__profile', 'current_state',
         )
-        .prefetch_related('admin_accesses')
+        .alias(_legacy_password_length=Length('admin_password_encrypted'))
+        .annotate(_access_has_password=Case(
+            When(_legacy_password_length__gt=0, then=Value(True)),
+            default=Exists(accesses_with_password),
+            output_field=BooleanField(),
+        ))
+        .only(
+            'id', 'name', 'client_id', 'current_state_id',
+            'production_url', 'staging_url', 'repository_url',
+            'client__id', 'client__first_name', 'client__last_name', 'client__email',
+            'client__profile__user_id', 'client__profile__company_name',
+            'current_state__id', 'current_state__system_key',
+            'current_state__slug', 'current_state__name',
+        )
         .exclude(status=Project.STATUS_ARCHIVED)
         .exclude(current_state__operational_effect='decommissioned')
         .order_by('name')
@@ -980,10 +1145,7 @@ def project_access_list_view(request):
             'production_url': p.production_url,
             'staging_url': p.staging_url,
             'repository_url': p.repository_url,
-            'has_password': bool(
-                p.admin_password_encrypted
-                or any(a.admin_password_encrypted for a in p.admin_accesses.all())
-            ),
+            'has_password': p._access_has_password,
         })
 
     return Response(data)
@@ -1109,6 +1271,8 @@ def requirement_list_view(request, project_id):
     GET  — Requirements for a project; optional ?phase_id=X filter.
     POST — Admin creates a new requirement (phase_id required).
     """
+    from django.db.models import Count
+
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
@@ -1117,7 +1281,22 @@ def requirement_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Requirement.objects.filter(phase__project=proj).select_related('phase', 'scope_item')
+        qs = (
+            Requirement.objects.filter(phase__project=proj)
+            .select_related('phase__business_proposal', 'scope_item')
+            .only(
+                'id', 'title', 'description', 'configuration', 'flow',
+                'status', 'priority', 'order',
+                'source_epic_key', 'source_epic_title', 'source_flow_key',
+                'synced_from_proposal', 'is_archived', 'archived_at',
+                'created_at', 'updated_at',
+                'phase__id', 'phase__order', 'phase__business_proposal__id',
+                'phase__business_proposal__title',
+                'scope_item__id', 'scope_item__name', 'scope_item__group_id',
+            )
+            .annotate(_comments_count=Count('comments'))
+            .order_by('order', '-created_at')
+        )
         qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
         phase_id = request.query_params.get('phase_id')
         if phase_id:
@@ -1247,10 +1426,20 @@ def requirement_detail_view(request, project_id, req_id):
     if err:
         return err
 
-    try:
-        req = Requirement.objects.prefetch_related('comments__user', 'history__changed_by').get(
-            id=req_id, phase__project=proj,
+    if request.method == 'GET':
+        requirements = Requirement.objects.select_related('scope_item').prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=RequirementComment.objects.select_related('user'),
+                to_attr='_detail_comments',
+            ),
+            Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
         )
+    else:
+        requirements = Requirement.objects.prefetch_related('comments__user', 'history__changed_by')
+
+    try:
+        req = requirements.get(id=req_id, phase__project=proj)
     except Requirement.DoesNotExist:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1433,6 +1622,40 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+_SOURCE_REQUIREMENT_LIST_FIELDS = (
+    'source_requirement__id',
+    'source_requirement__title',
+    'source_requirement__status',
+    'source_requirement__phase_id',
+    'source_requirement__phase__id',
+    'source_requirement__phase__order',
+    'source_requirement__phase__business_proposal_id',
+    'source_requirement__phase__business_proposal__id',
+    'source_requirement__phase__business_proposal__title',
+)
+
+
+def _change_request_list_queryset(qs):
+    """Load the list payload without per-row counts or proposal content."""
+    from django.db.models import Count
+
+    return (
+        qs.select_related('created_by', 'project', 'source_requirement__phase__business_proposal')
+        .only(
+            'id', 'project_id', 'created_by_id', 'source_requirement_id', 'phase_id',
+            'title', 'description', 'module_or_screen', 'suggested_priority',
+            'is_urgent', 'status', 'admin_response', 'estimated_cost', 'estimated_time',
+            'linked_requirement_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'created_by__id', 'created_by__first_name', 'created_by__last_name',
+            'created_by__email', 'project__id', 'project__name',
+            *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        )
+        .annotate(_comments_count=Count('comments'))
+        .order_by('-created_at')
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def change_request_all_view(request):
@@ -1444,12 +1667,11 @@ def change_request_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = ChangeRequest.objects.select_related('created_by', 'project').all()
+        qs = ChangeRequest.objects.all()
     else:
-        qs = ChangeRequest.objects.select_related('created_by', 'project').filter(
-            project__client=request.user,
-        )
+        qs = ChangeRequest.objects.filter(project__client=request.user)
 
+    qs = _change_request_list_queryset(qs)
     qs = filter_change_requests_for_list(qs, request, is_admin=is_admin)
 
     status_filter = request.query_params.get('status')
@@ -1481,7 +1703,7 @@ def change_request_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = ChangeRequest.objects.filter(project=proj).select_related('created_by')
+        qs = _change_request_list_queryset(ChangeRequest.objects.filter(project=proj))
         qs = filter_change_requests_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -1630,6 +1852,30 @@ def change_request_evaluate_view(request, project_id, cr_id):
     )
 
 
+def _bulk_evaluation_ids(items, model):
+    """Select possible integer keys without changing each item's dict lookup."""
+    minimum, maximum = connection.ops.integer_field_range(model._meta.pk.get_internal_type())
+    candidate_ids = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        raw_id = item.get('id')
+        # Python dicts match bools and integral floats to integer keys, but
+        # never coerce strings or truncate fractional numbers like the ORM can.
+        if isinstance(raw_id, int):
+            candidate_id = raw_id
+        elif isinstance(raw_id, float) and raw_id.is_integer():
+            candidate_id = int(raw_id)
+        else:
+            continue
+        if minimum is not None and candidate_id < minimum:
+            continue
+        if maximum is not None and candidate_id > maximum:
+            continue
+        candidate_ids.add(candidate_id)
+    return candidate_ids
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_request_bulk_evaluate_view(request, project_id):
@@ -1663,7 +1909,9 @@ def change_request_bulk_evaluate_view(request, project_id):
         )
 
     project_crs = {
-        cr.id: cr for cr in ChangeRequest.objects.filter(project=proj)
+        cr.id: cr for cr in ChangeRequest.objects.filter(
+            project=proj, id__in=_bulk_evaluation_ids(items, ChangeRequest),
+        )
     }
 
     updated_ids = []
@@ -1859,6 +2107,27 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+def _bug_report_list_queryset(qs):
+    """Load the list payload while keeping optional source relations nullable."""
+    from django.db.models import Count
+
+    return (
+        qs.select_related('reported_by', 'project', 'source_requirement__phase__business_proposal')
+        .only(
+            'id', 'project_id', 'reported_by_id', 'source_requirement_id', 'phase_id',
+            'title', 'description', 'severity', 'status', 'environment', 'device_browser',
+            'is_recurring', 'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
+            'admin_response', 'linked_bug_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'reported_by__id', 'reported_by__first_name', 'reported_by__last_name',
+            'reported_by__email', 'project__id', 'project__name',
+            *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        )
+        .annotate(_comments_count=Count('comments'))
+        .order_by('-created_at')
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def bug_report_all_view(request):
@@ -1870,12 +2139,11 @@ def bug_report_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = BugReport.objects.select_related('reported_by', 'project').all()
+        qs = BugReport.objects.all()
     else:
-        qs = BugReport.objects.select_related('reported_by', 'project').filter(
-            project__client=request.user,
-        )
+        qs = BugReport.objects.filter(project__client=request.user)
 
+    qs = _bug_report_list_queryset(qs)
     qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
 
     status_filter = request.query_params.get('status')
@@ -1910,7 +2178,7 @@ def bug_report_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = BugReport.objects.filter(project=proj).select_related('reported_by')
+        qs = _bug_report_list_queryset(BugReport.objects.filter(project=proj))
         qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -2101,7 +2369,9 @@ def bug_report_bulk_evaluate_view(request, project_id):
         )
 
     project_bugs = {
-        b.id: b for b in BugReport.objects.filter(project=proj)
+        b.id: b for b in BugReport.objects.filter(
+            project=proj, id__in=_bulk_evaluation_ids(items, BugReport),
+        )
     }
 
     updated_ids = []
@@ -2152,7 +2422,6 @@ def bug_report_bulk_evaluate_view(request, project_id):
                 message=f'Estado cambiado a "{status_display}".',
                 related_object_type='bug_report', related_object_id=bug.id,
                 exclude_user=request.user,
-                deliverable=bug.deliverable,
             )
 
     return Response({
@@ -2226,6 +2495,8 @@ def deliverable_all_view(request):
     GET — All deliverables across all projects the user has access to.
     Admin sees all; client sees only their projects.
     """
+    from django.db.models import Count
+
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
@@ -2237,6 +2508,7 @@ def deliverable_all_view(request):
         )
 
     qs = filter_deliverables_for_list(qs, request, is_admin=is_admin)
+    qs = qs.annotate(_versions_count=Count('versions')).order_by('category', '-updated_at')
 
     category_filter = request.query_params.get('category')
     if category_filter:
@@ -2259,6 +2531,8 @@ def deliverable_list_view(request, project_id):
     GET  — All deliverables for a project (both roles, filtered by category optionally).
     POST — Admin uploads a new deliverable.
     """
+    from django.db.models import Count
+
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
@@ -2267,7 +2541,12 @@ def deliverable_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Deliverable.objects.filter(project=proj).select_related('uploaded_by')
+        qs = (
+            Deliverable.objects.filter(project=proj)
+            .select_related('uploaded_by')
+            .annotate(_versions_count=Count('versions'))
+            .order_by('category', '-updated_at')
+        )
         qs = filter_deliverables_for_list(qs, request, is_admin=is_admin)
         category_filter = request.query_params.get('category')
         if category_filter:
@@ -2331,10 +2610,17 @@ def deliverable_detail_view(request, project_id, deliverable_id):
     if err:
         return err
 
-    try:
-        deliverable = Deliverable.objects.select_related('business_proposal').get(
-            id=deliverable_id, project=proj,
+    queryset = Deliverable.objects.select_related('business_proposal')
+    if request.method == 'GET':
+        queryset = queryset.select_related('uploaded_by').only(
+            'id', 'project_id', 'category', 'title', 'description',
+            'source_epic_key', 'source_epic_title', 'file', 'current_version',
+            'uploaded_by_id', 'is_archived', 'archived_at', 'created_at', 'updated_at',
+            'uploaded_by__id', 'uploaded_by__first_name', 'uploaded_by__last_name',
+            'uploaded_by__email', 'business_proposal__id', 'business_proposal__title',
         )
+    try:
+        deliverable = queryset.get(id=deliverable_id, project=proj)
     except Deliverable.DoesNotExist:
         return Response(
             {'detail': 'Entregable no encontrado.'},
@@ -2347,6 +2633,9 @@ def deliverable_detail_view(request, project_id, deliverable_id):
                 {'detail': 'Entregable no encontrado.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        deliverable._detail_versions = list(
+            deliverable.versions.select_related('uploaded_by').all(),
+        )
         return Response(
             DeliverableDetailSerializer(deliverable, context={'request': request}).data,
         )
@@ -2958,7 +3247,7 @@ def notification_list_view(request):
     GET — List notifications for the authenticated user.
     Supports ?is_read=true/false filter and ?limit=N.
     """
-    qs = Notification.objects.filter(user=request.user).select_related('project')
+    qs = Notification.objects.filter(user=request.user).select_related('project', 'deliverable')
 
     is_read_param = request.query_params.get('is_read')
     if is_read_param == 'true':
@@ -3353,6 +3642,10 @@ def proposal_list_for_selector_view(request):
     qs = BusinessProposal.objects.filter(
         status__in=['accepted', 'finished', 'sent', 'viewed', 'negotiating'],
         deliverable__isnull=True,
+    ).only(
+        'id', 'title', 'client_name', 'client_email', 'total_investment',
+        'currency', 'hosting_percent', 'hosting_discount_nine_month',
+        'hosting_discount_semiannual', 'hosting_discount_quarterly', 'status',
     ).order_by('-created_at')
 
     serializer = ProposalSummarySerializer(qs, many=True)
@@ -3365,6 +3658,10 @@ def subscription_list_view(request):
     """
     Admin sees all subscriptions. Client sees only their projects' subscriptions.
     """
+    from datetime import timedelta
+
+    from django.db.models import Count, Q
+
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
@@ -3376,6 +3673,19 @@ def subscription_list_view(request):
         )
 
     qs = filter_subscriptions_for_list(qs, request, is_admin=is_admin)
+    cutoff = timezone.now().date() + timedelta(days=7)
+    qs = qs.annotate(
+        _pending_payments_count=Count(
+            'payments',
+            filter=Q(
+                payments__is_archived=False,
+                payments__status__in=[
+                    Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED,
+                ],
+                payments__due_date__lte=cutoff,
+            ),
+        ),
+    ).order_by('-created_at')
 
     serializer = HostingSubscriptionListSerializer(qs, many=True)
     return Response(serializer.data)
@@ -4387,7 +4697,7 @@ def project_phases_reorder_view(request, project_id):
 def client_eligible_proposals_view(request, user_id):
     """Returns 'signed' BusinessProposals (status accepted/finished) for the
     client that are not already attached to any project as a phase."""
-    user = User.objects.filter(id=user_id).first()
+    user = User.objects.only('id', 'email').filter(id=user_id).first()
     if user is None:
         return Response({'detail': 'client_not_found'}, status=404)
 
@@ -4397,7 +4707,7 @@ def client_eligible_proposals_view(request, user_id):
         status__in=['accepted', 'finished'],
     ).exclude(
         project_phases__isnull=False,
-    ).order_by('-id')
+    ).only('id', 'title', 'status', 'total_investment').order_by('-id')
 
     data = [
         {

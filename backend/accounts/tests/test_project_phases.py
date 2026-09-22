@@ -1,19 +1,25 @@
 """Tests for the ProjectPhase model, service, and REST endpoints."""
+from decimal import Decimal
+
 import pytest
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError
+from django.db import IntegrityError, connection
+from django.test.utils import CaptureQueriesContext
 
-from accounts.models import Project, ProjectPhase, UserProfile
+from accounts.models import Deliverable, Project, ProjectPhase, UserProfile
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
+MAX_PROJECT_PHASE_LIST_QUERIES = 6
 
 
 @pytest.fixture
 def client_user(db):
-    return User.objects.create_user(
+    user = User.objects.create_user(
         username='client@example.com', email='client@example.com', password='x',
     )
+    UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+    return user
 
 
 @pytest.fixture
@@ -77,6 +83,39 @@ from accounts.services.project_phases import (  # noqa: E402
     remove_phase,
     reorder_phases,
 )
+
+
+def _add_distinct_phases(project, user, count):
+    """Create phases whose populated deliverables expose descriptor query drift."""
+    from content.models import BusinessProposal
+
+    phases = []
+    starting_order = project.phases.count()
+    for number in range(1, count + 1):
+        proposal = BusinessProposal.objects.create(
+            title=f'Performance proposal {number}',
+            client_name='Performance client',
+            total_investment=Decimal('12000.00'),
+        )
+        if count == 1 or number < count:
+            deliverable = Deliverable.objects.create(
+                project=project,
+                title=f'Performance deliverable {number}',
+                category=Deliverable.CATEGORY_OTHER,
+                uploaded_by=user,
+            )
+            proposal.deliverable = deliverable
+            proposal.save(update_fields=['deliverable'])
+        phases.append(add_phase(project, proposal, order=starting_order + number))
+    return phases
+
+
+def _list_phase_queries(client, url):
+    client.get(url)
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(url)
+    assert response.status_code == 200
+    return len(queries), response.json()
 
 
 def test_add_phase_appends_at_end_when_order_omitted(project, business_proposal):
@@ -165,12 +204,105 @@ def authed_client(admin_user):
 
 
 def test_list_phases_endpoint_returns_ordered_phases(authed_client, project, business_proposal):
-    add_phase(project, business_proposal)
+    """Fails if the phase endpoint stops respecting the persisted phase order."""
+    from content.models import BusinessProposal
+
+    later_proposal = BusinessProposal.objects.create(title='Later proposal', client_name='Test Client')
+    add_phase(project, later_proposal, order=2)
+    add_phase(project, business_proposal, order=1)
+
     resp = authed_client.get(f'/api/accounts/projects/{project.id}/phases/')
+
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 1
-    assert data[0]['proposal']['title'] == 'Proposal A'
+    assert [row['proposal']['title'] for row in data] == ['Proposal A', 'Later proposal']
+
+
+def test_list_phases_serializes_nested_proposal_fields(authed_client, project, client_user):
+    """Fails if nested proposals lose deliverable IDs or pricing details."""
+    from content.models import BusinessProposal
+
+    deliverable = Deliverable.objects.create(
+        project=project,
+        title='Phase deliverable',
+        category=Deliverable.CATEGORY_OTHER,
+        uploaded_by=client_user,
+    )
+    linked_proposal = BusinessProposal.objects.create(
+        title='Linked phase',
+        client_name='Test Client',
+        total_investment=Decimal('12000.00'),
+        status=BusinessProposal.Status.ACCEPTED,
+        deliverable=deliverable,
+    )
+    detached_proposal = BusinessProposal.objects.create(
+        title='Detached phase',
+        client_name='Test Client',
+        total_investment=Decimal('9000.00'),
+        status=BusinessProposal.Status.FINISHED,
+    )
+    add_phase(project, linked_proposal, order=1)
+    add_phase(project, detached_proposal, order=2)
+
+    response = authed_client.get(f'/api/accounts/projects/{project.id}/phases/')
+
+    assert response.status_code == 200
+    rows = response.json()
+    assert rows[0]['proposal'] == {
+        'id': linked_proposal.pk,
+        'title': 'Linked phase',
+        'total_amount': 12000.0,
+        'status': BusinessProposal.Status.ACCEPTED,
+        'deliverable_id': deliverable.pk,
+    }
+    assert rows[1]['proposal']['deliverable_id'] is None
+    assert rows[0]['hosting_tiers'][0]['frequency'] == 'quarterly'
+    assert rows[0]['hosting_tiers'][0]['billing_amount'] == 1620
+
+
+def test_client_lists_own_project_phases(client_user, project, business_proposal):
+    """Fails if a client can no longer read phases belonging to their project."""
+    tokens = get_tokens_for_user(client_user)
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {tokens["access"]}')
+    add_phase(project, business_proposal)
+
+    response = client.get(f'/api/accounts/projects/{project.id}/phases/')
+
+    assert response.status_code == 200
+    assert response.json()[0]['proposal']['id'] == business_proposal.pk
+
+
+def test_client_cannot_list_foreign_project_phases(client_user, project, business_proposal):
+    """Fails if tenant filtering exposes phases from another client's project."""
+    foreign_user = User.objects.create_user(
+        username='foreign-client@example.com', email='foreign-client@example.com', password='x',
+    )
+    UserProfile.objects.create(user=foreign_user, role=UserProfile.ROLE_CLIENT)
+    tokens = get_tokens_for_user(foreign_user)
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {tokens["access"]}')
+    add_phase(project, business_proposal)
+
+    response = client.get(f'/api/accounts/projects/{project.id}/phases/')
+
+    assert response.status_code == 404
+    assert response.json()['detail'] == 'project_not_found'
+
+
+def test_project_phase_list_query_budget_is_constant(authed_client, project, client_user):
+    """Fails if reading deliverables restores a query for each populated phase."""
+    url = f'/api/accounts/projects/{project.id}/phases/'
+    _add_distinct_phases(project, client_user, 1)
+
+    one_query_count, one_row = _list_phase_queries(authed_client, url)
+    _add_distinct_phases(project, client_user, 49)
+    fifty_query_count, fifty_rows = _list_phase_queries(authed_client, url)
+
+    assert len(one_row) == 1
+    assert len(fifty_rows) == 50
+    assert one_query_count == fifty_query_count
+    assert fifty_query_count <= MAX_PROJECT_PHASE_LIST_QUERIES
 
 
 def test_add_phase_endpoint(authed_client, project, business_proposal):

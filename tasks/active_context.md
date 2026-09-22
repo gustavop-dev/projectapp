@@ -1,5 +1,44 @@
 # Active Context — ProjectApp
 
+**2026-09-22 — sexta ronda de rendimiento de Plataforma:** continúa en el PR #397.
+Los selectores global y por cliente proyectan sólo los campos que publican;
+el resumen legacy de accesos calcula presencia de contraseña en SQL sin cargar
+accesos ni ciphertext. Se conservan permisos, filtros, orden y tipos, incluidos
+el importe cero y la presencia de secretos con espacios. QA cubre consultas con
+JWT y materialización en pruebas separadas. Los listados siguen completos: su
+caso es conservative y queda pendiente acordar otro contrato para acotar payload
+y memoria bajo carga. Sin cambios de esquema, flujo UI ni despliegue.
+
+**2026-09-22 — quinta ronda de rendimiento de Plataforma:** continúa en el PR #397.
+El detalle GET de cliente reutiliza los agregados del listado; proyecto carga
+agregados independientes y recorre una proyección estrecha de fases una sola vez,
+conservando cálculos Decimal, descuentos y vínculo legacy. Entregable comparte
+las versiones con su contador y evita cargar campos no publicados de propuestas
+y cuentas de cobro. Las mutaciones conservan su ruta y los serializers su fallback.
+QA mide peticiones completas con JWT: el objetivo de clientes/proyectos es el
+presupuesto estándar; entregables conserva una desviación documentada por sus
+colecciones completas. No hay cambios de contrato, esquema, flujo UI ni despliegue.
+
+**2026-09-22 — cuarta ronda de rendimiento de Plataforma:** continúa en el PR #397.
+Notificaciones precarga entregables; evaluación masiva carga sólo los IDs del
+payload preservando sus errores, duplicados y efectos por elemento; el detalle
+GET de requerimientos consume comentarios e historial precargados con sus autores.
+Se mantiene el filtro de comentarios internos y el fallback del serializer.
+La evaluación masiva de bugs vuelve a notificar por proyecto y bug, como la
+individual, sin acceder al campo retirado `deliverable`. QA verifica consultas,
+filas materializadas y contratos; el coste JWT del detalle se reporta separado
+del presupuesto de datos. Sin cambio de esquema, mapa de vistas ni despliegue.
+
+**2026-09-22 — tercera ronda de rendimiento de Plataforma:** continúa en el PR #397,
+en `fix/21092026-perf-platform-lists`. Clientes prepara conteos, actividad y la
+suscripción elegida; proyectos usa agregados independientes y precarga sólo los
+datos necesarios; fases lee el ID del entregable sin cargarlo. Se conservan los
+contratos de listado, orden y permisos, junto a los fallbacks usados por detalle,
+panel y MCP. Los guards comparan una fila con cincuenta, con relaciones distintas
+y un caso vacío; las regresiones cubren orden, permisos, archivado y consumidores.
+El selector de propuesta declara el tipo de PK para combinar fase y vínculo
+legacy en Django. Sin cambios de esquema, flujos de frontend ni despliegue.
+
 **2026-09-19 — formalización de propuestas implementada para revisión:** perfil documental
 curado (comercial y técnico), contrato final, preparación privada con revisión
 exacta de adjuntos y correo configurable desde Documentos. La vista pública y

@@ -1,5 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from accounts.models import (
@@ -15,6 +17,7 @@ from content.models.business_proposal import BusinessProposal
 from accounts.services.notifications import notify, notify_project_admins, notify_project_client
 
 User = get_user_model()
+MAX_NOTIFICATION_LIST_QUERIES = 6
 
 
 @pytest.fixture
@@ -112,6 +115,39 @@ def sample_notifications(admin_user, client_user, project):
         title='Admin notification', project=project,
     ))
     return notifs
+
+
+def _create_notification_rows(user, project, count, *, start=0):
+    deliverables = Deliverable.objects.bulk_create([
+        Deliverable(
+            project=project,
+            title=f'Budget deliverable {index}',
+            category=Deliverable.CATEGORY_OTHER,
+            uploaded_by=user,
+        )
+        for index in range(start, start + count)
+    ])
+    notifications = Notification.objects.bulk_create([
+        Notification(
+            user=user,
+            type=Notification.TYPE_DELIVERABLE_UPLOADED,
+            title=f'Budget notification {deliverable.id}',
+            project=project,
+            deliverable=deliverable,
+        )
+        for deliverable in deliverables
+    ])
+    return {
+        notification.id: (project.name, notification.deliverable.title)
+        for notification in notifications
+    }
+
+
+def _notification_relation_map(data):
+    return {
+        notification['id']: (notification['project_name'], notification['deliverable_title'])
+        for notification in data
+    }
 
 
 # =========================================================================
@@ -258,6 +294,50 @@ class TestNotificationList:
 
         data = resp.json()
         assert all(n['project_name'] == 'Notif Project' for n in data)
+
+    def test_notification_list_keeps_rows_with_null_relations(
+        self, api_client, client_headers, client_user,
+    ):
+        """Fails if the list drops or invents relation values for a general notification."""
+        notification = Notification.objects.create(
+            user=client_user,
+            type=Notification.TYPE_GENERAL,
+            title='Standalone notification',
+        )
+
+        response = api_client.get('/api/accounts/notifications/', **client_headers)
+
+        assert response.status_code == 200
+        assert _notification_relation_map(response.json()) == {
+            notification.id: (None, None),
+        }
+
+    def test_notification_list_keeps_relation_queries_constant(
+        self, api_client, client_headers, client_user, project,
+    ):
+        """Fails if notification serialization reloads project or deliverable for every row."""
+        expected_one = _create_notification_rows(client_user, project, 1)
+
+        with CaptureQueriesContext(connection) as one_notification_queries:
+            one_notification_response = api_client.get(
+                '/api/accounts/notifications/', **client_headers,
+            )
+
+        expected_fifty = expected_one | _create_notification_rows(
+            client_user, project, 49, start=1,
+        )
+
+        with CaptureQueriesContext(connection) as fifty_notification_queries:
+            fifty_notification_response = api_client.get(
+                '/api/accounts/notifications/', **client_headers,
+            )
+
+        assert one_notification_response.status_code == 200
+        assert fifty_notification_response.status_code == 200
+        assert _notification_relation_map(one_notification_response.json()) == expected_one
+        assert _notification_relation_map(fifty_notification_response.json()) == expected_fifty
+        assert len(one_notification_queries) == len(fifty_notification_queries)
+        assert len(fifty_notification_queries) <= MAX_NOTIFICATION_LIST_QUERIES
 
     def test_unauthenticated_request_rejected(self, api_client):
         resp = api_client.get('/api/accounts/notifications/')

@@ -1,3 +1,5 @@
+from datetime import date, datetime, timezone as datetime_timezone
+from decimal import Decimal
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -6,12 +8,16 @@ from rest_framework.test import APIRequestFactory
 
 from accounts.models import (
     BugReport,
+    BugComment,
     ChangeRequest,
+    ChangeRequestComment,
     Deliverable,
     DeliverableClientFolder,
     DeliverableClientUpload,
     DeliverableFile,
     DeliverableVersion,
+    HostingSubscription,
+    Payment,
     Project,
     ProjectPhase,
     Requirement,
@@ -43,8 +49,10 @@ from accounts.serializers import (
     DeliverableListSerializer,
     DeliverableVersionSerializer,
     EvaluateBugReportSerializer,
+    HostingSubscriptionListSerializer,
     LoginSerializer,
     MoveRequirementSerializer,
+    ProjectDetailSerializer,
     ProjectListSerializer,
     RequirementCommentSerializer,
     RequirementDetailSerializer,
@@ -461,6 +469,33 @@ class TestClientListSerializer:
         assert data['is_onboarded'] is True
         assert data['user_id'] == user.id
 
+    def test_calculates_unprepared_aggregate_values(self):
+        """Fails if detail serializers lose aggregate fallbacks outside prepared list queries."""
+        user = User.objects.create_user(
+            username='fallback-client@test.com', email='fallback-client@test.com', password='pass',
+        )
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        active_project = Project.objects.create(
+            name='Active', client=user, status=Project.STATUS_ACTIVE,
+        )
+        Project.objects.create(name='Archived', client=user, status=Project.STATUS_ARCHIVED)
+        HostingSubscription.objects.create(
+            project=active_project,
+            plan=HostingSubscription.PLAN_QUARTERLY,
+            base_monthly_amount=Decimal('100'),
+            effective_monthly_amount=Decimal('100'),
+            billing_amount=Decimal('300'),
+            start_date=date(2026, 1, 1),
+            next_billing_date=date(2026, 4, 1),
+            status=HostingSubscription.STATUS_ACTIVE,
+        )
+
+        data = ClientListSerializer(profile).data
+
+        assert data['hosting_plan'] == 'quarterly'
+        assert data['active_projects_count'] == 1
+        assert data['total_projects_count'] == 1
+
 
 # =========================================================================
 # ProjectListSerializer (ModelSerializer output)
@@ -497,6 +532,54 @@ class TestProjectListSerializer:
         data = ProjectListSerializer(project).data
 
         assert data['client_name'] == 'fb@test.com'
+
+    def test_detail_calculates_unprepared_aggregate_values(self):
+        """Fails if project detail serialization requires list-only annotations to return aggregates."""
+        user = User.objects.create_user(
+            username='fallback-project@test.com', email='fallback-project@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Fallback project', client=user)
+        proposal = BusinessProposal.objects.create(
+            title='Fallback proposal', client_name='Client', total_investment=Decimal('125.00'),
+        )
+        ProjectPhase.objects.create(project=project, business_proposal=proposal, order=1)
+        BugReport.objects.create(
+            project=project,
+            reported_by=user,
+            title='Open bug',
+            description='x',
+            status=BugReport.STATUS_REPORTED,
+        )
+        ChangeRequest.objects.create(
+            project=project,
+            created_by=user,
+            title='Pending change',
+            description='x',
+            status=ChangeRequest.STATUS_PENDING,
+        )
+        HostingSubscription.objects.create(
+            project=project,
+            plan=HostingSubscription.PLAN_SEMIANNUAL,
+            base_monthly_amount=Decimal('100'),
+            effective_monthly_amount=Decimal('100'),
+            billing_amount=Decimal('600'),
+            start_date=date(2026, 1, 1),
+            next_billing_date=date(2026, 7, 1),
+            status=HostingSubscription.STATUS_ACTIVE,
+        )
+
+        data = ProjectDetailSerializer(project).data
+
+        assert data['proposal_title'] == 'Fallback proposal'
+        assert data['bugs_open_count'] == 1
+        assert data['changes_pending_count'] == 1
+        assert data['phases_total_amount'] == Decimal('125.00')
+        assert data['next_hosting_payment'] == {
+            'date': date(2026, 7, 1),
+            'amount': Decimal('600.00'),
+            'plan': 'semiannual',
+        }
 
 
 # =========================================================================
@@ -738,6 +821,109 @@ class TestRequirementListSerializerCommentsCount:
         data = RequirementListSerializer(req).data
 
         assert data['comments_count'] == 0
+
+
+# =========================================================================
+# List serializer unannotated count fallbacks
+# =========================================================================
+
+@pytest.mark.django_db
+class TestListSerializerAnnotatedCounts:
+    def test_deliverable_list_serializer_falls_back_to_versions_count(self):
+        """Fails if an unannotated deliverable loses its real version count."""
+        user = User.objects.create_user(
+            username='deliverable-count@test.com', email='deliverable-count@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Deliverable count project', client=user)
+        deliverable = Deliverable.objects.create(
+            project=project, uploaded_by=user, title='Versioned deliverable', category=Deliverable.CATEGORY_OTHER,
+        )
+        DeliverableVersion.objects.create(
+            deliverable=deliverable, file='deliverables/versions/fallback.pdf', version_number=1, uploaded_by=user,
+        )
+
+        data = DeliverableListSerializer(deliverable).data
+
+        assert data['versions_count'] == 1
+
+    def test_change_request_list_serializer_falls_back_to_comments_count(self):
+        """Fails if an unannotated change request omits internal comments from its count."""
+        user = User.objects.create_user(
+            username='change-count@test.com', email='change-count@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Change count project', client=user)
+        change_request = ChangeRequest.objects.create(project=project, created_by=user, title='Count comments')
+        ChangeRequestComment.objects.bulk_create([
+            ChangeRequestComment(change_request=change_request, user=user, content='Public'),
+            ChangeRequestComment(change_request=change_request, user=user, content='Internal', is_internal=True),
+        ])
+
+        data = ChangeRequestListSerializer(change_request).data
+
+        assert data['comments_count'] == 2
+
+    def test_bug_report_list_serializer_falls_back_to_comments_count(self):
+        """Fails if an unannotated bug report omits internal comments from its count."""
+        user = User.objects.create_user(
+            username='bug-count@test.com', email='bug-count@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Bug count project', client=user)
+        bug = BugReport.objects.create(project=project, reported_by=user, title='Count comments')
+        BugComment.objects.bulk_create([
+            BugComment(bug_report=bug, user=user, content='Public'),
+            BugComment(bug_report=bug, user=user, content='Internal', is_internal=True),
+        ])
+
+        data = BugReportListSerializer(bug).data
+
+        assert data['comments_count'] == 2
+
+
+# =========================================================================
+# HostingSubscriptionListSerializer.get_pending_payments
+# =========================================================================
+
+@pytest.mark.django_db
+class TestHostingSubscriptionListSerializerPendingPayments:
+    def test_unannotated_subscription_serializer_uses_fallback(self):
+        """Fails if direct subscription serialization loses the payment count fallback."""
+        client = User.objects.create_user(
+            username='subscription-serializer@test.com',
+            email='subscription-serializer@test.com',
+            password='pass',
+        )
+        UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Subscription serializer project', client=client)
+        subscription = HostingSubscription(
+            project=project,
+            plan=HostingSubscription.PLAN_QUARTERLY,
+            base_monthly_amount=Decimal('100000'),
+            discount_percent=0,
+            start_date=date(2026, 1, 1),
+            next_billing_date=date(2026, 4, 1),
+            status=HostingSubscription.STATUS_ACTIVE,
+        )
+        subscription.calculate_amounts()
+        subscription.save()
+        Payment.objects.create(
+            subscription=subscription,
+            amount=subscription.billing_amount,
+            billing_period_start=date(2026, 1, 1),
+            billing_period_end=date(2026, 1, 31),
+            due_date=date(2026, 1, 22),
+            status=Payment.STATUS_PENDING,
+        )
+
+        with patch(
+            'django.utils.timezone.now',
+            return_value=datetime(2026, 1, 15, tzinfo=datetime_timezone.utc),
+        ):
+            data = HostingSubscriptionListSerializer(subscription).data
+
+        assert data['pending_payments'] == 1
 
 
 # =========================================================================

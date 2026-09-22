@@ -1,10 +1,15 @@
+from datetime import datetime, timezone as datetime_timezone
+
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from accounts.models import (
     Project,
     ProjectPhase,
+    ProjectScopeItem,
     Requirement,
     RequirementComment,
     RequirementHistory,
@@ -13,6 +18,16 @@ from accounts.models import (
 from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
+MAX_REQUIREMENT_LIST_QUERIES = 6
+MAX_REQUIREMENT_DETAIL_DATA_QUERIES = 4
+REQUIREMENT_DETAIL_JWT_QUERIES = 6
+REQUIREMENT_LIST_FIELDS = {
+    'id', 'phase_id', 'phase_title', 'title', 'description', 'configuration', 'flow',
+    'status', 'priority', 'order', 'source_epic_key', 'source_epic_title',
+    'source_flow_key', 'synced_from_proposal', 'scope_item_id', 'scope_item_name',
+    'scope_item_group_id', 'is_archived', 'archived_at', 'comments_count', 'created_at',
+    'updated_at',
+}
 
 
 @pytest.fixture
@@ -101,6 +116,201 @@ def _detail_url(project_id, req_id, suffix=''):
     return f'/api/accounts/projects/{project_id}/requirements/{req_id}/{suffix}'
 
 
+def _create_requirement_list_rows(project, count, *, comment_user=None):
+    start = BusinessProposal.objects.filter(title__startswith='Budget proposal ').count()
+    proposals = [
+        BusinessProposal(
+            title=f'Budget proposal {index}',
+            client_name='Carlos',
+            slug=f'budget-proposal-{index}',
+        )
+        for index in range(start, start + count)
+    ]
+    persisted_proposals = BusinessProposal.objects.bulk_create(proposals)
+    phases = [
+        ProjectPhase(project=project, business_proposal=proposal, order=index + 10)
+        for index, proposal in enumerate(persisted_proposals)
+    ]
+    persisted_phases = ProjectPhase.objects.bulk_create(phases)
+    scope_items = [
+        ProjectScopeItem(
+            phase=phase,
+            source_item_id=f'budget-scope-{phase.id}',
+            name=f'Budget scope {phase.id}',
+            group_id='budget',
+            group_title='Budget',
+        )
+        for phase in persisted_phases
+    ]
+    persisted_scope_items = ProjectScopeItem.objects.bulk_create(scope_items)
+    requirements = Requirement.objects.bulk_create([
+        Requirement(
+            phase=phase,
+            scope_item=scope_item,
+            title=f'Budget requirement {phase.id}',
+            source_flow_key=f'budget-requirement-{phase.id}',
+        )
+        for phase, scope_item in zip(persisted_phases, persisted_scope_items)
+    ])
+    if comment_user:
+        RequirementComment.objects.bulk_create([
+            RequirementComment(
+                requirement=requirement,
+                user=comment_user,
+                content=f'Budget comment {requirement.id}',
+            )
+            for requirement in requirements
+        ])
+
+
+def _create_serialized_requirement(project, admin_user):
+    proposal = BusinessProposal.objects.create(title='Discovery proposal', client_name='Carlos')
+    phase = ProjectPhase.objects.create(project=project, business_proposal=proposal, order=2)
+    scope_item = ProjectScopeItem.objects.create(
+        phase=phase,
+        source_item_id='discovery-scope',
+        name='Discovery scope',
+        group_id='discovery',
+        group_title='Discovery',
+    )
+    requirement = Requirement.objects.create(
+        phase=phase,
+        scope_item=scope_item,
+        title='Mapped requirement',
+        description='Description',
+        configuration='Admin only',
+        flow='Open then review',
+        status=Requirement.STATUS_IN_PROGRESS,
+        priority=Requirement.PRIORITY_CRITICAL,
+        order=3,
+        source_epic_key='EPIC-1',
+        source_epic_title='Discovery',
+        source_flow_key='FLOW-1',
+        synced_from_proposal=True,
+    )
+    RequirementComment.objects.bulk_create([
+        RequirementComment(
+            requirement=requirement, user=admin_user, content='Public comment', is_internal=False,
+        ),
+        RequirementComment(
+            requirement=requirement, user=admin_user, content='Internal comment', is_internal=True,
+        ),
+    ])
+    return requirement, phase, scope_item
+
+
+def _create_requirement_detail(project, admin_user, client_user):
+    proposal = BusinessProposal.objects.create(title='Detail proposal', client_name='Carlos')
+    phase = ProjectPhase.objects.create(project=project, business_proposal=proposal, order=3)
+    scope_item = ProjectScopeItem.objects.create(
+        phase=phase,
+        source_item_id='detail-scope',
+        name='Detail scope',
+        group_id='detail-group',
+        group_title='Detail group',
+    )
+    requirement = Requirement.objects.create(
+        phase=phase,
+        scope_item=scope_item,
+        title='Detailed requirement',
+        source_flow_key='detail-flow',
+    )
+    public_comment = RequirementComment.objects.create(
+        requirement=requirement, user=client_user, content='Client-visible comment',
+    )
+    internal_comment = RequirementComment.objects.create(
+        requirement=requirement, user=admin_user, content='Admin-only comment', is_internal=True,
+    )
+    older_history = RequirementHistory.objects.create(
+        requirement=requirement,
+        from_status=Requirement.STATUS_BACKLOG,
+        to_status=Requirement.STATUS_IN_PROGRESS,
+        changed_by=admin_user,
+    )
+    newest_history = RequirementHistory.objects.create(
+        requirement=requirement,
+        from_status=Requirement.STATUS_IN_PROGRESS,
+        to_status=Requirement.STATUS_IN_REVIEW,
+        changed_by=None,
+    )
+    RequirementComment.objects.filter(pk=public_comment.pk).update(
+        created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+    )
+    RequirementComment.objects.filter(pk=internal_comment.pk).update(
+        created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+    )
+    RequirementHistory.objects.filter(pk=older_history.pk).update(
+        created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+    )
+    RequirementHistory.objects.filter(pk=newest_history.pk).update(
+        created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+    )
+    return requirement, scope_item, older_history, newest_history
+
+
+def _create_budget_detail_requirement(project, phase, *, prefix):
+    scope_item = ProjectScopeItem.objects.create(
+        phase=phase,
+        source_item_id=f'{prefix}-scope',
+        name=f'{prefix} scope',
+        group_id=f'{prefix}-group',
+        group_title=f'{prefix} group',
+    )
+    return Requirement.objects.create(
+        phase=phase,
+        scope_item=scope_item,
+        title=f'{prefix} requirement',
+        source_flow_key=f'{prefix}-flow',
+    ), scope_item
+
+
+def _create_requirement_detail_relations(requirement, count, *, start=0):
+    authors = User.objects.bulk_create([
+        User(
+            username=f'budget-detail-{index}@req.com',
+            email=f'budget-detail-{index}@req.com',
+        )
+        for index in range(start, start + count)
+    ])
+    comments = RequirementComment.objects.bulk_create([
+        RequirementComment(
+            requirement=requirement,
+            user=author,
+            content=f'Budget detail comment {index}',
+        )
+        for index, author in zip(range(start, start + count), authors)
+    ])
+    history = RequirementHistory.objects.bulk_create([
+        RequirementHistory(
+            requirement=requirement,
+            from_status=Requirement.STATUS_BACKLOG,
+            to_status=Requirement.STATUS_IN_PROGRESS,
+            changed_by=author,
+        )
+        for author in authors
+    ])
+    return {
+        'comments': {comment.content: comment.user.email for comment in comments},
+        'history': {
+            entry.changed_by.email: (entry.from_status, entry.to_status)
+            for entry in history
+        },
+    }
+
+
+def _detail_relation_payloads(data):
+    return {
+        'comments': {
+            comment['content']: comment['user_email']
+            for comment in data['comments']
+        },
+        'history': {
+            entry['changed_by_email']: (entry['from_status'], entry['to_status'])
+            for entry in data['history']
+        },
+    }
+
+
 @pytest.mark.django_db
 class TestRequirementList:
     def test_admin_lists_requirements_for_project(
@@ -135,6 +345,94 @@ class TestRequirementList:
 
         assert resp.status_code == 403
 
+    def test_requirement_list_preserves_serialized_fields(
+        self, api_client, admin_headers, admin_user, project,
+    ):
+        """Fails if the optimized list projection omits a requirement serializer field."""
+        requirement, phase, scope_item = _create_serialized_requirement(project, admin_user)
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()[0]
+        assert set(data) == REQUIREMENT_LIST_FIELDS
+        expected = {
+            'id': requirement.id,
+            'phase_id': phase.id,
+            'phase_title': 'Discovery proposal',
+            'title': 'Mapped requirement',
+            'description': 'Description',
+            'configuration': 'Admin only',
+            'flow': 'Open then review',
+            'status': Requirement.STATUS_IN_PROGRESS,
+            'priority': Requirement.PRIORITY_CRITICAL,
+            'order': 3,
+            'source_epic_key': 'EPIC-1',
+            'source_epic_title': 'Discovery',
+            'source_flow_key': 'FLOW-1',
+            'synced_from_proposal': True,
+            'scope_item_id': scope_item.id,
+            'scope_item_name': 'Discovery scope',
+            'scope_item_group_id': 'discovery',
+            'is_archived': False,
+            'archived_at': None,
+            'comments_count': 2,
+        }
+        assert {key: data[key] for key in expected} == expected
+        assert data['created_at'] is not None
+        assert data['updated_at'] is not None
+
+    def test_requirement_list_query_budget_is_constant(
+        self, api_client, admin_headers, admin_user, project,
+    ):
+        """Fails if each listed requirement again loads comments or its proposal."""
+        _create_requirement_list_rows(project, 1)
+
+        with CaptureQueriesContext(connection) as one_requirement_queries:
+            one_requirement_response = api_client.get(_url(project.id), **admin_headers)
+
+        _create_requirement_list_rows(project, 49, comment_user=admin_user)
+
+        with CaptureQueriesContext(connection) as fifty_requirement_queries:
+            fifty_requirement_response = api_client.get(_url(project.id), **admin_headers)
+
+        assert one_requirement_response.status_code == 200
+        assert fifty_requirement_response.status_code == 200
+        assert len(one_requirement_response.json()) == 1
+        assert len(fifty_requirement_response.json()) == 50
+        assert len(one_requirement_queries) == len(fifty_requirement_queries)
+        assert len(fifty_requirement_queries) <= MAX_REQUIREMENT_LIST_QUERIES
+
+    def test_requirement_list_orders_by_order(self, api_client, admin_headers, project, default_phase):
+        """Fails if the comment aggregate drops the Kanban order after grouping."""
+        first_created = Requirement.objects.create(
+            phase=default_phase, title='First created', order=1, source_flow_key='order-first',
+        )
+        latest_created = Requirement.objects.create(
+            phase=default_phase, title='Latest created', order=1, source_flow_key='order-latest',
+        )
+        later_column = Requirement.objects.create(
+            phase=default_phase, title='Later column', order=2, source_flow_key='order-later',
+        )
+        Requirement.objects.filter(pk=first_created.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        Requirement.objects.filter(pk=latest_created.pk).update(
+            created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+        Requirement.objects.filter(pk=later_column.pk).update(
+            created_at=datetime(2026, 1, 3, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [
+            latest_created.id,
+            first_created.id,
+            later_column.id,
+        ]
+
 
 @pytest.mark.django_db
 class TestRequirementCreate:
@@ -155,6 +453,8 @@ class TestRequirementCreate:
         assert data['priority'] == 'high'
         assert data['configuration'] == 'Solo rol: Admin'
         assert data['flow'] == 'Admin abre panel → crea tarea.'
+        assert data['comments_count'] == 0
+        assert data['phase_title'] == 'Board proposal'
 
     def test_create_requirement_recalculates_project_progress(
         self, api_client, admin_headers, project, default_phase,
@@ -187,6 +487,109 @@ class TestRequirementDetail:
         assert data['title'] == 'Task A'
         assert 'comments' in data
         assert 'history' in data
+
+    def test_admin_requirement_detail_preserves_prefetched_relation_data(
+        self, api_client, admin_headers, admin_user, client_user, project,
+    ):
+        """Fails if the detail serializer drops scope data, history order, or prefetched comments."""
+        requirement, scope_item, older_history, newest_history = _create_requirement_detail(
+            project, admin_user, client_user,
+        )
+
+        response = api_client.get(_detail_url(project.id, requirement.id), **admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['scope_item_name'] == scope_item.name
+        assert data['scope_item_group_id'] == scope_item.group_id
+        assert [comment['content'] for comment in data['comments']] == [
+            'Client-visible comment',
+            'Admin-only comment',
+        ]
+        assert [entry['id'] for entry in data['history']] == [
+            newest_history.id,
+            older_history.id,
+        ]
+        assert data['history'][0]['changed_by_email'] == ''
+
+    def test_client_requirement_detail_excludes_internal_prefetched_comments(
+        self, api_client, client_headers, admin_user, client_user, project,
+    ):
+        """Fails if the prefetched-comments branch exposes an internal comment to a client."""
+        requirement, _, _, _ = _create_requirement_detail(project, admin_user, client_user)
+
+        response = api_client.get(_detail_url(project.id, requirement.id), **client_headers)
+
+        assert response.status_code == 200
+        assert [comment['content'] for comment in response.json()['comments']] == [
+            'Client-visible comment',
+        ]
+
+    def test_requirement_detail_data_queries_stay_constant(
+        self, api_client, admin_user, project, default_phase,
+    ):
+        """Fails if detail relation prefetches regress to a query per comment or history entry."""
+        requirement, scope_item = _create_budget_detail_requirement(
+            project, default_phase, prefix='data-budget',
+        )
+        preloaded_admin = User.objects.select_related('profile').get(pk=admin_user.pk)
+        api_client.force_authenticate(user=preloaded_admin)
+        expected_one = _create_requirement_detail_relations(requirement, 1)
+
+        with CaptureQueriesContext(connection) as one_relation_queries:
+            one_relation_response = api_client.get(_detail_url(project.id, requirement.id))
+
+        added_fifty = _create_requirement_detail_relations(requirement, 49, start=1)
+        expected_fifty = {
+            'comments': expected_one['comments'] | added_fifty['comments'],
+            'history': expected_one['history'] | added_fifty['history'],
+        }
+
+        with CaptureQueriesContext(connection) as fifty_relation_queries:
+            fifty_relation_response = api_client.get(_detail_url(project.id, requirement.id))
+
+        assert (
+            one_relation_response.status_code,
+            fifty_relation_response.status_code,
+            one_relation_response.json()['scope_item_name'],
+            fifty_relation_response.json()['scope_item_group_id'],
+            _detail_relation_payloads(one_relation_response.json()),
+            _detail_relation_payloads(fifty_relation_response.json()),
+        ) == (200, 200, scope_item.name, scope_item.group_id, expected_one, expected_fifty)
+        assert len(one_relation_queries) == len(fifty_relation_queries)
+        assert len(fifty_relation_queries) <= MAX_REQUIREMENT_DETAIL_DATA_QUERIES
+
+    def test_requirement_detail_jwt_query_count_is_authentication_overhead(
+        self, api_client, admin_headers, admin_user, project, default_phase,
+    ):
+        """Fails if the JWT detail request changes its documented authentication query overhead."""
+        requirement, scope_item = _create_budget_detail_requirement(
+            project, default_phase, prefix='jwt-budget',
+        )
+        expected_one = _create_requirement_detail_relations(requirement, 1)
+
+        with CaptureQueriesContext(connection) as one_jwt_queries:
+            one_response = api_client.get(_detail_url(project.id, requirement.id), **admin_headers)
+
+        added_fifty = _create_requirement_detail_relations(requirement, 49, start=1)
+        expected_fifty = {
+            'comments': expected_one['comments'] | added_fifty['comments'],
+            'history': expected_one['history'] | added_fifty['history'],
+        }
+
+        with CaptureQueriesContext(connection) as fifty_jwt_queries:
+            fifty_response = api_client.get(_detail_url(project.id, requirement.id), **admin_headers)
+
+        assert (
+            one_response.status_code,
+            fifty_response.status_code,
+            one_response.json()['scope_item_name'],
+            fifty_response.json()['scope_item_group_id'],
+            _detail_relation_payloads(one_response.json()),
+            _detail_relation_payloads(fifty_response.json()),
+        ) == (200, 200, scope_item.name, scope_item.group_id, expected_one, expected_fifty)
+        assert len(one_jwt_queries) == len(fifty_jwt_queries)
+        assert len(fifty_jwt_queries) == REQUIREMENT_DETAIL_JWT_QUERIES
 
     def test_admin_updates_requirement(self, api_client, admin_headers, project, sample_requirements):
         req = sample_requirements[0]
@@ -247,6 +650,8 @@ class TestRequirementMove:
 
         assert resp.status_code == 200
         assert resp.json()['status'] == 'in_progress'
+        assert resp.json()['comments_count'] == 0
+        assert resp.json()['phase_title'] == 'Board proposal'
 
     def test_move_creates_history_entry(self, api_client, admin_headers, project, sample_requirements):
         req = sample_requirements[0]
@@ -296,6 +701,26 @@ class TestRequirementMove:
         )
 
         assert RequirementHistory.objects.filter(requirement=req).count() == 0
+
+
+@pytest.mark.django_db
+class TestRequirementBulkUpload:
+    def test_bulk_upload_uses_unannotated_serializer_fallback(
+        self, api_client, admin_headers, project, default_phase,
+    ):
+        """Fails if bulk-created requirements cannot serialize their unannotated relations."""
+        response = api_client.post(
+            f'{_url(project.id, "bulk/")}?phase_id={default_phase.id}',
+            [{'title': 'Bulk requirement'}],
+            format='json',
+            **admin_headers,
+        )
+
+        assert response.status_code == 201
+        data = response.json()['requirements'][0]
+        assert data['title'] == 'Bulk requirement'
+        assert data['comments_count'] == 0
+        assert data['phase_title'] == 'Board proposal'
 
 
 @pytest.mark.django_db

@@ -1,8 +1,11 @@
 import io
+from datetime import datetime, timezone as datetime_timezone
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from PIL import Image
 from rest_framework.test import APIClient
 
@@ -18,6 +21,7 @@ from accounts.models import (
 from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
+MAX_BUG_REPORT_LIST_QUERIES = 6
 
 
 @pytest.fixture
@@ -138,6 +142,50 @@ def _detail_url(project_id, bug_id, suffix=''):
     return f'/api/accounts/projects/{project_id}/bug-reports/{bug_id}/{suffix}'
 
 
+def _create_bug_report_rows(project, user, count, *, start=0, add_comments=False):
+    proposals = [
+        BusinessProposal(
+            title=f'Bug budget proposal {index}', client_name='Carlos', slug=f'bug-budget-{index}',
+        )
+        for index in range(start, start + count)
+    ]
+    persisted_proposals = BusinessProposal.objects.bulk_create(proposals)
+    phases = [
+        ProjectPhase(project=project, business_proposal=proposal, order=index + 10)
+        for index, proposal in enumerate(persisted_proposals, start=start)
+    ]
+    persisted_phases = ProjectPhase.objects.bulk_create(phases)
+    requirements = Requirement.objects.bulk_create([
+        Requirement(
+            phase=phase, title=f'Bug budget source {phase.id}',
+            source_flow_key=f'bug-budget-source-{phase.id}',
+        )
+        for phase in persisted_phases
+    ])
+    bugs = BugReport.objects.bulk_create([
+        BugReport(
+            project=project,
+            reported_by=user,
+            phase=phase,
+            source_requirement=requirement,
+            title=f'Bug budget report {requirement.id}',
+            description='Visible description',
+            steps_to_reproduce=['open', 'observe'],
+            expected_behavior='Expected result',
+            actual_behavior='Actual result',
+        )
+        for phase, requirement in zip(persisted_phases, requirements)
+    ])
+    if add_comments:
+        BugComment.objects.bulk_create([
+            BugComment(
+                bug_report=bug, user=user, content=f'Bug budget comment {bug.id}', is_internal=True,
+            )
+            for bug in bugs
+        ])
+    return bugs
+
+
 # =========================================================================
 # List & Filter
 # =========================================================================
@@ -201,6 +249,89 @@ class TestBugReportList:
         resp = client.get(_url(project.id), HTTP_AUTHORIZATION=f'Bearer {token}')
 
         assert resp.status_code == 403
+
+    def test_bug_report_project_list_query_budget(self, api_client, admin_headers, project, client_user):
+        """Fails if listing bugs restores per-row source and comment queries."""
+        _create_bug_report_rows(project, client_user, 1)
+
+        with CaptureQueriesContext(connection) as one_bug_queries:
+            one_bug_response = api_client.get(_url(project.id), **admin_headers)
+
+        _create_bug_report_rows(project, client_user, 49, start=1, add_comments=True)
+
+        with CaptureQueriesContext(connection) as fifty_bug_queries:
+            fifty_bug_response = api_client.get(_url(project.id), **admin_headers)
+
+        assert (one_bug_response.status_code, fifty_bug_response.status_code) == (200, 200)
+        assert (len(one_bug_response.json()), len(fifty_bug_response.json())) == (1, 50)
+        assert [item['comments_count'] for item in one_bug_response.json()] == [0]
+        assert sorted(item['comments_count'] for item in fifty_bug_response.json()) == [0] + [1] * 49
+        assert len(one_bug_queries) == len(fifty_bug_queries)
+        assert len(fifty_bug_queries) <= MAX_BUG_REPORT_LIST_QUERIES
+
+    def test_bug_report_project_list_sorts_by_created_at(
+        self, api_client, admin_headers, project, client_user,
+    ):
+        """Fails if a comment aggregate drops newest-first bug ordering."""
+        older = BugReport.objects.create(project=project, reported_by=client_user, title='Older bug')
+        newer = BugReport.objects.create(project=project, reported_by=client_user, title='Newer bug')
+        BugReport.objects.filter(pk=older.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        BugReport.objects.filter(pk=newer.pk).update(
+            created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [newer.id, older.id]
+
+    def test_bug_report_list_filters_phase_id(self, api_client, admin_headers, project, client_user):
+        """Fails if the phase filter returns bugs from another project phase."""
+        target, _ = _create_bug_report_rows(project, client_user, 2)
+
+        response = api_client.get(f'{_url(project.id)}?phase_id={target.phase_id}', **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [target.id]
+
+    def test_bug_report_list_excludes_archived(self, api_client, admin_headers, project, client_user):
+        """Fails if archived bugs are visible without the admin archive flag."""
+        visible = BugReport.objects.create(project=project, reported_by=client_user, title='Visible bug')
+        archived = BugReport.objects.create(
+            project=project, reported_by=client_user, title='Archived bug', is_archived=True,
+        )
+
+        default_response = api_client.get(_url(project.id), **admin_headers)
+        archived_response = api_client.get(f'{_url(project.id)}?include_archived=1', **admin_headers)
+
+        assert [item['id'] for item in default_response.json()] == [visible.id]
+        assert {item['id'] for item in archived_response.json()} == {visible.id, archived.id}
+
+    def test_bug_report_list_serializes_source_requirement(
+        self, api_client, admin_headers, project, client_user,
+    ):
+        """Fails if the optimized bug list loses source fields or JSON payload values."""
+        source_bug = _create_bug_report_rows(project, client_user, 1)[0]
+        source = source_bug.source_requirement
+        no_source = BugReport.objects.create(project=project, reported_by=client_user, title='No source bug')
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        by_id = {item['id']: item for item in response.json()}
+        assert by_id[source_bug.id]['source_requirement'] == {
+            'id': source.id,
+            'title': source.title,
+            'status': Requirement.STATUS_BACKLOG,
+            'phase_id': source.phase_id,
+            'phase_title': 'Bug budget proposal 0',
+        }
+        assert by_id[source_bug.id]['description'] == 'Visible description'
+        assert by_id[source_bug.id]['steps_to_reproduce'] == ['open', 'observe']
+        assert by_id[source_bug.id]['expected_behavior'] == 'Expected result'
+        assert by_id[source_bug.id]['actual_behavior'] == 'Actual result'
+        assert by_id[no_source.id]['source_requirement'] is None
 
 
 # =========================================================================
@@ -676,6 +807,36 @@ class TestBugReportAllView:
         resp = api_client.get('/api/accounts/bug-reports/')
 
         assert resp.status_code == 401
+
+    def test_bug_report_global_list_query_budget(self, api_client, admin_headers, project, client_user):
+        """Fails if global bug listing restores a query for each relation."""
+        _create_bug_report_rows(project, client_user, 1)
+
+        with CaptureQueriesContext(connection) as one_bug_queries:
+            one_bug_response = api_client.get('/api/accounts/bug-reports/', **admin_headers)
+
+        _create_bug_report_rows(project, client_user, 49, start=1, add_comments=True)
+
+        with CaptureQueriesContext(connection) as fifty_bug_queries:
+            fifty_bug_response = api_client.get('/api/accounts/bug-reports/', **admin_headers)
+
+        assert (one_bug_response.status_code, fifty_bug_response.status_code) == (200, 200)
+        assert (len(one_bug_response.json()), len(fifty_bug_response.json())) == (1, 50)
+        assert [item['comments_count'] for item in one_bug_response.json()] == [0]
+        assert sorted(item['comments_count'] for item in fifty_bug_response.json()) == [0] + [1] * 49
+        assert len(one_bug_queries) == len(fifty_bug_queries)
+        assert len(fifty_bug_queries) <= MAX_BUG_REPORT_LIST_QUERIES
+
+    def test_bug_report_global_list_serializes_null_project(self, api_client, admin_headers, client_user):
+        """Fails if the global bug list drops reports that do not belong to a project."""
+        global_bug = BugReport.objects.create(project=None, reported_by=client_user, title='Global bug')
+
+        response = api_client.get('/api/accounts/bug-reports/', **admin_headers)
+
+        data = response.json()[0]
+        assert data['id'] == global_bug.id
+        assert data['project_id'] is None
+        assert data['project_name'] == ''
 
 
 # =========================================================================

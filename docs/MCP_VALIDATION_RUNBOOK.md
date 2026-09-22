@@ -832,3 +832,19 @@ El conector Comercial conserva sus herramientas actuales; no expone el HTML,
 destinatarios, rutas privadas ni el envío de estas preparaciones. La regresión
 focal verifica los contratos de campos de `proposals` y `commercial` y sus
 adaptadores, sin invocar conectores contra producción.
+
+## Agregados de proyectos anidados — 2026-09-22
+
+`get_client` y `retrieve-proposal-client` reutilizan `ProjectListSerializer`
+con instancias sin las anotaciones privadas de los listados de Plataforma.
+Los getters conservan sus fallbacks: propuesta de la primera fase (o vínculo
+legacy por entregable), bugs abiertos, cambios pendientes, inversión total y
+próximo pago del hosting activo. La ausencia de propuesta o suscripción sigue
+siendo `null`; los conteos vacíos permanecen en cero.
+
+La optimización no añade campos de modelo, herramientas ni cambios de schema
+MCP; las clasificaciones de `content/mcp/contracts.py` permanecen vigentes.
+La regresión focal lee un proyecto real anidado por ambos consumidores y
+comprueba valores concretos, además de los contratos y las operaciones MCP de
+crear, actualizar y consultar un cliente inexistente. Se ejecuta sólo con
+`projectapp.settings_test`, sin conectores ni datos del servicio en producción.
