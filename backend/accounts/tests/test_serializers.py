@@ -52,6 +52,7 @@ from accounts.serializers import (
     HostingSubscriptionListSerializer,
     LoginSerializer,
     MoveRequirementSerializer,
+    ProjectDetailSerializer,
     ProjectListSerializer,
     RequirementCommentSerializer,
     RequirementDetailSerializer,
@@ -468,6 +469,33 @@ class TestClientListSerializer:
         assert data['is_onboarded'] is True
         assert data['user_id'] == user.id
 
+    def test_calculates_unprepared_aggregate_values(self):
+        """Fails if detail serializers lose aggregate fallbacks outside prepared list queries."""
+        user = User.objects.create_user(
+            username='fallback-client@test.com', email='fallback-client@test.com', password='pass',
+        )
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        active_project = Project.objects.create(
+            name='Active', client=user, status=Project.STATUS_ACTIVE,
+        )
+        Project.objects.create(name='Archived', client=user, status=Project.STATUS_ARCHIVED)
+        HostingSubscription.objects.create(
+            project=active_project,
+            plan=HostingSubscription.PLAN_QUARTERLY,
+            base_monthly_amount=Decimal('100'),
+            effective_monthly_amount=Decimal('100'),
+            billing_amount=Decimal('300'),
+            start_date=date(2026, 1, 1),
+            next_billing_date=date(2026, 4, 1),
+            status=HostingSubscription.STATUS_ACTIVE,
+        )
+
+        data = ClientListSerializer(profile).data
+
+        assert data['hosting_plan'] == 'quarterly'
+        assert data['active_projects_count'] == 1
+        assert data['total_projects_count'] == 1
+
 
 # =========================================================================
 # ProjectListSerializer (ModelSerializer output)
@@ -504,6 +532,54 @@ class TestProjectListSerializer:
         data = ProjectListSerializer(project).data
 
         assert data['client_name'] == 'fb@test.com'
+
+    def test_detail_calculates_unprepared_aggregate_values(self):
+        """Fails if project detail serialization requires list-only annotations to return aggregates."""
+        user = User.objects.create_user(
+            username='fallback-project@test.com', email='fallback-project@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Fallback project', client=user)
+        proposal = BusinessProposal.objects.create(
+            title='Fallback proposal', client_name='Client', total_investment=Decimal('125.00'),
+        )
+        ProjectPhase.objects.create(project=project, business_proposal=proposal, order=1)
+        BugReport.objects.create(
+            project=project,
+            reported_by=user,
+            title='Open bug',
+            description='x',
+            status=BugReport.STATUS_REPORTED,
+        )
+        ChangeRequest.objects.create(
+            project=project,
+            created_by=user,
+            title='Pending change',
+            description='x',
+            status=ChangeRequest.STATUS_PENDING,
+        )
+        HostingSubscription.objects.create(
+            project=project,
+            plan=HostingSubscription.PLAN_SEMIANNUAL,
+            base_monthly_amount=Decimal('100'),
+            effective_monthly_amount=Decimal('100'),
+            billing_amount=Decimal('600'),
+            start_date=date(2026, 1, 1),
+            next_billing_date=date(2026, 7, 1),
+            status=HostingSubscription.STATUS_ACTIVE,
+        )
+
+        data = ProjectDetailSerializer(project).data
+
+        assert data['proposal_title'] == 'Fallback proposal'
+        assert data['bugs_open_count'] == 1
+        assert data['changes_pending_count'] == 1
+        assert data['phases_total_amount'] == Decimal('125.00')
+        assert data['next_hosting_payment'] == {
+            'date': date(2026, 7, 1),
+            'amount': Decimal('600.00'),
+            'plan': 'semiannual',
+        }
 
 
 # =========================================================================

@@ -5,8 +5,10 @@ en `fix/21092026-perf-platform-lists`. Clientes prepara conteos, actividad y la
 suscripción elegida; proyectos usa agregados independientes y precarga sólo los
 datos necesarios; fases lee el ID del entregable sin cargarlo. Se conservan los
 contratos de listado, orden y permisos, junto a los fallbacks usados por detalle,
-panel y MCP. QA focalizada en curso con presupuestos de consultas y regresiones
-de consumidores. Sin cambios de esquema, flujos de frontend ni despliegue.
+panel y MCP. Los guards comparan una fila con cincuenta, con relaciones distintas
+y un caso vacío; las regresiones cubren orden, permisos, archivado y consumidores.
+El selector de propuesta declara el tipo de PK para combinar fase y vínculo
+legacy en Django. Sin cambios de esquema, flujos de frontend ni despliegue.
 
 **2026-09-19 — formalización de propuestas implementada para revisión:** perfil documental
 curado (comercial y técnico), contrato final, preparación privada con revisión
