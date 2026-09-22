@@ -441,6 +441,55 @@ class ProjectDetailSerializer(ProjectListSerializer):
             'has_admin_password',
         ]
 
+    def _phase_summary(self, obj):
+        """Stream narrow phase rows once for an optimized GET detail instance."""
+        if not hasattr(obj, '_detail_legacy_proposal_id'):
+            return None
+        if hasattr(obj, '_detail_phase_summary'):
+            return obj._detail_phase_summary
+
+        from decimal import Decimal
+
+        summary = {'first': None, 'investment_total': 0, 'monthly_total': Decimal('0')}
+        rows = obj.phases.order_by('order').values(
+            'business_proposal_id', 'business_proposal__title',
+            'business_proposal__total_investment', 'business_proposal__hosting_percent',
+            'business_proposal__hosting_discount_quarterly',
+            'business_proposal__hosting_discount_semiannual',
+            'business_proposal__hosting_discount_nine_month', 'business_proposal__currency',
+        ).iterator(chunk_size=200)
+        for row in rows:
+            if summary['first'] is None:
+                summary['first'] = row
+            investment = row['business_proposal__total_investment'] or 0
+            summary['investment_total'] += investment
+            summary['monthly_total'] += (
+                Decimal(str(investment)) * Decimal(str(row['business_proposal__hosting_percent']))
+                / Decimal('100') / Decimal('12')
+            )
+        obj._detail_phase_summary = summary
+        return summary
+
+    def get_proposal_id(self, obj):
+        summary = self._phase_summary(obj)
+        if summary is None:
+            return super().get_proposal_id(obj)
+        first = summary['first']
+        return first['business_proposal_id'] if first else obj._detail_legacy_proposal_id
+
+    def get_proposal_title(self, obj):
+        summary = self._phase_summary(obj)
+        if summary is None:
+            return super().get_proposal_title(obj)
+        first = summary['first']
+        return first['business_proposal__title'] if first else obj._detail_legacy_proposal_title
+
+    def get_phases_total_amount(self, obj):
+        summary = self._phase_summary(obj)
+        if summary is None:
+            return super().get_phases_total_amount(obj)
+        return summary['investment_total']
+
     def get_hosting_tiers(self, obj):
         """
         Combined hosting tiers computed from all project phases.
@@ -449,25 +498,34 @@ class ProjectDetailSerializer(ProjectListSerializer):
         """
         from decimal import Decimal, ROUND_HALF_UP
 
-        phases = list(obj.phases.select_related('business_proposal').order_by('order'))
-        if not phases:
-            return obj.hosting_tiers or []
+        summary = self._phase_summary(obj)
+        if summary is not None:
+            first = summary['first']
+            if first is None:
+                return obj.hosting_tiers or []
+            total_monthly = summary['monthly_total']
+            disc_q = first['business_proposal__hosting_discount_quarterly']
+            disc_s = first['business_proposal__hosting_discount_semiannual']
+            disc_n = first['business_proposal__hosting_discount_nine_month']
+            currency = str(first['business_proposal__currency'])
+        else:
+            phases = list(obj.phases.select_related('business_proposal').order_by('order'))
+            if not phases:
+                return obj.hosting_tiers or []
 
-        # Sum monthly amounts from all phases
-        total_monthly = Decimal('0')
-        for phase in phases:
-            bp = phase.business_proposal
-            total_inv = Decimal(str(getattr(bp, 'total_investment', 0) or 0))
-            hosting_pct = Decimal(str(getattr(bp, 'hosting_percent', 80)))
-            total_monthly += (total_inv * hosting_pct / Decimal('100') / Decimal('12'))
+            total_monthly = Decimal('0')
+            for phase in phases:
+                bp = phase.business_proposal
+                total_inv = Decimal(str(getattr(bp, 'total_investment', 0) or 0))
+                hosting_pct = Decimal(str(getattr(bp, 'hosting_percent', 80)))
+                total_monthly += (total_inv * hosting_pct / Decimal('100') / Decimal('12'))
+
+            bp1 = phases[0].business_proposal
+            disc_q = getattr(bp1, 'hosting_discount_quarterly', 10)
+            disc_s = getattr(bp1, 'hosting_discount_semiannual', 20)
+            disc_n = getattr(bp1, 'hosting_discount_nine_month', 40)
+            currency = str(getattr(bp1, 'currency', 'COP'))
         total_monthly = total_monthly.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-
-        # Discounts from Phase 1
-        bp1 = phases[0].business_proposal
-        disc_q = getattr(bp1, 'hosting_discount_quarterly', 10)
-        disc_s = getattr(bp1, 'hosting_discount_semiannual', 20)
-        disc_n = getattr(bp1, 'hosting_discount_nine_month', 40)
-        currency = str(getattr(bp1, 'currency', 'COP'))
 
         def _tier(frequency, months, label, badge, discount):
             factor = (Decimal('100') - Decimal(str(discount))) / Decimal('100')
@@ -495,6 +553,8 @@ class ProjectDetailSerializer(ProjectListSerializer):
         return hasattr(obj, 'hosting_subscription')
 
     def get_has_admin_password(self, obj):
+        if hasattr(obj, '_detail_has_admin_access'):
+            return bool(obj.admin_password_encrypted or obj._detail_has_admin_access)
         return bool(
             obj.admin_password_encrypted
             or obj.admin_accesses.exclude(admin_password_encrypted='').exists()

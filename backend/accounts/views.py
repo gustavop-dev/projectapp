@@ -856,6 +856,38 @@ def _project_list_projects(queryset):
     return projects
 
 
+def _project_detail_queryset(queryset):
+    """Resolve scalar detail fields without multiplying independent relations."""
+    from django.db.models import Count, Exists, OuterRef, Subquery, Value
+    from django.db.models.functions import Coalesce
+    from accounts.models import BugReport, ChangeRequest, ProjectAdminAccess
+    from content.models import BusinessProposal
+
+    open_bugs = BugReport.objects.filter(
+        project_id=OuterRef('pk'),
+        status__in=[
+            BugReport.STATUS_REPORTED, BugReport.STATUS_CONFIRMED,
+            BugReport.STATUS_FIXING, BugReport.STATUS_QA,
+        ],
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    pending_changes = ChangeRequest.objects.filter(
+        project_id=OuterRef('pk'), status=ChangeRequest.STATUS_PENDING,
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    legacy_proposals = BusinessProposal.objects.filter(
+        deliverable__project_id=OuterRef('pk'),
+    ).order_by('deliverable_id')
+    admin_accesses = ProjectAdminAccess.objects.filter(
+        project_id=OuterRef('pk'),
+    ).exclude(admin_password_encrypted='')
+    return queryset.select_related('hosting_subscription').annotate(
+        _list_bugs_open_count=Coalesce(Subquery(open_bugs), Value(0)),
+        _list_changes_pending_count=Coalesce(Subquery(pending_changes), Value(0)),
+        _detail_legacy_proposal_id=Subquery(legacy_proposals.values('pk')[:1]),
+        _detail_legacy_proposal_title=Subquery(legacy_proposals.values('title')[:1]),
+        _detail_has_admin_access=Exists(admin_accesses),
+    )
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def project_list_view(request):
@@ -983,10 +1015,11 @@ def project_detail_view(request, project_id):
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
+    queryset = Project.objects.select_related('client', 'client__profile', 'current_state')
+    if request.method == 'GET':
+        queryset = _project_detail_queryset(queryset)
     try:
-        project = Project.objects.select_related(
-            'client', 'client__profile', 'current_state',
-        ).get(id=project_id)
+        project = queryset.get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Proyecto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
