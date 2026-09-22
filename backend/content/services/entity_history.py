@@ -195,15 +195,21 @@ def historical_write(function):
 
 
 class EntityHistoryMiddleware:
+    write_path_prefixes = ('/api/', '/admin/')
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        if (
+            request.method in ('GET', 'HEAD', 'OPTIONS')
+            or not request.path_info.startswith(self.write_path_prefixes)
+        ):
             return self.get_response(request)
         # DRF/JWT sets the underlying request.user during dispatch.
         with history_operation(actor=lambda: getattr(request, 'user', None), source='http'):
-            response = self.get_response(request)
-            if response.status_code >= 400 and _operation.get().before:
-                transaction.set_rollback(True)
-            return response
+            return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        if _operation.get() is not None:
+            transaction.set_rollback(True)

@@ -66,7 +66,12 @@
             </td>
             <td class="px-2.5 py-1.5 last:pr-4 text-center whitespace-nowrap">
               <EntityHistoryRecordButton entity-type="merchant_alias" :record="alias" />
-              <BaseButton variant="danger-ghost" size="sm" @click="$emit('delete', alias)">
+              <BaseButton
+                variant="danger-ghost"
+                size="sm"
+                :data-testid="`statement-alias-delete-${alias.id}`"
+                @click="$emit('delete', alias)"
+              >
                 Eliminar
               </BaseButton>
             </td>

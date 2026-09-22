@@ -54,6 +54,11 @@ por agregado al terminar. Un guardado sin cambios no agrega eventos. Los
 servicios se agrupan con `historical_write`; HTTP y MCP aportan la identidad del
 actor. Los procesos automáticos sin usuario se identifican como Sistema.
 
+El middleware agrupa las escrituras de API y administración. Una excepción no
+controlada revierte la operación; una respuesta de error deliberada conserva las
+escrituras que el servicio haya confirmado, como el diagnóstico de un correo
+fallido. El código HTTP por sí solo no decide el rollback.
+
 `HistoryTrackedModel` y `HistoryQuerySet` cubren save, delete, update,
 bulk_create y bulk_update. En MySQL, las inserciones masivas usan inserciones
 individuales del compilador ORM para recuperar cada PK sin disparar señales de
