@@ -496,7 +496,14 @@ def client_list_view(request):
 def client_detail_view(request, user_id):
     """Get, update, or deactivate a client."""
     try:
-        profile = UserProfile.objects.clients().get(user_id=user_id)
+        profiles = UserProfile.objects.clients().filter(user_id=user_id)
+        if request.method == 'GET':
+            loaded_profiles = _client_list_profiles(profiles)
+            if not loaded_profiles:
+                raise UserProfile.DoesNotExist
+            profile = loaded_profiles[0]
+        else:
+            profile = profiles.get()
     except UserProfile.DoesNotExist:
         return Response(
             {'detail': 'Cliente no encontrado.'},
