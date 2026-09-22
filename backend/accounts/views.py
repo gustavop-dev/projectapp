@@ -832,6 +832,7 @@ def _project_list_projects(queryset):
         ),
         _list_business_proposal_id=Coalesce(
             Subquery(first_phase_proposal), Subquery(legacy_proposal),
+            output_field=BusinessProposal._meta.pk,
         ),
     ).order_by('-updated_at'))
     proposal_ids = {
