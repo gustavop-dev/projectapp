@@ -1,5 +1,14 @@
 # Active Context — ProjectApp
 
+**2026-09-22 — sexta ronda de rendimiento de Plataforma:** continúa en el PR #397.
+Los selectores global y por cliente proyectan sólo los campos que publican;
+el resumen legacy de accesos calcula presencia de contraseña en SQL sin cargar
+accesos ni ciphertext. Se conservan permisos, filtros, orden y tipos, incluidos
+el importe cero y la presencia de secretos con espacios. QA cubre consultas con
+JWT y materialización en pruebas separadas. Los listados siguen completos: su
+caso es conservative y queda pendiente acordar otro contrato para acotar payload
+y memoria bajo carga. Sin cambios de esquema, flujo UI ni despliegue.
+
 **2026-09-22 — quinta ronda de rendimiento de Plataforma:** continúa en el PR #397.
 El detalle GET de cliente reutiliza los agregados del listado; proyecto carga
 agregados independientes y recorre una proyección estrecha de fases una sola vez,
