@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -1781,6 +1781,30 @@ def change_request_evaluate_view(request, project_id, cr_id):
     )
 
 
+def _bulk_evaluation_ids(items, model):
+    """Select possible integer keys without changing each item's dict lookup."""
+    minimum, maximum = connection.ops.integer_field_range(model._meta.pk.get_internal_type())
+    candidate_ids = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        raw_id = item.get('id')
+        # Python dicts match bools and integral floats to integer keys, but
+        # never coerce strings or truncate fractional numbers like the ORM can.
+        if isinstance(raw_id, int):
+            candidate_id = raw_id
+        elif isinstance(raw_id, float) and raw_id.is_integer():
+            candidate_id = int(raw_id)
+        else:
+            continue
+        if minimum is not None and candidate_id < minimum:
+            continue
+        if maximum is not None and candidate_id > maximum:
+            continue
+        candidate_ids.add(candidate_id)
+    return candidate_ids
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_request_bulk_evaluate_view(request, project_id):
@@ -1814,7 +1838,9 @@ def change_request_bulk_evaluate_view(request, project_id):
         )
 
     project_crs = {
-        cr.id: cr for cr in ChangeRequest.objects.filter(project=proj)
+        cr.id: cr for cr in ChangeRequest.objects.filter(
+            project=proj, id__in=_bulk_evaluation_ids(items, ChangeRequest),
+        )
     }
 
     updated_ids = []
@@ -2272,7 +2298,9 @@ def bug_report_bulk_evaluate_view(request, project_id):
         )
 
     project_bugs = {
-        b.id: b for b in BugReport.objects.filter(project=proj)
+        b.id: b for b in BugReport.objects.filter(
+            project=proj, id__in=_bulk_evaluation_ids(items, BugReport),
+        )
     }
 
     updated_ids = []
