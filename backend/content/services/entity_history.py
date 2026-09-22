@@ -7,7 +7,8 @@ from functools import wraps
 from inspect import signature
 import uuid
 
-from django.db import transaction
+from django.db import DEFAULT_DB_ALIAS, transaction
+from django.urls import Resolver404, resolve
 
 from content.services.entity_history_registry import (
     entity_model, field_labels, roots_for, snapshot_entity,
@@ -205,6 +206,12 @@ class EntityHistoryMiddleware:
             request.method in ('GET', 'HEAD', 'OPTIONS')
             or not request.path_info.startswith(self.write_path_prefixes)
         ):
+            return self.get_response(request)
+        try:
+            view = resolve(request.path_info, getattr(request, 'urlconf', None)).func
+        except Resolver404:
+            view = None
+        if DEFAULT_DB_ALIAS in getattr(view, '_non_atomic_requests', set()):
             return self.get_response(request)
         # DRF/JWT sets the underlying request.user during dispatch.
         with history_operation(actor=lambda: getattr(request, 'user', None), source='http'):

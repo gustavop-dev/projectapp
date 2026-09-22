@@ -1876,6 +1876,7 @@ def _bulk_evaluation_ids(items, model):
     return candidate_ids
 
 
+@transaction.non_atomic_requests
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_request_bulk_evaluate_view(request, project_id):
@@ -2336,6 +2337,7 @@ def bug_report_evaluate_view(request, project_id, bug_id):
     )
 
 
+@transaction.non_atomic_requests
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def bug_report_bulk_evaluate_view(request, project_id):

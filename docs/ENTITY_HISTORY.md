@@ -58,6 +58,9 @@ El middleware agrupa las escrituras de API y administración. Una excepción no
 controlada revierte la operación; una respuesta de error deliberada conserva las
 escrituras que el servicio haya confirmado, como el diagnóstico de un correo
 fallido. El código HTTP por sí solo no decide el rollback.
+Se respeta `transaction.non_atomic_requests` en las vistas que requieren
+resultados parciales por elemento: las evaluaciones masivas de solicitudes de
+cambio y bugs, cuyos modelos no forman parte de este histórico.
 
 `HistoryTrackedModel` y `HistoryQuerySet` cubren save, delete, update,
 bulk_create y bulk_update. En MySQL, las inserciones masivas usan inserciones
