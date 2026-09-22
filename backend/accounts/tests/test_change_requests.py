@@ -1,8 +1,11 @@
 import io
+from datetime import datetime, timezone as datetime_timezone
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from PIL import Image
 from rest_framework.test import APIClient
 
@@ -11,11 +14,14 @@ from accounts.models import (
     ChangeRequestComment,
     Deliverable,
     Project,
+    ProjectPhase,
     Requirement,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
+MAX_CHANGE_REQUEST_LIST_QUERIES = 6
 
 
 @pytest.fixture
@@ -140,6 +146,44 @@ def _detail_url(project_id, cr_id, suffix=''):
     return f'/api/accounts/projects/{project_id}/change-requests/{cr_id}/{suffix}'
 
 
+def _create_change_request_rows(project, user, count, *, start=0, add_comments=False):
+    proposals = [
+        BusinessProposal(
+            title=f'Change budget proposal {index}', client_name='Carlos', slug=f'change-budget-{index}',
+        )
+        for index in range(start, start + count)
+    ]
+    persisted_proposals = BusinessProposal.objects.bulk_create(proposals)
+    phases = [
+        ProjectPhase(project=project, business_proposal=proposal, order=index + 10)
+        for index, proposal in enumerate(persisted_proposals, start=start)
+    ]
+    persisted_phases = ProjectPhase.objects.bulk_create(phases)
+    requirements = Requirement.objects.bulk_create([
+        Requirement(
+            phase=phase, title=f'Change budget source {phase.id}',
+            source_flow_key=f'change-budget-source-{phase.id}',
+        )
+        for phase in persisted_phases
+    ])
+    change_requests = ChangeRequest.objects.bulk_create([
+        ChangeRequest(
+            project=project, created_by=user, phase=phase, source_requirement=requirement,
+            title=f'Change budget request {requirement.id}',
+        )
+        for phase, requirement in zip(persisted_phases, requirements)
+    ])
+    if add_comments:
+        ChangeRequestComment.objects.bulk_create([
+            ChangeRequestComment(
+                change_request=change_request, user=user,
+                content=f'Change budget comment {change_request.id}', is_internal=True,
+            )
+            for change_request in change_requests
+        ])
+    return change_requests
+
+
 # =========================================================================
 # List & Filter
 # =========================================================================
@@ -195,6 +239,85 @@ class TestChangeRequestList:
         resp = client.get(_url(project.id), HTTP_AUTHORIZATION=f'Bearer {token}')
 
         assert resp.status_code == 403
+
+    def test_change_request_project_list_query_budget(self, api_client, admin_headers, project, client_user):
+        """Fails if listing change requests restores per-row relation queries."""
+        _create_change_request_rows(project, client_user, 1)
+
+        with CaptureQueriesContext(connection) as one_request_queries:
+            one_request_response = api_client.get(_url(project.id), **admin_headers)
+
+        _create_change_request_rows(project, client_user, 49, start=1, add_comments=True)
+
+        with CaptureQueriesContext(connection) as fifty_request_queries:
+            fifty_request_response = api_client.get(_url(project.id), **admin_headers)
+
+        assert (one_request_response.status_code, fifty_request_response.status_code) == (200, 200)
+        assert (len(one_request_response.json()), len(fifty_request_response.json())) == (1, 50)
+        assert [item['comments_count'] for item in one_request_response.json()] == [0]
+        assert sorted(item['comments_count'] for item in fifty_request_response.json()) == [0] + [1] * 49
+        assert len(one_request_queries) == len(fifty_request_queries)
+        assert len(fifty_request_queries) <= MAX_CHANGE_REQUEST_LIST_QUERIES
+
+    def test_change_request_project_list_sorts_by_created_at(
+        self, api_client, admin_headers, project, client_user,
+    ):
+        """Fails if a comment aggregate drops newest-first request ordering."""
+        older = ChangeRequest.objects.create(project=project, created_by=client_user, title='Older')
+        newer = ChangeRequest.objects.create(project=project, created_by=client_user, title='Newer')
+        ChangeRequest.objects.filter(pk=older.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        ChangeRequest.objects.filter(pk=newer.pk).update(
+            created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [newer.id, older.id]
+
+    def test_change_request_list_filters_phase_id(self, api_client, admin_headers, project, client_user):
+        """Fails if the phase filter returns requests from another project phase."""
+        target, _ = _create_change_request_rows(project, client_user, 2)
+
+        response = api_client.get(f'{_url(project.id)}?phase_id={target.phase_id}', **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [target.id]
+
+    def test_change_request_list_excludes_archived(self, api_client, admin_headers, project, client_user):
+        """Fails if archived requests are visible without the admin archive flag."""
+        visible = ChangeRequest.objects.create(project=project, created_by=client_user, title='Visible')
+        archived = ChangeRequest.objects.create(
+            project=project, created_by=client_user, title='Archived', is_archived=True,
+        )
+
+        default_response = api_client.get(_url(project.id), **admin_headers)
+        archived_response = api_client.get(f'{_url(project.id)}?include_archived=1', **admin_headers)
+
+        assert [item['id'] for item in default_response.json()] == [visible.id]
+        assert {item['id'] for item in archived_response.json()} == {visible.id, archived.id}
+
+    def test_change_request_list_serializes_source_requirement(
+        self, api_client, admin_headers, project, client_user,
+    ):
+        """Fails if the optimized list loses source requirement fields or nulls."""
+        source_request = _create_change_request_rows(project, client_user, 1)[0]
+        source = source_request.source_requirement
+        no_source = ChangeRequest.objects.create(project=project, created_by=client_user, title='No source')
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        by_id = {item['id']: item for item in response.json()}
+        assert by_id[source_request.id]['source_requirement'] == {
+            'id': source.id,
+            'title': source.title,
+            'status': Requirement.STATUS_BACKLOG,
+            'phase_id': source.phase_id,
+            'phase_title': 'Change budget proposal 0',
+        }
+        assert by_id[no_source.id]['source_requirement'] is None
 
 
 # =========================================================================
@@ -744,6 +867,25 @@ class TestChangeRequestAllView:
         resp = api_client.get('/api/accounts/change-requests/')
 
         assert resp.status_code == 401
+
+    def test_change_request_global_list_query_budget(self, api_client, admin_headers, project, client_user):
+        """Fails if the global change request list restores relation queries per row."""
+        _create_change_request_rows(project, client_user, 1)
+
+        with CaptureQueriesContext(connection) as one_request_queries:
+            one_request_response = api_client.get('/api/accounts/change-requests/', **admin_headers)
+
+        _create_change_request_rows(project, client_user, 49, start=1, add_comments=True)
+
+        with CaptureQueriesContext(connection) as fifty_request_queries:
+            fifty_request_response = api_client.get('/api/accounts/change-requests/', **admin_headers)
+
+        assert (one_request_response.status_code, fifty_request_response.status_code) == (200, 200)
+        assert (len(one_request_response.json()), len(fifty_request_response.json())) == (1, 50)
+        assert [item['comments_count'] for item in one_request_response.json()] == [0]
+        assert sorted(item['comments_count'] for item in fifty_request_response.json()) == [0] + [1] * 49
+        assert len(one_request_queries) == len(fifty_request_queries)
+        assert len(fifty_request_queries) <= MAX_CHANGE_REQUEST_LIST_QUERIES
 
 
 # =========================================================================

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone as datetime_timezone
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -286,6 +288,36 @@ class TestRequirementList:
         assert len(fifty_requirement_response.json()) == 50
         assert len(one_requirement_queries) == len(fifty_requirement_queries)
         assert len(fifty_requirement_queries) <= MAX_REQUIREMENT_LIST_QUERIES
+
+    def test_requirement_list_orders_by_order(self, api_client, admin_headers, project, default_phase):
+        """Fails if the comment aggregate drops the Kanban order after grouping."""
+        first_created = Requirement.objects.create(
+            phase=default_phase, title='First created', order=1, source_flow_key='order-first',
+        )
+        latest_created = Requirement.objects.create(
+            phase=default_phase, title='Latest created', order=1, source_flow_key='order-latest',
+        )
+        later_column = Requirement.objects.create(
+            phase=default_phase, title='Later column', order=2, source_flow_key='order-later',
+        )
+        Requirement.objects.filter(pk=first_created.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        Requirement.objects.filter(pk=latest_created.pk).update(
+            created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+        Requirement.objects.filter(pk=later_column.pk).update(
+            created_at=datetime(2026, 1, 3, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [
+            latest_created.id,
+            first_created.id,
+            later_column.id,
+        ]
 
 
 @pytest.mark.django_db

@@ -316,6 +316,33 @@ class TestSubscriptionList:
         assert len(one_subscription_queries) == len(fifty_subscription_queries)
         assert len(fifty_subscription_queries) <= MAX_SUBSCRIPTION_LIST_QUERIES
 
+    def test_subscription_list_orders_by_created_at(
+        self, api_client, admin_headers, client_user,
+    ):
+        """Fails if the payment aggregate drops the subscription creation order."""
+        oldest_project = Project.objects.create(
+            name='Old subscription project', client=client_user, status=Project.STATUS_ACTIVE,
+        )
+        newest_project = Project.objects.create(
+            name='New subscription project', client=client_user, status=Project.STATUS_ACTIVE,
+        )
+        oldest_subscription = _create_subscription(oldest_project)
+        newest_subscription = _create_subscription(newest_project)
+        HostingSubscription.objects.filter(pk=oldest_subscription.pk).update(
+            created_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        HostingSubscription.objects.filter(pk=newest_subscription.pk).update(
+            created_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get('/api/accounts/subscriptions/', **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [
+            newest_subscription.id,
+            oldest_subscription.id,
+        ]
+
     def test_client_does_not_receive_other_clients_subscription(
         self, api_client, admin_user, client_headers,
     ):

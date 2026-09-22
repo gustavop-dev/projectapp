@@ -1,6 +1,10 @@
+from datetime import datetime, timezone as datetime_timezone
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from accounts.models import (
@@ -11,6 +15,7 @@ from accounts.models import (
 )
 
 User = get_user_model()
+MAX_DELIVERABLE_LIST_QUERIES = 6
 
 
 @pytest.fixture
@@ -104,6 +109,41 @@ def _detail_url(project_id, del_id, suffix=''):
     return f'/api/accounts/projects/{project_id}/deliverables/{del_id}/{suffix}'
 
 
+def _create_deliverables_with_versions(project, uploaded_by, count, *, start=0, add_versions=True):
+    deliverables = [
+        Deliverable(
+            project=project,
+            uploaded_by=uploaded_by,
+            title=f'Budget deliverable {index}',
+            category=Deliverable.CATEGORY_OTHER,
+            source_epic_key=f'budget-deliverable-{index}',
+        )
+        for index in range(start, start + count)
+    ]
+    persisted = Deliverable.objects.bulk_create(deliverables)
+    if add_versions:
+        DeliverableVersion.objects.bulk_create([
+            DeliverableVersion(
+                deliverable=deliverable,
+                file=f'deliverables/versions/budget-{deliverable.id}.pdf',
+                version_number=1,
+                uploaded_by=uploaded_by,
+            )
+            for deliverable in persisted
+        ])
+    return persisted
+
+
+def _create_global_deliverables_with_versions(client, uploaded_by, count):
+    projects = [
+        Project(name=f'Budget delivery {index}', client=client)
+        for index in range(count)
+    ]
+    persisted_projects = Project.objects.bulk_create(projects)
+    for index, project in enumerate(persisted_projects):
+        _create_deliverables_with_versions(project, uploaded_by, 1, start=index)
+
+
 # =========================================================================
 # List & Filter
 # =========================================================================
@@ -159,6 +199,66 @@ class TestDeliverableList:
         resp = client.get(_url(project.id), HTTP_AUTHORIZATION=f'Bearer {token}')
 
         assert resp.status_code == 403
+
+    def test_deliverable_project_list_query_budget(self, api_client, admin_headers, project, admin_user):
+        """Fails if listing deliverables restores a version COUNT for every row."""
+        _create_deliverables_with_versions(project, admin_user, 1, add_versions=False)
+
+        with CaptureQueriesContext(connection) as one_deliverable_queries:
+            one_deliverable_response = api_client.get(_url(project.id), **admin_headers)
+
+        _create_deliverables_with_versions(project, admin_user, 49, start=1)
+
+        with CaptureQueriesContext(connection) as fifty_deliverable_queries:
+            fifty_deliverable_response = api_client.get(_url(project.id), **admin_headers)
+
+        assert (one_deliverable_response.status_code, fifty_deliverable_response.status_code) == (200, 200)
+        assert (len(one_deliverable_response.json()), len(fifty_deliverable_response.json())) == (1, 50)
+        assert [item['versions_count'] for item in one_deliverable_response.json()] == [0]
+        assert sorted(item['versions_count'] for item in fifty_deliverable_response.json()) == [0] + [1] * 49
+        assert len(one_deliverable_queries) == len(fifty_deliverable_queries)
+        assert len(fifty_deliverable_queries) <= MAX_DELIVERABLE_LIST_QUERIES
+
+    def test_deliverable_project_list_sorts_categories(self, api_client, admin_headers, project, admin_user):
+        """Fails if a version aggregate removes category and recency ordering."""
+        designs = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='Design', category=Deliverable.CATEGORY_DESIGNS,
+        )
+        older_document = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='Old document', category=Deliverable.CATEGORY_DOCUMENTS,
+        )
+        newer_document = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='New document', category=Deliverable.CATEGORY_DOCUMENTS,
+        )
+        Deliverable.objects.filter(pk=older_document.pk).update(
+            updated_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        Deliverable.objects.filter(pk=newer_document.pk).update(
+            updated_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get(_url(project.id), **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [
+            designs.id, newer_document.id, older_document.id,
+        ]
+
+    def test_deliverable_list_excludes_archived(self, api_client, admin_headers, project, admin_user):
+        """Fails if archived deliverables reappear without the admin archive flag."""
+        visible = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='Visible', category=Deliverable.CATEGORY_OTHER,
+        )
+        archived = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='Archived', category=Deliverable.CATEGORY_OTHER,
+            is_archived=True,
+        )
+
+        default_response = api_client.get(_url(project.id), **admin_headers)
+        archived_response = api_client.get(f'{_url(project.id)}?include_archived=1', **admin_headers)
+
+        assert [item['id'] for item in default_response.json()] == [visible.id]
+        assert {item['id'] for item in archived_response.json()} == {visible.id, archived.id}
 
 
 # =========================================================================
@@ -498,3 +598,48 @@ class TestDeliverableAllView:
         resp = api_client.get('/api/accounts/deliverables/')
 
         assert resp.status_code == 401
+
+    def test_deliverable_global_list_query_budget(self, api_client, admin_headers, client_user, admin_user):
+        """Fails if the global deliverable list restores per-row version queries."""
+        first_project = Project.objects.create(name='Budget delivery one', client=client_user)
+        _create_deliverables_with_versions(first_project, admin_user, 1, add_versions=False)
+
+        with CaptureQueriesContext(connection) as one_deliverable_queries:
+            one_deliverable_response = api_client.get('/api/accounts/deliverables/', **admin_headers)
+
+        _create_global_deliverables_with_versions(client_user, admin_user, 49)
+
+        with CaptureQueriesContext(connection) as fifty_deliverable_queries:
+            fifty_deliverable_response = api_client.get('/api/accounts/deliverables/', **admin_headers)
+
+        assert (one_deliverable_response.status_code, fifty_deliverable_response.status_code) == (200, 200)
+        assert (len(one_deliverable_response.json()), len(fifty_deliverable_response.json())) == (1, 50)
+        assert [item['versions_count'] for item in one_deliverable_response.json()] == [0]
+        assert sorted(item['versions_count'] for item in fifty_deliverable_response.json()) == [0] + [1] * 49
+        assert len(one_deliverable_queries) == len(fifty_deliverable_queries)
+        assert len(fifty_deliverable_queries) <= MAX_DELIVERABLE_LIST_QUERIES
+
+    def test_deliverable_global_list_sorts_categories(self, api_client, admin_headers, project, admin_user):
+        """Fails if the global annotation drops category and recency ordering."""
+        newest_design = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='Design', category=Deliverable.CATEGORY_DESIGNS,
+        )
+        older_document = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='Old document', category=Deliverable.CATEGORY_DOCUMENTS,
+        )
+        newer_document = Deliverable.objects.create(
+            project=project, uploaded_by=admin_user, title='New document', category=Deliverable.CATEGORY_DOCUMENTS,
+        )
+        Deliverable.objects.filter(pk=older_document.pk).update(
+            updated_at=datetime(2026, 1, 1, tzinfo=datetime_timezone.utc),
+        )
+        Deliverable.objects.filter(pk=newer_document.pk).update(
+            updated_at=datetime(2026, 1, 2, tzinfo=datetime_timezone.utc),
+        )
+
+        response = api_client.get('/api/accounts/deliverables/', **admin_headers)
+
+        assert response.status_code == 200
+        assert [item['id'] for item in response.json()] == [
+            newest_design.id, newer_document.id, older_document.id,
+        ]

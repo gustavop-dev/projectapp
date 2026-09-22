@@ -8,7 +8,9 @@ from rest_framework.test import APIRequestFactory
 
 from accounts.models import (
     BugReport,
+    BugComment,
     ChangeRequest,
+    ChangeRequestComment,
     Deliverable,
     DeliverableClientFolder,
     DeliverableClientUpload,
@@ -743,6 +745,65 @@ class TestRequirementListSerializerCommentsCount:
         data = RequirementListSerializer(req).data
 
         assert data['comments_count'] == 0
+
+
+# =========================================================================
+# List serializer unannotated count fallbacks
+# =========================================================================
+
+@pytest.mark.django_db
+class TestListSerializerAnnotatedCounts:
+    def test_deliverable_list_serializer_falls_back_to_versions_count(self):
+        """Fails if an unannotated deliverable loses its real version count."""
+        user = User.objects.create_user(
+            username='deliverable-count@test.com', email='deliverable-count@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Deliverable count project', client=user)
+        deliverable = Deliverable.objects.create(
+            project=project, uploaded_by=user, title='Versioned deliverable', category=Deliverable.CATEGORY_OTHER,
+        )
+        DeliverableVersion.objects.create(
+            deliverable=deliverable, file='deliverables/versions/fallback.pdf', version_number=1, uploaded_by=user,
+        )
+
+        data = DeliverableListSerializer(deliverable).data
+
+        assert data['versions_count'] == 1
+
+    def test_change_request_list_serializer_falls_back_to_comments_count(self):
+        """Fails if an unannotated change request omits internal comments from its count."""
+        user = User.objects.create_user(
+            username='change-count@test.com', email='change-count@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Change count project', client=user)
+        change_request = ChangeRequest.objects.create(project=project, created_by=user, title='Count comments')
+        ChangeRequestComment.objects.bulk_create([
+            ChangeRequestComment(change_request=change_request, user=user, content='Public'),
+            ChangeRequestComment(change_request=change_request, user=user, content='Internal', is_internal=True),
+        ])
+
+        data = ChangeRequestListSerializer(change_request).data
+
+        assert data['comments_count'] == 2
+
+    def test_bug_report_list_serializer_falls_back_to_comments_count(self):
+        """Fails if an unannotated bug report omits internal comments from its count."""
+        user = User.objects.create_user(
+            username='bug-count@test.com', email='bug-count@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Bug count project', client=user)
+        bug = BugReport.objects.create(project=project, reported_by=user, title='Count comments')
+        BugComment.objects.bulk_create([
+            BugComment(bug_report=bug, user=user, content='Public'),
+            BugComment(bug_report=bug, user=user, content='Internal', is_internal=True),
+        ])
+
+        data = BugReportListSerializer(bug).data
+
+        assert data['comments_count'] == 2
 
 
 # =========================================================================
