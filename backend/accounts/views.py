@@ -1089,12 +1089,35 @@ def project_detail_view(request, project_id):
 @permission_classes([IsAuthenticated, IsAdminRole])
 def project_access_list_view(request):
     """Deprecated admin summary without plaintext credentials."""
+    from django.db.models import BooleanField, Case, Exists, OuterRef, Value, When
+    from django.db.models.functions import Length
+
+    from accounts.models import ProjectAdminAccess
+
+    accesses_with_password = (
+        ProjectAdminAccess.objects.filter(project_id=OuterRef('pk'))
+        .alias(_password_length=Length('admin_password_encrypted'))
+        .filter(_password_length__gt=0)
+    )
 
     qs = (
         Project.objects.select_related(
             'client', 'client__profile', 'current_state',
         )
-        .prefetch_related('admin_accesses')
+        .alias(_legacy_password_length=Length('admin_password_encrypted'))
+        .annotate(_access_has_password=Case(
+            When(_legacy_password_length__gt=0, then=Value(True)),
+            default=Exists(accesses_with_password),
+            output_field=BooleanField(),
+        ))
+        .only(
+            'id', 'name', 'client_id', 'current_state_id',
+            'production_url', 'staging_url', 'repository_url',
+            'client__id', 'client__first_name', 'client__last_name', 'client__email',
+            'client__profile__user_id', 'client__profile__company_name',
+            'current_state__id', 'current_state__system_key',
+            'current_state__slug', 'current_state__name',
+        )
         .exclude(status=Project.STATUS_ARCHIVED)
         .exclude(current_state__operational_effect='decommissioned')
         .order_by('name')
@@ -1122,10 +1145,7 @@ def project_access_list_view(request):
             'production_url': p.production_url,
             'staging_url': p.staging_url,
             'repository_url': p.repository_url,
-            'has_password': bool(
-                p.admin_password_encrypted
-                or any(a.admin_password_encrypted for a in p.admin_accesses.all())
-            ),
+            'has_password': p._access_has_password,
         })
 
     return Response(data)
