@@ -10,8 +10,10 @@ from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from accounts.models import Project, ProjectAdminAccess, UserProfile
+from accounts.services.credential_cipher import encrypt_secret
 from accounts.services.tokens import get_tokens_for_user
 from content.models import BusinessProposal, DocumentState, DocumentStateGroup
+from content.services.entity_history import without_history
 
 
 User = get_user_model()
@@ -270,7 +272,8 @@ class TestEligibleProposalQueryBudgets:
 class TestProjectAccessQueryBudgets:
     def test_access_list_treats_whitespace_legacy_secret_as_present(self, api_client, admin_headers):
         """Fails if whitespace-only legacy ciphertext is treated as no password."""
-        project = _project(1, _client(1), legacy_secret=' ')
+        with without_history():
+            project = _project(1, _client(1), legacy_secret=' ')
 
         response = api_client.get(PROJECT_ACCESS_URL, **admin_headers)
 
@@ -281,11 +284,12 @@ class TestProjectAccessQueryBudgets:
     def test_access_list_treats_whitespace_environment_secret_as_present(self, api_client, admin_headers):
         """Fails if whitespace-only environment ciphertext is treated as no password."""
         project = _project(1, _client(1))
-        ProjectAdminAccess.objects.create(
-            project=project,
-            environment=ProjectAdminAccess.Environment.PRODUCTION,
-            admin_password_encrypted=' ',
-        )
+        with without_history():
+            ProjectAdminAccess.objects.create(
+                project=project,
+                environment=ProjectAdminAccess.Environment.PRODUCTION,
+                admin_password_encrypted=' ',
+            )
 
         response = api_client.get(PROJECT_ACCESS_URL, **admin_headers)
 
@@ -344,7 +348,7 @@ class TestProjectAccessQueryBudgets:
             ProjectAdminAccess.objects.create(
                 project=project,
                 environment=ProjectAdminAccess.Environment.STAGING,
-                admin_password_encrypted='encrypted-access',
+                admin_password_encrypted=encrypt_secret('access-password'),
             )
         with CaptureQueriesContext(connection) as fifty_queries:
             fifty_response = api_client.get(PROJECT_ACCESS_URL, **admin_headers)
@@ -354,7 +358,7 @@ class TestProjectAccessQueryBudgets:
 
     def test_access_list_defers_legacy_ciphertext(self, api_client, admin_headers):
         """Fails if access summary hydrates legacy ciphertext for each project."""
-        _project(1, _client(1), legacy_secret='legacy-ciphertext')
+        _project(1, _client(1), legacy_secret=encrypt_secret('legacy-password'))
         _project(2, _client(2))
         deferred_columns = []
 
@@ -377,7 +381,7 @@ class TestProjectAccessQueryBudgets:
         ProjectAdminAccess.objects.create(
             project=project,
             environment=ProjectAdminAccess.Environment.PRODUCTION,
-            admin_password_encrypted='encrypted-access',
+            admin_password_encrypted=encrypt_secret('access-password'),
         )
         initialized_access_ids = []
 

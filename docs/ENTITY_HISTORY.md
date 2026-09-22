@@ -80,8 +80,10 @@ API interna. El envío repetido de la misma preparación no duplica esa marca.
 
 ## Inicialización y despliegue
 
-Las migraciones aditivas `content.0250` y `content.0251` crean las tablas y el
-resumen liviano de campos. Las aplica el deploy; no ejecutar migraciones ni la
+Las migraciones `0250_entityhistory_entityrevision` y
+`0251_entityrevision_changed_fields` crean las tablas y el resumen liviano de
+campos. `0252_merge_history_and_branding` une esta cadena con las migraciones de
+marca y Linktrees, sin operaciones adicionales. Las aplica el deploy; no ejecutar migraciones ni la
 inicialización desde un worktree enlazado a una base real.
 
 Después de las migraciones, en el entorno de despliegue autorizado:
