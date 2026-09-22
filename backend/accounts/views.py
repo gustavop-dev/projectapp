@@ -1450,6 +1450,40 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+_SOURCE_REQUIREMENT_LIST_FIELDS = (
+    'source_requirement__id',
+    'source_requirement__title',
+    'source_requirement__status',
+    'source_requirement__phase_id',
+    'source_requirement__phase__id',
+    'source_requirement__phase__order',
+    'source_requirement__phase__business_proposal_id',
+    'source_requirement__phase__business_proposal__id',
+    'source_requirement__phase__business_proposal__title',
+)
+
+
+def _change_request_list_queryset(qs):
+    """Load the list payload without per-row counts or proposal content."""
+    from django.db.models import Count
+
+    return (
+        qs.select_related('created_by', 'project', 'source_requirement__phase__business_proposal')
+        .only(
+            'id', 'project_id', 'created_by_id', 'source_requirement_id', 'phase_id',
+            'title', 'description', 'module_or_screen', 'suggested_priority',
+            'is_urgent', 'status', 'admin_response', 'estimated_cost', 'estimated_time',
+            'linked_requirement_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'created_by__id', 'created_by__first_name', 'created_by__last_name',
+            'created_by__email', 'project__id', 'project__name',
+            *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        )
+        .annotate(_comments_count=Count('comments'))
+        .order_by('-created_at')
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def change_request_all_view(request):
@@ -1461,12 +1495,11 @@ def change_request_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = ChangeRequest.objects.select_related('created_by', 'project').all()
+        qs = ChangeRequest.objects.all()
     else:
-        qs = ChangeRequest.objects.select_related('created_by', 'project').filter(
-            project__client=request.user,
-        )
+        qs = ChangeRequest.objects.filter(project__client=request.user)
 
+    qs = _change_request_list_queryset(qs)
     qs = filter_change_requests_for_list(qs, request, is_admin=is_admin)
 
     status_filter = request.query_params.get('status')
@@ -1498,7 +1531,7 @@ def change_request_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = ChangeRequest.objects.filter(project=proj).select_related('created_by')
+        qs = _change_request_list_queryset(ChangeRequest.objects.filter(project=proj))
         qs = filter_change_requests_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
