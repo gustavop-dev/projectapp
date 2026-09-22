@@ -4677,7 +4677,7 @@ def project_phases_reorder_view(request, project_id):
 def client_eligible_proposals_view(request, user_id):
     """Returns 'signed' BusinessProposals (status accepted/finished) for the
     client that are not already attached to any project as a phase."""
-    user = User.objects.filter(id=user_id).first()
+    user = User.objects.only('id', 'email').filter(id=user_id).first()
     if user is None:
         return Response({'detail': 'client_not_found'}, status=404)
 
@@ -4687,7 +4687,7 @@ def client_eligible_proposals_view(request, user_id):
         status__in=['accepted', 'finished'],
     ).exclude(
         project_phases__isnull=False,
-    ).order_by('-id')
+    ).only('id', 'title', 'status', 'total_investment').order_by('-id')
 
     data = [
         {
