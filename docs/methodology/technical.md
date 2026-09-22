@@ -1,5 +1,7 @@
 # Technical Documentation — ProjectApp
 
+> **Historial por registro — 2026-09-22:** migraciones aditivas `content.0250–0251`; inicialización reanudable `initialize_entity_history` después del deploy. Lecturas session/CSRF solo admin (Contable: superuser), veinte resúmenes por página; snapshots y PDFs a demanda. Mantener archivos y `PROJECT_ACCESS_CIPHER_KEY` junto con los backups. Los nuevos escritores deben usar servicios/`history_operation`; no SQL directo. Véase `docs/ENTITY_HISTORY.md`.
+
 > **Controles públicos comerciales — 2026-09-19:** el tema claro se restablece
 > explícitamente dentro del scope público, incluso si el panel dejó `.dark` en
 > un ancestro. Se preservan las claves `projectapp-additional-modules-theme` y

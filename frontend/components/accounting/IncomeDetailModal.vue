@@ -15,6 +15,7 @@
     @close="emit('close')"
   >
     <div data-testid="income-detail-modal">
+      <EntityHistorySection v-if="open && income?.id" entity-type="income" :object-id="income.id" class="mx-5" />
       <div class="px-6 pt-6 pb-4 border-b border-border-muted">
         <h3 id="income-detail-title" class="text-lg font-bold text-text-default">
           {{ income?.concept || 'Ingreso' }}
@@ -216,6 +217,7 @@
 </template>
 
 <script setup>
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { computed, ref, watch } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';

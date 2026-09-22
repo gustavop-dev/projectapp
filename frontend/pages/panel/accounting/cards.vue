@@ -127,6 +127,9 @@
             {{ formatMoney(Number(row.debt_amount)) }}
           </span>
         </template>
+        <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="card_snapshot" :record="row" />
+        </template>
       </AccountingTable>
 
       <BasePagination
@@ -170,6 +173,7 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted } from 'vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
+
 from content.utils import safe_slug
 
 
@@ -230,7 +232,7 @@ class DocumentState(models.Model):
         super().save(*args, **kwargs)
 
 
-class DocumentStateEpisode(models.Model):
+class DocumentStateEpisode(HistoryTrackedModel):
     """One state occurrence for exactly one document or project."""
 
     class Outcome(models.TextChoices):

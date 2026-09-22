@@ -163,6 +163,7 @@ DERIVED_MODELS = {
     'content.DocumentStateEpisodeEvent', 'content.EmailAttachmentSnapshot',
     'content.EmailBody', 'content.EmailDeliverySnapshot',
     'content.EmailLinkSnapshot', 'content.EmailLogTarget',
+    'content.EntityHistory', 'content.EntityRevision',
     'content.FinancingAgreementEvent',
     'content.FinancingAgreementNumberSequence',
     'content.HostingCycle', 'content.LinktreeButton',

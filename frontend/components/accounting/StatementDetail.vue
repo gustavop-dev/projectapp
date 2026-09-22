@@ -1,5 +1,6 @@
 <template>
   <section class="bg-surface rounded-xl border border-border-muted shadow-sm" data-testid="statement-detail">
+    <EntityHistorySection entity-type="statement" :object-id="statement.id" class="mx-5" />
     <header class="flex flex-col gap-3 border-b border-border-muted px-5 py-4 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
       <div>
         <h2 class="text-base font-medium text-text-default">
@@ -283,6 +284,7 @@
               </span>
             </td>
             <td class="px-2.5 py-1.5 last:pr-4 text-center whitespace-nowrap">
+              <EntityHistoryRecordButton entity-type="statement_tx" :record="tx" />
               <BaseButton
                 variant="ghost"
                 size="sm"
@@ -302,6 +304,8 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { computed, ref } from 'vue';
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';

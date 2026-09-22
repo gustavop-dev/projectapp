@@ -362,7 +362,7 @@ export const viewCatalogSections = [
         group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/[id]/edit.vue',
         reference: 'vista de edicion/detalle de propuesta del panel',
-        notes: 'Usa el id interno de la propuesta. Documentos permite descargar anexos formales curados y preparar un correo con contrato final, adjuntos seleccionables y revisión previa de los archivos exactos.',
+        notes: 'Usa el id interno de la propuesta. Documentos permite descargar anexos formales curados y preparar un correo con contrato final, adjuntos seleccionables y revisión previa de los archivos exactos. Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
         audience: 'admin',
         viewType: 'edit',
       },
@@ -421,6 +421,7 @@ export const viewCatalogSections = [
         reference: 'vista de clientes del panel',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Blog del panel',
@@ -574,6 +575,7 @@ export const viewCatalogSections = [
         reference: 'vista de edición de documento',
         audience: 'admin',
         viewType: 'edit',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Estados de documentos',
@@ -665,6 +667,7 @@ export const viewCatalogSections = [
         reference: 'modulo de proyectos: ciclo real, filtros, creacion, edicion, historico y accesos en modal',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Estados de proyectos',
@@ -709,6 +712,7 @@ export const viewCatalogSections = [
         reference: 'vista de ingresos esperados y liquidos del modulo contable con estado de cobro por ingreso',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Gastos',
@@ -718,6 +722,7 @@ export const viewCatalogSections = [
         reference: 'vista de gastos del modulo contable',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Hostings',
@@ -727,6 +732,7 @@ export const viewCatalogSections = [
         reference: 'vista de hostings activos por cliente del modulo contable',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Bolsillo',
@@ -736,6 +742,7 @@ export const viewCatalogSections = [
         reference: 'vista del bolsillo ProjectApp con movimientos y saldo',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Recurrentes',
@@ -745,6 +752,7 @@ export const viewCatalogSections = [
         reference: 'vista de pagos frecuentes mensuales del modulo contable',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Ads',
@@ -754,6 +762,7 @@ export const viewCatalogSections = [
         reference: 'vista del registro de gastos en ads del modulo contable',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Tarjetas',
@@ -763,6 +772,7 @@ export const viewCatalogSections = [
         reference: 'vista de cortes semanales de tarjetas de credito del modulo contable',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Extractos',
@@ -772,6 +782,7 @@ export const viewCatalogSections = [
         reference: 'vista de extractos mensuales de tarjeta de credito del modulo contable',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Cuentas de cobro',
@@ -781,6 +792,7 @@ export const viewCatalogSections = [
         reference: 'centro de gestion de cuentas de cobro: creacion con preview, envio y seguimiento',
         audience: 'admin',
         viewType: 'list',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Historial',
@@ -790,6 +802,7 @@ export const viewCatalogSections = [
         reference: 'vista del log historico de cambios del modulo contable',
         audience: 'admin',
         viewType: 'readonly',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
       {
         label: 'Contabilidad — Configuración',
@@ -799,6 +812,7 @@ export const viewCatalogSections = [
         reference: 'vista de configuracion de notificaciones del modulo contable',
         audience: 'admin',
         viewType: 'config',
+        notes: 'Historial por registro con fecha, autor, valores anteriores y consulta de versiones; acceso interno.',
       },
     ],
   },

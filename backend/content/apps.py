@@ -8,3 +8,4 @@ class ContentConfig(AppConfig):
     def ready(self):
         import projectapp.tasks  # noqa: F401 — Huey periodic task discovery
         import content.signals  # noqa: F401
+        import content.services.entity_history_signals  # noqa: F401

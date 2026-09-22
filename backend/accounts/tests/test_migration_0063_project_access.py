@@ -6,6 +6,7 @@ import pytest
 from django.apps import apps
 
 from accounts.models import ProjectAdminAccess
+from accounts.services.credential_cipher import encrypt_secret
 
 
 pytestmark = pytest.mark.django_db
@@ -13,11 +14,12 @@ migration = import_module('accounts.migrations.0063_projectaccessnote_projectadm
 
 
 def test_legacy_access_moves_when_production_hostname_matches(project):
+    encrypted_password = encrypt_secret('legacy-password')
     project.production_url = 'https://product.example.test'
     project.staging_url = 'https://staging.example.test'
     project.admin_url = 'https://product.example.test/admin/'
     project.admin_username = 'legacy-admin'
-    project.admin_password_encrypted = 'encrypted-token'
+    project.admin_password_encrypted = encrypted_password
     project.save(update_fields=[
         'production_url', 'staging_url', 'admin_url',
         'admin_username', 'admin_password_encrypted',
@@ -29,7 +31,7 @@ def test_legacy_access_moves_when_production_hostname_matches(project):
     access = ProjectAdminAccess.objects.get(project=project)
     assert access.environment == ProjectAdminAccess.Environment.PRODUCTION
     assert access.admin_username == 'legacy-admin'
-    assert access.admin_password_encrypted == 'encrypted-token'
+    assert access.admin_password_encrypted == encrypted_password
     assert project.admin_url == ''
 
 

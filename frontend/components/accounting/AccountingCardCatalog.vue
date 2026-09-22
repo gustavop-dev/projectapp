@@ -1,4 +1,5 @@
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { onMounted, ref } from 'vue'
 import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
@@ -133,6 +134,7 @@ function requestDelete(row) {
         class="rounded-lg border border-border-muted p-3 space-y-3"
         :data-testid="`card-catalog-row-${row.key}`"
       >
+        <EntityHistoryRecordButton v-if="row.id" entity-type="credit_card" :record="row" />
         <BaseFormRow :cols="3" :gap="3">
           <BaseFormField label="Nombre" required>
             <BaseInput

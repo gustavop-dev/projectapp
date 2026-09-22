@@ -5,13 +5,15 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+from content.models.history_tracked import HistoryTrackedModel, HistoryQuerySet
 from django.db.models.functions import NullIf
 from django.utils import timezone
 
 from accounts.services.image_utils import optimize_avatar, optimize_image
 
 
-class UserProfileQuerySet(models.QuerySet):
+class UserProfileQuerySet(HistoryQuerySet):
     def clients(self):
         return self.filter(role=UserProfile.ROLE_CLIENT).select_related('user')
 
@@ -23,7 +25,7 @@ class UserProfileManager(models.Manager.from_queryset(UserProfileQuerySet)):
     pass
 
 
-class UserProfile(models.Model):
+class UserProfile(HistoryTrackedModel):
     """
     Extends auth.User with platform-specific fields.
     One-to-one relationship to avoid changing AUTH_USER_MODEL.
@@ -386,7 +388,7 @@ class VerificationCode(models.Model):
         )
 
 
-class Project(models.Model):
+class Project(HistoryTrackedModel):
     """
     A client project managed through the platform.
     Each project belongs to a single client (User with client role).
@@ -503,7 +505,7 @@ class Project(models.Model):
         )
 
 
-class ProjectAdminAccess(models.Model):
+class ProjectAdminAccess(HistoryTrackedModel):
     """Django-admin access for one fixed project environment.
 
     The password is always a Fernet token. Plaintext only exists for the
@@ -547,7 +549,7 @@ class ProjectAdminAccess(models.Model):
         return f'{self.project.name} — {self.get_environment_display()}'
 
 
-class ProjectAccessNote(models.Model):
+class ProjectAccessNote(HistoryTrackedModel):
     """Encrypted operational note attached to a project's access detail."""
 
     project = models.ForeignKey(

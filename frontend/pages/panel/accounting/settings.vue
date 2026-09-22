@@ -9,6 +9,7 @@
     </div>
 
     <AccountingSubnav active="settings" />
+    <EntityHistorySection entity-type="settings" :object-id="1" />
 
     <!-- Error -->
     <AccountingErrorState
@@ -330,6 +331,7 @@
 </template>
 
 <script setup>
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { computed, onMounted, ref } from 'vue';
 import AccountingCardCatalog from '~/components/accounting/AccountingCardCatalog.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

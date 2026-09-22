@@ -249,8 +249,8 @@
       </div>
     </BaseAlert>
 
+    <EntityHistoryTabs v-else-if="documentStore.currentDocument" entity-type="document" :object-id="route.params.id">
     <form
-      v-else-if="documentStore.currentDocument"
       id="doc-edit-form"
       class="grid grid-cols-1 gap-6 panel-landscape:grid-cols-[20rem_minmax(0,1fr)] panel-desktop:grid-cols-[24rem_minmax(0,1fr)]"
       @submit.prevent="handleSave"
@@ -729,6 +729,7 @@
 
       </section>
     </form>
+    </EntityHistoryTabs>
 
     <DocumentClientNoteModal
       v-model="showClientNote"
@@ -810,6 +811,7 @@
 </template>
 
 <script setup>
+import EntityHistoryTabs from '~/components/history/EntityHistoryTabs.vue';
 import { reactive, ref, computed, onMounted, nextTick } from 'vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import DocumentPdfPreviewModal from '~/components/panel/documents/DocumentPdfPreviewModal.vue';

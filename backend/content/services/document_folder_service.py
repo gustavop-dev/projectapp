@@ -18,6 +18,7 @@ Modos (el operador elige cada vez; no hay default):
 - ``propagate``: el contenido alcanzable sigue a la carpeta al nuevo cliente.
 - ``folder_only``: sólo cambia la carpeta; el contenido se queda como está.
 """
+from content.services.entity_history import historical_write
 import logging
 
 from django.db import transaction
@@ -181,6 +182,7 @@ def _reassign(entity_type, record, new_user, user):
     accounting_service.log_entity_diff(entity_type, record, old_values, user)
 
 
+@historical_write
 @transaction.atomic
 def change_client_apply(folder, new_profile, mode, user):
     """Mueve la carpeta a ``new_profile`` y hace la cascada según ``mode``.

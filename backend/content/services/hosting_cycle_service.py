@@ -11,6 +11,7 @@ Registering a cycle payment optionally advances `valid_to` by the paid
 period (payment = renewal), which also re-arms the expiry notice cadence
 via hosting_expiry_service's target snapshot.
 """
+from content.services.entity_history import historical_write
 import logging
 
 from django.db.models import Sum
@@ -41,6 +42,7 @@ def recalculate_hosting_totals(hosting):
     )
 
 
+@historical_write
 def register_cycle_payment(hosting, *, data, user=None):
     """Append a paid cycle, recalc totals and (optionally) extend valid_to.
 
@@ -81,6 +83,7 @@ def register_cycle_payment(hosting, *, data, user=None):
     return cycle
 
 
+@historical_write
 def delete_cycle(hosting, cycle, *, user=None):
     """Remove a cycle and recalc. Does NOT roll back valid_to."""
     old_values = snapshot_values(hosting, EntityType.HOSTING)

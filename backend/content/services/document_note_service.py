@@ -1,3 +1,4 @@
+from content.services.entity_history import historical_write
 from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
@@ -41,6 +42,7 @@ def sync_legacy_notes(document, *, actor=None):
     ])
 
 
+@historical_write
 @transaction.atomic
 def create_note(
     document,
@@ -87,6 +89,7 @@ def create_note(
     )
 
 
+@historical_write
 def update_note(note, *, title=None, content=None):
     if note.deleted_at is not None:
         raise DocumentNoteError(
@@ -109,6 +112,7 @@ def update_note(note, *, title=None, content=None):
     return note
 
 
+@historical_write
 @transaction.atomic
 def finish_note(
     note,
@@ -186,6 +190,7 @@ def finish_note(
     }
 
 
+@historical_write
 @transaction.atomic
 def delete_notes(document, *, note_ids, actor=None):
     """Soft-delete one or more notes atomically and reconcile note states."""
@@ -278,6 +283,7 @@ def delete_notes(document, *, note_ids, actor=None):
     }
 
 
+@historical_write
 @transaction.atomic
 def restore_note(note, *, actor=None):
     """Restore a soft-deleted note, reopening its note-origin state if needed."""

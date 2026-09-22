@@ -1,4 +1,5 @@
 <script setup>
+import EntityHistoryTabs from '~/components/history/EntityHistoryTabs.vue';
 import { computed } from 'vue'
 import ProjectAccessEditor from '~/components/projects/ProjectAccessEditor.vue'
 import { createProjectAccessApi } from '~/services/projectAccessApi'
@@ -53,7 +54,9 @@ const api = computed(() => {
         />
       </header>
       <div class="min-h-0 flex-1 overflow-y-auto p-4 panel-portrait:p-6">
-        <ProjectAccessEditor :key="project.id" :api="api" />
+        <EntityHistoryTabs entity-type="project" :object-id="project.id">
+          <ProjectAccessEditor :key="project.id" :api="api" />
+        </EntityHistoryTabs>
       </div>
     </div>
   </BaseModal>

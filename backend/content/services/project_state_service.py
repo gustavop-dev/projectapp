@@ -9,6 +9,7 @@ run instead of applying a stale financial decision.
 
 from __future__ import annotations
 
+from content.services.entity_history import historical_write
 import hashlib
 import json
 from datetime import datetime
@@ -104,6 +105,7 @@ def project_state_suggestion(project):
     }
 
 
+@historical_write
 @transaction.atomic
 def merge_project_states(source, target, *, actor=None):
     source = DocumentState.objects.select_for_update().get(pk=source.pk)
@@ -453,6 +455,7 @@ def _apply_terminal_effects(project, impact, resolutions, actor):
             _write_off_income(income, actor)
 
 
+@historical_write
 @transaction.atomic
 def apply_transition(
     project,

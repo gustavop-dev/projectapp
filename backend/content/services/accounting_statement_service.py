@@ -28,6 +28,7 @@ from content.models import (
 from content.serializers.accounting import month_label
 from content.utils import today_bogota
 from content.services import accounting_service
+from content.services.entity_history import historical_write
 from content.services.accounting_service import (
     TRACKED_FIELDS,
     Action,
@@ -86,6 +87,7 @@ def _apply_alias(tx):
 
 # ── Statement lifecycle ──
 
+@historical_write
 @transaction.atomic
 def create_statement_with_transactions(
     statement_serializer, transactions_serializer, user,
@@ -127,6 +129,7 @@ def create_statement_with_transactions(
     return statement
 
 
+@historical_write
 @transaction.atomic
 def add_transactions(statement, transactions_serializer, user):
     """Batch-append transactions to a DRAFT statement (silent audit)."""
@@ -251,21 +254,21 @@ def _log_pdf_change(statement, old_name, new_name, user):
     )
 
 
+@historical_write
 def attach_statement_pdf(statement, file, user):
     """Attach (or replace) the bank PDF of a statement."""
     old_name = Path(statement.pdf_file.name).name if statement.pdf_file else ''
-    if statement.pdf_file:
-        statement.pdf_file.delete(save=False)
+    # Earlier versions retain their bytes even when the current attachment changes.
     statement.pdf_file = file
     statement.save(update_fields=['pdf_file', 'updated_at'])
     _log_pdf_change(statement, old_name, Path(file.name).name, user)
     return statement
 
 
+@historical_write
 def remove_statement_pdf(statement, user):
-    """Delete the attached bank PDF from the statement and storage."""
+    """Detach the current PDF while retaining historical versions in storage."""
     old_name = Path(statement.pdf_file.name).name
-    statement.pdf_file.delete(save=False)
     statement.pdf_file = None
     statement.save(update_fields=['pdf_file', 'updated_at'])
     _log_pdf_change(statement, old_name, '', user)
@@ -312,6 +315,7 @@ def resolve_merchants(raw_descriptions):
     }
 
 
+@historical_write
 @transaction.atomic
 def save_merchant_aliases(aliases_data, user, statement_id=None):
     """Upsert owner-approved aliases; optionally apply them to a draft.

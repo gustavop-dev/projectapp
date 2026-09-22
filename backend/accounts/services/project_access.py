@@ -1,5 +1,6 @@
 """Business rules for secure project URLs, credentials, and notes."""
 
+from content.services.entity_history import historical_write
 from django.db import transaction
 
 from accounts.models import ProjectAccessNote, ProjectAdminAccess
@@ -86,6 +87,7 @@ def serialize_project_access(project):
     }
 
 
+@historical_write
 def update_access_field(project, validated_data, actor):
     field = validated_data['field']
     value = validated_data[field]
@@ -125,6 +127,7 @@ def reveal_environment_password(project, environment):
     return decrypt_secret(access.admin_password_encrypted)
 
 
+@historical_write
 def delete_environment_password(project, environment, actor):
     access = project.admin_accesses.filter(environment=environment).first()
     if not access or not access.admin_password_encrypted:
@@ -134,6 +137,7 @@ def delete_environment_password(project, environment, actor):
     access.save(update_fields=['admin_password_encrypted', 'updated_by', 'updated_at'])
 
 
+@historical_write
 def create_note(project, validated_data, actor):
     return ProjectAccessNote.objects.create(
         project=project,
@@ -145,6 +149,7 @@ def create_note(project, validated_data, actor):
     )
 
 
+@historical_write
 def update_note(note, validated_data, actor):
     update_fields = ['updated_by', 'updated_at']
     if 'title' in validated_data:
@@ -167,6 +172,7 @@ def reveal_note_content(note):
     return decrypt_secret(note.content_encrypted)
 
 
+@historical_write
 @transaction.atomic
 def classify_legacy_access(project, environment, actor):
     locked_project = project.__class__.objects.select_for_update().get(pk=project.pk)

@@ -1,4 +1,5 @@
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted, ref } from 'vue'
 import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
@@ -165,6 +166,7 @@ function requestDelete(row) {
           </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          <EntityHistoryRecordButton entity-type="notification_recipient" :record="row" />
           <BaseToggle
             :model-value="row.is_active"
             :disabled="togglingId === row.id"

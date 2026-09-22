@@ -53,6 +53,7 @@
             class="bg-surface-raised"
           >
             <td colspan="5" class="px-5 py-3">
+              <EntityHistorySection v-if="entry.entity_type !== 'document_folder'" :entity-type="entry.entity_type" :object-id="entry.object_id" />
               <p
                 v-if="!entry.changes || entry.changes.length === 0"
                 class="text-xs text-text-subtle"
@@ -79,6 +80,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { formatDateTime } from '~/utils/formatDate';
 import { minWidthFor, resolveColumns } from '~/utils/tableLayout';
 

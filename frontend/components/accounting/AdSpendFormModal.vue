@@ -1,4 +1,5 @@
 <script setup>
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
@@ -66,6 +67,7 @@ function onSubmit() {
     <div class="px-6 pt-6 pb-2">
       <h3 id="ad-spend-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
+    <EntityHistorySection v-if="open && record?.id" entity-type="ads" :object-id="record.id" class="mx-5" />
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
       <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Fecha" required>

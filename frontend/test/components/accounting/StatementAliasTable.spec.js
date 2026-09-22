@@ -105,7 +105,7 @@ describe('StatementAliasTable', () => {
   it('emits delete with the alias of the clicked row', async () => {
     const wrapper = mountTable();
 
-    await wrapper.find('[data-testid="statement-alias-7"] button').trigger('click');
+    await wrapper.find('[data-testid="statement-alias-delete-7"]').trigger('click');
 
     expect(wrapper.emitted('delete')[0][0].id).toBe(7);
   });

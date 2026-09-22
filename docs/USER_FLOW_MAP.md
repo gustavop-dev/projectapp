@@ -6118,6 +6118,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
 | `admin-accounting-project-coherence` | admin | P1 | success | 1 |
 | `admin-accounting-receivables` | admin | P1 | display,success,failure | 11 |
+| `admin-accounting-record-history` | admin | P1 | display,success,failure | — |
 | `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 27 |
 | `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
@@ -6146,6 +6147,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-blog-publish-mode` | admin | P2 | display,success | 1 |
 | `admin-calculator-followup-alert` | admin | P2 | — | 0 |
 | `admin-client-archived-tab` | admin | P2 | display,success,failure | 1 |
+| `admin-client-change-history` | admin | P2 | display,success,failure | — |
 | `admin-client-communications` | admin | P1 | display,success,error,failure | 15 |
 | `admin-client-create-standalone` | admin | P2 | success,error | 1 |
 | `admin-client-delete-orphan` | admin | P2 | display,success | 1 |
@@ -6198,6 +6200,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-diagnostic-send-initial` | admin | P1 | success,error | 1 |
 | `admin-discount-analysis-enhanced` | admin | P3 | display | 1 |
 | `admin-document-archive` | admin | P2 | success,failure,display | 1 |
+| `admin-document-change-history` | admin | P1 | display,success,failure | — |
 | `admin-document-create` | admin | P2 | display,success,error,failure | 1 |
 | `admin-document-delete` | admin | P2 | success,failure | 1 |
 | `admin-document-drag-organize` | admin | P3 | success | 0 |
@@ -6269,6 +6272,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-access-notes` | admin | P2 | display,success,error,failure | — |
 | `admin-project-access-secrets` | admin | P1 | display,success,failure | — |
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
+| `admin-project-change-history` | admin | P1 | display,success,failure | — |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
 | `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 7 |
@@ -6278,6 +6282,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-analytics` | admin | P2 | display | 1 |
 | `admin-proposal-attach-from-documents` | admin | P1 | success | 1 |
 | `admin-proposal-batch-actions` | admin | P2 | success,display | 1 |
+| `admin-proposal-change-history` | admin | P1 | display,success,failure | — |
 | `admin-proposal-client-autocomplete` | admin | P1 | display | 1 |
 | `admin-proposal-client-no-email` | admin | P2 | success | 1 |
 | `admin-proposal-comment` | admin | P3 | success | 1 |
@@ -7521,6 +7526,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Coverage:** ✅ Covered — display, dated and indefinite success, manual reactivation, validation error and server failure.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
+### FLOW: `admin-accounting-record-history`
+
+- **Module:** admin
+- **Role:** superuser
+- **Priority:** P1
+- **Routes:** `/panel/accounting`
+- **Description:** Abre Detalle e historial o Ver historial de cambios desde ingresos, gastos, hosting, recurrentes, bolsillo, Ads, tarjetas, extractos, movimientos, alias, destinatarios, cuentas de cobro y configuración.
+- **Display outcome:** Navegar desde la interfaz hasta un registro real y verificar sus cambios, autor y fecha. Evidencia incompleta se identifica sin inventar versiones; el estado vacío explica la ausencia de datos anteriores.
+- **Success outcome:** Consultar el historial propio del registro contable y comparar los valores de dos versiones seleccionadas.
+- **Error outcome:** n/a — los controles emiten sólo identificadores y opciones válidas. Permisos, pertenencia y validación del contrato se prueban en backend.
+- **Failure outcome:** Fallos de API muestran una recuperación explícita y no revelan valores protegidos ni comparaciones obsoletas.
+- **Coverage:** Display, success y failure validados en `admin/admin-entity-history.spec.js`; los trece tipos contables tienen cobertura de escritura en backend.
+
 ### FLOW: `admin-additional-modules-catalog`
 
 - **Module:** admin / commercial
@@ -7570,6 +7588,32 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Interaction:** Select modules and recipient, generate a fixed-selection link, then inspect openings or revoke it in Seguimiento.
 - **Outcomes:** `success`, `error`, `failure`, `display`
 - **Evidence:** `CatalogSelectionModal.vue`, `ShareHistoryModal.vue`, admin share endpoints.
+
+### FLOW: `admin-client-change-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients`
+- **Description:** Expande un cliente y abre Ver historial de cambios; consulta identidad, contacto y facturación con autor y fecha; pagina y compara versiones.
+- **Display outcome:** Navegar desde la interfaz hasta un registro real y verificar sus cambios, autor y fecha. Evidencia incompleta se identifica sin inventar versiones; el estado vacío explica la ausencia de datos anteriores.
+- **Success outcome:** Consultar contacto y facturación de una versión, comparar cambios e invertir la cronología.
+- **Error outcome:** n/a — los controles emiten sólo identificadores y opciones válidas. Permisos, pertenencia y validación del contrato se prueban en backend.
+- **Failure outcome:** Fallos de API muestran una recuperación explícita y no revelan valores protegidos ni comparaciones obsoletas.
+- **Coverage:** Display, success y failure validados en `admin/admin-entity-history.spec.js`.
+
+### FLOW: `admin-document-change-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents/:id/edit`
+- **Description:** Abre Historial desde el detalle del documento; consulta versiones completas y campos modificados, compara dos versiones o la anterior, invierte el orden y pagina.
+- **Display outcome:** Navegar desde la interfaz hasta un registro real y verificar sus cambios, autor y fecha. Evidencia incompleta se identifica sin inventar versiones; el estado vacío explica la ausencia de datos anteriores.
+- **Success outcome:** Consultar el contenido completo, comparar dos versiones o la anterior e invertir el orden o paginar la cronología.
+- **Error outcome:** n/a — los controles emiten sólo identificadores y opciones válidas. Permisos, pertenencia y validación del contrato se prueban en backend.
+- **Failure outcome:** Fallos de API muestran una recuperación explícita y no revelan valores protegidos ni comparaciones obsoletas.
+- **Coverage:** Display, success y failure validados en `admin/admin-entity-history.spec.js`.
 
 ### FLOW: `admin-document-email-history`
 
@@ -7790,6 +7834,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   a los flujos existentes del programa y sus otrosíes.
 - **Display:** no aplica: la ruta anterior no muestra una vista propia.
 
+### FLOW: `admin-project-change-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects`
+- **Description:** Abre el detalle de accesos y su pestaña Historial; consulta URLs, notas y credenciales enmascaradas, revela un secreto por acción explícita y lo oculta al cerrar.
+- **Display outcome:** Navegar desde la interfaz hasta un registro real y verificar sus cambios, autor y fecha. Evidencia incompleta se identifica sin inventar versiones; el estado vacío explica la ausencia de datos anteriores.
+- **Success outcome:** Consultar una versión histórica de accesos, revelar una credencial por acción explícita y ocultarla al terminar la consulta.
+- **Error outcome:** n/a — los controles emiten sólo identificadores y opciones válidas. Permisos, pertenencia y validación del contrato se prueban en backend.
+- **Failure outcome:** Fallos de API muestran una recuperación explícita y no revelan valores protegidos ni comparaciones obsoletas.
+- **Coverage:** Display, success y failure validados en `admin/admin-entity-history.spec.js`.
+
 ### FLOW: `admin-project-lifecycle-states`
 
 - **Module:** admin
@@ -7832,6 +7889,19 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 
 - **Coverage:** ✅ Las cuatro clases están cubiertas.
 - **E2E Specs:** `e2e/admin/admin-project-lifecycle-states.spec.js`
+
+### FLOW: `admin-proposal-change-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/:id/edit`
+- **Description:** Abre Historial en una propuesta; consulta precio y alcance por versión, compara versiones o la última enviada correctamente y consulta su evidencia.
+- **Display outcome:** Navegar desde la interfaz hasta un registro real y verificar sus cambios, autor y fecha. Evidencia incompleta se identifica sin inventar versiones; el estado vacío explica la ausencia de datos anteriores.
+- **Success outcome:** Consultar precio y alcance históricos y comparar una versión con la última enviada correctamente.
+- **Error outcome:** n/a — los controles emiten sólo identificadores y opciones válidas. Permisos, pertenencia y validación del contrato se prueban en backend.
+- **Failure outcome:** Fallos de API muestran una recuperación explícita y no revelan valores protegidos ni comparaciones obsoletas.
+- **Coverage:** Display, success y failure validados en `admin/admin-entity-history.spec.js`.
 
 ### FLOW: `admin-proposal-first-view-retry`
 

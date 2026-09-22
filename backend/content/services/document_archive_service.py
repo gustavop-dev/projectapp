@@ -28,6 +28,7 @@ de una carpeta archivada.
 El archivado es una herramienta del panel: el portal del cliente (`accounts/`)
 no filtra por estos campos.
 """
+from content.services.entity_history import historical_write
 from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -105,6 +106,7 @@ def archive_document(document):
     return True
 
 
+@historical_write
 @transaction.atomic
 def unarchive_document(document):
     """Restaura un documento y reabre la cadena de carpetas que lo contiene.
@@ -138,6 +140,7 @@ def unarchive_document(document):
     return {'changed': True, 'restored_chain': restored, 'moved_to_root': broken}
 
 
+@historical_write
 @transaction.atomic
 def archive_folder(folder):
     """Archiva la carpeta, sus subcarpetas y todos sus documentos.
@@ -171,6 +174,7 @@ def archive_folder(folder):
     return {'folders': folders_count, 'documents': documents_count}
 
 
+@historical_write
 @transaction.atomic
 def unarchive_folder(folder):
     """Restaura la carpeta, lo que su archivado arrastró, y su cadena de ancestros.
