@@ -1133,6 +1133,7 @@ def requirement_list_view(request, project_id):
                 'scope_item__id', 'scope_item__name', 'scope_item__group_id',
             )
             .annotate(_comments_count=Count('comments'))
+            .order_by('order', '-created_at')
         )
         qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
         phase_id = request.query_params.get('phase_id')
@@ -3408,7 +3409,7 @@ def subscription_list_view(request):
                 payments__due_date__lte=cutoff,
             ),
         ),
-    )
+    ).order_by('-created_at')
 
     serializer = HostingSubscriptionListSerializer(qs, many=True)
     return Response(serializer.data)
