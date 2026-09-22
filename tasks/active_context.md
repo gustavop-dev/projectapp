@@ -1,5 +1,15 @@
 # Active Context — ProjectApp
 
+**2026-09-22 — quinta ronda de rendimiento de Plataforma:** continúa en el PR #397.
+El detalle GET de cliente reutiliza los agregados del listado; proyecto carga
+agregados independientes y recorre una proyección estrecha de fases una sola vez,
+conservando cálculos Decimal, descuentos y vínculo legacy. Entregable comparte
+las versiones con su contador y evita cargar campos no publicados de propuestas
+y cuentas de cobro. Las mutaciones conservan su ruta y los serializers su fallback.
+QA mide peticiones completas con JWT: el objetivo de clientes/proyectos es el
+presupuesto estándar; entregables conserva una desviación documentada por sus
+colecciones completas. No hay cambios de contrato, esquema, flujo UI ni despliegue.
+
 **2026-09-22 — cuarta ronda de rendimiento de Plataforma:** continúa en el PR #397.
 Notificaciones precarga entregables; evaluación masiva carga sólo los IDs del
 payload preservando sus errores, duplicados y efectos por elemento; el detalle
