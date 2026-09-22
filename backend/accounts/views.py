@@ -415,6 +415,40 @@ def complete_profile_view(request):
 # Admin — Client management
 # ==========================================================================
 
+def _client_list_profiles(queryset):
+    """Prepare table aggregates without loading every client's related rows."""
+    from django.db.models import Count, Max, OuterRef, Q, Subquery
+    from accounts.models import HostingSubscription, Project
+
+    active_subscription = HostingSubscription.objects.filter(
+        project__client_id=OuterRef('user_id'),
+        status=HostingSubscription.STATUS_ACTIVE,
+    ).order_by('next_billing_date')
+    profiles = list(queryset.annotate(
+        _list_active_projects_count=Count(
+            'user__projects', filter=Q(user__projects__status=Project.STATUS_ACTIVE),
+        ),
+        _list_total_projects_count=Count(
+            'user__projects', filter=~Q(user__projects__status=Project.STATUS_ARCHIVED),
+        ),
+        _list_latest_project_update=Max('user__projects__updated_at'),
+        _list_active_subscription_id=Subquery(active_subscription.values('pk')[:1]),
+    ).order_by('-created_at'))
+    subscription_ids = {
+        profile._list_active_subscription_id for profile in profiles
+        if profile._list_active_subscription_id is not None
+    }
+    subscriptions = {
+        subscription.pk: subscription
+        for subscription in HostingSubscription.objects.filter(pk__in=subscription_ids).only(
+            'id', 'plan', 'next_billing_date', 'billing_amount',
+        )
+    } if subscription_ids else {}
+    for profile in profiles:
+        profile._list_active_subscription = subscriptions.get(profile._list_active_subscription_id)
+    return profiles
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def client_list_view(request):
@@ -430,7 +464,9 @@ def client_list_view(request):
         elif filter_param == 'inactive':
             qs = qs.filter(user__is_active=False)
 
-        serializer = ClientListSerializer(qs, many=True, context={'request': request})
+        serializer = ClientListSerializer(
+            _client_list_profiles(qs), many=True, context={'request': request},
+        )
         return Response(serializer.data)
 
     serializer = CreateClientSerializer(data=request.data)

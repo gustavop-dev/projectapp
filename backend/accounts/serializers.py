@@ -230,6 +230,8 @@ class ClientListSerializer(serializers.ModelSerializer):
         return url
 
     def _active_subscription(self, obj):
+        if hasattr(obj, '_list_active_subscription'):
+            return obj._list_active_subscription
         from accounts.models import HostingSubscription
         return (
             HostingSubscription.objects
@@ -251,23 +253,30 @@ class ClientListSerializer(serializers.ModelSerializer):
         return sub.billing_amount if sub else None
 
     def get_active_projects_count(self, obj):
+        if hasattr(obj, '_list_active_projects_count'):
+            return obj._list_active_projects_count
         from accounts.models import Project
         return Project.objects.filter(
             client=obj.user, status=Project.STATUS_ACTIVE,
         ).count()
 
     def get_total_projects_count(self, obj):
+        if hasattr(obj, '_list_total_projects_count'):
+            return obj._list_total_projects_count
         from accounts.models import Project
         return Project.objects.filter(client=obj.user).exclude(
             status=Project.STATUS_ARCHIVED,
         ).count()
 
     def get_last_activity_at(self, obj):
-        from django.db.models import Max
-        from accounts.models import Project
-        latest = Project.objects.filter(client=obj.user).aggregate(
-            m=Max('updated_at'),
-        )['m']
+        if hasattr(obj, '_list_latest_project_update'):
+            latest = obj._list_latest_project_update
+        else:
+            from django.db.models import Max
+            from accounts.models import Project
+            latest = Project.objects.filter(client=obj.user).aggregate(
+                m=Max('updated_at'),
+            )['m']
         login = obj.user.last_login
         if latest and login:
             return max(latest, login)
