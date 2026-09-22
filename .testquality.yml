@@ -72,6 +72,8 @@ performance_budget_tests:
   - backend/accounts/tests/test_client_list_aggregates.py
   - backend/accounts/tests/test_project_list_aggregates.py
   - backend/accounts/tests/test_project_phases.py
+  - backend/accounts/tests/test_notifications.py
+  - backend/accounts/tests/test_bulk_evaluation.py
 performance_silk_reports: backend/logs/monitoring
 
 # Responsive overrides consumed by the fleet's responsive ledger. ProjectApp

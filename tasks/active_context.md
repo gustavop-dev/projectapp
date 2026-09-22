@@ -1,5 +1,15 @@
 # Active Context — ProjectApp
 
+**2026-09-22 — cuarta ronda de rendimiento de Plataforma:** continúa en el PR #397.
+Notificaciones precarga entregables; evaluación masiva carga sólo los IDs del
+payload preservando sus errores, duplicados y efectos por elemento; el detalle
+GET de requerimientos consume comentarios e historial precargados con sus autores.
+Se mantiene el filtro de comentarios internos y el fallback del serializer.
+La evaluación masiva de bugs vuelve a notificar por proyecto y bug, como la
+individual, sin acceder al campo retirado `deliverable`. QA verifica consultas,
+filas materializadas y contratos; el coste JWT del detalle se reporta separado
+del presupuesto de datos. Sin cambio de esquema, mapa de vistas ni despliegue.
+
 **2026-09-22 — tercera ronda de rendimiento de Plataforma:** continúa en el PR #397,
 en `fix/21092026-perf-platform-lists`. Clientes prepara conteos, actividad y la
 suscripción elegida; proyectos usa agregados independientes y precarga sólo los
