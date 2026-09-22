@@ -1,8 +1,20 @@
 """Tests for the Clients MCP connector HTTP endpoint."""
+import json
+from datetime import date
+from decimal import Decimal
+
 import pytest
 
+from accounts.models import (
+    BugReport,
+    ChangeRequest,
+    Deliverable,
+    HostingSubscription,
+    Project,
+    ProjectPhase,
+)
 from accounts.services import proposal_client_service
-from content.models import McpConnector
+from content.models import BusinessProposal, McpConnector
 
 
 @pytest.fixture
@@ -41,6 +53,47 @@ def _make_client(name='ACME SAS', email='', phone='', company=''):
     )
 
 
+def _create_project_with_aggregates(profile):
+    project = Project.objects.create(name='Nested project', client=profile.user)
+    deliverable = Deliverable.objects.create(
+        project=project,
+        title='Nested deliverable',
+        category=Deliverable.CATEGORY_OTHER,
+        uploaded_by=profile.user,
+    )
+    proposal = BusinessProposal.objects.create(
+        title='Nested proposal',
+        client=profile,
+        client_name='Nested client',
+        total_investment=Decimal('765432.10'),
+        deliverable=deliverable,
+    )
+    ProjectPhase.objects.create(project=project, business_proposal=proposal, order=1)
+    BugReport.objects.create(
+        project=project,
+        reported_by=profile.user,
+        title='Nested open bug',
+        status=BugReport.STATUS_REPORTED,
+    )
+    ChangeRequest.objects.create(
+        project=project,
+        created_by=profile.user,
+        title='Nested pending change',
+        status=ChangeRequest.STATUS_PENDING,
+    )
+    HostingSubscription.objects.create(
+        project=project,
+        plan=HostingSubscription.PLAN_QUARTERLY,
+        base_monthly_amount=Decimal('41152.00'),
+        effective_monthly_amount=Decimal('41152.00'),
+        billing_amount=Decimal('123456.00'),
+        status=HostingSubscription.STATUS_ACTIVE,
+        start_date=date(2026, 10, 1),
+        next_billing_date=date(2026, 11, 15),
+    )
+    return project, proposal
+
+
 @pytest.mark.django_db
 class TestClientsMcpToolList:
     def test_exposes_the_six_tools(self, api_client, clients_connector):
@@ -71,11 +124,45 @@ class TestClientsMcpReads:
         assert '"count"' in response.data['result']['content'][0]['text']
 
     def test_get_client_nests_related(self, api_client, clients_connector):
+        """Fails if MCP client details lose concrete nested project aggregates."""
         profile = _make_client(name='Detalle', email='detalle@x.com')
+        project, proposal = _create_project_with_aggregates(profile)
         _, token = clients_connector
         response = _call(api_client, token, 'get_client', {'client_id': profile.pk})
-        text = response.data['result']['content'][0]['text']
-        assert '"proposals"' in text and '"diagnostics"' in text
+
+        assert response.data['result']['isError'] is False
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        row = next(item for item in payload['projects'] if item['id'] == project.pk)
+        assert {
+            'proposal_count': len(payload['proposals']),
+            'proposal_id': payload['proposals'][0]['id'],
+            'proposal_title': payload['proposals'][0]['title'],
+            'diagnostics': payload['diagnostics'],
+        } == {
+            'proposal_count': 1,
+            'proposal_id': proposal.pk,
+            'proposal_title': 'Nested proposal',
+            'diagnostics': [],
+        }
+        assert {
+            'proposal_id': row['proposal_id'],
+            'proposal_title': row['proposal_title'],
+            'bugs_open_count': row['bugs_open_count'],
+            'changes_pending_count': row['changes_pending_count'],
+            'phases_total_amount': row['phases_total_amount'],
+            'next_hosting_payment': row['next_hosting_payment'],
+        } == {
+            'proposal_id': proposal.pk,
+            'proposal_title': 'Nested proposal',
+            'bugs_open_count': 1,
+            'changes_pending_count': 1,
+            'phases_total_amount': '765432.10',
+            'next_hosting_payment': {
+                'date': '2026-11-15',
+                'amount': '123456.00',
+                'plan': HostingSubscription.PLAN_QUARTERLY,
+            },
+        }
 
     def test_get_missing_client_errors(self, api_client, clients_connector):
         _, token = clients_connector
