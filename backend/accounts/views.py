@@ -3622,6 +3622,10 @@ def proposal_list_for_selector_view(request):
     qs = BusinessProposal.objects.filter(
         status__in=['accepted', 'finished', 'sent', 'viewed', 'negotiating'],
         deliverable__isnull=True,
+    ).only(
+        'id', 'title', 'client_name', 'client_email', 'total_investment',
+        'currency', 'hosting_percent', 'hosting_discount_nine_month',
+        'hosting_discount_semiannual', 'hosting_discount_quarterly', 'status',
     ).order_by('-created_at')
 
     serializer = ProposalSummarySerializer(qs, many=True)
