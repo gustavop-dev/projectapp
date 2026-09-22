@@ -3139,7 +3139,7 @@ def notification_list_view(request):
     GET — List notifications for the authenticated user.
     Supports ?is_read=true/false filter and ?limit=N.
     """
-    qs = Notification.objects.filter(user=request.user).select_related('project')
+    qs = Notification.objects.filter(user=request.user).select_related('project', 'deliverable')
 
     is_read_param = request.query_params.get('is_read')
     if is_read_param == 'true':
