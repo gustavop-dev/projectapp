@@ -328,8 +328,13 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
 
+    def _business_proposal(self, obj):
+        if hasattr(obj, '_list_business_proposal'):
+            return obj._list_business_proposal
+        return obj.linked_business_proposal()
+
     def get_proposal_id(self, obj):
-        bp = obj.linked_business_proposal()
+        bp = self._business_proposal(obj)
         return bp.id if bp else None
 
     def get_status(self, obj):
@@ -353,7 +358,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
         }
 
     def get_proposal_title(self, obj):
-        bp = obj.linked_business_proposal()
+        bp = self._business_proposal(obj)
         return bp.title if bp else None
 
     def get_client_name(self, obj):
@@ -365,6 +370,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
         return profile.company_name if profile else ''
 
     def get_bugs_open_count(self, obj):
+        if hasattr(obj, '_list_bugs_open_count'):
+            return obj._list_bugs_open_count
         from accounts.models import BugReport
         open_statuses = [
             BugReport.STATUS_REPORTED, BugReport.STATUS_CONFIRMED,
@@ -375,6 +382,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
         ).count()
 
     def get_changes_pending_count(self, obj):
+        if hasattr(obj, '_list_changes_pending_count'):
+            return obj._list_changes_pending_count
         from accounts.models import ChangeRequest
         return ChangeRequest.objects.filter(
             project=obj, status=ChangeRequest.STATUS_PENDING,
@@ -386,13 +395,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
 
     def get_next_hosting_payment(self, obj):
         from accounts.models import HostingSubscription
-        sub = (
-            HostingSubscription.objects
-            .filter(project=obj, status=HostingSubscription.STATUS_ACTIVE)
-            .order_by('next_billing_date')
-            .first()
-        )
-        if not sub:
+        sub = getattr(obj, 'hosting_subscription', None)
+        if sub is None or sub.status != HostingSubscription.STATUS_ACTIVE:
             return None
         return {
             'date': sub.next_billing_date,
@@ -401,6 +405,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
         }
 
     def get_phases_total_amount(self, obj):
+        if hasattr(obj, '_list_phases_total_amount'):
+            return obj._list_phases_total_amount or 0
         total = 0
         for phase in obj.phases.select_related('business_proposal').all():
             bp = phase.business_proposal

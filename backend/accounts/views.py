@@ -785,6 +785,68 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+def _project_list_projects(queryset):
+    """Keep each aggregate independent and load only the selected proposals."""
+    from django.db.models import Count, DecimalField, OuterRef, Subquery, Sum, Value
+    from django.db.models.functions import Coalesce
+    from accounts.models import BugReport, ChangeRequest, ProjectPhase
+    from content.models import BusinessProposal
+
+    open_bugs = BugReport.objects.filter(
+        project_id=OuterRef('pk'),
+        status__in=[
+            BugReport.STATUS_REPORTED, BugReport.STATUS_CONFIRMED,
+            BugReport.STATUS_FIXING, BugReport.STATUS_QA,
+        ],
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    pending_changes = ChangeRequest.objects.filter(
+        project_id=OuterRef('pk'), status=ChangeRequest.STATUS_PENDING,
+    ).order_by().values('project_id').annotate(total=Count('pk')).values('total')
+    phases = ProjectPhase.objects.filter(project_id=OuterRef('pk'))
+    phase_totals = phases.order_by().values('project_id').annotate(
+        total=Sum('business_proposal__total_investment'),
+    ).values('total')
+    first_phase_proposal = phases.order_by('order').values('business_proposal_id')[:1]
+    legacy_proposal = BusinessProposal.objects.filter(
+        deliverable__project_id=OuterRef('pk'),
+    ).order_by('deliverable_id').values('pk')[:1]
+    projects = list(queryset.select_related(
+        'client', 'client__profile', 'current_state', 'hosting_subscription',
+    ).only(
+        'id', 'name', 'description', 'current_state_id', 'state_review_required',
+        'progress', 'start_date', 'estimated_end_date', 'client_id',
+        'hosting_start_date', 'created_at', 'updated_at',
+        'client__id', 'client__first_name', 'client__last_name', 'client__email',
+        'client__profile__id', 'client__profile__user_id', 'client__profile__company_name',
+        'current_state__id', 'current_state__name', 'current_state__slug',
+        'current_state__color', 'current_state__system_key', 'current_state__operational_effect',
+        'hosting_subscription__id', 'hosting_subscription__project_id',
+        'hosting_subscription__status', 'hosting_subscription__plan',
+        'hosting_subscription__next_billing_date', 'hosting_subscription__billing_amount',
+    ).annotate(
+        _list_bugs_open_count=Coalesce(Subquery(open_bugs), Value(0)),
+        _list_changes_pending_count=Coalesce(Subquery(pending_changes), Value(0)),
+        _list_phases_total_amount=Coalesce(
+            Subquery(phase_totals), Value(0),
+            output_field=DecimalField(max_digits=20, decimal_places=2),
+        ),
+        _list_business_proposal_id=Coalesce(
+            Subquery(first_phase_proposal), Subquery(legacy_proposal),
+        ),
+    ).order_by('-updated_at'))
+    proposal_ids = {
+        project._list_business_proposal_id for project in projects
+        if project._list_business_proposal_id is not None
+    }
+    proposals = {
+        proposal.pk: proposal
+        for proposal in BusinessProposal.objects.filter(pk__in=proposal_ids).only('id', 'title')
+    } if proposal_ids else {}
+    for project in projects:
+        project._list_business_proposal = proposals.get(project._list_business_proposal_id)
+    return projects
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def project_list_view(request):
@@ -809,7 +871,9 @@ def project_list_view(request):
             qs = Project.objects.select_related(
                 'client', 'client__profile', 'current_state',
             ).filter(client=request.user)
-        serializer = ProjectListSerializer(qs, many=True, context={'request': request})
+        serializer = ProjectListSerializer(
+            _project_list_projects(qs), many=True, context={'request': request},
+        )
         return Response(serializer.data)
 
     if not profile or not profile.is_admin:
