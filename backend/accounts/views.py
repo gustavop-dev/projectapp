@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db import connection, transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -1365,10 +1366,20 @@ def requirement_detail_view(request, project_id, req_id):
     if err:
         return err
 
-    try:
-        req = Requirement.objects.prefetch_related('comments__user', 'history__changed_by').get(
-            id=req_id, phase__project=proj,
+    if request.method == 'GET':
+        requirements = Requirement.objects.select_related('scope_item').prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=RequirementComment.objects.select_related('user'),
+                to_attr='_detail_comments',
+            ),
+            Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
         )
+    else:
+        requirements = Requirement.objects.prefetch_related('comments__user', 'history__changed_by')
+
+    try:
+        req = requirements.get(id=req_id, phase__project=proj)
     except Requirement.DoesNotExist:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
