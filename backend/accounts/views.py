@@ -2351,7 +2351,6 @@ def bug_report_bulk_evaluate_view(request, project_id):
                 message=f'Estado cambiado a "{status_display}".',
                 related_object_type='bug_report', related_object_id=bug.id,
                 exclude_user=request.user,
-                deliverable=bug.deliverable,
             )
 
     return Response({
