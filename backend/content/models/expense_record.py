@@ -1,9 +1,10 @@
 from django.db import models
 
 from .accounting_base import AccountingRecordBase, PartnerSplitMixin
+from .history_tracked import HistoryQuerySet
 
 
-class ExpenseRecordQuerySet(models.QuerySet):
+class ExpenseRecordQuerySet(HistoryQuerySet):
     """Splits ordinary spending from income deductions."""
 
     def operational(self):

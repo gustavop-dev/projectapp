@@ -4,8 +4,10 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class AccountingRecordBase(models.Model):
+
+class AccountingRecordBase(HistoryTrackedModel):
     """
     Common plumbing shared by every accounting entity.
 

@@ -7,6 +7,7 @@ calendar exists to remove. Here the audit row is written by hand and no
 notification is enqueued, so the action is recorded and silent, which are both
 required: "¿por qué nunca me avisaron de esto?" has to be answerable.
 """
+from content.services.entity_history import historical_write
 from content.models import AccountingChangeLog
 from content.services.accounting_service import (
     compute_changes,

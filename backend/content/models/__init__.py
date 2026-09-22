@@ -133,3 +133,5 @@ from .financing_agreement import (
     FinancingPolicyRevision,
 )
 from .proposal_formalization import ProposalFormalization, ProposalFormalizationFile
+
+from .entity_history import EntityHistory, EntityRevision

@@ -344,7 +344,16 @@ from content.views.formalization import (
     retrieve_formalization, formalization_attachment, send_formalization,
 )
 
+from content.views.entity_history import (
+    entity_history_list, entity_history_version, entity_history_compare, entity_history_reveal, entity_history_file,
+)
+
 urlpatterns = [
+    path('entity-history/<str:entity_type>/<int:object_id>/', entity_history_list),
+    path('entity-history/<str:entity_type>/<int:object_id>/versions/<int:revision_id>/file/', entity_history_file),
+    path('entity-history/<str:entity_type>/<int:object_id>/compare/', entity_history_compare),
+    path('entity-history/<str:entity_type>/<int:object_id>/versions/<int:revision_id>/', entity_history_version),
+    path('entity-history/<str:entity_type>/<int:object_id>/versions/<int:revision_id>/reveal/', entity_history_reveal),
     path('proposals/<int:proposal_id>/formalization/', formalization_options, name='formalization-options'),
     path('proposals/<int:proposal_id>/formalization/pdf/<str:kind>/', formalization_pdf, name='formalization-pdf'),
     path('proposals/<int:proposal_id>/formalization/prepare/', prepare_formalization, name='formalization-prepare'),

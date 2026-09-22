@@ -2,8 +2,10 @@ from decimal import Decimal
 
 from django.db import models, transaction
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class AccountingSettings(models.Model):
+
+class AccountingSettings(HistoryTrackedModel):
     """
     Singleton model storing accounting module configuration.
 

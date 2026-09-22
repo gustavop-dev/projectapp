@@ -1,5 +1,7 @@
 # Architecture — ProjectApp
 
+> **Historial por registro — 2026-09-22:** `EntityHistory` y `EntityRevision` conservan identidades y versiones independientes de las filas vivas. La frontera ORM y los contextos HTTP/MCP/servicio agrupan cambios transaccionales, relacionan evidencias antiguas y separan secretos cifrados de instantáneas consultables. Visor común en Documentos, Propuestas, Proyectos, Clientes y Contable. Contrato: `docs/ENTITY_HISTORY.md`.
+
 > **Interfaz comercial pública — 2026-09-19:** catálogo, selecciones y Programa
 > de Alianza comparten `PublicDocumentAction` y `PublicDocumentShareButton`,
 > con el patrón de propuestas (tema/guía a la izquierda; PDF/compartir sobre

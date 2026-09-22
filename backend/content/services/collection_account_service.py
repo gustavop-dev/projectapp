@@ -1,6 +1,7 @@
 """
 Business rules for collection account documents: numbering, totals, lifecycle transitions.
 """
+from content.services.entity_history import historical_write
 from datetime import timedelta
 from decimal import Decimal
 
@@ -134,6 +135,7 @@ def recalculate_document_totals(document):
     document.total = line_sum - document.discount_total
 
 
+@historical_write
 @transaction.atomic
 def allocate_public_number(issuer):
     """Thread-safe next public_number for issuer and current Bogotá year."""
@@ -213,6 +215,7 @@ def _fill_customer_from_user(extension, user, project=None):
     extension.customer_project_name = project.name if project else ''
 
 
+@historical_write
 @transaction.atomic
 def issue_collection_account(
     document,
@@ -316,6 +319,7 @@ def _log_status_transition(document, old_values, acting_user):
     )
 
 
+@historical_write
 @transaction.atomic
 def mark_collection_account_paid(document, *, acting_user=None):
     if not is_collection_account(document):
@@ -332,6 +336,7 @@ def mark_collection_account_paid(document, *, acting_user=None):
     return document
 
 
+@historical_write
 @transaction.atomic
 def mark_collection_account_cancelled(document, *, acting_user=None):
     if not is_collection_account(document):
@@ -373,6 +378,7 @@ def collection_account_was_delivered(document):
     ).exclude(email_log__status=EmailLog.Status.FAILED).exists()
 
 
+@historical_write
 @transaction.atomic
 def delete_collection_account(document, *, acting_user=None):
     """Physically remove a cuenta that never should have existed.

@@ -1,4 +1,5 @@
 <script setup>
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
 import PeriodDateField from './PeriodDateField.vue'
@@ -105,6 +106,7 @@ function onSubmit() {
     <div class="px-6 pt-6 pb-2">
       <h3 id="expense-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
+    <EntityHistorySection v-if="open && record?.id" entity-type="expense" :object-id="record.id" class="mx-5" />
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
       <BaseFormField label="Concepto" required>
         <BaseInput v-model="form.concept" required />

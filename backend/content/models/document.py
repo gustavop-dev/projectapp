@@ -3,10 +3,12 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
+
 from content.utils import safe_slug
 
 
-class Document(models.Model):
+class Document(HistoryTrackedModel):
     """Generic branded document: markdown content and/or commercial collection account."""
 
     class Status(models.TextChoices):

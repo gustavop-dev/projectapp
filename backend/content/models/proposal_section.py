@@ -1,7 +1,9 @@
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class ProposalSection(models.Model):
+
+class ProposalSection(HistoryTrackedModel):
     """
     Individual section within a business proposal.
 

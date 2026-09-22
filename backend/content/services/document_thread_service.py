@@ -1,3 +1,4 @@
+from content.services.entity_history import historical_write
 from zoneinfo import ZoneInfo
 
 from django.db import IntegrityError, transaction
@@ -96,6 +97,7 @@ def _resolved_items(raw_items, documents):
     ]
 
 
+@historical_write
 @transaction.atomic
 def create_document_thread(*, title, items, actor):
     if len(items) < 2:
@@ -134,6 +136,7 @@ def create_document_thread(*, title, items, actor):
     return thread
 
 
+@historical_write
 @transaction.atomic
 def update_document_thread(*, thread, actor, title=None, items=None):
     thread = DocumentThread.objects.select_for_update().get(pk=thread.pk)
@@ -188,6 +191,7 @@ def update_document_thread(*, thread, actor, title=None, items=None):
     return thread, False
 
 
+@historical_write
 @transaction.atomic
 def edit_document_thread_members(*, thread, actor, link=None, unlink=None):
     """Add, drop or re-date members without ever dissolving the thread.
@@ -311,6 +315,7 @@ def edit_document_thread_members(*, thread, actor, link=None, unlink=None):
     )
 
 
+@historical_write
 @transaction.atomic
 def dissolve_document_thread(*, thread):
     locked = DocumentThread.objects.select_for_update().get(pk=thread.pk)

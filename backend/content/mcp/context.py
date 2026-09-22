@@ -26,7 +26,9 @@ def current_mcp_context():
 def use_mcp_context(context):
     token = _current_context.set(context)
     try:
-        yield context
+        from content.services.entity_history import history_operation
+        with history_operation(actor=context.actor, source=f'mcp:{context.connector.slug}'):
+            yield context
     finally:
         _current_context.reset(token)
 

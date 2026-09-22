@@ -18,6 +18,7 @@ from content.models import (
     DocumentStateGroup,
 )
 from content.services.document_state_service import ensure_initial_state, open_state
+from content.services.entity_history import historical_write
 from content.services.document_type_utils import (
     get_commercial_proposal_document_type,
 )
@@ -69,6 +70,7 @@ def _delete_stored_files(files):
             logger.exception('Could not remove rolled-back proposal snapshot %s', name)
 
 
+@historical_write
 def prepare_proposal_snapshots(proposals, *, acting_user=None):
     """Generate and store one new version per proposal.
 
@@ -130,6 +132,8 @@ def prepare_proposal_snapshots(proposals, *, acting_user=None):
                 version = _next_version(proposal)
                 project = _proposal_project(proposal)
                 client_user = _proposal_client_user(proposal)
+                from content.services.entity_history_registry import snapshot_entity
+                history_snapshot, _, _ = snapshot_entity('proposal', proposal.pk)
                 document = Document.objects.create(
                     document_type=document_type,
                     source_proposal=proposal,
@@ -151,6 +155,8 @@ def prepare_proposal_snapshots(proposals, *, acting_user=None):
                     created_by=acting_user,
                     updated_by=acting_user,
                 )
+                from content.models.entity_history import EntityHistory, EntityRevision
+                history_head, _ = EntityHistory.objects.get_or_create(entity_type='proposal', object_id=proposal.pk)
                 attachment_name = (
                     f'Propuesta_Comercial_'
                     f'{safe_slug(proposal.client_name, "Cliente")}_v{version:02d}.pdf'
@@ -170,6 +176,9 @@ def prepare_proposal_snapshots(proposals, *, acting_user=None):
                     document.generated_file.storage,
                     document.generated_file.name,
                 ))
+                history_snapshot['archived_pdf'] = document.generated_file.name
+                EntityRevision.objects.create(history=history_head, snapshot=history_snapshot,
+                    action='prepared_version', source='proposal_email', source_key=f'proposal_prepared:{document.pk}')
                 file_proposal_snapshot(document)
                 ensure_initial_state(document, actor=acting_user)
                 prepared.append(PreparedProposalSnapshot(
@@ -192,6 +201,7 @@ def _state_for(system_key):
     ).first()
 
 
+@historical_write
 @transaction.atomic
 def finalize_proposal_snapshots(prepared, delivery, *, acting_user=None):
     """Reflect the email outcome without rewriting the stored PDF."""
@@ -209,6 +219,21 @@ def finalize_proposal_snapshots(prepared, delivery, *, acting_user=None):
         document.metadata = metadata
         document.updated_by = acting_user
         document.save(update_fields=['metadata', 'updated_by', 'updated_at'])
+        from content.models.entity_history import EntityRevision
+        prepared_history = EntityRevision.objects.filter(source_key=f'proposal_prepared:{document.pk}').first()
+        if success and prepared_history:
+            from content.models.entity_history import EntityHistory, EntityRevision
+            from content.services.entity_history import append_revision
+            head, _ = EntityHistory.objects.get_or_create(entity_type='proposal', object_id=snapshot.proposal_id)
+            head = EntityHistory.objects.select_for_update().get(pk=head.pk)
+            evidence_key = f'proposal_pdf:{document.pk}'
+            if not EntityRevision.objects.filter(source_key=evidence_key).exists():
+                head.object_label = prepared_history.snapshot.get('title', document.title)
+                append_revision(head, snapshot=prepared_history.snapshot, secrets={},
+                    action='sent_version', changes=[], evidence=[evidence_key], source_key=evidence_key,
+                    identity={'actor_id_snapshot': getattr(acting_user, 'pk', None),
+                              'actor_label': (acting_user.get_full_name() or acting_user.username) if acting_user else 'Sistema',
+                              'source': 'proposal_email'})
         if state is not None:
             open_state(
                 document,

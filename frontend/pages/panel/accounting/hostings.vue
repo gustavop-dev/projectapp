@@ -281,6 +281,7 @@
           </div>
         </template>
         <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="hosting" :record="row" />
           <BaseActionButton
             action="billing-cycles"
             variant="ghost"
@@ -416,6 +417,7 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

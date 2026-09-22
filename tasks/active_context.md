@@ -1,3 +1,7 @@
+# Historial por registro implementado (2026-09-22)
+
+Se implementó la ficha aprobada para Documentos, Propuestas, Proyectos, Clientes y todo Contable: versiones consultables/comparables, autor, conservación sin vencimiento, PDFs históricos y secretos cifrados. Comunicaciones y restauración quedan fuera. Validación focal: 41 casos backend, 5 del visor y 15 E2E aprobados; regresiones de accesos, propuestas y CRUD contable y compilación Nuxt aprobadas. El despliegue requiere las migraciones 0250/0251 y el inicializador idempotente descrito en `docs/ENTITY_HISTORY.md`; no se ejecutaron contra una base real.
+
 # Active Context — ProjectApp
 
 **2026-09-19 — formalización de propuestas implementada para revisión:** perfil documental
