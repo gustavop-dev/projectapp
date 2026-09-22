@@ -11,6 +11,7 @@ writers exist. `_sync_pocket` (record -> movement) and `_sync_from_pocket`
 create()/save(update_fields=...) and never re-enter the service pipeline,
 so ping-pong loops are impossible by construction.
 """
+from content.services.entity_history import historical_write
 import logging
 from datetime import date
 from decimal import Decimal
@@ -504,6 +505,7 @@ def _pop_register_in_pocket(entity_type, serializer):
     return serializer.validated_data.pop('register_in_pocket', None)
 
 
+@historical_write
 def create_record(entity_type, serializer, user, notify=True, *,
                   shared_pocket_movement=None):
     """Persist a validated write serializer, audit it and notify.
@@ -551,6 +553,7 @@ def create_record(entity_type, serializer, user, notify=True, *,
     return instance
 
 
+@historical_write
 def update_record(entity_type, instance, serializer, user, notify=True):
     """Apply a validated partial update, audit the diff and notify.
 
@@ -692,6 +695,7 @@ def missing_record_ids(entity_type, record_ids):
     return sorted(set(record_ids) - existing)
 
 
+@historical_write
 @transaction.atomic
 def bulk_assign_client(entity_type, record_ids, client, user):
     """Assign (or clear, with ``client=None``) the client of several records.
@@ -820,6 +824,7 @@ def _sync_project_to_draft_cuentas(record, user):
         )
 
 
+@historical_write
 @transaction.atomic
 def bulk_assign_project(entity_type, record_ids, project, user):
     """Assign (or clear, with ``project=None``) the project of several
@@ -936,6 +941,7 @@ def _deletion_changes(entity_type, old_values):
     ]
 
 
+@historical_write
 def delete_record(entity_type, instance, user):
     """Delete a record and its linked counterpart(s), audit and notify.
 

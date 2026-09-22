@@ -1,3 +1,5 @@
+from content.services.entity_history import historical_write
+
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
@@ -474,6 +476,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
             _inherit_from_folder(attrs, self.instance, adopt=adopt)
         return apply_client_project_association(attrs, self.instance)
 
+    @historical_write
     def create(self, validated_data):
         tag_ids = validated_data.pop('tag_ids', None)
         document = super().create(validated_data)
@@ -481,6 +484,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
             document.tags.set(tag_ids)
         return document
 
+    @historical_write
     def update(self, instance, validated_data):
         tag_ids = validated_data.pop('tag_ids', None)
         document = super().update(instance, validated_data)

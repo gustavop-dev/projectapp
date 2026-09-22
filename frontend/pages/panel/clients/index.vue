@@ -415,6 +415,7 @@
               </BaseButton>
             </div>
 
+            <EntityHistorySection entity-type="client" :object-id="client.id" class="mx-5" />
             <!-- Proposals (drop target for proposal reassignment) -->
             <div
               :data-testid="`client-proposals-zone-${client.id}`"
@@ -1055,6 +1056,7 @@
 </template>
 
 <script setup>
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { formatDate } from '~/utils/formatDate';

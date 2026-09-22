@@ -115,6 +115,8 @@
       <!-- Tabs -->
       <BaseTabs v-model="activeTab" :tabs="tabs" />
 
+      <EntityHistoryPanel v-if="activeTab === 'history'" entity-type="proposal" :object-id="proposal.id" />
+
       <!-- Tab: General -->
       <div v-if="visitedTabs.has('general')" v-show="activeTab === 'general'">
         <ProposalGeneralTab
@@ -431,6 +433,7 @@
 </template>
 
 <script setup>
+import EntityHistoryPanel from '~/components/history/EntityHistoryPanel.vue';
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 // General is the default tab: keep it static so the first paint needs no
 // extra round-trip. Every other tab panel is only mounted once visited
@@ -619,6 +622,7 @@ const tabs = computed(() => {
     { id: 'prompt', label: 'Prompt Proposal' },
     { id: 'json', label: 'JSON' },
     { id: 'activity', label: 'Actividad' },
+    { id: 'history', label: 'Historial' },
     { id: 'analytics', label: 'Analytics' },
   );
   return base;

@@ -1,0 +1,15 @@
+{
+  "id": "admin-document-change-history",
+  "name": "Admin Document Change History",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Abre Historial desde el detalle del documento; consulta versiones completas y campos modificados, compara dos versiones o la anterior, invierte el orden y pagina. El historial presenta fecha, autor, origen y cambios; carga 20 entradas por página. Evidencia antigua incompleta no se puede comparar. Errores de carga, consulta o comparación permiten reintentar.",
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

@@ -1,3 +1,5 @@
+from content.services.entity_history import historical_write
+
 """
 Proposal-time client lifecycle for ``UserProfile`` (role=client).
 
@@ -241,6 +243,7 @@ def _maybe_fill_user_names(user, first_name, last_name):
 
 
 @transaction.atomic
+@historical_write
 def update_client_profile(profile, *, name=None, email=None, phone=None,
                           company=None):
     """

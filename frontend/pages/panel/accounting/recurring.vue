@@ -225,6 +225,7 @@
         @toggle-weight-sort="toggleGroupedWeightSort"
       >
         <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="recurring" :record="row" />
           <RecurringRowActionsButton
             :row="row"
             :busy="duplicatingId === row.id"
@@ -286,6 +287,7 @@
           @sort="toggleSort"
         >
           <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="recurring" :record="row" />
             <RecurringRowActionsButton
               :row="row"
               :busy="duplicatingId === row.id"
@@ -435,6 +437,7 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';

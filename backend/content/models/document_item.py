@@ -1,7 +1,9 @@
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class DocumentItem(models.Model):
+
+class DocumentItem(HistoryTrackedModel):
     """Line items for a commercial document."""
 
     class ItemType(models.TextChoices):

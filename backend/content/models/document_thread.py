@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
+
 
 class DocumentThread(models.Model):
     """An ordered, folder-independent history shared by related documents."""
@@ -30,7 +32,7 @@ class DocumentThread(models.Model):
         return self.title
 
 
-class DocumentThreadItem(models.Model):
+class DocumentThreadItem(HistoryTrackedModel):
     """One document in a thread, dated by the business chronology."""
 
     thread = models.ForeignKey(

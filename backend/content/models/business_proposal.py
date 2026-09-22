@@ -2,6 +2,8 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+
+from content.models.history_tracked import HistoryTrackedModel
 from django.utils import timezone
 from content.utils import (
     render_slug_pattern,
@@ -12,7 +14,7 @@ from content.utils import (
 from .hour_packages import Nationality
 
 
-class BusinessProposal(models.Model):
+class BusinessProposal(HistoryTrackedModel):
     """
     Core model for business proposals sent to prospective clients.
 

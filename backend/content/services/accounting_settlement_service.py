@@ -30,6 +30,7 @@ when writing off a partially collected record in
 ``IncomeRecordCreateUpdateSerializer.validate``: *"Reduce su monto y registra la
 diferencia como un ingreso perdido aparte"*.
 """
+from content.services.entity_history import historical_write
 from decimal import ROUND_DOWN, Decimal
 
 from django.db import transaction
@@ -148,6 +149,7 @@ def _stamp_source_ref(records, income_id):
         record.source_ref = source_ref
 
 
+@historical_write
 @transaction.atomic
 def settle_expected_income(income, data, user):
     """Register a payment and resolve its shortfall in one operation.
@@ -467,6 +469,7 @@ def _stamp_abono_ref(movement, children):
         child.source_ref = source_ref
 
 
+@historical_write
 @transaction.atomic
 def bulk_settle_expected_incomes(data, user):
     """Register one payment that covers several expected incomes.

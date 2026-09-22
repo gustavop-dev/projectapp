@@ -181,6 +181,7 @@
         @sort="toggleSort"
       >
         <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="pocket" :record="row" />
           <PocketMovementRowActionsButton :row="row" @open="openActions" />
         </template>
         <template #cell-concept="{ row }">
@@ -294,6 +295,7 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted, ref } from 'vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

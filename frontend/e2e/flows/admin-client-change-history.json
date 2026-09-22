@@ -1,0 +1,15 @@
+{
+  "id": "admin-client-change-history",
+  "name": "Admin Client Change History",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Expande un cliente y abre Ver historial de cambios; consulta identidad, contacto y facturación con autor y fecha; pagina y compara versiones. El historial presenta fecha, autor, origen y cambios; carga 20 entradas por página. Evidencia antigua incompleta no se puede comparar. Errores de carga, consulta o comparación permiten reintentar.",
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

@@ -1,7 +1,9 @@
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class DocumentCollectionAccount(models.Model):
+
+class DocumentCollectionAccount(HistoryTrackedModel):
     """1:1 extension for collection_account document type; stores snapshots at issue time."""
 
     class PaymentTermType(models.TextChoices):

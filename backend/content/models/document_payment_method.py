@@ -1,7 +1,9 @@
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class DocumentPaymentMethod(models.Model):
+
+class DocumentPaymentMethod(HistoryTrackedModel):
     """Structured payment instructions for a document."""
 
     # Labels in Spanish: they are printed verbatim on the cuenta de cobro PDF

@@ -122,6 +122,9 @@
               : '—' }}
           </span>
         </template>
+        <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="ads" :record="row" />
+        </template>
       </AccountingTable>
 
       <p class="text-xs text-text-muted mt-2">
@@ -168,6 +171,7 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted } from 'vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';

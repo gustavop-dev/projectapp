@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from content.models.history_tracked import HistoryTrackedModel
 
-class DocumentNote(models.Model):
+
+class DocumentNote(HistoryTrackedModel):
     """Private, actionable note that may explain a state episode."""
 
     class Status(models.TextChoices):

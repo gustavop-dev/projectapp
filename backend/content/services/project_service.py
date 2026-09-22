@@ -14,6 +14,7 @@ Modes (the operator chooses every time; there is no default):
   wrongly-billed cuenta is anular y reemitir, not rewriting history.
 - ``detach``: the records keep their client and lose the project.
 """
+from content.services.entity_history import historical_write
 import logging
 
 from content.models import (
@@ -281,6 +282,7 @@ def _move_draft(document, new_profile, user):
     _log_diff(EntityType.COLLECTION_ACCOUNT, document, old_values, user)
 
 
+@historical_write
 @transaction.atomic
 def change_client_apply(project, new_profile, mode, user):
     """Move the project to ``new_profile`` and cascade per ``mode``.

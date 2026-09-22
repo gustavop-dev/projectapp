@@ -205,6 +205,9 @@
             {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
           </span>
         </template>
+        <template #row-actions="{ row }">
+          <EntityHistoryRecordButton entity-type="expense" :record="row" />
+        </template>
       </AccountingTable>
 
       <BasePagination
@@ -247,6 +250,7 @@
 </template>
 
 <script setup>
+import EntityHistoryRecordButton from '~/components/history/EntityHistoryRecordButton.vue';
 import { computed, onMounted } from 'vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

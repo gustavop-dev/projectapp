@@ -1,0 +1,15 @@
+{
+  "id": "admin-project-change-history",
+  "name": "Admin Project Change History",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Abre el detalle de accesos y su pestaña Historial; consulta URLs, notas y credenciales enmascaradas, revela un secreto por acción explícita y lo oculta al cerrar. El historial presenta fecha, autor, origen y cambios; carga 20 entradas por página. Evidencia antigua incompleta no se puede comparar. Errores de carga, consulta o comparación permiten reintentar.",
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

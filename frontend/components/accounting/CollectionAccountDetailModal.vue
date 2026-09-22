@@ -8,6 +8,7 @@
     @close="emit('close')"
   >
     <div class="flex flex-col h-full" data-testid="collection-detail-modal">
+      <EntityHistorySection v-if="open && record?.id" entity-type="collection_account" :object-id="record.id" class="mx-5" />
       <!-- Header -->
       <div class="px-6 pt-6 pb-4 border-b border-border-muted">
         <div class="flex flex-wrap items-start justify-between gap-3">
@@ -320,6 +321,7 @@
 </template>
 
 <script setup>
+import EntityHistorySection from '~/components/history/EntityHistorySection.vue';
 import { computed, ref, watch } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';

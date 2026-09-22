@@ -1,5 +1,7 @@
 # Product Requirements Document — ProjectApp
 
+> **Historial por registro — 2026-09-22:** el equipo puede consultar quién cambió cada documento y cuándo, ver versiones completas y compararlas. El alcance confirmado incluye Propuestas (precio/alcance y envío exacto), Proyectos (URLs, credenciales y notas), Clientes (contacto/facturación) y cada registro Contable. Retención indefinida, acceso interno y revelación explícita de secretos; sin restauración. Comunicaciones permanece como candidato. Detalle: `docs/ENTITY_HISTORY.md`.
+
 > **PWA interna — 2026-09-19:** el equipo puede instalar ProjectApp desde la
 > barra lateral o el menú móvil del panel. La app abre el panel y conserva el
 > login Django; ofrece una invitación descartable en el dashboard una vez por sesión y ayuda

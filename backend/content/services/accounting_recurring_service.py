@@ -5,6 +5,7 @@ They still create one audit row per changed recurring payment, but pausing a
 subscription or silencing its reminder must not generate the noise those
 actions exist to control.
 """
+from content.services.entity_history import historical_write
 from django.db import transaction
 from django.utils import timezone
 
@@ -71,6 +72,7 @@ def _save_diff(payment, old_values, user, update_fields):
     return payment
 
 
+@historical_write
 def set_active(payment, *, active, user):
     """Set active state idempotently; archived rows must be restored first."""
     if active and payment.is_archived:
@@ -87,6 +89,7 @@ def set_active(payment, *, active, user):
     return _save_diff(payment, old_values, user, ['is_active'])
 
 
+@historical_write
 def archive(payment, *, user):
     """Archive and pause a recurring payment without erasing its settings."""
     if payment.is_archived:
@@ -101,6 +104,7 @@ def archive(payment, *, user):
     )
 
 
+@historical_write
 def restore(payment, *, user):
     """Restore as inactive so a cancelled service never resumes silently."""
     if not payment.is_archived:
@@ -115,6 +119,7 @@ def restore(payment, *, user):
     )
 
 
+@historical_write
 def set_reminder_mute(payment, *, muted, until, user):
     """Silence or resume notices while preserving the ordinary edit path."""
     if payment.is_archived:
@@ -139,6 +144,7 @@ def set_reminder_mute(payment, *, muted, until, user):
     )
 
 
+@historical_write
 @transaction.atomic
 def bulk_apply(record_ids, *, action, user):
     """Apply one lifecycle action to a complete, locked selection.

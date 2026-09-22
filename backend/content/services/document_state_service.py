@@ -1,3 +1,4 @@
+from content.services.entity_history import historical_write
 from django.db import transaction
 from django.utils import timezone
 
@@ -80,6 +81,7 @@ def _close_locked(episode, *, actor, outcome, close_note='', closed_at=None):
     return episode
 
 
+@historical_write
 @transaction.atomic
 def open_state(
     document,
@@ -186,6 +188,7 @@ def open_state(
     return episode, True
 
 
+@historical_write
 @transaction.atomic
 def close_episode(
     episode,
@@ -207,6 +210,7 @@ def close_episode(
     )
 
 
+@historical_write
 @transaction.atomic
 def correct_opened_at(episode, opened_at, *, actor=None):
     locked = DocumentStateEpisode.objects.select_for_update().get(pk=episode.pk)
@@ -268,6 +272,7 @@ def ensure_initial_state(document, *, actor=None):
     return episode
 
 
+@historical_write
 @transaction.atomic
 def merge_states(source, target, *, actor=None):
     source = (
