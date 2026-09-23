@@ -1,3 +1,7 @@
+# Plantillas HTML para Linktree — en implementación (2026-09-23)
+
+Nivel 2 sobre `main` actualizado: paquetes ZIP/archivos, Mustache escapado, recursos sanitizados, validación visual aislada, versiones publicadas y biblioteca compartida por cliente. El PR anterior de branding y recursos de proyectos (#396) ya fue integrado. Trabajo en `feat/23092026-linktree-html-templates`; no se modifica la base de producción.
+
 # Historial por registro implementado (2026-09-22)
 
 Se implementó la ficha aprobada para Documentos, Propuestas, Proyectos, Clientes y todo Contable: versiones consultables/comparables, autor, conservación sin vencimiento, PDFs históricos y secretos cifrados. Comunicaciones y restauración quedan fuera. Validación focal: 44 casos backend, 5 del visor y 15 E2E aprobados; regresiones de accesos, propuestas, CRUD contable, correo fallido, PWA, migración de credenciales y eliminación de alias aprobadas, al igual que el contrato de fake data y la compilación Nuxt. El despliegue requiere las migraciones 0250/0251 y el inicializador idempotente descrito en `docs/ENTITY_HISTORY.md`; no se ejecutaron contra una base real.

@@ -659,6 +659,7 @@ CONTENT_CATALOG_CONTRACTS = (
     _contract(
         'content.Linktree',
         read_only='id created_at updated_at',
+        excluded=_excluded('La publicación de plantillas se valida exclusivamente en el panel (Nivel 2).', 'active_template_version'),
         read_write=(
             'handle name kind project display_name role bio avatar logo background_color accent_color '
             'text_color muted_color button_text_color font_family claim_line_1 claim_line_2 '
@@ -666,6 +667,21 @@ CONTENT_CATALOG_CONTRACTS = (
             'pwa_description vcard_first_name vcard_last_name vcard_org vcard_email '
             'vcard_tel vcard_url is_active'
         ),
+    ),
+    _contract(
+        'content.LinktreeTemplate',
+        excluded=_excluded('Paquetes HTML privados: carga, validación y publicación desde el panel.',
+                           'id owner client name manifest html css assets warnings is_shared created_at'),
+    ),
+    _contract(
+        'content.LinktreeTemplateVersion',
+        excluded=_excluded('Versiones y capturas privadas administradas en el panel; el MCP de Nivel 3 queda fuera de alcance.',
+                           'id linktree template assets overrides profile profile_digest document status report screenshots created_at published_at'),
+    ),
+    _contract(
+        'content.LinktreeTemplateClick',
+        excluded=_excluded('Agregados anónimos de clics del runtime de plantillas públicas.',
+                           'id version link_key day count'),
     ),
     _contract(
         'content.ProjectBrandAsset',

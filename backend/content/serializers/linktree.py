@@ -79,11 +79,12 @@ class PublicLinktreeSerializer(serializers.ModelSerializer):
     """Whitelist of fields the public /lk/@handle page needs."""
 
     buttons = serializers.SerializerMethodField()
+    template_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Linktree
         fields = (
-            'handle', 'kind',
+            'handle', 'kind', 'template_url',
             'display_name', 'role', 'bio', 'avatar', 'logo',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
@@ -94,6 +95,9 @@ class PublicLinktreeSerializer(serializers.ModelSerializer):
             'vcard_email', 'vcard_tel', 'vcard_url',
             'buttons',
         )
+
+    def get_template_url(self, obj):
+        return f"/api/linktrees/public/{obj.handle}/template/" if obj.active_template_version_id else None
 
     def get_buttons(self, obj):
         active = [b for b in obj.buttons.all() if b.is_active]
