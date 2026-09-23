@@ -86,25 +86,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 #### FLOW: `platform-login`
 
-- **Module:** platform
-- **Role:** platform-admin / platform-client
-- **Priority:** P1
-- **Routes:** `/platform/login`
-- **API:** `POST /api/accounts/login/`
-- **Description:** Client or admin authenticates via JWT login form. Routes to one of three destinations based on user state.
-- **Steps:**
-  1. User navigates to `/platform/login`.
-  2. Login form renders with email and password fields plus theme toggle button.
-  3. User enters credentials and submits the form.
-  4. API returns JWT tokens (onboarded) or `requires_verification: true` (first login).
-- **Branches:**
-  - [Branch A — Onboarded] API returns tokens → user is redirected to `/platform/dashboard`.
-  - [Branch B — First login] API returns `requires_verification: true` → user is redirected to `/platform/verify`.
-  - [Branch C — Profile incomplete] Tokens returned but `needsProfileCompletion` is true → user is redirected to `/platform/complete-profile`.
-  - [Branch D — Invalid credentials] API returns 401 → error message displayed inline.
-  - [Branch E — Deactivated account] API returns 403 → error message displayed inline.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/platform/platform-login.spec.js`
+- **Módulo:** platform · **Roles:** platform-admin / platform-client · **Prioridad:** P1
+- **Ruta:** `/platform/login` · **API:** `POST /api/accounts/login/`.
+- **Recorrido:** escribir email y contraseña, completar reCAPTCHA v2 y enviar.
+- **Success:** JWT para usuarios activos; documentos para clientes, dashboard
+  para administradores, completar perfil si corresponde; el primer acceso
+  envía OTP y navega a verificación sólo después de validar CAPTCHA.
+- **Error:** CAPTCHA inválido/expirado o credenciales incorrectas muestran un
+  mensaje y requieren una verificación nueva. El botón permanece bloqueado
+  mientras falta token o hay un envío en curso.
+- **Failure:** script bloqueado, timeout o respuesta inválida de Google bloquean
+  el acceso con Reintentar. No hay fallback sin CAPTCHA.
+- **Display:** el formulario conserva email y contraseña; el widget informa
+  carga, necesidad de verificación, expiración o indisponibilidad.
+- **E2E:** `e2e/platform/platform-login.spec.js` conserva las regresiones de
+  navegación; `e2e/captcha/platform-login-captcha.spec.js` usa Django real y base
+  temporal con el proveedor simulado para éxito, errores y recuperación.
 
 #### FLOW: `platform-verify-onboarding`
 
@@ -3658,20 +3655,22 @@ Two transitions that were previously bundled into other flows now have their own
 
 ### FLOW: `admin-login`
 
-- **Module:** auth
-- **Role:** admin
-- **Priority:** P1
-- **Routes:** `/panel/login` → `/panel/`
-- **Description:** Admin authenticates to access the management panel.
-- **Steps:**
-  1. User navigates to `/panel/login`.
-  2. Login page renders with link to Django Admin.
-  3. User authenticates via Django Admin (`/admin/`).
-  4. Auth check verifies session (`GET /api/auth/check/`).
-  5. User is redirected to `/panel/` dashboard.
-- **Coverage:** ✅ Covered (hand-off only)
-- **E2E Spec:** `e2e/auth/auth-admin-login.spec.js`
-- **E2E scope / abstention:** The E2E asserts only the SPA hand-off (the page renders and links to `/admin/` with the correct href). Steps 3–5 (credential entry, session auth, redirect) are **Django-native** — there is no SPA credential form to drive — so they are a declared abstention, marked `quality: allow-no-interaction` in the spec.
+- **Módulo:** auth · **Rol:** admin · **Prioridad:** P1
+- **Rutas:** `/panel/login` → `/admin/login/` → destino interno de `next`.
+- **Recorrido:** abrir el enlace al Django Admin, completar credenciales y
+  reCAPTCHA v2; enviar para crear la sesión y volver a la página solicitada.
+- **Success:** CAPTCHA aceptado y credenciales de staff válidas crean la sesión.
+- **Error:** token ausente, inválido o expirado bloquea el intento; se requiere
+  una verificación nueva tras credenciales incorrectas.
+- **Failure:** Google no disponible o script bloqueado deja el acceso cerrado
+  con mensaje y Reintentar. Las sesiones previamente abiertas siguen vigentes.
+- **Display:** la página de entrada conserva el enlace hacia Django Admin.
+- **E2E:** `e2e/auth/auth-admin-login.spec.js` mantiene el hand-off;
+  `e2e/captcha/panel-login-captcha.spec.js` recorre el formulario Django real,
+  con base temporal y simulación únicamente del proveedor externo.
+- **Ejecución:** `npx playwright test --config playwright.captcha.config.js panel-login-captcha.spec.js`.
+- La abstención histórica para credenciales/sesión queda reemplazada por estos
+  recorridos. POST sin JavaScript, CSRF y permisos se cubren además en backend.
 
 ### FLOW: `admin-panel-session-expired`
 
@@ -6250,7 +6249,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-linktree-branding` | admin | P2 | success,error,failure,display | — |
 | `admin-linktree-templates` | admin | P1 | success,error,failure,display | — |
 | `admin-linktrees` | admin | P2 | success,error | 1 |
-| `admin-login` | auth | P1 | display | 1 |
+| `admin-login` | auth | P1 | success,error,failure,display | 1 |
 | `admin-mcps` | admin | P2 | display,success,error,failure | 10 |
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
 | `admin-monitoring-case-follow-up` | monitoring | P1 | display,success,error,failure | — |
@@ -6400,7 +6399,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `platform-kanban-json-upload` | platform | P2 | success,error,display | 1 |
 | `platform-layout-title-mapping` | platform | P3 | display | 1 |
 | `platform-legacy-route-redirects` | platform | P2 | success | 1 |
-| `platform-login` | platform | P1 | success,error | 1 |
+| `platform-login` | platform | P1 | success,error,failure | 1 |
 | `platform-notifications` | platform | P2 | success,display | 1 |
 | `platform-password-reset` | platform | P1 | success,error | 1 |
 | `platform-profile-avatar-picker` | platform | P2 | success | 1 |

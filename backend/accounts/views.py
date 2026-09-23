@@ -1,7 +1,5 @@
 import logging
 
-import requests as http_requests
-
 logger = logging.getLogger(__name__)
 
 from django.conf import settings
@@ -16,6 +14,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from projectapp.recaptcha import CaptchaError, verify_captcha
 
 from accounts.models import UserProfile
 from accounts.permissions import IsAdminRole
@@ -94,28 +94,10 @@ def login_view(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    # reCAPTCHA validation
-    recaptcha_token = request.data.get('recaptcha_token', '')
-    recaptcha_secret = getattr(settings, 'RECAPTCHA_SECRET_KEY', '')
-    if recaptcha_secret:
-        if not recaptcha_token:
-            return Response(
-                {'detail': 'Completa el captcha para continuar.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            recaptcha_response = http_requests.post(
-                'https://www.google.com/recaptcha/api/siteverify',
-                data={'secret': recaptcha_secret, 'response': recaptcha_token},
-                timeout=5,
-            )
-            if not recaptcha_response.json().get('success'):
-                return Response(
-                    {'detail': 'Verificación de captcha fallida. Intenta de nuevo.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        except http_requests.RequestException:
-            logger.warning('reCAPTCHA verification request failed, allowing login')
+    try:
+        verify_captcha(serializer.validated_data.get('recaptcha_token', ''))
+    except CaptchaError as exc:
+        return Response({'detail': exc.message, 'code': exc.code}, status=exc.status)
 
     email = serializer.validated_data['email'].lower().strip()
     password = serializer.validated_data['password']

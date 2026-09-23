@@ -1,5 +1,10 @@
 # Task Plan — ProjectApp
 
+> **CAPTCHA transversal — 2026-09-23:** implementado para revisión en la
+> rama `feat/23092026-login-captcha`: login del panel y de Plataforma con
+> reCAPTCHA v2 obligatorio, bloqueo ante indisponibilidad y reintento.
+> Configuración/activación: `docs/LOGIN_CAPTCHA.md`. Sin migraciones.
+
 > **Historial por registro — 2026-09-22:** implementación de los cinco módulos confirmados en `feat/22092026-entity-change-history`, con comparación, evidencia de envío, retención de PDFs, cifrado y comando de inicialización. QA focal y entrega mediante PR; las migraciones y la importación se aplican durante el despliegue autorizado. Comunicaciones queda como ficha candidata independiente. Contrato: `docs/ENTITY_HISTORY.md`.
 
 > **Formalización documental implementada — 2026-09-19:** Documentos incorpora

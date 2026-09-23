@@ -310,7 +310,7 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
       } catch (error) {
         const message = error.response?.data?.detail || 'No pudimos iniciar sesión en este momento.'
         this.error = message
-        return { success: false, message }
+        return { success: false, message, code: error.response?.data?.code }
       /* c8 ignore next 3 */
       } finally {
         this.isLoading = false

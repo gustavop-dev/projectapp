@@ -228,7 +228,8 @@ class TestDeliverableSyncTechnicalRequirementsView:
 # ===========================================================================
 
 class TestLoginRecaptchaBranches:
-    @override_settings(RECAPTCHA_SECRET_KEY='test_recaptcha_secret')
+    @override_settings(RECAPTCHA_ENABLED=True, RECAPTCHA_SITE_KEY='test-site',
+                       RECAPTCHA_SECRET_KEY='test_recaptcha_secret', RECAPTCHA_ALLOWED_HOSTNAMES=['testserver'])
     def test_missing_recaptcha_token_returns_400(self, api_client):
         """Returns 400 when recaptcha_token is missing and secret is configured."""
         resp = api_client.post('/api/accounts/login/', {
@@ -239,8 +240,9 @@ class TestLoginRecaptchaBranches:
         assert resp.status_code == 400
         assert 'captcha' in resp.json()['detail'].lower()
 
-    @override_settings(RECAPTCHA_SECRET_KEY='test_recaptcha_secret')
-    @patch('accounts.views.http_requests.post')
+    @override_settings(RECAPTCHA_ENABLED=True, RECAPTCHA_SITE_KEY='test-site',
+                       RECAPTCHA_SECRET_KEY='test_recaptcha_secret', RECAPTCHA_ALLOWED_HOSTNAMES=['testserver'])
+    @patch('projectapp.recaptcha.requests.post')
     def test_invalid_recaptcha_returns_400(self, mock_post, api_client):
         """Returns 400 when reCAPTCHA verification returns success=False."""
         mock_response = MagicMock()
@@ -256,24 +258,22 @@ class TestLoginRecaptchaBranches:
         assert resp.status_code == 400
         assert 'captcha' in resp.json()['detail'].lower()
 
-    @override_settings(RECAPTCHA_SECRET_KEY='test_recaptcha_secret')
-    @patch('accounts.views.http_requests.post')
-    def test_recaptcha_network_error_allows_login(self, mock_post, api_client, client_user):
-        """Network error during reCAPTCHA verification is logged but login is allowed."""
+    @override_settings(RECAPTCHA_ENABLED=True, RECAPTCHA_SITE_KEY='test-site',
+                       RECAPTCHA_SECRET_KEY='test_recaptcha_secret', RECAPTCHA_ALLOWED_HOSTNAMES=['testserver'])
+    @patch('projectapp.recaptcha.requests.post')
+    def test_recaptcha_network_error_blocks_login(self, mock_post, api_client, client_user):
+        """Network error during reCAPTCHA verification blocks authentication."""
         import requests as real_requests
         mock_post.side_effect = real_requests.RequestException('timeout')
 
-        # Should proceed past reCAPTCHA failure and fail with wrong password
-        # (not a 400 captcha error)
         resp = api_client.post('/api/accounts/login/', {
             'email': 'client@gaps2.com',
             'password': 'wrongpass',
             'recaptcha_token': 'any_token',
         })
 
-        # Not 400 (captcha), should be 401 (wrong credentials)
-        assert resp.status_code == 401
-
+        assert resp.status_code == 503
+        assert resp.json()['code'] == 'captcha_unavailable'
 
 # ===========================================================================
 # project_detail_view — non-owning client forbidden

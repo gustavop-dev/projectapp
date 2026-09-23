@@ -1,5 +1,12 @@
 # Plantillas HTML por MCP (Nivel 3) — en verificación (2026-09-23)
 
+**2026-09-23 — CAPTCHA de login:** implementación en el worktree de sesión
+`login-captcha`, sobre `origin/main`. reCAPTCHA v2 obligatorio en Django Admin
+(panel) y Plataforma, verificador compartido que bloquea ante fallas, widget
+con expiración/reintento y configuración explícita por ambiente. Validación
+focal backend/unit y navegador con Django real en base temporal; entrega como
+PR abierto. Activación y claves reales quedan al deploy (`docs/LOGIN_CAPTCHA.md`).
+
 El conector `content` suma doce herramientas en `backend/content/mcp/linktree_template_tools.py` para que un asistente diseñe plantillas a medida: contrato de autoría con las variables reales de la tarjeta (perfil, foto/logo, enlaces con etiqueta/URL/icono/tipo, acciones disponibles, contacto, colores y fuente), carga de paquetes por texto/base64/`asset_id`, seguimiento de la validación en Chromium, vista previa con capturas como artefactos, reemplazo de imágenes editables, publicación con confirmación, restablecimiento, compartición y clics agregados. Reutiliza íntegro el servicio del panel: ninguna instantánea se activa sin `status=valid` y perfil vigente. Contratos actualizados (`LinktreeTemplate`/`LinktreeTemplateVersion` en lectura, `is_shared` escribible). Rama `feat/23092026-linktree-mcp-tools`; 17 casos nuevos más contratos, branding y paridad en verde localmente. Documentación en [LINKTREE_HTML_TEMPLATES.md](../docs/LINKTREE_HTML_TEMPLATES.md) y el runbook MCP.
 
 # Correcciones de plantillas HTML — en verificación (2026-09-23)

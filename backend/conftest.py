@@ -189,7 +189,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 @pytest.fixture(autouse=True)
 def disable_recaptcha_for_tests(settings):
-    """Login and other views gate on RECAPTCHA_SECRET_KEY; CI often sets it without a test token."""
+    """Ordinary auth tests opt out; CAPTCHA tests explicitly enable protection."""
+    settings.RECAPTCHA_ENABLED = False
     settings.RECAPTCHA_SECRET_KEY = ''
 
 

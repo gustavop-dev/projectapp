@@ -1,5 +1,11 @@
 # Product Requirements Document — ProjectApp
 
+> **CAPTCHA transversal — 2026-09-23:** el panel y la plataforma exigen
+> reCAPTCHA v2 desde el primer intento de login. Si la verificación falla,
+> se bloquea el acceso y se permite reintentar. Incluye la contraseña temporal
+> del primer acceso; recuperación, activación, refresh y sesiones abiertas
+> conservan su comportamiento. No se cuentan intentos para activar CAPTCHA.
+
 > **Historial por registro — 2026-09-22:** el equipo puede consultar quién cambió cada documento y cuándo, ver versiones completas y compararlas. El alcance confirmado incluye Propuestas (precio/alcance y envío exacto), Proyectos (URLs, credenciales y notas), Clientes (contacto/facturación) y cada registro Contable. Retención indefinida, acceso interno y revelación explícita de secretos; sin restauración. Comunicaciones permanece como candidato. Detalle: `docs/ENTITY_HISTORY.md`.
 
 > **PWA interna — 2026-09-19:** el equipo puede instalar ProjectApp desde la

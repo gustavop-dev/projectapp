@@ -27,6 +27,8 @@ decouple.config = decouple.Config(decouple.RepositoryEmpty())
 
 from .settings import *  # noqa: E402, F401, F403
 
+RECAPTCHA_ENABLED = False  # Individual CAPTCHA tests explicitly enable it.
+
 TEST_FILE_ROOT = Path(tempfile.mkdtemp(prefix='projectapp-pytest-'))
 atexit.register(shutil.rmtree, TEST_FILE_ROOT, ignore_errors=True)
 

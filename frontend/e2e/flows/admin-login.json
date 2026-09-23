@@ -6,9 +6,12 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin authenticates to access the management panel.",
+  "description": "Admin follows the panel hand-off to Django Admin and authenticates with mandatory reCAPTCHA v2. Invalid or unavailable verification blocks session creation.",
   "expectedSpecs": 1,
   "outcomes": [
+    "success",
+    "error",
+    "failure",
     "display"
   ]
 }

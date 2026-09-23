@@ -60,12 +60,9 @@
             >
           </div>
 
-          <!-- reCAPTCHA v2 -->
-          <div v-if="recaptchaSiteKey" class="flex justify-center">
-            <div ref="recaptchaContainer"></div>
-          </div>
+          <LoginCaptcha v-if="recaptchaEnabled" :site-key="recaptchaSiteKey" :reset-key="captchaResetKey" :retry-available="captchaUnavailable" @update:token="recaptchaToken = $event" />
 
-          <BaseButton variant="primary" size="md" type="submit" class="w-full" :disabled="!canSubmit || authStore.isLoading">
+          <BaseButton variant="primary" size="md" type="submit" class="w-full" :disabled="!canSubmit || authStore.isLoading" :disabled-reason="recaptchaEnabled && !recaptchaToken ? t('captcha.required') : ''">
             {{ authStore.isLoading ? 'Ingresando...' : 'Iniciar sesión' }}
           </BaseButton>
         </form>
@@ -86,6 +83,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+import LoginCaptcha from '~/components/auth/LoginCaptcha.vue'
 import BackgroundGradientAnimation from '~/components/ui/BackgroundGradientAnimation.vue'
 
 definePageMeta({
@@ -99,44 +97,13 @@ useHead({
 
 const config = useRuntimeConfig()
 const recaptchaSiteKey = config.public.recaptchaSiteKey
-const recaptchaContainer = ref(null)
+const recaptchaEnabled = config.public.recaptchaEnabled !== false
 const recaptchaToken = ref('')
-let recaptchaWidgetId = null
+const captchaResetKey = ref(0)
+const captchaUnavailable = ref(false)
+const { t } = useI18n()
 
-function loadRecaptchaScript() {
-  return new Promise((resolve) => {
-    if (window.grecaptcha?.render) {
-      resolve()
-      return
-    }
-    const script = document.createElement('script')
-    script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit'
-    script.async = true
-    script.defer = true
-    window.onRecaptchaLoaded = () => resolve()
-    document.head.appendChild(script)
-  })
-}
-
-function renderRecaptcha() {
-  if (!recaptchaContainer.value || !window.grecaptcha?.render) return
-  if (recaptchaWidgetId !== null) return
-
-  recaptchaWidgetId = window.grecaptcha.render(recaptchaContainer.value, {
-    sitekey: recaptchaSiteKey,
-    theme: 'light',
-    callback: (token) => { recaptchaToken.value = token },
-    'expired-callback': () => { recaptchaToken.value = '' },
-  })
-}
-
-onMounted(async () => {
-  localStorage.setItem('platform_theme', 'light')
-  if (recaptchaSiteKey) {
-    await loadRecaptchaScript()
-    renderRecaptcha()
-  }
-})
+onMounted(() => localStorage.setItem('platform_theme', 'light'))
 
 usePageEntrance('#platform-login')
 
@@ -154,12 +121,14 @@ authStore.hydrate()
 const errorMessage = computed(() => localError.value || authStore.error)
 const canSubmit = computed(() => {
   const hasCredentials = Boolean(form.email.trim()) && Boolean(form.password)
-  if (recaptchaSiteKey) return hasCredentials && Boolean(recaptchaToken.value)
+  if (recaptchaEnabled) return hasCredentials && Boolean(recaptchaToken.value)
   return hasCredentials
 })
 
 async function handleSubmit() {
+  if (authStore.isLoading) return
   localError.value = ''
+  captchaUnavailable.value = false
 
   const email = form.email.trim()
   if (!email.includes('@')) {
@@ -167,8 +136,8 @@ async function handleSubmit() {
     return
   }
 
-  if (recaptchaSiteKey && !recaptchaToken.value) {
-    localError.value = 'Completa el captcha para continuar.'
+  if (recaptchaEnabled && !recaptchaToken.value) {
+    localError.value = t('captcha.required')
     return
   }
 
@@ -179,11 +148,11 @@ async function handleSubmit() {
 
   const result = await authStore.login(payload)
   if (!result.success) {
-    localError.value = result.message
-    if (recaptchaSiteKey && window.grecaptcha && recaptchaWidgetId !== null) {
-      window.grecaptcha.reset(recaptchaWidgetId)
-      recaptchaToken.value = ''
-    }
+    captchaUnavailable.value = result.code === 'captcha_unavailable'
+    localError.value = ['captcha_required', 'captcha_invalid', 'captcha_unavailable'].includes(result.code)
+      ? t(`captcha.${result.code}`) : result.message
+    recaptchaToken.value = ''
+    captchaResetKey.value += 1
     return
   }
 

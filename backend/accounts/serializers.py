@@ -18,6 +18,7 @@ User = get_user_model()
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    recaptcha_token = serializers.CharField(required=False, allow_blank=True, write_only=True, max_length=4096)
 
 
 class VerifyOnboardingSerializer(serializers.Serializer):

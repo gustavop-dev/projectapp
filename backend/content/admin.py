@@ -16,6 +16,7 @@ from accounts.services.impersonation import (
     create_exchange_code,
     impersonate,
 )
+from content.forms.admin_login import CaptchaAdminAuthenticationForm
 from .models import (
     Contact, PortfolioWork,
     BusinessProposal, ProposalSection,
@@ -316,6 +317,8 @@ class ProjectAppAdminSite(admin.AdminSite):
     site_header = 'ProjectApp Administration'
     site_title = 'ProjectApp Admin'
     index_title = 'Welcome to the ProjectApp Control Panel'
+    login_form = CaptchaAdminAuthenticationForm
+    login_template = 'admin/captcha_login.html'
 
     def get_app_list(self, request):
         app_dict = self._build_app_dict(request)

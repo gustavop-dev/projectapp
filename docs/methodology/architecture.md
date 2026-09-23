@@ -1,5 +1,12 @@
 # Architecture — ProjectApp
 
+> **CAPTCHA de acceso — 2026-09-23:** `projectapp.recaptcha` centraliza la
+> validación de reCAPTCHA v2 para Django Admin (formulario nativo) y el login
+> JWT de Plataforma. Se ejecuta antes de credenciales, sesión, JWT u OTP;
+> cualquier indisponibilidad bloquea el intento. El widget Vue y el script
+> nativo manejan expiración y reintento. No hay cambio de modelos ni auth de
+> sesiones existentes. Configuración y pruebas: `docs/LOGIN_CAPTCHA.md`.
+
 > **Historial por registro — 2026-09-22:** `EntityHistory` y `EntityRevision` conservan identidades y versiones independientes de las filas vivas. La frontera ORM y los contextos HTTP/MCP/servicio agrupan cambios transaccionales, relacionan evidencias antiguas y separan secretos cifrados de instantáneas consultables. Visor común en Documentos, Propuestas, Proyectos, Clientes y Contable. Contrato: `docs/ENTITY_HISTORY.md`.
 
 > **Interfaz comercial pública — 2026-09-19:** catálogo, selecciones y Programa

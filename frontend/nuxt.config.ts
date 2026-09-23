@@ -93,7 +93,8 @@ export default defineNuxtConfig({
         changeOrigin: true,
       },
       '/admin': {
-        target: `${djangoDevTarget}/admin`,
+        // Preserve the root slash: Django redirects /admin back to /admin/.
+        target: `${djangoDevTarget}/admin/`,
         changeOrigin: true,
       },
       '/static': {
@@ -215,6 +216,8 @@ export default defineNuxtConfig({
     apiInternalOrigin,
     public: {
       recaptchaSiteKey: process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || '',
+      // Only local dev/test servers may explicitly opt out. Generated builds enforce CAPTCHA.
+      recaptchaEnabled: process.env.NODE_ENV === 'production' || process.env.NUXT_PUBLIC_RECAPTCHA_ENABLED !== 'false',
     },
   },
 
