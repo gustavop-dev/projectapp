@@ -2,6 +2,7 @@
 import PublicDocumentAction from '~/components/PublicDocumentAction.vue'
 import { computed, nextTick, ref, toRef, watch } from 'vue'
 import { useAdditionalModulesTheme } from '~/composables/useAdditionalModulesTheme'
+import { usePublicDocumentEntrance } from '~/composables/usePublicDocumentEntrance'
 import { useAdditionalModulesViewMode } from '~/composables/useAdditionalModulesViewMode'
 import { useExplainerVideo } from '~/composables/useExplainerVideos'
 import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
@@ -25,6 +26,8 @@ const emit = defineEmits(['change-language'])
 const { t } = useI18n()
 const { viewMode } = useAdditionalModulesViewMode('public')
 const { isDark, toggle: toggleTheme } = useAdditionalModulesTheme()
+const documentRef = ref(null)
+usePublicDocumentEntrance(documentRef)
 const explainer = useExplainerVideo('additional-modules', toRef(props, 'language'))
 const explainerVisible = computed(() => props.showExplainer && Boolean(explainer.value))
 const selectedModule = ref(null)
@@ -95,11 +98,12 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
 
 <template>
   <div
-    class="public-document-theme public-document-view min-h-screen w-full bg-surface text-text-default"
+    ref="documentRef"
+    class="public-document-theme public-document-view public-document-canvas min-h-screen w-full text-text-default"
     :data-theme="isDark ? 'dark' : 'light'"
     data-testid="additional-modules-catalog"
   >
-    <header v-if="showHeader" class="px-4 pb-12 pt-12 sm:px-6 sm:pb-16 sm:pt-16">
+    <header v-if="showHeader" data-document-enter class="px-4 pb-12 pt-12 sm:px-6 sm:pb-16 sm:pt-16">
       <div class="mx-auto max-w-[1400px] text-center">
         <p class="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-text-brand">
           {{ t('additionalModules.eyebrow') }}
@@ -174,10 +178,11 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
         v-for="category in categories"
         :id="`category-${category.slug}`"
         :key="category.slug"
+        data-document-enter
         class="scroll-mt-24 pb-14"
         :aria-labelledby="`category-title-${category.slug}`"
       >
-        <div class="mb-6 flex items-end justify-between gap-4 border-b border-border-default pb-4">
+        <div class="mb-6 flex items-end justify-between gap-4 pb-4">
           <h2
             :id="`category-title-${category.slug}`"
             class="text-2xl font-light text-text-brand sm:text-3xl"
@@ -194,7 +199,7 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
             :id="`module-${module.slug}`"
             :key="module.slug"
             type="button"
-            class="additional-module-entry group min-h-52 rounded-2xl border border-border-default bg-surface p-5 text-left shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+            class="additional-module-entry group min-h-52 rounded-2xl border border-border-default bg-surface p-5 text-left shadow-card transition duration-200 motion-safe:hover:-translate-y-0.5 hover:border-text-brand hover:shadow-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-reduce:transition-none"
             :aria-label="t('additionalModules.openDetail', { name: module.name })"
             :data-testid="`additional-module-card-${module.slug}`"
             @click="openModule(module, $event)"
@@ -210,7 +215,7 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
             </span>
             <span class="mt-5 inline-flex items-center gap-2 text-sm font-medium text-text-brand">
               {{ t('additionalModules.viewDetails') }}
-              <span aria-hidden="true" class="transition-transform group-hover:translate-x-1">→</span>
+              <span aria-hidden="true" class="transition-transform motion-safe:group-hover:translate-x-1 motion-reduce:transition-none">→</span>
             </span>
           </button>
         </div>
@@ -273,7 +278,7 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
             <div
               v-show="expandedModuleSlug === module.slug"
               :id="`additional-module-accordion-panel-${module.slug}`"
-              class="border-t border-border-default p-4 sm:p-6"
+              class="public-document-canvas border-t border-border-default p-4 sm:p-6"
             >
               <AdditionalModulesModuleDetails :module="module" />
             </div>
@@ -297,7 +302,7 @@ watch([hasModules, onboardingRef], async ([modulesAvailable, onboarding]) => {
     >
       <div
         v-if="selectedModule"
-        class="public-document-theme flex min-h-0 flex-col bg-surface"
+        class="public-document-theme public-document-canvas flex min-h-0 flex-col"
         :data-theme="isDark ? 'dark' : 'light'"
         data-testid="additional-module-detail-modal"
       >

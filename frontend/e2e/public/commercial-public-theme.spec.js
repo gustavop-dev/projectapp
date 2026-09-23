@@ -1,6 +1,7 @@
 import { test, expect } from '../helpers/test.js'
 import { PANEL_VIEWPORTS } from '../../config/responsive.js'
-import { commercialPages, setupCommercialPublic, openCommercial, expectReadableHeading, expectFloatingOrder } from '../helpers/commercial-public.js'
+import { waitForNuxtApp } from '../helpers/navigation.js'
+import { commercialPages, setupCommercialPublic, openCommercial, expectReadableHeading, expectFloatingOrder, expectLayeredCard } from '../helpers/commercial-public.js'
 
 for (const entry of commercialPages) {
   for (const [profile, viewport] of Object.entries(PANEL_VIEWPORTS)) {
@@ -15,16 +16,19 @@ for (const entry of commercialPages) {
         await openCommercial(page, entry)
         await expectReadableHeading(page, entry)
         await expectFloatingOrder(page, entry)
+        await expectLayeredCard(page, entry)
 
         await page.getByTestId(`${entry.prefix}-theme-toggle`).click()
 
         await expect(page.getByTestId(entry.root)).toHaveCSS('background-color', 'rgb(10, 31, 28)')
         await expectReadableHeading(page, entry)
+        await expectLayeredCard(page, entry)
         await page.screenshot({ path: testInfo.outputPath('dark.png') })
         await page.reload({ waitUntil: 'domcontentloaded' })
+        await waitForNuxtApp(page)
         await expect(page.getByTestId(entry.root)).toHaveCSS('background-color', 'rgb(10, 31, 28)')
         await page.getByTestId(`${entry.prefix}-theme-toggle`).click()
-        await expect(page.getByTestId(entry.root)).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+        await expect(page.getByTestId(entry.root)).toHaveCSS('background-color', 'rgb(242, 247, 245)')
         await page.screenshot({ path: testInfo.outputPath('light.png') })
       })
     })

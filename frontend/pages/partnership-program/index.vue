@@ -98,7 +98,7 @@ async function changeLanguage(nextLanguage) {
 </script>
 
 <template>
-  <section class="public-document-theme min-h-screen bg-surface" :data-theme="theme" data-testid="financing-public-page">
+  <section class="public-document-theme public-document-canvas min-h-screen" :data-theme="theme" data-testid="financing-public-page">
     <div v-if="liveError" class="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 text-center">
       <h1 class="text-2xl font-medium text-text-brand">{{ t('financing.loadError') }}</h1>
       <BaseButton class="mt-5" @click="loadProgram">{{ t('financing.retry') }}</BaseButton>

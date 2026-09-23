@@ -8,6 +8,17 @@ Se implementó la ficha aprobada para Documentos, Propuestas, Proyectos, Cliente
 
 # Active Context — ProjectApp
 
+**2026-09-23 — ajustes visuales comerciales implementados:** continuación
+del PR #391 en `fix/23092026-commercial-visual-polish`. Catálogo, selecciones
+y Programa de Alianza distinguen página, tarjeta e interiores en ambos temas;
+se retiran separadores decorativos y el corte del brillo del encabezado, y se
+corrige el SVG de compartir. Las entradas
+de secciones respetan movimiento reducido y contenido recibido tras hidratación.
+Las rutas `partnership-program` y redirects existentes se conservan. La validación
+focal cubre los cinco perfiles, contraste, controles, modales, errores y rutas;
+el fallback del nuevo observer se prueba en unidad. Sin migraciones ni cambios
+de API. Entrega mediante PR de sesión; el despliegue queda al operador.
+
 **2026-09-22 — sexta ronda de rendimiento de Plataforma:** continúa en el PR #397.
 Los selectores global y por cliente proyectan sólo los campos que publican;
 el resumen legacy de accesos calcula presencia de contraseña en SQL sin cargar

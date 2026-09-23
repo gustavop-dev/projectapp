@@ -1,5 +1,14 @@
 # Technical Documentation — ProjectApp
 
+> **Relieve comercial — 2026-09-23:** `.public-document-canvas` usa un token
+> independiente de `surface` para separar página e interiores de las tarjetas
+> en ambos temas. La paleta sigue acotada a `.public-document-theme`, también
+> en diálogos. `usePublicDocumentEntrance` observa sólo wrappers marcados,
+> registra secciones recibidas tras hidratación y desconecta al desmontar;
+> la animación es progresiva, una vez por elemento, sin ocultar contenido por
+> defecto y respeta `prefers-reduced-motion`. Los controles fijos quedan fuera
+> de wrappers animados. No cambia API, persistencia ni rutas.
+
 > **Plantillas HTML de Linktree — 2026-09-23:** paquetes privados, versiones inmutables, renderer Mustache escapado y validación visual con Chromium en Huey. Compartición por cliente, preview sandbox, CSP pública y analítica agregada sin identificación. Migración `0253_linktree_html_templates`; requiere instalar Chromium con el usuario de Huey. Contrato y operación: `docs/LINKTREE_HTML_TEMPLATES.md`.
 
 > **Historial por registro — 2026-09-22:** migraciones aditivas `content.0250–0251`; inicialización reanudable `initialize_entity_history` después del deploy. Lecturas session/CSRF solo admin (Contable: superuser), veinte resúmenes por página; snapshots y PDFs a demanda. Mantener archivos y `PROJECT_ACCESS_CIPHER_KEY` junto con los backups. Los nuevos escritores deben usar servicios/`history_operation`; no SQL directo. Véase `docs/ENTITY_HISTORY.md`.

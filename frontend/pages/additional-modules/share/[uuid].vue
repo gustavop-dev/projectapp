@@ -87,7 +87,7 @@ async function changeLanguage(nextLanguage) {
 </script>
 
 <template>
-  <section class="public-document-theme min-h-screen bg-surface" :data-theme="theme" data-testid="additional-modules-public-page">
+  <section class="public-document-theme public-document-canvas min-h-screen" :data-theme="theme" data-testid="additional-modules-public-page">
     <div v-if="isLoading" class="flex min-h-[70vh] items-center justify-center" role="status">
       <span class="h-9 w-9 animate-spin rounded-full border-2 border-border-default border-t-primary" />
     </div>
