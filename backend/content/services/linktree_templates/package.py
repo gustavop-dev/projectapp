@@ -40,6 +40,7 @@ def asset_batch():
 PACKAGE_LIMIT = 4 * 1024 * 1024
 IMAGE_LIMIT = 800 * 1024
 SOURCE_LIMIT = 200 * 1024
+RASTER_BASE_WIDTH = 667
 FONT = re.compile(r'^[A-Za-z][A-Za-z0-9 ]{0,79}(?::(?:ital,)?wght@(?:[01],)?[1-9]00(?:\.\.[1-9]00)?(?:;(?:[01],)?[1-9]00(?:\.\.[1-9]00)?)*)?$')
 KEY = re.compile(r'^[a-z][a-z0-9_-]{0,39}$')
 SVG_NS = 'http://www.w3.org/2000/svg'
@@ -236,7 +237,7 @@ def normalize_image(raw, filename, limit=IMAGE_LIMIT):
     variants = {}
     for density in (1, 2, 3):
         variant = img.copy()
-        target = min(img.width, 667 * density)
+        target = min(img.width, RASTER_BASE_WIDTH * density)
         variant.thumbnail((target, max(1, round(img.height * target / img.width))), Image.Resampling.LANCZOS)
         stream = io.BytesIO(); variant.save(stream, 'WEBP', quality=85)
         variants[density] = stream.getvalue()

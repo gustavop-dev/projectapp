@@ -14,6 +14,7 @@ import html5lib
 from django.conf import settings
 from django.core import signing
 
+from .package import RASTER_BASE_WIDTH
 from .syntax import TAGS, TemplateError, issue, render_mustache, rewrite_css
 
 
@@ -63,6 +64,31 @@ def profile_digest(profile):
 
 def asset_url(version, key, density=1):
     return f'/api/linktrees/templates/{version.id}/assets/{key}/{density}/'
+
+
+def asset_srcset(version, key):
+    """Density describes actual pixels, including images below the resize limit."""
+    asset = version.assets[key]
+    width = asset.get('width', 0)
+    if asset.get('mime') == 'image/svg+xml' or not width:
+        return f'{asset_url(version, key)} 1x'
+    base = min(width, RASTER_BASE_WIDTH)
+    seen, candidates = set(), []
+    for density in (1, 2, 3):
+        actual_width = min(width, RASTER_BASE_WIDTH * density)
+        if actual_width not in seen:
+            candidates.append(f'{asset_url(version, key, density)} {actual_width / base:.12g}x')
+            seen.add(actual_width)
+    return ', '.join(candidates)
+
+
+def snapshot_document(version):
+    """Repair platform-owned legacy srcsets without changing saved profile data."""
+    document = version.document
+    for key in version.assets:
+        previous = ', '.join(f'{asset_url(version, key, density)} {density}x' for density in (1, 2, 3))
+        document = document.replace(f'srcset="{previous}"', f'srcset="{asset_srcset(version, key)}"')
+    return document
 
 
 def asset_token(version):
@@ -152,14 +178,14 @@ def render_document(version):
         if key:
             asset = version.assets[key]
             element.set('src', urls[key])
-            element.set('srcset', ', '.join(f'{asset_url(version, key, d)} {d}x' for d in (1, 2, 3)))
+            element.set('srcset', asset_srcset(version, key))
             element.set('alt', asset.get('alt', ''))
             if not asset.get('alt'):
                 element.set('aria-hidden', 'true')
         if element.tag == 'img' and not key:
             for slot in ('photo', 'logo'):
                 if element.get('src') and element.get('src') == urls.get(f'slot-{slot}'):
-                    element.set('srcset', ', '.join(f'{asset_url(version, f"slot-{slot}", d)} {d}x' for d in (1, 2, 3)))
+                    element.set('srcset', asset_srcset(version, f'slot-{slot}'))
                     aspect = template.manifest.get('slots', {}).get(slot, {}).get('aspect')
                     if aspect:
                         element.set('style', (element.get('style') or '') + ';aspect-ratio:' + aspect.replace(':', '/') + ';object-fit:cover')
@@ -223,7 +249,7 @@ def render_document(version):
 
 def preview_document(version):
     token = quote(asset_token(version), safe='')
-    document = version.document
+    document = snapshot_document(version)
     for key in version.assets:
         for density in (1, 2, 3):
             url = asset_url(version, key, density)
@@ -237,7 +263,7 @@ def public_document(version, nonce):
             'click_url': f'/api/linktrees/templates/{version.id}/click/'}
     encoded = json.dumps(data, ensure_ascii=True).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     script = f'<script nonce="{html.escape(nonce, quote=True)}">(({runtime})({encoded}));</script>'
-    document = version.document
+    document = snapshot_document(version)
     if version.profile.get('pwa_enabled'):
         manifest = f'/api/linktrees/public/{version.linktree.handle}/manifest.webmanifest'
         document = document.replace('</head>', f'<link rel="manifest" href="{manifest}"></head>')

@@ -9,7 +9,8 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 from content.storage import get_private_storage
-from .render import asset_url, content_security_policy, font_url
+from .fixed_overlays import fixed_overlay_issues
+from .render import asset_url, content_security_policy, font_url, snapshot_document
 
 logger = logging.getLogger(__name__)
 WIDTHS = (320, 375, 430)
@@ -47,12 +48,13 @@ def contrast_issues(texts, background, width):
 
 def validate_in_browser(version):
     storage = get_private_storage()
+    document = snapshot_document(version)
     resources = {}
     for key, asset in version.assets.items():
         for density, path in asset['paths'].items():
             with storage.open(path, 'rb') as stream:
                 resources[asset_url(version, key, int(density))] = (stream.read(), asset['mime'])
-    page_bytes = len(version.document.encode()) + sum(asset['size'] for asset in version.assets.values())
+    page_bytes = len(document.encode()) + sum(asset['size'] for asset in version.assets.values())
     google_css = font_url(version.template.manifest['fonts'])
     failures = set()
     notices = list(version.template.warnings)
@@ -69,7 +71,7 @@ def validate_in_browser(version):
                 request_url = route.request.url
                 url = urlsplit(request_url)
                 if request_url == 'https://template.invalid/':
-                    return route.fulfill(body=version.document, content_type='text/html', headers={'Content-Security-Policy': content_security_policy()})
+                    return route.fulfill(body=document, content_type='text/html', headers={'Content-Security-Policy': content_security_policy()})
                 if url.netloc == 'template.invalid' and url.path in resources:
                     raw, mime = resources[url.path]
                     return route.fulfill(body=raw, content_type=mime)
@@ -100,6 +102,7 @@ def validate_in_browser(version):
                 page.evaluate('() => Promise.all([...document.images].map(i => i.decode().catch(() => null)))')
                 if version.profile.get('pwa_enabled'):
                     page.locator('[data-action="install-pwa"]').evaluate_all('(elements) => elements.forEach(el => { el.hidden = false; })')
+                notices.extend({**entry, 'width': width} for entry in fixed_overlay_issues(page))
                 audit = page.evaluate(source)
                 notices.extend({**entry, 'width': width} for entry in audit['issues'])
                 if audit['animated'] and not version.template.manifest['motion']:
