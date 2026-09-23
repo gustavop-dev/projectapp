@@ -15,7 +15,7 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 from content.models import Linktree, LinktreeTemplateClick, LinktreeTemplateVersion
 from content.serializers.linktree import normalize_handle
-from content.services.linktree_templates import service
+from content.services.linktree_templates import library, service
 from content.services.linktree_templates.package import asset_batch
 from content.services.linktree_templates.render import content_security_policy, preview_document, public_document
 from content.services.linktree_templates.syntax import TemplateError
@@ -149,6 +149,40 @@ def template_asset_override(request, linktree_id, version_id, key):
         return Response(service.version_summary(version, tree), status=201)
     except TemplateError as exc:
         return validation_error(exc)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAdminUser])
+@throttle_classes([TemplateUploadThrottle])
+def linktree_assets(request, linktree_id):
+    """Per-card image library: list, or upload/replace one image by key."""
+    tree = tree_for_panel(linktree_id)
+    if request.method == 'GET':
+        return Response({'assets': [library.asset_row(asset) for asset in tree.assets.all()]})
+    image = request.FILES.get('image')
+    if not image:
+        return Response({'detail': 'Selecciona una imagen.'}, status=400)
+    try:
+        with asset_batch():
+            asset, sanitized = library.upload_asset(tree, request.data.get('key', ''), request.data.get('alt', ''), image)
+    except TemplateError as exc:
+        return validation_error(exc)
+    return Response({**library.asset_row(asset), 'sanitized': sanitized}, status=201)
+
+
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAdminUser])
+def linktree_asset(request, linktree_id, key):
+    """Preview (the URL templates may reference verbatim) or delete a library image."""
+    tree = tree_for_panel(linktree_id)
+    if request.method == 'DELETE':
+        try:
+            library.delete_asset(tree, key)
+        except TemplateError as exc:
+            return validation_error(exc)
+        return Response(status=204)
+    asset = get_object_or_404(tree.assets, key=key)
+    return private_image(asset.image['paths']['1'], asset.image['mime'])
 
 
 def html_response(document, *, preview=False, nonce=None):

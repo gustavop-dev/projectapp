@@ -1,7 +1,10 @@
 <template>
   <section class="bg-surface border border-border-default rounded-xl shadow-card p-5 space-y-4">
     <h2 class="text-base font-semibold text-text-default">Apariencia</h2>
-    <p class="text-sm text-text-subtle">Personaliza el diseño y revisa el resultado en la vista previa. Guarda los cambios para publicarlos.</p>
+    <p v-if="templateActive" class="text-sm text-text-subtle" data-testid="linktree-theme-note">
+      Esta tarjeta publica una plantilla HTML: colores, tipografía y disposición los define la plantilla. Los controles de este bloque sólo aplican al tema básico, que se usa si restableces la plantilla.
+    </p>
+    <p v-else class="text-sm text-text-subtle">Personaliza el diseño y revisa el resultado en la vista previa. Guarda los cambios para publicarlos.</p>
     <BaseFormRow :cols="2" :gap="4" at="md">
       <BaseFormField v-for="color in colors" :key="color.key" :label="color.label" :for="`lt-${color.key}`" :error="errors[color.key]">
         <div class="flex items-center gap-2">
@@ -44,6 +47,9 @@ const props = defineProps({
   logo: { type: String, default: '' },
   errors: { type: Object, default: () => ({}) },
   busy: { type: Boolean, default: false },
+  // A published HTML template owns colors and fonts; the basic theme stays
+  // editable only as the fallback shown after "Restablecer tema básico".
+  templateActive: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update-field', 'upload-logo', 'remove-logo']);
 const colors = [

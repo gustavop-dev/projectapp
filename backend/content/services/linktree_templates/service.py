@@ -41,7 +41,8 @@ def check_pending(tree):
 
 
 def upload_package(tree, files):
-    manifest, source, css, images, notices = read_package(files)
+    from .library import library_map
+    manifest, source, css, images, notices = read_package(files, library_map(tree))
     assets = {key: store_image(*image) for key, image in images.items()}
     return LinktreeTemplate.objects.create(owner=tree, client_id=client_id(tree), name=manifest['name'],
                                            manifest=manifest, html=source, css=css, assets=assets, warnings=notices)
@@ -88,6 +89,10 @@ def create_version(tree, template, previous=None, replacement=None, reset_key=No
         else:
             assets[key] = copy.deepcopy(template.assets[key])
             overrides = [value for value in overrides if value != key]
+    # Library images always come from the card's current library, so
+    # "validate with current data" also refreshes a replaced image.
+    from .library import snapshot_library
+    assets.update(snapshot_library(tree, template))
     assets.update(snapshot_slots(tree, template))
     with transaction.atomic():
         # Serialize candidate creation for this card; two uploads cannot bypass

@@ -76,3 +76,18 @@ test('color text input updates the corresponding preview color', async () => {
   expect(form.background_color).toBe('#abcdef');
   expect(wrapper.get('#lt-background_color').element.value).toBe('#abcdef');
 });
+
+test('appearance explains that a published template owns the theme', () => {
+  const wrapper = appearance(reactive(tree()));
+  expect(wrapper.find('[data-testid="linktree-theme-note"]').exists()).toBe(false);
+  const withTemplate = mount(LinktreeAppearance, {
+    props: { form: reactive(tree()), templateActive: true },
+    global: { components: { BaseInput, BaseSelect }, stubs: {
+      BaseFormField: { template: '<div><slot /></div>', props: ['error'] },
+      BaseFormRow: { template: '<div><slot /></div>' },
+      BaseButton: { template: '<button><slot /></button>' },
+    } },
+  });
+  expect(withTemplate.get('[data-testid="linktree-theme-note"]').text()).toContain('tema básico');
+  expect(withTemplate.find('#lt-font').exists()).toBe(true);
+});

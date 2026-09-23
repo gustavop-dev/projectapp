@@ -258,16 +258,35 @@ class TemplateHTMLParser(HTMLParser):
             issue('Las variables no pueden estar en comentarios.', line=self.getpos()[0])
 
 
-def validate_sources(source, css, manifest):
+def normalize_library_references(source, css, library):
+    """Rewrite verbatim Linktree library URLs into the canonical key-based syntax.
+
+    ``library`` maps each library URL to its key. Authors may write
+    ``src="<url>"`` or ``url(<url>)``; the stored template always uses
+    ``data-asset="key"``/``asset(key)`` so the snapshot stays version-bound.
+    """
+    for url, key in library.items():
+        src = re.compile(r'src\s*=\s*(["\']?)' + re.escape(url) + r'\1')
+        css_url = re.compile(r'url\(\s*(["\']?)' + re.escape(url) + r'\1\s*\)')
+        source = css_url.sub(f'asset({key})', src.sub(f'data-asset="{key}"', source))
+        css = css_url.sub(f'asset({key})', css)
+    return source, css
+
+
+def validate_sources(source, css, manifest, library_keys=frozenset()):
+    """Validate HTML/CSS and return notices; records used library keys in the manifest."""
     parse_mustache(source)
     if re.search(r'<\s*/?\s*{{', source):
         issue('Las variables no pueden definir etiquetas HTML.')
     if not re.search(r'{{\s*name\s*}}', source) or not re.search(r'{{\s*#\s*links\s*}}', source):
         issue('Incluye {{name}} y el bloque {{#links}}…{{/links}}.')
-    parser = TemplateHTMLParser({asset['key'] for asset in manifest['assets']})
+    package_keys = {asset['key'] for asset in manifest['assets']}
+    parser = TemplateHTMLParser(package_keys | set(library_keys))
     parser.feed(source)
     used = parser.used | check_css(css, parser.asset_keys)
     if manifest.get('motion') and not re.search(r'prefers-reduced-motion\s*:\s*reduce', css + '\n'.join(parser.styles)):
         issue('motion: true requiere @media (prefers-reduced-motion: reduce).', 'template.css', code='reduced_motion')
+    if library_keys:
+        manifest['library_assets'] = sorted(used & set(library_keys))
     return [{'severity': 'warning', 'code': 'unused_asset', 'message': f'Imagen decorativa sin usar: {key}.', 'file': 'manifest.json', 'line': 1}
-            for key in parser.asset_keys - used]
+            for key in sorted(package_keys - used)]

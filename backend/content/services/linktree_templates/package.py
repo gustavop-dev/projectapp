@@ -17,7 +17,7 @@ from django.core.files.base import ContentFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from content.storage import get_private_storage
-from .syntax import TemplateError, check_css, issue, validate_sources
+from .syntax import TemplateError, check_css, issue, normalize_library_references, validate_sources
 import tinycss2
 
 _written_files = ContextVar('linktree_template_files', default=None)
@@ -56,9 +56,14 @@ def safe_path(value):
     return value
 
 
-def read_package(files):
-    """Accept pairs (relative path, UploadedFile); never extract an archive."""
+def read_package(files, library=None):
+    """Accept pairs (relative path, UploadedFile); never extract an archive.
+
+    ``library`` maps the card's library image URLs to their keys; those keys
+    may be referenced by the template and are snapshotted per version.
+    """
     files = list(files)
+    library = library or {}
     if not files or sum(f.size for _, f in files) > PACKAGE_LIMIT:
         issue('El paquete debe pesar como máximo 4 MB.', 'manifest.json')
     entries = {}
@@ -113,7 +118,12 @@ def read_package(files):
     extras = entries.keys() - declared - {'template.html', 'template.css', 'manifest.json'}
     if extras or declared - entries.keys():
         issue('Los archivos deben coincidir con los assets declarados en manifest.json.', 'manifest.json')
-    notices = validate_sources(source, css, manifest)
+    library_keys = set(library.values())
+    clash = sorted({a['key'] for a in manifest['assets']} & library_keys)
+    if clash:
+        issue(f'La clave ya existe en la biblioteca de imágenes del Linktree: {", ".join(clash)}.', 'manifest.json', code='library_key_clash')
+    source, css = normalize_library_references(source, css, library)
+    notices = validate_sources(source, css, manifest, library_keys)
     images = {}
     for asset in manifest['assets']:
         variants, metadata, changed = normalize_image(entries[asset['file']], asset['file'])
@@ -129,7 +139,9 @@ def validate_manifest(data):
     allowed = {'spec', 'name', 'author', 'min_width', 'max_width', 'fonts', 'slots', 'assets', 'editable_assets', 'motion'}
     if data.keys() - allowed:
         issue('El manifest contiene campos desconocidos.', 'manifest.json')
-    data = {'author': '', 'min_width': 320, 'max_width': 480, 'fonts': [], 'slots': {}, 'assets': [], 'editable_assets': [], 'motion': False, **data}
+    # library_assets is server-managed: the keys of the card's image library a
+    # template references, computed from the validated sources.
+    data = {'author': '', 'min_width': 320, 'max_width': 480, 'fonts': [], 'slots': {}, 'assets': [], 'editable_assets': [], 'motion': False, **data, 'library_assets': []}
     for key, limit in [('name', 160), ('author', 160)]:
         if not isinstance(data.get(key), str) or len(data[key]) > limit or (key == 'name' and not data[key].strip()):
             issue(f'{key} debe ser texto de hasta {limit} caracteres.', 'manifest.json')

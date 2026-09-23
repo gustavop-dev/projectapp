@@ -21,7 +21,7 @@ from content.mcp.context import current_mcp_context
 from content.mcp.protocol import ToolError
 from content.mcp.upload_tools import consume_upload, store_artifact
 from content.models import Linktree, LinktreeTemplateClick, McpUpload
-from content.services.linktree_templates import service
+from content.services.linktree_templates import library, service
 from content.services.linktree_templates.package import (
     IMAGE_LIMIT,
     PACKAGE_LIMIT,
@@ -274,6 +274,13 @@ def _screenshot_artifacts(version, context):
     return artifacts
 
 
+def _library_row(asset):
+    row = library.asset_row(asset)
+    row['created_at'] = _iso(asset.created_at)
+    row['updated_at'] = _iso(asset.updated_at)
+    return row
+
+
 def _card_variables(tree):
     """Everything a designer needs about one card, resolved like the renderer does."""
     issues = []
@@ -343,6 +350,7 @@ def _card_variables(tree):
             'font_family': tree.font_family,
             'show_brand_header': tree.show_brand_header,
         },
+        'assets': [_library_row(asset) for asset in tree.assets.all()],
         'active_version_id': str(tree.active_template_version_id) if tree.active_template_version_id else None,
         'validation_pending': pending,
         'profile_issues': issues,
@@ -425,6 +433,22 @@ def get_linktree_template_contract(arguments):
             'notes': ('El runtime de la plataforma conecta las acciones y oculta las no disponibles '
                       '(whatsapp sin teléfono, email sin correo, install-pwa).'),
         },
+        'images': {
+            'library': (
+                'Cada Linktree tiene una biblioteca de imágenes propia: súbelas con upload_linktree_asset '
+                '(clave + imagen) y úsalas en el HTML con <img data-asset="clave"> o src="<url devuelta>", '
+                'y en CSS con asset(clave) o url(<url devuelta>). Las URL se normalizan a la clave al subir '
+                'el paquete y cada versión guarda su propia copia, así reemplazar una imagen no altera lo publicado.'
+            ),
+            'package': 'Alternativa portable: declarar la imagen en manifest.assets y enviarla en assets/ dentro del paquete.',
+            'profile': 'La foto y el logo del perfil se colocan con las variables photo_url y logo_url.',
+            'formats': 'PNG, WebP, JPG o SVG de hasta 800 KB; lados limitados a 2000 px; variantes 1x/2x/3x automáticas.',
+        },
+        'theme': (
+            'Colores, tipografía y disposición son propios de cada HTML. Los campos de branding del editor '
+            '(background_color, accent_color, text_color, muted_color, button_text_color, font_family) sólo '
+            'aplican al tema básico cuando no hay plantilla publicada; no los reproduzcas en la plantilla.'
+        ),
         'icons': {
             'markup': '<span data-icon="mail"></span> inserta un SVG Lucide que hereda currentColor.',
             'catalog_size': len(icons),
@@ -452,6 +476,7 @@ def get_linktree_template_contract(arguments):
         'example': {'manifest.json': EXAMPLE_MANIFEST, 'template.html': EXAMPLE_HTML, 'template.css': EXAMPLE_CSS},
         'workflow': [
             'get_linktree_template_contract con linktree_id para leer las variables reales de la tarjeta.',
+            'upload_linktree_asset por cada imagen del diseño (fondos, texturas, sellos) para obtener su clave y URL.',
             'upload_linktree_template con files (template.html, manifest.json, template.css, assets/*).',
             ('get_linktree_template_version hasta que status sea valid; preview_linktree_template '
              'para ver HTML y capturas.'),
@@ -494,6 +519,7 @@ def get_linktree_template(arguments):
         'css': template.css,
         'warnings': list(template.warnings),
         'assets': _asset_metadata(template),
+        'library_assets': template.manifest.get('library_assets', []),
         'versions_count': template.versions.filter(linktree=tree).count(),
     }
 
@@ -684,13 +710,119 @@ def get_linktree_template_clicks(arguments):
     }
 
 
+def list_linktree_assets(arguments):
+    tree = _tree(arguments)
+    return {
+        'linktree_id': str(tree.pk),
+        'assets': [_library_row(asset) for asset in tree.assets.all()],
+        'usage': {
+            'html': '<img data-asset="clave"> o <img src="<url>">',
+            'css': 'asset(clave) o url(<url>)',
+        },
+    }
+
+
+def upload_linktree_asset(arguments):
+    tree = _tree(arguments)
+    key = str(arguments.get('key') or '').strip()
+    alt = arguments.get('alt') or ''
+    asset_id, raw = arguments.get('asset_id'), arguments.get('base64')
+    if bool(asset_id) == bool(raw):
+        raise ToolError('Indica asset_id (upload completado) o base64 con filename, pero no ambos.')
+    uploads = []
+    try:
+        with asset_batch(), transaction.atomic():
+            if asset_id:
+                filename, data = _consume_asset(asset_id, uploads, allowed=IMAGE_TYPES)
+            else:
+                filename = str(arguments.get('filename') or f'{key or "image"}.png')
+                data = _decode_base64(raw, IMAGE_LIMIT, key or 'base64')
+            asset, sanitized = library.upload_asset(tree, key, alt, SimpleUploadedFile(filename, data))
+            _mark_consumed(uploads)
+    except TemplateError as exc:
+        raise _template_error(exc)
+    asset.refresh_from_db()
+    return {
+        **_library_row(asset),
+        'sanitized': sanitized,
+        'next_step': (
+            f'Usa <img data-asset="{asset.key}"> (o src="{asset.url}") en template.html, o asset({asset.key}) '
+            'en CSS, y sube el paquete con upload_linktree_template. Las versiones ya publicadas no cambian.'
+        ),
+    }
+
+
+def delete_linktree_asset(arguments):
+    tree = _tree(arguments)
+    key = str(arguments.get('key') or '').strip()
+    try:
+        library.delete_asset(tree, key)
+    except TemplateError as exc:
+        raise _template_error(exc)
+    return {'linktree_id': str(tree.pk), 'key': key, 'deleted': True}
+
+
 # ── Registry ────────────────────────────────────────────────────────────────
 
-_LINKTREE_ID = {'linktree_id': {'type': 'string', 'format': 'uuid', 'description': 'ID del Linktree.'}}
+_LINKTREE_ID ={'linktree_id': {'type': 'string', 'format': 'uuid', 'description': 'ID del Linktree.'}}
 _VERSION_ID = {'version_id': {'type': 'string', 'format': 'uuid', 'description': 'ID de la versión de plantilla.'}}
 _TEMPLATE_ID = {'template_id': {'type': 'string', 'format': 'uuid', 'description': 'ID de la plantilla en la biblioteca.'}}
 
 LINKTREE_TEMPLATE_TOOLS = [
+    {
+        'name': 'list_linktree_assets',
+        'description': (
+            'Lista la biblioteca de imágenes propia de un Linktree: clave, alt, URL, dimensiones y el '
+            'marcado para usarlas en template.html o CSS.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _LINKTREE_ID,
+            'required': ['linktree_id'],
+            'additionalProperties': False,
+        },
+        'handler': list_linktree_assets,
+    },
+    {
+        'name': 'upload_linktree_asset',
+        'description': (
+            'Sube o reemplaza una imagen (PNG, WebP, JPG o SVG de hasta 800 KB) en la biblioteca del '
+            'Linktree bajo una clave, y devuelve la URL y el marcado para usarla en el diseño HTML. '
+            'Hazlo antes de upload_linktree_template. Las versiones publicadas conservan su copia.'
+        ),
+        'risk': 'write',
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_LINKTREE_ID,
+                'key': {'type': 'string', 'description': 'Clave en minúsculas (letras, números, guion, guion bajo), hasta 40 caracteres.'},
+                'alt': {'type': 'string', 'description': 'Texto alternativo; vacío = imagen decorativa.'},
+                'asset_id': {'type': 'string', 'format': 'uuid', 'description': 'Upload PNG/JPG/WebP completado.'},
+                'base64': {'type': 'string', 'description': 'Imagen en base64 (hasta 800 KB).'},
+                'filename': {'type': 'string', 'description': 'Nombre con extensión cuando se usa base64 (p. ej. fondo.svg).'},
+            },
+            'required': ['linktree_id', 'key'],
+            'additionalProperties': False,
+        },
+        'handler': upload_linktree_asset,
+    },
+    {
+        'name': 'delete_linktree_asset',
+        'description': (
+            'Elimina una imagen de la biblioteca del Linktree. Las plantillas que la usen ya no podrán '
+            'validarse de nuevo; las versiones publicadas conservan su copia.'
+        ),
+        'risk': 'sensitive',
+        'requires_confirmation': True,
+        'confirmation_message': 'Eliminar la imagen de la biblioteca del Linktree.',
+        'input_schema': {
+            'type': 'object',
+            'properties': {**_LINKTREE_ID, 'key': {'type': 'string'}},
+            'required': ['linktree_id', 'key'],
+            'additionalProperties': False,
+        },
+        'handler': delete_linktree_asset,
+    },
     {
         'name': 'get_linktree_template_contract',
         'description': (

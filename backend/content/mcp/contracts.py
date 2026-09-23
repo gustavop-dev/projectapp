@@ -701,6 +701,13 @@ CONTENT_CATALOG_CONTRACTS = (
         'content.LinktreeTemplateClick',
         read_only='id version link_key day count',
     ),
+    # Biblioteca de imágenes por tarjeta: upload_linktree_asset crea o
+    # reemplaza por clave; las versiones publicadas conservan su instantánea.
+    _contract(
+        'content.LinktreeAsset',
+        read_only='id linktree created_at updated_at',
+        read_write='key alt image',
+    ),
     _contract(
         'content.ProjectBrandAsset',
         excluded=_excluded(

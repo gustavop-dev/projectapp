@@ -907,6 +907,19 @@ instantánea sin `status=valid` y perfil vigente.
 | `reset_linktree_template` | write | Vuelve al tema básico conservando el historial. |
 | `share_linktree_template` | write | Comparte una plantilla propia con el cliente del proyecto vinculado. |
 | `get_linktree_template_clicks` | read | Clics agregados por enlace y día de una versión publicada (sin IPs ni visitantes). |
+| `list_linktree_assets` | read | Biblioteca de imágenes propia del Linktree: clave, alt, URL, dimensiones y marcado de uso. |
+| `upload_linktree_asset` | write | Sube o reemplaza una imagen por clave (`base64` + `filename` o `asset_id`) y devuelve la URL para usarla en el HTML/CSS. |
+| `delete_linktree_asset` | sensitive | Elimina una imagen de la biblioteca tras `confirm_action`; las versiones publicadas conservan su copia. |
+
+Biblioteca de imágenes (`content.LinktreeAsset`): las plantillas pueden pegar la URL
+devuelta (`src="…"`, `url(…)`) o usar `data-asset="clave"`/`asset(clave)`; al subir
+el paquete la URL se normaliza a la clave y `manifest.library_assets` (administrado
+por el servidor) registra las claves usadas. Cada candidata copia la imagen vigente
+de la biblioteca; una clave faltante bloquea la candidata con
+`missing_library_asset` y una clave repetida entre paquete y biblioteca se rechaza
+con `library_key_clash`. Los archivos se conservan mientras alguna versión los
+referencie. El tema básico (colores y fuente del editor) sigue existiendo para las
+tarjetas sin plantilla publicada; el contrato lo indica como no aplicable al HTML.
 
 Reglas verificadas: una sola validación en curso por tarjeta (código
 `validation_pending`); paquetes rechazados informan archivo, línea y código sin
@@ -917,7 +930,10 @@ y `LinktreeTemplateVersion` pasan a lectura (más `is_shared` escribible) y
 `assets`/`profile_digest` siguen excluidos con motivo.
 
 Prueba focal: `content/tests/views/test_mcp_linktree_templates.py` (17 casos,
-Chromium sustituido por `queue_validation` neutralizado) más
+Chromium sustituido por `queue_validation` neutralizado),
+`content/tests/views/test_mcp_linktree_assets.py`,
+`content/tests/services/test_linktree_asset_library.py`,
+`content/tests/views/test_linktree_asset_views.py` más
 `test_mcp_contracts.py`, `test_mcp_linktree_branding.py` y
 `test_mcp_parity_refresh.py`. En producción la validación real corre en Huey; el
 worker debe tener Chromium instalado (ver guía de plantillas).

@@ -183,6 +183,7 @@
       </section>
 
       <LinktreeAppearance :form="form" :logo="logoUrl" :errors="fieldErrors" :busy="store.isUpdating"
+        :template-active="Boolean(templatesStore.activeVersionId)"
         @upload-logo="onLogoSelected" @remove-logo="onRemoveLogo" @update-field="(key, value) => form[key] = value">
         <template #template>
           <LinktreeTemplateEditor :tree-id="String(route.params.id)" :has-unsaved-changes="hasChanges" />
@@ -389,6 +390,7 @@ import BaseAlert from '~/components/base/BaseAlert.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useLinktreesStore } from '~/stores/linktrees';
+import { useLinktreeTemplatesStore } from '~/stores/linktree-templates';
 import LinktreeCard from '~/components/Linktree/LinktreeCard.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -437,6 +439,7 @@ const FORM_FIELDS = [
 
 const route = useRoute();
 const store = useLinktreesStore();
+const templatesStore = useLinktreeTemplatesStore();
 const notify = usePanelNotify();
 const localePath = useLocalePath();
 
