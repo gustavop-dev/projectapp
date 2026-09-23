@@ -6,6 +6,7 @@ class ContentConfig(AppConfig):
     name = 'content'
 
     def ready(self):
+        import projectapp.checks  # noqa: F401 — deploy-time CAPTCHA validation
         import projectapp.tasks  # noqa: F401 — Huey periodic task discovery
         import content.signals  # noqa: F401
         import content.services.entity_history_signals  # noqa: F401

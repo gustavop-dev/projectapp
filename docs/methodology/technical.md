@@ -1,5 +1,13 @@
 # Technical Documentation — ProjectApp
 
+> **CAPTCHA de login — 2026-09-23:** ambos accesos requieren claves v2 y
+> hostnames explícitos. `RECAPTCHA_ENABLED` sólo permite opt-out local/test;
+> producción lo fuerza. El build necesita `NUXT_PUBLIC_RECAPTCHA_SITE_KEY`
+> igual a `RECAPTCHA_SITE_KEY`. `check --deploy --tag security` verifica el
+> backend; falta de claves y caídas del proveedor dejan el acceso cerrado.
+> Suite de navegador aislada: `playwright.captcha.config.js`. Runbook completo
+> en `docs/LOGIN_CAPTCHA.md`; activación depende del deploy con claves reales.
+
 > **Relieve comercial — 2026-09-23:** `.public-document-canvas` usa un token
 > independiente de `surface` para separar página e interiores de las tarjetas
 > en ambos temas. La paleta sigue acotada a `.public-document-theme`, también

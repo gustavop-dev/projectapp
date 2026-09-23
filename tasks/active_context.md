@@ -1,3 +1,22 @@
+# Retiro del recordatorio responsivo — implementado (2026-09-23)
+
+Por decisión del operador, el PR #405 incorpora el retiro del job
+`standards-review` y su cron de febrero/agosto. Sólo creaban una issue semestral;
+su omisión en los PR era consecuencia de esa condición. Se conservan contrato,
+selección de módulos, E2E por PR/push, matriz mensual y ejecución manual. La
+revisión periódica queda a cargo del equipo; las APIs de GitHub no muestran
+ramas protegidas ni rulesets que requieran el check. Diagnóstico y política
+vigente en `docs/methodology/responsive-acceptance.md`.
+
+# CAPTCHA de login — implementado (2026-09-23)
+
+**2026-09-23 — CAPTCHA de login:** implementación en el worktree de sesión
+`login-captcha`, sobre `origin/main`. reCAPTCHA v2 obligatorio en Django Admin
+(panel) y Plataforma, verificador compartido que bloquea ante fallas, widget
+con expiración/reintento y configuración explícita por ambiente. Validación
+focal backend/unit y navegador con Django real en base temporal; entrega como
+PR abierto. Activación y claves reales quedan al deploy (`docs/LOGIN_CAPTCHA.md`).
+
 # Historial por registro implementado (2026-09-22)
 
 Se implementó la ficha aprobada para Documentos, Propuestas, Proyectos, Clientes y todo Contable: versiones consultables/comparables, autor, conservación sin vencimiento, PDFs históricos y secretos cifrados. Comunicaciones y restauración quedan fuera. Validación focal: 44 casos backend, 5 del visor y 15 E2E aprobados; regresiones de accesos, propuestas, CRUD contable, correo fallido, PWA, migración de credenciales y eliminación de alias aprobadas, al igual que el contrato de fake data y la compilación Nuxt. El despliegue requiere las migraciones 0250/0251 y el inicializador idempotente descrito en `docs/ENTITY_HISTORY.md`; no se ejecutaron contra una base real.

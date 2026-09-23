@@ -3,8 +3,8 @@
  *
  * Admin authentication is Django-native: /panel/login is a static hand-off
  * page whose only job is to link out to the Django admin. There is no SPA
- * credential form to drive, so this flow is a declared abstention beyond the
- * hand-off link (see docs/USER_FLOW_MAP.md -> admin-login).
+ * credential form to drive here. Real Django form and CAPTCHA interactions
+ * are covered by captcha/panel-login-captcha.spec.js with its isolated server.
  *
  * The second describe block covers the companion flow
  * admin-panel-session-expired: what happens when a browser without a valid

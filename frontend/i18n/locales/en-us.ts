@@ -24,6 +24,7 @@ export default defineI18nLocale(async () => {
     projectBrand,
     pwa,
     monitoring,
+    captcha,
   ] = await Promise.all([
     import('~/locales/global/en.js'),
     import('~/locales/home/en.js'),
@@ -49,6 +50,7 @@ export default defineI18nLocale(async () => {
     import('~/locales/projectBrand/en.js'),
     import('~/locales/pwa/en.js'),
     import('~/locales/monitoring/en.js'),
+    import('~/locales/captcha/en.js'),
   ])
 
   return {
@@ -76,5 +78,6 @@ export default defineI18nLocale(async () => {
     projectBrand: projectBrand.default,
     pwa: pwa.default,
     monitoring: monitoring.default,
+    captcha: captcha.default,
   }
 })

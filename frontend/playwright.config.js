@@ -26,7 +26,7 @@ export default defineConfig({
   testDir: './e2e',
   // Actual worker/offline checks require a production build served by Django.
   // They run in CI through playwright.pwa.config.js, separately from Nuxt dev.
-  testIgnore: ['**/pwa/**'],
+  testIgnore: ['**/pwa/**', '**/captcha/**'],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
@@ -43,6 +43,7 @@ export default defineConfig({
   webServer: {
     command: `npm run dev -- --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: baseURL,
+    env: { NUXT_PUBLIC_RECAPTCHA_ENABLED: 'false' },
     reuseExistingServer,
     timeout: 120_000,
   },

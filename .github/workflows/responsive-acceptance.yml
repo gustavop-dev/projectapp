@@ -18,7 +18,6 @@ on:
       - '.github/workflows/responsive-acceptance.yml'
   schedule:
     - cron: '0 6 1 * *'
-    - cron: '0 7 1 2,8 *'
   workflow_dispatch:
 
 permissions:
@@ -97,37 +96,3 @@ jobs:
             frontend/test-results/
             frontend/playwright-report/
           retention-days: 7
-
-  standards-review:
-    if: github.event_name == 'schedule' && github.event.schedule == '0 7 1 2,8 *'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - uses: actions/github-script@v7
-        with:
-          script: |
-            const period = new Date().toISOString().slice(0, 7)
-            const title = `Revisión semestral del estándar responsivo — ${period}`
-            const existing = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              per_page: 100,
-            })
-            if (!existing.some((issue) => issue.title === title)) {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title,
-                body: [
-                  'Revisar `docs/methodology/responsive-acceptance.md`.',
-                  '',
-                  '- Confirmar que los cinco equipos de referencia siguen vigentes.',
-                  '- Revisar analytics de viewport y dispositivos soportados.',
-                  '- Ejecutar la matriz completa y clasificar hallazgos por módulo.',
-                  '- Actualizar estándar, inventario y guiones en el mismo PR.',
-                ].join('\n'),
-              })
-            }

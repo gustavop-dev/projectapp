@@ -7,10 +7,11 @@
     "platform-client"
   ],
   "priority": "P1",
-  "description": "Client or admin authenticates via JWT login form. Routes to /platform/verify (first login), /platform/complete-profile (profile incomplete), or /platform/dashboard (onboarded).",
+  "description": "Client or admin authenticates with mandatory reCAPTCHA v2 before JWT or first-login OTP issuance. Provider errors block login with retry; verified users retain onboarding and role-based destinations.",
   "expectedSpecs": 1,
   "outcomes": [
     "success",
-    "error"
+    "error",
+    "failure"
   ]
 }

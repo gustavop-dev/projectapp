@@ -284,6 +284,9 @@ WOMPI_API_URL = config('WOMPI_API_URL', default='https://sandbox.wompi.co/v1')
 # ==============================================================================
 
 RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='')
+RECAPTCHA_SITE_KEY = config('RECAPTCHA_SITE_KEY', default='')
+RECAPTCHA_ALLOWED_HOSTNAMES = config('RECAPTCHA_ALLOWED_HOSTNAMES', default='', cast=Csv())
+RECAPTCHA_ENABLED = config('RECAPTCHA_ENABLED', default=True, cast=bool)
 
 # ==============================================================================
 # LINKEDIN — OAuth 2.0 (blog post sharing)

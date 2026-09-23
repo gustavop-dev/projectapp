@@ -1,5 +1,12 @@
 # Architecture — ProjectApp
 
+> **CAPTCHA de acceso — 2026-09-23:** `projectapp.recaptcha` centraliza la
+> validación de reCAPTCHA v2 para Django Admin (formulario nativo) y el login
+> JWT de Plataforma. Se ejecuta antes de credenciales, sesión, JWT u OTP;
+> cualquier indisponibilidad bloquea el intento. El widget Vue y el script
+> nativo manejan expiración y reintento. No hay cambio de modelos ni auth de
+> sesiones existentes. Configuración y pruebas: `docs/LOGIN_CAPTCHA.md`.
+
 > **Historial por registro — 2026-09-22:** `EntityHistory` y `EntityRevision` conservan identidades y versiones independientes de las filas vivas. La frontera ORM y los contextos HTTP/MCP/servicio agrupan cambios transaccionales, relacionan evidencias antiguas y separan secretos cifrados de instantáneas consultables. Visor común en Documentos, Propuestas, Proyectos, Clientes y Contable. Contrato: `docs/ENTITY_HISTORY.md`.
 
 > **Interfaz comercial pública — 2026-09-19:** catálogo, selecciones y Programa
@@ -855,10 +862,11 @@ min-content sizing. Badges inherit the same containment. A feature may truncate
 only when it also owns a complete-value path. Document titles deliberately use
 that exception: one-line ellipsis plus measured in-place disclosure, with folder
 and other distinctions ordered in a separate wrapping metadata row.
-`responsiveAcceptance.js` assigns every catalog view to one of thirteen module
-scripts. Pull requests execute affected modules at all five widths, the full
-matrix runs monthly, and a scheduled February/August issue forces review of the
-device assumptions instead of letting the contract age silently.
+`responsiveAcceptance.js` asigna cada vista del catálogo a uno de trece módulos.
+Los PR ejecutan los módulos afectados en los cinco anchos; la matriz completa
+corre mensualmente y bajo ejecución manual. La revisión semestral de los equipos
+queda a cargo del equipo, sin creación automática de issues desde el retiro de
+`standards-review` el 2026-09-23. El guion manual complementa la evidencia de CI.
 
 Accounting is the reference adoption layer for those primitives. Its twelve
 pages render through `BasePageShell`; `AccountingSubnav` and saved filters use

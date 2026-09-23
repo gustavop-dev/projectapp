@@ -84,25 +84,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 #### FLOW: `platform-login`
 
-- **Module:** platform
-- **Role:** platform-admin / platform-client
-- **Priority:** P1
-- **Routes:** `/platform/login`
-- **API:** `POST /api/accounts/login/`
-- **Description:** Client or admin authenticates via JWT login form. Routes to one of three destinations based on user state.
-- **Steps:**
-  1. User navigates to `/platform/login`.
-  2. Login form renders with email and password fields plus theme toggle button.
-  3. User enters credentials and submits the form.
-  4. API returns JWT tokens (onboarded) or `requires_verification: true` (first login).
-- **Branches:**
-  - [Branch A — Onboarded] API returns tokens → user is redirected to `/platform/dashboard`.
-  - [Branch B — First login] API returns `requires_verification: true` → user is redirected to `/platform/verify`.
-  - [Branch C — Profile incomplete] Tokens returned but `needsProfileCompletion` is true → user is redirected to `/platform/complete-profile`.
-  - [Branch D — Invalid credentials] API returns 401 → error message displayed inline.
-  - [Branch E — Deactivated account] API returns 403 → error message displayed inline.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/platform/platform-login.spec.js`
+- **Módulo:** platform · **Roles:** platform-admin / platform-client · **Prioridad:** P1
+- **Ruta:** `/platform/login` · **API:** `POST /api/accounts/login/`.
+- **Recorrido:** escribir email y contraseña, completar reCAPTCHA v2 y enviar.
+- **Success:** JWT para usuarios activos; documentos para clientes, dashboard
+  para administradores, completar perfil si corresponde; el primer acceso
+  envía OTP y navega a verificación sólo después de validar CAPTCHA.
+- **Error:** CAPTCHA inválido/expirado o credenciales incorrectas muestran un
+  mensaje y requieren una verificación nueva. El botón permanece bloqueado
+  mientras falta token o hay un envío en curso.
+- **Failure:** script bloqueado, timeout o respuesta inválida de Google bloquean
+  el acceso con Reintentar. No hay fallback sin CAPTCHA.
+- **Display:** el formulario conserva email y contraseña; el widget informa
+  carga, necesidad de verificación, expiración o indisponibilidad.
+- **E2E:** `e2e/platform/platform-login.spec.js` conserva las regresiones de
+  navegación; `e2e/captcha/platform-login-captcha.spec.js` usa Django real y base
+  temporal con el proveedor simulado para éxito, errores y recuperación.
 
 #### FLOW: `platform-verify-onboarding`
 
