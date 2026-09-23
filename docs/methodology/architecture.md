@@ -862,10 +862,11 @@ min-content sizing. Badges inherit the same containment. A feature may truncate
 only when it also owns a complete-value path. Document titles deliberately use
 that exception: one-line ellipsis plus measured in-place disclosure, with folder
 and other distinctions ordered in a separate wrapping metadata row.
-`responsiveAcceptance.js` assigns every catalog view to one of thirteen module
-scripts. Pull requests execute affected modules at all five widths, the full
-matrix runs monthly, and a scheduled February/August issue forces review of the
-device assumptions instead of letting the contract age silently.
+`responsiveAcceptance.js` asigna cada vista del catálogo a uno de trece módulos.
+Los PR ejecutan los módulos afectados en los cinco anchos; la matriz completa
+corre mensualmente y bajo ejecución manual. La revisión semestral de los equipos
+queda a cargo del equipo, sin creación automática de issues desde el retiro de
+`standards-review` el 2026-09-23. El guion manual complementa la evidencia de CI.
 
 Accounting is the reference adoption layer for those primitives. Its twelve
 pages render through `BasePageShell`; `AccountingSubnav` and saved filters use

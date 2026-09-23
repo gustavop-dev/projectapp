@@ -121,17 +121,32 @@ por haber llegado primero.
 
 ## Automatización y revisión periódica
 
-`.github/workflows/responsive-acceptance.yml` aplica tres ritmos:
+`.github/workflows/responsive-acceptance.yml` ejecuta la aceptación automática:
 
-- **Cada PR:** valida catálogo/propiedad y ejecuta sólo módulos afectados.
-- **Mensual:** ejecuta los trece módulos completos en los cinco viewports.
-- **Febrero y agosto:** abre una ficha de revisión semestral del estándar.
+- **PR y pushes a `main`/`master` con cambios en las rutas del workflow:** valida
+  catálogo/propiedad y ejecuta sólo módulos afectados.
+- **Mensual:** el día 1 a las 06:00 UTC ejecuta los trece módulos completos en
+  los cinco viewports.
+- **Ejecución manual (`workflow_dispatch`):** ejecuta la matriz completa.
 
-La revisión semestral debe contrastar los equipos canónicos con analytics y
-dispositivos reales, revisar errores de CI por perfil, actualizar breakpoints
-sólo desde `responsive.js` y dejar cualquier cambio de patrón en el estándar,
-el styleguide y sus pruebas dentro del mismo PR. Cambiar un ancho en CSS sin
-actualizar esa fuente no es una revisión válida.
+La revisión semestral queda a cargo del equipo, sin creación automática de
+issues. Debe contrastar los equipos canónicos con analytics y dispositivos
+reales, revisar errores de CI por perfil, actualizar breakpoints sólo desde
+`responsive.js` y dejar cualquier cambio de patrón en el estándar, el styleguide
+y sus pruebas dentro del mismo PR. Cambiar un ancho en CSS sin actualizar esa
+fuente no es una revisión válida. El guion manual y la certificación física
+complementan las pruebas automáticas.
+
+### Retiro del recordatorio `standards-review` — 2026-09-23
+
+El job se agregó en el [PR #245](https://github.com/gustavop-dev/projectapp/pull/245)
+el 2026-08-22 para abrir una issue, no para ejecutar pruebas. Sólo admitía el
+cron de febrero/agosto, por lo que se omitía en los PR y en la corrida mensual.
+El historial disponible no registra ejecuciones efectivas del job; la corrida
+programada del 2026-09-01 también lo omitió. Por decisión del operador se retiran
+el job y su cron semestral, conservando la aceptación automática descrita arriba.
+En la revisión del 2026-09-23 no había ramas protegidas ni rulesets que exigieran
+ese check. Las ejecuciones históricas conservan su estado omitido.
 
 ## Certificación física
 

@@ -1,3 +1,13 @@
+# Retiro del recordatorio responsivo — implementado (2026-09-23)
+
+Por decisión del operador, el PR #405 incorpora el retiro del job
+`standards-review` y su cron de febrero/agosto. Sólo creaban una issue semestral;
+su omisión en los PR era consecuencia de esa condición. Se conservan contrato,
+selección de módulos, E2E por PR/push, matriz mensual y ejecución manual. La
+revisión periódica queda a cargo del equipo; las APIs de GitHub no muestran
+ramas protegidas ni rulesets que requieran el check. Diagnóstico y política
+vigente en `docs/methodology/responsive-acceptance.md`.
+
 # CAPTCHA de login — implementado (2026-09-23)
 
 **2026-09-23 — CAPTCHA de login:** implementación en el worktree de sesión
