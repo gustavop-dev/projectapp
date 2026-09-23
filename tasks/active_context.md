@@ -1,6 +1,6 @@
-# Plantillas HTML para Linktree — en implementación (2026-09-23)
+# Plantillas HTML para Linktree — implementadas (2026-09-23)
 
-Nivel 2 sobre `main` actualizado: paquetes ZIP/archivos, Mustache escapado, recursos sanitizados, validación visual aislada, versiones publicadas y biblioteca compartida por cliente. El PR anterior de branding y recursos de proyectos (#396) ya fue integrado. Trabajo en `feat/23092026-linktree-html-templates`; no se modifica la base de producción.
+Nivel 2 sobre `main` actualizado: paquetes ZIP/archivos, Mustache escapado, recursos sanitizados, validación visual aislada, versiones publicadas y biblioteca compartida por cliente. El PR anterior de branding y recursos de proyectos (#396) ya fue integrado. Entrega en [PR #400](https://github.com/gustavop-dev/projectapp/pull/400), rama `feat/23092026-linktree-html-templates`; no se modifica la base de producción. Verificación: 38 casos nuevos de backend, 10 unitarios del frontend y cinco E2E ejecutados en CI; gate focal sin errores y auditoría KEEP. Publicar exige una instantánea validada y la biblioteca comparte por cliente. El worker requiere Chromium y la migración 0253 mediante deploy. [Guía](../docs/LINKTREE_HTML_TEMPLATES.md) y [evidencia QA](../docs/audits/2026-09-23-linktree-templates-qa.md). El estado del CI final se consulta en el PR.
 
 # Historial por registro implementado (2026-09-22)
 

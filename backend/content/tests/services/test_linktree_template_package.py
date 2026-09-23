@@ -69,7 +69,7 @@ def test_zip_rejects_traversal_without_extracting(tmp_path):
 def test_svg_removes_active_and_external_content_but_preserves_artwork():
     raw = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4000 2000" onload="bad()"><script>bad()</script><foreignObject/><rect width="100" height="100" fill="red"/><use href="https://evil.example/a.svg#x"/></svg>'
     variants, metadata, changed = normalize_image(raw, 'assets/art.svg')
-    assert changed
+    assert changed is True
     assert metadata['width'] == 2000
     assert metadata['height'] == 1000
     assert b'<rect' in variants[1]

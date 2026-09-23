@@ -129,7 +129,7 @@ async function setupTemplateEditorMock(page, {
     if (apiPath === TEMPLATES_PATH && method === 'POST') {
       if (invalidUpload) {
         return json({
-          issues: [{ message: 'Falta el campo version requerido.', file: 'manifest.json', line: 1 }],
+          issues: [{ severity: 'error', message: 'El manifest debe declarar spec: "1.0".', file: 'manifest.json', line: 1 }],
         }, 400);
       }
       versions = [validVersion];
@@ -208,7 +208,7 @@ test.describe('Admin Linktree HTML templates', () => {
     ]);
     await page.getByTestId('template-upload-validate').click();
 
-    await expect(page.getByTestId('template-upload-errors')).toHaveText('Falta el campo version requerido. (manifest.json:1)');
+    await expect(page.getByTestId('template-upload-errors')).toHaveText('El manifest debe declarar spec: "1.0". (manifest.json:1)');
   });
 
   test('retries a failed template-library request and restores its library', {

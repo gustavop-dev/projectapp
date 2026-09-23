@@ -212,7 +212,13 @@ def render_document(version):
     if url:
         ElementTree.SubElement(head, 'link', {'rel': 'stylesheet', 'href': url})
     style = ElementTree.SubElement(head, 'style'); style.text = rewrite_css(template.css, urls)
-    return '<!doctype html>' + html5lib.serialize(document, tree='etree', quote_attr_values='always', omit_optional_tags=False)
+    return '<!doctype html>' + html5lib.serialize(
+        document,
+        tree='etree',
+        quote_attr_values='always',
+        escape_lt_in_attrs=True,
+        omit_optional_tags=False,
+    )
 
 
 def preview_document(version):
