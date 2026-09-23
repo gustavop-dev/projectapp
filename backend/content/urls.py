@@ -1,4 +1,3 @@
-from content.views import linktree_template as lt_templates
 from django.urls import path
 from content.views.accounting import (
     accounting_dashboard, accounting_stats, accounting_receivables,
@@ -1117,18 +1116,6 @@ urlpatterns = [
     path('linktrees/admin/<uuid:linktree_id>/delete/', delete_linktree, name='delete-linktree'),
     path('linktrees/admin/<uuid:linktree_id>/avatar/', upload_linktree_avatar, name='upload-linktree-avatar'),
     path('linktrees/admin/<uuid:linktree_id>/logo/', upload_linktree_logo, name='upload-linktree-logo'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/', lt_templates.template_library, name='linktree-template-library'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/reset/', lt_templates.reset_template, name='linktree-template-reset'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/library/<uuid:template_id>/share/', lt_templates.share_template, name='linktree-template-share'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/<uuid:version_id>/publish/', lt_templates.publish_template, name='linktree-template-publish'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/<uuid:version_id>/assets/<slug:key>/', lt_templates.template_asset_override, name='linktree-template-override'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/<uuid:version_id>/preview/', lt_templates.template_preview, name='linktree-template-preview'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/<uuid:version_id>/screenshots/<int:width>/', lt_templates.template_screenshot, name='linktree-template-screenshot'),
-    path('linktrees/admin/<uuid:linktree_id>/templates/<uuid:version_id>/asset-preview/<slug:key>/', lt_templates.template_asset_preview, name='linktree-template-asset-preview'),
-    path('linktrees/templates/<uuid:version_id>/assets/<slug:key>/<int:density>/', lt_templates.public_template_asset, name='linktree-template-public-asset'),
-    path('linktrees/templates/<uuid:version_id>/click/', lt_templates.template_click, name='linktree-template-click'),
-    path('linktrees/public/<str:handle>/manifest.webmanifest', lt_templates.template_manifest, name='linktree-template-manifest'),
-    path('linktrees/public/<str:handle>/template/', lt_templates.public_template, name='linktree-template-public'),
     path('linktrees/public/<str:handle>/', public_linktree, name='public-linktree'),
 
     # Hour packages — admin catalog CRUD (per-nationality pricing)

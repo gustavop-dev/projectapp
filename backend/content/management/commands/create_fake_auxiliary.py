@@ -16,8 +16,6 @@ from content.models import (
     LinkedInPost,
     Linktree,
     LinktreeButton,
-    LinktreeTemplate,
-    LinktreeTemplateVersion,
     McpConnector,
     McpRequestLog,
     ProjectBrandAsset,
@@ -85,35 +83,6 @@ class Command(BaseCommand):
                         'is_active': True,
                     },
                 )
-
-        # Demo candidates never claim to have passed browser validation. The
-        # editor offers a real validation before any publication.
-        from content.services.linktree_templates.render import profile_data, profile_digest, render_document
-        for index, linktree in enumerate(linktrees):
-            template, _ = LinktreeTemplate.objects.update_or_create(
-                id=context.uuid(f'linktree-template-{index}'),
-                defaults={
-                    'owner': linktree,
-                    'client_id': linktree.project.client_id if linktree.project_id else None,
-                    'name': '[Demo] Editorial accesible',
-                    'manifest': {'spec': '1.0', 'name': '[Demo] Editorial accesible', 'fonts': [],
-                                 'assets': [], 'editable_assets': [], 'slots': {}, 'motion': False,
-                                 'min_width': 320, 'max_width': 480},
-                    'html': '<main><h1>{{name}}</h1>{{#bio}}<p>{{bio}}</p>{{/bio}}{{#links}}<a data-link href="{{url}}">{{label}}</a>{{/links}}</main>',
-                    'css': 'body{background:#fff;color:#111;font-family:system-ui}main{padding:24px}a{display:flex;align-items:center;min-height:48px;margin-block:12px;color:#111;border:1px solid;padding:12px}',
-                    'is_shared': bool(linktree.project_id),
-                },
-            )
-            profile = profile_data(linktree)
-            version, _ = LinktreeTemplateVersion.objects.update_or_create(
-                id=context.uuid(f'linktree-template-version-{index}'),
-                defaults={'linktree': linktree, 'template': template, 'profile': profile,
-                          'profile_digest': profile_digest(profile), 'status': 'invalid',
-                          'report': {'issues': [{'severity': 'error', 'code': 'demo_validation_required',
-                                                'message': 'Plantilla de demostración: valida con los datos actuales antes de publicar.'}]}},
-            )
-            version.document = render_document(version)
-            version.save(update_fields=['document'])
 
         for project in projects:
             for category in ('branding', 'manual', 'design_system'):

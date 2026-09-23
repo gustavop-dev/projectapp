@@ -91,7 +91,6 @@ onMounted(async () => {
   window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
   const result = await store.fetchPublicLinktree(handle.value);
   if (!result.success) notFound.value = true;
-  else if (result.data.template_url) window.location.replace(result.data.template_url);
 });
 
 onUnmounted(() => {
