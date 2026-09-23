@@ -1,7 +1,7 @@
 () => {
   const issues = [];
   const texts = [];
-  const nodes = [...document.body.querySelectorAll('*')];
+  const nodes = [document.body, ...document.body.querySelectorAll('*')];
   const add = (code, message, element) => issues.push({ severity: 'error', code, message, file: 'template.html', line: Number(element?.dataset.templateLine || 1), node: element?.dataset.templateNode || null });
   const visible = (el) => {
     const css = getComputedStyle(el);
@@ -16,10 +16,6 @@
     const rect = el.getBoundingClientRect();
     const css = getComputedStyle(el);
     if (el.matches('a[data-link], [data-action]') && (rect.width < 44 || rect.height < 44)) add('touch_target', 'El área tocable debe medir al menos 44 × 44 px.', el);
-    if (css.position === 'fixed') {
-      const area = Math.max(0, Math.min(innerWidth, rect.right) - Math.max(0, rect.left)) * Math.max(0, Math.min(innerHeight, rect.bottom) - Math.max(0, rect.top));
-      if (area > innerWidth * innerHeight * 0.2) add('fixed_overlay', 'Un elemento fijo cubre más del 20 % de la pantalla.', el);
-    }
     for (const pseudo of ['::before', '::after']) {
       const content = getComputedStyle(el, pseudo).content;
       if (content && !['none', 'normal', '""', "''"].includes(content)) add('generated_text', 'Usa texto HTML para que se pueda comprobar su contraste; no generes texto con CSS.', el);
@@ -59,23 +55,6 @@
     const properties = new Set(frames.flatMap((f) => Object.keys(f)).filter((k) => !['offset', 'computedOffset', 'easing', 'composite'].includes(k)));
     if ([...properties].some((p) => !['transform', 'opacity'].includes(p))) add('animation_property', 'Sólo se pueden animar transform y opacity.', el);
     if ((timing.iterations === Infinity || timing.iterations > 1) && (el.textContent.trim() || el.matches('a,button') || el.querySelector('a,button'))) add('continuous_text', 'No se permite animación continua en textos o botones.', el);
-    // Inspect animated fixed elements at their keyframes, not only at t=0.
-    const affected = [el, ...el.querySelectorAll('*')].filter((node) => getComputedStyle(node).position === 'fixed');
-    if (affected.length && Number.isFinite(Number(timing.duration))) {
-      const originalTime = animation.currentTime;
-      const wasRunning = animation.playState === 'running';
-      animation.pause();
-      for (const frame of frames) {
-        animation.currentTime = Number(timing.delay) + Number(timing.duration) * Math.min(0.99999, frame.computedOffset);
-        for (const node of affected) {
-          const r = node.getBoundingClientRect();
-          const area = Math.max(0, Math.min(innerWidth, r.right) - Math.max(0, r.left)) * Math.max(0, Math.min(innerHeight, r.bottom) - Math.max(0, r.top));
-          if (area > innerWidth * innerHeight * 0.2) add('fixed_overlay', 'La animación de un elemento fijo cubre más del 20 % de la pantalla.', node);
-        }
-      }
-      animation.currentTime = originalTime;
-      if (wasRunning) animation.play();
-    }
     // Conservative cycle bound also covers transform-based flashing; easing
     // steps cannot turn a permitted duration into >3 changes per second.
     const steps = Math.max(2, frames.length - 1, ...frames.map((f) => Number(/steps\((\d+)/.exec(f.easing)?.[1] || 0)));

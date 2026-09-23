@@ -149,7 +149,7 @@ jobs:
       - name: Install Chromium for template validation tests
         run: |
           FILES=$(python3 "$GITHUB_WORKSPACE/scripts/ci/backend-shard-files.py" --shard ${{ matrix.shard }})
-          if [[ "$FILES" == *"test_linktree_template_browser.py"* ]]; then
+          if [[ "$FILES" == *"test_linktree_template_browser"* ]]; then
             python -m playwright install --with-deps chromium
           fi
 
