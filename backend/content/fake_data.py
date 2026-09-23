@@ -167,7 +167,7 @@ DERIVED_MODELS = {
     'content.EntityHistory', 'content.EntityRevision',
     'content.FinancingAgreementEvent',
     'content.FinancingAgreementNumberSequence',
-    'content.HostingCycle', 'content.LinktreeButton',
+    'content.HostingCycle', 'content.LinktreeButton', 'content.LinktreeAsset',
     'content.LinktreeTemplateVersion', 'content.LinktreeTemplateClick',
     'content.ProposalAlert', 'content.ProposalChangeLog',
     'content.ProposalDocument', 'content.ProposalProjectStage',
