@@ -24,14 +24,13 @@
     <BaseFormField label="Logo de marca" for="lt-logo" :error="errors.logo">
       <div class="flex flex-wrap items-center gap-3">
         <img v-if="logo" :src="logo" alt="Logo actual" class="h-16 w-32 object-contain rounded border border-border-default" />
-        <input id="lt-logo" ref="logoInput" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" class="sr-only" @change="selectLogo" />
+        <input id="lt-logo" ref="logoInput" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="selectLogo" />
         <BaseButton type="button" variant="secondary" :loading="busy" @click="logoInput?.click()">{{ logo ? 'Cambiar logo' : 'Subir logo' }}</BaseButton>
         <BaseButton v-if="logo" type="button" variant="danger-ghost" :loading="busy" @click="emit('remove-logo')">Quitar logo</BaseButton>
       </div>
     </BaseFormField>
-    <p class="text-xs text-text-subtle">JPG, PNG, WebP o SVG, máximo 5 MB. El logo se guarda al subirlo y sustituye la marca ProjectApp cuando la cabecera está visible. La foto de perfil se conserva.</p>
+    <p class="text-xs text-text-subtle">JPG, PNG o WebP, máximo 5 MB. El logo se guarda al subirlo y sustituye la marca ProjectApp cuando la cabecera está visible. La foto de perfil se conserva.</p>
     <BaseButton type="button" variant="ghost" @click="resetTheme">Restablecer colores y tipografía</BaseButton>
-    <slot name="template" />
   </section>
 </template>
 

@@ -12,7 +12,6 @@ from .pwa import serve_pwa_file
 from content.views.blog import serve_sitemap_xml
 from content.views.qr_cards import qr_card_redirect
 from content.views.linktree import linktree_short_redirect
-from content.views.linktree_template import localized_linktree
 
 
 def health_check(request):
@@ -38,7 +37,6 @@ def oauth_discovery_not_found(request, *args, **kwargs):
 
 
 urlpatterns = [
-    re_path(r'^(?P<locale>en-us|es-co)/lk/(?P<handle>@?[a-zA-Z0-9_.-]+)/?$', localized_linktree, name='localized-linktree'),
     path('manifest.webmanifest', serve_pwa_file, {'filename': 'manifest.webmanifest'}, name='pwa-manifest'),
     path('sw.js', serve_pwa_file, {'filename': 'sw.js'}, name='pwa-worker'),
     path('api/monitoring/', include('monitoring.urls')),

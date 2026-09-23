@@ -19,8 +19,6 @@ from content.models import (
     FinancingAgreementNumberSequence,
     LinkedInPost,
     Linktree,
-    LinktreeTemplate,
-    LinktreeTemplateVersion,
     McpRequestLog,
     PortfolioWork,
     ProjectBrandAsset,
@@ -160,8 +158,6 @@ class Command(BaseCommand):
         for model, label in (
             (EmailLog, 'email history'),
             (LinkedInPost, 'LinkedIn history'),
-            (LinktreeTemplateVersion, 'linktree template versions'),
-            (LinktreeTemplate, 'linktree templates'),
             (Linktree, 'linktrees'),
             (ProjectBrandAsset, 'project brand resources'),
             (QRCard, 'QR cards'),

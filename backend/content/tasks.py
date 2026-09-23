@@ -1746,12 +1746,3 @@ def cleanup_proposal_formalizations():
     from content.services.proposal_formalization_service import cleanup_expired
 
     return cleanup_expired()
-
-
-@task(retries=3, retry_delay=30)
-@lock_task('linktree-template-validation')
-def validate_linktree_template(version_id):
-    """One Chromium validation at a time; never occupies a web worker in production."""
-    from content.services.linktree_templates.service import run_validation
-
-    run_validation(version_id)
