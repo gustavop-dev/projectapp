@@ -40,7 +40,7 @@ def contrast_issues(texts, background, width):
                     minimum = min(minimum, (b + 0.05) / (a + 0.05))
         if minimum + 0.01 < text['threshold']:
             issues.append({'severity': 'error', 'code': 'contrast', 'file': 'template.html',
-                           'node': text['node'], 'width': width,
+                           'node': text['node'], 'line': text.get('line', 1), 'width': width,
                            'message': f'Contraste {minimum:.2f}:1; se requiere {text["threshold"]}:1.'})
     return issues
 
@@ -98,6 +98,8 @@ def validate_in_browser(version):
                 page.goto('https://template.invalid/', wait_until='load', timeout=20000)
                 page.evaluate('() => document.fonts.ready')
                 page.evaluate('() => Promise.all([...document.images].map(i => i.decode().catch(() => null)))')
+                if version.profile.get('pwa_enabled'):
+                    page.locator('[data-action="install-pwa"]').evaluate_all('(elements) => elements.forEach(el => { el.hidden = false; })')
                 audit = page.evaluate(source)
                 notices.extend({**entry, 'width': width} for entry in audit['issues'])
                 if audit['animated'] and not version.template.manifest['motion']:

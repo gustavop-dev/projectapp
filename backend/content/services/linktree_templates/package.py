@@ -17,7 +17,8 @@ from django.core.files.base import ContentFile
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from content.storage import get_private_storage
-from .syntax import TemplateError, issue, validate_sources
+from .syntax import TemplateError, check_css, issue, validate_sources
+import tinycss2
 
 _written_files = ContextVar('linktree_template_files', default=None)
 
@@ -159,7 +160,7 @@ def validate_manifest(data):
         path = safe_path(asset['file'])
         if not path.startswith('assets/') or path in paths:
             issue('Los assets deben tener rutas únicas dentro de assets/.', 'manifest.json')
-        if not isinstance(asset['alt'], str) or len(asset['alt']) > 500 or asset.get('role', '') not in {'', 'background'}:
+        if not isinstance(asset['alt'], str) or len(asset['alt']) > 500 or not isinstance(asset.get('role', ''), str) or asset.get('role', '') not in {'', 'background'}:
             issue('alt o role inválido.', 'manifest.json')
         keys.add(asset['key']); paths.add(path)
     if not isinstance(data['editable_assets'], list) or any(not isinstance(k, str) or k not in keys for k in data['editable_assets']) or len(set(data['editable_assets'])) != len(data['editable_assets']):
@@ -181,7 +182,17 @@ def sanitize_svg(raw):
                 parent.remove(child); changed = True
         for name, value in list(parent.attrib.items()):
             local = name.rsplit('}', 1)[-1].lower()
-            if (local.startswith('on') or local in {'style', 'base'} or '\\' in value or
+            if local == 'style':
+                try:
+                    check_css(value, set(), declarations=True)
+                    declarations = tinycss2.parse_declaration_list(value, skip_comments=True, skip_whitespace=True)
+                    safe = [item for item in declarations if not item.lower_name.startswith(('animation', 'transition', '-webkit-animation', '-webkit-transition'))]
+                    parent.set(name, tinycss2.serialize(safe))
+                    changed |= len(safe) != len(declarations)
+                except TemplateError:
+                    del parent.attrib[name]; changed = True
+                continue
+            if (local.startswith('on') or local == 'base' or '\\' in value or
                 (local in {'href', 'src'} and not re.fullmatch(r'#[\w-]+', value)) or
                 ('url' in value.lower() and not re.fullmatch(r'url\(\s*#[\w-]+\s*\)', value))):
                 del parent.attrib[name]; changed = True

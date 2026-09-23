@@ -867,3 +867,22 @@ Las mismas reglas corren en el serializer del panel. `ProjectBrandAsset` queda
 excluido explícitamente del conector: documentos privados disponibles sólo en
 el panel, sin URLs públicas ni descargas vía MCP. Prueba focal:
 `content/tests/views/test_mcp_linktree_branding.py::test_mcp_links_and_unlinks_project`.
+
+### Linktrees — plantillas HTML Nivel 2 (2026-09-23)
+
+Las plantillas HTML se administran desde el panel con sesión y CSRF. Los modelos
+`LinktreeTemplate`, `LinktreeTemplateVersion` y `LinktreeTemplateClick`, junto con
+`Linktree.active_template_version`, están excluidos explícitamente del contrato
+MCP: no se puede cargar, validar ni activar HTML mediante una actualización
+genérica de Linktree. El Nivel 3 requiere herramientas propias que reutilicen
+la validación de paquetes y la revisión visual antes de publicar.
+
+El contrato de branding existente sigue disponible. La página pública sólo
+anuncia `template_url` cuando la versión pertenece al perfil, fue publicada y
+tiene validación válida. Al cambiar datos de una tarjeta con plantilla hay que
+validar una nueva instantánea y publicarla desde el panel.
+
+Comprobaciones focalizadas: contrato de clasificación de campos en
+`content/tests/views/test_mcp_contracts.py` y aislamiento/publicación en
+`content/tests/views/test_linktree_template_views.py`. Operación y despliegue:
+[Plantillas HTML de Linktree](LINKTREE_HTML_TEMPLATES.md).

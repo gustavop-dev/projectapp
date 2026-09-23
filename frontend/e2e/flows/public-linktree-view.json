@@ -7,8 +7,9 @@
   ],
   "priority": "P2",
   "description": "Visitor opens /lk/@handle and sees the basic branded card or its published HTML template. The template runtime connects contact, sharing, copying, installation when available, Lucide icons and tracked profile links. Public routes preserve the handle; unavailable/inactive handles show the not-available state.",
-  "expectedSpecs": 1,
+  "expectedSpecs": 2,
   "outcomes": [
+    "success",
     "display",
     "failure"
   ]

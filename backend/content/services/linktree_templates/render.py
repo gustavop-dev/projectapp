@@ -5,6 +5,7 @@ import html
 import json
 import re
 from functools import lru_cache
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 from xml.etree import ElementTree
@@ -76,7 +77,46 @@ def font_url(fonts):
 
 @lru_cache(maxsize=1)
 def icon_catalog():
-    return json.loads((Path(__file__).parent / 'vendor/lucide.json').read_text())
+    vendor = Path(__file__).parent / 'vendor'
+    return {**json.loads((vendor / 'lucide.json').read_text()),
+            **json.loads((vendor / 'legacy-icons.json').read_text())}
+
+
+
+class SourceMarkers(HTMLParser):
+    """Trusted markers preserve source lines and link identity through loops."""
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        raw = self.get_starttag_text()
+        insertion = f' data-template-line="{self.getpos()[0]}"'
+        if tag == 'a' and 'data-link' in dict(attrs):
+            insertion += ' data-link-key="{{__platform_link_key}}"'
+        end = -2 if raw.endswith('/>') else -1
+        self.parts.append(raw[:end] + insertion + raw[end:])
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        self.parts.append(f'</{tag}>')
+
+    def handle_data(self, data):
+        self.parts.append(data)
+
+    def handle_entityref(self, name):
+        self.parts.append(f'&{name};')
+
+    def handle_charref(self, name):
+        self.parts.append(f'&#{name};')
+
+    def handle_comment(self, data):
+        self.parts.append(f'<!--{data}-->')
+
+    def handle_decl(self, decl):
+        self.parts.append(f'<!{decl}>')
 
 
 def render_document(version):
@@ -90,12 +130,13 @@ def render_document(version):
     if re.search(r'{{\s*#\s*primary_link\s*}}', template.html):
         links = [link for link in links if link is not primary]
     def numbered(items):
-        return [{**item, 'index': i, 'first': i == 0, 'last': i == len(items) - 1} for i, item in enumerate(items)]
+        return [{**item, '__platform_link_key': item['key'], 'index': i, 'first': i == 0, 'last': i == len(items) - 1} for i, item in enumerate(items)]
     profile['primary_link'] = numbered([primary])[0] if primary else None
     profile['links'] = numbered(links)
     for kind in ('web', 'whatsapp', 'email', 'phone', 'social', 'file'):
         profile[f'links.{kind}'] = numbered([link for link in links if link['kind'] == kind])
-    document = html5lib.parse(render_mustache(template.html, profile), namespaceHTMLElements=False)
+    marked = SourceMarkers(); marked.feed(template.html)
+    document = html5lib.parse(render_mustache(''.join(marked.parts), profile, frozenset({'__platform_link_key'})), namespaceHTMLElements=False)
     # A second structural check closes malformed-HTML/parser differential cases.
     for index, element in enumerate(document.iter()):
         if not isinstance(element.tag, str):
@@ -129,7 +170,7 @@ def render_document(version):
                 issue('El perfil produjo un enlace no permitido.', 'profile')
             element.set('rel', 'noopener noreferrer')
             element.set('target', '_top')
-            link = next((b for b in version.profile['buttons'] if b['url'] == element.get('href')), None)
+            link = next((b for b in version.profile['buttons'] if b['key'] == element.get('data-link-key') and b['url'] == element.get('href')), None)
             if not link:
                 issue('El enlace no pertenece a este perfil.')
             element.set('data-link-key', link['key'])
@@ -144,7 +185,6 @@ def render_document(version):
     for element in list(document.iter()):
         name = element.get('data-icon')
         if name:
-            name = {'whatsapp': 'message-circle', 'linkedin': 'contact', 'instagram': 'camera'}.get(name, name)
             svg = icon_catalog().get(name)
             if not svg:
                 issue(f'Icono Lucide desconocido: {name}.')
@@ -158,6 +198,12 @@ def render_document(version):
     if title is None:
         title = ElementTree.SubElement(head, 'title')
     title.text = version.profile['name']
+    description = (version.profile.get('bio') or version.profile.get('role') or version.profile['name'])[:160]
+    ElementTree.SubElement(head, 'meta', {'name': 'description', 'content': description})
+    if version.profile.get('profile_url'):
+        ElementTree.SubElement(head, 'link', {'rel': 'canonical', 'href': version.profile['profile_url']})
+    ElementTree.SubElement(head, 'meta', {'property': 'og:title', 'content': version.profile['name']})
+    ElementTree.SubElement(head, 'meta', {'property': 'og:description', 'content': description})
     # A zero-margin baseline preserves the actual 320px canvas without masking overflow.
     baseline = ElementTree.Element('style')
     baseline.text = 'html,body{margin:0}*,*::before,*::after{box-sizing:border-box}[hidden]{display:none!important}body{max-width:' + str(template.manifest['max_width']) + 'px;margin-inline:auto}svg{vertical-align:middle}'

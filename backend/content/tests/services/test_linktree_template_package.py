@@ -11,7 +11,11 @@ from PIL import Image
 
 from content.services.linktree_templates.package import normalize_image, read_package
 from content.services.linktree_templates.render import render_document
-from content.services.linktree_templates.syntax import TemplateError, render_mustache, validate_sources
+from content.services.linktree_templates.syntax import (
+    TemplateError,
+    render_mustache,
+    validate_sources,
+)
 
 HTML = '<main><h1>{{name}}</h1>{{#links}}<a data-link href="{{url}}">{{label}}</a>{{/links}}</main>'
 MANIFEST = {'spec': '1.0', 'name': 'Editorial', 'assets': [], 'fonts': [], 'motion': False, 'max_width': 480}
@@ -102,3 +106,29 @@ def test_renderer_inserts_trusted_icons_and_escapes_profile():
     assert 'data-link-key="7"' in document
     assert '<svg' in document
     assert 'stroke="currentColor"' in document
+
+
+def test_malformed_asset_role_returns_manifest_error():
+    manifest = {**MANIFEST, 'assets': [{'key': 'art', 'file': 'assets/art.png', 'alt': '', 'role': []}]}
+    with pytest.raises(TemplateError) as caught:
+        read_package(package(manifest=manifest))
+    assert caught.value.issue['file'] == 'manifest.json'
+    assert str(caught.value) == 'alt o role inválido.'
+
+
+def test_equal_destinations_keep_each_links_analytics_identity():
+    template = SimpleNamespace(html=HTML, css='', manifest=MANIFEST)
+    profile = {'name': 'Equipo', 'contact': {'email': '', 'tel': ''}, 'buttons': [
+        {'label': 'Principal', 'url': 'https://example.com', 'key': '7', 'tier': 'primary', 'icon': 'globe', 'kind': 'web'},
+        {'label': 'Más información', 'url': 'https://example.com', 'key': '8', 'tier': 'row', 'icon': 'globe', 'kind': 'web'},
+    ]}
+    document = render_document(SimpleNamespace(id=uuid4(), template=template, profile=profile, assets={}))
+    assert 'data-link-key="7"' in document
+    assert 'data-link-key="8"' in document
+
+
+def test_nested_link_sections_cannot_expand_without_bound():
+    source = '{{#links}}' * 10 + '{{label}}' + '{{/links}}' * 10
+    with pytest.raises(TemplateError) as caught:
+        render_mustache(source, {'links': [{'label': 'link'}] * 10})
+    assert caught.value.issue['code'] == 'template_complexity'

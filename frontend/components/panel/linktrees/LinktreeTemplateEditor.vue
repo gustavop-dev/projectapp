@@ -52,7 +52,7 @@
         </li>
       </ul>
       <div class="flex flex-wrap gap-2">
-        <BaseButton variant="primary" :disabled="locked || selected.status !== 'valid' || selected.active" :disabled-reason="publishReason" :loading="store.busy" data-testid="template-publish" @click="publish">{{ selected.active ? 'Publicada' : 'Publicar' }}</BaseButton>
+        <BaseButton variant="primary" :disabled="locked || selected.status !== 'valid' || selected.active || uploadIssues.length > 0" :disabled-reason="publishReason" :loading="store.busy" data-testid="template-publish" @click="publish">{{ selected.active ? 'Publicada' : 'Publicar' }}</BaseButton>
         <BaseButton variant="secondary" :disabled="locked" :disabled-reason="lockReason" data-testid="template-revalidate" @click="revalidate">Validar con datos actuales</BaseButton>
       </div>
       <div v-if="selected.editable_assets?.length" class="space-y-3">
@@ -155,6 +155,11 @@ async function perform(suffix, payload, method = 'POST', message = '') {
     schedule();
     return true;
   } catch (failure) {
+    if (failure.mutationCompleted) {
+      error.value = 'La operación se guardó, pero no se pudo actualizar la biblioteca. Reintenta la carga.';
+      loadFailed.value = true;
+      return false;
+    }
     const data = failure.response?.data;
     uploadIssues.value = data?.issues || [];
     if (!uploadIssues.value.length) error.value = data?.detail || 'No se pudo completar la operación. Inténtalo de nuevo.';

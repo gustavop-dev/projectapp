@@ -224,7 +224,7 @@ def public_template_asset(request, version_id, key, density):
 def public_template(request, handle):
     tree = get_object_or_404(Linktree.objects.select_related('active_template_version'), handle=normalize_handle(handle), is_active=True)
     version = tree.active_template_version
-    if not version or version.status != 'valid' or not version.published_at:
+    if not version or version.linktree_id != tree.pk or version.status != 'valid' or not version.published_at:
         raise Http404
     nonce = secrets.token_urlsafe(24)
     return html_response(public_document(version, nonce), nonce=nonce)
@@ -246,7 +246,7 @@ def template_click(request, version_id):
 
 def localized_linktree(request, locale, handle):
     """Preserve the shareable locale URL and apply HTTP CSP before Nuxt loads."""
-    if Linktree.objects.filter(handle=normalize_handle(handle), is_active=True, active_template_version__isnull=False).exists():
+    if Linktree.objects.filter(handle=normalize_handle(handle), is_active=True, active_template_version__status='valid', active_template_version__published_at__isnull=False, active_template_version__linktree_id=F('pk')).exists():
         return public_template(request, handle)
     from projectapp.views import serve_nuxt
     return serve_nuxt(request, path=f'{locale}/lk/{handle}')

@@ -21,7 +21,10 @@ export const useLinktreeTemplatesStore = defineStore('linktree-templates', {
       try {
         const path = `linktrees/admin/${treeId}/templates/${suffix}`;
         const response = method === 'DELETE' ? await delete_request(path) : await create_request(path, payload);
-        if (this.treeId === treeId) await this.load(treeId);
+        if (this.treeId === treeId) {
+          try { await this.load(treeId); }
+          catch (error) { error.mutationCompleted = true; throw error; }
+        }
         return response.data;
       } finally {
         this.busy = false;

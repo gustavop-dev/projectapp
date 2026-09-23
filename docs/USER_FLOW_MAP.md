@@ -6489,7 +6489,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `public-landing-apps` | public | P3 | display | 1 |
 | `public-landing-software` | public | P3 | display | 1 |
 | `public-landing-web-design` | public | P2 | display | 1 |
-| `public-linktree-view` | public | P2 | display,failure | 1 |
+| `public-linktree-view` | public | P2 | success,display,failure | 2 |
 | `public-portfolio` | public | P2 | display | 1 |
 | `public-portfolio-detail` | public | P2 | display,failure | 1 |
 | `public-privacy-policy` | public | P4 | display | 1 |

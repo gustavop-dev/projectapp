@@ -39,3 +39,27 @@ def test_continuous_button_motion_is_rejected(settings):
     row.template.manifest['motion'] = True
     report, _ = validate_in_browser(row)
     assert any(issue['code'] == 'continuous_text' for issue in report['issues'])
+
+
+def test_text_fill_color_cannot_bypass_contrast_validation(settings):
+    row = version('body{background:#fff;color:#111;-webkit-text-fill-color:#eee}a{display:block;min-height:48px;color:#111}')
+    report, _ = validate_in_browser(row)
+    assert any(issue['code'] == 'contrast' for issue in report['issues'])
+
+
+def test_install_button_is_measured_for_capable_mobile_devices(settings):
+    row = version('body{background:#fff;color:#111}a{display:block;min-height:48px;color:#111}button{font-size:10px;width:30px;height:20px}')
+    row.profile['pwa_enabled'] = True
+    row.template.html += '<button data-action="install-pwa">Instalar</button>'
+    row.document = render_document(row)
+    report, _ = validate_in_browser(row)
+    assert any(issue['code'] == 'touch_target' for issue in report['issues'])
+
+
+def test_animated_fixed_overlay_is_measured_beyond_first_frame(settings):
+    row = version('body{background:#fff;color:#111}a{display:block;min-height:48px;color:#111}.overlay{position:fixed;left:0;top:0;width:20px;height:20px;transform-origin:top left;animation:grow 18s infinite}@keyframes grow{to{transform:scale(40)}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}')
+    row.template.manifest['motion'] = True
+    row.template.html += '<div class="overlay"></div>'
+    row.document = render_document(row)
+    report, _ = validate_in_browser(row)
+    assert any(issue['code'] == 'fixed_overlay' for issue in report['issues'])

@@ -15,8 +15,8 @@ LINK = {'label', 'url', 'icon', 'kind', 'index', 'first', 'last'}
 KINDS = {'web', 'whatsapp', 'email', 'phone', 'social', 'file'}
 SECTIONS = PROFILE | LINK | {'primary_link', 'links'} | {f'links.{k}' for k in KINDS}
 ACTIONS = {'save-contact', 'install-pwa', 'share', 'whatsapp', 'email', 'copy'}
-TAGS = set('html head body title main header footer section article aside nav div span p h1 h2 h3 h4 h5 h6 a button img picture figure figcaption ul ol li dl dt dd strong em b i u s small blockquote q cite abbr time address br hr pre code mark sub sup style'.split())
-ATTRS = set('id class title lang dir role alt width height loading decoding type hidden tabindex aria-label aria-hidden aria-labelledby aria-describedby data-asset data-action data-value data-link data-icon href src style'.split())
+TAGS = set('html head body title main header footer section article aside nav div span p h1 h2 h3 h4 h5 h6 a button img picture figure figcaption ul ol li dl dt dd strong em b i u s small blockquote q cite abbr time address br hr pre code mark sub sup style meta details summary table caption thead tbody tfoot tr th td colgroup col del ins wbr samp kbd var ruby rt rp bdi bdo data progress meter'.split())
+ATTRS = set('id class title lang dir role alt width height loading decoding type hidden tabindex aria-label aria-hidden aria-labelledby aria-describedby data-asset data-action data-value data-link data-icon href src style charset name content open colspan rowspan scope span datetime start reversed value max min high low optimum'.split())
 TOKEN = re.compile(r'{{\s*([#^/]?)\s*([A-Za-z_][A-Za-z_0-9.]*)\s*}}')
 
 
@@ -30,7 +30,7 @@ def issue(message, file='template.html', line=1, code='invalid_template'):
     raise TemplateError(message, file, line, code)
 
 
-def parse_mustache(source):
+def parse_mustache(source, internal_variables=frozenset()):
     if '{{{' in source:
         issue('No se permiten variables sin escapar.')
     nodes, stack = [], []
@@ -57,9 +57,9 @@ def parse_mustache(source):
                 issue(f'Cierre de sección incorrecto: {key}.', line=line)
             _, current = stack.pop()
         else:
-            if key not in PROFILE | LINK:
+            if key not in PROFILE | LINK | internal_variables:
                 issue(f'Variable desconocida: {key}.', line=line)
-            if key in LINK and not any(k == 'links' or k.startswith('links.') or k == 'primary_link' for k, _ in stack):
+            if key in LINK | internal_variables and not any(k == 'links' or k.startswith('links.') or k == 'primary_link' for k, _ in stack):
                 issue(f'La variable {key} debe estar dentro de un bloque de enlaces.', line=line)
             current.append(('', key, []))
         offset = match.end()
@@ -71,17 +71,32 @@ def parse_mustache(source):
     return nodes
 
 
-def render_mustache(source, context):
+def render_mustache(source, context, internal_variables=frozenset()):
+    # Nested list sections can otherwise expand exponentially before the
+    # browser's DOM limit runs. Bound work and output in the web process.
+    steps, characters = 0, 0
+
     def render(nodes, values):
+        nonlocal steps, characters
         result = []
         for node in nodes:
+            steps += 1
+            if steps > 20000:
+                issue('La plantilla repite demasiados elementos.', code='template_complexity')
             if isinstance(node, str):
+                characters += len(node)
+                if characters > 2 * 1024 * 1024:
+                    issue('El HTML renderizado supera 2 MB.', code='template_complexity')
                 result.append(node)
                 continue
             op, key, children = node
             value = values.get(key, '')
             if not op:
-                result.append(html.escape(str(value if value is not None else ''), quote=True))
+                escaped = html.escape(str(value if value is not None else ''), quote=True)
+                characters += len(escaped)
+                if characters > 2 * 1024 * 1024:
+                    issue('El HTML renderizado supera 2 MB.', code='template_complexity')
+                result.append(escaped)
             elif op == '^':
                 if not value:
                     result.append(render(children, values))
@@ -90,7 +105,7 @@ def render_mustache(source, context):
             elif value:
                 result.append(render(children, {**values, **value} if isinstance(value, dict) else values))
         return ''.join(result)
-    return render(parse_mustache(source), context)
+    return render(parse_mustache(source, internal_variables), context)
 
 
 def check_css(source, asset_keys, file='template.css', line_offset=0, declarations=False):
@@ -200,6 +215,8 @@ class TemplateHTMLParser(HTMLParser):
                 issue(f'Atributo no permitido: {name}.', line=line)
             if value and any(m.group(1) for m in TOKEN.finditer(value)):
                 issue('Las secciones deben envolver elementos, no atributos.', line=line)
+        if tag == 'meta' and not (data.get('charset', '').lower() in {'utf-8', 'utf8'} and set(data) == {'charset'}):
+            issue('La plataforma define los metadatos; sólo se admite meta charset UTF-8.', line=line)
         if 'href' in data and (tag != 'a' or not re.fullmatch(r'{{\s*url\s*}}', data['href'] or '')):
             issue('Los enlaces deben usar href="{{url}}" dentro de un bloque de enlaces.', line=line)
         if tag == 'a' and 'data-action' not in data and ('href' not in data or 'data-link' not in data):

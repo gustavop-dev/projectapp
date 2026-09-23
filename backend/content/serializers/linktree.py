@@ -97,7 +97,10 @@ class PublicLinktreeSerializer(serializers.ModelSerializer):
         )
 
     def get_template_url(self, obj):
-        return f"/api/linktrees/public/{obj.handle}/template/" if obj.active_template_version_id else None
+        version = obj.active_template_version
+        if version and version.linktree_id == obj.pk and version.status == "valid" and version.published_at:
+            return f"/api/linktrees/public/{obj.handle}/template/"
+        return None
 
     def get_buttons(self, obj):
         active = [b for b in obj.buttons.all() if b.is_active]

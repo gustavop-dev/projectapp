@@ -30,7 +30,7 @@ function (data) {
     }
     say('Enlace copiado.');
   };
-  const escapeVcard = (value) => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
+  const escapeVcard = (value) => String(value || '').replace(/\\/g, '\\\\').replace(/\r\n?|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
   const download = () => {
     const c = profile.contact;
     const lines = ['BEGIN:VCARD', 'VERSION:3.0',
@@ -61,8 +61,10 @@ function (data) {
       if (action === 'email') window.top.location.href = `mailto:${encodeURIComponent(profile.contact.email)}`;
       if (action === 'copy') await copy(element.dataset.value || profile.profile_url);
       if (action === 'share') {
-        if (navigator.share) await navigator.share({ title: profile.name, url: profile.profile_url });
-        else await copy(profile.profile_url);
+        if (navigator.share) {
+          try { await navigator.share({ title: profile.name, url: profile.profile_url }); }
+          catch (error) { if (error.name !== 'AbortError') await copy(profile.profile_url); }
+        } else await copy(profile.profile_url);
       }
       if (action === 'install-pwa' && iosInstall) say('Abre Compartir en Safari y elige Añadir a la pantalla de inicio.');
       if (action === 'install-pwa' && installPrompt) {

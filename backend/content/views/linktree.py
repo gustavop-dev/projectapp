@@ -182,7 +182,11 @@ def linktree_short_redirect(request, handle):
 def public_linktree(request, handle):
     """Resolve a public linktree by handle (with or without the '@')."""
     linktree = get_object_or_404(
-        Linktree.objects.prefetch_related('buttons'),
+        Linktree.objects.select_related('active_template_version').defer(
+            'active_template_version__document', 'active_template_version__assets',
+            'active_template_version__profile', 'active_template_version__report',
+            'active_template_version__screenshots',
+        ).prefetch_related('buttons'),
         handle=normalize_handle(handle),
         is_active=True,
     )
