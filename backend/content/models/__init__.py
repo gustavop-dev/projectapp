@@ -137,5 +137,3 @@ from .proposal_formalization import ProposalFormalization, ProposalFormalization
 from .entity_history import EntityHistory, EntityRevision
 
 from .project_brand_asset import ProjectBrandAsset
-
-from .linktree_template import LinktreeTemplate, LinktreeTemplateVersion, LinktreeTemplateClick

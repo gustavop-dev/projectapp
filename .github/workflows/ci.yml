@@ -146,13 +146,6 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Install Chromium for template validation tests
-        run: |
-          FILES=$(python3 "$GITHUB_WORKSPACE/scripts/ci/backend-shard-files.py" --shard ${{ matrix.shard }})
-          if [[ "$FILES" == *"test_linktree_template_browser"* ]]; then
-            python -m playwright install --with-deps chromium
-          fi
-
       - name: Verify the shards cover the whole suite
         # Cheap guard against the real failure mode of a split: a test file that
         # silently stops running. Every discovered file must land in exactly one

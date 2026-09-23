@@ -61,11 +61,6 @@ class Linktree(models.Model):
     name = models.CharField(max_length=255, help_text='Nombre interno en el panel')
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.PERSONAL)
 
-    active_template_version = models.ForeignKey(
-        "content.LinktreeTemplateVersion", null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="+",
-    )
-
     # Identity block
     display_name = models.CharField(max_length=120, blank=True, default='')
     role = models.CharField(max_length=120, blank=True, default='')
