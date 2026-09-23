@@ -183,7 +183,11 @@
       </section>
 
       <LinktreeAppearance :form="form" :logo="logoUrl" :errors="fieldErrors" :busy="store.isUpdating"
-        @upload-logo="onLogoSelected" @remove-logo="onRemoveLogo" @update-field="(key, value) => form[key] = value" />
+        @upload-logo="onLogoSelected" @remove-logo="onRemoveLogo" @update-field="(key, value) => form[key] = value">
+        <template #template>
+          <LinktreeTemplateEditor :tree-id="String(route.params.id)" :has-unsaved-changes="hasChanges" />
+        </template>
+      </LinktreeAppearance>
 
       <!-- Buttons -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
@@ -369,6 +373,7 @@
 <script setup>
 import { LINKTREE_DEFAULTS } from '~/utils/linktreeTheme';
 import LinktreeAppearance from '~/components/panel/linktrees/LinktreeAppearance.vue';
+import LinktreeTemplateEditor from '~/components/panel/linktrees/LinktreeTemplateEditor.vue';
 import { computed, onMounted, reactive, ref } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';

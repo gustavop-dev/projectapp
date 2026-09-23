@@ -124,10 +124,21 @@ def upload_linktree_logo(request, linktree_id):
         logo = request.FILES.get('logo')
         if not logo:
             return Response({'logo': 'No se adjuntó ninguna imagen.'}, status=400)
-        if Path(logo.name).suffix.lower() not in AVATAR_ALLOWED_EXTENSIONS:
-            return Response({'logo': 'Usa JPG, PNG o WebP.'}, status=400)
+        if Path(logo.name).suffix.lower() not in AVATAR_ALLOWED_EXTENSIONS | {'.svg'}:
+            return Response({'logo': 'Usa JPG, PNG, WebP o SVG.'}, status=400)
         if logo.size > AVATAR_MAX_SIZE:
             return Response({'logo': 'La imagen supera el máximo de 5MB.'}, status=400)
+        if Path(logo.name).suffix.lower() == '.svg':
+            from django.core.files.base import ContentFile
+            from content.services.linktree_templates.package import normalize_image
+            from content.services.linktree_templates.syntax import TemplateError
+            try:
+                variants, _, _ = normalize_image(logo.read(), logo.name, limit=AVATAR_MAX_SIZE)
+            except TemplateError as exc:
+                return Response({'logo': str(exc)}, status=400)
+            linktree.logo.save('brand.svg', ContentFile(variants[1]), save=False)
+            linktree.save(update_fields=['logo', 'updated_at'])
+            return Response(LinktreeDetailSerializer(linktree).data)
         try:
             logo = serializers.ImageField().run_validation(logo)
         except (serializers.ValidationError, DjangoValidationError):
@@ -171,7 +182,11 @@ def linktree_short_redirect(request, handle):
 def public_linktree(request, handle):
     """Resolve a public linktree by handle (with or without the '@')."""
     linktree = get_object_or_404(
-        Linktree.objects.prefetch_related('buttons'),
+        Linktree.objects.select_related('active_template_version').defer(
+            'active_template_version__document', 'active_template_version__assets',
+            'active_template_version__profile', 'active_template_version__report',
+            'active_template_version__screenshots',
+        ).prefetch_related('buttons'),
         handle=normalize_handle(handle),
         is_active=True,
     )
