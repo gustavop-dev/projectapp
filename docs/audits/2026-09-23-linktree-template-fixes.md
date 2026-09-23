@@ -18,6 +18,8 @@
 - 13 pruebas Chromium de overlays y validación existente: aprobadas.
 - 11 pruebas de imágenes, densidades, DPR 1/2/3 y documentos antiguos: aprobadas.
 - 7 pruebas con servidor HTTP local para el comprobador de despliegue: aprobadas.
+- Regresión adicional del inventario de correo: 4 casos aprobados. CI detectó un falso positivo al confundir `CDPSession.send` con SMTP; el guard ahora clasifica cada llamada y conserva el rechazo de SMTP incluso en la misma línea que el comando CDP.
+- Quality gate estricto: aprobado para los archivos nuevos y el guard corregido; auditoría de los 25 casos iniciales: KEEP.
 - `bash -n scripts/deploy.sh`: aprobado.
 - Comprobación HTTP de producción con el nuevo script: **rechazada correctamente**, 200 HTML en la ruta de API.
 

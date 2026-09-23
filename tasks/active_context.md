@@ -1,6 +1,6 @@
 # Correcciones de plantillas HTML — en verificación (2026-09-23)
 
-Tras revisar el PR #400 integrado, se corrige la detección de capas fijas de `body` y pseudoelementos, y la densidad real de las variantes de imagen (incluidas las publicaciones existentes). Trabajo en `fix/23092026-linktree-template-validation`, basado en `main`. También se refuerza el control del despliegue: responder HTML 200 en una ruta nueva de API no constituye un deploy correcto. El acceso al servidor de producción está pendiente de confirmar; no se han ejecutado migraciones ni cambios remotos.
+Tras revisar el PR #400 integrado, se corrige la detección de capas fijas de `body` y pseudoelementos, y la densidad real de las variantes de imagen (incluidas las publicaciones existentes). Entrega en [PR #402](https://github.com/gustavop-dev/projectapp/pull/402), rama `fix/23092026-linktree-template-validation`, basada en `main`. Pruebas focales y quality gate aprobados; la ejecución completa de CI se consulta en el PR. También se refuerza el control del despliegue: responder HTML 200 en una ruta nueva de API no constituye un deploy correcto. El acceso al servidor de producción está pendiente de confirmar; no se han ejecutado migraciones ni cambios remotos.
 
 # Plantillas HTML para Linktree — implementadas (2026-09-23)
 
