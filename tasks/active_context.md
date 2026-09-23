@@ -16,6 +16,17 @@ vigente en `docs/methodology/responsive-acceptance.md`.
 con expiración/reintento y configuración explícita por ambiente. Validación
 focal backend/unit y navegador con Django real en base temporal; entrega como
 PR abierto. Activación y claves reales quedan al deploy (`docs/LOGIN_CAPTCHA.md`).
+# Plantillas HTML por MCP (Nivel 3) — en verificación (2026-09-23)
+
+El conector `content` suma doce herramientas en `backend/content/mcp/linktree_template_tools.py` para que un asistente diseñe plantillas a medida: contrato de autoría con las variables reales de la tarjeta (perfil, foto/logo, enlaces con etiqueta/URL/icono/tipo, acciones disponibles, contacto, colores y fuente), carga de paquetes por texto/base64/`asset_id`, seguimiento de la validación en Chromium, vista previa con capturas como artefactos, reemplazo de imágenes editables, publicación con confirmación, restablecimiento, compartición y clics agregados. Reutiliza íntegro el servicio del panel: ninguna instantánea se activa sin `status=valid` y perfil vigente. Contratos actualizados (`LinktreeTemplate`/`LinktreeTemplateVersion` en lectura, `is_shared` escribible). Rama `feat/23092026-linktree-mcp-tools`; 17 casos nuevos más contratos, branding y paridad en verde localmente. Documentación en [LINKTREE_HTML_TEMPLATES.md](../docs/LINKTREE_HTML_TEMPLATES.md) y el runbook MCP.
+
+# Correcciones de plantillas HTML — en verificación (2026-09-23)
+
+Tras revisar el PR #400 integrado, se corrige la detección de capas fijas de `body` y pseudoelementos, y la densidad real de las variantes de imagen (incluidas las publicaciones existentes). Entrega en [PR #402](https://github.com/gustavop-dev/projectapp/pull/402), rama `fix/23092026-linktree-template-validation`, basada en `main`. Pruebas focales y quality gate aprobados; la ejecución completa de CI se consulta en el PR. También se refuerza el control del despliegue: responder HTML 200 en una ruta nueva de API no constituye un deploy correcto. El acceso al servidor de producción está pendiente de confirmar; no se han ejecutado migraciones ni cambios remotos.
+
+# Plantillas HTML para Linktree — implementadas (2026-09-23)
+
+Nivel 2 sobre `main` actualizado: paquetes ZIP/archivos, Mustache escapado, recursos sanitizados, validación visual aislada, versiones publicadas y biblioteca compartida por cliente. El PR anterior de branding y recursos de proyectos (#396) ya fue integrado. Entrega en [PR #400](https://github.com/gustavop-dev/projectapp/pull/400), rama `feat/23092026-linktree-html-templates`; no se modifica la base de producción. Verificación: 38 casos nuevos de backend, 10 unitarios del frontend y cinco E2E ejecutados en CI; gate focal sin errores y auditoría KEEP. Publicar exige una instantánea validada y la biblioteca comparte por cliente. El worker requiere Chromium y la migración 0253 mediante deploy. [Guía](../docs/LINKTREE_HTML_TEMPLATES.md) y [evidencia QA](../docs/audits/2026-09-23-linktree-templates-qa.md). El estado del CI final se consulta en el PR.
 
 # Historial por registro implementado (2026-09-22)
 

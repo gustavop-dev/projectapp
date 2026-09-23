@@ -1,0 +1,16 @@
+{
+  "id": "admin-linktree-templates",
+  "name": "Plantillas HTML de Linktree",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Cargar ZIP, archivos o carpeta; validar HTML y accesibilidad a 320/375/430 px; previsualizar en sandbox; publicar, restaurar y restablecer versiones; reemplazar imágenes editables y compartir la biblioteca entre proyectos del mismo cliente. Errores y fallos recuperables conservan la publicación actual.",
+  "outcomes": [
+    "success",
+    "error",
+    "failure",
+    "display"
+  ]
+}

@@ -77,7 +77,7 @@ fi
 
 # ── Step 1: Pull latest code ─────────────────────────────────────────────────
 step "1/6  Pull latest code"
-run git -C "$REPO_ROOT" pull origin main
+run git -C "$REPO_ROOT" pull --ff-only origin main
 
 # ── Step 2: Backend dependencies + migrations ────────────────────────────────
 step "2/6  Backend: dependencies + migrations"
@@ -86,6 +86,9 @@ if [ "$DRY_RUN" = false ]; then
   source "$VENV"
 fi
 run pip install -q -r "$BACKEND_DIR/requirements.txt"
+run python -m playwright install --with-deps chromium
+# Run as the service user so the downloaded browser/cache is usable by Huey.
+run python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); browser = p.chromium.launch(headless=True); browser.close(); p.stop()'
 run env DJANGO_SETTINGS_MODULE="$SETTINGS" python "$BACKEND_DIR/manage.py" migrate --noinput
 
 # ── Step 3: Frontend build ───────────────────────────────────────────────────
@@ -132,13 +135,9 @@ echo ""
 echo "Waiting 3s for services to start..."
 if [ "$DRY_RUN" = false ]; then
   sleep 3
-  if curl -sf --max-time 10 https://www.projectapp.co > /dev/null 2>&1; then
-    echo "✓ Health check passed — site is live"
-  else
-    echo "⚠ WARNING: Health check failed — verify manually:"
-    echo "  sudo systemctl status projectapp"
-    echo "  sudo journalctl -u projectapp -n 30"
-  fi
+  curl -sf --max-time 10 https://www.projectapp.co > /dev/null
+  python "$REPO_ROOT/scripts/check-template-deploy.py"
+  echo "✓ Health check passed — site and template API are live"
 fi
 
 echo ""

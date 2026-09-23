@@ -58,6 +58,7 @@ from content.mcp.diagnostic_tools import DIAGNOSTIC_TOOLS
 from content.mcp.document_thread_tools import DOCUMENT_THREAD_TOOLS
 from content.mcp.document_tools import DOCUMENT_TOOLS
 from content.mcp.linkedin_tools import LINKEDIN_TOOLS
+from content.mcp.linktree_template_tools import LINKTREE_TEMPLATE_TOOLS
 from content.mcp.proposal_tools import PROPOSAL_TOOLS
 from content.mcp.task_tools import TASK_TOOLS
 from content.mcp.tools import BLOG_TOOLS
@@ -123,7 +124,9 @@ RAW_TOOLS_BY_SLUG = {
         CLIENT_TOOLS + PROPOSAL_TOOLS + DIAGNOSTIC_TOOLS + COMMERCIAL_PARITY_TOOLS
     ),
     'projects': PROJECT_TOOLS,
-    'content': _canonical_tools(BLOG_TOOLS + LINKEDIN_TOOLS + CONTENT_PARITY_TOOLS),
+    'content': _canonical_tools(
+        BLOG_TOOLS + LINKEDIN_TOOLS + CONTENT_PARITY_TOOLS + LINKTREE_TEMPLATE_TOOLS
+    ),
     'accounting-ledger': _canonical_tools(
         _accounting_tools(
             'list_income', 'get_income', 'create_income', 'update_income', 'delete_income',
