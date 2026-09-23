@@ -4,6 +4,6 @@
   "module": "public",
   "roles": ["guest"],
   "priority": "P2",
-  "description": "Cambiar el tema local del Programa de Alianza mantiene legibles contenido, controles y diálogos y persiste tras recargar.",
+  "description": "Cambiar el tema local del Programa de Alianza distingue página, tarjetas e interiores, mantiene legibles controles y diálogos y persiste tras recargar; las secciones respetan movimiento reducido.",
   "outcomes": ["success", "failure"]
 }

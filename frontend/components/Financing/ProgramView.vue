@@ -7,6 +7,7 @@ import ExplainerVideoCard from '~/components/ExplainerVideoCard.vue'
 import FinancingOnboarding from '~/components/Financing/Onboarding.vue'
 import { useExplainerVideo } from '~/composables/useExplainerVideos'
 import { useFinancingTheme } from '~/composables/useFinancingTheme'
+import { usePublicDocumentEntrance } from '~/composables/usePublicDocumentEntrance'
 
 const props = defineProps({
   program: { type: Object, required: true },
@@ -20,6 +21,8 @@ const props = defineProps({
 const emit = defineEmits(['change-language'])
 const { t } = useI18n()
 const { isDark, toggle: toggleTheme } = useFinancingTheme()
+const documentRef = ref(null)
+usePublicDocumentEntrance(documentRef)
 const explainer = useExplainerVideo('financing', toRef(props, 'language'))
 // The panel switch arrives in the public payload; a missing flag counts as visible.
 const explainerVisible = computed(() => (
@@ -82,13 +85,14 @@ async function downloadPdf() {
 
 <template>
   <article
-    class="public-document-theme min-h-screen w-full bg-surface text-text-default"
+    ref="documentRef"
+    class="public-document-theme public-document-canvas min-h-screen w-full text-text-default"
     :class="{ 'public-document-view': floatingActions }"
     :data-theme="isDark ? 'dark' : 'light'"
     data-testid="financing-program"
   >
-    <header class="relative overflow-hidden border-b border-border-default px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
-      <div class="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
+    <header data-document-enter class="relative overflow-hidden px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
+      <div class="public-document-hero-glow pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
         <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-soft blur-3xl" />
         <div class="absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-accent-soft blur-3xl" />
       </div>
@@ -180,7 +184,7 @@ async function downloadPdf() {
     </header>
 
     <main class="mx-auto w-full max-w-[1200px] px-4 py-14 sm:px-6 sm:py-20">
-      <section aria-labelledby="financing-options-title">
+      <section data-document-enter aria-labelledby="financing-options-title">
         <div class="max-w-3xl">
           <h2 id="financing-options-title" class="text-3xl font-light text-text-brand sm:text-4xl">
             {{ t('financing.optionsTitle') }}
@@ -193,7 +197,7 @@ async function downloadPdf() {
             v-for="option in options"
             :key="option.id"
             class="relative overflow-hidden rounded-3xl border bg-surface p-6 shadow-card sm:p-8"
-            :class="option.recommended ? 'border-primary' : 'border-border-default'"
+            :class="option.recommended ? 'border-text-brand' : 'border-border-default'"
             :data-testid="`financing-option-${option.id}`"
           >
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -217,7 +221,7 @@ async function downloadPdf() {
         </div>
       </section>
 
-      <section class="pt-20" aria-labelledby="financing-conditions-title">
+      <section data-document-enter class="pt-20" aria-labelledby="financing-conditions-title">
         <div class="max-w-3xl">
           <h2 id="financing-conditions-title" class="text-3xl font-light text-text-brand sm:text-4xl">
             {{ t('financing.conditionsTitle') }}
@@ -266,7 +270,7 @@ async function downloadPdf() {
         </div>
       </section>
 
-      <section class="pt-20" aria-labelledby="financing-calculator-title">
+      <section data-document-enter class="pt-20" aria-labelledby="financing-calculator-title">
         <div class="rounded-3xl border border-border-default bg-surface-raised p-6 shadow-card sm:p-10">
           <p class="text-sm font-medium uppercase tracking-[0.18em] text-text-brand">{{ program.calculator.eyebrow }}</p>
           <h2 id="financing-calculator-title" class="mt-4 max-w-4xl text-3xl font-light text-text-brand sm:text-4xl">
@@ -293,7 +297,7 @@ async function downloadPdf() {
         </div>
       </section>
 
-      <section class="pt-20" aria-labelledby="financing-package-title">
+      <section data-document-enter class="pt-20" aria-labelledby="financing-package-title">
         <div class="grid gap-7 rounded-3xl border border-primary bg-primary-soft p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center">
           <div>
             <BaseBadge variant="success">{{ program.package.included_label }}</BaseBadge>
@@ -315,7 +319,7 @@ async function downloadPdf() {
         </div>
       </section>
 
-      <section class="pt-20" aria-labelledby="financing-terms-title">
+      <section data-document-enter class="pt-20" aria-labelledby="financing-terms-title">
         <div class="max-w-3xl">
           <h2 id="financing-terms-title" class="text-3xl font-light text-text-brand sm:text-4xl">
             {{ t('financing.termsTitle') }}
@@ -362,7 +366,7 @@ async function downloadPdf() {
         </div>
       </section>
 
-      <section class="pt-20">
+      <section data-document-enter class="pt-20">
         <div class="rounded-3xl bg-primary p-7 text-on-primary sm:p-12">
           <p class="text-sm font-medium uppercase tracking-[0.18em] opacity-80">{{ program.cta.eyebrow }}</p>
           <h2 class="mt-4 max-w-3xl text-3xl font-light sm:text-5xl">{{ program.cta.title }}</h2>

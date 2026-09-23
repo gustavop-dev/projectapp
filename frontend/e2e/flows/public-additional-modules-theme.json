@@ -4,7 +4,7 @@
   "module": "public",
   "roles": ["guest"],
   "priority": "P2",
-  "description": "Visitor can read the public catalog in light or dark mode and the chosen theme is restored on later visits.",
+  "description": "Visitor can read distinct page, card and detail surfaces in either theme, restore that theme on later visits and navigate softly revealed categories with reduced-motion support.",
   "expectedSpecs": 2,
   "outcomes": ["success", "display", "failure"]
 }

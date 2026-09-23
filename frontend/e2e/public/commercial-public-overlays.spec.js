@@ -17,7 +17,7 @@ for (const entry of commercialPages) {
 
     await expect(page.getByTestId(`${entry.prefix}-share-feedback`)).toHaveText('Enlace copiado')
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(page.url())
-    await expect(page.getByTestId(`${entry.prefix}-share-dialog`).locator('.share-modal-card')).toHaveCSS('background-color', 'rgb(10, 31, 28)')
+    await expect(page.getByTestId(`${entry.prefix}-share-dialog`).locator('.share-modal-card')).toHaveCSS('background-color', 'rgb(19, 54, 47)')
     await page.keyboard.press('Escape')
     await expect(page.getByTestId(entry.share)).toBeFocused()
   })
@@ -51,7 +51,7 @@ test('catalog modal restores light colors under an inherited dark panel', {
 
   await page.getByTestId('additional-module-card-landing-page').click()
 
-  await expect(page.getByTestId('additional-module-detail-modal')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(page.getByTestId('additional-module-detail-modal')).toHaveCSS('background-color', 'rgb(242, 247, 245)')
   await expect(page.getByRole('heading', { name: 'Qué es' })).toHaveCSS('color', 'rgb(0, 41, 33)')
   await page.keyboard.press('Escape')
   await page.getByTestId('additional-modules-theme-toggle').click()
@@ -69,7 +69,7 @@ for (const entry of [commercialPages[0], commercialPages[2]]) {
 
     await page.getByTestId(`${entry.prefix}-guide-restart`).click()
 
-    await expect(page.getByTestId(`${entry.prefix}-guide`)).toHaveCSS('background-color', 'rgb(10, 31, 28)')
+    await expect(page.getByTestId(`${entry.prefix}-guide`)).toHaveCSS('background-color', 'rgb(19, 54, 47)')
     await expect(page.getByTestId(`${entry.prefix}-guide`)).toContainText('Empieza por el video')
     await page.getByRole('button', { name: 'Omitir' }).click()
     await expect(page.getByTestId(`${entry.prefix}-guide`)).toHaveCount(0)
