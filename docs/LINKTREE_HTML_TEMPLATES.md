@@ -51,4 +51,16 @@ Los clics se agregan por versión/enlace/día sin IPs ni identificadores de visi
 5. Ejecutar `python scripts/check-template-deploy.py --url https://projectapp.co`. La ruta administrativa de plantillas debe devolver 401 JSON sin sesión; una portada HTML con 200 indica que la ruta no está operativa. El script de deploy incluye esta comprobación y termina con error si falla.
 6. El worker de validación necesita memoria para Chromium; comprobar el presupuesto real del servicio antes de habilitar cargas en producción (el límite histórico de 350 MB debe contrastarse con una validación representativa). Las consultas públicas no arrancan Chromium.
 
-No se cambian recursos del servidor ni se despliega desde esta sesión. Las plantillas, versiones y contadores quedan explícitamente excluidos del MCP: el Nivel 3 requiere un contrato separado. Los datos de demostración generan candidatas que exigen validación real antes de publicar, sin aprobaciones simuladas.
+No se cambian recursos del servidor ni se despliega desde esta sesión. Los datos de demostración generan candidatas que exigen validación real antes de publicar, sin aprobaciones simuladas.
+
+## Nivel 3 — autoría por MCP
+
+El conector **Gestor de Contenido** (`content`, Panel → MCPs) expone el mismo ciclo del panel para que un asistente diseñe plantillas a medida:
+
+1. `get_linktree_template_contract` con `linktree_id` devuelve el contrato de autoría y las variables reales de la tarjeta: nombre, rol, bio, iniciales, si hay foto y logo, cada enlace con etiqueta, URL, icono y tipo, botones sin destino, acciones disponibles (WhatsApp sólo si hay teléfono, correo sólo si hay email), contacto, colores y fuente del editor. `icon_query` busca nombres Lucide válidos.
+2. `upload_linktree_template` recibe `files` (template.html, manifest.json, template.css y `assets/*` como texto, base64 o `asset_id` de un upload) y crea una candidata que Huey valida en Chromium. Los errores llegan con archivo, línea y código.
+3. `get_linktree_template_version` informa `pending/valid/invalid`, el reporte completo y `profile_current`; `preview_linktree_template` devuelve el HTML renderizado y las capturas a 320/375/430 px como artefactos descargables.
+4. `override_linktree_template_asset` reemplaza o restablece imágenes editables; `validate_linktree_template` recorta una candidata nueva con los datos actuales o restaura una versión previa.
+5. `publish_linktree_template` exige `status=valid` y perfil vigente, y se ejecuta sólo tras `confirm_action`. `reset_linktree_template` vuelve al tema básico; `share_linktree_template` comparte con el cliente; `get_linktree_template_clicks` lee los clics agregados.
+
+Las mismas guardas del panel aplican por conversación: una validación en curso por tarjeta, biblioteca filtrada por dueño/cliente y ninguna publicación sin validación. Detalle operativo en [MCP_VALIDATION_RUNBOOK.md](MCP_VALIDATION_RUNBOOK.md).
