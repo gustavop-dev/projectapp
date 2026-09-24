@@ -2257,10 +2257,30 @@ def bug_report_detail_view(request, project_id, bug_id):
     if err:
         return err
 
-    try:
-        bug = BugReport.objects.prefetch_related('comments__user').get(
-            id=bug_id, project=proj,
+    if request.method == 'GET':
+        bugs = BugReport.objects.select_related(
+            'reported_by', 'source_requirement__phase__business_proposal',
+        ).only(
+            'id', 'project_id', 'reported_by_id', 'source_requirement_id',
+            'title', 'description', 'severity', 'status', 'environment',
+            'device_browser', 'is_recurring', 'steps_to_reproduce',
+            'expected_behavior', 'actual_behavior', 'admin_response',
+            'linked_bug_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'reported_by__id', 'reported_by__first_name', 'reported_by__last_name',
+            'reported_by__email', *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        ).prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=BugComment.objects.select_related('user'),
+                to_attr='_detail_comments',
+            ),
         )
+    else:
+        bugs = BugReport.objects.prefetch_related('comments__user')
+
+    try:
+        bug = bugs.get(id=bug_id, project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
