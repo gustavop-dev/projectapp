@@ -1,7 +1,8 @@
-const { reactive, ref, nextTick } = require('vue')
+const { customRef, reactive, ref, nextTick } = require('vue')
 
 const routerReplace = jest.fn()
 let routeQuery = {}
+let i18nLocale = ref('es-CO')
 const originalGlobals = {
   definePageMeta: global.definePageMeta,
   useI18n: global.useI18n,
@@ -28,7 +29,7 @@ const mockStore = reactive({
 })
 
 global.definePageMeta = jest.fn()
-global.useI18n = () => ({ t: key => key, locale: ref('es-CO') })
+global.useI18n = () => ({ t: key => key, locale: i18nLocale })
 global.useRoute = () => ({ query: routeQuery })
 global.useRouter = () => ({ replace: routerReplace })
 
@@ -90,6 +91,7 @@ describe('panel/monitoring index page', () => {
 
   beforeEach(() => {
     routeQuery = {}
+    i18nLocale = ref('es-CO')
     routerReplace.mockReset().mockResolvedValue(undefined)
     mockStore.resources = []
     mockStore.sources = []
@@ -209,5 +211,54 @@ describe('panel/monitoring index page', () => {
 
     expect(wrapper.get('[data-testid="monitor-source-options"]').text()).toBe(':monitoring.any|51:Recurso 1 · Inspector')
     expect(idReads).toHaveBeenCalledTimes(baselineReads)
+  })
+
+  it('renders the missing-date sentinel for a source without a last-seen value', async () => {
+    // Falla si una fuente sin fecha deja de mostrar el centinela que evita presentar una fecha falsa al operador.
+    mockStore.resources = [resource(1, 'Proyecto Uno', 'project')]
+    mockStore.sources = [source(11, 1, 'Proyecto Uno', 'Sin fecha', null)]
+    wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="monitoring-page"]').text()).toContain('Proyecto Uno · Sin fechamonitoring.current · —')
+  })
+
+  it('reformats source dates after a locale change without rereading locale for every source', async () => {
+    // Falla si el formatter se crea por cada fila o si queda desconectado del locale reactivo anterior.
+    let currentLocale = 'es-CO'
+    let triggerLocale
+    let localeReads = 0
+    i18nLocale = customRef((track, trigger) => {
+      triggerLocale = trigger
+      return {
+        get() {
+          track()
+          localeReads += 1
+          return currentLocale
+        },
+        set(value) {
+          currentLocale = value
+          trigger()
+        },
+      }
+    })
+    mockStore.resources = [resource(1, 'Proyecto Uno', 'project')]
+    mockStore.sources = [source(11, 1, 'Proyecto Uno', 'Inspector')]
+    wrapper = mountPage()
+    await flushPromises()
+
+    const spanishDate = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2026-09-24T10:00:00Z'))
+    expect(wrapper.get('[data-testid="monitoring-page"]').text()).toContain(`Proyecto Uno · Inspectormonitoring.current · ${spanishDate}`)
+    expect(localeReads).toBe(1)
+    mockStore.sources = Array.from({ length: 50 }, (_, index) => source(index + 11, 1, 'Proyecto Uno', `Inspector ${index + 1}`))
+    await nextTick()
+    expect(localeReads).toBe(1)
+    currentLocale = 'en-US'
+    triggerLocale()
+    await nextTick()
+
+    const englishDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2026-09-24T10:00:00Z'))
+    expect(localeReads).toBe(2)
+    expect(wrapper.get('[data-testid="monitoring-page"]').text()).toContain(`Proyecto Uno · Inspector 1monitoring.current · ${englishDate}`)
   })
 })

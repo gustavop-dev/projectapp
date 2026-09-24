@@ -50,6 +50,10 @@ def _comments(change_request, authors, *, start=0):
     ])
 
 
+def _captured_sql(queries):
+    return '\n'.join(query['sql'].lower() for query in queries)
+
+
 @pytest.fixture
 def api_client():
     """Provide an API client for JWT-authenticated detail requests."""
@@ -277,3 +281,46 @@ def test_foreign_client_detail_request_returns_403(api_client, users_and_headers
 
     assert response.status_code == 403
     assert response.json() == {'detail': 'No tienes acceso a este proyecto.'}
+
+
+@pytest.mark.django_db
+def test_change_request_delete_avoids_comment_queries(
+    api_client, users_and_headers, change_request, record_property,
+):
+    """Fails if archiving a change request reloads its comment thread or authors."""
+    _, client, admin_headers, _ = users_and_headers
+    project, one_comment_request = change_request
+    fifty_comment_request = ChangeRequest.objects.create(
+        project=project,
+        created_by=client,
+        title='Change request with fifty comments',
+    )
+    _comments(one_comment_request, _comment_authors(1))
+    _comments(fifty_comment_request, _comment_authors(50, start=100), start=100)
+
+    with CaptureQueriesContext(connection) as one_comment_queries:
+        one_comment_response = api_client.delete(
+            _detail_url(project.id, one_comment_request.id),
+            **admin_headers,
+        )
+
+    with CaptureQueriesContext(connection) as fifty_comment_queries:
+        fifty_comment_response = api_client.delete(
+            _detail_url(project.id, fifty_comment_request.id),
+            **admin_headers,
+        )
+
+    one_comment_request.refresh_from_db()
+    fifty_comment_request.refresh_from_db()
+    fifty_comment_sql = _captured_sql(fifty_comment_queries)
+    record_property('query_count_one', len(one_comment_queries))
+    record_property('query_count_fifty', len(fifty_comment_queries))
+
+    assert (one_comment_response.status_code, fifty_comment_response.status_code) == (200, 200)
+    assert (one_comment_response.json(), fifty_comment_response.json()) == (
+        {'detail': 'Solicitud de cambio archivada.'},
+        {'detail': 'Solicitud de cambio archivada.'},
+    )
+    assert (one_comment_request.is_archived, fifty_comment_request.is_archived) == (True, True)
+    assert len(one_comment_queries) == len(fifty_comment_queries)
+    assert 'accounts_changerequestcomment' not in fifty_comment_sql
