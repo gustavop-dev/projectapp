@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db import connection, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, prefetch_related_objects
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -1186,12 +1186,15 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
-def _get_project_or_403(request, project_id):
+def _get_project_or_403(request, project_id, *, related_fields=()):
     """Helper: get project checking access for admin or owning client."""
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
+    projects = Project.objects.all()
+    if related_fields:
+        projects = projects.select_related(*related_fields)
     try:
-        proj = Project.objects.get(id=project_id)
+        proj = projects.get(id=project_id)
     except Project.DoesNotExist:
         return None, Response({'detail': 'Proyecto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     if not is_admin and proj.client_id != request.user.id:
@@ -3709,7 +3712,8 @@ def project_subscription_view(request, project_id):
            with at least one already started.
     PATCH — Change hosting plan (admin or client) or status (admin only).
     """
-    proj, err = _get_project_or_403(request, project_id)
+    related_fields = ('hosting_subscription',) if request.method == 'PATCH' else ()
+    proj, err = _get_project_or_403(request, project_id, related_fields=related_fields)
     if err:
         return err
 
@@ -3747,15 +3751,15 @@ def project_subscription_view(request, project_id):
         )
 
     # --- GET / PATCH: existing subscription ---
-    subscriptions = HostingSubscription.objects.all()
-    if request.method == 'GET':
-        subscriptions = subscriptions.prefetch_related(_subscription_payment_prefetch())
-    else:
-        # PATCH validates permissions and input before loading the response's
-        # payment collections. Keep the project available to the serializer.
-        subscriptions = subscriptions.select_related('project')
     try:
-        sub = subscriptions.get(project=proj)
+        if request.method == 'PATCH':
+            # The access check already loaded this one-to-one relation. Delay
+            # payment collections until permissions and input have passed.
+            sub = proj.hosting_subscription
+        else:
+            sub = HostingSubscription.objects.prefetch_related(
+                _subscription_payment_prefetch(),
+            ).get(project=proj)
     except HostingSubscription.DoesNotExist:
         return Response(
             {'detail': 'No hay suscripción de hosting para este proyecto.'},
@@ -3840,9 +3844,7 @@ def project_subscription_view(request, project_id):
         sub.status = data['status']
     sub.save()
 
-    sub = HostingSubscription.objects.select_related('project').prefetch_related(
-        _subscription_payment_prefetch(),
-    ).get(pk=sub.pk)
+    prefetch_related_objects([sub], _subscription_payment_prefetch())
     return Response(HostingSubscriptionSerializer(sub).data)
 
 
