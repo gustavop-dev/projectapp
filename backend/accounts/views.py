@@ -1753,10 +1753,29 @@ def change_request_detail_view(request, project_id, cr_id):
     if err:
         return err
 
-    try:
-        cr = ChangeRequest.objects.prefetch_related('comments__user').get(
-            id=cr_id, project=proj,
+    if request.method == 'GET':
+        change_requests = ChangeRequest.objects.select_related(
+            'created_by', 'source_requirement__phase__business_proposal',
+        ).only(
+            'id', 'project_id', 'created_by_id', 'source_requirement_id',
+            'title', 'description', 'module_or_screen', 'suggested_priority',
+            'is_urgent', 'status', 'admin_response', 'estimated_cost', 'estimated_time',
+            'linked_requirement_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'created_by__id', 'created_by__first_name', 'created_by__last_name',
+            'created_by__email', *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        ).prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=ChangeRequestComment.objects.select_related('user'),
+                to_attr='_detail_comments',
+            ),
         )
+    else:
+        change_requests = ChangeRequest.objects.prefetch_related('comments__user')
+
+    try:
+        cr = change_requests.get(id=cr_id, project=proj)
     except ChangeRequest.DoesNotExist:
         return Response(
             {'detail': 'Solicitud de cambio no encontrada.'},

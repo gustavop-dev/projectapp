@@ -862,6 +862,11 @@ class ChangeRequestDetailSerializer(serializers.ModelSerializer):
     def get_comments(self, obj):
         request = self.context.get('request')
         profile = getattr(request.user, 'profile', None) if request else None
+        if hasattr(obj, '_detail_comments'):
+            comments = obj._detail_comments
+            if not profile or not profile.is_admin:
+                comments = [comment for comment in comments if not comment.is_internal]
+            return ChangeRequestCommentSerializer(comments, many=True).data
         qs = obj.comments.select_related('user').all()
         if not profile or not profile.is_admin:
             qs = qs.filter(is_internal=False)
