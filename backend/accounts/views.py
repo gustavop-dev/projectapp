@@ -1386,6 +1386,9 @@ def requirement_bulk_upload_view(request, project_id):
             priority=item.get('priority', Requirement.PRIORITY_MEDIUM),
             order=order_offset + idx,
         )
+        # New requirements cannot have comments yet; reuse the list serializer's
+        # annotated-count path instead of issuing one COUNT per created row.
+        req._comments_count = 0
         created.append(req)
 
     _recalculate_project_progress(proj)
