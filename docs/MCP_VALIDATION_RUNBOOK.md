@@ -867,3 +867,73 @@ Las mismas reglas corren en el serializer del panel. `ProjectBrandAsset` queda
 excluido explícitamente del conector: documentos privados disponibles sólo en
 el panel, sin URLs públicas ni descargas vía MCP. Prueba focal:
 `content/tests/views/test_mcp_linktree_branding.py::test_mcp_links_and_unlinks_project`.
+
+### Linktrees — plantillas HTML Nivel 2 (2026-09-23)
+
+Las plantillas HTML se administran desde el panel con sesión y CSRF. Ninguna
+actualización genérica de Linktree (`update_linktree`) puede cargar, validar ni
+activar HTML: `Linktree.active_template_version` es de sólo lectura y cambia
+únicamente con las herramientas de Nivel 3 descritas a continuación.
+
+El contrato de branding existente sigue disponible. La página pública sólo
+anuncia `template_url` cuando la versión pertenece al perfil, fue publicada y
+tiene validación válida. Al cambiar datos de una tarjeta con plantilla hay que
+validar una nueva instantánea y publicarla (panel o MCP).
+
+Comprobaciones focalizadas: contrato de clasificación de campos en
+`content/tests/views/test_mcp_contracts.py` y aislamiento/publicación en
+`content/tests/views/test_linktree_template_views.py`. Operación y despliegue:
+[Plantillas HTML de Linktree](LINKTREE_HTML_TEMPLATES.md).
+
+### Linktrees — plantillas HTML Nivel 3 por MCP (2026-09-23)
+
+El conector `content` expone en `backend/content/mcp/linktree_template_tools.py`
+el ciclo completo de una plantilla, reutilizando el lector de paquetes, la
+creación de instantáneas, la validación en Chromium (Huey) y la guarda de
+publicación del panel. Una conversación nunca salta la validación ni activa una
+instantánea sin `status=valid` y perfil vigente.
+
+| Herramienta | Riesgo | Qué hace |
+| --- | --- | --- |
+| `get_linktree_template_contract` | read | Contrato de autoría (archivos, manifest, variables Mustache, enlaces, acciones, iconos, reglas HTML/CSS, ejemplo). Con `linktree_id` devuelve las variables reales de la tarjeta: nombre, rol, bio, iniciales, foto/logo disponibles, enlaces con etiqueta/URL/icono/tipo, botones sin destino, acciones disponibles, contacto, colores y fuente. `icon_query` busca nombres Lucide. |
+| `list_linktree_templates` | read | Biblioteca (propias + compartidas por cliente) y versiones con estado, errores, capturas y versión activa. |
+| `get_linktree_template` | read | Fuente del paquete (manifest, html, css, avisos, metadatos de imágenes) para iterar un diseño. |
+| `get_linktree_template_version` | read | Estado `pending/valid/invalid`, reporte completo, overrides, `profile_current` y `next_step`. |
+| `upload_linktree_template` | write | `files[]` con `path` y `content` (texto; manifest.json admite objeto), `base64` o `asset_id`. Crea la plantilla y una candidata `pending`. |
+| `validate_linktree_template` | write | Nueva candidata con datos actuales desde `template_id` o restaurando `version_id`. |
+| `preview_linktree_template` | read | Documento HTML de vista previa (firmado por una hora) y capturas 320/375/430 como artefactos temporales descargables. |
+| `override_linktree_template_asset` | write | Reemplaza (`asset_id`/`base64`) o restablece (`reset`) una imagen de `editable_assets`; crea candidata nueva. |
+| `publish_linktree_template` | sensitive | Publica una versión válida; responde con `confirmation_id` y se ejecuta con `confirm_action`. |
+| `reset_linktree_template` | write | Vuelve al tema básico conservando el historial. |
+| `share_linktree_template` | write | Comparte una plantilla propia con el cliente del proyecto vinculado. |
+| `get_linktree_template_clicks` | read | Clics agregados por enlace y día de una versión publicada (sin IPs ni visitantes). |
+| `list_linktree_assets` | read | Biblioteca de imágenes propia del Linktree: clave, alt, URL, dimensiones y marcado de uso. |
+| `upload_linktree_asset` | write | Sube o reemplaza una imagen por clave (`base64` + `filename` o `asset_id`) y devuelve la URL para usarla en el HTML/CSS. |
+| `delete_linktree_asset` | sensitive | Elimina una imagen de la biblioteca tras `confirm_action`; las versiones publicadas conservan su copia. |
+
+Biblioteca de imágenes (`content.LinktreeAsset`): las plantillas pueden pegar la URL
+devuelta (`src="…"`, `url(…)`) o usar `data-asset="clave"`/`asset(clave)`; al subir
+el paquete la URL se normaliza a la clave y `manifest.library_assets` (administrado
+por el servidor) registra las claves usadas. Cada candidata copia la imagen vigente
+de la biblioteca; una clave faltante bloquea la candidata con
+`missing_library_asset` y una clave repetida entre paquete y biblioteca se rechaza
+con `library_key_clash`. Los archivos se conservan mientras alguna versión los
+referencie. El tema básico (colores y fuente del editor) sigue existiendo para las
+tarjetas sin plantilla publicada; el contrato lo indica como no aplicable al HTML.
+
+Reglas verificadas: una sola validación en curso por tarjeta (código
+`validation_pending`); paquetes rechazados informan archivo, línea y código sin
+dejar plantilla ni versión; `template_id` ajeno responde `NOT_FOUND`;
+`confirm_action` sobre una versión `invalid` responde `not_validated`; los
+`asset_id` consumidos quedan marcados como usados. Contratos: `LinktreeTemplate`
+y `LinktreeTemplateVersion` pasan a lectura (más `is_shared` escribible) y
+`assets`/`profile_digest` siguen excluidos con motivo.
+
+Prueba focal: `content/tests/views/test_mcp_linktree_templates.py` (17 casos,
+Chromium sustituido por `queue_validation` neutralizado),
+`content/tests/views/test_mcp_linktree_assets.py`,
+`content/tests/services/test_linktree_asset_library.py`,
+`content/tests/views/test_linktree_asset_views.py` más
+`test_mcp_contracts.py`, `test_mcp_linktree_branding.py` y
+`test_mcp_parity_refresh.py`. En producción la validación real corre en Huey; el
+worker debe tener Chromium instalado (ver guía de plantillas).

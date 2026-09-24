@@ -101,7 +101,7 @@ cd /home/ryzepeck/webapps/projectapp
 ```
 
 The deploy script handles: git pull, backend deps + migrations, frontend build,
-static collection, and service restart. Run `./scripts/deploy.sh --help` for options.
+static collection, and service restart. It installs Chromium and checks that it can launch before migrations; run it as the Huey service user so browser caches have the correct ownership. The final smoke check requires a JSON authentication response from the template API; a 200 HTML homepage is a failed deployment. Run `./scripts/deploy.sh --help` for options.
 
 | Flag | Effect |
 |------|--------|

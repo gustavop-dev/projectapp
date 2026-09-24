@@ -36,3 +36,9 @@ openpyxl>=3.1,<4.0
 # Production server
 gunicorn>=26.2,<27.0
 mysqlclient>=2.2,<3.0
+
+# Untrusted Linktree packages and isolated browser validation
+html5lib==1.1
+tinycss2>=1.4,<2
+defusedxml>=0.7.1,<0.8
+playwright==1.63.0

@@ -183,7 +183,12 @@
       </section>
 
       <LinktreeAppearance :form="form" :logo="logoUrl" :errors="fieldErrors" :busy="store.isUpdating"
-        @upload-logo="onLogoSelected" @remove-logo="onRemoveLogo" @update-field="(key, value) => form[key] = value" />
+        :template-active="Boolean(templatesStore.activeVersionId)"
+        @upload-logo="onLogoSelected" @remove-logo="onRemoveLogo" @update-field="(key, value) => form[key] = value">
+        <template #template>
+          <LinktreeTemplateEditor :tree-id="String(route.params.id)" :has-unsaved-changes="hasChanges" />
+        </template>
+      </LinktreeAppearance>
 
       <!-- Buttons -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
@@ -369,6 +374,7 @@
 <script setup>
 import { LINKTREE_DEFAULTS } from '~/utils/linktreeTheme';
 import LinktreeAppearance from '~/components/panel/linktrees/LinktreeAppearance.vue';
+import LinktreeTemplateEditor from '~/components/panel/linktrees/LinktreeTemplateEditor.vue';
 import { computed, onMounted, reactive, ref } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
@@ -384,6 +390,7 @@ import BaseAlert from '~/components/base/BaseAlert.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useLinktreesStore } from '~/stores/linktrees';
+import { useLinktreeTemplatesStore } from '~/stores/linktree-templates';
 import LinktreeCard from '~/components/Linktree/LinktreeCard.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -432,6 +439,7 @@ const FORM_FIELDS = [
 
 const route = useRoute();
 const store = useLinktreesStore();
+const templatesStore = useLinktreeTemplatesStore();
 const notify = usePanelNotify();
 const localePath = useLocalePath();
 

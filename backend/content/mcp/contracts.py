@@ -658,7 +658,7 @@ CONTENT_CATALOG_CONTRACTS = (
     ),
     _contract(
         'content.Linktree',
-        read_only='id created_at updated_at',
+        read_only='id created_at updated_at active_template_version',
         read_write=(
             'handle name kind project display_name role bio avatar logo background_color accent_color '
             'text_color muted_color button_text_color font_family claim_line_1 claim_line_2 '
@@ -666,6 +666,47 @@ CONTENT_CATALOG_CONTRACTS = (
             'pwa_description vcard_first_name vcard_last_name vcard_org vcard_email '
             'vcard_tel vcard_url is_active'
         ),
+    ),
+    # Nivel 3: paquetes inmutables creados por upload_linktree_template; el
+    # único campo mutable es la compartición por cliente.
+    _contract(
+        'content.LinktreeTemplate',
+        read_only='id owner client name manifest html css warnings created_at',
+        read_write='is_shared',
+        excluded=_excluded(
+            'Rutas de almacenamiento privado; el MCP expone sólo metadatos por clave y descargas firmadas.',
+            'assets',
+        ),
+    ),
+    # Instantáneas validadas: se crean con upload/validate/override y se activan
+    # sólo con publish_linktree_template tras la validación en navegador.
+    _contract(
+        'content.LinktreeTemplateVersion',
+        read_only=(
+            'id linktree template overrides profile document status report '
+            'screenshots created_at published_at'
+        ),
+        excluded=(
+            _excluded(
+                'Rutas de almacenamiento privado; se sirven como vista previa firmada o artefacto temporal.',
+                'assets',
+            )
+            | _excluded(
+                'Huella interna del perfil; el MCP informa profile_current en lugar del hash.',
+                'profile_digest',
+            )
+        ),
+    ),
+    _contract(
+        'content.LinktreeTemplateClick',
+        read_only='id version link_key day count',
+    ),
+    # Biblioteca de imágenes por tarjeta: upload_linktree_asset crea o
+    # reemplaza por clave; las versiones publicadas conservan su instantánea.
+    _contract(
+        'content.LinktreeAsset',
+        read_only='id linktree created_at updated_at',
+        read_write='key alt image',
     ),
     _contract(
         'content.ProjectBrandAsset',

@@ -1,7 +1,10 @@
 <template>
   <section class="bg-surface border border-border-default rounded-xl shadow-card p-5 space-y-4">
     <h2 class="text-base font-semibold text-text-default">Apariencia</h2>
-    <p class="text-sm text-text-subtle">Personaliza el diseño y revisa el resultado en la vista previa. Guarda los cambios para publicarlos.</p>
+    <p v-if="templateActive" class="text-sm text-text-subtle" data-testid="linktree-theme-note">
+      Esta tarjeta publica una plantilla HTML: colores, tipografía y disposición los define la plantilla. Los controles de este bloque sólo aplican al tema básico, que se usa si restableces la plantilla.
+    </p>
+    <p v-else class="text-sm text-text-subtle">Personaliza el diseño y revisa el resultado en la vista previa. Guarda los cambios para publicarlos.</p>
     <BaseFormRow :cols="2" :gap="4" at="md">
       <BaseFormField v-for="color in colors" :key="color.key" :label="color.label" :for="`lt-${color.key}`" :error="errors[color.key]">
         <div class="flex items-center gap-2">
@@ -24,13 +27,14 @@
     <BaseFormField label="Logo de marca" for="lt-logo" :error="errors.logo">
       <div class="flex flex-wrap items-center gap-3">
         <img v-if="logo" :src="logo" alt="Logo actual" class="h-16 w-32 object-contain rounded border border-border-default" />
-        <input id="lt-logo" ref="logoInput" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" @change="selectLogo" />
+        <input id="lt-logo" ref="logoInput" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" class="sr-only" @change="selectLogo" />
         <BaseButton type="button" variant="secondary" :loading="busy" @click="logoInput?.click()">{{ logo ? 'Cambiar logo' : 'Subir logo' }}</BaseButton>
         <BaseButton v-if="logo" type="button" variant="danger-ghost" :loading="busy" @click="emit('remove-logo')">Quitar logo</BaseButton>
       </div>
     </BaseFormField>
-    <p class="text-xs text-text-subtle">JPG, PNG o WebP, máximo 5 MB. El logo se guarda al subirlo y sustituye la marca ProjectApp cuando la cabecera está visible. La foto de perfil se conserva.</p>
+    <p class="text-xs text-text-subtle">JPG, PNG, WebP o SVG, máximo 5 MB. El logo se guarda al subirlo y sustituye la marca ProjectApp cuando la cabecera está visible. La foto de perfil se conserva.</p>
     <BaseButton type="button" variant="ghost" @click="resetTheme">Restablecer colores y tipografía</BaseButton>
+    <slot name="template" />
   </section>
 </template>
 
@@ -43,6 +47,9 @@ const props = defineProps({
   logo: { type: String, default: '' },
   errors: { type: Object, default: () => ({}) },
   busy: { type: Boolean, default: false },
+  // A published HTML template owns colors and fonts; the basic theme stays
+  // editable only as the fallback shown after "Restablecer tema básico".
+  templateActive: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update-field', 'upload-logo', 'remove-logo']);
 const colors = [
