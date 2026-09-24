@@ -302,3 +302,23 @@ def test_invalid_status_patch_rejects_without_loading_payment_collections(
     assert response.status_code == 400
     assert _payment_selects(rejected_queries.captured_queries) == []
     assert subscription.status == HostingSubscription.STATUS_ACTIVE
+
+
+@pytest.mark.django_db
+def test_status_patch_returns_404_when_subscription_is_missing(
+    api_client, users_and_headers, project,
+):
+    """Fails if optimized reverse-relation loading changes the missing-subscription response."""
+    _, _, admin_headers, _ = users_and_headers
+
+    response = api_client.patch(
+        _subscription_url(project.id),
+        {'status': HostingSubscription.STATUS_SUSPENDED},
+        format='json',
+        **admin_headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        'detail': 'No hay suscripción de hosting para este proyecto.',
+    }

@@ -26,7 +26,7 @@ def _detail_url(project_id, change_request_id):
     return f'/api/accounts/projects/{project_id}/change-requests/{change_request_id}/'
 
 
-def _comment_authors(count):
+def _comment_authors(count, *, start=0):
     return User.objects.bulk_create([
         User(
             username=f'change-detail-author-{index}@example.com',
@@ -34,7 +34,7 @@ def _comment_authors(count):
             first_name=f'Author{index}',
             password='unused',
         )
-        for index in range(count)
+        for index in range(start, start + count)
     ])
 
 
@@ -129,7 +129,7 @@ def test_admin_detail_keeps_comment_queries_constant_as_comments_grow(
     with CaptureQueriesContext(connection) as one_comment_queries:
         one_response = api_client.get(_detail_url(project.id, request.id), **admin_headers)
 
-    _comments(request, _comment_authors(49), start=1)
+    _comments(request, _comment_authors(49, start=1), start=1)
     with CaptureQueriesContext(connection) as fifty_comment_queries:
         fifty_response = api_client.get(_detail_url(project.id, request.id), **admin_headers)
 
