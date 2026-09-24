@@ -351,20 +351,49 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
 # Public API
 # ---------------------------------------------------------------------------
 
+def resolve_contract_content(proposal, draft=False, *, force_default=False):
+    """Resolve once so the saved PDF and its text snapshot cannot drift."""
+    from content.services.markdown_export import literal
+
+    raw_params = getattr(proposal, 'contract_params', None) or {}
+    source = 'default' if force_default else raw_params.get('contract_source', 'default')
+    params = _build_params(raw_params, draft=draft)
+    markdown = _get_contract_markdown(raw_params, params, force_default=force_default)
+    snapshot = markdown
+    if source != 'custom' and markdown:
+        client = literal(params.get('client_full_name', ''))
+        contractor = literal(params.get('contractor_full_name', ''))
+        date = literal(params.get('contract_date', ''))
+        snapshot = (
+            '# CONTRATO DE PRESTACION DE SERVICIOS\n\n'
+            f'ENTRE: {client} (EL CONTRATANTE)\n\n'
+            f'Y: {contractor} (EL CONTRATISTA)\n\n'
+            + (f'Fecha: {date}\n\n' if date else '')
+            + markdown
+            + '\n\n## EN CONSTANCIA DE LO ANTERIOR,\n\n'
+            'las partes firman el presente contrato en dos (2) ejemplares del mismo tenor.\n\n'
+            f'**EL CONTRATANTE**\n\n{client}\n\nC.C. {literal(params.get("client_cedula", ""))}\n\n'
+            f'**EL CONTRATISTA**\n\n{contractor}\n\n'
+            f'{literal(params.get("contractor_id_type", ""))} {literal(params.get("contractor_id_number", ""))}\n'
+        )
+    return {'params': params, 'source': source, 'markdown': markdown, 'snapshot': snapshot}
+
+
 def generate_contract_pdf(
     proposal,
     draft=False,
     *,
     force_default=False,
+    resolved_content=None,
 ) -> bytes | None:
     """Generate a contract PDF and return raw bytes, or None on failure.
 
     When *draft* is True the contractor signature is omitted.
     """
     try:
-        raw_params = getattr(proposal, 'contract_params', None) or {}
-        source = 'default' if force_default else raw_params.get('contract_source', 'default')
-        params = _build_params(raw_params, draft=draft)
+        content = resolved_content if resolved_content is not None else resolve_contract_content(proposal, draft, force_default=force_default)
+        source = content['source']
+        params = content['params']
 
         sig_path = None
         if not draft:
@@ -372,11 +401,7 @@ def generate_contract_pdf(
             company = CompanySettings.load()
             sig_path = company.contractor_signature.path if company.contractor_signature else None
 
-        markdown_text = _get_contract_markdown(
-            raw_params,
-            params,
-            force_default=force_default,
-        )
+        markdown_text = content['markdown']
         if not markdown_text:
             logger.warning('Empty contract markdown for proposal %s', getattr(proposal, 'pk', '?'))
             return None

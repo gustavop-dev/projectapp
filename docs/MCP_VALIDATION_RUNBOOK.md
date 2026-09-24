@@ -937,3 +937,12 @@ Chromium sustituido por `queue_validation` neutralizado),
 `test_mcp_contracts.py`, `test_mcp_linktree_branding.py` y
 `test_mcp_parity_refresh.py`. En producción la validación real corre en Huey; el
 worker debe tener Chromium instalado (ver guía de plantillas).
+
+
+### Documentos de propuestas — copia Markdown
+
+`ProposalDocument` y su snapshot `content_markdown` quedan explícitamente
+excluidos del contrato MCP: son archivos administrados por sesión del panel.
+La exportación no agrega herramientas MCP ni permite editar la evidencia del
+contrato a través de `contract_params`. Revisar el contrato de campos al añadir
+cualquier campo nuevo a este modelo.

@@ -47,6 +47,10 @@ class ProposalDocument(models.Model):
         default=False,
         help_text='True for system-generated PDFs (contract). Cannot be deleted by user.',
     )
+    content_markdown = models.TextField(
+        blank=True, default='',
+        help_text='Internal snapshot of the text used to generate the stored contract PDF.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

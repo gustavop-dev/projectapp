@@ -1,5 +1,11 @@
 # Retiro del recordatorio responsivo — implementado (2026-09-23)
 
+**2026-09-24 — copia Markdown de documentos de propuestas:** implementación en
+worktree de sesión. El contrato conservará el texto junto a su PDF; los anexos
+formales compartirán contenido curado y los adjuntos admitirán PDF textual,
+DOCX y XLSX sin OCR. La entrega incluye acciones explícitas de vista previa,
+descarga y copia, pruebas focales y actualización de mapas.
+
 Por decisión del operador, el PR #405 incorpora el retiro del job
 `standards-review` y su cron de febrero/agosto. Sólo creaban una issue semestral;
 su omisión en los PR era consecuencia de esa condición. Se conservan contrato,
