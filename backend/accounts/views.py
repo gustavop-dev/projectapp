@@ -1423,8 +1423,10 @@ def requirement_detail_view(request, project_id, req_id):
             ),
             Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
         )
-    else:
+    elif request.method == 'PATCH':
         requirements = Requirement.objects.prefetch_related('comments__user', 'history__changed_by')
+    else:
+        requirements = Requirement.objects.all()
 
     try:
         req = requirements.get(id=req_id, phase__project=proj)
@@ -1775,7 +1777,7 @@ def change_request_detail_view(request, project_id, cr_id):
             ),
         )
     else:
-        change_requests = ChangeRequest.objects.prefetch_related('comments__user')
+        change_requests = ChangeRequest.objects.all()
 
     try:
         cr = change_requests.get(id=cr_id, project=proj)
