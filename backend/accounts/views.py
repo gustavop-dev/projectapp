@@ -3728,8 +3728,15 @@ def project_subscription_view(request, project_id):
         )
 
     # --- GET / PATCH: existing subscription ---
+    subscriptions = HostingSubscription.objects.all()
+    if request.method == 'GET':
+        subscriptions = subscriptions.prefetch_related(_subscription_payment_prefetch())
+    else:
+        # PATCH validates permissions and input before loading the response's
+        # payment collections. Keep the project available to the serializer.
+        subscriptions = subscriptions.select_related('project')
     try:
-        sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(project=proj)
+        sub = subscriptions.get(project=proj)
     except HostingSubscription.DoesNotExist:
         return Response(
             {'detail': 'No hay suscripción de hosting para este proyecto.'},
@@ -3794,7 +3801,7 @@ def project_subscription_view(request, project_id):
         # While still pending, realign the unpaid first payment + cycle.
         if sub.status == HostingSubscription.STATUS_PENDING:
             first = (
-                sub.payments.filter(status=Payment.STATUS_PENDING)
+                sub.payments.filter(status=Payment.STATUS_PENDING, is_archived=False)
                 .order_by('billing_period_start').first()
             )
             if first:
@@ -3814,7 +3821,9 @@ def project_subscription_view(request, project_id):
         sub.status = data['status']
     sub.save()
 
-    sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(pk=sub.pk)
+    sub = HostingSubscription.objects.select_related('project').prefetch_related(
+        _subscription_payment_prefetch(),
+    ).get(pk=sub.pk)
     return Response(HostingSubscriptionSerializer(sub).data)
 
 
