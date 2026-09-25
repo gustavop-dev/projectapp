@@ -35,7 +35,7 @@ module.exports = {
     },
     // VueUse 14, Pinia 4, and Pinia's diagnostics helper publish ESM-only
     // JavaScript. Let Babel transpile them while ignoring every other dependency.
-    transformIgnorePatterns: ['/node_modules/(?!(@vueuse/(core|shared)|pinia|nostics)/)'],
+    transformIgnorePatterns: ['/node_modules/(?!(@vueuse/(core|shared)|pinia|nostics|marked)/)'],
     collectCoverageFrom: [
         'stores/**/*.js',
         'composables/**/*.js',

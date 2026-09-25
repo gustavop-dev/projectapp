@@ -16,24 +16,37 @@ import { oneOf } from '~/components/base/propValidators'
  * mini → card thumbnail (non-interactive).
  * theme: friendly (default) → current look; professional → mirrors the
  * ReportLab brand PDF palette (dark esmerald headings, lemon accent).
+ * standardMarkdown: GFM parser for extracted Office documents, including
+ * escaped table delimiters and literal punctuation.
  */
 const props = defineProps({
   markdown: { type: String, default: '' },
   variant: { type: String, default: 'default', validator: oneOf(['default', 'full', 'mini']) },
   theme: { type: String, default: 'friendly', validator: oneOf(['friendly', 'professional']) },
+  standardMarkdown: { type: Boolean, default: false },
 })
 
 const { parseMarkdown } = useMarkdownPreview()
 
 const purify = ref(null)
+const standardParser = ref(null)
 onMounted(async () => {
-  const mod = await import('dompurify')
+  const [mod, markdown] = await Promise.all([
+    import('dompurify'),
+    props.standardMarkdown ? import('marked') : Promise.resolve(null),
+  ])
   purify.value = mod.default || mod
+  standardParser.value = markdown?.marked || null
 })
 
 const safeHtml = computed(() => {
   if (!props.markdown?.trim() || !purify.value) return ''
-  const html = parseMarkdown(props.markdown)
+  const html = props.standardMarkdown
+    ? standardParser.value?.parse(props.markdown, { gfm: true }).replace(
+      /<(h[1-6]|p|ul|ol|li|blockquote|table|thead|tr|th|td|a|hr|pre)(?=[\s>])/g,
+      (_tag, name) => `<${name} class="${{ pre: 'md-code-block', a: 'md-link' }[name] || `md-${name}`}"`,
+    ) || ''
+    : parseMarkdown(props.markdown)
   return purify.value.sanitize(html, { ADD_ATTR: ['target'] })
 })
 </script>

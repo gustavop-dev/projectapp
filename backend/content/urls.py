@@ -1,3 +1,4 @@
+from content.views.proposal_document_exports import contract_markdown, formalization_markdown, attachment_markdown, attachment_download
 from content.views import linktree_template as lt_templates
 from django.urls import path
 from content.views.accounting import (
@@ -691,6 +692,10 @@ urlpatterns = [
     # Contract & documents — admin
     path('proposals/<int:proposal_id>/contract/save-and-negotiate/', save_contract_and_negotiate, name='save-contract-and-negotiate'),
     path('proposals/<int:proposal_id>/contract/update/', update_contract_params, name='update-contract-params'),
+    path('proposals/<int:proposal_id>/contract/markdown/', contract_markdown, name='contract-markdown'),
+    path('proposals/<int:proposal_id>/formalization/markdown/<str:kind>/', formalization_markdown, name='formalization-markdown'),
+    path('proposals/<int:proposal_id>/documents/<int:doc_id>/markdown/', attachment_markdown, name='proposal-attachment-markdown'),
+    path('proposals/<int:proposal_id>/documents/<int:doc_id>/download/', attachment_download, name='proposal-attachment-download'),
     path('proposals/<int:proposal_id>/contract/pdf/', download_contract_pdf, name='download-contract-pdf'),
     path('proposals/<int:proposal_id>/contract/draft-pdf/', download_draft_contract_pdf, name='download-draft-contract-pdf'),
     path('proposals/<int:proposal_id>/documents/', list_proposal_documents, name='list-proposal-documents'),
