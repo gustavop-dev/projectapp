@@ -1,5 +1,7 @@
 """Query and bounded-retention contracts for the monitoring module."""
 
+from datetime import date, datetime, time, timedelta
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -10,12 +12,67 @@ from rest_framework.test import APIClient
 
 from monitoring.models import Case, CaseActivity, Report, Resource, Source
 
-
 MAX_CASE_LIST_QUERIES = 6
+
+
+def _endpoint(model):
+    """Return the list route and timestamp field for one monitoring model."""
+    if model is Case:
+        return '/api/monitoring/cases/', 'last_seen_at'
+    return '/api/monitoring/reports/', 'observed_at'
+
+
+def _monitored_row(model, source, timestamp, number):
+    """Persist one deterministic row at the requested timestamp."""
+    if model is Case:
+        return Case.objects.create(
+            source=source,
+            fingerprint=f'date-range:{number}',
+            fingerprint_hash=f'{number:064x}',
+            title=f'Caso de fecha {number}',
+            severity=Case.SEVERITIES[0][0],
+            first_seen_at=timestamp,
+            last_seen_at=timestamp,
+            evidence={},
+            detections=1,
+        )
+    return Report.objects.create(
+        source=source,
+        title=f'Informe de fecha {number}',
+        observed_at=timestamp,
+        text='Resultado de monitoreo.',
+    )
+
+
+def _active_day_rows(model, source, active_day, timezone_value, start):
+    """Persist 23 midday rows and the last representable moment of one local day."""
+    midday = timezone.make_aware(
+        datetime.combine(active_day, time(hour=12)), timezone_value,
+    )
+    final_moment = timezone.make_aware(
+        datetime.combine(active_day, time.max), timezone_value,
+    )
+    rows = [
+        _monitored_row(model, source, midday, start + number)
+        for number in range(23)
+    ]
+    rows.append(_monitored_row(model, source, final_moment, start + 23))
+    return rows
+
+
+def _list_select_sql(queries, model):
+    """Return the non-count list query for the requested model."""
+    return next(
+        query['sql'] for query in queries
+        if model._meta.db_table in query['sql']
+        and 'SELECT' in query['sql']
+        and 'COUNT(' not in query['sql']
+    )
 
 
 @pytest.fixture
 def staff_client(db):
+    """Return a staff session permitted to read monitoring administration lists."""
     user = get_user_model().objects.create_user(username='monitoring-query-staff', is_staff=True)
     client = APIClient()
     client.force_login(user)
@@ -24,6 +81,7 @@ def staff_client(db):
 
 @pytest.fixture
 def monitored_source(db):
+    """Return a project monitoring source with its required resource hierarchy."""
     server = Resource.objects.create(key='srv1681495', name='VPS de producción', kind='server')
     resource = Resource.objects.create(key='projectapp', name='ProjectApp', kind='project', server=server)
     return Source.objects.create(resource=resource, key='silk', name='Silk')
@@ -31,6 +89,7 @@ def monitored_source(db):
 
 @pytest.fixture
 def twenty_six_cases(db):
+    """Persist more cases than one administration list page can return."""
     now = timezone.now()
     server = Resource.objects.create(key='srv1681495', name='VPS de producción', kind='server')
     cases = []
@@ -125,3 +184,163 @@ def test_monitoring_history_indexes_cover_list_prefixes():
     activity_indexes = {tuple(value['columns']) for value in activity_constraints.values() if value['index']}
     assert {('state', 'last_seen_at'), ('severity', 'last_seen_at'), ('last_seen_at', 'id')} <= case_indexes
     assert ('case_id', 'created_at') in activity_indexes
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('model', [Case, Report])
+def test_monitoring_range_respects_the_active_timezone_day(staff_client, monitored_source, model):
+    """Falla si el rango indexable omite el final del día activo o incluye el siguiente."""
+    active_day = date(2024, 2, 15)
+    endpoint, _ = _endpoint(model)
+
+    with timezone.override('America/Bogota'):
+        timezone_value = timezone.get_current_timezone()
+        first_moment = timezone.make_aware(
+            datetime.combine(active_day, time.min), timezone_value,
+        )
+        first_row = _monitored_row(model, monitored_source, first_moment, 100)
+
+        with CaptureQueriesContext(connection) as one_row_queries:
+            first_response = staff_client.get(
+                endpoint, {'since': active_day.isoformat(), 'until': active_day.isoformat()},
+            )
+
+        matching_rows = _active_day_rows(model, monitored_source, active_day, timezone_value, 101)
+        next_day = timezone.make_aware(
+            datetime.combine(active_day + timedelta(days=1), time.min), timezone_value,
+        )
+        _monitored_row(model, monitored_source, next_day, 125)
+
+        with CaptureQueriesContext(connection) as twenty_five_row_queries:
+            response = staff_client.get(
+                endpoint, {'since': active_day.isoformat(), 'until': active_day.isoformat()},
+            )
+
+    first_body = first_response.json()
+    body = response.json()
+    returned_ids = {row['id'] for row in body['results']}
+    expected_ids = {first_row.id, *(row.id for row in matching_rows)}
+
+    assert first_response.status_code == 200
+    assert first_body['count'] == 1
+    assert response.status_code == 200
+    assert body['count'] == 25
+    assert returned_ids == expected_ids
+    assert len(one_row_queries) == len(twenty_five_row_queries)
+    assert len(twenty_five_row_queries) <= MAX_CASE_LIST_QUERIES
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('model', [Case, Report])
+def test_monitoring_range_uses_raw_timestamp_comparisons(staff_client, monitored_source, model):
+    """Falla si un rango ordinario vuelve a transformar la columna de fecha indexada."""
+    active_day = date(2024, 2, 15)
+    endpoint, date_field = _endpoint(model)
+
+    with timezone.override('America/Bogota'):
+        timezone_value = timezone.get_current_timezone()
+        boundary = timezone.make_aware(
+            datetime.combine(active_day, time.min), timezone_value,
+        )
+        _monitored_row(model, monitored_source, boundary, 150)
+        with CaptureQueriesContext(connection) as queries:
+            response = staff_client.get(
+                endpoint, {'since': active_day.isoformat(), 'until': active_day.isoformat()},
+            )
+
+    list_select = _list_select_sql(queries, model).lower()
+
+    assert response.status_code == 200
+    assert date_field in list_select
+    assert 'django_datetime_cast_date' not in list_select
+    assert 'date(' not in list_select
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('model', [Case, Report])
+@pytest.mark.parametrize(
+    ('parameter', 'expected_numbers'),
+    [('since', {201, 202}), ('until', {200, 201})],
+)
+def test_monitoring_single_date_filter_keeps_its_inclusive_boundary(
+    staff_client, monitored_source, model, parameter, expected_numbers,
+):
+    """Falla si un límite de fecha independiente deja fuera su propia medianoche."""
+    active_day = date(2024, 2, 15)
+    endpoint, _ = _endpoint(model)
+
+    with timezone.override('America/Bogota'):
+        timezone_value = timezone.get_current_timezone()
+        previous_row = _monitored_row(
+            model,
+            monitored_source,
+            timezone.make_aware(datetime.combine(active_day - timedelta(days=1), time.max), timezone_value),
+            200,
+        )
+        boundary_row = _monitored_row(
+            model,
+            monitored_source,
+            timezone.make_aware(datetime.combine(active_day, time.min), timezone_value),
+            201,
+        )
+        later_row = _monitored_row(
+            model,
+            monitored_source,
+            timezone.make_aware(datetime.combine(active_day + timedelta(days=1), time.min), timezone_value),
+            202,
+        )
+        response = staff_client.get(endpoint, {parameter: active_day.isoformat()})
+
+    row_ids = {previous_row.id: 200, boundary_row.id: 201, later_row.id: 202}
+    returned_numbers = {row_ids[row['id']] for row in response.json()['results']}
+
+    assert response.status_code == 200
+    assert returned_numbers == expected_numbers
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('model', [Case, Report])
+def test_monitoring_inverted_dates_return_an_empty_list(staff_client, monitored_source, model):
+    """Falla si un rango invertido deja de responder vacío con el contrato DateField actual."""
+    endpoint, _ = _endpoint(model)
+    active_day = date(2024, 2, 15)
+
+    with timezone.override('America/Bogota'):
+        timezone_value = timezone.get_current_timezone()
+        _monitored_row(
+            model,
+            monitored_source,
+            timezone.make_aware(datetime.combine(active_day, time.min), timezone_value),
+            300,
+        )
+        response = staff_client.get(
+            endpoint,
+            {'since': (active_day + timedelta(days=1)).isoformat(), 'until': active_day.isoformat()},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {'results': [], 'count': 0, 'page': 1, 'page_size': 25}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('model', [Case, Report])
+@pytest.mark.parametrize(
+    ('parameter', 'boundary_day'),
+    [('since', date.min), ('until', date.max)],
+)
+def test_monitoring_extreme_date_filter_keeps_its_boundary_row(
+    staff_client, monitored_source, model, parameter, boundary_day,
+):
+    """Falla si un límite DateField extremo desborda o pierde su registro representable."""
+    endpoint, _ = _endpoint(model)
+
+    with timezone.override('UTC'):
+        boundary = timezone.make_aware(
+            datetime.combine(boundary_day, time.min), timezone.get_current_timezone(),
+        )
+        row = _monitored_row(model, monitored_source, boundary, 400 if parameter == 'since' else 401)
+        response = staff_client.get(endpoint, {parameter: boundary_day.isoformat()})
+
+    assert response.status_code == 200
+    assert response.json()['count'] == 1
+    assert response.json()['results'][0]['id'] == row.id

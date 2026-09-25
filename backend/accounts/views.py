@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db import connection, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, prefetch_related_objects
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -1186,12 +1186,15 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
-def _get_project_or_403(request, project_id):
+def _get_project_or_403(request, project_id, *, related_fields=()):
     """Helper: get project checking access for admin or owning client."""
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
+    projects = Project.objects.all()
+    if related_fields:
+        projects = projects.select_related(*related_fields)
     try:
-        proj = Project.objects.get(id=project_id)
+        proj = projects.get(id=project_id)
     except Project.DoesNotExist:
         return None, Response({'detail': 'Proyecto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     if not is_admin and proj.client_id != request.user.id:
@@ -1386,6 +1389,9 @@ def requirement_bulk_upload_view(request, project_id):
             priority=item.get('priority', Requirement.PRIORITY_MEDIUM),
             order=order_offset + idx,
         )
+        # New requirements cannot have comments yet; reuse the list serializer's
+        # annotated-count path instead of issuing one COUNT per created row.
+        req._comments_count = 0
         created.append(req)
 
     _recalculate_project_progress(proj)
@@ -1417,8 +1423,10 @@ def requirement_detail_view(request, project_id, req_id):
             ),
             Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
         )
+    elif request.method == 'PATCH':
+        requirements = Requirement.objects.select_related('scope_item')
     else:
-        requirements = Requirement.objects.prefetch_related('comments__user', 'history__changed_by')
+        requirements = Requirement.objects.all()
 
     try:
         req = requirements.get(id=req_id, phase__project=proj)
@@ -1447,6 +1455,13 @@ def requirement_detail_view(request, project_id, req_id):
     serializer = UpdateRequirementSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = dict(serializer.validated_data)
+
+    # Preserve the pre-update history snapshot without loading collections for
+    # rejected requests. Comments are read once by the response serializer.
+    prefetch_related_objects(
+        [req],
+        Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
+    )
 
     if 'is_archived' in data:
         flag = data.pop('is_archived')
@@ -1750,10 +1765,29 @@ def change_request_detail_view(request, project_id, cr_id):
     if err:
         return err
 
-    try:
-        cr = ChangeRequest.objects.prefetch_related('comments__user').get(
-            id=cr_id, project=proj,
+    if request.method == 'GET':
+        change_requests = ChangeRequest.objects.select_related(
+            'created_by', 'source_requirement__phase__business_proposal',
+        ).only(
+            'id', 'project_id', 'created_by_id', 'source_requirement_id',
+            'title', 'description', 'module_or_screen', 'suggested_priority',
+            'is_urgent', 'status', 'admin_response', 'estimated_cost', 'estimated_time',
+            'linked_requirement_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'created_by__id', 'created_by__first_name', 'created_by__last_name',
+            'created_by__email', *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        ).prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=ChangeRequestComment.objects.select_related('user'),
+                to_attr='_detail_comments',
+            ),
         )
+    else:
+        change_requests = ChangeRequest.objects.all()
+
+    try:
+        cr = change_requests.get(id=cr_id, project=proj)
     except ChangeRequest.DoesNotExist:
         return Response(
             {'detail': 'Solicitud de cambio no encontrada.'},
@@ -2232,10 +2266,30 @@ def bug_report_detail_view(request, project_id, bug_id):
     if err:
         return err
 
-    try:
-        bug = BugReport.objects.prefetch_related('comments__user').get(
-            id=bug_id, project=proj,
+    if request.method == 'GET':
+        bugs = BugReport.objects.select_related(
+            'reported_by', 'source_requirement__phase__business_proposal',
+        ).only(
+            'id', 'project_id', 'reported_by_id', 'source_requirement_id',
+            'title', 'description', 'severity', 'status', 'environment',
+            'device_browser', 'is_recurring', 'steps_to_reproduce',
+            'expected_behavior', 'actual_behavior', 'admin_response',
+            'linked_bug_id', 'screenshot', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+            'reported_by__id', 'reported_by__first_name', 'reported_by__last_name',
+            'reported_by__email', *_SOURCE_REQUIREMENT_LIST_FIELDS,
+        ).prefetch_related(
+            Prefetch(
+                'comments',
+                queryset=BugComment.objects.select_related('user'),
+                to_attr='_detail_comments',
+            ),
         )
+    else:
+        bugs = BugReport.objects.all()
+
+    try:
+        bug = bugs.get(id=bug_id, project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
@@ -3687,7 +3741,8 @@ def project_subscription_view(request, project_id):
            with at least one already started.
     PATCH — Change hosting plan (admin or client) or status (admin only).
     """
-    proj, err = _get_project_or_403(request, project_id)
+    related_fields = ('hosting_subscription',) if request.method == 'PATCH' else ()
+    proj, err = _get_project_or_403(request, project_id, related_fields=related_fields)
     if err:
         return err
 
@@ -3726,7 +3781,14 @@ def project_subscription_view(request, project_id):
 
     # --- GET / PATCH: existing subscription ---
     try:
-        sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(project=proj)
+        if request.method == 'PATCH':
+            # The access check already loaded this one-to-one relation. Delay
+            # payment collections until permissions and input have passed.
+            sub = proj.hosting_subscription
+        else:
+            sub = HostingSubscription.objects.prefetch_related(
+                _subscription_payment_prefetch(),
+            ).get(project=proj)
     except HostingSubscription.DoesNotExist:
         return Response(
             {'detail': 'No hay suscripción de hosting para este proyecto.'},
@@ -3791,7 +3853,7 @@ def project_subscription_view(request, project_id):
         # While still pending, realign the unpaid first payment + cycle.
         if sub.status == HostingSubscription.STATUS_PENDING:
             first = (
-                sub.payments.filter(status=Payment.STATUS_PENDING)
+                sub.payments.filter(status=Payment.STATUS_PENDING, is_archived=False)
                 .order_by('billing_period_start').first()
             )
             if first:
@@ -3811,7 +3873,7 @@ def project_subscription_view(request, project_id):
         sub.status = data['status']
     sub.save()
 
-    sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(pk=sub.pk)
+    prefetch_related_objects([sub], _subscription_payment_prefetch())
     return Response(HostingSubscriptionSerializer(sub).data)
 
 

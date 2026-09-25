@@ -139,4 +139,132 @@ describe('useMonitoringStore', () => {
 
     expect(store.saving).toBe(false)
   })
+
+  it.each([1, 50])('shares one pending catalog request across %i concurrent refreshes', async (refreshCount) => {
+    // Falla si cada refresh solapado vuelve a pedir el catálogo completo.
+    const catalogRequest = deferred()
+    const catalog = {
+      resources: [{ id: 4, name: 'Servidor de producción' }],
+      sources: [{ id: 9, name: 'Uptime Robot' }],
+    }
+    get_request.mockReturnValue(catalogRequest.promise)
+
+    const refreshes = Array.from({ length: refreshCount }, () => store.catalog())
+
+    expect(get_request).toHaveBeenCalledTimes(1)
+    expect(get_request).toHaveBeenCalledWith('monitoring/catalog/')
+
+    catalogRequest.resolve({ data: catalog })
+    const results = await Promise.all(refreshes)
+
+    expect(results).toEqual(Array.from({ length: refreshCount }, () => undefined))
+    expect(store.resources).toEqual([{ id: 4, name: 'Servidor de producción' }])
+    expect(store.sources).toEqual([{ id: 9, name: 'Uptime Robot' }])
+  })
+
+  it('requests a fresh catalog after the pending request has resolved', async () => {
+    // Falla si la deduplicación pendiente se convierte en una caché que deja obsoleto el catálogo.
+    const firstRequest = deferred()
+    const secondRequest = deferred()
+    get_request.mockReturnValueOnce(firstRequest.promise).mockReturnValueOnce(secondRequest.promise)
+
+    const firstLoad = store.catalog()
+    firstRequest.resolve({ data: { resources: [{ id: 1, name: 'Servidor anterior' }], sources: [{ id: 2, name: 'Ping anterior' }] } })
+    await firstLoad
+
+    const secondLoad = store.catalog()
+    expect(get_request).toHaveBeenCalledTimes(2)
+
+    secondRequest.resolve({ data: { resources: [{ id: 3, name: 'Servidor actual' }], sources: [{ id: 4, name: 'Ping actual' }] } })
+    await secondLoad
+
+    expect(store.resources).toEqual([{ id: 3, name: 'Servidor actual' }])
+    expect(store.sources).toEqual([{ id: 4, name: 'Ping actual' }])
+  })
+
+  it.each([1, 50])('keeps catalog filters after %i concurrent failures', async (refreshCount) => {
+    // Falla si un rechazo borra los filtros visibles de la pantalla.
+    const failingRequest = deferred()
+    const previousResources = [{ id: 7, name: 'Servidor conservado' }]
+    const previousSources = [{ id: 8, name: 'Fuente conservada' }]
+    const expectedFailure = new Error('No fue posible actualizar el catálogo')
+    store.resources = previousResources
+    store.sources = previousSources
+    get_request.mockReturnValue(failingRequest.promise)
+
+    const failedRefreshes = Array.from({ length: refreshCount }, () => store.catalog())
+    const outcomes = Promise.allSettled(failedRefreshes)
+    failingRequest.reject(expectedFailure)
+    const rejectedRefreshes = await outcomes
+
+    expect(get_request).toHaveBeenCalledTimes(1)
+    expect(rejectedRefreshes).toEqual(Array.from(
+      { length: refreshCount },
+      () => ({ status: 'rejected', reason: expectedFailure }),
+    ))
+    expect(store.resources).toEqual([{ id: 7, name: 'Servidor conservado' }])
+    expect(store.sources).toEqual([{ id: 8, name: 'Fuente conservada' }])
+  })
+
+  it('allows a catalog retry after a rejected request', async () => {
+    // Falla si una promesa rechazada impide actualizar el catálogo más adelante.
+    const failingRequest = deferred()
+    const retryRequest = deferred()
+    const expectedFailure = new Error('No fue posible actualizar el catálogo')
+    get_request.mockReturnValueOnce(failingRequest.promise).mockReturnValueOnce(retryRequest.promise)
+
+    const failedRefresh = store.catalog()
+    const outcome = Promise.allSettled([failedRefresh])
+    failingRequest.reject(expectedFailure)
+    await outcome
+
+    const retry = store.catalog()
+    expect(get_request).toHaveBeenCalledTimes(2)
+    retryRequest.resolve({ data: { resources: [{ id: 10, name: 'Servidor recuperado' }], sources: [{ id: 11, name: 'Fuente recuperada' }] } })
+    await retry
+
+    expect(store.resources).toEqual([{ id: 10, name: 'Servidor recuperado' }])
+    expect(store.sources).toEqual([{ id: 11, name: 'Fuente recuperada' }])
+  })
+
+  it('starts a catalog request for each Pinia instance', () => {
+    // Falla si una promesa global mezcla dos solicitudes pendientes de sesiones distintas.
+    const firstPinia = createPinia()
+    const secondPinia = createPinia()
+    const firstStore = useMonitoringStore(firstPinia)
+    const secondStore = useMonitoringStore(secondPinia)
+    const firstRequest = deferred()
+    const secondRequest = deferred()
+    get_request.mockReturnValueOnce(firstRequest.promise).mockReturnValueOnce(secondRequest.promise)
+
+    firstStore.catalog()
+    secondStore.catalog()
+
+    expect(get_request.mock.calls).toEqual([
+      ['monitoring/catalog/'],
+      ['monitoring/catalog/'],
+    ])
+  })
+
+  it('applies a catalog only to its originating Pinia instance', async () => {
+    // Falla si resolver el catálogo de una sesión modifica las colecciones de otra.
+    const firstPinia = createPinia()
+    const secondPinia = createPinia()
+    const firstStore = useMonitoringStore(firstPinia)
+    const secondStore = useMonitoringStore(secondPinia)
+    const firstRequest = deferred()
+    const secondRequest = deferred()
+    get_request.mockReturnValueOnce(firstRequest.promise).mockReturnValueOnce(secondRequest.promise)
+
+    const firstLoad = firstStore.catalog()
+    secondStore.catalog()
+
+    firstRequest.resolve({ data: { resources: [{ id: 12, name: 'Servidor de la primera sesión' }], sources: [{ id: 13, name: 'Fuente de la primera sesión' }] } })
+    await firstLoad
+
+    expect(firstStore.resources).toEqual([{ id: 12, name: 'Servidor de la primera sesión' }])
+    expect(firstStore.sources).toEqual([{ id: 13, name: 'Fuente de la primera sesión' }])
+    expect(secondStore.resources).toEqual([])
+    expect(secondStore.sources).toEqual([])
+  })
 })

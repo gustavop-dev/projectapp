@@ -1,4 +1,8 @@
+from datetime import date, datetime, time, timedelta
+
+from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -62,9 +66,20 @@ def filtered(request, model):
     if data.get('search'):
         query = query.filter(title__icontains=data['search'])
     date_field = 'last_seen_at' if model is Case else 'observed_at'
-    for parameter, lookup in [('since', 'gte'), ('until', 'lte')]:
+    for parameter, lookup in [('since', 'gte'), ('until', 'lt')]:
         if parameter in data:
-            query = query.filter(**{f'{date_field}__date__{lookup}': data[parameter]})
+            day = data[parameter]
+            # Retain the date lookup at the representable limits: adding a day
+            # or converting a boundary to UTC can overflow there.
+            if day in (date.min, date.max):
+                inclusive_lookup = 'gte' if parameter == 'since' else 'lte'
+                query = query.filter(**{f'{date_field}__date__{inclusive_lookup}': day})
+                continue
+            boundary_day = day if parameter == 'since' else day + timedelta(days=1)
+            boundary = datetime.combine(boundary_day, time.min)
+            if settings.USE_TZ:
+                boundary = timezone.make_aware(boundary, timezone.get_current_timezone())
+            query = query.filter(**{f'{date_field}__{lookup}': boundary})
     return query, data['page']
 
 

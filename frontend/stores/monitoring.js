@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { get_request, create_request } from './services/request_http'
 
+const catalogRequests = new WeakMap()
+
 export const useMonitoringStore = defineStore('monitoring', {
   state: () => ({
     resources: [], sources: [], records: [], count: 0, pageSize: 25,
@@ -8,9 +10,14 @@ export const useMonitoringStore = defineStore('monitoring', {
   }),
   actions: {
     async catalog() {
-      const { data } = await get_request('monitoring/catalog/')
-      this.resources = data.resources
-      this.sources = data.sources
+      if (catalogRequests.has(this)) return catalogRequests.get(this)
+
+      const request = get_request('monitoring/catalog/').then(({ data }) => {
+        this.resources = data.resources
+        this.sources = data.sources
+      }).finally(() => { catalogRequests.delete(this) })
+      catalogRequests.set(this, request)
+      return request
     },
     async list(params, reports = false) {
       const requestId = ++this.requestId

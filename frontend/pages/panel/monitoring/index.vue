@@ -23,9 +23,11 @@ const detailPage = ref(1)
 let timer
 const options = values => values.map(value => ({ value, label: value ? tr(value) : tr('any') }))
 const resourceOptions = computed(() => [{ value: '', label: tr('any') }, ...store.resources.filter(r => reports.value || r.kind === tab.value).map(r => ({ value: r.id, label: r.name }))])
-const visibleSources = computed(() => store.sources.filter(s => (!filters.resource || String(s.resource) === String(filters.resource)) && (reports.value || store.resources.some(r => r.id === s.resource && r.kind === tab.value))))
+const tabResourceIds = computed(() => new Set(store.resources.filter(r => r.kind === tab.value).map(r => r.id)))
+const visibleSources = computed(() => store.sources.filter(s => (!filters.resource || String(s.resource) === String(filters.resource)) && (reports.value || tabResourceIds.value.has(s.resource))))
 const sourceOptions = computed(() => [{ value: '', label: tr('any') }, ...visibleSources.value.map(s => ({ value: s.id, label: `${s.resource_name} · ${s.name}` }))])
-const formatDate = value => value ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
+const dateFormatter = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
+const formatDate = value => value ? dateFormatter.value.format(new Date(value)) : '—'
 const detailOpen = computed({ get: () => Boolean(store.detail) || detailLoading.value, set: value => { if (!value) closeDetail() } })
 
 function closeDetail() {

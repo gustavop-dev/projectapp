@@ -49,7 +49,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
         { label: 'Paquetes de horas', href: lp('/panel/hour-packages'), icon: 'package' },
         { label: 'Clientes', href: lp('/panel/clients'), icon: 'users' },
         { label: 'Entregabilidad email', href: lp('/panel/proposals/email-deliverability'), icon: 'mail' },
-        { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'send' },
+        { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'money-bag' },
         { label: 'Nueva propuesta', href: lp('/panel/proposals/create'), icon: 'plus' },
         { label: 'Módulos adicionales', href: lp('/panel/additional-modules'), icon: 'puzzle' },
         { label: 'Programa de Alianza', href: lp('/panel/partnership-program'), icon: 'credit-card' },
@@ -111,7 +111,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
       label: 'Plataforma',
       items: [
         { label: 'Proyectos', href: lp('/panel/projects'), icon: 'folder' },
-        { label: 'Monitoreo', href: lp('/panel/monitoring'), icon: 'database' },
+        { label: 'Monitoreo', href: lp('/panel/monitoring'), icon: 'search' },
         // The same accounting view, doubled here deliberately: hostings are
         // also part of the delivered product. Item-level gate because the
         // target page is superuser-only while Proyectos is open to admins.
