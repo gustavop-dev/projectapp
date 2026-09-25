@@ -1,3 +1,15 @@
+# Reajuste del servicio en el contrato — en verificación (2026-09-25)
+
+La migración `content.0255` sustituye el parágrafo tercero de la cláusula
+vigésima primera de la plantilla predeterminada. Conserva SMMLV/IPC como base
+mínima y remite fecha del primer reajuste, renovaciones, periodicidad de pago
+y componentes adicionales al Documento Propuesta Comercial aceptado, sin
+imponer un ajuste cada 1 de enero ni duplicarlo por facturación. El reemplazo
+es puntual y reversible; las cláusulas personalizadas se conservan con aviso.
+PDFs históricos y contratos particulares permanecen intactos. Aplicación a la
+base real mediante el despliegue; validación en SQLite aislado del worktree
+`contract-service-adjustment`.
+
 # Retiro del recordatorio responsivo — implementado (2026-09-23)
 
 Por decisión del operador, el PR #405 incorpora el retiro del job
