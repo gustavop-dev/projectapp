@@ -16,3 +16,10 @@ additional-modules/script.js
 financing/assets/
 financing/content.js
 financing/script.js
+
+# Brag v2 materialized files
+brag-v2/*/assets/
+brag-v2/*/content.js
+brag-v2/*/script.js
+brag-v2/work/
+/work/

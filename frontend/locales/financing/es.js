@@ -20,7 +20,7 @@ export default {
   guideNext: 'Siguiente',
   guideDone: 'Entendido',
   restartGuide: 'Repetir la guía',
-  explainerTitle: 'El Programa de Alianza en un minuto',
+  explainerTitle: 'Conoce el Programa de Alianza',
   explainerDescription: 'Una introducción al programa. Las condiciones vigentes y la exclusividad conceptual de la opción a cinco años se detallan en esta página.',
   explainerNoAudioNote: 'Se entiende sin sonido: incluye títulos y subtítulos en pantalla.',
   explainerPlay: 'Reproducir video',

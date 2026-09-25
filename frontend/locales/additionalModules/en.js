@@ -1,6 +1,6 @@
 export default {
   shareFailed: 'We could not share the link. Try copying it.',
-  explainerTitle: 'Discover the catalog in one minute',
+  explainerTitle: 'Discover what your platform can do',
   explainerDescription: 'What the modules are, how to explore them and what each entry covers. No prices, no surprises.',
   explainerNoAudioNote: 'Works without sound: titles and captions are on screen.',
   explainerPlay: 'Play video',
@@ -23,7 +23,7 @@ export default {
   shareVideoHidden: 'The link for {label} no longer shows the video.',
   shareVideoError: 'We could not change the video on this link. Please try again.',
   guideExplainerTitle: 'Start with the video',
-  guideExplainerDescription: 'In one minute you understand what the catalog is and how to browse it. Sound is optional.',
+  guideExplainerDescription: 'In this short video you understand what the catalog is and how to browse it. Sound is optional.',
   eyebrow: 'Capabilities that expand your platform',
   title: 'Additional modules',
   subtitle: 'Explore solutions that can be integrated when your business needs them. Prices are intentionally excluded: the real scope belongs in a proposal.',

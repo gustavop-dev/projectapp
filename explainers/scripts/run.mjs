@@ -10,7 +10,7 @@
  */
 import { spawnSync } from 'node:child_process'
 
-import { HYPERFRAMES_BIN, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
+import { EDITION, HYPERFRAMES_BIN, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
 
 const [command, ...rest] = process.argv.slice(2)
 const ALLOWED = ['lint', 'check', 'snapshot', 'preview', 'info', 'compositions', 'keyframes']
@@ -31,12 +31,12 @@ function runNode(script, args) {
   if (result.status !== 0) process.exit(result.status ?? 1)
 }
 
-runNode(new URL('./sync-assets.mjs', import.meta.url).pathname, ['--video', video])
-runNode(new URL('./stage.mjs', import.meta.url).pathname, ['--video', video, '--lang', language])
+runNode(new URL('./sync-assets.mjs', import.meta.url).pathname, ['--video', video, '--edition', EDITION])
+runNode(new URL('./stage.mjs', import.meta.url).pathname, ['--video', video, '--lang', language, '--edition', EDITION])
 
 const passthrough = []
 for (const [key, value] of Object.entries(options)) {
-  if (['video', 'lang', '_'].includes(key)) continue
+  if (['video', 'lang', 'edition', '_'].includes(key)) continue
   if (value === true) passthrough.push(`--${key}`)
   else passthrough.push(`--${key}`, String(value))
 }

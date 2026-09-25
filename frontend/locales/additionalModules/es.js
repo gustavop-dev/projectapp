@@ -1,6 +1,6 @@
 export default {
   shareFailed: 'No pudimos compartir el enlace. Intenta copiarlo.',
-  explainerTitle: 'Descubre el catálogo en un minuto',
+  explainerTitle: 'Descubre lo que tu plataforma puede hacer',
   explainerDescription: 'Qué son los módulos, cómo explorarlos y qué esperar de cada ficha. Sin precios, sin sorpresas.',
   explainerNoAudioNote: 'Se entiende sin sonido: incluye títulos y subtítulos en pantalla.',
   explainerPlay: 'Reproducir video',
@@ -23,7 +23,7 @@ export default {
   shareVideoHidden: 'El enlace de {label} ya no muestra el video.',
   shareVideoError: 'No pudimos cambiar el video de este enlace. Intenta de nuevo.',
   guideExplainerTitle: 'Empieza por el video',
-  guideExplainerDescription: 'En un minuto entiendes qué es el catálogo y cómo recorrerlo. Puedes verlo sin sonido.',
+  guideExplainerDescription: 'Descubre capacidades para tu plataforma y cómo explorar el catálogo. Puedes verlo sin sonido.',
   eyebrow: 'Capacidades para ampliar tu plataforma',
   title: 'Módulos adicionales',
   subtitle: 'Explora soluciones que se pueden integrar a tu sistema cuando el negocio las necesite. Aquí no hay precios: el alcance real se define en una propuesta.',

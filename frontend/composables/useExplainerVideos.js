@@ -1,12 +1,12 @@
 import { computed, unref } from 'vue'
 
-import additionalModulesEs from '~/assets/videos/explainers/additional-modules-es.mp4'
-import additionalModulesEsPoster from '~/assets/images/explainers/additional-modules-es.webp'
-import financingEs from '~/assets/videos/explainers/financing-es.mp4'
-import financingEsPoster from '~/assets/images/explainers/financing-es.webp'
+import additionalModulesEs from '~/assets/videos/explainers/additional-modules-brag-v2-es.mp4'
+import additionalModulesEsPoster from '~/assets/images/explainers/additional-modules-brag-v2-es.webp'
+import financingEs from '~/assets/videos/explainers/financing-brag-v2-es.mp4'
+import financingEsPoster from '~/assets/images/explainers/financing-brag-v2-es.webp'
 
 /**
- * Explainer videos rendered offline with HyperFrames (see explainers/README.md).
+ * Explainer videos produced with brag and rendered offline with HyperFrames (see explainers/README.md).
  * Each entry is keyed by module id and language; a missing language means the
  * surface hides the card until that render exists.
  */
@@ -17,7 +17,7 @@ const EXPLAINERS = Object.freeze({
     es: {
       src: additionalModulesEs,
       poster: additionalModulesEsPoster,
-      durationSeconds: 70,
+      durationSeconds: 45,
       width: 1920,
       height: 1080,
     },
@@ -26,7 +26,7 @@ const EXPLAINERS = Object.freeze({
     es: {
       src: financingEs,
       poster: financingEsPoster,
-      durationSeconds: 72,
+      durationSeconds: 45,
       width: 1920,
       height: 1080,
     },

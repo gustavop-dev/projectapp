@@ -25,6 +25,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Verify explainer narration guards
+        run: node --test explainers/tests/narration.test.mjs
+
       - name: Verify flow-definitions ↔ E2E @flow tags
         run: node frontend/scripts/check-flow-definitions-sync.mjs
 

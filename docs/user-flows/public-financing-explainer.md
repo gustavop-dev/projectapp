@@ -15,3 +15,6 @@
 - **Evidencia:** `ExplainerVideoCard.vue`, `useExplainerVideos.js`,
   `Financing/ProgramView.vue` (flag `show_explainer_video` del payload) y
   `e2e/public/financing.spec.js`.
+
+- **Contenido audiovisual:** edición brag v2, 45 segundos en español con voz,
+  música y subtítulos integrados. Fuentes originales conservadas.

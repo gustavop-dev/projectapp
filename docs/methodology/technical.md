@@ -1,5 +1,11 @@
 # Technical Documentation — ProjectApp
 
+> **2026-09-25 — producción audiovisual v2:** el pipeline de `explainers/`
+> acepta `--edition brag-v2` y mantiene v1 como default. La narración Kokoro
+> usa cache por contenido y rechaza desbordes; un fingerprint liga voz, guion
+> y schedule. Render 1080p/30fps H.264/AAC con faststart y portada en frame cero.
+> Assets activos con sufijo `-brag-v2-es`; guía en `explainers/brag-v2/README.md`.
+
 > **2026-09-24 — copia de documentos:** Exportación Markdown: endpoints administrativos `contract/markdown/`, `formalization/markdown/{kind}/` y `documents/{doc_id}/markdown/`; descarga del original vía `documents/{doc_id}/download/`. Sesión del panel, IsAdminUser, no-store y pertenencia a la propuesta. Migración 0255 para el snapshot interno; PDF legado se extrae bajo demanda. Detalle de formatos y presupuestos en `docs/PROPOSAL_FORMALIZATION.md`.
 
 > **CAPTCHA de login — 2026-09-23:** ambos accesos requieren claves v2 y
