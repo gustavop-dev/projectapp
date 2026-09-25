@@ -18,6 +18,7 @@
           :title="documentStore.currentDocument?.title || 'Editar Documento'"
           data-testid="doc-editor-title"
         >
+          <span v-if="documentStore.currentDocument" class="mr-2 inline-block text-base tabular-nums text-text-muted" data-testid="document-detail-id">#{{ documentStore.currentDocument.id }}</span>
           {{ documentStore.currentDocument?.title || 'Editar Documento' }}
         </h1>
         <nav

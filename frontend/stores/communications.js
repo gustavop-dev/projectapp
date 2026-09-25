@@ -83,6 +83,33 @@ export const useCommunicationsStore = defineStore('communications', {
   },
 
   actions: {
+    async fetchFolders(filters = {}) {
+      try {
+        const response = await get_request(`communications/folders/?${queryString(filters)}`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudieron cargar las carpetas.') };
+      }
+    },
+    async saveFolder(id, payload) {
+      try {
+        const response = id
+          ? await patch_request(`communications/folders/${id}/`, payload)
+          : await create_request('communications/folders/', payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudo guardar la carpeta.') };
+      }
+    },
+    async deleteFolder(id) {
+      try {
+        await delete_request(`communications/folders/${id}/`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudo eliminar la carpeta.') };
+      }
+    },
+
     async fetchPreferences() {
       const pending = preferenceLoadPromises.get(this);
       if (pending) return pending;

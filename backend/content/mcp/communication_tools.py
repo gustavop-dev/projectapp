@@ -97,7 +97,7 @@ def list_threads(arguments):
     _reject_unknown_fields(arguments, {
         'client_id', 'project_id', 'status', 'channel', 'direction',
         'message_status', 'reply_status', 'date_from', 'date_to', 'q',
-        'order', 'scope', 'page', 'page_size',
+        'order', 'scope', 'page', 'page_size', 'folder',
     })
     query_params = {
         key: value for key, value in arguments.items()
@@ -140,13 +140,15 @@ def get_thread(arguments):
 
 
 def create_thread(arguments):
-    _reject_unknown_fields(arguments, {'client_id', 'project_id', 'title'})
+    _reject_unknown_fields(arguments, {'client_id', 'project_id', 'title', 'folder_id'})
     data = {
         'client': arguments.get('client_id'),
         'title': arguments.get('title'),
     }
     if 'project_id' in arguments:
         data['project'] = arguments.get('project_id')
+    if 'folder_id' in arguments:
+        data['folder'] = arguments['folder_id']
     serializer = CommunicationThreadWriteSerializer(data=data)
     if not serializer.is_valid():
         raise ToolError(_serializer_error(serializer.errors))
@@ -160,10 +162,10 @@ def create_thread(arguments):
 
 
 def update_thread(arguments):
-    _reject_unknown_fields(arguments, {'thread_id', 'title', 'project_id'})
+    _reject_unknown_fields(arguments, {'thread_id', 'title', 'project_id', 'folder_id'})
     if 'thread_id' not in arguments:
         raise ToolError('thread_id es obligatorio.')
-    supplied_fields = {'title', 'project_id'}.intersection(arguments)
+    supplied_fields = {'title', 'project_id', 'folder_id'}.intersection(arguments)
     if not supplied_fields:
         raise ToolError('Envía al menos un campo para actualizar.')
 
@@ -173,6 +175,8 @@ def update_thread(arguments):
         data['title'] = arguments['title']
     if 'project_id' in arguments:
         data['project'] = arguments['project_id']
+    if 'folder_id' in arguments:
+        data['folder'] = arguments['folder_id']
     serializer = CommunicationThreadWriteSerializer(
         thread,
         data=data,
@@ -712,3 +716,22 @@ COMMUNICATION_TOOLS = [
         'handler': correct_message_date,
     },
 ]
+
+
+# Filing is organizational and also works on closed threads.
+for _tool in COMMUNICATION_TOOLS:
+    if _tool['name'] in {'create_thread', 'update_thread'}:
+        _tool['input_schema']['properties']['folder_id'] = {
+            'type': ['integer', 'null'], 'minimum': 1,
+            'description': 'Carpeta compatible; null deja el hilo sin carpeta.',
+        }
+    if _tool['name'] == 'update_thread':
+        _tool['input_schema']['anyOf'].append({'required': ['folder_id']})
+    if _tool['name'] == 'list_threads':
+        _tool['input_schema']['properties']['folder'] = {
+            'type': ['integer', 'string'],
+            'description': 'ID de carpeta o none; q busca en todas las carpetas del contexto.',
+        }
+
+from content.mcp.communication_folder_tools import COMMUNICATION_FOLDER_TOOLS
+COMMUNICATION_TOOLS.extend(COMMUNICATION_FOLDER_TOOLS)

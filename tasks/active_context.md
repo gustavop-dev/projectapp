@@ -1,3 +1,7 @@
+# En curso — carpetas y lectura de Comunicaciones (2026-09-25)
+
+Implementación en `feat/25092026-communication-folders-reading`: carpetas independientes por cliente/proyecto, IDs visibles y buscables, lectura del hilo con formulario plegable y copia directa. Migración aditiva; entrega por PR a main, sin despliegue ni cambios en datos reales.
+
 # Propiedad intelectual y terminación del contrato — en verificación (2026-09-25)
 
 La migración `content.0257` perfecciona la cesión de desarrollos específicos y

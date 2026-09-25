@@ -40,3 +40,5 @@
 - **E2E Spec:** `e2e/admin/admin-client-communications.spec.js`
 - **Unit Tests:** `test/components/CommunicationSettingsPanel.spec.js`, `test/components/CommunicationThreadTable.spec.js`, `test/composables/useCommunicationFilters.spec.js`, `test/composables/useCommunicationPanelWidth.spec.js`, `test/stores/communicationPreferences.test.js`, `test/stores/communications.test.js`
 - **Backend Tests:** `accounts/tests/test_communication_panel_preferences.py`, `content/tests/views/test_communication_views.py`, `content/tests/views/test_communication_filters.py`
+
+- **Lectura e identificación (2026-09-25):** buscar `#ID` exacto o número junto al texto; IDs visibles en lista, hilo, mensajes y documentos vinculados. Ir al inicio/final desplaza sólo el histórico. La redacción empieza plegada con mensajes existentes; Responder/Editar borrador la abre. Detalles del mensaje y formulario conservan valores al plegarse. Copiar es un icono directo; Marcar enviado vive en Más.

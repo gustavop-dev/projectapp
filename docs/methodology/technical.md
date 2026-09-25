@@ -1424,3 +1424,9 @@ por proyecto (branding, manual y sistema de diseño), conservando los archivos
 al repetir la generación. Incluye Linktrees asignados y sin proyecto. El reset
 de desarrollo elimina también la biblioteca; nunca ejecutar estos comandos
 contra producción. La validación se realiza exclusivamente con settings_test.
+
+### Comunicaciones: filing e IDs (2026-09-25)
+
+Migración aditiva `content.0258_communication_folders`: hilos existentes quedan con `folder=NULL`. REST expone `GET/POST communications/folders/`, `PATCH/DELETE communications/folders/:id/`; hilos aceptan `folder` y publican `folder_id/folder_name`. MCP incorpora list/create/update/delete_folder y `folder_id` en create/update_thread. Sólo cambiar carpeta está permitido en hilos cerrados. Contexto de carpeta inmutable; padre compatible, sin ciclos; no hay archivado de carpetas. Cambiar propietario de proyecto desasocia las carpetas históricas del proyecto y retira la ubicación de sus hilos sin cambiar el cliente original.
+
+`record_id_search` interpreta `#123` como PK exacto y `123` como unión PK/texto; respeta permisos y demás filtros. El modal usa su propio scroll y respeta reduced-motion. `BaseCollapse` conserva el estado del formulario mientras lo deja fuera del tab order al plegar. No cambia el contenido público ni los PDF.

@@ -1,0 +1,16 @@
+{
+  "id": "admin-communication-folders",
+  "name": "Organización de comunicaciones por carpetas",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Crear carpetas y subcarpetas por cliente/proyecto, renombrar y mover dentro del contexto, eliminar solo vacías, mover hilos completos y recuperar ubicación desde URL. Errores de validación y servidor conservan el contenido.",
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

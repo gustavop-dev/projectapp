@@ -14,6 +14,7 @@ export const COMMUNICATION_FILTER_DEFAULTS = Object.freeze({
   by: 'project',
   project: '',
   client: '',
+  folder: '',
   status: [],
   channel: [],
   direction: [],
@@ -74,6 +75,7 @@ function normalizeStoredFilters(stored = {}) {
   }
   normalized.project = normalized.project == null ? '' : String(normalized.project);
   normalized.client = normalized.client == null ? '' : String(normalized.client);
+  normalized.folder = normalized.folder == null ? '' : String(normalized.folder);
   if (normalized.by === 'project') normalized.client = '';
   else normalized.project = '';
   normalized.q = String(normalized.q || '');
@@ -89,6 +91,7 @@ export function communicationFiltersFromQuery(query = {}) {
     by: inferredMode,
     project: scalar(query.project) || '',
     client: scalar(query.client) || '',
+    folder: scalar(query.folder) || '',
     status: values(query.status),
     channel: values(query.channel),
     direction: values(query.direction),
@@ -111,6 +114,7 @@ export function communicationFiltersToQuery(filters) {
   for (const key of ARRAY_KEYS) {
     if (filters[key]?.length) query[key] = filters[key].join(',');
   }
+  if (filters.folder) query.folder = String(filters.folder);
   if (filters.q.trim()) query.q = filters.q.trim();
   if (filters.date_from) query.date_from = filters.date_from;
   if (filters.date_to) query.date_to = filters.date_to;
@@ -368,6 +372,7 @@ export function useCommunicationFilters() {
   }
 
   function setMode(mode) {
+    currentFilters.folder = '';
     currentFilters.by = mode === 'client' ? 'client' : 'project';
     currentFilters.project = '';
     currentFilters.client = '';
@@ -380,6 +385,7 @@ export function useCommunicationFilters() {
   }
 
   function selectNavigation(value) {
+    currentFilters.folder = '';
     if (currentFilters.by === 'project') {
       currentFilters.project = value === 'all' ? '' : String(value);
       currentFilters.client = '';
@@ -488,6 +494,7 @@ export function useCommunicationFilters() {
     for (const key of ARRAY_KEYS) {
       if (currentFilters[key].length) request[key] = currentFilters[key];
     }
+    if (currentFilters.folder) request.folder = currentFilters.folder;
     if (currentFilters.q.trim()) request.q = currentFilters.q.trim();
     if (currentFilters.date_from) request.date_from = currentFilters.date_from;
     if (currentFilters.date_to) request.date_to = currentFilters.date_to;

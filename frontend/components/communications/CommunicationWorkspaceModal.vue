@@ -10,7 +10,7 @@
       <header class="shrink-0 border-b border-border-muted bg-surface px-4 py-3 panel-portrait:px-6">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Hilo de comunicación</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">{{ currentThread ? t('communicationFiling.threadId', { id: currentThread.id }) : 'Hilo de comunicación' }}</p>
             <template v-if="currentThread">
               <h2 class="mt-1 truncate text-xl font-semibold text-text-default" :title="currentThread.title">
                 {{ currentThread.title }}
@@ -29,7 +29,8 @@
             <BaseSkeleton v-else-if="store.isThreadLoading" class="mt-2 h-8 max-w-xl rounded-lg" />
           </div>
 
-          <div class="flex shrink-0 items-center gap-2">
+          <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <BaseActionButton v-if="currentThread?.thread_kind === 'manual'" action="folders" :label="t('communicationFiling.move')" data-testid="communication-move-folder" @click="openMoveFolder" />
             <BaseButton
               v-if="currentThread"
               :variant="currentThread.status === 'open' ? 'secondary' : 'primary'"
@@ -41,6 +42,13 @@
               {{ currentThread.status === 'open' ? 'Cerrar hilo' : 'Reabrir hilo' }}
             </BaseButton>
             <BaseActionButton action="close" label="Cerrar detalle del hilo" size="md" @click="close" />
+          </div>
+        </div>
+        <div v-if="currentThread" class="mt-2 flex items-center justify-between gap-2">
+          <p class="min-w-0 truncate text-xs text-text-muted">{{ currentThread.folder_name || t('communicationFiling.unfiled') }}</p>
+          <div class="flex shrink-0 gap-2">
+            <BaseButton variant="ghost" size="sm" data-testid="communication-scroll-start" @click="scrollTimeline('start')">{{ t('communicationFiling.start') }}</BaseButton>
+            <BaseButton variant="ghost" size="sm" data-testid="communication-scroll-end" @click="scrollTimeline('end')">{{ t('communicationFiling.end') }}</BaseButton>
           </div>
         </div>
       </header>
@@ -64,6 +72,7 @@
       <template v-else-if="currentThread">
         <div
           class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface-muted px-3 py-4 panel-portrait:px-6"
+          ref="timelineRef"
           data-testid="communication-timeline"
         >
           <div class="mx-auto max-w-4xl space-y-4">
@@ -88,6 +97,7 @@
               :data-testid="`communication-message-${message.id}`"
             >
               <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs tabular-nums text-text-muted">{{ t('communicationFiling.messageId', { id: message.id }) }}</span>
                 <BaseBadge :variant="message.channel === 'whatsapp' ? 'success' : 'info'" size="sm">
                   {{ message.channel_display }}
                 </BaseBadge>
@@ -125,7 +135,7 @@
                   size="sm"
                   class="mr-3 max-w-full whitespace-normal [overflow-wrap:anywhere]"
                 >
-                  <BaseActionIcon action="view" /> {{ document.title }}
+                  <BaseActionIcon action="view" /> #{{ document.id }} {{ document.title }}
                 </BaseButton>
               </div>
 
@@ -143,24 +153,18 @@
               </details>
 
               <div v-if="!message.voided_at" class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border-muted pt-3">
+                <BaseActionButton
+                  action="copy"
+                  :label="t('communicationFiling.copy')"
+                  :data-testid="`communication-copy-${message.id}`"
+                  @click="copyMessage(message)"
+                />
                 <BaseButton
-                  v-if="message.status === 'draft' && message.direction === 'outgoing'"
-                  variant="primary"
-                  size="sm"
-                  :loading="store.isMutating"
-                  :data-testid="`communication-mark-sent-${message.id}`"
-                  @click="markSent(message)"
-                >
-                  Marcar enviado
-                </BaseButton>
-                <BaseButton
-                  v-else-if="message.status !== 'draft'"
+                  v-if="message.status !== 'draft'"
                   variant="secondary"
                   size="sm"
                   @click="replyTo(message)"
-                >
-                  Responder
-                </BaseButton>
+                >Responder</BaseButton>
                 <BaseActionMenu
                   :items="secondaryActions(message)"
                   label="Más"
@@ -204,8 +208,15 @@
             </div>
           </div>
 
+          <template v-else-if="currentThread.status === 'open'">
+          <div class="mx-auto max-w-4xl px-4 py-2">
+            <BaseButton variant="secondary" size="sm" :aria-expanded="composerOpen" aria-controls="communication-composer-body" data-testid="communication-composer-toggle" @click="composerOpen = !composerOpen">
+              <BaseActionIcon :action="composerOpen ? 'collapse' : 'expand'" />
+              {{ t(composerOpen ? 'communicationFiling.hideComposer' : 'communicationFiling.compose') }}
+            </BaseButton>
+          </div>
+          <BaseCollapse id="communication-composer-body" :open="composerOpen">
           <form
-            v-else-if="currentThread.status === 'open'"
             ref="composerRef"
             class="mx-auto max-h-[50vh] max-w-4xl overflow-y-auto p-4 panel-portrait:p-5"
             data-testid="communication-composer"
@@ -216,6 +227,11 @@
               <BaseButton variant="ghost" size="sm" @click="messageForm.reply_to = null">Quitar</BaseButton>
             </div>
 
+            <BaseButton variant="ghost" size="sm" :aria-expanded="detailsOpen" aria-controls="communication-message-details" data-testid="communication-details-toggle" @click="detailsOpen = !detailsOpen">
+              <BaseActionIcon :action="detailsOpen ? 'collapse' : 'expand'" />{{ t('communicationFiling.details') }}
+            </BaseButton>
+            <p class="mb-2 text-xs text-text-muted" data-testid="communication-details-summary">{{ detailsSummary }}</p>
+            <BaseCollapse id="communication-message-details" :open="detailsOpen">
             <BaseFormRow :cols="3" :gap="3" at="sm">
               <BaseFormField label="Dirección">
                 <BaseSelect
@@ -236,9 +252,10 @@
                 />
               </BaseFormField>
               <BaseFormField label="Fecha y hora">
-                <BaseInput v-model="messageForm.occurred_at" type="datetime-local" />
+                <BaseInput v-model="messageForm.occurred_at" type="datetime-local" data-testid="communication-message-date" />
               </BaseFormField>
             </BaseFormRow>
+            </BaseCollapse>
 
             <BaseFormField v-if="messageForm.channel === 'email'" label="Asunto" class="mt-3">
               <BaseInput v-model="messageForm.subject" placeholder="Asunto del correo" data-testid="communication-message-subject" />
@@ -307,18 +324,33 @@
               </BaseButton>
             </div>
           </form>
+          </BaseCollapse>
+          </template>
 
           <div v-else class="mx-auto max-w-4xl p-4 text-sm text-text-muted panel-portrait:p-5">
             Este hilo está cerrado. Reábrelo para registrar o editar mensajes.
           </div>
         </section>
       </template>
+      <BaseModal v-model="moveFolderOpen" kind="form">
+        <form v-if="currentThread" @submit.prevent="moveThread">
+          <h2 class="mb-4 text-lg font-semibold">{{ t('communicationFiling.move') }}</h2>
+          <CommunicationFolderPicker v-model="targetFolder" :client-id="currentThread.client_id" :project-id="currentThread.project_id" />
+          <BaseAlert v-if="moveError" variant="danger" class="mt-3">{{ moveError }}</BaseAlert>
+          <BaseModalActions>
+            <BaseButton variant="secondary" @click="moveFolderOpen = false">{{ t('communicationFiling.cancel') }}</BaseButton>
+            <BaseButton type="submit" variant="primary" :loading="store.isMutating" data-testid="communication-move-save">{{ t('communicationFiling.save') }}</BaseButton>
+          </BaseModalActions>
+        </form>
+      </BaseModal>
     </div>
   </BaseModal>
 </template>
 
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import CommunicationFolderPicker from '~/components/communications/CommunicationFolderPicker.vue';
+import BaseCollapse from '~/components/base/BaseCollapse.vue';
 import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useCommunicationsStore } from '~/stores/communications';
@@ -338,7 +370,14 @@ const emit = defineEmits(['update:modelValue', 'changed']);
 const store = useCommunicationsStore();
 const documentStore = useDocumentStore();
 const notify = usePanelNotify();
+const { t } = useI18n();
 const composerRef = ref(null);
+const timelineRef = ref(null);
+const composerOpen = ref(false);
+const detailsOpen = ref(false);
+const moveFolderOpen = ref(false);
+const targetFolder = ref('');
+const moveError = ref('');
 const editingMessageId = ref(null);
 const currentThread = computed(() => store.currentThread);
 const availableDocuments = computed(() => documentStore.documents || []);
@@ -406,6 +445,9 @@ watch(
     const previousId = previous?.[1];
     if (!previous?.[0] || Number(previousId) !== Number(threadId)) {
       resetMessageForm();
+      detailsOpen.value = false;
+      composerOpen.value = false;
+      moveFolderOpen.value = false;
     }
     if (Number(currentThread.value?.id) !== Number(threadId) || Number(previousId) !== Number(threadId)) {
       await loadThread();
@@ -419,6 +461,7 @@ async function loadThread() {
   store.clearCurrentThread();
   const result = await store.fetchThread(props.threadId);
   if (!result.success) return;
+  composerOpen.value = currentThread.value?.messages.length === 0;
   await loadDocumentsForThread();
 }
 
@@ -489,6 +532,12 @@ function messagePayload(statusOverride) {
 }
 
 async function submitMessage(statusOverride = null) {
+  if (!messageForm.occurred_at || Number.isNaN(new Date(messageForm.occurred_at).getTime())) {
+    composerOpen.value = true;
+    detailsOpen.value = true;
+    notify.warning({ title: t('communicationFiling.invalidDate') });
+    return;
+  }
   if (!messageForm.content.trim()) {
     notify.warning({ title: 'Escribe el contenido del mensaje' });
     return;
@@ -505,10 +554,14 @@ async function submitMessage(statusOverride = null) {
     ? await store.updateDraft(editingMessageId.value, payload)
     : await store.createMessage(currentThread.value.id, payload);
   if (!result.success) {
+    composerOpen.value = true;
+    if (Object.keys(result.fieldErrors || {}).some((key) => ['direction', 'channel', 'occurred_at'].includes(key))) detailsOpen.value = true;
     notify.error({ title: 'No se pudo guardar el mensaje', detail: result.message });
     return;
   }
   resetMessageForm();
+  await nextTick();
+  scrollToMessage(result.data?.id);
   emit('changed');
   notify.success({
     title: wasEditing
@@ -529,7 +582,7 @@ function editDraft(message) {
     reply_to: message.reply_to_id,
     document_ids: message.documents.map((document) => document.id),
   });
-  nextTick(() => composerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
+  openComposer();
 }
 
 async function markSent(message) {
@@ -551,7 +604,7 @@ function replyTo(message) {
   if (messageForm.channel === 'email' && message.subject) {
     messageForm.subject = message.subject.startsWith('Re:') ? message.subject : `Re: ${message.subject}`;
   }
-  nextTick(() => composerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
+  openComposer();
 }
 
 async function copyMessage(message) {
@@ -605,9 +658,10 @@ async function submitInlineAction() {
 }
 
 function secondaryActions(message) {
-  const actions = [{
-    action: 'copy', label: 'Copiar texto', onClick: () => copyMessage(message),
-  }];
+  const actions = [];
+  if (message.status === 'draft' && message.direction === 'outgoing') {
+    actions.push({ action: 'send', label: 'Marcar enviado', disabled: store.isMutating, disabledReason: 'Espera a que termine la operación.', onClick: () => markSent(message) });
+  }
   if (message.status === 'draft') {
     actions.push({ action: 'edit', label: 'Editar borrador', onClick: () => editDraft(message) });
     actions.push({
@@ -638,9 +692,43 @@ function replyOriginPreview(message) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—';
+  if (!value || Number.isNaN(new Date(value).getTime())) return '—';
   return new Intl.DateTimeFormat('es-CO', {
     dateStyle: 'medium', timeStyle: 'short',
   }).format(new Date(value));
+}
+const detailsSummary = computed(() => [
+  DIRECTION_OPTIONS.find((option) => option.value === messageForm.direction)?.label,
+  CHANNEL_OPTIONS.find((option) => option.value === messageForm.channel)?.label,
+  messageForm.occurred_at ? formatDateTime(messageForm.occurred_at) : '—',
+].join(' · '));
+function scrollBehavior() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+function scrollTimeline(position) {
+  const timeline = timelineRef.value;
+  if (timeline) timeline.scrollTo({ top: position === 'end' ? timeline.scrollHeight : 0, behavior: scrollBehavior() });
+}
+function scrollToMessage(id) {
+  const timeline = timelineRef.value;
+  const message = timeline?.querySelector(`[data-testid="communication-message-${id}"]`);
+  if (!timeline || !message) return;
+  timeline.scrollTo({ top: timeline.scrollTop + message.getBoundingClientRect().top - timeline.getBoundingClientRect().top, behavior: scrollBehavior() });
+}
+function openComposer() {
+  composerOpen.value = true;
+  nextTick(() => composerRef.value?.querySelector('textarea')?.focus({ preventScroll: true }));
+}
+function openMoveFolder() {
+  targetFolder.value = currentThread.value.folder_id ? String(currentThread.value.folder_id) : '';
+  moveError.value = '';
+  moveFolderOpen.value = true;
+}
+async function moveThread() {
+  const result = await store.updateThread(currentThread.value.id, { folder: targetFolder.value ? Number(targetFolder.value) : null });
+  if (!result.success) { moveError.value = result.message; return; }
+  moveFolderOpen.value = false;
+  emit('changed');
+  notify.success({ title: t('communicationFiling.threadMoved') });
 }
 </script>

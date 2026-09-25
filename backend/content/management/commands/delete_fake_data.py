@@ -9,6 +9,7 @@ from content.models import (
     BusinessProposal,
     CommunicationMessage,
     CommunicationThread,
+    CommunicationFolder,
     Contact,
     Document,
     DocumentFolder,
@@ -116,6 +117,10 @@ class Command(BaseCommand):
         ):
             deleted, _ = model.objects.all().delete()
             self.stdout.write(self.style.SUCCESS(f'Deleted {label} ({deleted} rows)'))
+
+        # Threads are gone; dissolve the protected folder tree leaf-first.
+        while CommunicationFolder.objects.filter(children__isnull=True).exists():
+            CommunicationFolder.objects.filter(children__isnull=True).delete()
 
         # Thread items protect their documents: dissolve the demo histories
         # before removing the documents themselves.

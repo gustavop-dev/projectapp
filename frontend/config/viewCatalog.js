@@ -557,6 +557,7 @@ export const viewCatalogSections = [
         reference: 'vista principal del gestor documental',
         audience: 'admin',
         viewType: 'list',
+        notes: 'ID interno visible antes del título, búsqueda exacta con #ID y referencia en el editor; conserva numeración comercial.',
       },
       {
         label: 'Crear documento',
@@ -601,6 +602,7 @@ export const viewCatalogSections = [
         group: 'Comunicaciones',
         file: 'frontend/pages/panel/communications/index.vue',
         reference: 'registro cronológico de conversaciones con clientes',
+        notes: 'Carpetas jerárquicas independientes por cliente/proyecto; hilos completos movibles, IDs visibles y búsqueda por ID. Modal con saltos al inicio/final, redacción y detalles plegables, copia directa y marcado de enviado en Más.',
         audience: 'admin',
         viewType: 'list',
       },

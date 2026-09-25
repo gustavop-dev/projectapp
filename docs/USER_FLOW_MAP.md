@@ -4432,6 +4432,8 @@ Two transitions that were previously bundled into other flows now have their own
 - **Unit Tests:** `test/components/CommunicationSettingsPanel.spec.js`, `test/components/CommunicationThreadTable.spec.js`, `test/composables/useCommunicationFilters.spec.js`, `test/composables/useCommunicationPanelWidth.spec.js`, `test/stores/communicationPreferences.test.js`, `test/stores/communications.test.js`
 - **Backend Tests:** `accounts/tests/test_communication_panel_preferences.py`, `content/tests/views/test_communication_views.py`, `content/tests/views/test_communication_filters.py`
 
+- **Lectura e identificación (2026-09-25):** buscar `#ID` exacto o número junto al texto; IDs visibles en lista, hilo, mensajes y documentos vinculados. Ir al inicio/final desplaza sólo el histórico. La redacción empieza plegada con mensajes existentes; Responder/Editar borrador la abre. Detalles del mensaje y formulario conservan valores al plegarse. Copiar es un icono directo; Marcar enviado vive en Más.
+
 ### FLOW: `admin-mini-crm-clients`
 
 - **Module:** admin
@@ -6159,6 +6161,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-clients-config-tab` | admin | P3 | — | 0 |
 | `admin-clients-documents-section` | admin | P2 | display,success | 2 |
 | `admin-clients-filter-presets` | admin | P2 | display,success | 17 |
+| `admin-communication-folders` | admin | P1 | display,success,error,failure | — |
 | `admin-daily-pipeline-digest` | admin | P2 | — | 0 |
 | `admin-dashboard` | admin | P2 | display | 1 |
 | `admin-dashboard-attention-radar` | admin | P1 | display | 2 |
@@ -7602,6 +7605,23 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Error outcome:** n/a — los controles emiten sólo identificadores y opciones válidas. Permisos, pertenencia y validación del contrato se prueban en backend.
 - **Failure outcome:** Fallos de API muestran una recuperación explícita y no revelan valores protegidos ni comparaciones obsoletas.
 - **Coverage:** Display, success y failure validados en `admin/admin-entity-history.spec.js`.
+
+### FLOW: `admin-communication-folders`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/communications`
+- **API:** `GET/POST /api/communications/folders/`, `PATCH/DELETE /api/communications/folders/:id/`, `PATCH /api/communications/threads/:id/`
+- **Description:** El administrador organiza hilos completos en carpetas y subcarpetas propias del cliente o proyecto; conserva el histórico y encuentra su ubicación tras recargar.
+- **Steps:** Seleccionar cliente/proyecto → crear carpeta y subcarpeta → abrir hilo → Mover a carpeta → guardar → seleccionar carpeta → recargar → verificar ubicación e ID. Retirar mediante Sin carpeta.
+- **Branches:**
+  - **display:** árbol, ruta, subcarpetas e IDs legibles al navegar desde el panel.
+  - **success:** crear/renombrar/mover carpeta, clasificar hilo abierto o cerrado y restaurar el filtro desde la URL.
+  - **error:** rechazo al eliminar una carpeta con contenido o mover fuera del contexto.
+  - **failure:** error de carga/escritura muestra feedback y permite reintentar sin simular éxito.
+- **Invariants:** las comunicaciones madre permanecen en la raíz; un hilo conserva mensajes y adjuntos; los archivados impiden eliminar su carpeta; una búsqueda recorre todas las carpetas del contexto seleccionado.
+- **Specs:** `frontend/e2e/admin/admin-communication-filing.spec.js`.
 
 ### FLOW: `admin-document-change-history`
 

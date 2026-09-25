@@ -88,6 +88,7 @@ export const ADMIN_CLIENT_FIRST_LOGIN_NOTIFICATION = ['@flow:admin-client-first-
 export const ADMIN_CLIENTS_CONFIG_TAB = ['@flow:admin-clients-config-tab', '@module:admin', '@priority:P3'];
 export const ADMIN_CLIENTS_DOCUMENTS_SECTION = ['@flow:admin-clients-documents-section', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENTS_FILTER_PRESETS = ['@flow:admin-clients-filter-presets', '@module:admin', '@priority:P2'];
+export const ADMIN_COMMUNICATION_FOLDERS = ['@flow:admin-communication-folders', '@module:admin', '@priority:P1'];
 export const ADMIN_DAILY_PIPELINE_DIGEST = ['@flow:admin-daily-pipeline-digest', '@module:admin', '@priority:P2'];
 export const ADMIN_DASHBOARD = ['@flow:admin-dashboard', '@module:admin', '@priority:P2'];
 export const ADMIN_DASHBOARD_ATTENTION_RADAR = ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P1'];

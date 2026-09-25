@@ -4,6 +4,7 @@ from rest_framework import serializers
 from accounts.models import Project, UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
+    CommunicationFolder,
     CommunicationMessage,
     CommunicationMessageDateCorrection,
     CommunicationMessageRevision,
@@ -191,6 +192,7 @@ class CommunicationThreadListSerializer(serializers.ModelSerializer):
     latest_message = serializers.SerializerMethodField()
     channels = serializers.SerializerMethodField()
     thread_kind = serializers.CharField(read_only=True)
+    folder_name = serializers.CharField(source='folder.name', read_only=True, default='')
 
     class Meta:
         model = CommunicationThread
@@ -198,7 +200,7 @@ class CommunicationThreadListSerializer(serializers.ModelSerializer):
             'id', 'title', 'status', 'client_id', 'client_name', 'client_email',
             'project_id', 'project_name', 'messages_count', 'draft_count',
             'channels', 'latest_message', 'last_activity_at', 'closed_at',
-            'thread_kind', 'is_archived', 'archived_at',
+            'thread_kind', 'is_archived', 'archived_at', 'folder_id', 'folder_name',
             'created_at', 'updated_at',
         )
         # `is_archived`/`archived_at` son read-only por el mismo motivo que en
@@ -238,6 +240,9 @@ class CommunicationThreadDetailSerializer(CommunicationThreadListSerializer):
 
 
 class CommunicationThreadWriteSerializer(serializers.ModelSerializer):
+    folder = serializers.PrimaryKeyRelatedField(
+        queryset=CommunicationFolder.objects.all(), required=False, allow_null=True,
+    )
     client = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.clients(),
     )
@@ -249,7 +254,7 @@ class CommunicationThreadWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommunicationThread
-        fields = ('client', 'project', 'title')
+        fields = ('client', 'project', 'title', 'folder')
 
     def validate_title(self, value):
         value = value.strip()

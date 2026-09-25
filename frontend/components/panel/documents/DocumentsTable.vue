@@ -362,6 +362,8 @@ function onFolderLink(event, sub) {
           <!-- `relative` es el marco contra el que se estira el enlace del
                título: así toda la celda es el enlace, no sólo las letras. -->
           <td class="relative min-w-0 overflow-hidden px-6 py-4">
+<div class="flex min-w-0 items-center gap-2">
+            <span class="shrink-0 text-xs tabular-nums text-text-muted" data-testid="document-visible-id">#{{ doc.id }}</span>
             <BaseOverflowText
               :to="editToFor(doc)"
               :text="doc.title"
@@ -371,6 +373,7 @@ function onFolderLink(event, sub) {
               class="min-w-0 max-w-full"
               content-classes="text-sm font-medium leading-snug text-text-default hover:text-text-brand transition-colors"
             />
+            </div>
             <!-- La metadata vive en un renglón propio. Sin carpeta se oculta
                  desde desktop para no reservar una línea vacía bajo el título. -->
             <div

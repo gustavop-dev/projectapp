@@ -81,6 +81,8 @@ class CommunicationFilters:
     reply_statuses: tuple[str, ...] = ()
     date_from: tuple[str, object] | None = None
     date_to: tuple[str, object] | None = None
+    folder_id: int | None = None
+    without_folder: bool = False
     query: str = ''
     order: str = 'recent'
     # Eje de visibilidad, independiente de `statuses` (abierto/cerrado). Mismo
@@ -107,7 +109,7 @@ def message_queryset():
 def thread_queryset():
     return (
         CommunicationThread.objects
-        .select_related('client__user', 'project')
+        .select_related('client__user', 'project', 'folder')
         .annotate(
             messages_count=Count('messages', distinct=True),
             draft_count=Count(
@@ -214,6 +216,8 @@ def parse_filters(params):
 
     return CommunicationFilters(
         scope=scope,
+        folder_id=None if params.get('folder') == 'none' else _positive_id(params, 'folder'),
+        without_folder=params.get('folder') == 'none',
         client_id=_positive_id(params, 'client'),
         project_id=project_id,
         without_project=without_project,
@@ -300,6 +304,11 @@ def apply_filters(queryset, filters, *, exclude=frozenset()):
     from content.views.document import apply_archive_scope
 
     queryset = apply_archive_scope(queryset, filters.scope)
+    if 'folder' not in exclude and not filters.query:
+        if filters.without_folder:
+            queryset = queryset.filter(folder__isnull=True)
+        elif filters.folder_id is not None:
+            queryset = queryset.filter(folder_id=filters.folder_id)
     if 'client' not in exclude and filters.client_id is not None:
         queryset = queryset.filter(client_id=filters.client_id)
     if 'project' not in exclude:
@@ -319,13 +328,17 @@ def apply_filters(queryset, filters, *, exclude=frozenset()):
 
     if 'q' not in exclude and filters.query:
         query = filters.query
+        from content.services.record_id_search import id_search_predicate
+        exact_id, id_predicate = id_search_predicate(query)
+        if exact_id:
+            return queryset.filter(id_predicate)
         matching_text = CommunicationMessage.objects.filter(
             thread_id=OuterRef('pk'),
         ).filter(Q(subject__icontains=query) | Q(content__icontains=query))
         queryset = queryset.annotate(
             _communication_text_match=Exists(matching_text),
         ).filter(
-            Q(title__icontains=query)
+            id_predicate | Q(title__icontains=query)
             | Q(project__name__icontains=query)
             | Q(client__company_name__icontains=query)
             | Q(client__user__first_name__icontains=query)
