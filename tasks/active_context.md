@@ -74,6 +74,11 @@ Se implementó la ficha aprobada para Documentos, Propuestas, Proyectos, Cliente
 
 # Active Context — ProjectApp
 
+**2026-09-25 — videos brag v2 en producción:** dos piezas de 45 segundos con voz,
+música cálida e identidad ProjectApp para catálogo y Programa de Alianza.
+Fuentes v1 conservadas; alcance y validación en `explainers/brag-v2/`.
+El operador pidió integrar con `$merge-when-green` al completar la validación.
+
 **2026-09-24 — Diseño público en los PDF formales:** el adaptador de formalización
 reutiliza los generadores comercial/técnico y sus portadas, tipografía, colores,
 índice y componentes. La proyección mantiene alcance, condiciones y exclusiones,
