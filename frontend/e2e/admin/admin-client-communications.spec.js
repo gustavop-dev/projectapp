@@ -219,6 +219,7 @@ const communicationPreferenceDefaults = {
 async function setupCommunicationsApi(page, {
   listFailure = false,
   messageFailure = false,
+  initialMessages = [outgoingMessage, incomingMessage],
   onMessage = null,
   onListRequest = null,
   onPreference = null,
@@ -231,7 +232,7 @@ async function setupCommunicationsApi(page, {
   const state = {
     thread: {
       ...listThread({ project_name: projectName }),
-      messages: [outgoingMessage, incomingMessage],
+      messages: initialMessages.map((message) => ({ ...message })),
     },
     preferences: {
       ...communicationPreferenceDefaults,
@@ -438,6 +439,16 @@ async function setupCommunicationsApi(page, {
       };
     }
 
+    if (apiPath === 'communications/messages/803/mark-sent/' && method === 'POST') {
+      const message = state.thread.messages.find((item) => item.id === 803);
+      Object.assign(message, { status: 'sent', status_display: 'Enviado' });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...message, thread_id: 41 }),
+      };
+    }
+
     if (apiPath === 'documents/' && method === 'GET') {
       return {
         status: 200,
@@ -586,13 +597,17 @@ test.describe('Admin Client Communications', () => {
     await openMainThread(page);
 
     const timeline = page.getByTestId('communication-timeline');
+    await expect(page.getByText('Hilo #41', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('communication-thread-row-41')).toContainText('#41');
+    await expect(page.getByTestId('communication-message-801')).toContainText('Mensaje #801');
+    await expect(page.getByTestId('communication-message-802')).toContainText('Mensaje #802');
     await expect(page.getByTestId('communication-message-801')
       .getByText('Te compartimos el alcance actualizado.', { exact: true }))
       .toBeVisible();
     await expect(page.getByTestId('communication-message-802')
       .getByText('Está aprobado, pueden continuar.', { exact: true }))
       .toBeVisible();
-    await expect(timeline.getByRole('link', { name: /Alcance fase 2/ })).toBeVisible();
+    await expect(timeline.getByRole('link', { name: /#73 Alcance fase 2/ })).toBeVisible();
     await expect(page.getByTestId('communication-message-802')
       .getByRole('link', { name: /En respuesta.*Te compartimos el alcance actualizado/ }))
       .toHaveAttribute('href', '#communication-message-801');
@@ -688,6 +703,7 @@ test.describe('Admin Client Communications', () => {
     await setupCommunicationsApi(page);
     await enterCommunicationsThroughPanel(page);
     await expectFactoryFilterCounts(page);
+    await expect(page.getByTestId('filter-tabs-count-all')).toHaveText('(5)');
   });
 
   test('applies the unanswered factory cut', {
@@ -822,6 +838,23 @@ test.describe('Admin Client Communications', () => {
     await expect(page.getByTestId('communication-thread-row-41')).toBeVisible();
   });
 
+  test('finds a thread from its visible record ID', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Regression: an ID-only search must retain the matching thread instead of treating # as noise.
+    const listRequests = [];
+    await setupCommunicationsApi(page, {
+      onListRequest: (url) => listRequests.push(url),
+    });
+    await gotoCommunications(page);
+
+    await page.getByTestId('communications-search').fill('#41');
+
+    await expect(page).toHaveURL(/q=%2341/);
+    await expect.poll(() => listRequests.at(-1)).toContain('q=%2341');
+    await expect(page.getByTestId('communication-thread-row-41')).toContainText('#41');
+  });
+
   test('keeps the manual notice dismissed until help reopens it', {
     tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
@@ -904,6 +937,7 @@ test.describe('Admin Client Communications', () => {
       .getByRole('tab', { name: '50' })).toHaveAttribute('aria-selected', 'true');
     await page.getByTestId('communication-settings-back').click();
     await openMainThread(page);
+    await page.getByTestId('communication-composer-toggle').click();
 
     await expect(page.getByTestId('communication-message-channel')).toHaveValue('email');
     await page.getByTestId('communication-message-subject')
@@ -930,6 +964,7 @@ test.describe('Admin Client Communications', () => {
     await setupCommunicationsApi(page, { messageFailure: true });
     await gotoCommunications(page);
     await openMainThread(page);
+    await page.getByTestId('communication-composer-toggle').click();
 
     const content = page.getByTestId('communication-message-content');
     await content.fill('Este texto no debe perderse.');
@@ -938,6 +973,89 @@ test.describe('Admin Client Communications', () => {
     await expect(page.getByText('El hilo fue cerrado por otra sesión.', { exact: true }).first())
       .toBeVisible();
     await expect(content).toHaveValue('Este texto no debe perderse.');
+  });
+
+  test('moves a long thread to its end and back without scrolling the page', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Regression: timeline shortcuts must scroll the modal history, not the page behind it.
+    const longTimeline = Array.from({ length: 24 }, (_, index) => ({
+      ...outgoingMessage,
+      id: 900 + index,
+      content: `Seguimiento ${index + 1}: ${'contenido extenso '.repeat(18)}`,
+      occurred_at: `2026-08-24T${String(index % 20).padStart(2, '0')}:00:00Z`,
+    }));
+    await setupCommunicationsApi(page, { initialMessages: longTimeline });
+    await gotoCommunications(page);
+    await openMainThread(page);
+
+    const timeline = page.getByTestId('communication-timeline');
+    await page.getByTestId('communication-scroll-end').click();
+    await expect.poll(() => timeline.evaluate((element) => element.scrollTop)).toBeGreaterThan(100);
+    await expect(timeline.getByTestId('communication-message-923'))
+      .toContainText('Seguimiento 24:');
+    await expect(timeline.getByTestId('communication-message-923')).toBeInViewport();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+    await page.getByTestId('communication-scroll-start').click();
+    await expect.poll(() => timeline.evaluate((element) => element.scrollTop)).toBe(0);
+    await expect(timeline.getByTestId('communication-message-900'))
+      .toContainText('Seguimiento 1:');
+    await expect(timeline.getByTestId('communication-message-900')).toBeInViewport();
+  });
+
+  test('opens the collapsed composer and preserves its details while replying', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Regression: collapsing message details must not discard a reply draft or leave Reply unable to reopen it.
+    await setupCommunicationsApi(page);
+    await gotoCommunications(page);
+    await openMainThread(page);
+
+    await expect(page.getByTestId('communication-composer')).toHaveCount(0);
+    await page.getByTestId('communication-message-802').getByRole('button', { name: 'Responder' }).click();
+    await expect(page.getByTestId('communication-composer')).toContainText('Respuesta al mensaje #802');
+    await page.getByTestId('communication-details-toggle').click();
+    const date = page.getByTestId('communication-message-date');
+    await date.fill('2026-09-25T09:30');
+    await page.getByTestId('communication-message-content').fill('La respuesta conserva su fecha.');
+    await page.getByTestId('communication-details-toggle').click();
+
+    await expect(page.getByTestId('communication-details-summary')).toContainText('25/09/2026');
+    await expect(page.getByTestId('communication-message-content'))
+      .toHaveValue('La respuesta conserva su fecha.');
+  });
+
+  test('copies directly and marks a draft sent from the overflow menu', {
+    tag: [...ADMIN_CLIENT_COMMUNICATIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Regression: copying must remain a direct action while Mark as sent stays available in More.
+    const draft = {
+      ...outgoingMessage,
+      id: 803,
+      status: 'draft',
+      status_display: 'Borrador',
+      content: 'Texto que debe copiarse sin abrir Más.',
+      has_reply: false,
+    };
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: async (text) => { window.__communicationCopiedText = text; } },
+        configurable: true,
+      });
+    });
+    await setupCommunicationsApi(page, { initialMessages: [outgoingMessage, draft] });
+    await gotoCommunications(page);
+    await openMainThread(page);
+
+    await page.getByTestId('communication-copy-803').click();
+    await expect.poll(() => page.evaluate(() => window.__communicationCopiedText))
+      .toBe('Texto que debe copiarse sin abrir Más.');
+
+    const actions = page.getByTestId('communication-message-actions-803');
+    await actions.getByRole('button', { name: 'Más' }).click();
+    await page.getByRole('menuitem', { name: 'Marcar enviado' }).click();
+    await expect(page.getByTestId('communication-message-803')).toContainText('Enviado');
   });
 
   test('shows a recoverable state when the thread list cannot load', {

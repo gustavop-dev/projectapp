@@ -637,7 +637,7 @@ function selectedClientEntry(clientId) {
   return store.facets.clients.find((entry) => String(entry.id) === String(clientId));
 }
 
-function openThreadForm() {
+async function openThreadForm() {
   threadFormErrors.value = {};
   Object.assign(threadForm, {
     client: null,
@@ -663,8 +663,14 @@ function openThreadForm() {
         || '';
     }
   }
-  const folder = visibleFolders.value.find((item) => String(item.id) === String(threadForm.folder));
-  if (folder) { threadForm.client = folder.client; threadForm.project = folder.project; }
+  let folder = visibleFolders.value.find((item) => String(item.id) === String(threadForm.folder));
+  if (threadForm.folder && !folder) {
+    const result = await store.fetchFolders({ client: threadForm.client });
+    if (!result.success) { notify.error({ title: t('communicationFiling.loadError'), detail: result.message }); return; }
+    folder = result.data.find((item) => String(item.id) === String(threadForm.folder));
+    if (!folder) threadForm.folder = '';
+  }
+  if (folder) { threadForm.client = folder.client; threadForm.project = folder.project || threadForm.project; }
   threadFormOpen.value = true;
 }
 

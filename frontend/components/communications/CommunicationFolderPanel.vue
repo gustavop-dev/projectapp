@@ -47,11 +47,11 @@ async function load() {
   error.value = '';
   folders.value = [];
   if (!props.clientId) { emit('loaded', []); return; }
-  const result = await store.fetchFolders({ client: props.clientId, project: props.projectId });
+  const result = await store.fetchFolders({ client: props.clientId });
   if (version !== requestVersion) return;
   if (!result.success) { error.value = result.message; return; }
-  folders.value = result.data;
-  emit('loaded', result.data);
+  folders.value = result.data.filter((folder) => !props.projectId || !folder.project || Number(folder.project) === Number(props.projectId));
+  emit('loaded', folders.value);
 }
 watch(() => [props.clientId, props.projectId], load, { immediate: true });
 
@@ -72,7 +72,7 @@ function openForm(folder = null) {
     ...folder, parent: folder.parent ? String(folder.parent) : '',
   } : {
     id: null, name: '', parent: selectedFolder.value ? String(selectedFolder.value.id) : '',
-    client: Number(props.clientId), project: selectedFolder.value?.project || Number(props.projectId) || null,
+    client: Number(props.clientId), project: selectedFolder.value ? selectedFolder.value.project : Number(props.projectId) || null,
   });
   modalOpen.value = true;
 }

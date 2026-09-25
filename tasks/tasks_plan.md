@@ -1,5 +1,7 @@
 # Task Plan — ProjectApp
 
+> **2026-09-25 — organización y lectura de comunicaciones:** Implementadas carpetas por cliente/proyecto para hilos completos, búsqueda por ID y referencias visibles en Comunicaciones y Documentos. El modal permite plegar el formulario y sus detalles, saltar al inicio/final y copiar mediante un icono directo; marcar enviado pasa a Más. PR #416; migración aditiva 0258 para el despliegue.
+
 > **2026-09-25 — copia de documentos:** Implementada la copia Markdown de contrato y anexos, extracción de PDF/DOCX/XLSX sin OCR, vista previa de Office y descarga explícita del original. PR #408; backend focal verificado, validación de navegador y CI en el PR. Migración 0255 reservada al deploy.
 
 > **CAPTCHA transversal — 2026-09-23:** implementado para revisión en la
