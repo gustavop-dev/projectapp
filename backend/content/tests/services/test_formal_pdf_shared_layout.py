@@ -34,7 +34,7 @@ def render(proposal, kind):
     return generate_formal_pdf(FormalContent(proposal), kind, ISSUED_AT, 'PROP-LAYOUT')
 
 
-@pytest.mark.parametrize('kind,public_renderer', [
+@pytest.mark.parametrize(('kind', 'public_renderer'), [
     ('commercial', ProposalPdfService.generate),
     ('technical', generate_technical_document_pdf),
 ])
