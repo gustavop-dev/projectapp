@@ -173,12 +173,14 @@ def test_formal_pdf_paginates_oversized_requirements(formal_proposal, kind):
 
     reader = PdfReader(BytesIO(render(formal_proposal, kind)))
     content_pages = [p.extract_text() for p in reader.pages[3:-1]]
+    bounds = scope_text_bounds(reader)
 
     assert sum('LONG_SCOPE' in page for page in content_pages) >= 3
     assert sum(page.count('LONG_SCOPE') for page in content_pages) == 1800
     assert sum(page.count('END_OF_SCOPE') for page in content_pages) == 1
+    assert len(bounds) >= 3
     assert all(48 <= left < right <= 548 and 48 <= baseline <= 786
-               for left, right, baseline in scope_text_bounds(reader))
+               for left, right, baseline in bounds)
 
 
 def test_formal_pdf_rejects_unstructured_scope(formal_proposal):
