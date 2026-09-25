@@ -1,9 +1,10 @@
 """Explicit, deterministic projection of proposal data into formal annexes.
 
-No public renderer or catalog refresh runs here. Unknown fields and sales
+No rendering or catalog refresh runs here. Unknown fields and sales
 sections cannot enter the documents through a generic raw-text fallback.
 """
 from copy import deepcopy
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 import re
 
@@ -30,13 +31,33 @@ def text(value):
     return str(value or '').strip()
 
 
+@dataclass(frozen=True)
+class PdfSection:
+    """Captured, curated input to the shared section renderers (never an ORM row)."""
+
+    section_type: str
+    title: str
+    order: int
+    content_json: dict
+
+
+def project_fields(source, fields):
+    """Project a closed set of printable fields, including legacy list values."""
+    return {key: text(source.get(key)) for key in fields}
+
+
+def project_rows(source, fields):
+    return [project_fields(item, fields) for item in rows(source)]
+
+
 class FormalContent:
     """One captured proposal supplies scope and money to both documents."""
 
     def __init__(self, proposal):
         self.proposal = proposal
         self.sections = [
-            {'section_type': sec.section_type, 'content_json': deepcopy(sec.content_json or {})}
+            {'section_type': sec.section_type, 'title': sec.title, 'order': sec.order,
+             'content_json': deepcopy(sec.content_json or {})}
             for sec in proposal.sections.all() if sec.is_enabled
         ]
         for section in self.sections:
@@ -141,45 +162,77 @@ class FormalContent:
                 'milestone': payment.get('label'),
                 'amount': self.money(self.total * Decimal(match[1].replace(',', '.')) / 100) if match else payment.get('description'),
             })
-        blocks = [self.table(self.label('Alcance y entregables', 'Scope and deliverables'), self.scope(), [
-            ('module', self.label('Módulo', 'Module')), ('id', 'ID'),
-            ('name', self.label('Entregable', 'Deliverable')), ('description', self.label('Descripción', 'Description')),
-        ], [self.label('Las especificaciones y criterios verificables se detallan en el anexo técnico de esta propuesta.', 'Specifications and verifiable criteria are detailed in the technical annex to this proposal.')])]
+        groups = {}
+        for item in self.scope():
+            group = groups.setdefault(text(item['module']), {'title': text(item['module']), 'items': []})
+            group['items'].append(project_fields(item, ('id', 'name', 'description')))
         design = self.structured('design_ux')
         creative = self.structured('creative_support')
-        provisions = []
-        for entry in design.get('focusItems') or []:
-            provisions.append(text(entry.get('description') or entry.get('title')) if isinstance(entry, dict) else text(entry))
-        for entry in creative.get('includes') or []:
-            provisions.append(text(entry.get('description') or entry.get('title')) if isinstance(entry, dict) else text(entry))
-        blocks.append(self.block(self.label('Diseño y acompañamiento incluidos', 'Included design and support'), provisions))
         timeline = self.structured('timeline')
-        blocks.append(self.table(self.label('Cronograma', 'Schedule'), timeline.get('phases'), [
-            ('title', self.label('Fase', 'Phase')), ('duration', self.label('Duración', 'Duration')),
-            ('description', self.label('Actividades', 'Activities')), ('tasks', self.label('Tareas', 'Tasks')),
-            ('milestone', self.label('Hito', 'Milestone')),
-        ], [timeline.get('totalDuration')]))
         method = self.structured('process_methodology')
-        blocks.append(self.table(self.label('Ejecución y aportes del cliente', 'Execution and client inputs'), method.get('steps'), [
-            ('title', self.label('Etapa', 'Stage')), ('description', self.label('Actividad', 'Activity')),
-            ('clientAction', self.label('Aporte del cliente', 'Client input')),
-        ]))
         stages = self.structured('development_stages')
-        if not method.get('steps'):
-            blocks.append(self.table(self.label('Etapas de desarrollo', 'Development stages'), stages.get('stages'), [
-                ('title', self.label('Etapa', 'Stage')), ('description', self.label('Actividad', 'Activity')),
-            ]))
-        tax = ' + IVA' if self.currency == 'COP' else ''
-        blocks.append(self.block(self.label('Inversión', 'Investment'), [self.money(self.total) + tax]))
-        blocks.append(self.table(self.label('Hitos de pago', 'Payment milestones'), schedule, [
-            ('milestone', self.label('Hito', 'Milestone')), ('amount', self.label('Importe', 'Amount')),
-        ], [text(inv.get('paymentMethods')), self.label('Los importes conservan el tratamiento tributario de la inversión.', 'Amounts follow the tax treatment of the investment.')]))
-        blocks.extend(self.hosting(inv))
-        blocks.extend(self.included_terms())
         conditions = self.structured('commercial_conditions')
-        blocks.append(self.block(self.label('Límites y cambios de alcance', 'Scope limits and changes'), conditions.get('scopeParagraphs') or []))
-        blocks.append(self.block(self.label('Condiciones contractuales', 'Contractual conditions'), [self.label('Las garantías y obligaciones se rigen por el contrato de desarrollo de software asociado a esta propuesta.', 'Warranties and obligations are governed by the software development contract associated with this proposal.')]))
-        return blocks
+        l = self.label
+
+        def provisions(values):
+            return [text(v.get('description') or v.get('title')) if isinstance(v, dict) else text(v)
+                    for v in values or []]
+
+        phases = project_rows(timeline.get('phases'), ('title', 'duration', 'description', 'milestone'))
+        for phase, original in zip(phases, rows(timeline.get('phases'))):
+            phase['tasks'] = [text(t) for t in original.get('tasks') or []] if isinstance(original.get('tasks'), list) else [text(original.get('tasks'))]
+        payloads = {
+            'functional_requirements': {
+                'intro': l('Las especificaciones y criterios verificables se detallan en el anexo técnico de esta propuesta.', 'Specifications and verifiable criteria are detailed in the technical annex to this proposal.'),
+                'groups': list(groups.values()),
+            },
+            'design_ux': {'focusItems': provisions(design.get('focusItems'))},
+            'creative_support': {'includes': provisions(creative.get('includes'))},
+            'timeline': {'phases': phases, 'totalDuration': text(timeline.get('totalDuration'))},
+            'process_methodology': {'steps': project_rows(method.get('steps'), ('title', 'description', 'clientAction'))},
+            'development_stages': {'stages': [] if method.get('steps') else project_rows(stages.get('stages'), ('title', 'description'))},
+            # Resolved money is consumed verbatim. The renderer must never normalize
+            # hosting, reseed a catalog or run a second pricing calculation here.
+            'investment': {
+                'resolved': {
+                    'total': self.money(self.total),
+                    'tax': ' + IVA' if self.currency == 'COP' else '',
+                    'payments': project_rows(schedule, ('milestone', 'amount')),
+                    'paymentMethods': text(inv.get('paymentMethods')),
+                    'paymentNote': l('Los importes conservan el tratamiento tributario de la inversión.', 'Amounts follow the tax treatment of the investment.'),
+                    'hosting': self.hosting(inv),
+                },
+            },
+            'value_added_modules': {'terms': self.included_terms()},
+            'commercial_conditions': {
+                'hourPackagesEnabled': False,
+                'scopeParagraphs': [text(p) for p in conditions.get('scopeParagraphs') or []],
+                'contractNote': l('Las garantías y obligaciones se rigen por el contrato de desarrollo de software asociado a esta propuesta.', 'Warranties and obligations are governed by the software development contract associated with this proposal.'),
+            },
+        }
+        labels = {
+            'functional_requirements': l('Alcance y entregables', 'Scope and deliverables'),
+            'design_ux': l('Diseño incluido', 'Included design'),
+            'creative_support': l('Acompañamiento incluido', 'Included support'),
+            'timeline': l('Cronograma', 'Schedule'),
+            'process_methodology': l('Ejecución y aportes del cliente', 'Execution and client inputs'),
+            'development_stages': l('Etapas de desarrollo', 'Development stages'),
+            'investment': l('Inversión', 'Investment'),
+            'value_added_modules': l('Condiciones de módulos incluidos', 'Terms for included modules'),
+            'commercial_conditions': l('Límites y cambios de alcance', 'Scope limits and changes'),
+        }
+        ordered = sorted(self.sections, key=lambda section: section['order'])
+        result = []
+        for section in ordered:
+            key = section['section_type']
+            data = payloads.pop(key, None)
+            if data is not None and any(data.values()):
+                result.append(PdfSection(key, text(section['title']) or labels[key], len(result), data))
+        # The contract reference belongs to every formal commercial annex even
+        # when the optional commercial_conditions section is disabled/missing.
+        if 'commercial_conditions' in payloads:
+            result.append(PdfSection('commercial_conditions', labels['commercial_conditions'], len(result), payloads['commercial_conditions']))
+        return result
 
     def included_terms(self):
         data = self.structured('value_added_modules')
@@ -239,34 +292,32 @@ class FormalContent:
         ])]
 
     def technical(self):
+        """Keep the public renderer's schema, with a closed field projection."""
         d = self.technical_data()
-        l = self.label
-        blocks = [self.block(l('Propósito', 'Purpose'), [d.get('purpose')])]
-        def add(es, en, source, fields, paragraphs=()):
-            blocks.append(self.table(l(es, en), source, [(key, l(eslabel, enlabel)) for key, eslabel, enlabel in fields], paragraphs))
-        add('Stack tecnológico', 'Technology stack', d.get('stack'), [('layer', 'Capa', 'Layer'), ('technology', 'Tecnología', 'Technology'), ('rationale', 'Justificación', 'Rationale')])
-        arch = d.get('architecture') or {}
-        add('Arquitectura', 'Architecture', arch.get('patterns'), [('component', 'Componente', 'Component'), ('pattern', 'Patrón', 'Pattern'), ('description', 'Descripción', 'Description')], [arch.get('summary'), arch.get('diagramNote')])
-        model = d.get('dataModel') or {}
-        add('Modelo de datos', 'Data model', model.get('entities'), [('name', 'Entidad', 'Entity'), ('description', 'Descripción', 'Description'), ('keyFields', 'Campos clave', 'Key fields')], [model.get('summary'), model.get('relationships')])
-        growth = d.get('growthReadiness') or {}
-        add('Preparación técnica incluida', 'Included technical preparation', growth.get('strategies'), [('dimension', 'Dimensión', 'Dimension'), ('preparation', 'Implementación actual', 'Current implementation')])
+        result = project_fields(d, ('purpose', 'apiSummary', 'backupsNote'))
+        for key, fields in {
+            'stack': ('layer', 'technology', 'rationale'),
+            'apiDomains': ('domain', 'summary'),
+            'environments': ('name', 'purpose', 'whoAccesses'),
+            'security': ('aspect', 'implementation'),
+            'decisions': ('decision', 'alternative', 'reason'),
+        }.items():
+            result[key] = project_rows(d.get(key), fields)
+        for key, fields, collections in (
+            ('architecture', ('summary', 'diagramNote'), {'patterns': ('component', 'pattern', 'description')}),
+            ('dataModel', ('summary', 'relationships'), {'entities': ('name', 'description', 'keyFields')}),
+            ('growthReadiness', (), {'strategies': ('dimension', 'preparation')}),
+            ('integrations', ('notes',), {'included': ('service', 'provider', 'connection', 'dataExchange', 'accountOwner'), 'excluded': ('service', 'reason')}),
+            ('performanceQuality', (), {'metrics': ('metric', 'target', 'howMeasured'), 'practices': ('strategy', 'description')}),
+            ('quality', ('criticalFlowsNote',), {'dimensions': ('dimension', 'evaluates', 'standard'), 'testTypes': ('type', 'validates', 'tool', 'whenRun')}),
+        ):
+            source = d.get(key) or {}
+            result[key] = project_fields(source, fields)
+            for collection, columns in collections.items():
+                result[key][collection] = project_rows(source.get(collection), columns)
+        result['epics'] = []
         for epic in rows(d.get('epics')):
-            title = ' · '.join(filter(None, [text(epic.get('epicKey')), text(epic.get('title'))]))
-            add(title, title, epic.get('requirements'), [('flowKey', 'ID', 'ID'), ('title', 'Requerimiento', 'Requirement'), ('description', 'Descripción', 'Description'), ('configuration', 'Configuración', 'Configuration'), ('usageFlow', 'Flujo', 'Flow'), ('linked_item_ids', 'Referencia comercial', 'Commercial reference')], [epic.get('description')])
-        add('API', 'API', d.get('apiDomains'), [('domain', 'Dominio', 'Domain'), ('summary', 'Responsabilidad', 'Responsibility')], [d.get('apiSummary')])
-        integ = d.get('integrations') or {}
-        add('Integraciones incluidas', 'Included integrations', integ.get('included'), [('service', 'Servicio', 'Service'), ('provider', 'Proveedor', 'Provider'), ('connection', 'Conexión', 'Connection'), ('dataExchange', 'Datos', 'Data'), ('accountOwner', 'Titular', 'Account owner')], [integ.get('notes')])
-        add('Integraciones excluidas', 'Excluded integrations', integ.get('excluded'), [('service', 'Servicio', 'Service'), ('reason', 'Motivo', 'Reason')])
-        # URLs/database names and arbitrary credentials are deliberately not projected.
-        add('Ambientes', 'Environments', d.get('environments'), [('name', 'Nombre', 'Name'), ('purpose', 'Propósito', 'Purpose'), ('whoAccesses', 'Roles con acceso', 'Access roles')])
-        add('Seguridad', 'Security', d.get('security'), [('aspect', 'Aspecto', 'Aspect'), ('implementation', 'Implementación', 'Implementation')])
-        perf = d.get('performanceQuality') or {}
-        add('Rendimiento', 'Performance', perf.get('metrics'), [('metric', 'Métrica', 'Metric'), ('target', 'Objetivo', 'Target'), ('howMeasured', 'Medición', 'Measurement')])
-        add('Prácticas de rendimiento', 'Performance practices', perf.get('practices'), [('strategy', 'Estrategia', 'Strategy'), ('description', 'Descripción', 'Description')])
-        blocks.append(self.block(l('Respaldos', 'Backups'), [d.get('backupsNote')]))
-        quality = d.get('quality') or {}
-        add('Calidad y aceptación', 'Quality and acceptance', quality.get('dimensions'), [('dimension', 'Dimensión', 'Dimension'), ('evaluates', 'Evaluación', 'Evaluation'), ('standard', 'Estándar', 'Standard')], [quality.get('criticalFlowsNote')])
-        add('Pruebas', 'Tests', quality.get('testTypes'), [('type', 'Tipo', 'Type'), ('validates', 'Valida', 'Validates'), ('tool', 'Herramienta', 'Tool'), ('whenRun', 'Momento', 'When')])
-        add('Decisiones técnicas', 'Technical decisions', d.get('decisions'), [('decision', 'Decisión', 'Decision'), ('alternative', 'Alternativa evaluada', 'Considered alternative'), ('reason', 'Justificación', 'Rationale')])
-        return blocks
+            projected = project_fields(epic, ('epicKey', 'title', 'description'))
+            projected['requirements'] = project_rows(epic.get('requirements'), ('flowKey', 'title', 'description', 'configuration', 'usageFlow', 'linked_item_ids'))
+            result['epics'].append(projected)
+        return result
