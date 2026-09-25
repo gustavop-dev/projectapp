@@ -85,6 +85,11 @@ def related_documents(proposal, payload):
 
 
 def source_hash(proposal, payload):
+    # Existing preparations retain their original fingerprint and frozen bytes.
+    # New layouts use section titles, so only version 2 fingerprints include them.
+    section_fields = ('section_type', 'content_json', 'is_enabled', 'order')
+    if payload.get('_source_version', 1) >= 2:
+        section_fields += ('title',)
     document_sources = []
     for key, doc in related_documents(proposal, payload):
         document_sources.append([key, doc.pk, doc.title, doc.file.name, hashlib.sha256(read_document(doc)).hexdigest()])
@@ -92,7 +97,7 @@ def source_hash(proposal, payload):
         'proposal': {field: getattr(proposal, field) for field in SOURCE_FIELDS},
         'confirmed_selection': proposal.has_confirmed_module_selection,
         'sections': [
-            {field: getattr(section, field) for field in ('section_type', 'content_json', 'is_enabled', 'order')}
+            {field: getattr(section, field) for field in section_fields}
             for section in proposal.sections.all()
         ],
         'files': document_sources,
@@ -137,6 +142,7 @@ def availability(proposal):
 def prepare(proposal, user, payload):
     if not ProposalEmailService._is_template_active(TEMPLATE_KEY):
         raise FormalizationError('La plantilla de formalización está desactivada.', 'template_disabled')
+    payload = {**payload, '_source_version': 2}
     captured_hash = source_hash(proposal, payload)
     now = timezone.now()
     preparation = ProposalFormalization(proposal=proposal, created_by=user, payload=payload, source_hash=captured_hash, expires_at=now + timedelta(hours=24))

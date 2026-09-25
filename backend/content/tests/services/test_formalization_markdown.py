@@ -119,3 +119,107 @@ def test_technical_markdown_rejects_missing_selected_scope(formal_markdown_propo
         _export(formal_markdown_proposal, 'technical')
 
     assert error.value.code == 'technical_scope_missing'
+
+
+@pytest.mark.parametrize(('section_type', 'data', 'expected'), [
+    ('design_ux', {'focusItems': [{'description': 'Accessible screens'}]}, 'Accessible screens'),
+    ('creative_support', {'includes': ['Editorial assistance']}, 'Editorial assistance'),
+    ('timeline', {'phases': [{'title': 'Build', 'tasks': ['Review orders']}]}, 'Review orders'),
+    ('process_methodology', {'steps': [{'title': 'Review', 'clientAction': 'Approve screens'}]}, 'Approve screens'),
+    ('development_stages', {'stages': [{'title': 'Delivery', 'description': 'Publish release'}]}, 'Publish release'),
+    ('commercial_conditions', {'scopeParagraphs': ['Changes require approval']}, 'Changes require approval'),
+    ('value_added_modules', {
+        'module_ids': ['operations'],
+        'conditions': {'operations': {'terms_clauses': [{'label': 'Term', 'text': 'Includes onboarding'}]}},
+    }, 'Includes onboarding'),
+])
+def test_commercial_markdown_preserves_curated_section_content(
+    formal_markdown_proposal, section_type, data, expected,
+):
+    """Fails if the public PDF schema causes a saved commercial provision to disappear from Markdown."""
+    ProposalSection.objects.create(
+        proposal=formal_markdown_proposal, section_type=section_type,
+        title='Saved provision', order=10, content_json={**data, 'subtitle': 'SalesOnlySentinel'},
+    )
+
+    rendered = _export(formal_markdown_proposal, 'commercial')['markdown']
+
+    assert expected in rendered
+    assert 'Saved provision' in rendered
+    assert 'SalesOnlySentinel' not in rendered
+
+
+def test_commercial_markdown_preserves_saved_section_order(formal_markdown_proposal):
+    """Fails if Markdown uses a fixed scope-first order despite the order captured for the PDF."""
+    scope = formal_markdown_proposal.sections.get(section_type='functional_requirements')
+    scope.order = 10
+    scope.title = 'Scope last'
+    scope.save(update_fields=['order', 'title'])
+    investment = formal_markdown_proposal.sections.get(section_type='investment')
+    investment.order = 0
+    investment.title = 'Investment first'
+    investment.save(update_fields=['order', 'title'])
+
+    rendered = _export(formal_markdown_proposal, 'commercial')['markdown']
+
+    assert '## 01. Investment first' in rendered
+    assert rendered.index('Investment first') < rendered.index('Scope last')
+
+
+def test_commercial_markdown_preserves_resolved_fractional_payment(formal_markdown_proposal):
+    """Fails if the Markdown adapter recalculates or rounds the resolved payment amount."""
+    formal_markdown_proposal.currency = 'USD'
+    formal_markdown_proposal.total_investment = '6000.25'
+    formal_markdown_proposal.save(update_fields=['currency', 'total_investment'])
+    investment = formal_markdown_proposal.sections.get(section_type='investment')
+    investment.content_json['paymentOptions'] = [{'label': '12.5% upon kickoff', 'description': 'OldAmount'}]
+    investment.save(update_fields=['content_json'])
+
+    rendered = _export(formal_markdown_proposal, 'commercial')['markdown']
+
+    assert '1,000.25 USD' in rendered
+    assert '125.03 USD' in rendered
+    assert 'OldAmount' not in rendered
+
+
+def test_commercial_markdown_uses_saved_hosting_terms(formal_markdown_proposal):
+    """Fails if an export reseeds the hosting catalog instead of retaining the accepted proposal terms."""
+    investment = formal_markdown_proposal.sections.get(section_type='investment')
+    investment.content_json['hostingPlan'] = {
+        'title': 'Hosting', 'monthlyPrice': 'SavedPrice', 'renewalNote': 'Renewal on anniversary',
+        'specs': [{'label': 'Storage', 'value': '20 GB'}],
+    }
+    investment.save(update_fields=['content_json'])
+
+    rendered = _export(formal_markdown_proposal, 'commercial')['markdown']
+
+    assert 'SavedPrice' in rendered
+    assert 'Renewal on anniversary' in rendered
+    assert '20 GB' in rendered
+    assert 'SMMLV' not in rendered
+
+
+@pytest.mark.parametrize(('field', 'data', 'expected'), [
+    ('environments', [{
+        'name': 'Staging', 'purpose': 'Validation', 'whoAccesses': 'QA team',
+        'url': 'PrivateSentinel', 'database': 'PrivateSentinel', 'credentials': 'PrivateSentinel',
+    }], 'QA team'),
+    ('integrations', {'excluded': [{
+        'service': 'External service', 'reason': 'Outside scope', 'availability': 'PrivateSentinel',
+    }]}, 'Outside scope'),
+    ('growthReadiness', {'strategies': [{
+        'dimension': 'Load', 'preparation': 'Query indexes', 'evolution': 'PrivateSentinel',
+    }]}, 'Query indexes'),
+])
+def test_technical_markdown_exports_only_allowed_projection_fields(
+    formal_markdown_proposal, field, data, expected,
+):
+    """Fails if adapting the PDF projection leaks internal fields or removes the permitted detail."""
+    technical = formal_markdown_proposal.sections.get(section_type='technical_document')
+    technical.content_json[field] = data
+    technical.save(update_fields=['content_json'])
+
+    rendered = _export(formal_markdown_proposal, 'technical')['markdown']
+
+    assert expected in rendered
+    assert 'PrivateSentinel' not in rendered
