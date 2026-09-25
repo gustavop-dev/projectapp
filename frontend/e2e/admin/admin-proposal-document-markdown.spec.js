@@ -210,7 +210,7 @@ test.describe('Admin proposal document Markdown exports', () => {
     const docxRow = page.getByTestId('proposal-attachment-801');
     await docxRow.getByRole('button', { name: 'Vista previa de Anexo de arquitectura' }).click();
     const modal = page.getByTestId('markdown-preview-modal-panel');
-    await expect(modal.getByRole('heading', { name: 'Anexo de arquitectura' })).toHaveText('Anexo de arquitectura');
+    await expect(modal.getByRole('heading', { name: 'Anexo de arquitectura', level: 1 })).toHaveText('Anexo de arquitectura');
     await expect(modal.getByText('Tablas reconstruidas desde DOCX.')).toHaveText('Tablas reconstruidas desde DOCX.');
     await expect(modal.getByRole('columnheader', { name: 'Sistema' })).toHaveText('Sistema');
     await expect(modal.getByRole('cell', { name: 'API | proxy' })).toHaveText('API | proxy');
@@ -230,7 +230,9 @@ test.describe('Admin proposal document Markdown exports', () => {
     await page.getByRole('button', { name: 'Cerrar vista previa' }).click();
     const copyButton = imageRow.getByTestId('proposal-copy-attachment-802');
     await expect(copyButton).toBeDisabled();
-    await copyButton.hover();
+    await imageRow.locator('[data-disabled-action-proxy]')
+      .filter({ has: page.getByTestId('proposal-copy-attachment-802') })
+      .hover();
     await expect(page.getByRole('tooltip')).toHaveText('La imagen no tiene texto extraíble. Se requiere reconocimiento de texto.');
     await expect(imageRow.getByRole('button', { name: 'Descargar Diagrama de arquitectura' })).toBeEnabled();
   });
@@ -244,7 +246,9 @@ test.describe('Admin proposal document Markdown exports', () => {
     const legacyRow = page.getByTestId('proposal-attachment-803');
     const copyButton = legacyRow.getByTestId('proposal-copy-attachment-803');
     await expect(copyButton).toBeDisabled();
-    await copyButton.hover();
+    await legacyRow.locator('[data-disabled-action-proxy]')
+      .filter({ has: page.getByTestId('proposal-copy-attachment-803') })
+      .hover();
     await expect(page.getByRole('tooltip')).toHaveText('Convierte el archivo a DOCX o XLSX para visualizar y copiar su contenido.');
     await expect(legacyRow.getByRole('button', { name: 'Vista previa de Anexo legado' })).toBeDisabled();
     await expect(legacyRow.getByRole('button', { name: 'Descargar Anexo legado' })).toBeEnabled();
@@ -420,22 +424,22 @@ test.describe('Admin proposal document Markdown actions on compact screens', () 
     expect(controls.map(({ width, height, right }) => width > 0 && height > 0 && right <= 412)).toEqual([true, true, true]);
   });
 
-  test('keeps accepted contract parameters locked at 412px', {
+  test('keeps sent contract parameters locked at 412px', {
     tag: ['@flow:admin-proposal-document-markdown', '@outcome:display', '@role:admin', '@viewport:compact'],
   }, async ({ page }) => {
     await seedAdmin(page);
-    await mockApi(page, proposalHandler({ status: 'accepted' }));
+    await mockApi(page, proposalHandler({ status: 'sent' }));
 
     await openDocumentsFromCompactPanel(page);
     await expect(page.getByRole('button', { name: 'Editar parámetros' })).toBeDisabled();
   });
 
-  test('keeps contract Markdown copy actionable after acceptance at 412px', {
+  test('keeps contract Markdown copy actionable for sent proposals at 412px', {
     tag: ['@flow:admin-proposal-document-markdown', '@outcome:success', '@role:admin', '@viewport:compact'],
   }, async ({ page, context }) => {
     await seedAdmin(page);
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await mockApi(page, proposalHandler({ status: 'accepted' }));
+    await mockApi(page, proposalHandler({ status: 'sent' }));
 
     await openDocumentsFromCompactPanel(page);
     const contractCopy = page.getByTestId('proposal-copy-contract');
