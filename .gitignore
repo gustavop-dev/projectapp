@@ -55,7 +55,7 @@ backups/
 
 # IDE
 .idea/
-.vscode/
+**/.vscode/*
 *.swp
 *.swo
 
@@ -117,3 +117,20 @@ styleguide-*.png
 
 # Rotated logs (RotatingFileHandler: django.log.1, .2, ...)
 *.log.[0-9]*
+
+# Environment variants
+.env.*
+!.env.example
+
+# Generated coverage variants
+coverage.xml
+coverage*.json
+.coverage.*
+
+# Backup and temporary files
+*.bak
+*.orig
+*.tmp
+
+# Versioned visual regression baselines
+!frontend/e2e/visual/styleguide.spec.js-snapshots/*.png

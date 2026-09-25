@@ -6,8 +6,8 @@ Custom Software Development Company — full-stack web application with a dynami
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Django 5, Django REST Framework, MySQL |
-| **Frontend** | Nuxt 3, Pinia (Options API), TailwindCSS, GSAP |
+| **Backend** | Django 6.1, Django REST Framework, MySQL |
+| **Frontend** | Nuxt 4, Pinia (Options API), TailwindCSS, GSAP |
 | **Task Queue** | Huey + Redis |
 | **Email** | SMTP via GoDaddy (`team@projectapp.co`) |
 | **Auth** | Django session + CSRF (`/panel/`), JWT via SimpleJWT (`/platform/`) |
