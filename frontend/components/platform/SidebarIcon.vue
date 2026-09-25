@@ -167,7 +167,21 @@
       <path d="M8.5 3H5a2 2 0 00-2 2v3.5a2.5 2.5 0 010 5V19a2 2 0 002 2h5.5a2.5 2.5 0 015 0H19a2 2 0 002-2v-3.5a2.5 2.5 0 010-5V5a2 2 0 00-2-2h-3.5a2.5 2.5 0 00-5 0h-2z" />
     </template>
 
-    <!-- Send / Proposals -->
+    <!-- Money bag / Business proposals -->
+    <template v-else-if="name === 'money-bag'">
+      <path d="m9 7-2-4h10l-2 4M8 7h8" />
+      <path d="M9 7c-1.5 2-6 5.5-6 9.5A4.5 4.5 0 007.5 21h9a4.5 4.5 0 004.5-4.5c0-4-4.5-7.5-6-9.5" />
+      <circle cx="10.5" cy="15" r="2.5" />
+      <path d="M13 12.5a2.5 2.5 0 010 5" />
+    </template>
+
+    <!-- Search / Monitoring -->
+    <template v-else-if="name === 'search'">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m16.65 16.65 4.35 4.35" />
+    </template>
+
+    <!-- Send / Messages -->
     <template v-else-if="name === 'send'">
       <line x1="22" y1="2" x2="11" y2="13" />
       <polygon points="22,2 15,22 11,13 2,9" />
