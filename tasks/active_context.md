@@ -11,8 +11,11 @@ evitar contradicciones si existen ediciones manuales. Se retira el acceso de
 solo lectura y se renumera el numeral de hosting posterior y su referencia.
 Los contratos particulares y PDF emitidos se preservan. Trabajo aislado en
 `contract-ip-termination`; aplicación a producción mediante despliegue.
-Pendiente de consulta autenticada: redacción publicada del numeral 7 de
-Actividades, ausente en el seed histórico, para quitar únicamente videos.
+Consulta de producción verificada mediante el lector público del contrato:
+Actividades contiene únicamente los numerales 1 a 6 y no obliga a entregar
+videos. No se añadió un numeral 7 ni se tocaron las exclusiones audiovisuales.
+Los ocho bloques anteriores de la migración coinciden con la plantilla
+publicada. El test de cesión se actualizó a la nueva condición de pago.
 
 # Reajuste del servicio en el contrato — en verificación (2026-09-25)
 
