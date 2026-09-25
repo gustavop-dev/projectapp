@@ -1424,7 +1424,7 @@ def requirement_detail_view(request, project_id, req_id):
             Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
         )
     elif request.method == 'PATCH':
-        requirements = Requirement.objects.prefetch_related('comments__user', 'history__changed_by')
+        requirements = Requirement.objects.select_related('scope_item')
     else:
         requirements = Requirement.objects.all()
 
@@ -1455,6 +1455,13 @@ def requirement_detail_view(request, project_id, req_id):
     serializer = UpdateRequirementSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = dict(serializer.validated_data)
+
+    # Preserve the pre-update history snapshot without loading collections for
+    # rejected requests. Comments are read once by the response serializer.
+    prefetch_related_objects(
+        [req],
+        Prefetch('history', queryset=RequirementHistory.objects.select_related('changed_by')),
+    )
 
     if 'is_archived' in data:
         flag = data.pop('is_archived')
