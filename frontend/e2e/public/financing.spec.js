@@ -188,27 +188,27 @@ test.describe('Public financing program', () => {
   }, async ({ page }) => {
     await setupApi(page)
     await openFromFooter(page)
-    await expect(page.getByTestId('financing-explainer-card')).toContainText('El Programa de Alianza en un minuto')
+    await expect(page.getByTestId('financing-explainer-card')).toContainText('Conoce el Programa de Alianza')
 
     await page.getByTestId('financing-explainer-play').click()
 
     const player = page.getByTestId('financing-explainer-player')
     await expect(player).toBeVisible()
     await expect(player).toHaveAttribute('controls', '')
-    await expect(player).toHaveAttribute('src', /financing-es[^/]*\.mp4/)
+    await expect(player).toHaveAttribute('src', /financing-brag-v2-es[^/]*\.mp4/)
   })
 
   test('shows a fallback link when the financing video cannot load', {
     tag: [...PUBLIC_FINANCING_EXPLAINER, '@role:guest', '@outcome:failure'],
   }, async ({ page }) => {
     await setupApi(page)
-    await page.route(/financing-es[^/?]*\.mp4$/, (route) => route.abort())
+    await page.route(/financing-brag-v2-es[^/?]*\.mp4$/, (route) => route.abort())
     await openFromFooter(page)
 
     await page.getByTestId('financing-explainer-play').click()
 
     await expect(page.getByTestId('financing-explainer-error')).toContainText('No pudimos reproducir el video')
-    await expect(page.getByTestId('financing-explainer-open')).toHaveAttribute('href', /financing-es[^/]*\.mp4/)
+    await expect(page.getByTestId('financing-explainer-open')).toHaveAttribute('href', /financing-brag-v2-es[^/]*\.mp4/)
     await expect(page.getByTestId('financing-whatsapp-hero')).toBeVisible()
   })
 

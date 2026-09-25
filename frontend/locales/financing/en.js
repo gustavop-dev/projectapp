@@ -20,7 +20,7 @@ export default {
   guideNext: 'Next',
   guideDone: 'Got it',
   restartGuide: 'Repeat the guide',
-  explainerTitle: 'The Partnership Program in one minute',
+  explainerTitle: 'Discover the Partnership Program',
   explainerDescription: 'An introduction to the program. This page details the current conditions and conceptual exclusivity under the five-year option.',
   explainerNoAudioNote: 'Works without sound: titles and captions are on screen.',
   explainerPlay: 'Play video',

@@ -10,7 +10,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { CONTENT_DIR, FRONTEND_ROOT, parseArgs, requireLanguage } from './lib/paths.mjs'
+import { EDITION, CONTENT_DIR, FRONTEND_ROOT, parseArgs, requireLanguage } from './lib/paths.mjs'
 
 const CONDITION_IDS = ['financing', 'exclusivity', 'calculator', 'hour-package', 'payment-discipline']
 
@@ -45,6 +45,18 @@ const [catalog, program, catalogLocale, financingLocale] = await Promise.all([
   loadLocale('additionalModules'),
   loadLocale('financing'),
 ])
+
+if (EDITION === 'brag-v2') {
+  mkdirSync(CONTENT_DIR, { recursive: true })
+  writeFileSync(resolve(CONTENT_DIR, `additional-modules.${language}.js`), serialize(catalog))
+  writeFileSync(resolve(CONTENT_DIR, `financing.${language}.js`), serialize(program))
+  writeFileSync(resolve(CONTENT_DIR, `manifest.${language}.json`), JSON.stringify({
+    generatedAt: new Date().toISOString(), origin, language, edition: EDITION,
+    note: 'Review editorial copy against the integration branch before regenerating; production may lag behind it.',
+  }, null, 2) + '\n')
+  console.log('brag-v2: public source snapshots refreshed; review the scripts before rendering.')
+  process.exit(0)
+}
 
 const additionalModules = {
   language,

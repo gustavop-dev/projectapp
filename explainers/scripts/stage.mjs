@@ -6,11 +6,11 @@
  *
  *   node scripts/stage.mjs --video financing --lang es
  */
-import { copyFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { CONTENT_DIR, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
+import { EDITION, CONTENT_DIR, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
 
 const options = parseArgs(process.argv.slice(2))
 const video = requireVideo(options)
@@ -29,6 +29,11 @@ const scriptSource = assertExists(
 const { default: script } = await import(pathToFileURL(scriptSource).href)
 if (!script || typeof script !== 'object' || !script.scenes) {
   throw new Error(`${scriptSource} debe exportar por default un objeto con "scenes"`)
+}
+
+if (EDITION === 'brag-v2') {
+  const captionsFile = resolve(projectDir, `captions.${language}.json`)
+  if (existsSync(captionsFile)) script.captionCues = JSON.parse(readFileSync(captionsFile, 'utf8'))
 }
 
 copyFileSync(contentSource, resolve(projectDir, 'content.js'))

@@ -14,7 +14,7 @@ describe('useExplainerVideos', () => {
       expect(descriptor).toMatchObject({ id, language: 'es', width: 1920, height: 1080 })
       expect(descriptor.src).toBeTruthy()
       expect(descriptor.poster).toBeTruthy()
-      expect(descriptor.durationSeconds).toBeGreaterThan(60)
+      expect(descriptor.durationSeconds).toBe(45)
     })
   })
 

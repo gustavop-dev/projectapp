@@ -5,12 +5,12 @@
  *   node scripts/poster.mjs --video financing --lang es [--at 4.5]
  */
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, readdirSync } from 'node:fs'
+import { copyFileSync, mkdirSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { HYPERFRAMES_BIN, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
+import { EDITION, HYPERFRAMES_BIN, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
 
-const options = parseArgs(process.argv.slice(2), { defaults: { at: '4.5' } })
+const options = parseArgs(process.argv.slice(2), { defaults: { at: EDITION === 'brag-v2' ? '0.1' : '4.5' } })
 const video = requireVideo(options)
 const language = requireLanguage(options)
 const projectDir = videoDir(video)
@@ -24,8 +24,8 @@ function run(command, args, extra = {}) {
   if (result.status !== 0) process.exit(result.status ?? 1)
 }
 
-run(process.execPath, [new URL('./sync-assets.mjs', import.meta.url).pathname, '--video', video])
-run(process.execPath, [new URL('./stage.mjs', import.meta.url).pathname, '--video', video, '--lang', language])
+run(process.execPath, [new URL('./sync-assets.mjs', import.meta.url).pathname, '--video', video, '--edition', EDITION])
+run(process.execPath, [new URL('./stage.mjs', import.meta.url).pathname, '--video', video, '--lang', language, '--edition', EDITION])
 
 assertExists(HYPERFRAMES_BIN, 'Corré npm install en explainers/.')
 run(HYPERFRAMES_BIN, ['snapshot', '.', '--at', String(options.at), '--no-end', '-o', snapshotDir], {
@@ -38,6 +38,8 @@ if (!frame) {
   console.error(`hyperframes snapshot no dejó ningún PNG en ${snapshotDir}`)
   process.exit(1)
 }
+
+if (EDITION === 'brag-v2') copyFileSync(resolve(snapshotDir, frame), resolve(rendersDir, 'poster.png'))
 
 const output = resolve(rendersDir, `${video}-${language}.webp`)
 run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', resolve(snapshotDir, frame), '-vf', 'scale=1280:-2', '-c:v', 'libwebp', '-quality', '82', output])
