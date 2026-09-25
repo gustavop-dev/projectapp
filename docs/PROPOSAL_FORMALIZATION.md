@@ -1,9 +1,10 @@
 # Formalización de propuestas
 
 En **Propuestas → editar → Documentos**, el administrador puede descargar los
-anexos formales y preparar un correo para revisión y firma. Los PDFs públicos
-mantienen su presentación comercial. Los anexos formales usan los datos
-guardados en la propuesta y reglas de contenido explícitas.
+anexos formales y preparar un correo para revisión y firma. Los anexos formales comparten los generadores, portadas y componentes visuales
+de los PDF públicos comercial y técnico. Usan los datos guardados en la
+propuesta y reglas de contenido explícitas: cambia lo que se incluye,
+conservando la identidad visual del documento que ya conoce el cliente.
 
 ## Contenido curado
 
@@ -22,6 +23,30 @@ La selección funcional y los IDs normalizados se comparten entre anexos. Los
 importes porcentuales se calculan sobre la inversión efectiva. Si hosting tiene
 varias modalidades guardadas, se presentan como opciones de periodicidad, sin
 afirmar que el cliente eligió una. No se refrescan catálogos al producir los PDFs.
+
+## Presentación compartida
+
+Markdown adapta las mismas proyecciones curadas (`formalization_blocks`):
+conserva títulos y orden guardados, importes resueltos y condiciones de hosting,
+sin volver a leer campos crudos ni recalcular la inversión. La migración `0256`
+une el snapshot Markdown del contrato y el reajuste contractual incorporados
+por las dos migraciones `0255`.
+
+- La proyección de `FormalContent` entrega secciones comerciales y un payload
+  técnico con campos permitidos. El adaptador `formalization_pdf` los pasa a
+  `ProposalPdfService` y `generate_technical_document_pdf` mediante un contexto
+  interno; los endpoints y las llamadas públicas conservan sus interfaces.
+- Los renderers reutilizan tipografías, colores, portadas, índice y componentes.
+  El comercial respeta el orden guardado de sus secciones habilitadas. Las
+  exclusiones retiran también encabezados y columnas; no dejan tablas vacías.
+- Los importes y condiciones formales llegan resueltos: no se refrescan catálogos,
+  no se normaliza hosting y no se agregan cláusulas comerciales predeterminadas.
+  Las filas extensas se dividen entre páginas y el índice conserva sus destinos
+  cuando sus títulos requieren más de una página.
+- Cliente, proyecto, referencia, emisión e IDs se conservan. Las nuevas
+  preparaciones incluyen los títulos de sección en la huella de origen. Las
+  anteriores conservan la versión original de esa huella y sus bytes revisados;
+  el cambio visual no regenera adjuntos existentes.
 
 ## Preparar y enviar
 

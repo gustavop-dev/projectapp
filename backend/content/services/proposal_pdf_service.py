@@ -111,6 +111,8 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _REQ_PRIORITY_LABELS,
     _apply_toc_links,
     _draw_toc_page,
+    _draw_document_identity,
+    _pdf_label,
     format_date_es,
     # Markdown helpers
     _parse_markdown_lines,
@@ -276,7 +278,8 @@ def _render_greeting(c, data, proposal, ps=None):
     c.setFont(_font('light'), 14)
     c.setFillColor(GREEN_LIGHT)
     c.drawCentredString(PAGE_W / 2, mid_y + 60,
-                        'PROPUESTA DE DESARROLLO WEB')
+                        (ps['formal'].title.upper() if ps and ps.get('formal')
+                         else 'PROPUESTA DE DESARROLLO WEB'))
 
     # Client name — large, centred, wrapped by real width. The font
     # steps down (36 -> 30 -> 26) until the name fits in three lines,
@@ -316,6 +319,8 @@ def _render_greeting(c, data, proposal, ps=None):
 
     # Quote — clamped to the space above the bottom branding so a long
     # quote can never collide with it.
+    if ps and ps.get('formal'):
+        _draw_document_identity(c, line_y - 30, ps['formal'].identity_lines)
     quote = _safe(data, 'inspirationalQuote')
     if quote:
         qy = line_y - 30
@@ -431,7 +436,7 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
     y -= 8
 
     focus_items = _safe(data, 'focusItems', [])
-    focus_title = _safe(data, 'focusTitle', 'Enfoque')
+    focus_title = _pdf_label(_safe(data, 'focusTitle', 'Enfoque'), ps)
     content_top = y
 
     # Render paragraphs + objective first (full width or left column)
@@ -466,7 +471,7 @@ def _render_creative_support(c, data, _proposal, ps=None, y=None):
     y -= 8
 
     includes = _safe(data, 'includes', [])
-    inc_title = _safe(data, 'includesTitle', 'Incluye')
+    inc_title = _pdf_label(_safe(data, 'includesTitle', 'Incluye'), ps)
     content_top = y
 
     if includes:
@@ -834,20 +839,29 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
         c.drawString(MARGIN_L, y, str(sub_index))
         y -= 22
 
-    # Group title
-    title_text = _strip_emoji(_safe(grp, 'title'))
-    c.setFont(_font('light'), 20)
-    c.setFillColor(ESMERALD)
-    c.drawString(MARGIN_L, y, title_text)
-
-    # Item count pill next to title
     items = _safe(grp, 'items', [])
-    if items:
-        title_w = c.stringWidth(title_text, _font('light'), 20)
-        pill_label = f'{len(items)} elemento{"s" if len(items) != 1 else ""}'
-        _draw_pill(c, MARGIN_L + title_w + 12, y + 2, pill_label,
-                   bg_color=BONE, text_color=ESMERALD)
-    y -= 28
+    if ps and ps.get('formal'):
+        for line in _wrap_by_width(_sanitize_pdf_text(_safe(grp, 'title')), _font('light'), 20, CONTENT_W):
+            y = _check_y(c, y, ps, need=42)
+            c.setFont(_font('light'), 20)
+            c.setFillColor(ESMERALD)
+            _draw_mixed_string(c, MARGIN_L, y, line, _font('light'), 20)
+            y -= 26
+    else:
+        # Group title
+        title_text = _strip_emoji(_safe(grp, 'title'))
+        c.setFont(_font('light'), 20)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, y, title_text)
+
+        # Item count pill next to title
+        items = _safe(grp, 'items', [])
+        if items:
+            title_w = c.stringWidth(title_text, _font('light'), 20)
+            pill_label = f'{len(items)} elemento{"s" if len(items) != 1 else ""}'
+            _draw_pill(c, MARGIN_L + title_w + 12, y + 2, pill_label,
+                       bg_color=BONE, text_color=ESMERALD)
+        y -= 28
 
     # Thin accent line
     c.setStrokeColor(LEMON)
@@ -863,6 +877,13 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     # Render items as a full-width table — one row per requirement
     if not items:
         return y
+
+    if ps and ps.get('formal'):
+        english = ps['formal'].language == 'en'
+        return _draw_table(c, y,
+            ['ID', 'Deliverable', 'Description'] if english else ['ID', 'Entregable', 'Descripción'],
+            [[item['id'], f"**{item['name']}**", item['description']] for item in items],
+            ps=ps, col_widths=[0.2, 0.3, 0.5])
 
     # Table column widths
     num_col_w = 28
@@ -1054,7 +1075,7 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
         if milestone:
             if ps:
                 y = _check_y(c, y, ps, need=18)
-            _draw_pill(c, tx, y, f'Hito: {_sanitize_pdf_text(str(milestone))}',
+            _draw_pill(c, tx, y, f'{"Milestone" if ps and ps.get("formal") and ps["formal"].language == "en" else "Hito"}: {_sanitize_pdf_text(str(milestone))}',
                        bg_color=BONE, text_color=ESMERALD, font_size=7)
             y -= 16
 
@@ -1139,6 +1160,27 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
+
+    if ps and ps.get('formal'):
+        resolved = data['resolved']
+        english = ps['formal'].language == 'en'
+        y = _draw_kpi_tile_row(c, y, [{
+            'value': resolved['total'],
+            'label': 'Total investment' if english else 'Inversión Total',
+            'sub': resolved['tax'].strip(),
+        }], ps=ps, accent_first=True)
+        y = _draw_subtitle(c, y, 'Payment milestones' if english else 'Hitos de pago', ps=ps)
+        y = _draw_table(c, y, ['Milestone', 'Amount'] if english else ['Hito', 'Importe'],
+                        [[p['milestone'], p['amount']] for p in resolved['payments']],
+                        ps=ps, col_widths=[0.6, 0.4], aligns=['left', 'right'])
+        y = _draw_paragraphs(c, y, [resolved['paymentMethods'], resolved['paymentNote']], ps=ps)
+        for block in resolved['hosting']:
+            y = _draw_subtitle(c, y, block['title'], ps=ps)
+            if block['rows']:
+                y = _draw_table(c, y, block['headers'], block['rows'], ps=ps,
+                                col_widths=[0.4, 0.6])
+            y = _draw_paragraphs(c, y, block['paragraphs'], ps=ps)
+        return y
 
     intro = _safe(data, 'introText')
     included = _safe(data, 'whatsIncluded', [])
@@ -1628,6 +1670,13 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     if y is None:
         y = PAGE_H - MARGIN_T
 
+    if ps and ps.get('formal'):
+        y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+        for block in data['terms']:
+            y = _draw_subtitle(c, y, block['title'], ps=ps)
+            y = _draw_paragraphs(c, y, block['paragraphs'], ps=ps)
+        return y
+
     catalog = ps.get('_value_added_catalog', {}) if ps else {}
     module_ids = _safe(data, 'module_ids', []) or []
     # No resolvable module means no section at all — not a header with nothing
@@ -1643,6 +1692,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 8
+
 
     justifications = _safe(data, 'justifications', {}) or {}
     conditions = _safe(data, 'conditions', {}) or {}
@@ -2248,6 +2298,8 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     elif scope_title:
         y -= 12
         y = _draw_subtitle(c, y, scope_title, ps=ps)
+    if ps and ps.get('formal'):
+        y = _draw_paragraphs(c, y, [data.get('contractNote')], ps=ps)
     return y
 
 
@@ -2406,7 +2458,7 @@ class ProposalPdfService:
     """
 
     @classmethod
-    def generate(cls, proposal, selected_modules=None):
+    def generate(cls, proposal, selected_modules=None, *, formal=None):
         """
         Build a multi-page portrait-A4 PDF from the proposal's
         enabled sections and return the raw bytes.
@@ -2425,7 +2477,7 @@ class ProposalPdfService:
         try:
             _register_fonts()
 
-            sections = list(
+            sections = list(formal.sections) if formal else list(
                 proposal.sections
                 .filter(is_enabled=True)
                 .order_by('order')
@@ -2433,7 +2485,7 @@ class ProposalPdfService:
 
             buf = io.BytesIO()
             c = canvas.Canvas(buf, pagesize=A4)
-            c.setTitle(f'Propuesta \u2014 {proposal.client_name}')
+            c.setTitle(formal.title if formal else f'Propuesta \u2014 {proposal.client_name}')
             c.setAuthor('Project App')
             # PDF metadata: creation date
             from django.utils import timezone as _tz
@@ -2444,9 +2496,10 @@ class ProposalPdfService:
             )
 
             ps = {
-                'num': 3,
+                'num': formal.content_start if formal else 3,
                 'client': proposal.client_name,
-                'selected_modules': selected_modules,
+                'selected_modules': None if formal else selected_modules,
+                'formal': formal,
             }
 
             # Single pass over sections to build every ps.* derived from them:
@@ -2461,8 +2514,8 @@ class ProposalPdfService:
             # this value but can drift — matches the override applied in
             # ``_render_investment`` and the public frontend view.
             _model_total = getattr(proposal, 'total_investment', None) or 0
-            _base_num = int(_model_total)
-            needs_selection_data = selected_modules is not None
+            _base_num = 0 if formal else int(_model_total)
+            needs_selection_data = selected_modules is not None and not formal
 
             for _sec in sections:
                 _cj = _sec.content_json or {}
@@ -2507,7 +2560,7 @@ class ProposalPdfService:
 
             # Extract base_weeks from timeline section for dynamic duration
             base_weeks = 0
-            if selected_modules is not None:
+            if selected_modules is not None and not formal:
                 for _sec in sections:
                     if _sec.section_type == 'timeline':
                         _td = (_sec.content_json or {}).get('totalDuration', '')
@@ -2553,7 +2606,7 @@ class ProposalPdfService:
                 effective_total_for_proposal,
             )
             try:
-                ps['_effective_total'] = effective_total_for_proposal(proposal)
+                ps['_effective_total'] = 0 if formal else effective_total_for_proposal(proposal)
             except Exception:
                 ps['_effective_total'] = _base_num
             ps['_currency'] = getattr(proposal, 'currency', 'COP') or 'COP'
@@ -2592,7 +2645,7 @@ class ProposalPdfService:
                 # the panel.
                 #
                 # Any failure → keep the stored snapshot.
-                if stype == 'commercial_conditions':
+                if stype == 'commercial_conditions' and not formal:
                     try:
                         if data.get('hourPackagesMode') == 'manual':
                             data = apply_manual_hour_rates(data)
@@ -2717,7 +2770,7 @@ class ProposalPdfService:
             c.setFillColor(GRAY_500)
             c.drawCentredString(
                 PAGE_W / 2, y,
-                f'Fecha de creaci\u00f3n de la propuesta: {date_str}',
+                formal.identity_lines[-1] if formal else f'Fecha de creaci\u00f3n de la propuesta: {date_str}',
             )
             _draw_footer(c, ps['num'], client_name=ps['client'])
             c.save()
@@ -2727,15 +2780,15 @@ class ProposalPdfService:
             # ── Pass B: Greeting + TOC (pages 1-2) ───────────────────
             buf_prefix = io.BytesIO()
             c_prefix = canvas.Canvas(buf_prefix, pagesize=A4)
-            c_prefix.setTitle(f'Propuesta \u2014 {proposal.client_name}')
+            c_prefix.setTitle(formal.title if formal else f'Propuesta \u2014 {proposal.client_name}')
             c_prefix.setAuthor('Project App')
-            ps_prefix = {'num': 1, 'client': proposal.client_name}
+            ps_prefix = {'num': 1, 'client': proposal.client_name, 'formal': formal}
 
             greeting_sec = next(
                 (s for s in sections if s.section_type == 'greeting'), None
             )
             if greeting_sec:
-                g_data = greeting_sec.content_json or {}
+                g_data = dict(greeting_sec.content_json or {})
                 if 'title' not in g_data or not g_data['title']:
                     g_data['title'] = greeting_sec.title
                 is_paste_g = (
@@ -2759,6 +2812,8 @@ class ProposalPdfService:
             c_prefix.save()
             prefix_bytes = buf_prefix.getvalue()
             buf_prefix.close()
+            if formal and ps_prefix['num'] != formal.content_start:
+                return cls.generate(proposal, formal=formal.with_content_start(ps_prefix['num']))
 
             pdf_bytes = cls._merge_with_covers(content_bytes, prepend_bytes=prefix_bytes)
 

@@ -55,6 +55,14 @@ Se implementó la ficha aprobada para Documentos, Propuestas, Proyectos, Cliente
 
 # Active Context — ProjectApp
 
+**2026-09-24 — Diseño público en los PDF formales:** el adaptador de formalización
+reutiliza los generadores comercial/técnico y sus portadas, tipografía, colores,
+índice y componentes. La proyección mantiene alcance, condiciones y exclusiones,
+con importes previamente resueltos y sin re-seed de catálogos. Las preparaciones
+nuevas versionan la huella para incluir títulos; las existentes conservan sus
+bytes revisados. Trabajo en `fix/24092026-formal-pdf-public-design`; sin cambios
+de frontend, migraciones ni envíos reales.
+
 **2026-09-23 — ajustes visuales comerciales implementados:** continuación
 del PR #391 en `fix/23092026-commercial-visual-polish`. Catálogo, selecciones
 y Programa de Alianza distinguen página, tarjeta e interiores en ambos temas;

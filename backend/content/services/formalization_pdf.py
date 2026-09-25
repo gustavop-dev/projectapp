@@ -1,77 +1,80 @@
-"""Sober, paginated formal annexes; independent of the public sales PDF."""
-from html import escape, unescape
-from io import BytesIO
+"""Formal annex adapter: curated inputs, public proposal layout and assets."""
+from dataclasses import dataclass, replace
+from datetime import datetime
 
-from django.utils.html import strip_tags
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import LongTable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableStyle
-from reportlab.platypus.tableofcontents import TableOfContents
-
-from content.services.formalization_content import formal_document_blocks, formal_document_title
-from content.services.pdf_utils import _font, _register_fonts, _strip_emoji
+from content.services.formalization_content import FormalizationError, PdfSection, formal_document_title
+from content.services.proposal_pdf_service import ProposalPdfService
+from content.services.technical_document_pdf import generate_technical_document_pdf
 
 
-class AnnexDocument(SimpleDocTemplate):
-    def afterFlowable(self, flowable):
-        if isinstance(flowable, Paragraph) and flowable.style.name == 'AnnexHeading':
-            key = f'section-{self.seq.nextf("heading")}'
-            self.canv.bookmarkPage(key)
-            self.notify('TOCEntry', (0, flowable.getPlainText(), self.page, key))
+@dataclass(frozen=True)
+class FormalPdfContext:
+    title: str
+    reference: str
+    issued_at: datetime
+    project_title: str
+    language: str
+    content_start: int = 3
+    sections: tuple = ()
+    technical_data: dict | None = None
+
+    def with_content_start(self, page):
+        return replace(self, content_start=page)
+
+    def label(self, value):
+        return ENGLISH_LABELS.get(value, value) if self.language == 'en' else value
+
+    @property
+    def identity_lines(self):
+        english = self.language == 'en'
+        return (
+            self.project_title,
+            ('Reference: ' if english else 'Referencia: ') + self.reference,
+            ('Issued: ' if english else 'Emisión: ') + self.issued_at.strftime('%Y-%m-%d %H:%M UTC'),
+        )
 
 
 def generate_formal_pdf(content, kind, issued_at, reference):
-    blocks = formal_document_blocks(content, kind)
-    _register_fonts()
     title = formal_document_title(content, kind)
-    normal = ParagraphStyle('AnnexBody', fontName=_font('regular'), fontSize=9, leading=13, spaceAfter=8, splitLongWords=True)
-    heading = ParagraphStyle('AnnexHeading', parent=normal, fontName=_font('bold'), fontSize=14, leading=19, spaceBefore=18, spaceAfter=10, keepWithNext=True)
-    cover = ParagraphStyle('AnnexCover', parent=heading, fontSize=24, leading=30)
-    cover_label = ParagraphStyle('AnnexCoverLabel', parent=heading)
-    small = ParagraphStyle('AnnexSmall', parent=normal, fontSize=8, leading=11)
+    sections = ()
+    technical_data = None
+    if kind == 'commercial':
+        sections = (PdfSection('greeting', title, -1, {'clientName': content.proposal.client_name}), *content.commercial())
+    else:
+        technical_data = content.technical()
+    context = FormalPdfContext(title, reference, issued_at, content.proposal.title, content.proposal.language, sections=sections, technical_data=technical_data)
+    if kind == 'commercial':
+        result = ProposalPdfService.generate(content.proposal, formal=context)
+    else:
+        result = generate_technical_document_pdf(content.proposal, formal=context)
+    if not result:
+        raise FormalizationError('No se pudo generar el documento formal. Intenta nuevamente.', 'pdf_generation_failed', 500)
+    return result
 
-    def paragraph(value, style=normal):
-        plain = _strip_emoji(unescape(strip_tags(str(value or ''))))
-        return Paragraph(escape(plain).replace('\n', '<br/>'), style)
 
-    stream = BytesIO()
-    doc = AnnexDocument(stream, pagesize=A4, rightMargin=42, leftMargin=42, topMargin=50, bottomMargin=48, title=title, author='Project App')
-    story = [Spacer(1, 55), paragraph('Project App', cover_label), paragraph(title, cover), Spacer(1, 25), paragraph(content.proposal.title, cover_label), paragraph(content.proposal.client_name), paragraph(content.label('Referencia: ', 'Reference: ') + reference), paragraph(content.label('Emisión: ', 'Issued: ') + issued_at.strftime('%Y-%m-%d %H:%M UTC')), PageBreak()]
-    toc = TableOfContents()
-    toc.levelStyles = [ParagraphStyle('AnnexTOC', parent=normal, spaceBefore=8)]
-    story.extend([paragraph(content.label('Índice', 'Contents'), cover), toc, PageBreak()])
-    for number, block in enumerate(blocks, 1):
-        story.append(paragraph(f'{number:02d}. {block["title"]}', heading))
-        story.extend(paragraph(value) for value in block['paragraphs'])
-        if not block['rows']:
-            continue
-        # Wide requirements become readable labeled records instead of tiny columns.
-        if len(block['headers']) > 4:
-            for row in block['rows']:
-                for label, value in zip(block['headers'], row):
-                    if value:
-                        story.append(paragraph(f'{label}: {value}'))
-                story.append(Spacer(1, 8))
-        else:
-            cells = [[paragraph(value, small) for value in block['headers']]]
-            cells += [[paragraph(value, small) for value in row] for row in block['rows']]
-            table = LongTable(cells, colWidths=[doc.width / len(block['headers'])] * len(block['headers']), repeatRows=1, splitInRow=1, hAlign='LEFT')
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e6efef')),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LINEBELOW', (0, 0), (-1, -1), 0.3, colors.HexColor('#d9e1df')),
-                ('TOPPADDING', (0, 0), (-1, -1), 7),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
-            ]))
-            story.append(table)
-
-    def footer(canvas, document):
-        canvas.saveState()
-        canvas.setFont(_font('regular'), 7)
-        canvas.drawString(42, 28, reference)
-        canvas.drawRightString(A4[0] - 42, 28, str(document.page))
-        canvas.restoreState()
-
-    doc.multiBuild(story, onFirstPage=footer, onLaterPages=footer)
-    return stream.getvalue()
+# Only renderer-owned labels pass through this map; proposal prose stays intact.
+ENGLISH_LABELS = {
+    'ÍNDICE': 'CONTENTS', 'Contenido del documento': 'Document contents',
+    'Propósito': 'Purpose', 'Stack tecnológico': 'Technology stack',
+    'Capa': 'Layer', 'Tecnología': 'Technology', 'Justificación': 'Rationale',
+    'Arquitectura': 'Architecture', 'Componente': 'Component', 'Patrón': 'Pattern',
+    'Descripción': 'Description', 'Modelo de datos': 'Data model', 'Entidad': 'Entity',
+    'Campos clave': 'Key fields', 'Relaciones': 'Relationships',
+    'Preparación técnica incluida': 'Included technical preparation',
+    'Dimensión': 'Dimension', 'Preparación': 'Preparation',
+    'Módulos del producto': 'Product modules', 'Módulos': 'Modules',
+    'Requerimientos': 'Requirements', 'Módulo': 'Module', 'Ítems': 'Items',
+    'Dominio': 'Domain', 'Integraciones': 'Integrations', 'Incluidas': 'Included',
+    'Excluidas': 'Excluded', 'Servicio': 'Service', 'Proveedor': 'Provider',
+    'Conexión': 'Connection', 'Datos': 'Data', 'Razón': 'Reason',
+    'Ambientes': 'Environments', 'Nombre': 'Name', 'Acceso': 'Access',
+    'Seguridad': 'Security', 'Aspecto': 'Aspect', 'Implementación': 'Implementation',
+    'Rendimiento': 'Performance', 'Métrica': 'Metric', 'Objetivo': 'Target',
+    'Medición': 'Measurement', 'Prácticas': 'Practices', 'Estrategia': 'Strategy',
+    'Calidad': 'Quality', 'Evalúa': 'Evaluates', 'Estándar': 'Standard',
+    'Tipos de prueba': 'Test types', 'Tipo': 'Type', 'Valida': 'Validates',
+    'Herramienta': 'Tool', 'Cuándo': 'When', 'Flujos críticos': 'Critical flows',
+    'Decisiones': 'Decisions', 'Decisión': 'Decision', 'Alternativa': 'Alternative',
+    'Enfoque': 'Focus', 'Incluye': 'Includes', 'Duración total': 'Total duration',
+    'Fases': 'Phases', 'Hitos': 'Milestones',
+}

@@ -1,5 +1,6 @@
-"""Markdown export of the same curated blocks used by the formal PDFs."""
-from content.services.formalization_content import formal_document_blocks, formal_document_title
+"""Markdown export of the same curated content used by the formal PDFs."""
+from content.services.formalization_blocks import formal_document_blocks
+from content.services.formalization_content import formal_document_title
 from content.services.markdown_export import MarkdownBuffer, export_payload, formal_text, table
 
 

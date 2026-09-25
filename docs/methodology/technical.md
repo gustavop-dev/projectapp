@@ -1391,7 +1391,7 @@ projectapp/
 
 ## Implementación de formalización
 
-Servicios: `formalization_content`, `formalization_pdf` y `proposal_formalization_service`; vistas FBV y serializers separados. Modelos `ProposalFormalization` y `ProposalFormalizationFile` (migración 0249), archivos en storage `private`. Plantilla administrable `proposal_formalization`; gateway de correo y snapshots compartidos. Máximo 18 MB de adjuntos por preparación, 20 secciones adicionales y 10 destinatarios entre Para/CC. `cleanup_proposal_formalizations` corre diariamente a las 04:25. Los tests usan settings_test, almacenamiento temporal y correo local; nunca ejecutar migraciones ni envíos reales desde el worktree.
+Servicios: `formalization_content`, `formalization_pdf` y `proposal_formalization_service`; vistas FBV y serializers separados. El adaptador PDF usa el parámetro interno `formal` de los generadores públicos. La selección y los importes provienen de la proyección curada; no se recalculan en el renderer. El índice formal admite títulos envueltos y varias páginas con destinos corregidos; los identificadores con guiones bajos no se interpretan como cursiva. Modelos `ProposalFormalization` y `ProposalFormalizationFile` (migración 0249), archivos en storage `private`. Plantilla administrable `proposal_formalization`; gateway de correo y snapshots compartidos. Máximo 18 MB de adjuntos por preparación, 20 secciones adicionales y 10 destinatarios entre Para/CC. `cleanup_proposal_formalizations` corre diariamente a las 04:25. Los tests usan settings_test, almacenamiento temporal y correo local; nunca ejecutar migraciones ni envíos reales desde el worktree.
 
 ### Marca de Linktrees (2026-09-21)
 
