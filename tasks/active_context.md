@@ -1,3 +1,19 @@
+# Propiedad intelectual y terminación del contrato — en verificación (2026-09-25)
+
+La migración `content.0257` perfecciona la cesión de desarrollos específicos y
+reserva know-how, activos reutilizables y licencias de terceros. La salida
+unilateral del cliente exige una penalidad del 30 % de las fases restantes,
+independiente del precio y sin derecho al código. Solicitarlo posteriormente
+requiere completar el 100 % del precio, además de liquidar la penalidad; sólo
+se entrega el desarrollo existente al cierre, sin reactivar fases pendientes.
+Las cláusulas novena, décima y decimosexta se actualizan como un grupo para
+evitar contradicciones si existen ediciones manuales. Se retira el acceso de
+solo lectura y se renumera el numeral de hosting posterior y su referencia.
+Los contratos particulares y PDF emitidos se preservan. Trabajo aislado en
+`contract-ip-termination`; aplicación a producción mediante despliegue.
+Pendiente de consulta autenticada: redacción publicada del numeral 7 de
+Actividades, ausente en el seed histórico, para quitar únicamente videos.
+
 # Reajuste del servicio en el contrato — en verificación (2026-09-25)
 
 La migración `content.0255` sustituye el parágrafo tercero de la cláusula
