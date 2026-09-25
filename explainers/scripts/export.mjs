@@ -8,7 +8,7 @@
 import { copyFileSync, mkdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { FRONTEND_ROOT, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
+import { assetStem, FRONTEND_ROOT, assertExists, parseArgs, requireLanguage, requireVideo, videoDir } from './lib/paths.mjs'
 
 const options = parseArgs(process.argv.slice(2), { flags: ['draft'] })
 const video = requireVideo(options)
@@ -28,8 +28,8 @@ const imagesDir = resolve(FRONTEND_ROOT, 'assets', 'images', 'explainers')
 mkdirSync(videosDir, { recursive: true })
 mkdirSync(imagesDir, { recursive: true })
 
-const mp4Target = resolve(videosDir, `${video}-${language}.mp4`)
-const posterTarget = resolve(imagesDir, `${video}-${language}.webp`)
+const mp4Target = resolve(videosDir, `${assetStem(video, language)}.mp4`)
+const posterTarget = resolve(imagesDir, `${assetStem(video, language)}.webp`)
 copyFileSync(mp4, mp4Target)
 copyFileSync(poster, posterTarget)
 

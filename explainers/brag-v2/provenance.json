@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/latent-spaces/brag",
+  "commit": "c893c5ed52aed84e3e2ee56787de869fccdae6b0",
+  "skill": "skills/brag/SKILL.md",
+  "options": {
+    "voice": true,
+    "duration": 45,
+    "format": "landscape",
+    "tone": "app-store, moderno y cercano"
+  },
+  "musicSha256": "364a546834db4c0c2e3b3240eb6df03e98b7362230154b04c5c614442f6660d7",
+  "sourceProjectCommit": "a292b253",
+  "contentNote": "API pública capturada el 2026-09-25; exclusividad conceptual contrastada con financing_program_service.py en la base a292b253, todavía no desplegada en la API."
+}

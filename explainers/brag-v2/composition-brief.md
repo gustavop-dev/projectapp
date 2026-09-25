@@ -1,7 +1,7 @@
 # Brief de composición — ProjectApp
 
 Brag define guion y dirección; Hyperframes renderiza HTML + GSAP de forma determinista.
-Fuentes: componentes AdditionalModules/CatalogView, ModuleCard, ModuleDetailModal y
+Fuentes: componentes AdditionalModules/CatalogView, ModuleDetails y
 Financing/ProgramView; estilos theme.css; API pública; financing_program_service.py.
 Se recrean únicamente las tarjetas/fichas necesarias a escala legible usando el copy
 real. Las composiciones no simulan que los módulos estén instalados ni que se conceda
@@ -22,7 +22,8 @@ Fuentes v1 intactas. Los recursos derivados y las dependencias se regeneran.
 ## Audio
 Música: assets/music/happy-beats-business-moves-vol-11-by-ende-dot-app.mp3,
 editada a 45 s con fade final. Kokoro ef_dora por escenas. Clics CC0 de Kenney
-sobre interacciones, sin impactos. Mezcla -16 LUFS y pico ≤-1.5 dBTP.
+sobre interacciones, sin impactos. Mezcla próxima a -16 LUFS; normalización
+a -2.5 dBTP para conservar un pico final ≤-1.5 dBTP tras codificar en AAC.
 Los WAV se invalidan al cambiar texto/voz/velocidad; desbordes detienen producción.
 
 ## Gate

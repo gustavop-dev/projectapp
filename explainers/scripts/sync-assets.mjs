@@ -10,7 +10,7 @@
 import { copyFileSync, mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { EXPLAINERS_ROOT, FRONTEND_ROOT, SHARED_DIR, VIDEOS, assertExists, parseArgs, videoDir } from './lib/paths.mjs'
+import { EDITION, EDITION_ROOT, EXPLAINERS_ROOT, FRONTEND_ROOT, SHARED_DIR, VIDEOS, assertExists, parseArgs, videoDir } from './lib/paths.mjs'
 
 const FONT_FILES = ['Ubuntu-Light.ttf', 'Ubuntu-Regular.ttf', 'Ubuntu-Medium.ttf', 'Ubuntu-Bold.ttf', 'NotoEmoji-Regular.ttf']
 const SHARED_FILES = ['brand.css', 'layout.css', 'engine.js']
@@ -33,6 +33,12 @@ for (const video of targets) {
   }
   copyFileSync(assertExists(GSAP_SOURCE, 'Corré npm install en explainers/.'), resolve(assetsDir, 'gsap.min.js'))
   copyFileSync(assertExists(LOGO_SOURCE), resolve(assetsDir, 'logo-white.png'))
+
+  if (EDITION === 'brag-v2') {
+    for (const file of ['motion.js', 'layout.css']) {
+      copyFileSync(resolve(EDITION_ROOT, 'shared', file), resolve(assetsDir, file))
+    }
+  }
 
   console.log(`${video}/assets/ sincronizado (${SHARED_FILES.length} hojas, ${FONT_FILES.length} fuentes, gsap, logo)`)
 }

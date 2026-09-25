@@ -5,10 +5,13 @@ import { fileURLToPath } from 'node:url'
 export const EXPLAINERS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const REPO_ROOT = resolve(EXPLAINERS_ROOT, '..')
 export const FRONTEND_ROOT = resolve(REPO_ROOT, 'frontend')
+export const EDITION = parseArgs(process.argv.slice(2)).edition || 'v1'
+if (!['v1', 'brag-v2'].includes(EDITION)) throw new Error(`Unknown edition: ${EDITION}`)
+export const EDITION_ROOT = EDITION === 'v1' ? EXPLAINERS_ROOT : resolve(EXPLAINERS_ROOT, EDITION)
 export const SHARED_DIR = resolve(EXPLAINERS_ROOT, 'shared')
-export const CONTENT_DIR = resolve(EXPLAINERS_ROOT, 'content')
-export const AUDIO_DIR = resolve(EXPLAINERS_ROOT, 'audio')
-export const TTS_DIR = resolve(EXPLAINERS_ROOT, 'tts')
+export const CONTENT_DIR = resolve(EDITION_ROOT, 'content')
+export const AUDIO_DIR = resolve(EDITION_ROOT, 'audio')
+export const TTS_DIR = resolve(EDITION_ROOT, 'tts')
 export const HYPERFRAMES_BIN = resolve(EXPLAINERS_ROOT, 'node_modules', '.bin', 'hyperframes')
 
 export const VIDEOS = Object.freeze(['additional-modules', 'financing'])
@@ -55,7 +58,7 @@ export function requireLanguage(options) {
 }
 
 export function videoDir(video) {
-  return resolve(EXPLAINERS_ROOT, video)
+  return resolve(EDITION_ROOT, video)
 }
 
 export function assertExists(path, hint) {
@@ -64,3 +67,5 @@ export function assertExists(path, hint) {
   }
   return path
 }
+
+export const assetStem = (video, language) => `${video}${EDITION === 'v1' ? '' : '-brag-v2'}-${language}`

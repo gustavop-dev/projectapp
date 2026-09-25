@@ -388,7 +388,7 @@ test.describe('Public additional modules catalog', () => {
 
     const card = page.getByTestId('additional-modules-explainer-card')
     await expect(card).toBeVisible()
-    await expect(card).toContainText('Descubre el catálogo en un minuto')
+    await expect(card).toContainText('Descubre lo que tu plataforma puede hacer')
     const headingBox = await page.getByRole('heading', { name: 'Módulos adicionales' }).boundingBox()
     const cardBox = await card.boundingBox()
     const firstModuleBox = await page.getByTestId('additional-module-card-electronic-invoicing').boundingBox()
@@ -407,7 +407,7 @@ test.describe('Public additional modules catalog', () => {
     const player = page.getByTestId('additional-modules-explainer-player')
     await expect(player).toBeVisible()
     await expect(player).toHaveAttribute('controls', '')
-    await expect(player).toHaveAttribute('src', /additional-modules-es[^/]*\.mp4/)
+    await expect(player).toHaveAttribute('src', /additional-modules-brag-v2-es[^/]*\.mp4/)
     await expect(page.getByTestId('additional-modules-explainer-play')).toHaveCount(0)
   })
 
@@ -415,13 +415,13 @@ test.describe('Public additional modules catalog', () => {
     tag: [...PUBLIC_ADDITIONAL_MODULES_EXPLAINER, '@role:guest', '@outcome:failure'],
   }, async ({ page }) => {
     await setupPublicApi(page)
-    await page.route(/additional-modules-es[^/?]*\.mp4$/, (route) => route.abort())
+    await page.route(/additional-modules-brag-v2-es[^/?]*\.mp4$/, (route) => route.abort())
     await openFromFooter(page)
 
     await page.getByTestId('additional-modules-explainer-play').click()
 
     await expect(page.getByTestId('additional-modules-explainer-error')).toContainText('No pudimos reproducir el video')
-    await expect(page.getByTestId('additional-modules-explainer-open')).toHaveAttribute('href', /additional-modules-es[^/]*\.mp4/)
+    await expect(page.getByTestId('additional-modules-explainer-open')).toHaveAttribute('href', /additional-modules-brag-v2-es[^/]*\.mp4/)
     await expect(page.getByTestId('additional-module-card-electronic-invoicing')).toBeVisible()
   })
 

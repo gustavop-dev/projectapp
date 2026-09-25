@@ -7417,6 +7417,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   `show_explainer_video` del payload público y
   `e2e/public/additional-modules.spec.js`.
 
+- **Contenido audiovisual:** edición brag v2, 45 segundos en español con voz,
+  música y subtítulos integrados. Fuentes originales conservadas.
+
 ### FLOW: `public-financing-explainer`
 
 - **Módulo:** public
@@ -7435,6 +7438,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   `Financing/ProgramView.vue` (flag `show_explainer_video` del payload) y
   `e2e/public/financing.spec.js`.
 
+- **Contenido audiovisual:** edición brag v2, 45 segundos en español con voz,
+  música y subtítulos integrados. Fuentes originales conservadas.
+
 ### FLOW: `admin-additional-modules-explainer`
 
 - **Módulo:** admin
@@ -7446,6 +7452,9 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Outcomes:** `success`
 - **Evidencia:** `pages/panel/additional-modules/index.vue`,
   `ExplainerVideoCard.vue` y `e2e/admin/admin-additional-modules.spec.js`.
+
+- **Contenido audiovisual:** edición brag v2, 45 segundos en español con voz,
+  música y subtítulos integrados. Fuentes originales conservadas.
 
 ### FLOW: `admin-additional-modules-explainer-visibility`
 
@@ -7487,13 +7496,16 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Módulo:** admin
 - **Rol:** admin
 - **Prioridad:** P3
-- **Ruta:** `/:locale/panel/financing`
+- **Ruta:** `/:locale/panel/partnership-program`
 - **Interacción:** En la pestaña Programa, ver la tarjeta compacta del video
   explicativo bajo la distribución comercial y reproducirlo; la vista previa
   pública de más abajo no lo repite.
 - **Outcomes:** `success`
-- **Evidencia:** `pages/panel/financing/index.vue`, `ExplainerVideoCard.vue`
+- **Evidencia:** `pages/panel/partnership-program/index.vue`, `ExplainerVideoCard.vue`
   y `e2e/admin/admin-financing.spec.js`.
+
+- **Contenido audiovisual:** edición brag v2, 45 segundos en español con voz,
+  música y subtítulos integrados. Fuentes originales conservadas.
 
 ### FLOW: `admin-financing-explainer-visibility`
 
