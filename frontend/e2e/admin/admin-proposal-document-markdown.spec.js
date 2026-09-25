@@ -1,4 +1,3 @@
-// qa: draft-unvalidated (2026-09-25 — pendiente de ejecución del navegador)
 /**
  * E2E coverage for Markdown export controls in a proposal's Documents tab.
  *
