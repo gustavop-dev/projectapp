@@ -190,7 +190,7 @@
       </div>
       <div v-else-if="previewKind === 'markdown'" class="min-w-0 overflow-x-auto">
         <p v-if="previewWarnings.length" class="mb-4 text-sm text-text-muted" role="status">{{ previewWarnings.join(' ') }}</p>
-        <DocumentMarkdownBody :markdown="previewMarkdown" variant="full" />
+        <DocumentMarkdownBody :markdown="previewMarkdown" variant="full" standard-markdown />
       </div>
       <iframe v-else-if="previewKind === 'pdf' && previewUrl" :src="previewUrl"
         class="w-full h-[80vh] border-0 rounded-lg bg-surface" title="Vista previa"></iframe>

@@ -1,5 +1,7 @@
 # Task Plan — ProjectApp
 
+> **2026-09-25 — copia de documentos:** Implementada la copia Markdown de contrato y anexos, extracción de PDF/DOCX/XLSX sin OCR, vista previa de Office y descarga explícita del original. PR #408; backend focal verificado, validación de navegador y CI en el PR. Migración 0255 reservada al deploy.
+
 > **CAPTCHA transversal — 2026-09-23:** implementado para revisión en la
 > rama `feat/23092026-login-captcha`: login del panel y de Plataforma con
 > reCAPTCHA v2 obligatorio, bloqueo ante indisponibilidad y reintento.

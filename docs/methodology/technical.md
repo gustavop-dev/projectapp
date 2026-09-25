@@ -1,5 +1,7 @@
 # Technical Documentation — ProjectApp
 
+> **2026-09-24 — copia de documentos:** Exportación Markdown: endpoints administrativos `contract/markdown/`, `formalization/markdown/{kind}/` y `documents/{doc_id}/markdown/`; descarga del original vía `documents/{doc_id}/download/`. Sesión del panel, IsAdminUser, no-store y pertenencia a la propuesta. Migración 0255 para el snapshot interno; PDF legado se extrae bajo demanda. Detalle de formatos y presupuestos en `docs/PROPOSAL_FORMALIZATION.md`.
+
 > **CAPTCHA de login — 2026-09-23:** ambos accesos requieren claves v2 y
 > hostnames explícitos. `RECAPTCHA_ENABLED` sólo permite opt-out local/test;
 > producción lo fuerza. El build necesita `NUXT_PUBLIC_RECAPTCHA_SITE_KEY`

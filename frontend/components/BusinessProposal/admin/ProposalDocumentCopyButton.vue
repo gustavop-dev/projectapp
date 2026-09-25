@@ -44,7 +44,10 @@ async function copyDocument() {
   try {
     const { data } = await get_request(props.endpoint, { signal: request.signal });
     if (request.signal.aborted) return;
-    if (!data.markdown?.trim()) throw new Error('El documento no contiene texto para copiar.');
+    if (!data.markdown?.trim()) {
+      notify.error('El documento no contiene texto para copiar.');
+      return;
+    }
     const copied = await feedback.copyText({
       text: data.markdown,
       onError: () => notify.error('No se pudo copiar. Revisa el permiso del portapapeles y vuelve a intentarlo.'),
@@ -54,7 +57,7 @@ async function copyDocument() {
     }
   } catch (error) {
     if (!request.signal.aborted) {
-      notify.error(error.response?.data?.error || error.message || 'No se pudo obtener el documento. Vuelve a intentarlo.');
+      notify.error(error.response?.data?.error || 'No se pudo obtener el documento. Vuelve a intentarlo.');
     }
   } finally {
     if (controller === request) {

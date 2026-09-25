@@ -1,0 +1,16 @@
+{
+  "id": "admin-proposal-document-markdown",
+  "name": "Admin Proposal Document Markdown",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "From the Documentos tab of a sent, viewed, negotiating, accepted, or rejected proposal, admin copies the Markdown for a generated development contract, formal commercial proposal, formal technical specification, or compatible attachment. PDF copy reconstructs extracted text with a warning; DOCX and XLSX copy and preview textual content and tables. PDF and image previews retain their original rendering, and every attachment can be downloaded as its original file.",
+  "outcomes": [
+    "success",
+    "error",
+    "failure",
+    "display"
+  ]
+}
