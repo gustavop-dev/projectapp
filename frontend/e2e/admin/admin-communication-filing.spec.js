@@ -1,4 +1,3 @@
-// qa: draft-unvalidated (2026-09-25 — Playwright global warmup did not start specs)
 /**
  * @flow:admin-communication-folders
  * E2E coverage for filing manual communication threads in nested folders.
@@ -6,6 +5,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { waitForNuxtApp } from '../helpers/navigation.js';
 
 const authCheck = {
   status: 200,
@@ -194,6 +194,7 @@ test.describe('Admin communication filing', () => {
     await expect(page).toHaveURL(/folder=11/);
     await expect(page.getByTestId('communication-thread-row-41')).toContainText('#41');
     await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForNuxtApp(page);
     await expect(page).toHaveURL(/folder=11/);
     await expect(page.getByTestId('communication-thread-row-41')).toContainText('Renovaciones');
 

@@ -44,7 +44,16 @@ def call_tool(api_client, token, name, arguments):
 
 
 def tool_payload(response):
-    return json.loads(response.data['result']['content'][0]['text'])
+    result = json.loads(response.data['result']['content'][0]['text'])
+    return result.get('result', result) if result.get('confirmed') else result
+
+
+def call_confirmed_tool(api_client, token, name, arguments):
+    preview = call_tool(api_client, token, name, arguments)
+    confirmation_id = preview.data['result']['structuredContent']['confirmation_id']
+    return call_tool(api_client, token, 'confirm_action', {
+        'confirmation_id': confirmation_id,
+    })
 
 
 def test_mcp_creates_updates_lists_and_deletes_an_empty_folder(api_client, communications_connector):
@@ -60,7 +69,9 @@ def test_mcp_creates_updates_lists_and_deletes_an_empty_folder(api_client, commu
         'folder_id': folder_id, 'name': 'Preparación final',
     })
     listed = call_tool(api_client, token, 'list_folders', {'client_id': client.id})
-    deleted = call_tool(api_client, token, 'delete_folder', {'folder_id': folder_id})
+    deleted = call_confirmed_tool(
+        api_client, token, 'delete_folder', {'folder_id': folder_id},
+    )
 
     assert created.data['result']['isError'] is False
     assert tool_payload(updated)['name'] == 'Preparación final'

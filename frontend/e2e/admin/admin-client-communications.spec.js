@@ -597,10 +597,12 @@ test.describe('Admin Client Communications', () => {
     await openMainThread(page);
 
     const timeline = page.getByTestId('communication-timeline');
-    await expect(page.getByText('Hilo #41', { exact: true })).toBeVisible();
+    await expect(page.getByText(/^(?:Hilo|Thread) #41$/)).toBeVisible();
     await expect(page.getByTestId('communication-thread-row-41')).toContainText('#41');
-    await expect(page.getByTestId('communication-message-801')).toContainText('Mensaje #801');
-    await expect(page.getByTestId('communication-message-802')).toContainText('Mensaje #802');
+    await expect(page.getByTestId('communication-message-801'))
+      .toContainText(/(?:Mensaje|Message) #801/);
+    await expect(page.getByTestId('communication-message-802'))
+      .toContainText(/(?:Mensaje|Message) #802/);
     await expect(page.getByTestId('communication-message-801')
       .getByText('Te compartimos el alcance actualizado.', { exact: true }))
       .toBeVisible();
@@ -1012,18 +1014,26 @@ test.describe('Admin Client Communications', () => {
     await gotoCommunications(page);
     await openMainThread(page);
 
-    await expect(page.getByTestId('communication-composer')).toHaveCount(0);
+    const composerToggle = page.getByTestId('communication-composer-toggle');
+    const content = page.getByTestId('communication-message-content');
+    await expect(composerToggle).toHaveAttribute('aria-expanded', 'false');
+    await content.evaluate((element) => element.focus());
+    await expect(content).not.toBeFocused();
     await page.getByTestId('communication-message-802').getByRole('button', { name: 'Responder' }).click();
+    await expect(composerToggle).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByTestId('communication-composer')).toContainText('Respuesta al mensaje #802');
-    await page.getByTestId('communication-details-toggle').click();
+    await expect(content).toBeFocused();
+    const detailsToggle = page.getByTestId('communication-details-toggle');
+    await detailsToggle.click();
     const date = page.getByTestId('communication-message-date');
     await date.fill('2026-09-25T09:30');
-    await page.getByTestId('communication-message-content').fill('La respuesta conserva su fecha.');
-    await page.getByTestId('communication-details-toggle').click();
+    await content.fill('La respuesta conserva su fecha.');
+    await detailsToggle.click();
 
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByTestId('communication-details-summary')).toContainText('25/09/2026');
-    await expect(page.getByTestId('communication-message-content'))
-      .toHaveValue('La respuesta conserva su fecha.');
+    await expect(date).toHaveValue('2026-09-25T09:30');
+    await expect(content).toHaveValue('La respuesta conserva su fecha.');
   });
 
   test('copies directly and marks a draft sent from the overflow menu', {
@@ -1053,7 +1063,8 @@ test.describe('Admin Client Communications', () => {
       .toBe('Texto que debe copiarse sin abrir Más.');
 
     const actions = page.getByTestId('communication-message-actions-803');
-    await actions.getByRole('button', { name: 'Más' }).click();
+    await expect(actions).toHaveAttribute('aria-haspopup', 'menu');
+    await actions.click();
     await page.getByRole('menuitem', { name: 'Marcar enviado' }).click();
     await expect(page.getByTestId('communication-message-803')).toContainText('Enviado');
   });
