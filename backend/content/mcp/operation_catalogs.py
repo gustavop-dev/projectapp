@@ -224,7 +224,7 @@ COMMERCIAL_PARITY_TOOLS = [
     _op('get_hour_package_settings', 'Obtiene ajustes de paquetes de horas.', 'hour-package-settings'),
     _op('update_hour_package_settings', 'Actualiza ajustes de paquetes de horas.', 'update-hour-package-settings', 'PATCH', risk='write'),
     _op('restore_default_hour_packages', 'Restaura el catálogo inicial de paquetes.', 'restore-default-hour-packages', 'POST', risk='sensitive', confirm=True),
-    _op('get_financing_program', 'Obtiene el Programa de Alianza informativo: financiación, exclusividad y paquete mensual.', 'public-financing-program'),
+    _op('get_financing_program', 'Obtiene el Programa de Alianza: financiación, custodia, paquete mensual y exclusividad conceptual de Project App. sólo en la modalidad de cinco años.', 'public-financing-program'),
     _op('render_financing_program_pdf', 'Genera el PDF del Programa de Alianza como asset temporal.', 'public-financing-program-pdf'),
 ]
 

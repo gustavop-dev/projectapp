@@ -322,7 +322,7 @@ function submit() {
         <BaseFormField :label="t('financing.agreement.form.linkedProposal')" :hint="t('financing.agreement.form.optional')"><BaseSelect :model-value="form.source_proposal_id" :options="proposalOptions" @update:model-value="chooseProposal" /></BaseFormField>
         <BaseFormField :label="t('financing.agreement.form.linkedProject')" :hint="t('financing.agreement.form.optional')"><BaseSelect :model-value="form.source_project_id" :options="projectOptions" @update:model-value="chooseProject" /></BaseFormField>
         <BaseFormField class="sm:col-span-2" :label="t('financing.agreement.form.projectName')" required :error="errorFor('project_name')"><BaseInput v-model="form.project_name" data-testid="financing-project-name" /></BaseFormField>
-        <BaseFormField class="sm:col-span-2" :label="t('financing.agreement.form.financedScope')" required :error="errorFor('financed_scope')"><BaseTextarea v-model="form.financed_scope" rows="4" :placeholder="t('financing.agreement.form.financedScopePlaceholder')" data-testid="financing-scope" /></BaseFormField>
+        <BaseFormField class="sm:col-span-2" :label="t('financing.agreement.form.financedScope')" :hint="form.modality === 'five_year' ? t('financing.agreement.form.conceptualScopeHint') : ''" required :error="errorFor('financed_scope')"><BaseTextarea v-model="form.financed_scope" rows="4" :placeholder="t('financing.agreement.form.financedScopePlaceholder')" data-testid="financing-scope" /></BaseFormField>
       </div>
     </section>
 
@@ -338,7 +338,7 @@ function submit() {
       <BaseAlert v-else class="mt-5" variant="info">
         {{ t('financing.agreement.form.secondCycleNotice') }}
       </BaseAlert>
-      <BaseAlert class="mt-4" :variant="form.modality === 'five_year' ? 'success' : 'info'">
+      <BaseAlert class="mt-4" :variant="form.modality === 'five_year' ? 'success' : 'info'" data-testid="financing-modality-benefits">
         <p v-if="form.modality === 'five_year'" class="text-sm">{{ t('financing.agreement.form.fiveYearBenefits') }}</p>
         <p v-else class="text-sm">{{ t('financing.agreement.form.threeYearBenefits') }}</p>
       </BaseAlert>

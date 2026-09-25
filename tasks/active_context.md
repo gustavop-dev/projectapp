@@ -1951,3 +1951,17 @@ Implementado: colores por tarjeta, logo independiente del avatar y familia Googl
 ## Marca por proyecto (2026-09-21)
 
 Implementado: relación opcional Linktree → Project y biblioteca privada por proyecto con categorías de branding, manual, sistema de diseño y logos. Entrada desde Acciones en Proyectos; reutiliza el almacenamiento privado y las sesiones del panel.
+
+## Programa de Alianza — exclusividad conceptual (2026-09-25)
+
+La modalidad de cinco años añade un compromiso de Project App. de no reproducir
+para otros clientes conceptos, ideas o enfoques específicos del producto en
+proyectos competidores del mismo sector y nicho durante la vigencia original.
+El programa público, su vista previa y booklet comparten la octava condición
+bilingüe. El formulario guía la delimitación escrita del alcance y el otrosí
+incluye el compromiso sólo con `five_year`; tres años lo excluye. Los snapshots
+legales existentes se conservan y el segundo ciclo no amplía el plazo. Sin
+migraciones ni cambios de política financiera. Backend focal y regresión:
+27 casos aprobados; mapa de vistas: 20 tests aprobados; quality gate focal:
+100/100, sin errores ni warnings. Flow-map vigente, con las clases declaradas
+del módulo cubiertas. El estado de navegador y CI se registra en el PR.

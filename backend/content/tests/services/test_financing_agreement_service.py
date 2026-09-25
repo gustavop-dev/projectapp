@@ -1,8 +1,10 @@
 import hashlib
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
+from pypdf import PdfReader
 
 from content.models import FinancingAgreement, FinancingAgreementTemplate
 from content.services.financing_agreement_service import (
@@ -16,9 +18,11 @@ from content.services.financing_agreement_service import (
     create_second_cycle,
     mark_ready,
     normalize_installment_schedule,
+    resolve_agreement_markdown,
     update_draft,
     validate_template_markdown,
 )
+from content.services.financing_agreement_pdf_service import FinancingAgreementPdfService
 
 
 pytestmark = pytest.mark.django_db
@@ -61,6 +65,67 @@ def test_schedule_rounding_preserves_exact_financed_balance():
     assert schedule[0]['amount'] == '8.33'
     assert schedule[-1]['amount'] == '8.37'
     assert sum(Decimal(row['amount']) for row in schedule) == Decimal('100.00')
+
+
+@pytest.mark.parametrize(
+    ('modality', 'includes_exclusivity'),
+    [('five_year', True), ('three_year', False)],
+)
+def test_draft_conceptual_exclusivity_follows_selected_modality(
+    make_client_profile, admin_user, company_settings, modality, includes_exclusivity,
+):
+    """Only a five-year draft includes the contractor's bounded non-compete."""
+    agreement = create_agreement(
+        _agreement_data(make_client_profile(nit='9001'), _template(), modality=modality),
+        actor=admin_user,
+    )
+
+    markdown = resolve_agreement_markdown(agreement, draft=True)
+
+    assert ('Exclusividad conceptual y no competencia de EL CONTRATISTA' in markdown) is includes_exclusivity
+    assert ('compitan en el mismo sector y nicho' in markdown) is includes_exclusivity
+    assert ('Un segundo ciclo no reinicia ni amplía esta restricción' in markdown) is includes_exclusivity
+
+
+def test_switching_draft_to_three_years_removes_conceptual_exclusivity(
+    make_client_profile, admin_user, company_settings,
+):
+    """Changing modality must remove the previously offered extra commitment."""
+    agreement = create_agreement(
+        _agreement_data(make_client_profile(nit='9001'), _template()),
+        actor=admin_user,
+    )
+    assert 'Exclusividad conceptual' in resolve_agreement_markdown(agreement, draft=True)
+
+    updated = update_draft(agreement, {'modality': 'three_year'}, actor=admin_user)
+
+    assert 'Exclusividad conceptual' not in resolve_agreement_markdown(updated, draft=True)
+    assert updated.partnership_end_date == date(2029, 2, 1)
+
+
+def test_pdf_keeps_previously_frozen_conceptual_terms(
+    make_client_profile, admin_user, company_settings,
+):
+    """Generating an existing addendum must not insert newly published terms."""
+    agreement = create_agreement(
+        _agreement_data(make_client_profile(nit='9001'), _template()),
+        actor=admin_user,
+    )
+    ready = mark_ready(agreement, actor=admin_user)
+    previous_text = '# Otrosí\n\nCondiciones originales revisadas por las partes.'
+    FinancingAgreement.objects.filter(pk=ready.pk).update(
+        resolved_contract_markdown=previous_text,
+        resolved_contract_sha256=hashlib.sha256(previous_text.encode()).hexdigest(),
+    )
+    ready.refresh_from_db()
+
+    pdf = FinancingAgreementPdfService.build_draft(ready)
+    text = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages)
+
+    assert 'Condiciones originales revisadas por las partes.' in text
+    assert 'Exclusividad conceptual' not in text
+    ready.refresh_from_db()
+    assert ready.resolved_contract_markdown == previous_text
 
 
 def test_schedule_rejects_due_date_after_fifth_day():
@@ -137,6 +202,7 @@ def test_second_cycle_update_preserves_original_partnership_end(
     )
 
     assert updated.partnership_end_date == first.partnership_end_date
+    assert 'Un segundo ciclo no reinicia ni amplía esta restricción' in resolve_agreement_markdown(updated, draft=True)
 
 
 @pytest.mark.parametrize(

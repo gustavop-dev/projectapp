@@ -816,7 +816,7 @@ La superficie humana nueva usa APIs staff/JWT dedicadas y no añade tools MCP.
 |---|---|
 | Contrato de campos del conector Comercial (`ExplainerVideoSettings`, `show_explainer_video` del enlace) | verde |
 | Adaptadores `get/update_explainer_video_settings` y `update_additional_module_share` resuelven a vistas con el método declarado | verde |
-| Descripciones de `get_financing_program` / `render_financing_program_pdf` | nombran el Programa de Alianza; los nombres de las tools no cambian |
+| Descripciones de `get_financing_program` / `render_financing_program_pdf` | nombran el Programa de Alianza; comparten las ocho condiciones, incluida la exclusividad conceptual de Project App. sólo a cinco años. Los nombres de las tools no cambian |
 | Invocación en vivo contra producción | no ejecutada; fuera del alcance de la entrega |
 
 El conector Comercial pasa de 132 a 135 herramientas. La descripción del

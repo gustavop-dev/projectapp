@@ -15,7 +15,15 @@ const content = {
       ['five-year', 'Alianza a 5 años', 'Recomendada', true, 5],
       ['three-year', 'Alianza a 3 años', 'Alternativa', false, 3],
     ],
-    conditionTitles: ['12 meses de financiación', 'Exclusividad y custodia responsable', 'Calculadora de requerimientos', '60 horas disponibles cada mes', 'Pagos claros y cobertura del riesgo de impago', 'Un rango claro para aplicar', 'Análisis de riesgo y aporte desde el 20%'],
+    conditionTitles: ['12 meses de financiación', 'Exclusividad y custodia responsable', 'Calculadora de requerimientos', '60 horas disponibles cada mes', 'Pagos claros y cobertura del riesgo de impago', 'Un rango claro para aplicar', 'Análisis de riesgo y aporte desde el 20%', 'Exclusividad conceptual — sólo a 5 años'],
+    conceptualExclusivity: {
+      summary: 'Project App. renuncia durante los cinco años a reproducir conceptos, ideas o enfoques específicos del producto para proyectos competidores del mismo sector y nicho.',
+      included: 'Exclusividad conceptual a cargo de Project App. durante los cinco años.',
+      excluded: 'Sin el compromiso adicional de exclusividad conceptual de la opción a cinco años.',
+      scope: 'La propuesta y el contrato delimitan por escrito el sector, el nicho, el producto y los conceptos o enfoques comprendidos.',
+      termTitle: 'No competencia conceptual en la alianza a cinco años',
+      term: 'Aplica únicamente al elegir la modalidad de cinco años y durante su vigencia original; un segundo ciclo no reinicia ni extiende este plazo.',
+    },
     calculator: {
       eyebrow: 'Transparencia para decidir',
       title: 'De una necesidad en palabras a un rango útil para planear',
@@ -59,7 +67,15 @@ const content = {
       ['five-year', '5-year partnership', 'Recommended', true, 5],
       ['three-year', '3-year partnership', 'Alternative', false, 3],
     ],
-    conditionTitles: ['12 months of financing', 'Exclusivity and responsible custody', 'Requirement calculator', '60 hours available every month', 'Clear payments and default-risk coverage', 'A clear eligibility range', 'Risk review and contribution from 20%'],
+    conditionTitles: ['12 months of financing', 'Exclusivity and responsible custody', 'Requirement calculator', '60 hours available every month', 'Clear payments and default-risk coverage', 'A clear eligibility range', 'Risk review and contribution from 20%', 'Conceptual exclusivity — five-year option only'],
+    conceptualExclusivity: {
+      summary: 'During the five-year term, Project App. agrees not to reproduce specific product concepts, ideas, or approaches for competing projects in the same sector and niche.',
+      included: 'Conceptual exclusivity by Project App. throughout the five-year term.',
+      excluded: 'Excludes the additional conceptual exclusivity commitment of the five-year option.',
+      scope: 'The proposal and contract define the sector, niche, product, and covered concepts or approaches in writing.',
+      termTitle: 'Conceptual non-compete in the five-year partnership',
+      term: 'It applies only when the five-year option is chosen and during its original term; a second cycle does not restart or extend this period.',
+    },
     calculator: {
       eyebrow: 'Transparency for better decisions',
       title: 'From a need in plain language to a useful planning range',
@@ -114,28 +130,29 @@ export function financingProgramFixture(language = 'es', overrides = {}) {
         : (included ? 'Financiación con continuidad mensual.' : 'Financiación sin paquete mensual.'),
       highlights: language === 'en'
         ? (included
-            ? ['Up to two separate 12-month cycles at 0% ordinary interest.']
-            : ['One 12-month cycle at 0% ordinary interest.'])
+            ? ['Up to two separate 12-month cycles at 0% ordinary interest.', copy.conceptualExclusivity.included]
+            : ['One 12-month cycle at 0% ordinary interest.', copy.conceptualExclusivity.excluded])
         : (included
-            ? ['Hasta dos ciclos separados de 12 meses con interés ordinario del 0%.']
-            : ['Un ciclo de 12 meses con interés ordinario del 0%.']),
+            ? ['Hasta dos ciclos separados de 12 meses con interés ordinario del 0%.', copy.conceptualExclusivity.included]
+            : ['Un ciclo de 12 meses con interés ordinario del 0%.', copy.conceptualExclusivity.excluded]),
     })),
     conditions: copy.conditionTitles.map((title, index) => {
       const isPaymentCondition = index === 4
+      const isConceptualCondition = index === 7
       return {
-        id: ['financing', 'exclusivity', 'calculator', 'hour-package', 'payment-discipline', 'project-value-range', 'risk-and-initial-payment'][index],
+        id: ['financing', 'exclusivity', 'calculator', 'hour-package', 'payment-discipline', 'project-value-range', 'risk-and-initial-payment', 'conceptual-exclusivity'][index],
         number: String(index + 1).padStart(2, '0'),
-        icon: ['↗', '◇', '◎', '◷', '%', '◆', '◒'][index],
+        icon: ['↗', '◇', '◎', '◷', '%', '◆', '◒', '◇'][index],
         title,
         summary: isPaymentCondition
           ? (language === 'en'
               ? 'An overdue installment increases current Hosting by 2%.'
               : 'Una cuota en mora aumenta en 2% el costo vigente del Hosting.')
-          : 'A clear commercial condition for the partnership.',
+          : (isConceptualCondition ? copy.conceptualExclusivity.summary : 'A clear commercial condition for the partnership.'),
         commercial_reason: 'It protects continuity and makes decisions predictable.',
         highlights: isPaymentCondition
           ? [language === 'en' ? 'Increases are cumulative and permanent.' : 'Los aumentos son acumulativos y permanentes.']
-          : ['The formal agreement defines its exact scope.'],
+          : (isConceptualCondition ? [copy.conceptualExclusivity.scope] : ['The formal agreement defines its exact scope.']),
       }
     }),
     calculator: copy.calculator,
@@ -148,6 +165,12 @@ export function financingProgramFixture(language = 'es', overrides = {}) {
       catalog_synced: overrides.catalogSynced ?? true,
     },
     legal_terms: [
+      {
+        id: 'conceptual-exclusivity-scope',
+        title: copy.conceptualExclusivity.termTitle,
+        summary: copy.conceptualExclusivity.summary,
+        items: [copy.conceptualExclusivity.term, copy.conceptualExclusivity.scope],
+      },
       {
         id: 'late-payment-hosting',
         title: language === 'en' ? 'Late payment and Hosting increase' : 'Mora y aumento del costo del Hosting',

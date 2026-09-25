@@ -152,7 +152,7 @@ def test_public_pdf_expands_financing_terms(pro_package):
         for page in PdfReader(BytesIO(response.content)).pages
     )
 
-    assert 'Las 7 condiciones comerciales' in text
+    assert 'Las 8 condiciones comerciales' in text
     assert 'Custodia de código no es cesión de propiedad' in text
     assert 'Paquete Pro vigente' in text
 

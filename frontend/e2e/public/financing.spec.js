@@ -73,6 +73,9 @@ test.describe('Public financing program', () => {
     await expect(page.getByTestId('financing-condition-project-value-range')).toContainText('Un rango claro para aplicar')
     await expect(page.getByTestId('financing-condition-risk-and-initial-payment')).toContainText('aporte desde el 20%')
     await expect(page.getByTestId('financing-option-five-year')).toContainText('dos ciclos')
+    await expect(page.getByTestId('financing-option-five-year')).toContainText('Exclusividad conceptual a cargo de Project App.')
+    await expect(page.getByTestId('financing-option-three-year')).toContainText('Sin el compromiso adicional de exclusividad conceptual')
+    await expect(page.getByTestId('financing-condition-conceptual-exclusivity')).toContainText('proyectos competidores del mismo sector y nicho')
     await expect(page.getByTestId('financing-calculator-input-output')).toContainText('Qué se obtiene')
     await expect(page.getByTestId('financing-package-facts')).toContainText('No acumula horas')
     await expect(page.getByTestId('financing-whatsapp-cta')).toHaveAttribute('href', /wa\.me\/573238122373/)
@@ -90,6 +93,23 @@ test.describe('Public financing program', () => {
     await expect(page).toHaveURL(/\/en-us\/partnership-program$/)
     await expect(page.getByRole('heading', { name: 'We build today. We grow with you.' })).toBeVisible()
     await expect(page.getByTestId('financing-option-five-year')).toContainText('5-year partnership')
+    await expect(page.getByTestId('financing-condition-conceptual-exclusivity')).toContainText('Conceptual exclusivity — five-year option only')
+  })
+
+  test('expands the five-year conceptual exclusivity scope', {
+    tag: [...PUBLIC_FINANCING_TERMS, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page)
+    await openFromFooter(page)
+    const trigger = page.getByTestId('financing-term-trigger-conceptual-exclusivity-scope')
+
+    await trigger.click()
+
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    const term = page.getByTestId('financing-term-conceptual-exclusivity-scope')
+    await expect(term.getByText('Aplica únicamente al elegir la modalidad de cinco años', { exact: false })).toBeVisible()
+    await expect(term).toContainText('un segundo ciclo no reinicia ni extiende este plazo')
+    await expect(term).toContainText('delimitan por escrito el sector, el nicho, el producto')
   })
 
   test('expands the code custody rule', {
