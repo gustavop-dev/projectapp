@@ -405,7 +405,8 @@ class TestDefaultTemplateIntegrity:
         """The old unconditional transfer wording must be gone, not merely supplemented."""
         md = self.template.content_markdown
         assert 'se transfieren de manera permanente desde el momento de la entrega' not in md
-        assert 'conforme a la condición suspensiva establecida en la CLÁUSULA NOVENA' in md
+        assert 'una vez cumplidas las condiciones establecidas en la CLÁUSULA NOVENA' in md
+        assert 'incluidas las aplicables a la terminación unilateral por EL CONTRATANTE' in md
         assert '### Parágrafo Tercero — Licencia Temporal de Uso' in md
 
     def test_contractor_is_identified_by_the_resolved_document(self):
