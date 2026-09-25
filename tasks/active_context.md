@@ -12,6 +12,15 @@ base real mediante el despliegue; validación en SQLite aislado del worktree
 
 # Retiro del recordatorio responsivo — implementado (2026-09-23)
 
+**2026-09-25 — copia Markdown de documentos de propuestas:** implementada en
+[PR #408](https://github.com/gustavop-dev/projectapp/pull/408). El contrato
+conserva el texto junto a su PDF; los anexos formales comparten contenido
+curado y los adjuntos admiten PDF textual, DOCX y XLSX sin OCR. Incluye vista
+previa de Office, descarga del original, feedback de portapapeles y mapas
+actualizados. Backend: 29 casos focales verificados con almacenamiento y
+SQLite temporales. La validación final de navegador y CI se consulta en el PR.
+La migración 0255 se aplica durante el deploy.
+
 Por decisión del operador, el PR #405 incorpora el retiro del job
 `standards-review` y su cron de febrero/agosto. Sólo creaban una issue semestral;
 su omisión en los PR era consecuencia de esa condición. Se conservan contrato,

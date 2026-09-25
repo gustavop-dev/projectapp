@@ -423,6 +423,15 @@ MCP_MODEL_CONTRACTS = {
             read_write='shared_by_name shared_by_email',
         ),
         _contract(
+            'content.ProposalDocument',
+            excluded=_excluded(
+                'Archivo y snapshot textual de contrato administrados por el panel; '
+                'el MCP de propuestas no consulta ni modifica adjuntos.',
+                'id proposal document_type title file custom_type_label is_generated '
+                'content_markdown created_at updated_at',
+            ),
+        ),
+        _contract(
             'content.ProposalFormalization',
             excluded=_excluded(
                 'Preparación privada y temporal del administrador: su revisión y envío '

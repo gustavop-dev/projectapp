@@ -52,3 +52,29 @@ afirmar que el cliente eligió una. No se refrescan catálogos al producir los P
   historial. Enviar estos documentos no cambia el estado de la propuesta.
 - La migración `content.0249` crea las preparaciones y sus archivos privados.
   Sus modelos son temporales, excluidos de fake data persistente y del MCP.
+
+## Copiar y consultar documentos
+
+**Copiar Markdown** lleva al portapapeles el contenido del documento elegido.
+Los anexos comercial y técnico usan los mismos datos guardados y filtros de sus
+PDF. El contrato conserva su texto al generar el PDF: un cambio posterior de
+plantilla no altera su copia. Los contratos anteriores sin snapshot usan el
+texto del PDF guardado y avisan que su formato fue reconstruido.
+
+Los adjuntos muestran acciones explícitas de vista previa, descarga del original
+y copia. PDF conserva su visor; DOCX y XLSX presentan texto y tablas, sin reproducir
+el diseño de Office. Las fórmulas se muestran como texto. Las imágenes se pueden
+visualizar y descargar; copiar requiere OCR, fuera de este alcance. DOC y XLS
+requieren conversión a los formatos modernos. Escaneos, archivos protegidos,
+corruptos o sin texto muestran una explicación; no se copia una respuesta vacía.
+
+La extracción ocurre bajo demanda en un proceso local con 256 MB de memoria,
+8 segundos de CPU y 12 segundos de espera máxima. Rechaza archivos de más de
+15 MB, PDF de más de 100 páginas, libros de más de 20.000 celdas, contenido
+expandido de más de 50 MB o salidas de más de un millón de caracteres. Los
+límites no truncan silenciosamente el texto. PDF con páginas sin texto avisa
+cuáles requieren revisión. No hay consultas externas ni ejecución de macros.
+
+La migración `content.0255` añade el snapshot interno `content_markdown` a
+`ProposalDocument`; los registros existentes permanecen vacíos hasta una nueva
+generación explícita del contrato. No requiere regeneración ni backfill masivo.

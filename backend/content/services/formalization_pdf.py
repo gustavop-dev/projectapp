@@ -9,6 +9,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import LongTable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableStyle
 from reportlab.platypus.tableofcontents import TableOfContents
 
+from content.services.formalization_content import formal_document_blocks, formal_document_title
 from content.services.pdf_utils import _font, _register_fonts, _strip_emoji
 
 
@@ -21,10 +22,9 @@ class AnnexDocument(SimpleDocTemplate):
 
 
 def generate_formal_pdf(content, kind, issued_at, reference):
-    blocks = content.commercial() if kind == 'commercial' else content.technical()
-    blocks = [b for b in blocks if b['paragraphs'] or b['rows']]
+    blocks = formal_document_blocks(content, kind)
     _register_fonts()
-    title = content.label('Propuesta comercial formal', 'Formal commercial proposal') if kind == 'commercial' else content.label('Detalle técnico formal', 'Formal technical specification')
+    title = formal_document_title(content, kind)
     normal = ParagraphStyle('AnnexBody', fontName=_font('regular'), fontSize=9, leading=13, spaceAfter=8, splitLongWords=True)
     heading = ParagraphStyle('AnnexHeading', parent=normal, fontName=_font('bold'), fontSize=14, leading=19, spaceBefore=18, spaceAfter=10, keepWithNext=True)
     cover = ParagraphStyle('AnnexCover', parent=heading, fontSize=24, leading=30)

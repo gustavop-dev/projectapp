@@ -1,5 +1,7 @@
 # Architecture — ProjectApp
 
+> **2026-09-24 — copia de documentos:** El contrato guarda el snapshot Markdown junto al PDF en `ProposalDocument`; los anexos formalizados comparten `FormalContent` entre PDF y Markdown. Los nuevos GET administrativos de exportación son privados y de sólo lectura. La extracción de adjuntos ocurre en un proceso local limitado; no utiliza servicios externos.
+
 > **CAPTCHA de acceso — 2026-09-23:** `projectapp.recaptcha` centraliza la
 > validación de reCAPTCHA v2 para Django Admin (formulario nativo) y el login
 > JWT de Plataforma. Se ejecuta antes de credenciales, sesión, JWT u OTP;

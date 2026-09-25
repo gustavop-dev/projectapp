@@ -3294,9 +3294,10 @@ def email_deliverability_dashboard(request):
 
 def _generate_and_save_contract_pdf(proposal):
     """Generate contract PDF from proposal.contract_params and save as ProposalDocument."""
-    from content.services.contract_pdf_service import generate_contract_pdf
+    from content.services.contract_pdf_service import generate_contract_pdf, resolve_contract_content
 
-    pdf_bytes = generate_contract_pdf(proposal)
+    content = resolve_contract_content(proposal)
+    pdf_bytes = generate_contract_pdf(proposal, resolved_content=content)
     if not pdf_bytes:
         return
     from django.core.files.base import ContentFile
@@ -3313,6 +3314,7 @@ def _generate_and_save_contract_pdf(proposal):
         document_type=ProposalDocument.DOC_TYPE_CONTRACT,
         defaults={'title': 'Contrato de desarrollo de software', 'is_generated': True},
     )
+    doc.content_markdown = content['snapshot']
     doc.file.save(filename, ContentFile(pdf_bytes), save=True)
 
 

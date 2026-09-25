@@ -270,3 +270,17 @@ class FormalContent:
         add('Pruebas', 'Tests', quality.get('testTypes'), [('type', 'Tipo', 'Type'), ('validates', 'Valida', 'Validates'), ('tool', 'Herramienta', 'Tool'), ('whenRun', 'Momento', 'When')])
         add('Decisiones técnicas', 'Technical decisions', d.get('decisions'), [('decision', 'Decisión', 'Decision'), ('alternative', 'Alternativa evaluada', 'Considered alternative'), ('reason', 'Justificación', 'Rationale')])
         return blocks
+
+
+def formal_document_title(content, kind):
+    if kind == 'commercial':
+        return content.label('Propuesta comercial formal', 'Formal commercial proposal')
+    if kind == 'technical':
+        return content.label('Detalle técnico formal', 'Formal technical specification')
+    raise FormalizationError('Tipo de documento inválido.', 'invalid_document')
+
+
+def formal_document_blocks(content, kind):
+    formal_document_title(content, kind)
+    blocks = content.commercial() if kind == 'commercial' else content.technical()
+    return [block for block in blocks if block['paragraphs'] or block['rows']]

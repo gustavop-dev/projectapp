@@ -25,6 +25,10 @@
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <template v-if="contractDoc">
+              <ProposalDocumentCopyButton
+                :key="`contract-${proposal.id}-${contractDoc.updated_at || contractDoc.file}`"
+                :endpoint="`proposals/${proposal.id}/contract/markdown/`"
+                title="Contrato de desarrollo" data-testid="proposal-copy-contract" />
               <BaseActionButton action="view" label="Vista previa del contrato"
                 @click="openPdfPreview('Contrato de desarrollo', contractPdfUrl)"
                 class="bg-surface-raised text-text-muted hover:bg-surface-raised" />
@@ -53,7 +57,9 @@
             <div class="text-sm font-medium text-text-default dark:text-white">Propuesta comercial formal</div>
             <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF formal · Contenido curado</div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <ProposalDocumentCopyButton :endpoint="`proposals/${proposal.id}/formalization/markdown/commercial/`"
+              title="Propuesta comercial formal" data-testid="proposal-copy-commercial" />
             <BaseActionButton action="view" label="Vista previa de la propuesta comercial"
               @click="openPdfPreview('Propuesta comercial', commercialPdfUrl)"
               class="bg-surface-raised text-text-muted hover:bg-surface-raised" />
@@ -71,7 +77,9 @@
             <div class="text-sm font-medium text-text-default dark:text-white">Detalle técnico formal</div>
             <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF formal · Contenido curado</div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <ProposalDocumentCopyButton :endpoint="`proposals/${proposal.id}/formalization/markdown/technical/`"
+              title="Detalle técnico formal" data-testid="proposal-copy-technical" />
             <BaseActionButton action="view" label="Vista previa del detalle técnico"
               @click="openPdfPreview('Detalle técnico', technicalPdfUrl)"
               class="bg-surface-raised text-text-muted hover:bg-surface-raised" />
@@ -96,7 +104,8 @@
 
       <div v-if="additionalDocs.length" class="space-y-2 mb-4">
         <div v-for="doc in additionalDocs" :key="doc.id"
-          class="flex items-center justify-between py-2 px-3 bg-surface-raised rounded-lg">
+          :data-testid="`proposal-attachment-${doc.id}`"
+          class="flex flex-wrap items-center justify-between gap-3 py-2 px-3 bg-surface-raised rounded-lg">
           <div class="flex items-center gap-2 min-w-0">
             <span class="px-2 py-0.5 bg-surface-raised text-text-muted/60 rounded text-[10px] font-medium">
               {{ doc.document_type_display }}
@@ -105,13 +114,21 @@
               {{ doc.title }}
             </a>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 flex-wrap">
+            <ProposalDocumentCopyButton :endpoint="`proposals/${proposal.id}/documents/${doc.id}/markdown/`"
+              :title="doc.title" :disabled-reason="copyUnavailableReason(doc.file)"
+              :data-testid="`proposal-copy-attachment-${doc.id}`" />
             <BaseActionButton
-              v-if="canPreviewFile(doc.file)"
               action="view"
               :label="`Vista previa de ${doc.title}`"
+              :disabled="!canPreviewFile(doc.file) && !isOfficeFile(doc.file)"
+              :disabled-reason="copyUnavailableReason(doc.file)"
               @click="openDocPreview(doc)"
             />
+            <BaseActionButton action="download" :label="`Descargar ${doc.title}`"
+              :loading="downloadingDocId === doc.id" :disabled="downloadingDocId !== null"
+              disabled-reason="Espera mientras se descarga el archivo."
+              @click="downloadAttachment(doc)" />
             <BaseActionButton
               v-if="!doc.is_generated"
               action="delete"
@@ -171,6 +188,10 @@
         class="flex items-center justify-center h-[60vh] text-sm text-red-500">
         {{ previewError }}
       </div>
+      <div v-else-if="previewKind === 'markdown'" class="min-w-0 overflow-x-auto">
+        <p v-if="previewWarnings.length" class="mb-4 text-sm text-text-muted" role="status">{{ previewWarnings.join(' ') }}</p>
+        <DocumentMarkdownBody :markdown="previewMarkdown" variant="full" standard-markdown />
+      </div>
       <iframe v-else-if="previewKind === 'pdf' && previewUrl" :src="previewUrl"
         class="w-full h-[80vh] border-0 rounded-lg bg-surface" title="Vista previa"></iframe>
       <img v-else-if="previewKind === 'image' && previewUrl" :src="previewUrl"
@@ -181,6 +202,10 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import ProposalDocumentCopyButton from './ProposalDocumentCopyButton.vue';
+import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
+import { get_request } from '~/stores/services/request_http';
+import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import ProposalFormalizationModal from './ProposalFormalizationModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { CONTRACT_LOCKED_STATUSES } from '~/stores/proposals_constants';
@@ -240,6 +265,9 @@ const additionalDocs = computed(() =>
 );
 
 const previewOpen = ref(false);
+const previewMarkdown = ref('');
+const previewWarnings = ref([]);
+const downloadingDocId = ref(null);
 const previewKind = ref('pdf');
 const previewTitle = ref('Vista previa');
 const previewUrl = ref('');
@@ -302,6 +330,61 @@ function openDocPreview(doc) {
     loadPreviewBlob('pdf', doc?.title, file);
   } else if (isImageUrl(file)) {
     loadPreviewBlob('image', doc?.title, file);
+  } else if (isOfficeFile(file)) {
+    loadMarkdownPreview(doc);
+  }
+}
+
+function isOfficeFile(file) {
+  return /\.(docx|xlsx)(?:\?|#|$)/i.test(file || '');
+}
+
+function copyUnavailableReason(file) {
+  if (isPdfUrl(file) || isOfficeFile(file)) return '';
+  if (/\.(doc|xls)(?:\?|#|$)/i.test(file || '')) return 'Convierte el archivo a DOCX o XLSX para visualizar y copiar su contenido.';
+  if (isImageUrl(file)) return 'La imagen no tiene texto extraíble. Se requiere reconocimiento de texto.';
+  return 'No hay contenido compatible para copiar. Puedes descargar el archivo original.';
+}
+
+async function loadMarkdownPreview(doc) {
+  abortInflightPreview();
+  releasePreviewObjectUrl();
+  previewKind.value = 'markdown';
+  previewTitle.value = doc.title;
+  previewMarkdown.value = '';
+  previewWarnings.value = [];
+  previewError.value = '';
+  previewLoading.value = true;
+  previewOpen.value = true;
+  const controller = new AbortController();
+  previewAbortController = controller;
+  const requestId = ++previewRequestId;
+  try {
+    const { data } = await get_request(`proposals/${props.proposal.id}/documents/${doc.id}/markdown/`, { signal: controller.signal });
+    if (requestId !== previewRequestId || !previewOpen.value) return;
+    previewMarkdown.value = data.markdown;
+    previewWarnings.value = data.warnings || [];
+  } catch (error) {
+    if (requestId !== previewRequestId || controller.signal.aborted) return;
+    previewError.value = error.response?.data?.error || 'No se pudo cargar la vista previa.';
+  } finally {
+    if (requestId === previewRequestId) {
+      previewLoading.value = false;
+      previewAbortController = null;
+    }
+  }
+}
+
+async function downloadAttachment(doc) {
+  if (downloadingDocId.value !== null) return;
+  downloadingDocId.value = doc.id;
+  try {
+    const response = await get_request(`proposals/${props.proposal.id}/documents/${doc.id}/download/`, { responseType: 'blob' });
+    downloadBlob(response.data, filenameFromDisposition(response.headers['content-disposition']) || doc.file?.split('/').pop() || doc.title);
+  } catch {
+    notify.error('No se pudo descargar el archivo. Vuelve a intentarlo.');
+  } finally {
+    downloadingDocId.value = null;
   }
 }
 

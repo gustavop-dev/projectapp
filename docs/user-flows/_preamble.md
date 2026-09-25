@@ -2957,17 +2957,14 @@ Two transitions that were previously bundled into other flows now have their own
 
 **Routes:** `/panel/proposals/:id/edit` (Documents tab)
 
-**Description:** From the Documents tab of the proposal edit page, admin clicks the eye icon next to a document. A modal opens previewing the file inline — PDF (rendered in `<iframe>`) or image (via `<img>`), gated by `frontend/utils/filePreview.js` (`isPdfUrl` / `isImageUrl` / `canPreviewFile`). Non-previewable files (Word, Excel, etc.) keep only the existing download action.
+**Description:** Admin previews proposal attachments inline. PDFs render in an `<iframe>` and images in an `<img>`; DOCX and XLSX render extracted Markdown text and tables with a warning. DOC/XLS and unsupported formats keep preview disabled but retain original-file download.
 
 **Steps:**
-1. Admin opens the Documents tab on a proposal edit page.
-2. Each document row shows an eye icon when `canPreviewFile(url)` returns `true`.
-3. Admin clicks the icon → preview modal opens.
-4. PDF documents render in an `<iframe>`; image documents render in an `<img>`.
-5. Admin closes the modal via the close button or backdrop click.
-6. [Branch — non-previewable] For docs not matching PDF/image extensions, the eye icon is not rendered; only the download link is available.
-
-**Known gaps:** Eye-icon preview modal added in `ProposalDocumentsTab.vue` on 2026-04-26 (commits `9877df24`, `e827bd38`). E2E spec pending; should mock `/uploads/<file>.pdf` and assert the modal opens.
+1. Admin opens Documentos on a proposal edit page.
+2. Admin opens preview for a PDF, image, DOCX, or XLSX attachment.
+3. PDF/image retain their original renderer; DOCX/XLSX load the textual Markdown preview.
+4. Admin closes the modal through its close control or backdrop.
+5. [Branch — unsupported] DOC/XLS keep Copy and Preview disabled with conversion guidance; images keep Copy disabled with OCR guidance. Original download remains available.
 
 **Flow tag:** `ADMIN_PROPOSAL_DOCUMENT_PREVIEW`
 

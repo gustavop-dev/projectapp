@@ -226,6 +226,7 @@ export const ADMIN_PROPOSAL_DELETE_FROM_CLIENT = ['@flow:admin-proposal-delete-f
 export const ADMIN_PROPOSAL_DEV_CHECKLIST = ['@flow:admin-proposal-dev-checklist', '@module:admin', '@priority:P3'];
 export const ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES = ['@flow:admin-proposal-diagnostic-templates', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DISCOUNT_OFFER_SEND = ['@flow:admin-proposal-discount-offer-send', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DOCUMENT_MARKDOWN = ['@flow:admin-proposal-document-markdown', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DOCUMENT_PREVIEW = ['@flow:admin-proposal-document-preview', '@module:admin', '@priority:P3'];
 export const ADMIN_PROPOSAL_DOCUMENTS_MANAGE = ['@flow:admin-proposal-documents-manage', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DOCUMENTS_SEND = ['@flow:admin-proposal-documents-send', '@module:admin', '@priority:P1'];

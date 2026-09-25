@@ -24,6 +24,14 @@ export function downloadBlob(blob, filename) {
 /** Extract the filename from a Content-Disposition header, if present. */
 export function filenameFromDisposition(disposition) {
   if (!disposition) return '';
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Fall through to the plain filename when an extended value is invalid.
+    }
+  }
   const match = /filename="?([^";]+)"?/.exec(disposition);
   return match ? match[1] : '';
 }
