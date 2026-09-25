@@ -2279,7 +2279,7 @@ def bug_report_detail_view(request, project_id, bug_id):
             ),
         )
     else:
-        bugs = BugReport.objects.prefetch_related('comments__user')
+        bugs = BugReport.objects.all()
 
     try:
         bug = bugs.get(id=bug_id, project=proj)
