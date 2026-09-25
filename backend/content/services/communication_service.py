@@ -100,11 +100,14 @@ def _draft_revision_changes(
 
 @transaction.atomic
 def create_thread(*, actor, **validated_data):
+    from content.services.communication_folder_service import lock_client, validate_thread_folder
+    lock_client(validated_data['client'].pk)
     thread = CommunicationThread(
         created_by=actor,
         updated_by=actor,
         **validated_data,
     )
+    validate_thread_folder(thread)
     _validate_thread(thread)
     thread.save()
     return thread
@@ -112,7 +115,10 @@ def create_thread(*, actor, **validated_data):
 
 @transaction.atomic
 def update_thread(thread, *, actor, **validated_data):
-    if thread.status == CommunicationThread.Status.CLOSED:
+    from content.services.communication_folder_service import lock_client, validate_thread_folder
+    lock_client(thread.client_id)
+    thread = CommunicationThread.objects.select_for_update().get(pk=thread.pk)
+    if thread.status == CommunicationThread.Status.CLOSED and set(validated_data) != {'folder'}:
         raise CommunicationError('Reabre el hilo antes de editarlo.')
     client = validated_data.get('client')
     if client is not None and client.pk != thread.client_id:
@@ -121,6 +127,10 @@ def update_thread(thread, *, actor, **validated_data):
         )
     for field, value in validated_data.items():
         setattr(thread, field, value)
+    if 'project' in validated_data and 'folder' not in validated_data and thread.folder_id:
+        if thread.folder.project_id and thread.folder.project_id != thread.project_id:
+            thread.folder = None
+    validate_thread_folder(thread)
     thread.updated_by = actor
     _validate_thread(thread)
     thread.save()

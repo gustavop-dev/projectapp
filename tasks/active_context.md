@@ -1,3 +1,7 @@
+# Carpetas y lectura de Comunicaciones — PR #416 (2026-09-25)
+
+Implementado en `feat/25092026-communication-folders-reading`: carpetas independientes por cliente/proyecto, IDs visibles y buscables, lectura del hilo con formulario y detalles plegables, accesos al inicio/final y copia directa. REST y MCP comparten las reglas de contexto, jerarquía y borrado protegido. La navegación de proyecto incluye las carpetas generales de su cliente y conserva la ubicación al crear desde móvil. Migración aditiva `content.0258`; entrega mediante PR #416 a main, sin despliegue ni cambios en datos reales.
+
 # Propiedad intelectual y terminación del contrato — en verificación (2026-09-25)
 
 La migración `content.0257` perfecciona la cesión de desarrollos específicos y

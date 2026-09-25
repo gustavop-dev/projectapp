@@ -74,7 +74,7 @@
       <BaseInput
         v-model="searchInput"
         class="min-w-0 flex-1"
-        placeholder="Buscar cliente, proyecto, asunto o texto..."
+        :placeholder="t('communicationFiling.search')"
         aria-label="Buscar comunicaciones"
         data-testid="communications-search"
       />
@@ -163,7 +163,9 @@
         @select="selectNavigation"
         @toggle-archived="handleToggleArchived"
         @toggle-inactive-projects="handleToggleInactiveProjects"
-      />
+      >
+        <CommunicationFolderPanel :client-id="folderClientId" :project-id="folderProjectId" :selected="currentFilters.folder" :searching="Boolean(currentFilters.q.trim())" @select="selectFolder" @loaded="visibleFolders = $event" @changed="reloadThreadsAndCounts" />
+      </CommunicationNavigation>
 
       <BaseResizeHandle
         v-if="!isPanelStacked"
@@ -187,6 +189,9 @@
           </div>
         </div>
 
+        <div v-if="childFolders.length && !currentFilters.q.trim()" class="mb-3 flex flex-wrap gap-2" data-testid="communication-subfolders">
+          <BaseButton v-for="folder in childFolders" :key="folder.id" variant="secondary" @click="selectFolder(String(folder.id))"><BaseActionIcon action="folders" />{{ folder.name }}</BaseButton>
+        </div>
         <BaseEmptyState
           v-if="!store.isLoading && store.threads.length === 0"
           title="No hay hilos con este recorte"
@@ -242,7 +247,9 @@
           @select="handleDrawerSelection"
           @toggle-archived="handleToggleArchived"
           @toggle-inactive-projects="handleToggleInactiveProjects"
-        />
+        >
+          <CommunicationFolderPanel :client-id="folderClientId" :project-id="folderProjectId" :selected="currentFilters.folder" :searching="Boolean(currentFilters.q.trim())" @select="selectFolder" @loaded="visibleFolders = $event" @changed="reloadThreadsAndCounts" />
+        </CommunicationNavigation>
       </div>
     </BaseDrawer>
     </template>
@@ -286,6 +293,8 @@
             label="Proyecto"
             testid="communication-thread-project"
           />
+          <CommunicationFolderPicker v-model="threadForm.folder" :client-id="threadForm.client" :project-id="threadForm.project" />
+          <BaseAlert v-if="threadFormErrors.folder" variant="danger">{{ threadFormErrors.folder }}</BaseAlert>
           <BaseFormField
             v-slot="{ invalid, errorId }"
             label="Título"
@@ -321,6 +330,8 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import CommunicationFolderPanel from '~/components/communications/CommunicationFolderPanel.vue';
+import CommunicationFolderPicker from '~/components/communications/CommunicationFolderPicker.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import CommunicationFilterPanel from '~/components/communications/CommunicationFilterPanel.vue';
@@ -353,6 +364,8 @@ const ORDER_OPTIONS = [
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
+const visibleFolders = ref([]);
 const store = useCommunicationsStore();
 const notify = usePanelNotify();
 const { openRow } = useRowNavigation();
@@ -624,13 +637,14 @@ function selectedClientEntry(clientId) {
   return store.facets.clients.find((entry) => String(entry.id) === String(clientId));
 }
 
-function openThreadForm() {
+async function openThreadForm() {
   threadFormErrors.value = {};
   Object.assign(threadForm, {
     client: null,
     clientLabel: '',
     project: null,
     title: '',
+    folder: currentFilters.folder !== 'none' ? currentFilters.folder : '',
   });
 
   if (currentFilters.by === 'client' && currentFilters.client) {
@@ -649,6 +663,14 @@ function openThreadForm() {
         || '';
     }
   }
+  let folder = visibleFolders.value.find((item) => String(item.id) === String(threadForm.folder));
+  if (threadForm.folder && !folder) {
+    const result = await store.fetchFolders({ client: threadForm.client });
+    if (!result.success) { notify.error({ title: t('communicationFiling.loadError'), detail: result.message }); return; }
+    folder = result.data.find((item) => String(item.id) === String(threadForm.folder));
+    if (!folder) threadForm.folder = '';
+  }
+  if (folder) { threadForm.client = folder.client; threadForm.project = folder.project || threadForm.project; }
   threadFormOpen.value = true;
 }
 
@@ -656,6 +678,7 @@ function onThreadClientSelect(client) {
   clearThreadFormError('client');
   threadForm.clientLabel = client?.name || '';
   threadForm.project = null;
+  threadForm.folder = "";
 }
 
 async function createThread() {
@@ -669,6 +692,7 @@ async function createThread() {
     client: threadForm.client,
     project: threadForm.project || null,
     title: threadForm.title.trim(),
+    folder: threadForm.folder ? Number(threadForm.folder) : null,
   });
   if (!result.success) {
     threadFormErrors.value = result.fieldErrors || {};
@@ -681,5 +705,17 @@ async function createThread() {
   workspaceOpenedLocally.value = true;
   await router.push(threadLocation(result.data.id));
   notify.success({ title: 'Hilo creado' });
+}
+const folderProjectId = computed(() => currentFilters.by === 'project' && currentFilters.project !== 'none' ? currentFilters.project || null : null);
+const folderClientId = computed(() => currentFilters.by === 'client'
+  ? currentFilters.client || null
+  : store.facets.projects.find((entry) => String(entry.id) === String(folderProjectId.value))?.client_id || null);
+const childFolders = computed(() => visibleFolders.value.filter((folder) => (
+  String(folder.parent || '') === String(currentFilters.folder === 'none' ? '-' : currentFilters.folder)
+)));
+function selectFolder(id) {
+  currentFilters.folder = id;
+  page.value = 1;
+  navigationDrawerOpen.value = false;
 }
 </script>

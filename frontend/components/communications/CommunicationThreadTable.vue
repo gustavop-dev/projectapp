@@ -38,7 +38,8 @@
               class="block min-w-0 font-semibold text-text-default hover:text-text-brand"
               @click="$emit('link-activate', thread, $event)"
             >
-              <span class="block truncate">{{ thread.title }}</span>
+              <span class="flex min-w-0 gap-2"><span class="shrink-0 tabular-nums">#{{ thread.id }}</span><span class="truncate">{{ thread.title }}</span></span>
+              <span v-if="thread.folder_name" class="block truncate text-xs text-text-muted">{{ thread.folder_name }}</span>
             </BaseRowLink>
             <p class="mt-0.5 truncate text-xs text-text-subtle">
               <span class="font-medium text-text-muted">{{ thread.client_name }}</span>
@@ -114,7 +115,8 @@
         class="block min-w-0 font-semibold text-text-default hover:text-text-brand"
         @click="$emit('link-activate', row, $event)"
       >
-        <span class="block truncate" :title="row.title">{{ row.title }}</span>
+        <span class="flex min-w-0 gap-2"><span class="shrink-0 tabular-nums">#{{ row.id }}</span><span class="truncate" :title="row.title">{{ row.title }}</span></span>
+        <span v-if="row.folder_name" class="block truncate text-xs text-text-muted">{{ row.folder_name }}</span>
       </BaseRowLink>
     </template>
 

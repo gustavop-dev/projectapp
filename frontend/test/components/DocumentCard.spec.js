@@ -81,6 +81,17 @@ describe('DocumentCard', () => {
     expect(wrapper.text()).toContain('Alcance con')
   })
 
+  // Falla si la tarjeta deja de exponer el ID que permite referenciar el documento.
+  it('renders the document ID before the card title', async () => {
+    const wrapper = await mountCard()
+    const visibleId = wrapper.get('[data-testid="document-visible-id"]')
+    const title = wrapper.get('[data-testid="document-card-open-7"]')
+
+    expect(visibleId.text()).toBe('#7')
+    expect(visibleId.element.compareDocumentPosition(title.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
   it('puts a contained folder badge below an unbroken title', async () => {
     const wrapper = await mountCard({ document: longNamedDocument })
     const title = wrapper.get('[data-testid="document-card-open-7"]')

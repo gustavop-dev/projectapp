@@ -140,3 +140,5 @@ from .project_brand_asset import ProjectBrandAsset
 
 from .linktree_template import LinktreeTemplate, LinktreeTemplateVersion, LinktreeTemplateClick
 from .linktree_asset import LinktreeAsset
+
+from .communication_folder import CommunicationFolder

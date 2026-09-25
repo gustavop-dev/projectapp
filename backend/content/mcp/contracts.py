@@ -475,6 +475,11 @@ MCP_MODEL_CONTRACTS = {
     ),
     'communications': (
         _contract(
+            'content.CommunicationFolder',
+            read_only='id created_at updated_at',
+            read_write='name parent client project',
+        ),
+        _contract(
             'accounts.CommunicationPanelPreference',
             excluded=_excluded(
                 'Preferencia personal de interfaz; el MCP opera el registro '
@@ -489,7 +494,7 @@ MCP_MODEL_CONTRACTS = {
                 'id status last_activity_at closed_at created_at updated_at '
                 'managed_project managed_client is_archived archived_at'
             ),
-            read_write='client project title',
+            read_write='client project title folder',
             excluded=_excluded(_AUDIT_INTERNAL, 'created_by updated_by'),
         ),
         _contract(

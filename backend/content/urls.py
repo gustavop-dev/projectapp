@@ -251,6 +251,7 @@ from content.views.client_email_copy import (
     client_email_copy_recipient_detail,
     client_email_copy_recipients,
 )
+from content.views.communication_folder import communication_folders, communication_folder_detail
 from content.views.communication import (
     archive_communication_thread,
     close_communication_thread,
@@ -820,6 +821,8 @@ urlpatterns = [
     ),
 
     # ── Client communications registry ────────────────────────────
+    path('communications/folders/', communication_folders, name='communication-folders'),
+    path('communications/folders/<int:folder_id>/', communication_folder_detail, name='communication-folder-detail'),
     path('communications/threads/', communication_threads, name='communication-threads'),
     path(
         'communications/threads/tab-counts/',

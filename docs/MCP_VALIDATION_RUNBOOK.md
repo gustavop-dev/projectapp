@@ -946,3 +946,7 @@ excluidos del contrato MCP: son archivos administrados por sesión del panel.
 La exportación no agrega herramientas MCP ni permite editar la evidencia del
 contrato a través de `contract_params`. Revisar el contrato de campos al añadir
 cualquier campo nuevo a este modelo.
+
+### Carpetas de Comunicaciones
+
+Validar `list_folders`, `create_folder`, `update_folder`, `delete_folder` con un perfil de cliente y proyecto opcional. Rechazar ciclos, cambio de contexto y eliminación con hilos archivados. `create_thread`/`update_thread` reciben `folder_id`; null retira la ubicación, una comunicación madre lo rechaza. `list_threads` admite `folder=<id>|none`; con `q`, busca todas las carpetas del contexto. Una actualización exclusivamente organizativa funciona con hilo cerrado. Los contratos incluyen `CommunicationFolder` y `CommunicationThread.folder`; los servicios son los mismos del panel.

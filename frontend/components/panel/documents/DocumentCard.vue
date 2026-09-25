@@ -113,6 +113,8 @@ const meta = computed(() => {
     <div class="p-4">
       <!-- Sin `stretch`: el kebab vive en esta misma tarjeta y quedaría
            tapado. La tarjeta entera ya responde al clic simple. -->
+<div class="flex min-w-0 items-center gap-2">
+            <span class="shrink-0 text-xs tabular-nums text-text-muted" data-testid="document-visible-id">#{{ document.id }}</span>
       <BaseOverflowText
         :to="editTo"
         :text="document.title"
@@ -120,6 +122,7 @@ const meta = computed(() => {
         :test-id="`document-card-open-${document.id}`"
         content-classes="text-sm font-semibold leading-snug text-text-default"
       />
+            </div>
       <div
         v-if="document.folder_name || document.thread_summary"
         class="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-1"

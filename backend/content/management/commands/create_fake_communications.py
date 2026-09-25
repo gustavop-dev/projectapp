@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand
 from accounts.models import UserProfile
 from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 from content.models import CommunicationMessage, CommunicationThread, Document
-from content.services import communication_service
+from content.services import communication_service, communication_folder_service
 
 
 THREAD_TOPICS = (
@@ -53,6 +53,7 @@ class Command(BaseCommand):
         single_cut = max(1, round(requested * 0.20))
         long_cut = requested - max(1, round(requested * 0.20))
         message_total = 0
+        demo_folders = {}
 
         for index in range(requested):
             # Concentrate one third of the threads on the first client; the
@@ -68,8 +69,20 @@ class Command(BaseCommand):
             title = f'[Demo] {THREAD_TOPICS[index % len(THREAD_TOPICS)]} #{index + 1}'
             if index == requested - 1:
                 title = ('[Demo] ' + ('HiloExtremoSinEspacios' * 12))[:255]
+            folder = None
+            if index % 3:
+                key = (client.pk, project.pk if project else None)
+                if key not in demo_folders:
+                    root = communication_folder_service.save_folder(data={
+                        'name': '[Demo] Seguimiento', 'client': client, 'project': project,
+                    })
+                    child = communication_folder_service.save_folder(data={
+                        'name': '[Demo] Entregas', 'client': client, 'project': project, 'parent': root,
+                    })
+                    demo_folders[key] = (root, child)
+                folder = demo_folders[key][index % 2]
             thread = communication_service.create_thread(
-                actor=admin, client=client, project=project, title=title,
+                actor=admin, client=client, project=project, title=title, folder=folder,
             )
 
             # Preserve the historical one-thread smoke fixture while the

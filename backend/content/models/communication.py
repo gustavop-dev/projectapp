@@ -24,6 +24,10 @@ class CommunicationThread(models.Model):
         null=True,
         blank=True,
     )
+    folder = models.ForeignKey(
+        'content.CommunicationFolder', null=True, blank=True,
+        on_delete=models.PROTECT, related_name='threads',
+    )
     title = models.CharField(max_length=255)
     status = models.CharField(
         max_length=10,

@@ -1,5 +1,7 @@
 # Task Plan — ProjectApp
 
+> **2026-09-25 — organización y lectura de comunicaciones:** Implementadas carpetas por cliente/proyecto para hilos completos, búsqueda por ID y referencias visibles en Comunicaciones y Documentos. El modal permite plegar el formulario y sus detalles, saltar al inicio/final y copiar mediante un icono directo; marcar enviado pasa a Más. PR #416; migración aditiva 0258 para el despliegue.
+
 > **2026-09-25 — segundo intento de videos comerciales:** catálogo y Programa
 > de Alianza reciben piezas de 45 segundos con voz y música cálida, producidas
 > con brag/Hyperframes. Fuentes originales preservadas y copia de brag verificada.

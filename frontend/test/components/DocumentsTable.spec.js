@@ -126,6 +126,18 @@ describe('DocumentsTable — archived mode', () => {
     expect(cells[5].text()).toBe('—');
   });
 
+  // Falla si la tabla deja de mostrar el ID antes del título del documento.
+  it('renders the document ID before the table title', () => {
+    const wrapper = mountTable();
+    const row = wrapper.get('[data-testid="document-row-1"]');
+    const visibleId = row.get('[data-testid="document-visible-id"]');
+    const title = row.get('[data-testid="document-open-1"]');
+
+    expect(visibleId.text()).toBe('#1');
+    expect(visibleId.element.compareDocumentPosition(title.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it('labels the date column Creado in the active scope', () => {
     const wrapper = mountTable();
 

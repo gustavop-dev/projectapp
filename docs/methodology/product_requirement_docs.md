@@ -1093,3 +1093,7 @@ generales ([Ley 23 de 1982, art. 6](https://www.funcionpublica.gov.co/eva/gestor
 y de los supuestos legales de imitación desleal
 ([Ley 256 de 1996, art. 14](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=38871)).
 El otrosí conserva su revisión jurídica previa a firma.
+
+### Organización y lectura de comunicaciones (2026-09-25)
+
+El equipo puede organizar conversaciones completas en carpetas/subcarpetas por cliente/proyecto, identificar documentos e hilos por su ID y encontrarlos mediante búsqueda exacta. El lector permite saltar al inicio/final, plegar la redacción y sus detalles conservando datos, y copiar mensajes directamente. Los hilos madre mantienen su papel de entrada y la organización no modifica el histórico.

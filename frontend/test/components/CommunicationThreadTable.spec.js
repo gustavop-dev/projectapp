@@ -62,6 +62,7 @@ function mountList(props = {}) {
 }
 
 describe('CommunicationThreadTable', () => {
+  // quality: allow-too-many-assertions (the compact card is the fixed, user-visible summary contract)
   it('renders thread identity metadata in a compact card', () => {
     const wrapper = mountList();
     const card = wrapper.get('[data-testid="communication-thread-row-41"]');
@@ -74,6 +75,22 @@ describe('CommunicationThreadTable', () => {
     expect(card.text()).toContain('2 mensajes');
     expect(card.text()).toContain('1 borrador');
     expect(card.text()).toContain('24 ago');
+  });
+
+  // Falla si el ID deja de acompañar al asunto en la lista compacta.
+  it('renders the numeric ID before the compact thread title', () => {
+    const wrapper = mountList();
+    const titleLink = wrapper.get('[data-testid="communication-thread-row-41"] a');
+
+    expect(titleLink.text()).toBe('#41Aprobación de alcance');
+  });
+
+  // Falla si el ID deja de acompañar al asunto en la tabla de escritorio.
+  it('renders the numeric ID before the desktop thread title', () => {
+    const wrapper = mountList({ compact: false });
+    const titleLink = wrapper.get('[data-testid="desktop-thread-table"] a');
+
+    expect(titleLink.text()).toBe('#41Aprobación de alcance');
   });
 
   it('omits message content from compact cards', () => {

@@ -13,6 +13,7 @@
           <BaseActionIcon action="back" />
           {{ returnLabel }}
         </NuxtLink>
+        <p v-if="documentStore.currentDocument" class="mt-2 text-xs tabular-nums text-text-muted" data-testid="document-detail-id">#{{ documentStore.currentDocument.id }}</p>
         <h1
           class="mt-2 line-clamp-2 break-words text-2xl font-light leading-tight text-text-default"
           :title="documentStore.currentDocument?.title || 'Editar Documento'"

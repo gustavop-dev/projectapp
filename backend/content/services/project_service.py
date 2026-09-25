@@ -345,9 +345,14 @@ def change_client_apply(project, new_profile, mode, user):
         ).update(
             project=None,
             managed_project=None,
+            folder=None,
             updated_by=user,
             updated_at=timezone.now(),
         )
+
+    # Old correspondence folders remain with their historical client.
+    from content.models import CommunicationFolder
+    CommunicationFolder.objects.filter(project=project).update(project=None)
 
     if mode == MODE_MOVE:
         for record in sets['hostings']:

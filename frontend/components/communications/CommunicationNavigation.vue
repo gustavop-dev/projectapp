@@ -207,6 +207,7 @@
           </BaseCollapse>
         </li>
       </ul>
+      <slot />
     </nav>
   </aside>
 </template>

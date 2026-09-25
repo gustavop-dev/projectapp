@@ -264,9 +264,11 @@ def build_document_list_queryset(
 
     search = str(params.get('search') or '').strip()[:search_max_length]
     if search:
-        documents = documents.filter(
-            Q(title__icontains=search) | Q(client_name__icontains=search),
-        )
+        from content.services.record_id_search import id_search_predicate
+        exact_id, predicate = id_search_predicate(search)
+        if not exact_id:
+            predicate |= Q(title__icontains=search) | Q(client_name__icontains=search)
+        documents = documents.filter(predicate)
 
     documents = documents.annotate(
         _has_delivered_collection_email=Exists(delivered_targets),
