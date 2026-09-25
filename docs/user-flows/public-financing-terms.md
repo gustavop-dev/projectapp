@@ -4,6 +4,6 @@
 - **Role:** guest
 - **Priority:** P2
 - **Route:** `/:locale/partnership-program`
-- **Interaction:** Expand one legal-rule accordion and read the complete detail associated with that condition.
+- **Interaction:** Expandir una regla para leer su detalle. La no competencia conceptual exige la modalidad de cinco años, coincidencia de sector, nicho y proyecto competidor, con alcance escrito; un segundo ciclo no extiende su vigencia.
 - **Outcomes:** `success`
 - **Evidence:** `Financing/ProgramView.vue` agreement-rule disclosures.

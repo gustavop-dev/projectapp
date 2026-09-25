@@ -1076,3 +1076,20 @@ The canonical counts, commands and exceptions are maintained in
 ## Documentación para formalización
 
 En Documentos de cada propuesta se descargan el contrato final y los anexos comercial/técnico curados. El correo de formalización precarga tres adjuntos seleccionables, admite documentos de la propuesta, Para/CC y secciones ordenables con Markdown seguro. La revisión muestra los archivos que se enviarán. Las secciones de venta, ROI, CTA y evolución futura quedan fuera de los anexos; la curaduría no inventa obligaciones ni criterios. Si falta información estructurada indispensable, se corrige en la propuesta o se desmarca el documento. Una preparación obsoleta o vencida no se puede enviar.
+
+## Programa de Alianza: exclusividad conceptual (2026-09-25)
+
+La opción de cinco años incorpora la renuncia de Project App. a desarrollar
+para otros clientes proyectos competidores del mismo sector y nicho que
+reproduzcan conceptos, ideas o enfoques específicos del producto acordado.
+Rige durante los cinco años originales; un segundo ciclo no la extiende.
+Sector, nicho, producto y conceptos se delimitan por escrito en propuesta y
+contrato. La modalidad de tres años conserva sus condiciones y excluye este
+compromiso adicional. Confidencialidad, propiedad intelectual y competencia
+leal siguen siendo obligaciones independientes en ambas modalidades.
+
+La redacción distingue el compromiso contractual de la apropiación de ideas
+generales ([Ley 23 de 1982, art. 6](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=3431))
+y de los supuestos legales de imitación desleal
+([Ley 256 de 1996, art. 14](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=38871)).
+El otrosí conserva su revisión jurídica previa a firma.

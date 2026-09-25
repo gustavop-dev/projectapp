@@ -330,6 +330,25 @@ test.describe('Admin financing agreements', () => {
     await expect(page.getByTestId('financing-new-agreement')).toBeVisible()
   })
 
+  test('limits the conceptual exclusivity benefit to the five-year modality', {
+    tag: [...ADMIN_FINANCING_AGREEMENT_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupApi(page, { rows: [] })
+    await openAgreementList(page)
+    await page.getByTestId('financing-new-agreement').click()
+    const benefits = page.getByTestId('financing-modality-benefits')
+
+    await expect(benefits).toContainText('no reproduciremos para otros clientes conceptos, ideas o enfoques específicos')
+    await expect(page.getByText('Para la exclusividad conceptual a cinco años', { exact: false })).toBeVisible()
+    await page.getByTestId('financing-modality-three').click()
+
+    await expect(benefits).toContainText('ni exclusividad conceptual a cargo de Project App.')
+    await expect(benefits).not.toContainText('no reproduciremos')
+    await expect(page.getByText('Para la exclusividad conceptual a cinco años', { exact: false })).toHaveCount(0)
+    await page.getByTestId('financing-modality-five').click()
+    await expect(benefits).toContainText('durante los cinco años no reproduciremos')
+  })
+
   test('creates a populated draft from a selected client', {
     tag: [...ADMIN_FINANCING_AGREEMENT_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

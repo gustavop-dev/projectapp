@@ -4,6 +4,6 @@
   "module": "public",
   "roles": ["guest"],
   "priority": "P2",
-  "description": "Visitor expands a financing rule and reads its complete contractual context without leaving the commercial overview.",
+  "description": "El visitante expande las reglas de la alianza y consulta su detalle, incluido el alcance de la no competencia conceptual para proyectos competidores del mismo sector y nicho durante la vigencia original de cinco años.",
   "outcomes": ["success"]
 }

@@ -5665,7 +5665,7 @@ Two transitions that were previously bundled into other flows now have their own
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P1
-- **Routes:** `/panel/financing?tab=agreements`, `/panel/financing/new`, `/panel/financing/:id`
+- **Routes:** `/panel/partnership-program?tab=agreements`, `/panel/partnership-program/new`, `/panel/partnership-program/:id`
 - **Interaction:** Crear un borrador de otrosí desde el registro administrativo.
 
 | Outcome | Inicio → acción → resultado observable |
@@ -5677,6 +5677,7 @@ Two transitions that were previously bundled into other flows now have their own
 
 - **Reglas:** el cliente debe estar activo; propuesta y proyecto opcionales deben pertenecerle; el valor equivalente debe quedar dentro del rango inclusivo vigente; el abono debe respetar el mínimo derivado del análisis de riesgo; las cuotas deben sumar exactamente el saldo y usar la cantidad y ventana de vencimiento de la revisión congelada.
 - **Coverage:** ✅ Covered
+- **Modalidad:** seleccionar cinco años muestra el compromiso de exclusividad conceptual de Project App. y pide delimitar sector, nicho, producto y conceptos en el alcance. Tres años excluye ese compromiso adicional. Los borradores resuelven el texto según la selección; los documentos preparados conservan su snapshot.
 - **E2E Spec:** `e2e/admin/admin-financing-agreements.spec.js`
 - **Backend Tests:** `content/tests/views/test_financing_agreements.py`, `content/tests/services/test_financing_agreement_service.py`
 
@@ -8182,7 +8183,7 @@ Selectores estables: `template-file-input`, `template-upload-validate`, `templat
 - **Role:** guest
 - **Priority:** P1
 - **Route:** `/:locale/partnership-program`
-- **Interaction:** Follow the footer link and read the two partnership options, four conditions, calculator input/output, monthly package rules and WhatsApp call to action.
+- **Interaction:** Navegar desde el pie público y comparar las dos modalidades y ocho condiciones; la exclusividad conceptual de Project App. se ofrece sólo a cinco años para proyectos competidores del mismo sector y nicho. Consultar también calculadora, paquete mensual y contacto por WhatsApp.
 - **Outcomes:** `display`
 - **Evidence:** public financing page/component and `GET /api/financing/public/`.
 
@@ -8213,7 +8214,7 @@ Selectores estables: `template-file-input`, `template-upload-validate`, `templat
 - **Role:** guest
 - **Priority:** P2
 - **Route:** `/:locale/partnership-program`
-- **Interaction:** Expand one legal-rule accordion and read the complete detail associated with that condition.
+- **Interaction:** Expandir una regla para leer su detalle. La no competencia conceptual exige la modalidad de cinco años, coincidencia de sector, nicho y proyecto competidor, con alcance escrito; un segundo ciclo no extiende su vigencia.
 - **Outcomes:** `success`
 - **Evidence:** `Financing/ProgramView.vue` agreement-rule disclosures.
 

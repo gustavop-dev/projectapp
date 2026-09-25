@@ -90,7 +90,7 @@ const panelCapabilities = [
         ['/panel/additional-modules'],
         { icon: 'puzzle', stage: 'Venta' }),
       feature('panel-financing', 'Gestionar el Programa de Alianza y sus otrosíes',
-        'Reúne las condiciones bilingües, la vista pública, las políticas versionadas y la preparación, firma y seguimiento de otrosíes de financiación.',
+        'Reúne las condiciones bilingües, la exclusividad conceptual sólo a cinco años, la vista pública, las políticas versionadas y la preparación, firma y seguimiento de otrosíes de financiación.',
         'Permite explicar la alianza y formalizar cada financiación con datos, calendario, documentos privados e historial trazable.',
         ['/panel/partnership-program', '/panel/partnership-program/new', '/panel/partnership-program/:id', '/panel/financing', '/panel/financing/new', '/panel/financing/:id'],
         { icon: 'credit-card', stage: 'Venta' }),
@@ -451,7 +451,7 @@ const publicCapabilities = [
     'Ayuda al prospecto a evaluar una alianza de largo plazo antes de formalizar una propuesta.',
     [
       feature('public-financing', 'Comprender el Programa de Alianza',
-        'Presenta dos opciones de alianza, siete condiciones, reglas expandibles, tema local, guía, video, PDF y un diálogo para compartir el programa.',
+        'Presenta dos opciones de alianza, ocho condiciones con exclusividad conceptual sólo a cinco años, reglas expandibles, tema local, guía, video, PDF y un diálogo para compartir el programa.',
         'Convierte condiciones técnicas y legales en una explicación comercial clara y compartible.',
         ['/partnership-program'],
         { icon: 'credit-card', actors: ['prospect'], stage: 'Evaluación' }),

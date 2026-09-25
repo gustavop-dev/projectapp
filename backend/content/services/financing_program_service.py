@@ -47,7 +47,9 @@ PROGRAM_CONTENT = {
                 'summary': (
                     'La opción de mayor continuidad: financiación, exclusividad, '
                     'custodia de código, calculadora de requerimientos y un paquete '
-                    'mensual de 60 horas incluido sin costo adicional. Cuando el '
+                    'mensual de 60 horas incluido sin costo adicional. Añade exclusividad '
+                    'conceptual de Project App. para el mismo sector, nicho y tipo '
+                    'de proyecto durante la alianza. Cuando el '
                     'primer ciclo se paga por completo, puede habilitar un segundo '
                     'ciclo de 12 meses sujeto a una nueva evaluación de riesgo.'
                 ),
@@ -59,6 +61,7 @@ PROGRAM_CONTENT = {
                     'Hasta dos ciclos separados de 12 meses al 0% de interés ordinario.',
                     'El segundo exige pago íntegro del primero y una nueva aprobación.',
                     '60 horas disponibles cada mes desde la salida a producción.',
+                    'Exclusividad conceptual a cargo de Project App. durante los cinco años.',
                 ],
             },
             {
@@ -68,7 +71,7 @@ PROGRAM_CONTENT = {
                 'summary': (
                     'Conserva la financiación, la exclusividad, la custodia del código '
                     'y la transparencia de la calculadora, pero no incluye el paquete '
-                    'mensual de horas.'
+                    'mensual de horas ni la exclusividad conceptual a cargo de Project App.'
                 ),
                 'exclusivity_years': 3,
                 'financing_cycles': 1,
@@ -78,6 +81,7 @@ PROGRAM_CONTENT = {
                     '12 meses de financiación al 0% de interés ordinario.',
                     'Tres años de continuidad bajo el acuerdo de exclusividad.',
                     'Requerimientos futuros cotizados de forma independiente.',
+                    'Sin el compromiso adicional de exclusividad conceptual de la opción a cinco años.',
                 ],
             },
         ],
@@ -183,6 +187,30 @@ PROGRAM_CONTENT = {
                     'Opera automáticamente desde el vencimiento y no sustituye la cuota pendiente.',
                 ],
             },
+            {
+                'id': 'conceptual-exclusivity',
+                'number': '08',
+                'icon': '◇',
+                'title': 'Exclusividad conceptual — sólo a 5 años',
+                'summary': (
+                    'Al elegir la alianza de cinco años, Project App. renuncia durante '
+                    'esa vigencia a desarrollar para otros clientes proyectos '
+                    'competidores del mismo sector y nicho que reproduzcan conceptos, '
+                    'ideas o enfoques específicos del producto acordado.'
+                ),
+                'commercial_reason': (
+                    'El compromiso protege la diferenciación del producto y alinea '
+                    'nuestra participación con su crecimiento: las decisiones '
+                    'conceptuales trabajadas contigo no se trasladan a un proyecto '
+                    'equivalente para un competidor en el mismo mercado.'
+                ),
+                'highlights': [
+                    'Beneficio exclusivo de la modalidad a cinco años; no aplica a la de tres.',
+                    'Mismo sector, mismo nicho y proyecto equivalente con finalidad competidora.',
+                    'Prohíbe reproducir o adaptar para terceros los conceptos, ideas y enfoques específicos acordados.',
+                    'El alcance se delimita por escrito en la propuesta y el contrato.',
+                ],
+            },
         ],
         'calculator': {
             'eyebrow': 'Transparencia para decidir',
@@ -280,6 +308,18 @@ PROGRAM_CONTENT = {
                 ],
             },
             {
+                'id': 'conceptual-exclusivity-scope',
+                'title': 'No competencia conceptual en la alianza a cinco años',
+                'summary': 'Un compromiso de Project App. limitado al producto, su mercado y la vigencia pactada.',
+                'items': [
+                    'Aplica únicamente al elegir la modalidad de cinco años y durante su vigencia original; un segundo ciclo no reinicia ni extiende este plazo.',
+                    'Project App. se obliga a no desarrollar, reproducir ni adaptar para otros clientes conceptos, ideas o enfoques específicos trabajados para el producto en proyectos iguales o sustancialmente similares que compitan en el mismo sector y nicho.',
+                    'La propuesta y el contrato delimitan por escrito el sector, el nicho, el producto y los conceptos o enfoques comprendidos. La restricción requiere la coincidencia de ese ámbito y una finalidad competidora.',
+                    'No supone una prohibición general de atender todo el sector ni impide usar conocimientos técnicos generales, herramientas o componentes reutilizables, siempre que no se reproduzca el planteamiento específico protegido ni se revele información confidencial.',
+                    'Es un compromiso contractual entre las partes, sin atribuir propiedad sobre ideas generales. Las obligaciones de confidencialidad, propiedad intelectual y las normas de competencia desleal que resulten aplicables se respetan en ambas modalidades.',
+                ],
+            },
+            {
                 'id': 'code-custody',
                 'title': 'Custodia de código no es cesión de propiedad',
                 'summary': 'Project App. protege la continuidad técnica sin apropiarse del producto.',
@@ -371,7 +411,9 @@ PROGRAM_CONTENT = {
                 'summary': (
                     'The highest-continuity option: financing, exclusivity, code '
                     'custody, the requirement calculator, and a monthly 60-hour package '
-                    'included at no additional cost. Once the first cycle is fully '
+                    'included at no additional cost. It adds conceptual exclusivity '
+                    'by Project App. for the same sector, niche, and type of project '
+                    'during the partnership. Once the first cycle is fully '
                     'paid, a second 12-month cycle may be approved after a new risk review.'
                 ),
                 'exclusivity_years': 5,
@@ -382,6 +424,7 @@ PROGRAM_CONTENT = {
                     'Up to two separate 12-month cycles at 0% ordinary interest.',
                     'The second requires full payment of the first and a new approval.',
                     '60 hours available each month after production starts.',
+                    'Conceptual exclusivity by Project App. throughout the five-year term.',
                 ],
             },
             {
@@ -390,7 +433,8 @@ PROGRAM_CONTENT = {
                 'badge': 'Alternative',
                 'summary': (
                     'Keeps financing, exclusivity, code custody, and calculator '
-                    'transparency, but does not include the monthly hour package.'
+                    'transparency, but does not include the monthly hour package '
+                    'or conceptual exclusivity by Project App.'
                 ),
                 'exclusivity_years': 3,
                 'financing_cycles': 1,
@@ -400,6 +444,7 @@ PROGRAM_CONTENT = {
                     '12-month financing at 0% ordinary interest.',
                     'Three years of continuity under the exclusivity agreement.',
                     'Future requirements quoted independently.',
+                    'Excludes the additional conceptual exclusivity commitment of the five-year option.',
                 ],
             },
         ],
@@ -505,6 +550,30 @@ PROGRAM_CONTENT = {
                     'It applies automatically at default and does not replace the unpaid installment.',
                 ],
             },
+            {
+                'id': 'conceptual-exclusivity',
+                'number': '08',
+                'icon': '◇',
+                'title': 'Conceptual exclusivity — five-year option only',
+                'summary': (
+                    'By choosing the five-year partnership, Project App. agrees for '
+                    'that term not to develop competing projects for other clients '
+                    'in the same sector and niche that reproduce specific concepts, '
+                    'ideas, or approaches from the agreed product.'
+                ),
+                'commercial_reason': (
+                    'This commitment protects the product’s differentiation and aligns '
+                    'our participation with its growth: conceptual decisions developed '
+                    'with you are not transferred to an equivalent project for a '
+                    'competitor in the same market.'
+                ),
+                'highlights': [
+                    'Exclusive to the five-year option; it does not apply to the three-year option.',
+                    'The same sector, the same niche, and an equivalent project with a competing purpose.',
+                    'Prohibits reproducing or adapting the agreed specific concepts, ideas, and approaches for third parties.',
+                    'The proposal and contract define the scope in writing.',
+                ],
+            },
         ],
         'calculator': {
             'eyebrow': 'Transparency for better decisions',
@@ -598,6 +667,18 @@ PROGRAM_CONTENT = {
                     'It covers development, maintenance, support, infrastructure, updates, and technical continuity for the product.',
                     'It does not restrict unrelated client products or initiatives outside the financed project.',
                     'The term begins on the production date defined in the formal agreement.',
+                ],
+            },
+            {
+                'id': 'conceptual-exclusivity-scope',
+                'title': 'Conceptual non-compete in the five-year partnership',
+                'summary': 'A commitment by Project App. limited to the product, its market, and the agreed term.',
+                'items': [
+                    'It applies only when the five-year option is chosen and during its original term; a second cycle does not restart or extend this period.',
+                    'Project App. undertakes not to develop, reproduce, or adapt for other clients specific concepts, ideas, or approaches developed for the product in identical or substantially similar projects competing in the same sector and niche.',
+                    'The proposal and contract define the sector, niche, product, and covered concepts or approaches in writing. The restriction requires both a matching scope and a competing purpose.',
+                    'It is not a general ban on serving the entire sector and does not prevent the use of general technical knowledge, tools, or reusable components, provided the protected specific approach is not reproduced and confidential information is not disclosed.',
+                    'This is a contractual commitment between the parties, without claiming ownership of general ideas. Confidentiality, intellectual property obligations, and applicable unfair competition rules are respected under both options.',
                 ],
             },
             {
@@ -719,7 +800,9 @@ def _apply_policy_content(payload, policy, language):
         five_year['summary'] = (
             'La opción de mayor continuidad: financiación, exclusividad, custodia '
             'de código, calculadora de requerimientos y un paquete mensual de 60 '
-            f'horas incluido. Al pagar el primer ciclo, puede habilitarse un segundo '
+            'horas incluido. Añade exclusividad conceptual de Project App. para '
+            'el mismo sector, nicho y tipo de proyecto durante la alianza. '
+            f'Al pagar el primer ciclo, puede habilitarse un segundo '
             f'ciclo de {months} meses sujeto a una nueva evaluación de riesgo.'
         )
         five_year['highlights'][0] = (
@@ -739,7 +822,8 @@ def _apply_policy_content(payload, policy, language):
             f'del mes. Una cuota en mora aumenta en {late_percent}% el costo vigente '
             'del Hosting.'
         )
-        payload['conditions'].extend([
+        # Keep the policy conditions before the five-year-only condition (08).
+        payload['conditions'][5:5] = [
             {
                 'id': 'project-value-range',
                 'number': '06',
@@ -781,7 +865,7 @@ def _apply_policy_content(payload, policy, language):
                     f'Financiación máxima: {maximum_percent}% del valor aprobado.',
                 ],
             },
-        ])
+        ]
         terms['approval']['items'] = [
             'Project App. evalúa la viabilidad técnica, comercial y de riesgo del proyecto.',
             f'El alcance debe sumar entre {minimum} y {maximum}, ambos inclusive.',
@@ -810,6 +894,8 @@ def _apply_policy_content(payload, policy, language):
         five_year['summary'] = (
             'The highest-continuity option: financing, exclusivity, code custody, '
             'the requirement calculator, and an included monthly 60-hour package. '
+            'It adds conceptual exclusivity by Project App. for the same sector, '
+            'niche, and type of project during the partnership. '
             f'After the first cycle is paid, a second {months}-month cycle may be '
             'approved following a new risk review.'
         )
@@ -830,7 +916,7 @@ def _apply_policy_content(payload, policy, language):
             f'of the month. A late installment increases the current Hosting cost '
             f'by {late_percent}%.'
         )
-        payload['conditions'].extend([
+        payload['conditions'][5:5] = [
             {
                 'id': 'project-value-range',
                 'number': '06',
@@ -872,7 +958,7 @@ def _apply_policy_content(payload, policy, language):
                     f'Maximum financing: {maximum_percent}% of approved value.',
                 ],
             },
-        ])
+        ]
         terms['approval']['items'] = [
             'Project App. evaluates the project’s technical, commercial, and risk viability.',
             f'The scope must total from {minimum} through {maximum}, inclusive.',
