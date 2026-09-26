@@ -283,6 +283,28 @@ test.describe('Admin Accounting Cards', () => {
     expect(calls.some((call) => call.method === 'DELETE')).toBe(true);
   });
 
+  // The cupo caps the disponible: an edit that exceeds it is refused before
+  // anything is sent, with the reason beside the field.
+  test('an edit whose disponible exceeds the cupo is refused with its reason', {
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [snapshotRow()], calls }));
+    await gotoCards(page);
+
+    await page.getByTestId('cards-actions-1').click();
+    await page.getByTestId('cards-action-edit-1').click();
+    await expect(
+      page.getByRole('heading', { name: 'Editar Registro de Tarjeta' }),
+    ).toBeVisible();
+    await page.locator('form input[inputmode="numeric"]').fill('9000000');
+
+    await expect(page.getByTestId('card-snapshot-debt-preview'))
+      .toHaveText('El disponible no puede superar el cupo de la tarjeta.');
+    await expect(page.getByTestId('card-snapshot-form-submit')).toBeDisabled();
+    expect(calls).toHaveLength(0);
+  });
+
   // Bug caught: the snapshot actions lived in a trailing "Acciones" column,
   // with a loose history button, instead of the panel's leading three-dot menu.
   test('the leading three-dot menu owns every snapshot action', {

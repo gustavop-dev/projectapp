@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { openRowMenu } from '../helpers/row-actions.js';
+import { chooseRowAction, openRowMenu } from '../helpers/row-actions.js';
 import {
   ADMIN_ACCOUNTING_ADS,
   ADMIN_ACCOUNTING_HISTORY,
@@ -118,8 +118,9 @@ function recipientRow(overrides = {}) {
  * @param {Array} options.calls        collected requests, for payload assertions
  * @param {Array} [options.recipients] rows served by the recipients list
  * @param {object} [options.createError] serializer error the create call returns
+ * @param {object} [options.adsUpdateError] serializer error the ads edit returns
  */
-function buildHandler({ calls, recipients, createError }) {
+function buildHandler({ calls, recipients, createError, adsUpdateError }) {
   const recipientRows = recipients ?? [recipientRow()];
   return async ({ route, apiPath, method }) => {
     const url = new URL(route.request().url());
@@ -206,6 +207,13 @@ function buildHandler({ calls, recipients, createError }) {
     if (/^accounting\/ads\/\d+\/update\/$/.test(apiPath) && method === 'PATCH') {
       const body = route.request().postDataJSON();
       calls.push({ apiPath, method, body });
+      if (adsUpdateError) {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify(adsUpdateError),
+        };
+      }
       return {
         status: 200,
         contentType: 'application/json',
@@ -334,6 +342,32 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await expect(page.getByText('Gasto en Ads actualizado')).toBeVisible();
     const update = calls.find((call) => call.method === 'PATCH');
     expect(update.apiPath).toBe('accounting/ads/1/update/');
+  });
+
+  test('a rejected ads edit keeps the form open and says why', {
+    tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the edit starts at
+    // the row's kebab, which IS driven below)
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      adsUpdateError: { amount: ['El valor debe ser mayor a cero.'] },
+    }));
+    await page.goto('/panel/accounting/ads', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
+
+    await chooseRowAction(page, {
+      kebab: 'ads-actions-1',
+      menu: 'ads-actions-modal',
+      action: 'ads-action-edit-1',
+    });
+    await page.getByTestId('ad-spend-form-submit').click();
+
+    await expect(page.getByText('No se pudo actualizar el gasto en Ads')).toBeVisible();
+    // Nothing was lost: the form is still there to correct and retry.
+    await expect(page.getByRole('heading', { name: 'Editar Gasto en Ads' })).toBeVisible();
+    expect(calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
   });
 
   test('history renders audit rows and expands the field diff', {
