@@ -123,5 +123,5 @@ def test_security_inventory_lists_every_channel():
     }
 
 
-def test_inventory_contains_57_unique_channels():
-    assert len(OUTBOUND_EMAIL_CHANNELS) == 57
+def test_inventory_contains_58_unique_channels():
+    assert len(OUTBOUND_EMAIL_CHANNELS) == 58
