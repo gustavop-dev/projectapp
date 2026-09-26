@@ -6121,7 +6121,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 27 |
 | `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
-| `admin-accounting-statements` | admin | P2 | display,success,error,failure | 11 |
+| `admin-accounting-statements` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
 | `admin-additional-modules-catalog` | admin | P1 | success,display,failure | 5 |
 | `admin-additional-modules-explainer` | admin | P3 | success | 1 |
@@ -6659,7 +6659,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/hostings`
-- **Description:** Client hosting registry: monthly value, payment modality, validity and billing contact, with KPI cards and modal CRUD. New records offer exactly quarterly, semiannual and every-9-month modalities; `payment_per_cycle` is derived from the monthly value. Legacy monthly/annual rows remain readable as historical values but cannot be selected for new records. Estado is inline; ciclos/total pagado are read-only and computed from cycle history. Cliente and Proyecto remain separate linked columns. Every row leads with a single three-dots button at every width (after the selection checkbox); its menu opens with **Detalle e historial** and **Ver nota** (when present), then cycles, cuenta de cobro, emails, edit and delete.
+- **Description:** Client hosting registry: monthly value, payment modality, validity and billing contact, with KPI cards and modal CRUD. New records offer exactly quarterly, semiannual and every-9-month modalities; `payment_per_cycle` is derived from the monthly value. Legacy monthly/annual rows remain readable as historical values but cannot be selected for new records. Estado is inline; ciclos/total pagado are read-only and computed from cycle history. Cliente and Proyecto remain separate linked columns. Every row leads with a single three-dots button at every width (after the selection checkbox); its menu opens with **Detalle e historial** and **Ver nota** (when present), then cycles, cuenta de cobro, emails, edit and delete. On a phone Valor/mes groups under Cliente so the row fits without a horizontal scroll.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 

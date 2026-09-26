@@ -261,6 +261,32 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
     await expect(page.getByRole('heading', { name: 'Editar transacción' })).toBeVisible();
   });
 
+  // Bug caught: in the phone card the amount's inline editor laid out 8px
+  // narrower than it measured and broke "$450.000" across two lines.
+  test('a transaction card on a phone keeps its amount on one line', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:display', '@responsive:accounting'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; this test pins the
+    // phone card of a transaction, whose menu is opened below)
+    await page.setViewportSize({ width: 412, height: 915 });
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoStatements(page);
+    await openDraft(page);
+
+    const amount = page.getByTestId('tx-cell-amount-10');
+    await expect(amount).toContainText('$450.000');
+    const lines = await amount.getByTestId('inline-cell-display').evaluate((display) => {
+      const value = display.querySelector('span');
+      return Math.round(
+        value.getBoundingClientRect().height / parseFloat(getComputedStyle(value).lineHeight),
+      );
+    });
+    expect(lines).toBe(1);
+
+    await page.getByTestId('statement-tx-actions-10').click();
+    await expect(page.getByTestId('statement-tx-actions-modal')).toContainText('Hetzner');
+  });
+
   test('a single click edits the merchant of a draft row and PATCHes it', {
     tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

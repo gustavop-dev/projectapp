@@ -78,7 +78,7 @@ de compatibilidad y nunca acreditan layout, tablas o modales.
 | Bolsillo | En `compact` usa tarjetas con Concepto, Valor y **Saldo después**; en `portrait` vuelve la tabla priorizada y desde `landscape` existe columna independiente de Saldo. Con filtros se lee **Acumulado filtrado**. |
 | Ingresos | Concepto y Total permanecen; cliente, tipo, cobro, mes, origen y proyecto se agrupan. Lista/Agrupada conservan una sola acción inicial. |
 | Gastos | Concepto y Total permanecen; período, categoría, contabilidad y repartos se agrupan. Una sola acción inicial abre Detalle e historial, Ver nota, Editar y Eliminar. |
-| Hostings | Cliente, Valor/mes y Estado permanecen; dominio y vigencia vuelven desde `landscape`; en todos los perfiles una sola acción inicial abre Detalle e historial, Ver nota, ciclos, cobro, correos, editar y eliminar. |
+| Hostings | Cliente y Estado permanecen; Valor/mes se agrupa en `compact` y vuelve desde `portrait`; dominio y vigencia vuelven desde `landscape`; en todos los perfiles una sola acción inicial abre Detalle e historial, Ver nota, ciclos, cobro, correos, editar y eliminar. |
 | Cuentas de cobro | Número, Total y Estado permanecen; cliente y vencimiento vuelven desde `landscape`; Lista/Agrupada comparten el menú completo, que abre con Detalle e historial. |
 | Recurrentes | Nombre y equivalente COP mensual permanecen; encabezado de categoría, subtotal y participación se leen completos. El menú inicial abre con Detalle e historial y Ver nota. |
 | Ads | Plataforma y Valor permanecen; fecha, tarjeta, participación y acumulado se agrupan. Una sola acción inicial abre Detalle e historial, Ver nota, Editar y Eliminar. |

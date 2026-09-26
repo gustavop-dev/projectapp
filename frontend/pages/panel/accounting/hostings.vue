@@ -158,7 +158,9 @@
              different facts into one editable cell; it is now the billing
              snapshot and lives in the form. -->
         <template #cell-client_display_name="{ row }">
-          <span class="inline-flex items-center gap-1.5">
+          <!-- Wraps so a narrow column drops the badge to its own line instead
+               of breaking the client name letter by letter. -->
+          <span class="inline-flex flex-wrap items-center gap-1.5">
             <HighlightText
               v-if="row.client_display_name"
               :text="row.client_display_name"
@@ -743,8 +745,11 @@ const columns = [
     responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
   },
   {
+    // Grouped on a phone: checkbox, kebab, Cliente, Valor/mes and the Estado
+    // select did not fit 412px, and the client name was squeezed to one
+    // letter per line. It keeps its column from the portrait tablet up.
     key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true,
-    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+    responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
   },
   {
     key: 'payment_modality_label', label: 'Modalidad',

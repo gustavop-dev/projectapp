@@ -517,6 +517,15 @@ function runTxAction(id, tx) {
     grid-row: 1;
   }
 
+  /* The inline cell's editable area is `w-full max-w-full` with a negative
+   * inline margin, so in this auto-sized track it laid out 8px narrower than it
+   * measured and the amount broke across two lines. Auto width, uncapped, keeps
+   * both the same. */
+  .statement-transaction-row > [data-field="amount"] :deep(.touch-target) {
+    width: auto;
+    max-width: none;
+  }
+
   .statement-transaction-row > [data-field="transaction_date"],
   .statement-transaction-row > [data-field="raw_description"],
   .statement-transaction-row > [data-field="category"],

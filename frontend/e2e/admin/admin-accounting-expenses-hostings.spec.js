@@ -452,7 +452,12 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     const row = page.getByTestId('accounting-row-1');
     await expect(row).toBeVisible({ timeout: 25_000 });
 
-    await expectNoBlankBand(row.locator('xpath=ancestor::table'));
+    const table = row.locator('xpath=ancestor::table');
+    await expectNoBlankBand(table);
+    // Valor/mes groups under Cliente on a phone, so the row fits without a
+    // horizontal scroll and the Estado select stays whole.
+    expect(await table.locator('..').evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true);
     await expect(row.getByTestId('accounting-actions-cell-1').getByRole('button')).toHaveCount(1);
 
     await openRowMenu(page, { kebab: 'hosting-actions-1', menu: 'hosting-actions-modal' });
