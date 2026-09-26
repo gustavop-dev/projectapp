@@ -1,5 +1,7 @@
 # Task Plan — ProjectApp
 
+> **2026-09-26 — acciones de fila contables:** todas las tablas y listas de Contabilidad abren sus acciones desde un único kebab inicial; «Detalle e historial» y «Ver nota» son las primeras entradas del menú. Las tablas `menu-start` ya no dejan una franja en blanco en celular ni en tableta vertical. PR #420; sólo frontend.
+
 > **2026-09-25 — organización y lectura de comunicaciones:** Implementadas carpetas por cliente/proyecto para hilos completos, búsqueda por ID y referencias visibles en Comunicaciones y Documentos. El modal permite plegar el formulario y sus detalles, saltar al inicio/final y copiar mediante un icono directo; marcar enviado pasa a Más. PR #416; migración aditiva 0258 para el despliegue.
 
 > **2026-09-25 — segundo intento de videos comerciales:** catálogo y Programa

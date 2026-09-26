@@ -1,3 +1,19 @@
+# Acciones de fila y notas en Contabilidad — PR #420 (2026-09-26)
+
+Todo el módulo contable usa un solo estándar de acciones de fila: tres puntos
+al inicio (track fijo de 56 px, sin rótulo visible) que abren un modal cuya
+primera entrada es «Detalle e historial», seguida de «Ver nota» cuando el
+registro tiene nota. Se migraron Gastos, Ads, Hostings, Extractos (movimientos
+y alias), Configuración (destinatarios y catálogo de tarjetas) y el log de
+correos de Historial, que también se usa en el modal de correos de Clientes.
+Tarjetas abre su columna Notas con «Ver nota». Las piezas compartidas son
+`AccountingRowActionsModal` y `AccountingRowActionsButton`, y se retiró
+`EntityHistoryRecordButton`. `BaseResponsiveTable` corrige las tablas
+`menu-start` en anchos angostos: layout auto con columnas de datos sin ancho
+por debajo de 1024 px y reparto del 100 % por perfil desde 1024 px, sin franja
+en blanco. Entrega mediante PR #420 a main; sin cambios de backend ni
+migraciones.
+
 # Carpetas y lectura de Comunicaciones — PR #416 (2026-09-25)
 
 Implementado en `feat/25092026-communication-folders-reading`: carpetas independientes por cliente/proyecto, IDs visibles y buscables, lectura del hilo con formulario y detalles plegables, accesos al inicio/final y copia directa. REST y MCP comparten las reglas de contexto, jerarquía y borrado protegido. La navegación de proyecto incluye las carpetas generales de su cliente y conserva la ubicación al crear desde móvil. Migración aditiva `content.0258`; entrega mediante PR #416 a main, sin despliegue ni cambios en datos reales.
