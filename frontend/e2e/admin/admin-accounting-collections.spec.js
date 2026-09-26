@@ -1406,11 +1406,14 @@ test.describe('Admin Accounting Collections', () => {
     // browser test follows the positive path all the way to the saved copy.
     await chooseCollectionAction(page, 1, 'notes');
 
-    const body = page.getByTestId('collection-notes-body');
+    // The shared note dialog of the accounting menus, plus who can read it.
+    const body = page.getByTestId('accounting-note-body');
     await expect(body).toBeVisible();
     await expect(body).toContainText('Acordado por WhatsApp');
     // The line break the operator typed survives the round trip.
     await expect(body).toContainText('Pagan el 15, no antes.');
+    await expect(page.getByTestId('accounting-note-hint'))
+      .toContainText('no se muestran al cliente');
   });
 
   test('the preview swaps email and PDF behind tabs when the window is too narrow', {
