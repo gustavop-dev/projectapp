@@ -13,7 +13,7 @@ jest.mock('../../stores/services/request_http', () => ({
   delete_request: jest.fn(),
 }));
 
-const { get_request, create_request, delete_request } = require('../../stores/services/request_http');
+const { get_request, create_request, patch_request, delete_request } = require('../../stores/services/request_http');
 
 const row = { id: 7, title: 'Admin', status: 'active' };
 
@@ -78,6 +78,99 @@ describe('useSecureLinksStore', () => {
     expect(result.success).toBe(false);
     expect(result.error.code).toBe('link_consumed');
     expect(result.error.message).toBe('Este enlace ya fue utilizado.');
+  });
+
+  it('loads the type catalog once and reuses it', async () => {
+    get_request.mockResolvedValue({ data: { types: [{ key: 'credentials', fields: [] }] } });
+
+    await store.fetchTypes();
+    await store.fetchTypes();
+
+    expect(get_request).toHaveBeenCalledTimes(1);
+    expect(store.typeByKey('credentials').key).toBe('credentials');
+    expect(store.typeByKey('missing')).toBeNull();
+  });
+
+  it('reports catalog, list and detail failures without breaking state', async () => {
+    get_request.mockRejectedValue({ response: { status: 500, data: { detail: 'falló' } } });
+
+    const types = await store.fetchTypes();
+    const list = await store.fetchLinks();
+    const detail = await store.fetchDetail(7);
+
+    expect(types.success).toBe(false);
+    expect(list.success).toBe(false);
+    expect(store.error).toBe('fetch_failed');
+    expect(store.isLoading).toBe(false);
+    expect(detail.error.message).toBe('falló');
+  });
+
+  it('updates an existing row in place after reactivation and revocation', async () => {
+    store.links = [row];
+    store.count = 1;
+    create_request.mockResolvedValueOnce({ data: { ...row, status: 'active', url: 'https://x#t' } });
+    create_request.mockResolvedValueOnce({ data: { ...row, status: 'revoked' } });
+
+    await store.reactivateLink(7, { validity_days: 3 });
+    await store.revokeLink(7);
+
+    expect(store.links).toEqual([{ ...row, status: 'revoked' }]);
+    expect(store.count).toBe(1);
+  });
+
+  it('returns field errors when a write fails', async () => {
+    patch_request.mockRejectedValue({ response: { status: 400, data: { title: ['Obligatorio.'] } } });
+
+    const result = await store.updateLink(7, { title: '' });
+
+    expect(result.success).toBe(false);
+    expect(result.error.fieldErrors.title).toBeTruthy();
+    expect(store.isUpdating).toBe(false);
+  });
+
+  it('reports failures to copy, delete, view or create publicly', async () => {
+    create_request.mockRejectedValue({ response: { status: 404, data: { error: 'No existe.' } } });
+    delete_request.mockRejectedValue({ response: { status: 500, data: {} } });
+
+    const url = await store.fetchLinkUrl(7);
+    const content = await store.viewContent(7);
+    const created = await store.publicCreate({});
+    const removed = await store.deleteLink(7);
+
+    expect([url.success, content.success, created.success, removed.success]).toEqual([false, false, false, false]);
+    expect(url.error.message).toBe('No existe.');
+    expect(removed.error.message).toBe('No se pudo eliminar el enlace.');
+  });
+
+  it('falls back to empty defaults when the list payload is empty', async () => {
+    get_request.mockResolvedValueOnce({ data: undefined });
+    get_request.mockResolvedValueOnce({ data: {} });
+
+    await store.fetchLinks();
+    const types = await store.fetchTypes();
+
+    expect([store.links, store.count, store.page, store.pageSize, store.counts]).toEqual([[], 0, 1, 25, {}]);
+    expect([store.unopenedReceived, store.publicCreateUrl]).toEqual([0, '']);
+    expect(types.data).toEqual([]);
+  });
+
+  it('reports a missing token on the public status call', async () => {
+    create_request.mockRejectedValueOnce({ response: { status: 404, data: { error: 'Este enlace no existe', code: 'link_not_found' } } });
+
+    const result = await store.publicStatus('nope');
+
+    expect(result.error.code).toBe('link_not_found');
+  });
+
+  it('ignores rows without id and returns an empty URL when the server omits it', async () => {
+    create_request.mockResolvedValueOnce({ data: {} });
+    create_request.mockResolvedValueOnce({ data: {} });
+
+    await store.revokeLink(7);
+    const url = await store.fetchLinkUrl(7);
+
+    expect(store.links).toEqual([]);
+    expect(url).toEqual({ success: true, url: '' });
   });
 
   it('removes a deleted link from the list', async () => {

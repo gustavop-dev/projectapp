@@ -32,6 +32,9 @@ async function setupPanel(page, { rows = [secureLinkRow()], create } = {}) {
   const calls = { create: [], content: 0, revoke: 0, reactivate: [] };
   await mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'auth/check/') return json({ user: { username: 'admin', is_staff: true } });
+    if (apiPath === 'panel/dashboard/' && method === 'GET') {
+      return json({ finance: null, proposals: { total_proposals: 0, by_status: {}, recent: [] }, additional_modules: {}, operations: {}, attention: [] });
+    }
     if (apiPath === 'secure-links/public/types/') return json({ types: secureLinkTypes });
     if (apiPath === 'secure-links/' && method === 'GET') return json(listPayload(store));
     if (apiPath === 'secure-links/create/' && method === 'POST') {
@@ -128,7 +131,8 @@ test.describe('Admin secure links', () => {
     const calls = await setupPanel(page, {
       rows: [secureLinkRow({ status: 'consumed', consumed_at: '2026-09-26T15:30:00Z' })],
     });
-    await page.goto('/panel/secure-links', { waitUntil: 'domcontentloaded' });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('link', { name: 'Enlaces seguros', exact: true }).click();
 
     await expect(page.getByTestId('secure-links-tabs')).toContainText('Usados (1)');
     await page.getByTestId('secure-link-actions-7').filter({ visible: true }).click();
