@@ -59,7 +59,7 @@ def test_detail_serves_the_complete_live_draft(admin_client, mirror):
 
     assert data['is_contract_mirror'] is True
     markdown = data['content_markdown']
-    assert markdown.startswith('# CONTRATO DE PRESTACION DE SERVICIOS')
+    assert markdown.startswith('# CONTRATO DE PRESTACIÓN DE SERVICIOS')
     assert '## CLÁUSULA DÉCIMA PRIMERA — CONFIDENCIALIDAD Y NO CIRCUNVENCIÓN' in markdown
     assert '## EN CONSTANCIA DE LO ANTERIOR,' in markdown
     assert 'XXX-XXX-XXX' in markdown
@@ -72,6 +72,7 @@ def test_pdf_is_the_draft_the_client_downloads(admin_client, mirror):
     assert response.status_code == 200
     assert response['Content-Type'] == 'application/pdf'
     text = _pdf_text(response.content)
+    assert 'CONTRATO DE PRESTACIÓN' in text
     assert 'CONFIDENCIALIDAD Y NO CIRCUNVENCIÓN' in text
     assert 'XXX-XXX-XXX' in text
 

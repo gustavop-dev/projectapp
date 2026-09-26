@@ -264,7 +264,7 @@ def _draw_title_page(c, y, params, ps):
     """Draw the contract title section on the first page."""
     c.setFont(_font('light'), 22)
     c.setFillColor(ESMERALD)
-    c.drawString(MARGIN_L, y, 'CONTRATO DE PRESTACION')
+    c.drawString(MARGIN_L, y, 'CONTRATO DE PRESTACIÓN')
     y -= 28
     c.drawString(MARGIN_L, y, 'DE SERVICIOS')
     y -= 36
@@ -371,7 +371,7 @@ def resolve_contract_content(proposal, draft=False, *, force_default=False):
         contractor = literal(params.get('contractor_full_name', ''))
         date = literal(params.get('contract_date', ''))
         snapshot = (
-            '# CONTRATO DE PRESTACION DE SERVICIOS\n\n'
+            '# CONTRATO DE PRESTACIÓN DE SERVICIOS\n\n'
             f'ENTRE: {client} (EL CONTRATANTE)\n\n'
             f'Y: {contractor} (EL CONTRATISTA)\n\n'
             + (f'Fecha: {date}\n\n' if date else '')

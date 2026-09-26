@@ -463,7 +463,7 @@ test.describe('Admin Document Edit', () => {
       title: 'Contrato de prestación de servicios — borrador vigente',
       slug: 'contrato-vigente',
       is_contract_mirror: true,
-      content_markdown: '# CONTRATO DE PRESTACION DE SERVICIOS\n\n## CLÁUSULA PRIMERA — OBJETO DEL CONTRATO\n',
+      content_markdown: '# CONTRATO DE PRESTACIÓN DE SERVICIOS\n\n## CLÁUSULA PRIMERA — OBJETO DEL CONTRATO\n',
       active_states: [],
       notes: [],
     };
