@@ -15,8 +15,18 @@ negrilla, uno por párrafo, y las referencias a "literal": el parser del PDF
 unía los `a)` consecutivos y ambos renderizadores renumeraban las listas
 `N.`. Un solo grupo atómico: una sección personalizada deja la plantilla
 intacta con aviso. Los títulos largos de cláusula ya no se salen del PDF.
+
+**Un solo contrato.** Producción servía la v7 (sin #410/#412 desplegados) y
+el Gestor guardaba una copia manual v6 (doc #104). Ahora la plantilla default
+es el único texto, de solo lectura en el admin y cambiada sólo por migración.
+`ContractTemplate.mirror_document` (0260) enlaza un documento del Gestor que
+no guarda copia: panel, PDF, correos y MCP lo sirven en vivo, igual al
+borrador público, con descarga PDF/Markdown y sin edición, duplicado,
+archivado ni borrado. La 0261 convierte el #104 en esa ventana. La 0262
+alinea el párrafo de alcance de las propuestas (otrosí + no renuncia) y el
+texto de financiación dice que la cesión opera con el acta tras el pago.
 Pendiente del operador tras el despliegue: confirmar en el lector público y
-decidir si regenera los PDFs de contratos en negociación.
+en el #104, y decidir si regenera los PDFs de contratos en negociación.
 
 # Propiedad intelectual y terminación del contrato — en verificación (2026-09-25)
 
