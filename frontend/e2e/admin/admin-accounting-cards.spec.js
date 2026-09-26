@@ -303,7 +303,6 @@ test.describe('Admin Accounting Cards', () => {
     expect(actionsBox.x).toBeLessThan(cardBox.x);
     await expect(row.getByTestId('accounting-actions-cell-1').getByRole('button')).toHaveCount(1);
     await expect(page.getByTestId('accounting-edit-1')).toHaveCount(0);
-    await expect(page.getByTestId('history-record-open')).toHaveCount(0);
 
     await page.getByTestId('cards-actions-1').click();
     const menu = page.getByTestId('cards-actions-modal');

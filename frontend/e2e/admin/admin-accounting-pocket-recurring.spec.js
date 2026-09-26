@@ -556,7 +556,6 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
 
     const actionsCell = row.getByTestId('accounting-actions-cell-1');
     await expect(actionsCell.getByRole('button')).toHaveCount(1);
-    await expect(page.getByTestId('history-record-open')).toHaveCount(0);
     const spill = await actionsCell.evaluate((cell) => cell.scrollWidth - cell.clientWidth);
     expect(spill).toBeLessThanOrEqual(0);
 
@@ -973,7 +972,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       await expect(page.getByTestId('accounting-edit-1')).toHaveCount(0);
       await expect(page.getByTestId('accounting-delete-1')).toHaveCount(0);
       // The history button used to sit beside the kebab and overflow its track.
-      await expect(page.getByTestId('history-record-open')).toHaveCount(0);
+      await expect(page.getByTestId('accounting-actions-cell-1').getByRole('button')).toHaveCount(1);
     });
 
     test('duplicate opens a recalculated draft and creates only after review', {

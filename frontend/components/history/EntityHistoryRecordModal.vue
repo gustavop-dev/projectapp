@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import EntityHistoryTabs from './EntityHistoryTabs.vue';
 import HistoryValue from './HistoryValue.vue';
 // Controlled so a row-actions menu can open it: a three-dot track has room for
-// the kebab only. EntityHistoryRecordButton wraps it for inline triggers.
+// the kebab only, so «Detalle e historial» is always a menu entry.
 const props = defineProps({
   open: { type: Boolean, default: false },
   entityType: { type: String, required: true },

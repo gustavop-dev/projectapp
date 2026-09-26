@@ -324,7 +324,6 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     const row = page.getByTestId('accounting-row-1');
     await expect(row).toBeVisible({ timeout: 25_000 });
     await expect(row.getByTestId('accounting-actions-cell-1').getByRole('button')).toHaveCount(1);
-    await expect(page.getByTestId('history-record-open')).toHaveCount(0);
 
     await openRowMenu(page, { kebab: 'ads-actions-1', menu: 'ads-actions-modal' });
     await expect(page.getByTestId('ads-action-history-1')).toBeVisible();

@@ -366,7 +366,6 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
 
     await expect(page.getByRole('columnheader', { name: 'Acciones' })).toHaveText('');
     await expect(row.getByTestId('accounting-actions-cell-1').getByRole('button')).toHaveCount(1);
-    await expect(page.getByTestId('history-record-open')).toHaveCount(0);
     await expect(page.getByTestId('accounting-edit-1')).toHaveCount(0);
 
     await openRowMenu(page, { kebab: 'expense-actions-1', menu: 'expense-actions-modal' });

@@ -252,7 +252,6 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
 
     const row = page.getByTestId('statement-tx-10');
     await expect(row.locator('[data-field="actions"]').getByRole('button')).toHaveCount(1);
-    await expect(page.getByTestId('history-record-open')).toHaveCount(0);
 
     await openRowMenu(page, { kebab: 'statement-tx-actions-10', menu: 'statement-tx-actions-modal' });
     await expect(page.getByTestId('statement-tx-action-history-10')).toBeVisible();
