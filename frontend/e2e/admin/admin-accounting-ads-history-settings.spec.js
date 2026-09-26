@@ -475,9 +475,12 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByTestId('recipients-remove-1')).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByTestId('recipients-actions-1')).toBeVisible({ timeout: 25_000 });
 
-    await page.getByTestId('recipients-remove-1').click();
+    // Quitar lives in the row's menu, after the recipient's history.
+    await openRowMenu(page, { kebab: 'recipients-actions-1', menu: 'recipients-actions-modal' });
+    await expect(page.getByTestId('recipients-action-history-1')).toBeVisible();
+    await page.getByTestId('recipients-action-remove-1').click();
 
     // The confirmation spells out what stops arriving before anything is lost.
     await expect(page.getByText('Dejará de recibir los avisos')).toBeVisible();
