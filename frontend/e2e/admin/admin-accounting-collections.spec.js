@@ -12,6 +12,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { expectNoBlankBand } from '../helpers/table-geometry.js';
 import {
   ADMIN_ACCOUNTING_COLLECTIONS,
   ADMIN_ACCOUNTING_COLLECTION_GROUPING,
@@ -633,6 +634,8 @@ test.describe('Admin Accounting Collections', () => {
 
     expect(await scroller.evaluate((element) => element.scrollWidth <= element.clientWidth))
       .toBe(true);
+    // Fitting is not enough: the visible columns must also reach the edge.
+    await expectNoBlankBand(table);
     await expect(page.getByTestId('accounting-actions-header')).toBeVisible();
     await expect(action).toBeVisible();
     await expect(status).toHaveCSS('white-space', 'nowrap');
