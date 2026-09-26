@@ -7,6 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { openRowMenu } from '../helpers/row-actions.js';
 import {
   ADMIN_ACCOUNTING_ADS,
   ADMIN_ACCOUNTING_HISTORY,
@@ -202,6 +203,15 @@ function buildHandler({ calls, recipients, createError }) {
         body: JSON.stringify({ ...ADS_ROWS[0], id: 99, ...body }),
       };
     }
+    if (/^accounting\/ads\/\d+\/update\/$/.test(apiPath) && method === 'PATCH') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...ADS_ROWS[0], ...body }),
+      };
+    }
     if (apiPath === 'accounting/change-logs/' && method === 'GET') {
       calls.push({
         apiPath,
@@ -299,6 +309,32 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await expect(page.getByText('Gasto en Ads creado')).toContainText('Gasto en Ads creado');
     const create = calls.find((call) => call.method === 'POST');
     expect(create.body.spend_date).toBe('2026-07-01');
+  });
+
+  // Bug caught: Ads kept a trailing «Acciones» column with a loose history
+  // button beside the edit and delete icons.
+  test('an ads spend is edited from its row menu', {
+    tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the edit starts at
+    // the row's kebab, which IS driven below)
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/ads', { waitUntil: 'domcontentloaded' });
+    const row = page.getByTestId('accounting-row-1');
+    await expect(row).toBeVisible({ timeout: 25_000 });
+    await expect(row.getByTestId('accounting-actions-cell-1').getByRole('button')).toHaveCount(1);
+    await expect(page.getByTestId('history-record-open')).toHaveCount(0);
+
+    await openRowMenu(page, { kebab: 'ads-actions-1', menu: 'ads-actions-modal' });
+    await expect(page.getByTestId('ads-action-history-1')).toBeVisible();
+    await page.getByTestId('ads-action-edit-1').click();
+    await expect(page.getByRole('heading', { name: 'Editar Gasto en Ads' })).toBeVisible();
+    await page.getByTestId('ad-spend-form-submit').click();
+
+    await expect(page.getByText('Gasto en Ads actualizado')).toBeVisible();
+    const update = calls.find((call) => call.method === 'PATCH');
+    expect(update.apiPath).toBe('accounting/ads/1/update/');
   });
 
   test('history renders audit rows and expands the field diff', {

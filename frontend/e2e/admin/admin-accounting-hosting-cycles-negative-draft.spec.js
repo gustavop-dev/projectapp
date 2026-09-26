@@ -9,6 +9,7 @@ import { ADMIN_ACCOUNTING_HOSTING_CYCLES } from '../helpers/flow-tags.js';
 import {
   BACKFILL_CYCLE,
   buildHandler,
+  chooseHostingAction,
   gotoHostings,
 } from '../helpers/accounting-hosting-cycles.js';
 
@@ -38,7 +39,7 @@ test.describe('Admin Accounting Hosting Cycles — negative outcomes', () => {
     }));
     await gotoHostings(page);
 
-    await page.getByTestId('hosting-cycles-1').click();
+    await chooseHostingAction(page, 1, 'cycles');
     const cycleSubmit = page.getByTestId('cycle-submit');
     await expect(cycleSubmit).toBeEnabled();
     await cycleSubmit.click();
@@ -67,7 +68,7 @@ test.describe('Admin Accounting Hosting Cycles — negative outcomes', () => {
     }));
     await gotoHostings(page);
 
-    await page.getByTestId('hosting-cycles-1').click();
+    await chooseHostingAction(page, 1, 'cycles');
 
     await expect(
       page.getByText('No se pudieron cargar los ciclos', { exact: true }),
