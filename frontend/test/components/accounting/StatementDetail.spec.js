@@ -224,7 +224,11 @@ describe('StatementDetail row menu', () => {
 
     await wrapper.get('[data-testid="statement-tx-actions-5"]').trigger('click');
 
-    expect(menuIds(wrapper)).not.toContain('statement-tx-action-delete-5');
+    // A finalized statement keeps its detail and edit entries, never delete.
+    expect(menuIds(wrapper)).toEqual([
+      'statement-tx-action-history-5',
+      'statement-tx-action-edit-5',
+    ]);
   });
 
   it('opens the note of a transaction that has one', async () => {

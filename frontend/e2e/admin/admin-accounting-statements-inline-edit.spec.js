@@ -244,6 +244,8 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
   test('a transaction opens its full editor from its row menu', {
     tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; this test pins the
+    // transaction row menu, driven through the kebab below)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoStatements(page);
     await openDraft(page);

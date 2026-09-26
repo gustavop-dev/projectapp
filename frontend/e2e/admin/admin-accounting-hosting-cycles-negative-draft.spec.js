@@ -11,6 +11,7 @@ import {
   buildHandler,
   chooseHostingAction,
   gotoHostings,
+  openHostingMenu,
 } from '../helpers/accounting-hosting-cycles.js';
 
 test.setTimeout(60_000);
@@ -68,7 +69,8 @@ test.describe('Admin Accounting Hosting Cycles — negative outcomes', () => {
     }));
     await gotoHostings(page);
 
-    await chooseHostingAction(page, 1, 'cycles');
+    await openHostingMenu(page, 1);
+    await page.getByTestId('hosting-cycles-1').click();
 
     await expect(
       page.getByText('No se pudieron cargar los ciclos', { exact: true }),

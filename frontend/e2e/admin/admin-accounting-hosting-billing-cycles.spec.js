@@ -114,7 +114,8 @@ test.describe('Admin Accounting Hosting Cycles', () => {
     );
     await gotoHostings(page);
 
-    await chooseHostingAction(page, 1, 'cycles');
+    await openHostingMenu(page, 1);
+    await page.getByTestId('hosting-cycles-1').click();
 
     await expect(
       page.getByRole('heading', { name: 'Ciclos de pago — German — Kore' }),
