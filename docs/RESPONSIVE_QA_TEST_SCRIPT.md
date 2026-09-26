@@ -63,12 +63,12 @@ de compatibilidad y nunca acreditan layout, tablas o modales.
 | Projects | 3 | listado, crear/editar, cambio guiado de cliente y seguimiento de monitoreo |
 | Commercial | 19 | propuestas, diagnósticos, paquetes, módulos adicionales y financiación |
 | Emails | 3 | compositor, adjuntos, preview, historial y entregabilidad |
-| Communications | 1 | ordenar, abrir hilo, leer estados/adjuntos y registrar mensaje |
+| Communications | 2 | ordenar, abrir hilo, leer estados/adjuntos y registrar mensaje; abrir un enlace seguro y ver su contenido |
 | Canvas | 2 | metadata, editor/preview y guard de salida |
 | Dashboard | 4 | pulso, radar, tareas, admins, estadísticas y mapa de vistas |
 | Content | 11 | blog, LinkedIn, portafolio, QR y linktrees |
 | MCP | 1 | expandir conector, actividad/tools, token y activación |
-| Public | 21 | marketing, contacto, legales, blog, portafolio y experiencias compartidas |
+| Public | 23 | marketing, contacto, legales, blog, portafolio, experiencias compartidas y enlaces seguros |
 
 ## Contabilidad: decisiones de los doce tabs
 
