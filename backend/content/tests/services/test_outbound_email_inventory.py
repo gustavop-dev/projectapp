@@ -74,6 +74,7 @@ def test_documents_inventory_lists_every_channel():
         'proposal_documents_sent',
         'branded_email',
         'proposal_email',
+        'secure_link_received_team',
     }
 
 
