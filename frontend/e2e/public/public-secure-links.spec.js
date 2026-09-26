@@ -50,37 +50,49 @@ test('opening the page does not consume the link until Show content is pressed',
   expect(calls.reveal).toEqual([{ token: SECURE_LINK_TOKEN }]);
 });
 
-test('a used link explains how to get it reactivated', {
+test('a link used by someone else meanwhile explains how to get it reactivated', {
   tag: [...PUBLIC_SECURE_LINK_REVEAL, '@role:guest', '@outcome:failure'],
 }, async ({ page }) => {
-  await mockReveal(page, { status: publicStatus({ status: 'consumed', can_reveal: false }) });
+  await mockReveal(page, {
+    reveal: json({ error: 'Este enlace ya fue utilizado.', code: 'link_consumed' }, 410),
+  });
 
   await page.goto(VIEW_URL, { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('secure-link-reveal').click();
 
   await expect(page.getByTestId('secure-link-state-consumed')).toHaveText('Este enlace ya fue utilizado');
-  await expect(page.getByText(/pide a quien te lo envió que lo reactive/)).toBeVisible();
-  await expect(page.getByTestId('secure-link-reveal')).toHaveCount(0);
+  await expect(page.getByText(/pide a quien te lo envió que lo reactive/)).toHaveCount(1);
+  await expect(page.getByTestId('secure-link-content')).toHaveCount(0);
 });
 
-test('a link without token or with an unknown token is reported as invalid', {
+test('the recipient reads the link metadata and copies a revealed value', {
   tag: [...PUBLIC_SECURE_LINK_REVEAL, '@role:guest', '@outcome:display'],
-}, async ({ page }) => {
-  await mockReveal(page, { status: json({ error: 'Este enlace no existe', code: 'link_not_found' }, 404) });
+}, async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await mockReveal(page);
 
+  // quality: allow-deep-link (the emailed one-time URL is the only real entry point to this page)
   await page.goto(VIEW_URL, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('secure-link-view-page')).toContainText('Credenciales de acceso · Enviado por ProjectApp');
+  await page.getByTestId('secure-link-reveal').click();
+  await page.getByTestId('secure-link-copy-password').click();
 
-  await expect(page.getByTestId('secure-link-state-not_found')).toHaveText('Enlace no válido');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('S3cr3t-E2E!');
 });
 
-test('a link created by a client asks for the team session', {
+test('a link created by a client sends the team member to sign in and keeps the token', {
   tag: [...PUBLIC_SECURE_LINK_REVEAL, '@role:guest', '@outcome:display'],
 }, async ({ page }) => {
   await mockReveal(page, { status: publicStatus({ team_only: true, can_reveal: false, sender: 'Laura' }) });
+  await page.route('**/admin/login/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<main>login</main>' }));
 
+  // quality: allow-deep-link (the emailed one-time URL is the only real entry point to this page)
   await page.goto(VIEW_URL, { waitUntil: 'domcontentloaded' });
-
-  await expect(page.getByTestId('secure-link-staff-login')).toBeVisible();
   await expect(page.getByTestId('secure-link-reveal')).toHaveCount(0);
+  await page.getByTestId('secure-link-staff-login').click();
+
+  await expect(page).toHaveURL(/\/admin\/login\/\?next=%2Fes-co%2Fsecure-link%2Fview$/);
+  expect(await page.evaluate(() => sessionStorage.getItem('secure-link-pending-token'))).toBe(SECURE_LINK_TOKEN);
 });
 
 async function mockCreate(page, { create } = {}) {
